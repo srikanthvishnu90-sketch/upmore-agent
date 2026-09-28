@@ -2,3 +2,6 @@
 .beta_jwt
 tests/agent100/results/
 shots-5tab/
+
+# test evidence may contain live session tokens — never commit
+tests/**/evidence/

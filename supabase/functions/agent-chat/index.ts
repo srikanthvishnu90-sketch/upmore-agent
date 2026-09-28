@@ -256,6 +256,21 @@ serve(async (req) => {
     // the grounding post-check use the full `routes` array.
     const PROMPT_ROUTE_LIMIT = 60;
     const promptRoutes = standardRoutes.slice(0, PROMPT_ROUTE_LIMIT);
+    // INSTANT-START PIN (2026-09-28): an "rn"/"right now" request must get a
+    // concrete method WITH exact links, never "go search the app store". Top
+    // earn-ratio ranking buries low-payout instant routes (Fetch etc.), so pin
+    // up to 5 fresh verified app-based no-prerequisite routes at the top of
+    // the model's cards. Dedupe against the top-60.
+    const freshMs = 7 * 24 * 3600 * 1000;
+    const instantPool = routes.filter((r) =>
+      (r.lane ?? "Standard") === "Standard" &&
+      r.status === "researched" && r.verified_at &&
+      Date.now() - new Date(r.verified_at).getTime() < freshMs &&
+      ((r as any).ios_url || (r as any).android_url)
+    );
+    const seenIds = new Set(promptRoutes.map((r) => r.route_id));
+    const pinnedRoutes = instantPool.filter((r) => !seenIds.has(r.route_id)).slice(0, 5);
+    for (const r of pinnedRoutes) promptRoutes.unshift(r);
     // Fast lookup: route_id → card (validates model actions against reality).
     const routeIdSet = new Set(routes.map((r) => r.route_id));
     const routeSteps = (rid: string) => routes.find((r) => r.route_id === rid)?.steps?.length ?? 0;

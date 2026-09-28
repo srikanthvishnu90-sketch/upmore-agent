@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-DJT8Idtx+9mz0cJu9siReCJuqta48NwdS8WGx+c5TnE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-/bCKUT1nj4X+CT2TogyhnA/AOeuhcnOEeNumN4HshZc=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -807,6 +807,9 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .moneyrow .s b { color: var(--up); font-weight: 700; }
   .moneyrow .s.dim { color: var(--muted); }
+  .moneyrow .samplepill { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: #E8A33D; border: 1px solid rgba(232,163,61,.45);
+    border-radius: 20px; padding: 2px 8px; margin-left: 6px; vertical-align: 1px; }
   .moneyrow .chev { flex: none; width: 34px; height: 34px; border-radius: 50%;
     border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05);
     display: flex; align-items: center; justify-content: center;
@@ -999,6 +1002,7 @@
   .cctx { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--nsil2);
     max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cdotok { width: 6px; height: 6px; border-radius: 50%; background: var(--nmint); flex: none; }
+  .cdotwarn { width: 6px; height: 6px; border-radius: 50%; background: #E8A33D; flex: none; }
   .csend { width: 40px; height: 40px; border-radius: 50%; border: 0;
     display: grid; place-items: center; flex: none;
     background: linear-gradient(180deg, #2E7D5B, #1E5A3E); color: #fff;
@@ -3321,12 +3325,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     let td = {};
     try { td = (typeof loadTrackData === "function") ? loadTrackData() : {}; } catch (e) {}
     const live = !!(td && td.isLive);
+    // Signed-out figures derive from the sample corpus — never present them
+    // as the user's real money. They carry a visible "Sample" tag.
+    const sampleFigs = !signedIn;
 
     // TRACK → net worth. netWorthCalc() is demo-safe by construction
     // (signed-in without a live bank excludes demo accounts).
     try {
       const nw = netWorthCalc();
-      out.track = { fig: bm0(nw.total), sub: "net worth" };
+      out.track = { fig: bm0(nw.total), sub: "net worth", sample: sampleFigs };
     } catch (e) { out.track = dash("net worth"); }
 
     // BUDGET → safe to spend = budgeted − spent, current month.
@@ -3345,7 +3352,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           const mSpent = rows.reduce((s, r) => s + (r.spent || 0), 0);
           const left = Math.max(0, mBudget - mSpent);
           const mName = new Date(ym + "-01T12:00:00").toLocaleString("en-US", { month: "short" });
-          out.budget = { fig: bm0(left), sub: `safe to spend · ${mName}` };
+          out.budget = { fig: bm0(left), sub: `safe to spend · ${mName}`, sample: sampleFigs };
         }
       }
     } catch (e) { out.budget = dash("safe to spend"); }
@@ -3412,8 +3419,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     list.innerHTML = HOME_MONEY_CARDS.map(c => {
       const f = figs[c.key] || {};
       const hasFig = f.fig && f.fig !== "—";
+      const sampleTag = f.sample ? `<span class="samplepill">Sample</span>` : "";
       const sub = hasFig
-        ? `<span class="s"><b>${esc(f.fig)}</b> &middot; ${esc(f.sub || "")}</span>`
+        ? `<span class="s"><b>${esc(f.fig)}</b>${sampleTag} &middot; ${esc(f.sub || "")}</span>`
         : `<span class="s dim">${esc(f.sub || "")}</span>`;
       return `<button class="moneyrow" data-mgo="${c.go}" aria-label="${c.title}">
         <span class="mtile" style="background:${c.color}">${c.tile}</span>
@@ -11471,10 +11479,14 @@ function chatClearThread() {
   chatFeedEl().scrollTop = 0;
 }
 function updateChatCtx() {
+  // Honest context chip: "Demo data" (amber) when signed out, date (green)
+  // when signed in. Never silently clobber the warning.
   try {
-    const now = new Date();
-    const d = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
-    const el = $("chatCtx"); if (el) el.textContent = d;
+    const el = $("chatCtxText"); if (!el) return;
+    const demo = !(typeof session !== "undefined" && session && session.user);
+    el.textContent = demo ? "Demo data" : new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+    const dot = el.parentElement.querySelector(".cdotok, .cdotwarn");
+    if (dot) dot.className = demo ? "cdotwarn" : "cdotok";
   } catch (e) {}
 }
 
@@ -11511,7 +11523,7 @@ function chatEmptyHTML(m) {
 function wireSuggButtons(root) {
   if (!root) return;
   root.querySelectorAll("[data-task-sugg]").forEach(b => b.onclick = () => doThisForMe(b.dataset.taskSugg));
-  root.querySelectorAll("[data-agt-sugg]").forEach(b => b.onclick = () => startAgentTask({ title: b.dataset.agtSugg, script: genericScript(b.dataset.agtSugg), demo: true }));
+  root.querySelectorAll("[data-agt-sugg]").forEach(b => b.onclick = () => agentChat(b.dataset.agtSugg));
   root.querySelectorAll("[data-ask-sugg]").forEach(b => b.onclick = () => chatAsk(b.dataset.askSugg));
 }
 
@@ -11613,7 +11625,7 @@ function chatSubmit() {
   if (!v || busy) return;
   ta.value = ""; ta.style.height = "auto"; $("chatSend").disabled = true;
   if (chatMode === "ask") guideAsk(v);
-  else startAgentTask({ title: v, script: genericScript(v), demo: true });
+  else agentChat(v);
 }
 function chatAsk(text) { setChatMode("ask"); guideAsk(text); }
 function updateAgentDot() {
@@ -11623,24 +11635,72 @@ function updateAgentDot() {
 /* ============================================================
    TASK ENGINE (Agent mode)
    ============================================================ */
-function genericScript(title) {
-  return {
-    steps: [
-      { label: "Understanding the request", run: async () => {} },
-      { label: "Checking your accounts", run: async () => { await getTasks(); } },
-      { label: "Preparing your handoff", run: async () => {} },
-    ],
-    summary: "Here's what I found — review the handoff below.",
-    handoff: {
-      title: "Here's your next step",
-      line: "I did the prep. One tap finishes it.",
-      primary: "View details",
-      primaryFn: () => toast("Details coming right up."),
-      ghost: "Dismiss",
-      ghostFn: null,
-    },
-    ledgerAction: "agent_task",
+/* ============================================================
+   AGENT CHAT (freeform) — every step does real work.
+   Replaces the old simulated-progress script (2026-09-28): the
+   pipeline below is the same real intent system Ask mode uses
+   (tracked data → agent backend → local guide), and the answer is
+   rendered with honest provenance. Nothing is faked.
+   ============================================================ */
+async function agentChat(text) {
+  setChatMode("agent");
+  addMe(text);
+  agentTaskRunning = true; updateAgentDot();
+  const run = document.createElement("div"); run.className = "taskrun";
+  run.innerHTML = '<div class="onit"><span class="pulseorb"></span><span>On it.</span></div><div class="steps"></div>';
+  chat.appendChild(run); scrollChat();
+  const stepsEl = run.querySelector(".steps");
+  const mkStep = (label) => {
+    const d = document.createElement("div"); d.className = "step"; d.dataset.st = "working";
+    const c = document.createElement("span"); c.className = "sc";
+    const tx = document.createElement("span"); tx.textContent = label;
+    d.appendChild(c); d.appendChild(tx); stepsEl.appendChild(d); scrollChat();
+    return d;
   };
+  const okStep = (el) => { el.dataset.st = "done"; el.querySelector(".sc").textContent = "✓"; };
+
+  let paras = null, card = null, prov = null, walkthrough = null, src = "local";
+  const s1 = mkStep("Understanding the request");
+  try {
+    // Real work: the same intent pipeline Ask mode uses.
+    const tr = await trackedAnswer(text);
+    if (tr) {
+      paras = tr.paras; card = tr.card;
+      prov = { text: "From your tracked subscriptions, renewals, and money log." }; src = "tracked";
+    } else {
+      const j = await agentAsk(text);
+      if (j && j.reply) {
+        paras = [j.reply]; prov = { text: "From Upmore's analysis of your data." }; src = "agent";
+        if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) walkthrough = j.action.route_id;
+      } else {
+        const r = guideAnswer(text);
+        paras = r.paras; card = r.card; prov = { text: "General guidance — not from your accounts." };
+        if (r.action === "walkthrough" && r.routeId) walkthrough = r.routeId;
+      }
+    }
+  } catch (e) {
+    const r = guideAnswer(text);
+    paras = r.paras; card = r.card; prov = { text: "General guidance — not from your accounts." };
+  }
+  okStep(s1);
+
+  const s2 = mkStep("Checking your accounts");
+  // Real work: count what's actually connected. Demo corpus never counts.
+  let liveN = 0, openN = 0;
+  try {
+    const td = (typeof loadTrackData === "function") ? loadTrackData() : null;
+    if (td && td.isDemo !== true) liveN = (td.accounts || []).length;
+    openN = (await getTasks()).filter(t => t.state === "open").length;
+  } catch (e) {}
+  if (liveN > 0 && prov) prov = { text: (prov.text || "") + ` Checked ${liveN} connected account${liveN === 1 ? "" : "s"}.` };
+  okStep(s2);
+  run.remove();
+
+  addAI(paras && paras.length ? paras : ["I couldn't find an answer for that yet — try asking about your budget, bills, or subscriptions."], card, prov);
+  if (walkthrough) { const r = routeById(walkthrough); if (r) startWalkthrough(walkthrough); }
+  try { await writeLedger({ action: "agent_chat", outcome: "done", evidence: { title: text, source: src, liveAccounts: liveN, openTasks: openN } }); } catch (e) {}
+  agentTaskRunning = false; updateAgentDot(); scrollChat();
+  // addAI clears `busy` after its render delay.
 }
 function copyText(s) {
   const done = () => toast("Copied.");
@@ -11660,18 +11720,19 @@ function disputeNote(t) {
 function taskScript(t) {
   const amt = t.amount != null ? money$(t.amount) : "";
   // Steps carry real run() work (2026-09-28) — the UI advances on completion,
-  // never on a timer. Steps that only prepare a handoff say so honestly.
+  // never on a timer. Labels say what the step actually does: these prepare a
+  // handoff from the task's own data. Nothing is "checked" or "confirmed"
+  // against a live merchant here.
   const prep = (label, fn) => ({ label, run: fn || (async () => {}) });
   if (t.type === "bill_due") return {
     steps: [
-      prep(`Checking your ${t.merchant || "bill"} balance`, async () => { await getTasks(); }),
-      prep("Prefilling the payment details", async () => { /* handoff built below */ }),
-      prep("Preparing your handoff", async () => {}),
+      prep(`Reviewing the ${t.merchant || "bill"} details`, async () => { await getTasks(); }),
+      prep("Preparing the payment handoff", async () => { /* handoff built below */ }),
     ],
-    summary: `Your ${t.title} is ${amt}, ${taskDueText(t)}. Everything is prefilled — one tap opens it.`,
+    summary: `Your ${t.title} is ${amt}, ${taskDueText(t)}. One tap opens the biller.`,
     handoff: {
-      title: `Ready to pay ${amt}`,
-      line: "Payments stay with you. Open the biller — it's prefilled.",
+      title: `Pay ${amt}`,
+      line: "Payments stay with you. Open the biller to finish.",
       primary: "Open biller",
       primaryFn: () => { if (t.url) window.open(t.url, "_blank", "noopener"); },
       ghost: "Not now",
@@ -11681,9 +11742,8 @@ function taskScript(t) {
   };
   if (t.type === "trial_converting") return {
     steps: [
-      prep("Confirming the trial end date", async () => { await getTasks(); }),
-      prep("Locating the cancel page", async () => {}),
-      prep("Preparing your handoff", async () => {}),
+      prep("Reviewing the trial details", async () => { await getTasks(); }),
+      prep("Preparing the cancel link", async () => {}),
     ],
     summary: `Your trial converts ${taskDueShort(t)} — cancel before then to avoid the charge.`,
     handoff: {
@@ -11698,11 +11758,10 @@ function taskScript(t) {
   };
   if (t.type === "dispute_window") return {
     steps: [
-      prep("Pulling both charges", async () => { await getTasks(); }),
+      prep("Reviewing the charge details", async () => { await getTasks(); }),
       prep("Drafting the dispute note", async () => {}),
-      prep("Preparing your handoff", async () => {}),
     ],
-    summary: `Found it — two ${amt} charges minutes apart. The dispute note is drafted.`,
+    summary: `Here are the details for the ${amt} charges. The dispute note is drafted.`,
     handoff: {
       title: "Dispute draft ready",
       line: "Copy the note and paste it in your bank's dispute flow.",
@@ -11715,11 +11774,10 @@ function taskScript(t) {
   };
   if (t.type === "claim_found") return {
     steps: [
-      prep("Confirming the registry match", async () => { await getTasks(); }),
-      prep("Gathering what you'll need", async () => {}),
-      prep("Preparing your handoff", async () => {}),
+      prep("Reviewing the claim details", async () => { await getTasks(); }),
+      prep("Preparing the claim steps", async () => {}),
     ],
-    summary: `There is ${amt} waiting for you. The claim takes about 5 minutes.`,
+    summary: `Your task notes ${amt} waiting. The claim takes about 5 minutes.`,
     handoff: {
       title: `Claim your ${amt}`,
       line: "File with the state — it's your money.",
@@ -11730,7 +11788,20 @@ function taskScript(t) {
     },
     ledgerAction: "claim_prep",
   };
-  return genericScript(t.title);
+  // Unknown task type: honest generic prep, no invented findings.
+  return {
+    steps: [prep("Reviewing the task", async () => { await getTasks(); })],
+    summary: `Here's "${t.title}" — ${taskDueText(t)}.`,
+    handoff: {
+      title: t.title,
+      line: "Open it to finish.",
+      primary: "Open",
+      primaryFn: () => { if (t.url) window.open(t.url, "_blank", "noopener"); },
+      ghost: "Dismiss",
+      ghostFn: null,
+    },
+    ledgerAction: "task_prep",
+  };
 }
 
 async function startAgentTask(opts) {
@@ -11882,19 +11953,8 @@ let tasksCache = null;
 function userTz() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (e) { return "UTC"; }
 }
-function demoDue(days) {
-  const d = new Date(); d.setDate(d.getDate() + days); d.setHours(12, 0, 0, 0);
-  return d.toISOString();
-}
-function DEMO_TASK_SEEDS() {
-  const tz = userTz();
-  return [
-    { id: "demo-comed", type: "bill_due", title: "Pay the ComEd electric bill", merchant: "ComEd", amount: 184.20, direction: "owed_by_user", due_at: demoDue(17), timezone: tz, evidence: [{ text: "Charged on the 14th for the last 3 months. Up from $172." }], state: "open", url: "https://www.comed.com" },
-    { id: "demo-paramount", type: "trial_converting", title: "Paramount+ trial ends soon", merchant: "Paramount+", amount: 7.99, direction: "owed_by_user", due_at: demoDue(5), timezone: tz, evidence: [{ text: "Trial started recently. Converts to $7.99/mo unless cancelled." }], state: "open", url: "https://www.paramountplus.com" },
-    { id: "demo-netflix", type: "dispute_window", title: "Netflix charged you twice", merchant: "Netflix", amount: 15.49, direction: "owed_to_user", due_at: demoDue(60), timezone: tz, evidence: [{ text: "Two $15.49 charges 4 minutes apart." }], state: "open" },
-    { id: "demo-ilclaim", type: "claim_found", title: "$340 in Illinois unclaimed property", merchant: "Illinois iCash", amount: 340, direction: "owed_to_user", due_at: demoDue(90), timezone: tz, evidence: [{ text: "Name + Chicago address match. File via Illinois iCash." }], state: "open", url: "https://icash.illinois.gov" },
-  ];
-}
+/* Honest tasks: only real rows from the user's reminders table are ever shown.
+   No demo seeds, no fabricated bills — an empty list renders the empty state. */
 function taskOverlay() {
   try { return JSON.parse(localStorage.getItem("upmore-task-overlay") || "{}"); } catch (e) { return {}; }
 }
@@ -11914,7 +11974,8 @@ async function getTasks() {
       if (data && data.length) items = data.map(r => ({ ...r, demo: false }));
     } catch (e) {}
   }
-  if (!items.length) items = DEMO_TASK_SEEDS().map(t => ({ ...t, demo: true }));
+  if (!items.length) items = [];
+  /* Never fabricate tasks: no seeds, no sample bills. Empty renders the empty state. */
   const ov = taskOverlay();
   const mt = mutedTypes();
   items = items
@@ -12025,7 +12086,10 @@ async function renderTasks() {
     html += `<div class="tgroup"><p class="nsec">${label}</p>${list.map(taskRowHTML).join("")}</div>`;
   }
   if (!open.length) {
-    html = `<div class="tempty"><h2>Nothing due right now.</h2><p>I'll put anything that expires here.</p></div>`;
+    const sub = (typeof session !== "undefined" && session && session.user)
+      ? "Connect your bank and I'll watch for bills, trials about to convert, and double charges."
+      : "Sign in and connect your bank — I'll watch for bills, trials about to convert, and double charges.";
+    html = `<div class="tempty"><h2>Nothing due right now.</h2><p>${sub}</p></div>`;
   }
   if (done.length) {
     html += `<div class="tgroup"><button class="tdonehead" id="doneHead"><span class="tcheck">✓</span><span class="nsec">Done this week</span><span class="chev">›</span></button><div id="doneList" hidden>${done.map(taskRowHTML).join("")}</div></div>`;
@@ -12283,7 +12347,7 @@ async function exportAuditLog() {
 }
 
 /* ---------- init ---------- */
-// refresh the tasks badge shortly after boot (demo seeds, no network)
+// refresh the tasks badge shortly after boot (real rows only, no network)
 setTimeout(() => { try { updateTasksBadge(); } catch (e) {} }, 2000);
 
 </script>

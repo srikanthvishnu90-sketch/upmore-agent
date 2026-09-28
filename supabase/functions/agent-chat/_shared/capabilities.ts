@@ -1130,7 +1130,7 @@ function findCancelPath(name: string): CancelPath | null {
 // (exact steps + official URL) for known merchants, honest generic guidance
 // otherwise. The last tap is always the user's (we never take credentials in
 // chat); the reply invites them to report back so the saving gets logged.
-const CANCEL_INTENT_RX = /\bcancel\b/i;
+const CANCEL_INTENT_RX = /\bcancel(l)?(ed|ing)?\b/i;
 const CANCEL_SUBCTX_RX = /\bsubscription|membership|\bplan\b/i;
 const CANCEL_GENERIC_WORDS = /^(it|this|that|these|those|everything|all|them|subscription|membership|plan|account|service)$/i;
 

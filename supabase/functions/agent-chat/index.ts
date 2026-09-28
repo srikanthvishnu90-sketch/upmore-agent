@@ -1080,8 +1080,10 @@ function tryFastPath(
   // handler above. "Give me the exact steps and the direct link to cancel it
   // myself" was returning the thread's last-mentioned EARN route (Voice123
   // R0381) via the "link" pattern because the guard sat below the handlers.
+  // Inflected forms included: "billed through Apple" was matching the Apple
+  // Trade In buyback card because the guard only knew base forms.
   // Cancellation/billing questions go to the model / cancel-path capability.
-  if (/\b(bill|bills|billing|charged|charge|refund|dispute|subscription|cancel|cancellation)\b/i.test(msg)) return null;
+  if (/\b(bill(s|ed|ing)?|charg(e|es|ed)|refund(s|ed)?|disputes?|subscriptions?|cancel(l)?(ed|ing)?|cancellation)\b/i.test(msg)) return null;
 
   const catches = Array.isArray(route.catches) ? route.catches : route.catches ? [String(route.catches)] : [];
   // Comprehensive brief: the question asks about 2+ aspects (payout + rules +

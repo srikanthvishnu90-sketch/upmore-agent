@@ -34,8 +34,11 @@ function txnMatchesMerchant(txnDesc: string, merchantKey: string, merchantName: 
   if (!d || (!k && !n)) return false;
   const tokens = (k || n).split(" ").filter((t) => t.length > 2);
   if (!tokens.length) return false;
-  // Require at least the first significant token to appear in the descriptor.
-  return tokens.some((t) => d.includes(t)) && d.includes(tokens[0]);
+  // Whole-word matching throughout (handles abbreviated descriptors like
+  // AMZN for Amazon; rejects substring traps like "chulu" vs hulu).
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const wordHit = (t) => new RegExp(`\\b${esc(t)}\\b`).test(d);
+  return tokens.some(wordHit) || wordHit(k) || (!!n && wordHit(n));
 }
 
 async function readVaultSecret(name: string): Promise<string | null> {
@@ -50,21 +53,48 @@ async function readVaultSecret(name: string): Promise<string | null> {
   return rows?.[0]?.secret ?? null;
 }
 
-async function fetchTransactions(userId: string): Promise<Array<{ posted_at: string | null; amount: number; merchant_raw: string }>> {
+async function fetchTransactions(
+  userId: string,
+  admin?: { from: (t: string) => any },
+): Promise<Array<{ posted_at: string | null; amount: number; merchant_raw: string }>> {
+  const txns: Array<{ posted_at: string | null; amount: number; merchant_raw: string }> = [];
+
+  // --- Plaid cache (primary after the Plaid migration). Plaid's sign
+  // convention is positive = money out; normalize to SimpleFIN's
+  // negative = debit so the zombie-charge filter below stays correct.
+  if (admin) {
+    try {
+      const { data, error } = await admin.from("plaid_txn_cache")
+        .select("posted, amount, merchant_raw")
+        .eq("user_id", userId)
+        .gte("posted", new Date(Date.now() - 40 * 864e5).toISOString().slice(0, 10));
+      if (!error && data) {
+        for (const t of data) {
+          txns.push({
+            posted_at: t.posted || null,
+            amount: -(Number(t.amount) || 0),
+            merchant_raw: String(t.merchant_raw || "Unknown"),
+          });
+        }
+      }
+    } catch { /* fall through to SimpleFIN */ }
+  }
+
+  // --- SimpleFIN (legacy; kept until the migration completes) ---
   // Same pattern as simplefin-proxy: per-user secret first, then the legacy
   // global key. The watcher runs as service_role so it can read the vault.
   const accessUrl = (await readVaultSecret(`simplefin_access_url_${userId}`))
     || (await readVaultSecret("simplefin_access_url"));
-  if (!accessUrl) return [];
+  if (!accessUrl) return txns;
   const m = String(accessUrl).match(/^https?:\/\/([^:]+):([^@]+)@(.+)$/);
-  if (!m) return [];
+  if (!m) return txns;
   const [, username, password, base] = m;
   const endDate = new Date().toISOString().slice(0, 10);
   const startDate = new Date(Date.now() - 40 * 864e5).toISOString().slice(0, 10);
   const url = `${base}/accounts?version=2&start-date=${startDate}&end-date=${endDate}`;
   const auth = btoa(`${username}:${password}`);
   const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } });
-  if (!res.ok) return [];
+  if (!res.ok) return txns;
   const data = await res.json();
   const txns: Array<{ posted_at: string | null; amount: number; merchant_raw: string }> = [];
   for (const a of data.accounts || []) {
@@ -114,7 +144,7 @@ serve(async (req) => {
   for (const claim of due) {
     const userId = claim.user_id as string;
     if (!txnCache.has(userId)) {
-      txnCache.set(userId, await fetchTransactions(userId));
+      txnCache.set(userId, await fetchTransactions(userId, admin));
     }
     const txns = txnCache.get(userId)!;
     const windowStart = new Date(new Date(claim.expected_billing_date).getTime() - 5 * 864e5)

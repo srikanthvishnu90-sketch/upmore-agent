@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-UueNib4f0JiQ0XRH04nmoRKfFflY2PjKukF0uK38Y+A=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-3m4O+mNbBowDqE3SJLr7pNSSFbBD/leO4DXBuLJ2zXY=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -769,33 +769,43 @@
   /* ================= HOME v8.1 (2026-09-28) — radically simple =================
      Classic design language, minimal layout: brand header, greeting, broad
      "Your money" overview (Budget/Invest/Track/Earn/Save). Each overview card
-     is a white card button that opens its page. Professional serif (Times New
+     is a dark card button that opens its page. Professional serif (Times New
      Roman) headings; black background; green money figures; silver/white text.
      Money figures stay green (money/success state), "—" (no data) stays dim. */
   #home .serif { font-family: "Times New Roman", Times, serif; }
   #home .hello { font-size: 32px; font-weight: 700; letter-spacing: 0; margin-top: 26px; }
-  #home .sub { margin-top: 8px; }
-  #home .sec { font-size: 21px; margin: 30px 2px 14px; }
-  /* White overview cards — the old company-card look, now for the broad
-     overview destinations. */
-  .moneyrow { display: flex; align-items: center; gap: 14px; width: 100%;
-    background: #fff; border: 1px solid var(--line); border-radius: 18px;
-    padding: 14px 16px; margin-bottom: 12px; text-align: left; cursor: pointer;
-    color: #161614; font: inherit; }
-  .moneyrow:active { transform: scale(.99); }
-  .moneyrow .mtile { flex: none; width: 48px; height: 48px; border-radius: 13px;
+  #home .sub { margin-top: 8px; color: var(--silver); }
+  #home .sec { font-size: 12px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--silver); margin: 34px 2px 18px; }
+  /* Home v8 (2026-09-28): professional dark overview cards. The white v7
+     cards are retired — these live inside the dark system: layered charcoal
+     surface, hairline border, top highlight, real depth shadow, generous
+     rhythm between cards, and a ringed chevron so each card unmistakably
+     reads as a button. Silver secondary text; green reserved for figures. */
+  .moneyrow { display: flex; align-items: center; gap: 16px; width: 100%;
+    background: linear-gradient(180deg, #212123, #17171a);
+    border: 1px solid rgba(255,255,255,.10); border-radius: 20px;
+    padding: 18px; margin-bottom: 18px; text-align: left; cursor: pointer;
+    color: var(--text); font: inherit;
+    box-shadow: 0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.07); }
+  .moneyrow:active { transform: scale(.985); filter: brightness(1.12); }
+  .moneyrow .mtile { flex: none; width: 52px; height: 52px; border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
-    font-family: "Times New Roman", Times, serif; font-size: 23px; font-weight: 700; color: #fff; }
+    font-family: "Times New Roman", Times, serif; font-size: 24px; font-weight: 700; color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 4px 12px rgba(0,0,0,.35); }
   .moneyrow .grow { flex: 1; min-width: 0; }
   .moneyrow .t { display: block; font-family: "Times New Roman", Times, serif;
-    font-size: 19px; font-weight: 700; color: #161614;
+    font-size: 20px; font-weight: 700; color: var(--text);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .moneyrow .s { display: block; font-size: 14px; color: #6b6b6b; margin-top: 3px;
+  .moneyrow .s { display: block; font-size: 14px; color: var(--silver); margin-top: 4px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .moneyrow .s b { color: #237a4c; font-weight: 700; }
-  .moneyrow .s.dim { color: #9a9a9a; }
-  .moneyrow .chev { color: #b5b5b5; font-size: 22px; flex: none; }
+  .moneyrow .s b { color: var(--up); font-weight: 700; }
+  .moneyrow .s.dim { color: var(--muted); }
+  .moneyrow .chev { flex: none; width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.05);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--silver); font-size: 18px; line-height: 1; }
 
   /* ================= UPMORE VISUAL v3 (2026-09-27) — aurora soul =================
      Ambient charcoal canvas, gradient-border layered cards, typography drama,
@@ -1293,7 +1303,7 @@
        Explore ("Money tools"); the Up next queue already lives in Explore. -->
   <section class="screen" id="home" aria-label="Home">
     <!-- v8.1: radically simple — brand header, greeting, broad "Your money"
-         overview (white card buttons, one per destination). Times New Roman
+         overview (dark card buttons, one per destination). Times New Roman
          headings, black background, green money figures. -->
     <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
       <div class="head">
@@ -3357,7 +3367,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   /* ================= HOME v8.1 (2026-09-28) — radically simple =================
-     Brand header, greeting, broad "Your money" overview (white card buttons:
+     Brand header, greeting, broad "Your money" overview (dark card buttons:
      Budget/Invest/Track/Earn/Save, each opening its page). Times New Roman
      headings, black background, green money figures. */
   function renderHome() {
@@ -3376,13 +3386,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     renderHomeConnect(); // connect-bank / picture banners
   }
 
-  /* Your money: broad overview as white card buttons — Budget/Invest/Track/
+  /* Your money: broad overview as dark card buttons — Budget/Invest/Track/
      Earn/Save — each opening its page. Figures from homeFigures(): real money
      figures in green, "—" (no data) dim. */
   const HOME_MONEY_CARDS = [
     { key: "budget", title: "Budget", go: "budgetReport", tile: "B", color: "#2E7D5B" },
     { key: "invest", title: "Invest", go: "investments", tile: "I", color: "#2F4B7C" },
-    { key: "track", title: "Track", go: "networth", tile: "T", color: "#3B3B3B" },
+    { key: "track", title: "Track", go: "networth", tile: "T", color: "#55534E" },
     { key: "earn", title: "Earn", go: "claim", tile: "E", color: "#9A7B2D" },
     { key: "save", title: "Save", go: "save", tile: "S", color: "#2A7F8E" },
   ];

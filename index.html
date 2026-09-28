@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-ef6jcxHjgAUPc0/ZmvxWB9dLR0amajpwWsIpSZI8c/U=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-t7wbTsOIfJedNPY/3iCRPAhzheFLBAk2uU48FteMR5E=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1715,6 +1715,7 @@
         <button class="csegbtn on" id="segAgent" role="tab" aria-selected="true"><span class="crundot" id="agentRunDot" hidden></span>Agent</button>
         <button class="csegbtn" id="segAsk" role="tab" aria-selected="false">Ask</button>
       </div>
+      <button class="ctasksbtn" id="guideChatsBtn" style="right:108px" aria-label="Your chats">Chats</button>
       <button class="ctasksbtn" id="guideTasksBtn" aria-label="Open tasks">Tasks<span class="taskbadge" hidden></span></button>
     </div>
     <div class="cfeed" id="chatFeed" aria-live="polite"></div>
@@ -1733,6 +1734,17 @@
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
+
+  <!-- ================= CHAT THREADS ================= -->
+  <div class="sheet" id="chatsSheet" hidden>
+    <div class="sheetcard">
+      <div style="text-align:center"><b style="font-size:18px">Your chats</b>
+      <p class="psub" style="margin:4px 0 14px">Pick up where you left off, or start fresh.</p></div>
+      <button class="primary" id="chatNewBtn" style="margin-bottom:12px">+ New chat</button>
+      <div id="chatThreadList"></div>
+      <button class="ghostbtn" id="chatsSheetClose" style="margin-top:8px">Close</button>
+    </div>
+  </div>
 
   <!-- ================= TASKS ================= -->
   <section class="screen nx" id="tasks" aria-label="Tasks">
@@ -7416,12 +7428,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // The anon key + user JWT are sent per request; the Anthropic key never leaves the server.
   const UPMORE_BACKEND_URL = "https://mrwngntwmnaqrqhupvlt.supabase.co";
   const UPMORE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yd25nbnR3bW5hcXJxaHVwdmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzk1MDksImV4cCI6MjEwNTYxNTUwOX0.BZKqFIUdjLU_eLuTQecxsHdhIQu1GprTbZmkAPO6p88";
-  let upmoreThread = null;
+  let upmoreThread = null; // active chat thread id (null = new chat)
+  let upmoreThreads = [];  // numerous chats: [{id, title, created_at}], newest first
 
   async function agentAsk(text, images) {
     if (!UPMORE_BACKEND_URL || !UPMORE_ANON_KEY) return null;
     const token = await getSessionToken();
     if (!token) return null;
+    const wasNew = !upmoreThread;
     const res = await fetch(UPMORE_BACKEND_URL + "/functions/v1/agent-chat", {
       method: "POST",
       headers: { "content-type": "application/json",
@@ -7430,9 +7444,91 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
     if (!res.ok) return null;
     const j = await res.json();
-    if (j.thread_id) upmoreThread = j.thread_id;
+    if (j.thread_id) {
+      upmoreThread = j.thread_id;
+      // A brand-new chat just got its server thread — add it to the list so
+      // the user can come back to it from "Chats".
+      if (wasNew) upmoreThreads.unshift({ id: j.thread_id, title: text.slice(0, 60), created_at: new Date().toISOString() });
+    }
     return j;
   }
+
+  /* ============ Numerous chats (2026-09-28) ============
+     The Guide keeps every conversation as its own server thread
+     (agent_threads). New chat, list, and switch — history loads from
+     agent_messages. Signed-in only; the backend needs a user. */
+  async function loadChatThreads() {
+    upmoreThreads = [];
+    try {
+      if (!saveUid()) return;
+      const { data } = await supa.from("agent_threads")
+        .select("id,title,created_at").eq("user_id", saveUid())
+        .order("created_at", { ascending: false }).limit(50);
+      upmoreThreads = data || [];
+    } catch (e) { /* list stays empty — sheet shows the empty state */ }
+  }
+  function renderChatThreadList() {
+    const el = $("chatThreadList"); if (!el) return;
+    el.innerHTML = upmoreThreads.length ? upmoreThreads.map(t => `
+      <div class="item" data-thread="${t.id}" style="cursor:pointer;${t.id === upmoreThread ? "border-color:var(--ngreen);" : ""}">
+        <div class="grow"><p class="t">${esc(t.title || "Untitled chat")}</p>
+        <p class="m">${esc(timeAgo(t.created_at))}</p></div>
+      </div>`).join("")
+      : `<div class="item"><div class="grow"><p class="m">No chats yet — start your first one.</p></div></div>`;
+    el.querySelectorAll("[data-thread]").forEach(d => d.onclick = () => openGuideChat(d.dataset.thread));
+  }
+  async function openChatsSheet() {
+    if (!saveUid()) { toast("Sign in to keep your chats — they live in your account."); return; }
+    await loadChatThreads();
+    renderChatThreadList();
+    $("chatsSheet").hidden = false;
+  }
+  function newGuideChat() {
+    upmoreThread = null;
+    ["agent", "ask"].forEach(m => {
+      const t = chatThreads[m]; t.empty = true; t.lastTs = 0;
+      const el = threadEl(m); el.innerHTML = chatEmptyHTML(m); wireSuggButtons(el);
+    });
+    $("chatsSheet").hidden = true;
+    renderChatThreadList();
+    const ta = $("chatInput"); if (ta) ta.focus();
+  }
+  // History bubbles: synchronous (no typing delay) renders of stored messages.
+  function histBubble(el, role, content) {
+    const txt = String(content || "");
+    if (role === "user") {
+      const d = document.createElement("div"); d.className = "umsg";
+      const s = document.createElement("span"); s.textContent = txt; d.appendChild(s);
+      el.appendChild(d);
+    } else {
+      const m = document.createElement("div"); m.className = "amsg";
+      m.innerHTML = `<p>${md(txt)}</p>`;
+      el.appendChild(m);
+    }
+  }
+  async function openGuideChat(id) {
+    $("chatsSheet").hidden = true;
+    upmoreThread = id;
+    renderChatThreadList();
+    const el = threadEl(chatMode);
+    chatThreads[chatMode].empty = false; chatThreads[chatMode].lastTs = Date.now();
+    el.innerHTML = `<div class="item"><div class="grow"><p class="m">Loading chat…</p></div></div>`;
+    try {
+      const { data, error } = await supa.from("agent_messages")
+        .select("role,content").eq("thread_id", id).order("id", { ascending: true }).limit(200);
+      if (error) throw error;
+      el.innerHTML = "";
+      (data || []).forEach(m => histBubble(el, m.role, m.content));
+      if (!(data || []).length) {
+        chatThreads[chatMode].empty = true;
+        el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el);
+      }
+    } catch (e) {
+      el.innerHTML = `<div class="item"><div class="grow"><p class="m">Couldn't load this chat — check your connection and try again.</p></div></div>`;
+    }
+    scrollChat();
+  }
+
   /* ============ Supabase Auth (Google) + profile + progress sync ============ */
   const supa = window.supabase.createClient(UPMORE_BACKEND_URL, UPMORE_ANON_KEY);
   let session = null, dbProfile = null;
@@ -7909,6 +8005,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     $("signOut").onclick = async () => {
       try { await supa.auth.signOut(); } catch (e) {}
       session = null; dbProfile = null;
+      upmoreThread = null; upmoreThreads = []; // numerous chats: clear on sign-out
       show("welcome");
     };
     if ($("referralRow")) $("referralRow").onclick = () => show("referral");
@@ -11782,6 +11879,9 @@ function addAI(paras, card, prov) {
 /* ---------- chat shell ---------- */
 function renderChatTab() {
   if (!chatWired) { chatWired = true; wireChat(); }
+  // Numerous chats (2026-09-28): preload the thread list so the Chats sheet
+  // opens instantly. Fire-and-forget — the sheet re-loads on open anyway.
+  loadChatThreads().then(() => {}, () => {});
   // refresh empty-state suggestions if the thread is still empty
   ["agent", "ask"].forEach(m => {
     if (chatThreads[m].empty) {
@@ -11828,6 +11928,10 @@ function wireChat() {
   setChatMode(chatMode);
   $("segAgent").onclick = () => setChatMode("agent");
   $("segAsk").onclick = () => setChatMode("ask");
+  // Numerous chats (2026-09-28): thread list sheet + new chat.
+  $("guideChatsBtn").onclick = openChatsSheet;
+  $("chatNewBtn").onclick = newGuideChat;
+  $("chatsSheetClose").onclick = () => { $("chatsSheet").hidden = true; };
   const ta = $("chatInput");
   ta.addEventListener("input", () => {
     $("chatSend").disabled = !ta.value.trim();

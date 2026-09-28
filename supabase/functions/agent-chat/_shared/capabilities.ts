@@ -969,6 +969,176 @@ export function tryBillIncrease(
   return null;
 }
 
+// Feature #5 (2026-09-28): internet-bill negotiation kits. Paired testing
+// caught two failures: the model claimed ISP haggling was "outside what I
+// cover", and once served the Spectrum *earn* route (R6372) for a
+// bill-lowering request. This owns the intent deterministically: exact
+// retention number, word-for-word script, cheaper-tier check, honest
+// final-tap framing, and a Sources block on every factual reply.
+interface IspBillInfo {
+  name: string;
+  phone: string | null; // null = not verified; say "the number on your bill"
+  url: string | null; // null = no verified URL; never guess one
+  src: string[];
+}
+// Support numbers verified 2026-09-28 against official ISP pages:
+// Xfinity 1-800-XFINITY via xfinity.com/support/contact-us; Spectrum
+// 1-833-267-6094; AT&T 1-800-288-2020 via about.att.com; Verizon Fios
+// 1-800-837-4966 (1-800-VERIZON) via verizon.com official notices.
+const ISP_BILL_DATA: Record<string, IspBillInfo> = {
+  xfinity: {
+    name: "Xfinity",
+    phone: "1-800-934-6489",
+    url: "https://www.xfinity.com/",
+    src: [
+      "https://www.xfinity.com/support/contact-us",
+      "https://www.xfinity.com/",
+    ],
+  },
+  spectrum: {
+    name: "Spectrum",
+    phone: "1-833-267-6094",
+    url: "https://www.spectrum.com/",
+    src: ["https://www.spectrum.com/"],
+  },
+  att: {
+    name: "AT&T",
+    phone: "1-800-288-2020",
+    url: "https://www.att.com/",
+    src: [
+      "http://about.att.com/privacy/privacy-notice/contact-preferences.html",
+      "https://www.att.com/",
+    ],
+  },
+  verizon: {
+    name: "Verizon Fios",
+    phone: "1-800-837-4966",
+    url: "https://www.verizon.com/",
+    src: [
+      "https://www.verizon.com/business/support/equipment-devices-services/fios-tv-services/annual-notices/",
+      "https://www.verizon.com/",
+    ],
+  },
+};
+const ISP_RX: [RegExp, string][] = [
+  [/\b(xfinity|comcast)\b/i, "xfinity"],
+  [/\b(spectrum|charter)\b/i, "spectrum"],
+  [/\bat\s?&\s?t\b|\batt\b/i, "att"],
+  [/\b(verizon|fios)\b/i, "verizon"],
+  [/\bcox\b/i, "cox"],
+  [/\boptimum\b/i, "optimum"],
+  [/\bt-?mobile\b/i, "tmobile"],
+  [/\bfrontier\b/i, "frontier"],
+  [/\bcenturylink\b/i, "centurylink"],
+  [/\b(windstream|kinetic)\b/i, "windstream"],
+  [/\bmediacom\b/i, "mediacom"],
+  [/\b(suddenlink|sparklight)\b/i, "sparklight"],
+  [/\bastound\b/i, "astound"],
+  [/\bwow\b/i, "wow"],
+  [/\bearthlink\b/i, "earthlink"],
+  [/\bgoogle fiber\b/i, "googlefiber"],
+];
+// internet/wifi/broadband + a lowering word. "cut" only counts next to
+// "bill" so "cut my internet" (possible cancel intent) doesn't hijack the
+// cancellation path.
+const NET_RX = /\b(internet|wi-?fi|broadband)\b/i;
+const LOWER_RX = /\b(lower\w*|reduc\w*|cheaper|saving?s?|negotiat\w*|discount\w*|deals?)\b/i;
+const CUT_BILL_RX = /\bcut\b[^.?!]{0,30}\bbill\b/i;
+const BILL_WORD_RX = /\bbill\b/i;
+const NEGOTIATE_KIT_MARKER_RX = /internet bill — the exact play/i;
+
+function extractIspKey(text: string): string | null {
+  for (const [rx, key] of ISP_RX) if (rx.test(text)) return key;
+  return null;
+}
+
+function billNegotiateIntent(text: string): boolean {
+  if (INVEST_RX.test(text)) return false;
+  const hasNet = NET_RX.test(text);
+  const hasLower = LOWER_RX.test(text) || CUT_BILL_RX.test(text);
+  if (hasNet && hasLower) return true;
+  // "Lower my Xfinity bill" — ISP name + lower + bill, no "internet" word.
+  if (extractIspKey(text) && hasLower && BILL_WORD_RX.test(text)) return true;
+  return false;
+}
+
+function threadIspKey(
+  hist: { role: string; content: string }[],
+): string | null {
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const k = extractIspKey(String(hist[i].content ?? ""));
+    if (k) return k;
+  }
+  return null;
+}
+
+function threadHasNegotiateKit(
+  hist: { role: string; content: string }[],
+): boolean {
+  return hist.some((h) => NEGOTIATE_KIT_MARKER_RX.test(String(h.content ?? "")));
+}
+
+function negotiateKit(ispKey: string, message: string, hist: { role: string; content: string }[]): string {
+  const info = ISP_BILL_DATA[ispKey];
+  const dispName = info
+    ? info.name
+    : ispKey.charAt(0).toUpperCase() + ispKey.slice(1);
+  // Echo the user's own numbers back into the script; never invent any.
+  const amtSrc = message + " " + hist.map((h) => String(h.content ?? "")).join(" ");
+  const amt = amtSrc.match(/\$\s?([\d,]+(?:\.\d{2})?)/);
+  const speed = amtSrc.match(/(\d+)\s?mbps/i);
+  const payBit = amt
+    ? `$${amt[1]} a month${speed ? ` for ${speed[1]} Mbps` : ""}`
+    : "what I'm paying a month";
+  const callLine = info?.phone
+    ? `**1. Call ${dispName}: ${info.phone}**`
+    : `**1. Call ${dispName}** — use the number on your monthly bill or your provider's Contact page,`;
+  const planLine = info?.url ? ` Compare tiers any time: ${info.url}` : "";
+  const src = info?.src.length
+    ? `\n\nSources:\n` + info.src.join("\n")
+    : "";
+  return (
+    `**Lowering your ${dispName} internet bill — the exact play:**\n\n` +
+    `${callLine}\n` +
+    `When the phone menu asks, say "cancel service" or "retention" — the loyalty/retention team can offer discounts the front-line reps can't.\n\n` +
+    `**2. Say this, word for word:**\n` +
+    `> "Hi — I'm paying ${payBit} and that's more than I want to pay. Before I switch providers, I wanted to ask: are there any promotions or loyalty discounts you can apply to my account? And is there a lower speed tier that would cut my price?"\n\n` +
+    `**3. If they offer a deal, ask:** "Is that a 12-month promo price or the everyday price — and what does it go to when it expires?" Expiring promos are the #1 reason bills creep back up.\n\n` +
+    `**4. Cheaper-tier check:** ask what the next tier down costs — a same-day downgrade to a slower plan beats a promo that expires in a year.${planLine}\n\n` +
+    `The last tap is yours — I can't make the call for you, but this script is what retention teams actually respond to.` +
+    src
+  );
+}
+
+export function tryBillNegotiation(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (INVEST_RX.test(message)) return null;
+  // Never steal a real cancellation request from the cancellation path.
+  if (/\bcancel\b/i.test(message)) return null;
+  const intentNow = billNegotiateIntent(message);
+  const intentHist = hist.some((h) => billNegotiateIntent(String(h.content ?? "")));
+  if (!intentNow && !intentHist) return null;
+  const ispKey = extractIspKey(message) ?? threadIspKey(hist);
+  if (!ispKey) {
+    // One short question, no fake facts — the testers' T1 expectation.
+    return {
+      reply:
+        "I can build you the exact call script — which internet provider are you with (Xfinity, Spectrum, AT&T, Verizon…)? And what are you paying per month right now?",
+    };
+  }
+  // Kit already delivered and they're asking again — compact script re-send
+  // instead of a wall of repetition; anything else goes back to the model.
+  if (threadHasNegotiateKit(hist)) {
+    if (/(script|what.*say|negotiat|cheaper plan|walk.*through)/i.test(message)) {
+      return { reply: negotiateKit(ispKey, message, hist) };
+    }
+    return null;
+  }
+  return { reply: negotiateKit(ispKey, message, hist) };
+}
+
 export function tryWalkthrough(
   message: string,
   routes: any[],
@@ -2200,6 +2370,11 @@ export async function tryCapabilities(
   // and "walk me through downgrading" must not route to earn walkthroughs.
   const billUp = tryBillIncrease(message, hist);
   if (billUp) return billUp;
+  // Internet-bill negotiation kits (feature #5) before walkthrough/audit:
+  // "lower my internet bill" threads must get the retention script, never an
+  // earn-route card or the subscription audit.
+  const billNeg = tryBillNegotiation(message, hist);
+  if (billNeg) return billNeg;
   const walk = tryWalkthrough(message, routes, hist);
   if (walk) return walk;
   const monthly = tryMonthlyEstimate(message, routes);

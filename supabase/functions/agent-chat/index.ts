@@ -107,9 +107,22 @@ serve(async (req) => {
       );
     }
 
-    const { thread_id, message } = await req.json();
+    const { thread_id, message, images } = await req.json();
     if (!message || typeof message !== "string") return json(cors, { error: "message required" }, 400);
     if (message.length > MAX_MESSAGE_LEN) return json(cors, { error: "message too long" }, 400);
+    // Optional photo attachments: validated Anthropic image blocks (max 3,
+    // each capped at ~2MB base64 — the client downscales to 1024px JPEG).
+    const imageBlocks: unknown[] = [];
+    if (Array.isArray(images)) {
+      for (const im of images.slice(0, 3)) {
+        if (!im || typeof im.data !== "string" || im.data.length === 0 || im.data.length > 2_000_000) continue;
+        const mt = typeof im.media_type === "string" ? im.media_type : "";
+        if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mt)) continue;
+        imageBlocks.push({ type: "image", source: { type: "base64", media_type: mt, data: im.data } });
+      }
+    }
+    // Stored user content: the text plus an honest marker when photos were attached.
+    const userContent = (imageBlocks.length ? "[photo attached] " : "") + message;
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -131,7 +144,7 @@ serve(async (req) => {
     const earlyGuard = tryGiftRewardSafe(message) ?? tryGamblingGuard(message) ?? tryFakeDocGuard(message) ?? tryContestGuard(message) ?? tryCryptoGuard(message) ?? tryFakeReviewGuard(message) ?? tryTaxFraudGuard(message) ?? tryPrivacyGuard(message) ?? tryScamGuard(message) ?? tryServerGuards(message) ?? trySyspromptGuard(message) ?? tryFinanceFact(message);
     if (earlyGuard) {
       await supabase.from("agent_messages").insert([
-        { thread_id: tid, role: "user", content: message },
+        { thread_id: tid, role: "user", content: userContent },
         { thread_id: tid, role: "assistant", content: earlyGuard, meta: { capability: true, guard: true } },
       ]);
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
@@ -251,12 +264,12 @@ serve(async (req) => {
     // (The old quantitative stock screen was removed 2026-09-27: it violated
     // the capital wall. Securities questions now hit the refusal guard.)
     // Deterministic output needs no grounding post-check; persist like fast path.
-    const exclHist = [{ role: "user", content: message },
+    const exclHist = [{ role: "user", content: userContent },
       ...((exclRes.data ?? []).map((m: any) => ({ role: "user", content: String(m.content ?? "") })))];
     const cap = await tryCapabilities(message, routes, { supa: supabase, userId: user.id }, hist, exclHist);
     if (cap) {
       await supabase.from("agent_messages").insert([
-        { thread_id: tid, role: "user", content: message },
+        { thread_id: tid, role: "user", content: userContent },
         { thread_id: tid, role: "assistant", content: cap.reply, meta: { capability: true } },
       ]);
       // Deterministic walkthroughs create playbook progress just like the
@@ -287,7 +300,7 @@ serve(async (req) => {
       if (!detRemErr) {
         const detReply = `Done — I'll remind you ${remIntent.when}: ${remIntent.text}.`;
         await supabase.from("agent_messages").insert([
-          { thread_id: tid, role: "user", content: message },
+          { thread_id: tid, role: "user", content: userContent },
           { thread_id: tid, role: "assistant", content: detReply, meta: { capability: true, deterministic_reminder: true } },
         ]);
         return json(cors, { thread_id: tid, reply: detReply, action: null });
@@ -295,7 +308,7 @@ serve(async (req) => {
       console.error("deterministic reminder insert failed:", detRemErr.message);
       const detFail = `Quick heads-up: I tried to save that reminder but it didn't stick (technical hiccup on my end). Want me to try again?`;
       await supabase.from("agent_messages").insert([
-        { thread_id: tid, role: "user", content: message },
+        { thread_id: tid, role: "user", content: userContent },
         { thread_id: tid, role: "assistant", content: detFail, meta: { capability: true } },
       ]);
       return json(cors, { thread_id: tid, reply: detFail, action: null });
@@ -304,7 +317,7 @@ serve(async (req) => {
     const fastReply = tryFastPath(message, standardRoutes, playbook?.routes as RouteCard | undefined, agentVals, hist);
     if (fastReply) {
       await supabase.from("agent_messages").insert([
-        { thread_id: tid, role: "user", content: message },
+        { thread_id: tid, role: "user", content: userContent },
         { thread_id: tid, role: "assistant", content: fastReply, meta: { fast_path: true } },
       ]);
       return json(cors, { thread_id: tid, reply: fastReply, action: null });
@@ -402,7 +415,7 @@ serve(async (req) => {
       if ((monthCalls ?? 0) >= MONTHLY_AI_LIMIT) {
         const msg = "You've had a lot of deep chats this month — I've hit my monthly limit for AI replies. The rest of the app (routes, tools, tracking) still works fine, and I'll be back fresh next month.";
         await supabase.from("agent_messages").insert([
-          { thread_id: tid, role: "user", content: message },
+          { thread_id: tid, role: "user", content: userContent },
           { thread_id: tid, role: "assistant", content: msg, meta: { capability: true, quota: true } },
         ]);
         return json(cors, { thread_id: tid, reply: msg, action: null });
@@ -447,7 +460,10 @@ serve(async (req) => {
           { type: "text", text: routeCardsBlock, cache_control: { type: "ephemeral" } },
           { type: "text", text: systemDynamic },
         ],
-        messages: [...hist.map((m: any) => ({ role: m.role, content: m.content })), { role: "user", content: message }],
+        messages: [...hist.map((m: any) => ({ role: m.role, content: m.content })), {
+          role: "user",
+          content: [...imageBlocks, { type: "text", text: message }],
+        }],
       }),
     });
     if (!anthropicRes.ok) {
@@ -560,7 +576,7 @@ serve(async (req) => {
 
     // Persist
     await supabase.from("agent_messages").insert([
-      { thread_id: tid, role: "user", content: message },
+      { thread_id: tid, role: "user", content: userContent },
       { thread_id: tid, role: "assistant", content: reply, meta: { action, violations } },
     ]);
     // Apply walkthrough actions to playbook_progress. Model actions are

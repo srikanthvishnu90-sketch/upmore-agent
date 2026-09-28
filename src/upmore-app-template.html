@@ -6961,7 +6961,7 @@
     if (/explained|order|method|which (debt|card|loan|balance) first|minimum payments|fastest way|best way|vs\b|avalanche vs|snowball/.test(t) && /debt|avalanche|snowball|pay ?off|interest/.test(t)) {
       const aprM = t.match(/(\d+(?:\.\d+)?)\s*%\s*(?:apr|interest)?/);
       const aprNote = aprM ? ` At ${aprM[1]}% APR, every $1,000 of balance costs ~$${Math.round(parseFloat(aprM[1])*10)} a year in interest \u2014 that's why the highest rate goes first.` : "";
-      return { paras: [`Avalanche: extra payments at the HIGHEST-rate debt first (saves the most interest). Snowball: extra at the SMALLEST balance first (fastest win).${ u: "https://www.investor.gov",aprNote}`, "Have actual balances? Add them on Home \u2192 Debt payoff plan and I'll rank them to the dollar."] };
+      return { paras: [`Avalanche: extra payments at the HIGHEST-rate debt first (saves the most interest). Snowball: extra at the SMALLEST balance first (fastest win).${aprNote}`, "Have actual balances? Add them on Home \u2192 Debt payoff plan and I'll rank them to the dollar.", "Sources:\nhttps://www.investor.gov"] };
     }
     if (has("debt payoff", "pay off my debt", "pay down my debt", "pay off debt", "avalanche", "snowball", "which debt", "debt plan", "credit card debt") || debtOrder) {
       const debts = cfoGet("debts", []);
@@ -7233,7 +7233,7 @@
       }
     }
 
-    if (has("today", "fastest", "quickest", "asap", "right now", "urgent", "same-day", "same day")) {
+    if (has("today", "fastest", "quickest", "asap", "right now", " rn ", "urgent", "same-day", "same day")) {
       const todays = rankMoves().filter(r => r.speed === "today").slice(0, 3);
       if (todays.length) {
         const items = todays.map((r, i) =>
@@ -7369,6 +7369,66 @@
     // Be honest: reminders need sign-in. Never pretend one was set.
     if (has("remind me", "remindme", "set a reminder", "remind me to")) {
       return { paras: ["I can't set reminders until you sign in — they live in your account so they survive app restarts.", "Once you're signed in, just say \"remind me tomorrow to cancel Netflix\" and I'll set it."] };
+    }
+
+    // OUTCOME-BASED MONEY ASK (owner 2026-09-28): a vague "find me a way to
+    // make money" must never get the thin canned fallback. Pin the fastest
+    // leadable route with maximum detail — full facts, the catch, numbered
+    // steps with raw URLs, two alternatives, and a Sources block. Specific
+    // handlers (amounts, urgency, categories, providers, guardrails) all run
+    // earlier and win; this is the last resort before the fallback.
+    if (has("find me a way to make money", "find a way to make money", "help me make money",
+            "how can i make money", "how do i make money", "how to make money",
+            "ways to make money", "ways to earn money", "make some money", "earn some money",
+            "make money", "earn money", "need money", "need cash", "need extra cash",
+            "need some cash", "earn extra", "make extra", "want to earn", "looking to earn",
+            "show me how to earn", "i want money", "gimme money", "give me money")
+        && !has("1000", "1,000", "thousand", "a grand")) {
+      const todays = rankMoves().filter(r => r.speed === "today" && r.url);
+      if (todays.length) {
+        const r = todays[0];
+        pendingOffer = r.id;
+        const paras = [];
+        paras.push("Here's your fastest start — you can begin this in the next few minutes. Full details, nothing held back:");
+        paras.push(`**${esc(r.provider)} — ${esc(r.method)}.** ${esc(r.reward || "Reward varies.")}`);
+        const facts = [];
+        if (r.who_pays) facts.push(`Who pays: ${r.who_pays}`);
+        if (r.when_cash_arrives || r.payout_timing) facts.push(`Cash arrives: ${r.when_cash_arrives || r.payout_timing}`);
+        if (r.difficulty) facts.push(`Difficulty: ${r.difficulty}`);
+        if (r.time_min_minutes && r.time_max_minutes) facts.push(`Time: about ${r.time_min_minutes}\u2013${r.time_max_minutes} minutes of work`);
+        else if (r.time_to_first) facts.push(`First money: ${r.time_to_first}`);
+        if (facts.length) paras.push(facts.map(s => esc(s).replace(/[.]+$/, "")).join(". ") + ".");
+        if (r.requirements) paras.push(`You'll need: ${esc(r.requirements)}`);
+        const catches = Array.isArray(r.catches) ? r.catches.join(" ") : String(r.catches || "");
+        if (catches) paras.push(`The catch, straight: ${esc(catches)}`);
+        if (r.cash_or_credit && String(r.cash_or_credit).toLowerCase().indexOf("cash") < 0)
+          paras.push(`Important: this pays as ${esc(r.cash_or_credit)} \u2014 not cash in hand.`);
+        const steps = (r.steps || []).slice(0, 6);
+        if (steps.length) {
+          const appUrls = [];
+          if (r.ios_url) appUrls.push(`iPhone app: ${r.ios_url}`);
+          if (r.android_url) appUrls.push(`Android app: ${r.android_url}`);
+          const lines = steps.map((s, i) => {
+            let line = `${i + 1}. ${esc(s.text || "")}`;
+            if (i === 0 && r.url) line += ` \u2014 start here: ${r.url}`;
+            if (/download|install/i.test(s.text || "") && appUrls.length) line += ` (${appUrls.join("; ")})`;
+            return line;
+          });
+          if (appUrls.length && !lines.some(l => /iPhone app|Android app/.test(l))) lines[0] += ` (${appUrls.join("; ")})`;
+          paras.push(`**The steps:**\n${lines.join("\n")}`);
+        } else if (r.url) {
+          paras.push(`Start here: ${r.url}`);
+        }
+        if (r.status !== "researched" && r.status !== "verified")
+          paras.push("One honest note: this one is cataloged but not yet researched \u2014 check the provider's own terms before you start.");
+        const alts = todays.slice(1, 3);
+        if (alts.length) paras.push(`**Two more you can start today:**\n${alts.map((a, i) => `${i + 1}. ${esc(a.provider)} \u2014 ${esc(short(a.reward || "reward varies", 100))}${a.when_cash_arrives ? ` Cash arrives: ${esc(short(a.when_cash_arrives, 70))}.` : ""}`).join("\n")}`);
+        paras.push("Straight talk: you do the work first, then the provider pays on the timing above. Nothing pays you for doing nothing \u2014 anyone promising that is selling something.");
+        paras.push(`Want me to walk you through step 1 of ${esc(r.provider)}? Say the word. Or tell me your deadline \u2014 "by Friday", "this month" \u2014 and I'll stack the next options.`);
+        const srcs = [r.url, r.ios_url, r.android_url].filter(Boolean);
+        paras.push(`Sources:\n${srcs.join("\n")}`);
+        return { paras, card: routeCard(r) };
+      }
     }
 
     return { paras: [

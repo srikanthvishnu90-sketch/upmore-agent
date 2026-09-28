@@ -765,6 +765,37 @@
   .buffer-row button { font-size: 13px; padding: 12px 18px; min-height: 44px; border: 1px solid var(--line);
     border-radius: 999px; background: var(--surface-2); color: var(--text); font-weight: 600; }
 
+  /* ================= HOME v8.1 (2026-09-28) — radically simple =================
+     Classic design language, minimal layout: brand header, greeting, broad
+     "Your money" overview (Budget/Invest/Track/Earn/Save). Each overview card
+     is a white card button that opens its page. Professional serif (Times New
+     Roman) headings; black background; green money figures; silver/white text.
+     Money figures stay green (money/success state), "—" (no data) stays dim. */
+  #home .serif { font-family: "Times New Roman", Times, serif; }
+  #home .hello { font-size: 32px; font-weight: 700; letter-spacing: 0; margin-top: 26px; }
+  #home .sub { margin-top: 8px; }
+  #home .sec { font-size: 21px; margin: 30px 2px 14px; }
+  /* White overview cards — the old company-card look, now for the broad
+     overview destinations. */
+  .moneyrow { display: flex; align-items: center; gap: 14px; width: 100%;
+    background: #fff; border: 1px solid var(--line); border-radius: 18px;
+    padding: 14px 16px; margin-bottom: 12px; text-align: left; cursor: pointer;
+    color: #161614; font: inherit; }
+  .moneyrow:active { transform: scale(.99); }
+  .moneyrow .mtile { flex: none; width: 48px; height: 48px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Times New Roman", Times, serif; font-size: 23px; font-weight: 700; color: #fff; }
+  .moneyrow .grow { flex: 1; min-width: 0; }
+  .moneyrow .t { display: block; font-family: "Times New Roman", Times, serif;
+    font-size: 19px; font-weight: 700; color: #161614;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .moneyrow .s { display: block; font-size: 14px; color: #6b6b6b; margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .moneyrow .s b { color: #237a4c; font-weight: 700; }
+  .moneyrow .s.dim { color: #9a9a9a; }
+  .moneyrow .chev { color: #b5b5b5; font-size: 22px; flex: none; }
+
   /* ================= UPMORE VISUAL v3 (2026-09-27) — aurora soul =================
      Ambient charcoal canvas, gradient-border layered cards, typography drama,
      the aurora flow ribbon signature, luminous charts, vibrant chips. */
@@ -1059,45 +1090,23 @@
        connect-bank card (only when no live bank). The old tools grid moved to
        Explore ("Money tools"); the Up next queue already lives in Explore. -->
   <section class="screen" id="home" aria-label="Home">
-    <!-- v4: extra bottom clearance so the last card never slides under the tab bar. -->
-    <div class="scroll" style="padding-bottom:calc(var(--bot) + 170px)">
-      <div class="head slim">
-        <div>
-          <h1 class="hello" id="hello">Good evening, Friend</h1>
-          <p class="sub" id="homeSub">Your all-in-one finance agent.</p>
+    <!-- v8.1: radically simple — brand header, greeting, broad "Your money"
+         overview (white card buttons, one per destination). Times New Roman
+         headings, black background, green money figures. -->
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div class="head">
+        <div class="brand">
+          <svg width="24" height="24" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="url(#silver)" mask="url(#logo)"/></svg>
+          Upmore
         </div>
         <div class="avatar" id="avatar" role="button" tabindex="0" aria-label="Profile">V</div>
       </div>
 
-      <!-- HOME TABS: five vague tabs, STACK-list style. No icons — the
-           headline figure sits where the icon used to be. Each opens its page. -->
-      <div class="htabs" id="homeMenu" role="list">
-        <button class="htab" data-go="budgetReport" role="listitem">
-          <span class="htab-fig num" data-fig="budget">—</span>
-          <span class="htab-name">Budget<small data-sub="budget">safe to spend</small></span>
-          <span class="htab-go" aria-hidden="true">›</span>
-        </button>
-        <button class="htab" data-go="investments" role="listitem">
-          <span class="htab-fig num" data-fig="invest">—</span>
-          <span class="htab-name">Invest<small data-sub="invest">investments</small></span>
-          <span class="htab-go" aria-hidden="true">›</span>
-        </button>
-        <button class="htab" data-go="networth" role="listitem">
-          <span class="htab-fig num" data-fig="track">—</span>
-          <span class="htab-name">Track<small data-sub="track">net worth</small></span>
-          <span class="htab-go" aria-hidden="true">›</span>
-        </button>
-        <button class="htab" data-go="claim" role="listitem">
-          <span class="htab-fig num" data-fig="earn">—</span>
-          <span class="htab-name">Earn<small data-sub="earn">money you're owed</small></span>
-          <span class="htab-go" aria-hidden="true">›</span>
-        </button>
-        <button class="htab" data-go="save" role="listitem">
-          <span class="htab-fig num" data-fig="save">—</span>
-          <span class="htab-name">Save<small data-sub="save">bills &amp; subscriptions</small></span>
-          <span class="htab-go" aria-hidden="true">›</span>
-        </button>
-      </div>
+      <h1 class="hello serif" id="hello">Good evening, Friend</h1>
+      <p class="sub" id="homeSub">Your all-in-one finance agent.</p>
+
+      <h2 class="sec serif">Your money</h2>
+      <div id="homeMoneyList"></div>
 
       <!-- Connect bank: read-only note, only when no live bank. -->
       <div data-widget="connect">
@@ -3087,6 +3096,10 @@
     return out;
   }
 
+  /* ================= HOME v8.1 (2026-09-28) — radically simple =================
+     Brand header, greeting, broad "Your money" overview (white card buttons:
+     Budget/Invest/Track/Earn/Save, each opening its page). Times New Roman
+     headings, black background, green money figures. */
   function renderHome() {
     const hr = new Date().getHours();
     const part = hr < 12 ? "morning" : hr < 18 ? "afternoon" : "evening";
@@ -3098,29 +3111,43 @@
       av.onclick = () => show("profile");
       av.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show("profile"); } };
     }
-    document.querySelectorAll("#homeMenu .htab").forEach(b => {
-      b.onclick = () => {
-        const g = b.dataset.go;
-        if (g === "claim") openClaim();
-        else if (g) show(g);
-      };
-    });
-    // v7: vague-tab figures — real data where the icons used to be.
-    try {
-      const figs = homeFigures();
-      document.querySelectorAll("#homeMenu [data-fig]").forEach(el => {
-        const f = figs[el.dataset.fig];
-        if (!f) return;
-        el.textContent = f.fig;
-        el.classList.toggle("dim", f.fig === "—");
-      });
-      document.querySelectorAll("#homeMenu [data-sub]").forEach(el => {
-        const f = figs[el.dataset.sub];
-        if (f && f.sub) el.textContent = f.sub;
-      });
-    } catch (e) {}
+    renderHomeMoney();
     renderCFOList(); // SPEC 05: money-health tools (grid lives in Explore now)
     renderHomeConnect(); // connect-bank / picture banners
+  }
+
+  /* Your money: broad overview as white card buttons — Budget/Invest/Track/
+     Earn/Save — each opening its page. Figures from homeFigures(): real money
+     figures in green, "—" (no data) dim. */
+  const HOME_MONEY_CARDS = [
+    { key: "budget", title: "Budget", go: "budgetReport", tile: "B", color: "#2E7D5B" },
+    { key: "invest", title: "Invest", go: "investments", tile: "I", color: "#2F4B7C" },
+    { key: "track", title: "Track", go: "networth", tile: "T", color: "#3B3B3B" },
+    { key: "earn", title: "Earn", go: "claim", tile: "E", color: "#9A7B2D" },
+    { key: "save", title: "Save", go: "save", tile: "S", color: "#2A7F8E" },
+  ];
+  function renderHomeMoney() {
+    const list = $("homeMoneyList");
+    if (!list) return;
+    let figs = {};
+    try { figs = homeFigures() || {}; } catch (e) {}
+    list.innerHTML = HOME_MONEY_CARDS.map(c => {
+      const f = figs[c.key] || {};
+      const hasFig = f.fig && f.fig !== "—";
+      const sub = hasFig
+        ? `<span class="s"><b>${esc(f.fig)}</b> &middot; ${esc(f.sub || "")}</span>`
+        : `<span class="s dim">${esc(f.sub || "")}</span>`;
+      return `<button class="moneyrow" data-mgo="${c.go}" aria-label="${c.title}">
+        <span class="mtile" style="background:${c.color}">${c.tile}</span>
+        <span class="grow"><span class="t">${c.title}</span>${sub}</span>
+        <span class="chev">›</span>
+      </button>`;
+    }).join("");
+    list.querySelectorAll("[data-mgo]").forEach(b => b.onclick = () => {
+      const g = b.dataset.mgo;
+      if (g === "claim") openClaim();
+      else if (g) show(g);
+    });
   }
 
   // HOME: connect-bank + picture banners. No live bank -> connect card (with

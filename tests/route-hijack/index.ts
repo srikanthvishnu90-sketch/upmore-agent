@@ -4,8 +4,8 @@
 // Flow: load profile + thread + relevant verified routes → Anthropic →
 // grounding post-check → save + return reply.
 
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/+esm";
+const serve = (h: any) => {};
+const createClient = (...a: any[]) => ({} as any);
 import {
   SYSTEM_PROMPT,
   renderRouteCards,
@@ -16,7 +16,7 @@ import {
   SAFE_FALLBACK,
   FINANCE_SAFE_FALLBACK,
   SCAM_FALLBACK,
-  RouteCard,
+  type RouteCard,
 } from "./_shared/agent.ts";
 import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
 import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact } from "./_shared/finance_facts.ts";
@@ -30,7 +30,7 @@ import {
 } from "./_shared/lessons.ts";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
+const MODEL = (globalThis as any).__denoEnvGet ?? ((k: string) => undefined)("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 400; // tight budget: short, basic replies
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size — output already capped at MAX_TOKENS
@@ -90,8 +90,8 @@ serve(async (req) => {
     const authM = authHeader.match(/^Bearer\s+(.+)$/i);
     if (!authM) return json(cors, { error: "unauthorized" }, 401);
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      (globalThis as any).__denoEnvGet ?? ((k: string) => undefined)("SUPABASE_URL")!,
+      (globalThis as any).__denoEnvGet ?? ((k: string) => undefined)("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
     const { data: { user } } = await supabase.auth.getUser(authM[1]);
@@ -526,7 +526,7 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
+        "x-api-key": (globalThis as any).__denoEnvGet ?? ((k: string) => undefined)("ANTHROPIC_API_KEY")!,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
@@ -1202,3 +1202,5 @@ function tryFastPath(
   }
   return null;
 }
+
+export { tryFastPath };

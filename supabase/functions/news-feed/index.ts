@@ -25,6 +25,7 @@ const MARKET_SYMBOLS = [
   { symbol: "^GSPC", label: "S&P 500" },
   { symbol: "^IXIC", label: "Nasdaq" },
   { symbol: "^DJI", label: "Dow" },
+  { symbol: "NVDA", label: "Nvidia" },
 ];
 
 const FETCH_TIMEOUT_MS = 6000;

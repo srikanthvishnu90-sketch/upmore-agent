@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-09WdwBxQS/rKZdsiC4dEiLUVXyZIS2J4HrAcmDk7vPQ=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-DJT8Idtx+9mz0cJu9siReCJuqta48NwdS8WGx+c5TnE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -936,9 +936,8 @@
     background: linear-gradient(180deg, #2E7D5B, #1E5A3E);
     border-radius: 18px 18px 6px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5;
     box-shadow: 0 4px 14px rgba(30,90,62,.4), inset 0 1px 0 rgba(255,255,255,.18); }
-  .amsg { align-self: flex-start; max-width: 85%; background: var(--ns3); color: var(--nhi);
-    font-size: 15px; line-height: 1.55; letter-spacing: -0.003em;
-    border-radius: 18px 18px 18px 6px; padding: 10px 14px; border: 1px solid var(--nline); }
+  .amsg { align-self: flex-start; max-width: 92%; color: var(--nhi);
+    font-size: 15px; line-height: 1.55; letter-spacing: -0.003em; padding: 2px 0; }
   .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
   .amsg b { font-weight: 600; }
   .amsg a { color: #6EA8FF; }
@@ -12095,7 +12094,7 @@ async function renderFeed(force) {
   const list = $("feedList"); if (!list) return;
   const rb = $("feedRefresh");
   if (rb && !rb.dataset.wired) { rb.dataset.wired = "1"; rb.onclick = () => renderFeed(true); }
-  if (!force && feedCache && Date.now() - feedCache.at < 15 * 60 * 1000) { paintFeed(feedCache.data); return; }
+  if (!force && feedCache && Date.now() - feedCache.at < 5 * 60 * 1000) { paintFeed(feedCache.data); return; }
   list.innerHTML = '<div class="nloading">Loading the latest…</div>';
   try {
     const r = await fetch(UPMORE_BACKEND_URL + "/functions/v1/news-feed", { headers: { apikey: UPMORE_ANON_KEY } });
@@ -12114,7 +12113,7 @@ async function renderFeed(force) {
 }
 function paintFeed(data) {
   const mk = $("feedMarkets");
-  mk.innerHTML = (data.markets || []).slice(0, 3).map(m => {
+  mk.innerHTML = (data.markets || []).slice(0, 4).map(m => {
     const label = m.label || m.name || "";
     const price = m.price != null
       ? Number(m.price).toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—";
@@ -12132,8 +12131,14 @@ function paintFeed(data) {
     `<div class="fmeta"><span>${esc(it.source || "")}</span><span>·</span><span>${esc(timeAgo(it.published))}</span></div></a>`
   ).join("") || '<div class="nerr">No headlines right now.</div>';
   const srcs = [...new Set(items.map(i => i.source).filter(Boolean))];
+  const asOf = (data.markets || []).map(m => m.asOf).filter(Boolean).sort().pop();
+  let asOfTxt = "";
+  if (asOf) {
+    const d = new Date(asOf);
+    if (!isNaN(d.getTime())) asOfTxt = " · Markets as of " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
   $("feedFoot").textContent = srcs.length
-    ? `Headlines from ${srcs.join(", ")} · refreshes every 15 min` : "";
+    ? `Headlines from ${srcs.join(", ")} · refreshes every 5 min${asOfTxt}` : "";
 }
 function timeAgo(iso) {
   if (!iso) return "";

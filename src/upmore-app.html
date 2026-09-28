@@ -303,8 +303,9 @@
     font-size: 11.5px; font-weight: 600; color: var(--dim); padding: 4px 10px; min-height: 48px; min-width: 48px;
     justify-content: center; border-radius: 999px; }
   .tab svg { width: 24px; height: 24px; }
-  /* Founder direction 2026-09-28: dark green is the selected/active color. */
-  .tab[aria-selected="true"] { color: #fff; background: #2E7D5B; }
+  /* Founder direction 2026-09-28: dark green is the selected/active color,
+     kept subtle on the tab bar — no solid pill. */
+  .tab[aria-selected="true"] { color: #fff; background: rgba(46,125,91,.22); }
 
   /* ---------- guide ---------- */
   #guide::before { content: ""; position: absolute; left: 50%; top: 90px; width: min(420px, 100vw); height: min(420px, 100vw); transform: translateX(-50%);
@@ -919,6 +920,7 @@
 
   /* ---------- chat: feed + messages ---------- */
   .cfeed { flex: 1; overflow-y: auto; padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+  #threadAgent, #threadAsk { display: flex; flex-direction: column; gap: 14px; }
   .cfeed::-webkit-scrollbar { display: none; }
   .cempty { margin: auto 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
   .corb { width: 44px; height: 44px; border-radius: 50%; flex: none;

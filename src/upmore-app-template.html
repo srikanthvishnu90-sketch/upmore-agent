@@ -1182,6 +1182,26 @@
     </div>
   </section>
 
+  <!-- ================= PASSWORD RESET: new password after email link ================= -->
+  <section class="screen" id="resetpw" aria-label="Set a new password">
+    <div class="scroll">
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;min-height:52vh">
+        <svg width="52" height="52" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#fff" mask="url(#logo)"/></svg>
+        <h1 style="margin-top:26px;max-width:14ch">Set a new password</h1>
+        <p class="why">You asked for a reset link — choose a new password below. It needs at least 8 characters.</p>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="pwform">
+        <input id="resetPw1" type="password" placeholder="New password" autocomplete="new-password" aria-label="New password">
+        <input id="resetPw2" type="password" placeholder="Repeat new password" autocomplete="new-password" aria-label="Repeat new password">
+        <p class="formerr" id="resetErr" role="alert"></p>
+        <button class="go" id="pwResetGo"><span>Set new password</span></button>
+      </div>
+      <p class="legal">Didn't ask for this? Just close the app — nothing changes until you set a new password.</p>
+    </div>
+  </section>
+
   <!-- ================= SIGNUP: welcome ================= -->
   <section class="screen" id="welcome" aria-label="Welcome">
     <div class="scroll">
@@ -1364,7 +1384,7 @@
         <div class="cc-top">
           <div>
             <b id="ccTitle">Connect your bank</b>
-            <p>Read-only. We see transactions, never move money. Takes 30 seconds.</p>
+            <p>Your bank link is read-only. We see transactions, never move money. Takes 30 seconds.</p>
           </div>
         </div>
         <button class="cta" id="connectBankBtn">Connect bank</button>
@@ -1659,7 +1679,7 @@
       <div class="sheetcard">
         <div class="row"><b style="font-size:18px">Connect your bank</b><button class="iconbtn" id="connectClose" aria-label="Close connections">✕</button></div>
         <div id="simplefinConnect">
-          <p class="psub" style="margin-top:6px">Read-only. We see balances and transactions — we can never move money or log in as you. Your bank credentials go to your bank, never to us.</p>
+          <p class="psub" style="margin-top:6px">Your bank link is read-only. We see balances and transactions — we can never move money or log in as you. Your bank credentials go to your bank, never to us.</p>
           <div id="sfStep1">
             <p style="font-size:14px;margin:12px 0 8px"><b>Step 1:</b> Get your free SimpleFIN setup token.</p>
             <a href="https://bridge.simplefin.org/simplefin/create" target="_blank" rel="noopener" class="btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px">Get setup token →</a>
@@ -2126,7 +2146,7 @@
     const _td = loadTrackData();
     const _si = (typeof session !== "undefined" && !!session);
     if (_si && !_td.isLive) {
-      $("txList").innerHTML = `<div class="pcard" style="flex-direction:column;align-items:stretch"><p class="bsum">Your transactions live here once your bank is connected.</p><button class="cta" id="txConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Read-only. We see transactions, never move money.</p></div>`;
+      $("txList").innerHTML = `<div class="pcard" style="flex-direction:column;align-items:stretch"><p class="bsum">Your transactions live here once your bank is connected.</p><button class="cta" id="txConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Your bank link is read-only. We see transactions, never move money.</p></div>`;
       const cb = $("txConnect"); if (cb) cb.onclick = () => { show("home"); setTimeout(() => { const c = $("connectBankBtn"); if (c) c.click(); }, 150); };
       return;
     }
@@ -2588,6 +2608,7 @@
     const err = $("loginErr"), btn = $("pwGo");
     err.textContent = "";
     if (!email || !pw) { err.textContent = "Enter your email and password."; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Enter a valid email address."; return; }
     const label = btn.innerHTML;
     btn.disabled = true; btn.innerHTML = "<span>Logging in…</span>";
     try {
@@ -2619,6 +2640,7 @@
     const email = $("loginEmail").value.trim();
     const err = $("loginErr");
     if (!email) { err.textContent = "Enter your email above first, then tap Forgot password."; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Enter a valid email address."; return; }
     err.textContent = "";
     try {
       const { error } = await supa.auth.resetPasswordForEmail(email, {
@@ -2632,6 +2654,34 @@
     }
   };
 
+  /* New-password screen: completes the reset flow after the user clicks the
+     email link. Supabase fires PASSWORD_RECOVERY with a recovery session;
+     we validate locally, then updateUser({ password }) for real. */
+  $("pwResetGo").onclick = async () => {
+    const pw = $("resetPw1").value, pw2 = $("resetPw2").value;
+    const err = $("resetErr"), btn = $("pwResetGo");
+    err.textContent = "";
+    if (!pw || !pw2) { err.textContent = "Enter your new password twice."; return; }
+    if (pw.length < 8) { err.textContent = "Password needs at least 8 characters."; return; }
+    if (pw !== pw2) { err.textContent = "The two passwords don't match."; return; }
+    const label = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = "<span>Setting new password…</span>";
+    try {
+      const { error } = await supa.auth.updateUser({ password: pw });
+      if (error) throw error;
+      await refreshSession();
+      if (!session) throw new Error("Password updated, but no session was created. Please log in with your new password.");
+      await ensureProfile();
+      await loadProgress();
+      if (minorBlocked()) { show("blocked"); return; }
+      if (!(await tosAccepted())) { show("tos"); return; }
+      show("home");
+    } catch (e) {
+      err.textContent = (e && e.message) || "Couldn't update your password. Please try again.";
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  };
+
   /* Email + password SIGNUP on the phone screen (closes the Google-only gap).
      Same post-auth sequence as login: profile, progress, age gate, TOS. */
   $("pwSignupGo").onclick = async () => {
@@ -2639,6 +2689,7 @@
     const err = $("signupErr"), btn = $("pwSignupGo");
     err.textContent = "";
     if (!email || !pw) { err.textContent = "Enter an email and a password."; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Enter a valid email address."; return; }
     if (pw.length < 8) { err.textContent = "Password needs at least 8 characters."; return; }
     const label = btn.innerHTML;
     btn.disabled = true; btn.innerHTML = "<span>Creating account…</span>";
@@ -4137,7 +4188,7 @@
     const _clTd = loadTrackData();
     const _clSi = (typeof session !== "undefined" && !!session);
     if (_clSi && !_clTd.isLive) {
-      body.innerHTML = `<div class="pcard" style="flex-direction:column;align-items:stretch"><p class="bsum">Your monthly close builds itself from real transactions. Connect your bank to see your money in, money out, and your net for the month.</p><button class="cta" id="clConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Read-only. We see transactions, never move money.</p></div>`;
+      body.innerHTML = `<div class="pcard" style="flex-direction:column;align-items:stretch"><p class="bsum">Your monthly close builds itself from real transactions. Connect your bank to see your money in, money out, and your net for the month.</p><button class="cta" id="clConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Your bank link is read-only. We see transactions, never move money.</p></div>`;
       const cb = $("clConnect"); if (cb) cb.onclick = () => { show("home"); setTimeout(() => { const c = $("connectBankBtn"); if (c) c.click(); }, 150); };
       return;
     }
@@ -4764,6 +4815,10 @@
       const t = s.querySelector(".sheetcard b, .sheetcard h2, .sheetcard h3");
       if (t && t.textContent.trim()) s.setAttribute("aria-label", t.textContent.trim().slice(0, 80));
     }
+    // FIX (2026-09-28, agent 6): tapping the backdrop dismisses any sheet.
+    // Same `hidden = true` every sheet's own close buttons use; sheets with
+    // their own backdrop handlers (consentSheet) still run theirs too.
+    s.addEventListener("click", e => { if (e.target === s) s.hidden = true; });
   });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") document.querySelectorAll(".sheet:not([hidden])").forEach(s => { s.hidden = true; });
@@ -7402,6 +7457,10 @@
     } catch (e) { return false; }
   }
   async function maybeConsent(kind, onAgree) {
+    // FIX (2026-09-28, agent 7): signed-out users hit a dead end at "I agree"
+    // because consent logging fails closed with no session. Send them to
+    // sign in first instead of a misleading "check your connection" toast.
+    if (!session) { toast("Sign in first, then connect your bank."); show("login"); return; }
     if (await hasConsented(kind)) { onAgree(); return; }
     openConsent(kind, onAgree);
   }
@@ -7494,6 +7553,7 @@
   }
 
   supa.auth.onAuthStateChange((ev) => {
+    if (ev === "PASSWORD_RECOVERY") { show("resetpw"); return; }
     if (ev === "SIGNED_OUT") {
       try {
         localStorage.removeItem("upmore-onboarding");
@@ -9235,7 +9295,7 @@
     if (signedIn && !isLive) {
       body.innerHTML = `<div class="pcard"><p class="bsum">Your budget report needs your real transactions. Connect your bank and it builds itself — budgets from your actual spending, trends, cash flow, all of it.</p>
         <button class="cta" id="brConnect" style="margin-top:12px">Connect bank</button>
-        <p class="fine" style="margin-top:8px">Read-only. We see transactions, never move money.</p></div>`;
+        <p class="fine" style="margin-top:8px">Your bank link is read-only. We see transactions, never move money.</p></div>`;
       const bc = $("brConnect"); if (bc) bc.onclick = () => { show("home"); setTimeout(() => { const c = $("connectBankBtn"); if (c) c.click(); }, 150); };
       return;
     }
@@ -11062,7 +11122,7 @@
     // QA 2026-09-27: authenticated users must never see demo bills/paydays as
     // their own. No live connection -> connect-bank card, not the demo grid.
     if (_si && !_td.isLive) {
-      body.innerHTML = `<div class="pcard"><p class="bsum">Your bills calendar builds itself from real transactions. Connect your bank to see every bill and payday on one grid.</p><button class="cta" id="rcConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Read-only. We see transactions, never move money.</p></div>`;
+      body.innerHTML = `<div class="pcard"><p class="bsum">Your bills calendar builds itself from real transactions. Connect your bank to see every bill and payday on one grid.</p><button class="cta" id="rcConnect" style="margin-top:12px">Connect bank</button><p class="fine" style="margin-top:8px">Your bank link is read-only. We see transactions, never move money.</p></div>`;
       const cb = $("rcConnect"); if (cb) cb.onclick = openConnectSheet;
       return;
     }

@@ -1074,6 +1074,15 @@ function tryFastPath(
     Date.now() - new Date(route.verified_at).getTime() < 7 * 24 * 3600 * 1000;
   if (!fresh) return null;
 
+  // Guard (2026-09-28, extended after feature-#1 test): cancellation, billing,
+  // charge, refund, dispute, and subscription intents must NEVER get a route-
+  // card answer — not from the named-route fallback AND not from any pattern
+  // handler above. "Give me the exact steps and the direct link to cancel it
+  // myself" was returning the thread's last-mentioned EARN route (Voice123
+  // R0381) via the "link" pattern because the guard sat below the handlers.
+  // Cancellation/billing questions go to the model / cancel-path capability.
+  if (/\b(bill|bills|billing|charged|charge|refund|dispute|subscription|cancel|cancellation)\b/i.test(msg)) return null;
+
   const catches = Array.isArray(route.catches) ? route.catches : route.catches ? [String(route.catches)] : [];
   // Comprehensive brief: the question asks about 2+ aspects (payout + rules +
   // eligibility). Compose a full deterministic brief from the card — faster
@@ -1182,10 +1191,6 @@ function tryFastPath(
   // falling through to the model — the model only sees the top 60 routes in
   // its prompt, so it would wrongly claim routes outside that window don't
   // exist. This keeps every named verified route answerable and honest.
-  // Guard (2026-09-28): the message names a route but asks about something
-  // else (a bill, a dispute, a cancellation) — "my Spotify bill went up"
-  // must not dump the Spotify earn-route card. Let the model handle it.
-  if (/\b(bill|bills|billing|charged|charge|refund|dispute|subscription|cancel|cancellation)\b/i.test(msg)) return null;
   // Question-aware hedging: earnings questions never get a promised amount.
   if (named) {
     const lines: string[] = [`**${named.provider}** (${named.name}) — verified ✓ (route ${named.route_id})`, ""];

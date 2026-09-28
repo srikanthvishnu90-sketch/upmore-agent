@@ -17,6 +17,7 @@ export interface CancelPath {
 
 export const CANCEL_PATHS: Record<string, CancelPath> = {
   netflix: {
+    url: "https://www.netflix.com/account",
     steps: [
       "Sign in at netflix.com and open your profile menu (top right).",
       "Choose Account — find the Membership & Billing section.",

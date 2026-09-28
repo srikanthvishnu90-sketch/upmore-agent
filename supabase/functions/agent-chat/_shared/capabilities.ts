@@ -1123,6 +1123,75 @@ function findCancelPath(name: string): CancelPath | null {
   return null;
 }
 
+// ---- 9a0. Cancellation intent ----
+// "Cancel my Netflix subscription" — subscription cancellation is the #1
+// execution rail. Deterministic: never refuse, never pivot to earning,
+// never answer from an earn-route card. Returns the verified cancel path
+// (exact steps + official URL) for known merchants, honest generic guidance
+// otherwise. The last tap is always the user's (we never take credentials in
+// chat); the reply invites them to report back so the saving gets logged.
+const CANCEL_INTENT_RX = /\bcancel\b/i;
+const CANCEL_SUBCTX_RX = /\bsubscription|membership|\bplan\b/i;
+const CANCEL_GENERIC_WORDS = /^(it|this|that|these|those|everything|all|them|subscription|membership|plan|account|service)$/i;
+
+function extractCancelMerchant(message: string): string | null {
+  const m = message.toLowerCase();
+  for (const key of Object.keys(CANCEL_PATHS)) {
+    const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // (^|[^a-z0-9])...($|[^a-z0-9]) instead of \b: keys like "disney+" end in
+    // a non-word char, where a trailing \b can never match.
+    if (new RegExp(`(^|[^a-z0-9])${esc}($|[^a-z0-9])`).test(m)) return key;
+  }
+  // Fallback: "cancel my X subscription/membership" — only when the message
+  // carries subscription context, so "cancel it myself" or "cancel my order"
+  // never invent a merchant.
+  if (!CANCEL_SUBCTX_RX.test(message)) return null;
+  const mm = message.match(/\bcancel\s+(?:my\s+|the\s+)?([a-z0-9][a-z0-9+&' .()-]{1,40}?)(?:[.?!]|$)/i);
+  if (mm) {
+    const name = mm[1].trim().replace(/\s+(subscription|membership|plan|account)s?$/i, "").trim();
+    if (name.length >= 2 && !CANCEL_GENERIC_WORDS.test(name)) return name;
+  }
+  return null;
+}
+
+function titleCaseMerchant(key: string): string {
+  return key.split(/(\s+|\+)/).map((p) => /^\s|\+$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join("");
+}
+
+export function tryCancelIntent(message: string): { reply: string } | null {
+  if (!CANCEL_INTENT_RX.test(message)) return null;
+  const merchant = extractCancelMerchant(message);
+  if (!merchant && !CANCEL_SUBCTX_RX.test(message)) return null; // "cancel my order" — not ours
+  if (!merchant) {
+    return {
+      reply:
+        `I can help with that. Which subscription do you want to cancel? ` +
+        `Name it and I'll pull the exact cancel path — the steps plus the official link.`,
+    };
+  }
+  const cp = findCancelPath(merchant);
+  const display = titleCaseMerchant(merchant);
+  const lines = [`**Canceling ${display}** — here's the exact path:`, ""];
+  if (cp) {
+    if (cp.url) lines.push(cp.url);
+    cp.steps.forEach((st, i) => lines.push(`${i + 1}. ${st}`));
+    if (cp.phone) lines.push(`Phone: ${cp.phone}`);
+    lines.push(`Watch for: ${cp.retention_warning}`);
+  } else {
+    lines.push(
+      `I don't have a verified path for ${display} yet — cancel from the billing section of ` +
+      `the merchant's own account page (or inside the app's Settings → Subscriptions), and get a written confirmation.`,
+    );
+  }
+  lines.push(
+    "",
+    cp
+      ? `I can't click it for you — the last tap is yours. Do it at the link above, then tell me "it's done" and I'll log the saving.`
+      : `Tell me "it's done" once you've cancelled and I'll log the saving.`,
+  );
+  return { reply: lines.join("\n") };
+}
+
 // ---- 9a. Subscription audit ----
 // Triggers: "audit my subscriptions", "review my subscriptions",
 // "what am I paying for". DB read (save_subscriptions) when ctx is present;
@@ -1611,6 +1680,8 @@ export async function tryCapabilities(
   // failing.
   const audit = await trySubscriptionAudit(message, ctx);
   if (audit) return { reply: audit };
+  const cancelIntent = tryCancelIntent(message);
+  if (cancelIntent) return { reply: cancelIntent.reply };
   const receipt = tryReceiptCheck(message);
   if (receipt) return { reply: receipt };
   const claimIntent = tryClaimIntent(message);

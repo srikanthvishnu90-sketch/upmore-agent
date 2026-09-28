@@ -1939,7 +1939,7 @@ export async function tryCapabilities(
   const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };
   const cancelUnused = tryCancelUnused(message, hist);
-  if (cancelUnused) return { reply: cancelUnused };
+  if (cancelUnused) return { reply: cancelUnused.reply };
   const billingParty = tryBillingPartyCancel(message, hist);
   if (billingParty) return { reply: billingParty.reply };
   const receipt = tryReceiptCheck(message);

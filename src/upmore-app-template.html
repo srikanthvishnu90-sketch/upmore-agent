@@ -1715,7 +1715,7 @@
             <p class="t" id="agentMerchantName">Devin</p>
             <p class="m num" id="agentPlanMeta">$20.00/mo</p>
           </div></div>
-          <p class="psub" style="text-align:left;margin-bottom:12px">The Upmore agent will sign in to your account and cancel this subscription. It never moves money. Every step is logged below.</p>
+          <div id="agentDisclosure" style="text-align:left;margin-bottom:12px"></div>
           <button class="primary" id="agentApproveBtn">Approve — cancel it</button>
           <button class="ghostbtn" id="agentSheetClose1" style="margin-top:8px">Not now</button>
         </div>
@@ -5256,9 +5256,42 @@
     $("agentSheetTitle").textContent = "Cancel for me";
     $("agentSheetSub").textContent = "Upmore's agent does it — you approve once.";
     $("agentMerchantName").textContent = sub.merchant;
-    $("agentPlanMeta").textContent = `${money$(sub.amount)}${INTPER[sub.billing_interval] || ""}` +
+    const planMeta = `${money$(sub.amount)}${INTPER[sub.billing_interval] || ""}` +
       (sub.next_billing_date ? ` · next bill ${esc(sub.next_billing_date)}` : "");
+    $("agentPlanMeta").textContent = `${money$(sub.amount)}${INTPER[sub.billing_interval] || ""}` +
+      (sub.next_billing_date ? ` · next bill ${sub.next_billing_date}` : "");
     $("agentCredMerchant").textContent = sub.merchant;
+    // Full disclosure (2026-09-28): the 7 trust elements, all on one screen
+    // before the Approve tap. The exact strings shown are recorded as
+    // approval_context — the evidentiary record of informed consent.
+    const yearly = sub.amount != null
+      ? `About ${money$(sub.amount * (String(sub.billing_interval || "").includes("annual") ? 1 : 12))} a year — that's a projection, not a promise.`
+      : null;
+    const ctx = {
+      merchant_name: sub.merchant,
+      merchant_key: mkey,
+      plan_name: sub.plan_name || null,
+      amount: sub.amount,
+      billing_interval: sub.billing_interval || null,
+      next_billing_date: sub.next_billing_date || null,
+      subscription_id: sub.id || null,
+      twelve_month_projection: yearly,
+      reversibility: "You keep access until the end of the current billing period. You can re-subscribe anytime from the merchant's site.",
+      retention_known: null,
+      agent_mechanics: "The agent signs in to your account as you, using the login you saved in your Upmore vault. Some merchants' terms discourage automated access.",
+      agent_will_not: "The agent will not change your plan, add or change payment methods, accept offers or terms, or touch anything except the cancellation.",
+      failure_path: "If it can't complete, nothing is changed — you'll get the direct link and steps to do it yourself.",
+      shown_at: new Date().toISOString(),
+    };
+    window._agentApprovalCtx = ctx;
+    $("agentDisclosure").innerHTML =
+      `<p class="psub" style="margin:0 0 8px"><b>What happens:</b> The agent signs in to your ${esc(sub.merchant)} account and cancels <b>${esc(sub.plan_name || "your plan")}</b> (${esc(planMeta)}). It never moves money.</p>` +
+      (yearly ? `<p class="psub" style="margin:0 0 8px"><b>12-month outlook:</b> ${esc(yearly)}</p>` : "") +
+      `<p class="psub" style="margin:0 0 8px"><b>If you change your mind:</b> ${esc(ctx.reversibility)}</p>` +
+      `<p class="psub" style="margin:0 0 8px"><b>How it works:</b> ${esc(ctx.agent_mechanics)}</p>` +
+      `<p class="psub" style="margin:0 0 8px"><b>What it won't do:</b> ${esc(ctx.agent_will_not)}</p>` +
+      `<p class="psub" style="margin:0 0 8px"><b>If it fails:</b> ${esc(ctx.failure_path)}</p>` +
+      `<p class="fine" style="margin:0">One approval = one cancellation. You'll get a claim to track, and the watcher confirms your next bill is clean.</p>`;
     const hasCred = await agentCredExists(mkey);
     agentShowView(hasCred ? "agentApproveView" : "agentCredView");
     $("agentSheet").hidden = false;
@@ -5303,14 +5336,16 @@
     async function renderAgentRunResult(run, sub) {
       const ev = run.evidence || {};
       if (run.status === "done") {
-        $("agentRunStatus").textContent = "Cancelled ✓";
-        $("agentRunEvidence").innerHTML = `<p class="psub" style="text-align:left">${esc(ev.note || "Subscription cancelled.")}</p>`;
-        // Mark the subscription cancelled in-app too.
+        $("agentRunStatus").textContent = "Cancellation claimed ✓";
+        $("agentRunEvidence").innerHTML = `<p class="psub" style="text-align:left">${esc(ev.note || "Cancellation submitted — watching your next bill to confirm.")}</p>`;
+        // The server writes the cancel_claims row and marks the subscription
+        // cancel_claimed (2026-09-28). The client never marks "cancelled"
+        // directly — that only happens after billing-cycle confirmation.
         try {
-          await supa.from("save_subscriptions").update({ status: "cancelled" }).eq("id", sub.id);
+          await supa.from("save_subscriptions").update({ status: "cancel_claimed" }).eq("id", sub.id);
         } catch (e) {}
         renderSubs(); renderQueue();
-        toast("Cancelled — proof logged");
+        toast("Claimed — watching your next bill");
       } else {
         $("agentRunStatus").textContent = "Couldn't complete it";
         // Guided fallback (2026-09-27): unverified merchants return a
@@ -5325,6 +5360,41 @@
         } else {
           $("agentRunEvidence").innerHTML = `<p class="psub" style="text-align:left">${esc(run.error || ev.note || "The agent hit a wall — nothing was changed.")}</p>`;
         }
+        // Retry (2026-09-28): retries run under the SAME approval — a new
+        // cancellation always needs a new explicit approval.
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "ghostbtn"; retryBtn.style.marginTop = "8px";
+        retryBtn.textContent = "Try again";
+        retryBtn.onclick = async () => {
+          retryBtn.disabled = true;
+          try {
+            const { data: rs, error: rerr } = await supa.functions.invoke("agent-exec", {
+              body: { action: "retry_run", run_id: run.id },
+            });
+            if (rerr || !rs || rs.error) throw rerr || new Error((rs && rs.error) || "Couldn't retry");
+            $("agentRunStatus").textContent = "Retrying — the agent is on it…";
+            const run2 = await pollAgentRun(ap.id, 300000);
+            if (run2) renderAgentRunResult(run2, sub);
+          } catch (e) {
+            toast(e.message || "Couldn't retry");
+            retryBtn.disabled = false;
+          }
+        };
+        $("agentRunEvidence").appendChild(retryBtn);
+        // Mismatch report (2026-09-28): 3 reports in 30 days auto-demote the playbook.
+        const repBtn = document.createElement("button");
+        repBtn.className = "ghostbtn"; repBtn.style.marginTop = "8px"; repBtn.style.marginLeft = "8px";
+        repBtn.textContent = "Report: page didn't match";
+        repBtn.onclick = async () => {
+          try {
+            await supa.functions.invoke("agent-exec", {
+              body: { action: "report_playbook_mismatch", run_id: run.id },
+            });
+            toast("Reported — thanks, this helps keep the agent honest");
+            repBtn.disabled = true;
+          } catch (e) { toast("Couldn't send the report"); }
+        };
+        $("agentRunEvidence").appendChild(repBtn);
       }
     }
     try {
@@ -5336,6 +5406,7 @@
         plan_name: sub.plan_name || null, amount: sub.amount,
         billing_date: sub.next_billing_date || null,
         action: "cancel_subscription", status: "approved", decided_at: new Date().toISOString(),
+        approval_context: window._agentApprovalCtx || null,
       }).select("id").single();
       if (aerr || !ap) throw aerr || new Error("approval failed");
       const { data: ex, error: xerr } = await supa.functions.invoke("agent-exec", {
@@ -5350,7 +5421,9 @@
       // OTP handoff: the agent paused at a verification-code step.
       if (run.status === "awaiting_otp") {
         $("agentRunStatus").textContent = "Check your email — enter the code to continue";
-        $("agentOtpHint").textContent = run.otp_hint || "Enter the verification code to continue.";
+        // 30-minute TTL (2026-09-28): the pause expires; the server enforces it.
+        $("agentOtpHint").textContent = (run.otp_hint || "Enter the verification code to continue.") +
+          " The code window closes 30 minutes after the pause — after that, start again.";
         $("agentOtpView").hidden = false;
         $("agentOtpSubmitBtn").onclick = async () => {
           const code = $("agentOtpInput").value.trim();
@@ -11483,7 +11556,11 @@ function updateAgentDot() {
    ============================================================ */
 function genericScript(title) {
   return {
-    steps: ["Understanding the request", "Checking your accounts", "Preparing your handoff"],
+    steps: [
+      { label: "Understanding the request", run: async () => {} },
+      { label: "Checking your accounts", run: async () => { await getTasks(); } },
+      { label: "Preparing your handoff", run: async () => {} },
+    ],
     summary: "Here's what I found — review the handoff below.",
     handoff: {
       title: "Here's your next step",
@@ -11513,8 +11590,15 @@ function disputeNote(t) {
 }
 function taskScript(t) {
   const amt = t.amount != null ? money$(t.amount) : "";
+  // Steps carry real run() work (2026-09-28) — the UI advances on completion,
+  // never on a timer. Steps that only prepare a handoff say so honestly.
+  const prep = (label, fn) => ({ label, run: fn || (async () => {}) });
   if (t.type === "bill_due") return {
-    steps: [`Checking your ${t.merchant || "bill"} balance`, "Prefilling the payment details", "Preparing your handoff"],
+    steps: [
+      prep(`Checking your ${t.merchant || "bill"} balance`, async () => { await getTasks(); }),
+      prep("Prefilling the payment details", async () => { /* handoff built below */ }),
+      prep("Preparing your handoff", async () => {}),
+    ],
     summary: `Your ${t.title} is ${amt}, ${taskDueText(t)}. Everything is prefilled — one tap opens it.`,
     handoff: {
       title: `Ready to pay ${amt}`,
@@ -11527,7 +11611,11 @@ function taskScript(t) {
     ledgerAction: "bill_pay_prep",
   };
   if (t.type === "trial_converting") return {
-    steps: ["Confirming the trial end date", "Locating the cancel page", "Preparing your handoff"],
+    steps: [
+      prep("Confirming the trial end date", async () => { await getTasks(); }),
+      prep("Locating the cancel page", async () => {}),
+      prep("Preparing your handoff", async () => {}),
+    ],
     summary: `Your trial converts ${taskDueShort(t)} — cancel before then to avoid the charge.`,
     handoff: {
       title: `Cancel before you're charged ${amt}`,
@@ -11540,7 +11628,11 @@ function taskScript(t) {
     ledgerAction: "trial_cancel_prep",
   };
   if (t.type === "dispute_window") return {
-    steps: ["Pulling both charges", "Drafting the dispute note", "Preparing your handoff"],
+    steps: [
+      prep("Pulling both charges", async () => { await getTasks(); }),
+      prep("Drafting the dispute note", async () => {}),
+      prep("Preparing your handoff", async () => {}),
+    ],
     summary: `Found it — two ${amt} charges minutes apart. The dispute note is drafted.`,
     handoff: {
       title: "Dispute draft ready",
@@ -11553,7 +11645,11 @@ function taskScript(t) {
     ledgerAction: "dispute_draft",
   };
   if (t.type === "claim_found") return {
-    steps: ["Confirming the registry match", "Gathering what you'll need", "Preparing your handoff"],
+    steps: [
+      prep("Confirming the registry match", async () => { await getTasks(); }),
+      prep("Gathering what you'll need", async () => {}),
+      prep("Preparing your handoff", async () => {}),
+    ],
     summary: `There is ${amt} waiting for you. The claim takes about 5 minutes.`,
     handoff: {
       title: `Claim your ${amt}`,
@@ -11583,25 +11679,31 @@ async function startAgentTask(opts) {
   const stepEls = script.steps.map(s => {
     const d = document.createElement("div"); d.className = "step"; d.dataset.st = "pending";
     const c = document.createElement("span"); c.className = "sc";
-    const tx = document.createElement("span"); tx.textContent = s;
+    const tx = document.createElement("span"); tx.textContent = typeof s === "string" ? s : s.label;
     d.appendChild(c); d.appendChild(tx); stepsEl.appendChild(d);
     return d;
   });
   let dbTaskId = null;
-  try { dbTaskId = await persistTaskStart(title, reminderId, script.steps); } catch (e) {}
+  try { dbTaskId = await persistTaskStart(title, reminderId, script.steps.map(s => typeof s === "string" ? s : s.label)); } catch (e) {}
   let failed = false;
+  // Event-driven (2026-09-28): each step runs its real async work — the UI
+  // advances only when the work completes. No sleep-driven fake progress.
   for (let i = 0; i < stepEls.length; i++) {
+    const step = script.steps[i];
+    const label = typeof step === "string" ? step : step.label;
     stepEls[i].dataset.st = "working"; scrollChat();
     await persistStep(dbTaskId, i, "working");
-    await sleep(demo === false ? 400 : 900 + Math.random() * 700);
-    if (failAt === i) {
+    try {
+      if (step && typeof step.run === "function") await step.run();
+      if (failAt === i) throw new Error(failReason || "Something went wrong.");
+    } catch (e) {
       failed = true;
       stepEls[i].dataset.st = "failed";
       stepEls[i].querySelector(".sc").textContent = "!";
       const det = document.createElement("span"); det.className = "sdet";
-      det.textContent = failReason || "Something went wrong.";
+      det.textContent = (e && e.message) || "Something went wrong.";
       stepEls[i].appendChild(det);
-      await persistStep(dbTaskId, i, "failed", failReason || "Something went wrong.");
+      await persistStep(dbTaskId, i, "failed", (e && e.message) || "Something went wrong.");
       break;
     }
     stepEls[i].dataset.st = "done";
@@ -12046,31 +12148,50 @@ async function revokeAllAccess() {
 async function renderAuditList() {
   const el = $("auditList"); if (!el) return;
   try {
-    const [runsRes, apprRes] = await Promise.all([
+    const [runsRes, apprRes, claimsRes] = await Promise.all([
       supa.from("exec_runs").select("id,approval_id,status,error,started_at,finished_at,evidence")
         .eq("user_id", session.user.id).order("started_at", { ascending: false }).limit(50),
       supa.from("exec_approvals").select("id,merchant,action,status,created_at").eq("user_id", session.user.id),
+      supa.from("cancel_claims").select("id,merchant,status,expected_billing_date,run_id").eq("user_id", session.user.id),
     ]);
     const runs = runsRes.data || [];
     const merchants = {}; (apprRes.data || []).forEach(a => { merchants[a.id] = a; });
+    const claimsByRun = {}; (claimsRes.data || []).forEach(c => { if (c.run_id) claimsByRun[c.run_id] = c; });
     if (!runs.length) { el.innerHTML = '<p class="asub">No runs yet.</p>'; return; }
     el.innerHTML = runs.map(r => {
       const a = merchants[r.approval_id] || {};
+      const claim = claimsByRun[r.id];
       const out = r.status === "done" ? ["ok", "Done"]
         : r.status === "revoked" ? ["warn", "Revoked by you"] : ["bad", "Failed"];
       const ev = r.evidence || {};
       const note = ev.note || ev.reason || r.error || "";
+      const claimTxt = claim
+        ? (claim.status === "confirmed" ? " · bill confirmed clean ✓"
+          : claim.status === "zombie" ? " · charged anyway — re-queued"
+          : ` · watching ${esc(claim.expected_billing_date || "")} bill`)
+        : "";
       return `<div class="aurow"><div class="am">${esc(a.merchant || "Unknown merchant")}</div>
-        <div class="aemd">${esc(new Date(r.started_at).toLocaleString())} · approval ${esc(String(r.approval_id || "").slice(0, 8))}${note ? " · " + esc(String(note).slice(0, 120)) : ""}</div>
+        <div class="aemd">${esc(new Date(r.started_at).toLocaleString())} · approval ${esc(String(r.approval_id || "").slice(0, 8))}${note ? " · " + esc(String(note).slice(0, 120)) : ""}${claimTxt}</div>
         <div class="aout ${out[0]}">${out[1]}</div></div>`;
     }).join("");
   } catch (e) { el.innerHTML = '<p class="asub">Couldn\'t load the audit log.</p>'; }
 }
 async function exportAuditLog() {
   try {
-    const { data } = await supa.from("exec_runs").select("*")
-      .eq("user_id", session.user.id).order("started_at", { ascending: false });
-    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), runs: data || [] }, null, 2)], { type: "application/json" });
+    const uid = session.user.id;
+    const [runs, approvals, claims, ledger] = await Promise.all([
+      supa.from("exec_runs").select("*").eq("user_id", uid).order("started_at", { ascending: false }),
+      supa.from("exec_approvals").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+      supa.from("cancel_claims").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+      supa.from("action_ledger").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+    ]);
+    const blob = new Blob([JSON.stringify({
+      exported_at: new Date().toISOString(),
+      runs: runs.data || [],
+      approvals: approvals.data || [],
+      cancel_claims: claims.data || [],
+      action_ledger: ledger.data || [],
+    }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "upmore-audit-log.json"; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);

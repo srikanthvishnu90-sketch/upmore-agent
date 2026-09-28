@@ -614,7 +614,53 @@ async function runDeclarative(
 ): Promise<BrowserOutcome> {
   const steps = pb.steps;
   const fail = (error: string): BrowserOutcome => ({ ok: false, error });
+  // ---- Stop-guards (2026-09-28): before EVERY step, scan the visible page
+  // for tripwires. The agent cancels or it stops — it never improvises through
+  // account creation, terms acceptance, payment entry, consent, or plan
+  // changes. On tripwire: abort immediately with evidence; guided fallback.
+  const TRIPWIRES: Array<{ kind: string; patterns: RegExp[] }> = [
+    { kind: "account_creation", patterns: [
+      /create (your|an|a) account/i, /sign up for/i, /register (your|an|a) account/i,
+      /set up (your|an) account/i, /create a password/i, /choose a password/i ] },
+    { kind: "terms_acceptance", patterns: [
+      /i agree to (the )?terms/i, /accept (the )?(terms|privacy)/i,
+      /agree to (the )?(terms of (service|use)|privacy policy)/i,
+      /by continuing,? you agree/i, /acknowledge (the )?(terms|privacy)/i ] },
+    { kind: "payment_details", patterns: [
+      /add (a |your )?card/i, /enter (your )?payment/i, /billing details/i,
+      /card number/i, /payment method/i, /update (your )?billing/i,
+      /enter (your )?credit card/i ] },
+    { kind: "consent", patterns: [
+      /consent to/i, /give (us )?permission/i, /authorize (us )?to/i,
+      /opt.?in to (marketing|data|tracking)/i, /grant access to/i ] },
+    { kind: "plan_change", patterns: [
+      /switch (your )?plan/i, /change (your )?plan/i, /downgrade/i,
+      /choose (a |your )?(new )?plan/i, /pick (a |your )?plan/i,
+      /special offer/i, /stay (for|with)/i, /we'll (give|offer)/i ] },
+  ];
+  async function tripwireScan(): Promise<string | null> {
+    let text = "";
+    try { text = String(await page.eval("document.body.innerText || \"\"").catch(() => "")); }
+    catch { return null; }
+    // Skip the scan on the merchant's own login page (credential fields are
+    // expected there — the playbook's typeInto steps handle them).
+    if (/sign ?in|log ?in/i.test(text) && /password/i.test(text) &&
+        !/create (your|an) account|sign up/i.test(text)) return null;
+    for (const t of TRIPWIRES) {
+      for (const re of t.patterns) {
+        if (re.test(text)) return t.kind;
+      }
+    }
+    return null;
+  }
   for (let i = fromIndex; i < steps.length; i++) {
+    const tripped = await tripwireScan();
+    if (tripped) {
+      ev.stopped_at_tripwire = tripped;
+      ev.tripwire_step_index = i;
+      try { pushShot(ev, await page.screenshot("tripwire-" + tripped)); } catch { /* best effort */ }
+      return fail(`Stopped: the page asked for ${tripped.replace(/_/g, " ")} — the agent never proceeds through that. Nothing was changed.`);
+    }
     const a = steps[i];
     switch (a.kind) {
       case "goto":
@@ -703,6 +749,72 @@ function declarativeDef(pb: MerchantPlaybook): BrowserPlaybookDef {
   };
 }
 
+// ================= Category exclusion (2026-09-28) =================
+// Defense in depth: the client can be bypassed, so the executor re-checks
+// before the atomic claim. Returns the exclusion reason, or null if clear.
+// Insurance, utilities, and contracts/ETFs are matched deterministically;
+// user-marked keep/shared arrives via approval_context (the client is the
+// source of the user's marking; the server enforces it).
+const EXCLUDED_PATTERNS: Array<{ category: string; re: RegExp }> = [
+  { category: "insurance", re: /insurance|geico|progressive|state farm|allstate|usaa|liberty mutual|farmers ins|nationwide|travelers/i },
+  { category: "utility", re: /comed|con ?ed|pseg|duke energy|pacific gas|pg&e|national grid|southern california edison|florida power|xcel|dte energy|ameranill|water|electric|gas company|power company/i },
+  { category: "contract", re: /early termination|termination fee|etf|contract/i },
+];
+function checkExcludedCategory(
+  merchantKey: string, merchantName: string,
+  approval: Record<string, unknown>,
+): string | null {
+  const hay = `${merchantKey} ${merchantName}`;
+  for (const { category, re } of EXCLUDED_PATTERNS) {
+    if (re.test(hay)) return category;
+  }
+  const ctx = (approval.approval_context || {}) as Record<string, unknown>;
+  if (ctx.has_early_termination_fee) return "contract (early termination fee)";
+  if (ctx.user_marked_keep) return "marked keep by you";
+  if (ctx.user_marked_shared) return "marked shared by you";
+  return null;
+}
+
+// ================= Cancel claims (2026-09-28) =================
+// A "done" agent run never means "cancelled" — it means CLAIMED. The claim
+// records the expected next billing date; the cancel-watcher confirms the
+// bill is clean (or catches a zombie charge) against synced transactions.
+async function writeCancelClaim(
+  admin: any, approval: Record<string, unknown>,
+  userId: string, runId: string, merchantKey: string,
+): Promise<void> {
+  try {
+    const ctx = (approval.approval_context || {}) as Record<string, unknown>;
+    let expected: string | null = typeof ctx.next_billing_date === "string" ? ctx.next_billing_date : null;
+    if (!expected) {
+      // Fall back to interval arithmetic: monthly +30d, annual +365d.
+      const interval = String(ctx.billing_interval || approval.billing_interval || "monthly").toLowerCase();
+      const days = interval.includes("annual") || interval.includes("year") ? 365 : 30;
+      expected = new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
+    }
+    const { data: claim } = await admin.from("cancel_claims").insert({
+      user_id: userId,
+      merchant: String(approval.merchant || ctx.merchant_name || merchantKey),
+      merchant_key: merchantKey,
+      amount: ctx.amount ?? approval.amount ?? null,
+      expected_billing_date: expected,
+      grace_days: 2,
+      status: "open",
+      run_id: runId,
+      approval_id: approval.id,
+      subscription_id: ctx.subscription_id ?? null,
+    }).select("id").single();
+    // Mirror the claim onto the subscription row: claimed, never "cancelled".
+    const subId = ctx.subscription_id;
+    if (subId && claim) {
+      await admin.from("save_subscriptions").update({
+        status: "cancel_claimed",
+        updated_at: new Date().toISOString(),
+      }).eq("id", subId).eq("user_id", userId);
+    }
+  } catch { /* claim write is best-effort; the run itself already succeeded */ }
+}
+
 // ================= serve =================
 serve(async (req) => {
   const cors = corsFor(req);
@@ -723,6 +835,29 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await userClient.auth.getUser(jwt);
     if (authErr || !user) return json({ error: "Invalid session" }, 401);
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // ---- OTP sweeper (2026-09-28): lazily expire stale awaiting_otp runs.
+    // Runs on every invocation so no external scheduler is required: any
+    // pause older than its 30-minute TTL is marked failed and its dangling
+    // Browserbase session is killed. KeepAlive sessions bill per minute and
+    // are a dangling-access risk — they must not outlive the TTL.
+    try {
+      const { data: expired } = await admin.from("exec_runs")
+        .select("id, browserbase_session_id")
+        .eq("user_id", user.id)
+        .eq("status", "awaiting_otp")
+        .lt("otp_expires_at", new Date().toISOString());
+      for (const r of expired || []) {
+        if (r.browserbase_session_id) {
+          try { await bbStopSession(r.browserbase_session_id as string); } catch { /* best effort */ }
+        }
+        await admin.from("exec_runs").update({
+          status: "failed",
+          error: "The verification window expired (30 minutes). Nothing was changed.",
+          finished_at: new Date().toISOString(),
+        }).eq("id", r.id);
+      }
+    } catch { /* sweeper is best-effort; never block the request */ }
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || "execute";
@@ -813,6 +948,70 @@ serve(async (req) => {
       });
     }
 
+    // ---- retry_run (2026-09-28): retry a FAILED attempt under the SAME
+    // approval. Retries only happen inside the already-approved attempt —
+    // a run that reached "done" can never be retried (execute refuses it),
+    // and a new cancellation always needs a new explicit approval.
+    if (action === "retry_run") {
+      const { run_id } = body;
+      if (!run_id) return json({ error: "run_id required" }, 400);
+      const { data: run } = await admin.from("exec_runs")
+        .select("*, exec_approvals!inner(user_id, status)")
+        .eq("id", run_id).maybeSingle();
+      if (!run || (run as any).exec_approvals?.user_id !== user.id) {
+        return json({ error: "Run not found" }, 404);
+      }
+      if (run.status === "done") {
+        return json({ error: "This attempt already completed — approve again for a new cancellation" }, 409);
+      }
+      if (!["failed", "revoked"].includes(run.status)) {
+        return json({ error: `Run is ${run.status}, not retryable` }, 409);
+      }
+      if (run.browserbase_session_id) {
+        try { await bbStopSession(run.browserbase_session_id as string); } catch { /* best effort */ }
+      }
+      // Reset the approval to approved so execute's atomic claim can fire
+      // exactly once more for this same approval.
+      await admin.from("exec_approvals").update({ status: "approved", decided_at: null })
+        .eq("id", run.approval_id).eq("user_id", user.id);
+      await admin.from("exec_runs").update({
+        status: "failed",
+        error: "Superseded by retry — a fresh attempt ran under the same approval",
+        finished_at: new Date().toISOString(),
+      }).eq("id", run.id);
+      // Fall through to execute with the same approval_id.
+      body.approval_id = run.approval_id;
+    }
+
+    // ---- report_playbook_mismatch (2026-09-28): a user reports that the
+    // playbook didn't match the merchant's site. 3 mismatch reports in 30
+    // days auto-demote the playbook (see the executor gate).
+    if (action === "report_playbook_mismatch") {
+      const { run_id, merchant_key, note } = body;
+      if (!run_id && !merchant_key) {
+        return json({ error: "run_id or merchant_key required" }, 400);
+      }
+      let mkey = merchant_key ? String(merchant_key) : null;
+      if (run_id && !mkey) {
+        const { data: r } = await admin.from("exec_runs")
+          .select("approval_id, exec_approvals!inner(merchant_key, user_id)")
+          .eq("id", run_id).maybeSingle();
+        if (!r || (r as any).exec_approvals?.user_id !== user.id) {
+          return json({ error: "Run not found" }, 404);
+        }
+        mkey = String((r as any).exec_approvals.merchant_key || "");
+      }
+      if (!mkey) return json({ error: "merchant_key required" }, 400);
+      const { data: report, error: repErr } = await admin.from("playbook_reports")
+        .insert({
+          user_id: user.id, merchant_key: mkey,
+          run_id: run_id || null, kind: "mismatch",
+          note: note ? String(note).slice(0, 1000) : null,
+        }).select("id").single();
+      if (repErr) return json({ error: "Could not record report" }, 500);
+      return json({ ok: true, report_id: report.id });
+    }
+
     // ---- OTP resume: reconnect to the SAME session and continue ----
     if (action === "submit_otp") {
       const { run_id, otp_code } = body;
@@ -827,6 +1026,20 @@ serve(async (req) => {
       // Never accept an OTP for a run that isn't awaiting one or isn't the caller's.
       if (run.status !== "awaiting_otp") {
         return json({ error: `Run is ${run.status}, not waiting for a code` }, 409);
+      }
+      // 30-minute TTL (2026-09-28): expired pauses are dead — the sweeper (or
+      // this check) fails them and the session is killed. Never accept a code
+      // for an expired pause.
+      if (run.otp_expires_at && new Date(run.otp_expires_at).getTime() < Date.now()) {
+        if (run.browserbase_session_id) {
+          try { await bbStopSession(run.browserbase_session_id as string); } catch { /* best effort */ }
+        }
+        await admin.from("exec_runs").update({
+          status: "failed",
+          error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        return json({ error: "This verification code expired — the 30-minute window passed. Nothing was changed." }, 410);
       }
       if (!run.browserbase_session_id) {
         return json({ error: "Run has no browser session" }, 409);
@@ -898,6 +1111,9 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: finalStatus, decided_at: new Date().toISOString(),
         }).eq("id", run.approval_id);
+        if (finalStatus === "done") {
+          await writeCancelClaim(admin, approval, user.id, run.id, resumeKey);
+        }
         return json({ ok: outcome.ok, status: finalStatus, error: err });
       } catch (e) {
         if (sessionAlive) await bbStopSession(run.browserbase_session_id as string);
@@ -927,8 +1143,48 @@ serve(async (req) => {
     if (approval.status !== "approved") {
       return json({ error: `Approval is ${approval.status}, not approved` }, 409);
     }
+    // Retry scoping (2026-09-28): an approval that already produced a terminal
+    // "done" run may NEVER execute again — a new cancellation needs a new
+    // explicit approval. Retries of failed attempts go through retry_run.
+    {
+      const { data: doneRun } = await admin.from("exec_runs")
+        .select("id").eq("approval_id", approval.id).eq("status", "done").limit(1).maybeSingle();
+      if (doneRun) {
+        return json({ error: "This approval already completed — approve again for a new cancellation" }, 409);
+      }
+    }
     if (approval.action !== "cancel_subscription") {
       return json({ error: `Unsupported action ${approval.action}` }, 400);
+    }
+    // approval_context (2026-09-28): the evidentiary record of informed
+    // consent — the exact strings the user saw on the approval screen.
+    // Refuse to execute approvals that predate it.
+    if (!approval.approval_context || typeof approval.approval_context !== "object") {
+      const r = await recordGuidedRun({
+        admin, approval, userId: user.id,
+        reason: "missing_approval_context",
+        note: "This approval was created before the full disclosure screen existed — approve again from the current screen so the record is complete.",
+        directory_entry: null,
+      });
+      return json(r, 409);
+    }
+    // Category exclusion re-check (2026-09-28, defense in depth): the client
+    // can be bypassed, so the executor re-verifies before the atomic claim.
+    // Insurance, utilities, contracts/ETFs, and user-marked keep/shared never
+    // enter the agent path.
+    {
+      const mkey = String(approval.merchant_key || "").toLowerCase();
+      const mname = String(approval.merchant || "").toLowerCase();
+      const excluded = checkExcludedCategory(mkey, mname, approval);
+      if (excluded) {
+        const r = await recordGuidedRun({
+          admin, approval, userId: user.id,
+          reason: "excluded_category",
+          note: `The agent never touches ${excluded} — that one stays with you to decide directly.`,
+          directory_entry: null,
+        });
+        return json(r, 400);
+      }
     }
     // Resolve the merchant through the catalog (statement descriptors are
     // noisy: "SPOTIFY USA", "MICROSOFT*XBOX", ...). The executor gate:
@@ -954,6 +1210,27 @@ serve(async (req) => {
         directory_entry: resolved.directory,
       });
       return json(r, 400);
+    }
+    // Playbook demotion (2026-09-28): 3 user mismatch reports in 30 days
+    // auto-demote a playbook to unverified — the executor refuses until it
+    // is re-verified. Vault credentials and Browserbase are never touched
+    // for demoted playbooks.
+    {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+      const { count: mismatchCount } = await admin.from("playbook_reports")
+        .select("id", { count: "exact", head: true })
+        .eq("merchant_key", resolved.merchant_key)
+        .eq("kind", "mismatch")
+        .gte("created_at", thirtyDaysAgo);
+      if ((mismatchCount || 0) >= 3) {
+        const r = await recordGuidedRun({
+          admin, approval, userId: user.id,
+          reason: "playbook_demoted",
+          note: `The ${resolved.playbook.display_name} cancellation path was paused after recent reports that it didn't match the site — here is the guided self-serve flow instead.`,
+          directory_entry: resolved.directory,
+        });
+        return json(r, 400);
+      }
     }
     const merchantKey = resolved.merchant_key;
     const browserDef = browserPlaybooks[merchantKey] ?? declarativeDef(resolved.playbook);
@@ -1028,7 +1305,14 @@ serve(async (req) => {
 
     // Open run row (approval is already atomically claimed above).
     const { data: run } = await admin.from("exec_runs")
-      .insert({ approval_id: approval.id, user_id: user.id, status: "started", evidence: {} })
+      .insert({
+        approval_id: approval.id, user_id: user.id, status: "started",
+        evidence: {
+          playbook_version: resolved.playbook.version ?? 1,
+          playbook_verified_at: resolved.playbook.last_verified_at ?? null,
+          merchant_key: merchantKey,
+        },
+      })
       .select("id").single();
 
     // ---- browser path ----
@@ -1051,14 +1335,16 @@ serve(async (req) => {
         }
         if ("awaitingOtp" in outcome && outcome.awaitingOtp) {
           // Pause: keep the session alive, wait for the user's code.
+          // 30-minute TTL (2026-09-28): the sweeper kills expired pauses.
           ev.resume = outcome.resume;
           await admin.from("exec_runs").update({
             status: "awaiting_otp",
             evidence: ev,
             browserbase_session_id: session.id,
             otp_hint: outcome.otpHint,
+            otp_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
           }).eq("id", run.id);
-          return json({ ok: false, status: "awaiting_otp", run_id: run.id, otp_hint: outcome.otpHint });
+          return json({ ok: false, status: "awaiting_otp", run_id: run.id, otp_hint: outcome.otpHint, otp_expires_in_minutes: 30 });
         }
         await bbStopSession(session.id);
         session = null;
@@ -1072,6 +1358,9 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: finalStatus, decided_at: new Date().toISOString(),
         }).eq("id", approval.id);
+        if (finalStatus === "done") {
+          await writeCancelClaim(admin, approval, user.id, run.id, merchantKey);
+        }
         return json(outcome.ok
           ? { ok: true, status: finalStatus, evidence: ev, error: err }
           : { ok: false, status: finalStatus, evidence: ev, error: err, directory_entry });
@@ -1113,6 +1402,9 @@ serve(async (req) => {
       status: finalStatus,
       decided_at: new Date().toISOString(),
     }).eq("id", approval.id);
+    if (finalStatus === "done") {
+      await writeCancelClaim(admin, approval, user.id, run.id, merchantKey);
+    }
 
     return json(result.ok
       ? { ok: true, status: finalStatus, evidence: result.evidence, error: result.error || null }

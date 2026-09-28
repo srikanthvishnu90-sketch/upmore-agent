@@ -2,7 +2,7 @@
 // The single most important file in the product: this is what makes the agent
 // trustworthy instead of a confident liar.
 
-import { FINANCE_URL_ALLOWLIST, financeAllowedAmounts, financeAmountsFor } from "./finance_facts.ts";
+import { FINANCE_URL_ALLOWLIST, FINANCE_FACTS, financeAllowedAmounts, financeAmountsFor } from "./finance_facts.ts";
 
 export const SYSTEM_PROMPT = `You are the Upmore Guide, an AI assistant. You help
 regular people earn their first bit of extra money online. You talk like a
@@ -17,6 +17,16 @@ download links (when the route needs an app), and a
 verified_at date. This is the ONLY source of truth you may use for money claims.
 
 GROUNDING RULES — you must obey these every single reply:
+0. SOURCES — every reply that states facts ends with sources, ChatGPT-style.
+   After your answer, add a final block: "Sources:" followed by the raw
+   https:// URLs you used, one per line when there are several, so each is
+   tappable in the app. Route walkthroughs: the route card's official Link
+   (and App links when you gave them). Finance answers: the "Official link"
+   URLs from the FINANCE FACTS entries you quoted. Never cite a URL that was
+   not in your context — a named source with no link ("per IRS rules") is not
+   a citation. If a reply states no facts (a pure question, a greeting, a
+   reminder confirmation), skip the Sources block. In finance mode the Sources
+   block goes BEFORE the [FINANCE] marker line.
 1. Every step, link, payout amount, payout timing, deadline, and eligibility
    claim MUST come from a route card. Never invent, round, or "helpfully fill in"
    a number, date, or URL.
@@ -27,6 +37,12 @@ GROUNDING RULES — you must obey these every single reply:
    an App line, include it verbatim: "Download the app: <the exact links>".
    If the card has no App line, say "grab the app from your phone's app store"
    with no URL at all.
+   VIABLE STEPS: every step that tells the user to tap, click, open, or go
+   somewhere MUST carry its exact link right on that step, as a raw https://
+   URL (tappable in the app). A step that says "go to their site", "open the
+   app", or "search the app store" with no URL on it is a broken step — the
+   user can't act on words alone. If you don't have the link, don't write
+   the step; say what you need instead.
 2. Only present a route as a live offer if its status is "researched" AND
    verified_at is within the last 7 days. Otherwise say plainly:
    "I haven't verified this one yet, so I can't walk you through it as live."
@@ -87,7 +103,8 @@ reasoning, not just the number.
   that — check [official source]" and give the official URL only if it is in
   the allowlist.
 - End every finance-mode reply with the marker [FINANCE] on its own final
-  line (the app strips it; the user never sees it).
+  line (the app strips it; the user never sees it). The Sources block goes
+  BEFORE this marker, never after it.
 - Style: short, plain words, one idea at a time — same voice as ever.
 - Taxes: you explain rules; you are not a tax advisor and you say so when the
   question involves their specific situation.
@@ -404,10 +421,54 @@ export const SCAM_FALLBACK =
   "scam pattern. I'd stay away from this one. If you want, I can walk you " +
   "through a verified route instead.";
 
-// False no-route claim: the model says "I don't have a verified route for X"
-// but the full catalog DOES contain a fresh-verified route for X. The model
-// only sees the top 60 routes in its prompt, so it lies about the other 1440.
-// Returns the matching route so the handler can correct with the real card.
+// Deterministic Sources block (owner rule 2026-09-28): every reply that states
+// facts ends with a ChatGPT-style "Sources:" block of raw tappable URLs. The
+// model is instructed to do this itself, but it skips it often enough that the
+// server guarantees it. Only appends when missing; never duplicates.
+// - Finance mode: official links of the FINANCE_FACTS entries that answered.
+// - Route mode: official Link (+ app links) of routes actually named in the reply.
+// Pure questions/greetings and the honest fallback deflections get no block.
+export function appendSources(
+  reply: string,
+  routes: RouteCard[],
+  financeMode: boolean,
+  financeIds: string[]
+): string {
+  if (/sources:/i.test(reply)) return reply;
+  if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK) return reply;
+  const urls: string[] = [];
+  const push = (u: string | null | undefined) => {
+    if (!u) return;
+    const clean = u.replace(/[.,;:!?]+$/, "");
+    if (clean && !urls.includes(clean)) urls.push(clean);
+  };
+  if (financeMode && financeIds.length) {
+    // Only when the reply actually states a figure — a clarifying question
+    // ("are you filing single or jointly?") states no fact and gets no block.
+    if (!/\d/.test(reply)) return reply;
+    for (const id of financeIds) {
+      const f = FINANCE_FACTS.find((x) => x.id === id);
+      if (f) for (const u of f.urls) push(u);
+    }
+  } else if (!financeMode) {
+    // Match by route_id ONLY (e.g. "R0192"). Name/provider substring matching
+    // was tried and pulled in unrelated routes — "PayPal" as a payout method
+    // matched a PayPal route, "survey" matched every survey site. A wrong
+    // source link is worse than no source link. Deterministic handlers always
+    // emit "(route RXXXX)"; the model is instructed to include route IDs too.
+    const ids = new Set<string>();
+    for (const m of reply.match(/\bR\d{3,5}\b/g) ?? []) ids.add(m);
+    for (const r of routes) {
+      if (r.route_id && ids.has(r.route_id)) {
+        push(r.provider_url);
+        push((r as any).ios_url);
+        push((r as any).android_url);
+      }
+    }
+  }
+  if (!urls.length) return reply;
+  return reply.trimEnd() + "\n\nSources:\n" + urls.join("\n");
+}
 export function findFalseNoRouteClaim(
   reply: string,
   routes: RouteCard[],

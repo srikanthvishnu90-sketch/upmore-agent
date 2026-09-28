@@ -33,7 +33,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS Rev. Proc. 2025-32",
     as_of: "tax year 2026",
     amounts: ["16100", "32200", "24150", "2050"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "hsa-limits-2026",
@@ -42,7 +42,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS Rev. Proc. 2025-19",
     as_of: "tax year 2026",
     amounts: ["4400", "8750", "1000", "10750"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "401k-limits-2026",
@@ -51,7 +51,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS Notice 2025-67",
     as_of: "tax year 2026",
     amounts: ["24500", "8000", "32500", "11250", "35750", "72000"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "ira-limits-2026",
@@ -69,7 +69,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS (2026 figures)",
     as_of: "tax year 2026",
     amounts: ["15.3", "12.4", "184500", "2.9", "92.35", "0.9", "200000", "250000"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "quarterly-taxes",
@@ -96,7 +96,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "OBBBA / IRS (2026)",
     as_of: "tax year 2026",
     amounts: ["6000", "12000", "75000", "150000", "175000", "350000"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "tips-overtime-2026",
@@ -114,7 +114,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "OBBBA §§70432–70433 / IRS (2026)",
     as_of: "tax year 2026",
     amounts: ["20000", "200", "2000", "600"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "roth-vs-traditional",
@@ -123,7 +123,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "general tax principle",
     as_of: "2026",
     amounts: [],
-    urls: [],
+    urls: ["https://www.investor.gov"],
   },
   {
     id: "apr-vs-apy",
@@ -132,7 +132,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "general finance definition",
     as_of: "2026",
     amounts: [],
-    urls: [],
+    urls: ["https://www.investor.gov"],
   },
   {
     id: "emergency-fund",
@@ -141,7 +141,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "general financial planning",
     as_of: "2026",
     amounts: ["500", "1000"],
-    urls: [],
+    urls: ["https://www.investor.gov"],
   },
   {
     id: "credit-score-factors",
@@ -150,7 +150,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "FICO / CFPB",
     as_of: "2026",
     amounts: ["35", "30", "15", "10"],
-    urls: [],
+    urls: ["https://www.consumerfinance.gov"],
   },
   {
     id: "overdraft",
@@ -186,7 +186,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS (2026)",
     as_of: "tax year 2026",
     amounts: ["3000", "2100"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "qbi-2026",
@@ -195,7 +195,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "OBBBA / IRS (2026)",
     as_of: "tax year 2026",
     amounts: ["20"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "charitable-2026",
@@ -204,7 +204,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "OBBBA / IRS (2026)",
     as_of: "tax year 2026",
     amounts: ["0.5", "100000", "500"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "amended-return",
@@ -222,7 +222,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "general financial planning",
     as_of: "2026",
     amounts: [],
-    urls: [],
+    urls: ["https://www.investor.gov"],
   },
   {
     id: "hysa",
@@ -231,7 +231,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "general financial planning",
     as_of: "2026",
     amounts: [],
-    urls: [],
+    urls: ["https://www.fdic.gov"],
   },
   {
     id: "fdic",
@@ -258,7 +258,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "OBBBA §225",
     as_of: "tax years 2025–2028",
     amounts: ["12500", "25000", "150000", "300000"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "marginal-brackets-2026",
@@ -267,7 +267,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "IRS Rev. Proc. 2025-32",
     as_of: "tax year 2026",
     amounts: ["11925", "640600", "23850", "768700"],
-    urls: [],
+    urls: ["https://www.irs.gov"],
   },
   {
     id: "compound-interest-72",
@@ -276,7 +276,7 @@ export const FINANCE_FACTS: FinanceFact[] = [
     source: "rule of thumb",
     as_of: "timeless",
     amounts: ["72"],
-    urls: [],
+    urls: ["https://www.investor.gov"],
   },
 ];
 
@@ -340,35 +340,39 @@ const FIGURE_Q_RX = /\b(how much|how many|what is|what('s| is) the|limit|amount|
 
 export function tryFinanceFact(message: string): string | null {
   const t = " " + message.toLowerCase() + " ";
+  // Owner rule 2026-09-28: every factual answer ends with a ChatGPT-style
+  // Sources block of tappable official URLs.
+  const withSources = (text: string, urls: string[]): string =>
+    urls.length ? text + "\n\nSources:\n" + [...new Set(urls)].join("\n") : text;
   // Dynamic composite handlers (mirror client FINANCE_FACTS_LOCAL fn handlers)
   // Debt with APR: echo the user's rate
   if (t.includes("owe") && t.includes("credit card")) {
     const m = t.match(/(\d+(?:\.\d+)?)\s*%\s*(?:apr)?/);
     const aprBit = m ? ` At ${m[1]}% APR, every $1,000 of balance costs ~$${Math.round(parseFloat(m[1]) * 10)}/year in interest.` : "";
-    return `Two payoff methods, explained: avalanche puts extra payments toward the highest-rate balance first (minimizes total interest); snowball puts extra toward the smallest balance first (fastest account closed).${aprBit} People compare them because at 20%+ APR, interest compounds fast enough that the method choice changes the total paid. General education, not advice for your situation.`;
+    return withSources(`Two payoff methods, explained: avalanche puts extra payments toward the highest-rate balance first (minimizes total interest); snowball puts extra toward the smallest balance first (fastest account closed).${aprBit} People compare them because at 20%+ APR, interest compounds fast enough that the method choice changes the total paid. General education, not advice for your situation.`, ["https://www.investor.gov"]);
   }
   // Bonus split: emergency vs debt
   if (t.includes("bonus") && t.includes("emergency") && t.includes("debt")) {
-    return `The general framework people use: a small starter buffer (one month of expenses, or $1,000 from zero, are the commonly cited figures) covers the surprise bill that would otherwise become new debt; high-APR balances get attention because 20%+ APR compounds faster than savings grow, while lower-rate debt (under ~7%) is often weighed against building the full 3–6 month fund. Which tradeoff fits depends on the numbers — general education, not a plan for your situation.`;
+    return withSources(`The general framework people use: a small starter buffer (one month of expenses, or $1,000 from zero, are the commonly cited figures) covers the surprise bill that would otherwise become new debt; high-APR balances get attention because 20%+ APR compounds faster than savings grow, while lower-rate debt (under ~7%) is often weighed against building the full 3–6 month fund. Which tradeoff fits depends on the numbers — general education, not a plan for your situation.`, ["https://www.investor.gov"]);
   }
   // Gig taxes: DoorDash
   if ((t.includes("doordash") || t.includes("gig") || t.includes("freelance")) && t.includes("tax")) {
-    return `Gig platforms don't withhold taxes — you're on the hook for income tax AND 15.3% self-employment tax (Social Security + Medicare) on 92.35% of net earnings. Set aside 25-30% of each payout. If you'll owe $1,000+ at filing, pay quarterly estimated taxes (Apr 15, Jun 15, Sep 15, Jan 15) to avoid penalties. Track mileage — it's your biggest deduction.`;
+    return withSources(`Gig platforms don't withhold taxes — you're on the hook for income tax AND 15.3% self-employment tax (Social Security + Medicare) on 92.35% of net earnings. Set aside 25-30% of each payout. If you'll owe $1,000+ at filing, pay quarterly estimated taxes (Apr 15, Jun 15, Sep 15, Jan 15) to avoid penalties. Track mileage — it's your biggest deduction.`, ["https://www.irs.gov"]);
   }
   // Credit building for car loan
   if (t.includes("no credit") && (t.includes("car loan") || t.includes("auto loan"))) {
-    return `With no credit history, a car loan will be expensive — expect a high APR or a required co-signer. Build credit first: get a secured credit card, use it for small purchases, pay in full monthly. After 6-12 months of on-time payments you'll qualify for better auto rates. Never take a 20%+ APR car loan if you can avoid it — the interest can exceed the car's value.`;
+    return withSources(`With no credit history, a car loan will be expensive — expect a high APR or a required co-signer. Build credit first: get a secured credit card, use it for small purchases, pay in full monthly. After 6-12 months of on-time payments you'll qualify for better auto rates. Never take a 20%+ APR car loan if you can avoid it — the interest can exceed the car's value.`, ["https://www.consumerfinance.gov"]);
   }
   // Overdraft + credit score
   if (t.includes("overdraft") && t.includes("credit")) {
-    return `Overdraft fees don't directly hurt your credit score — but the cascade does. If the negative balance goes to collections, THAT hits your score hard. Fix it now: bring the account positive today, ask the bank to waive the fees (first-time courtesy often works), then set up low-balance alerts and link a savings account for overdraft protection. A single collections account can drop a score 50-100 points.`;
+    return withSources(`Overdraft fees don't directly hurt your credit score — but the cascade does. If the negative balance goes to collections, THAT hits your score hard. Fix it now: bring the account positive today, ask the bank to waive the fees (first-time courtesy often works), then set up low-balance alerts and link a savings account for overdraft protection. A single collections account can drop a score 50-100 points.`, ["https://www.consumerfinance.gov"]);
   }
   if (!FIGURE_Q_RX.test(message)) return null;
   const ids = financeFactMatch(message);
   if (!ids.length) return null;
   const f = FINANCE_FACTS.find((x) => x.id === ids[0]);
   if (!f) return null;
-  return f.text;
+  return withSources(f.text, f.urls);
 }
 
 export function financeModeNudge(ids: string[]): string {
@@ -382,6 +386,7 @@ export function financeModeNudge(ids: string[]): string {
 // Rendered into the system prompt as the finance source of truth.
 export function renderFinanceFacts(): string {
   return FINANCE_FACTS.map(
-    (f) => `[${f.id}] (${f.source}, ${f.as_of})\n${f.text}`
+    (f) => `[${f.id}] (${f.source}, ${f.as_of})\n${f.text}` +
+      (f.urls.length ? `\nOfficial link: ${f.urls.join(" ")}` : "")
   ).join("\n\n");
 }

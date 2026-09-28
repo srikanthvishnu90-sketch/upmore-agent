@@ -12,6 +12,7 @@ import {
   checkGrounding,
   isDebunkReply,
   findFalseNoRouteClaim,
+  appendSources,
   SAFE_FALLBACK,
   FINANCE_SAFE_FALLBACK,
   SCAM_FALLBACK,
@@ -315,9 +316,13 @@ serve(async (req) => {
     const bypassDeterministic = !!userCorrection;
     const cap = bypassDeterministic ? null : await tryCapabilities(message, routes, { supa: supabase, userId: user.id }, hist, exclHist);
     if (cap) {
+      // Owner rule 2026-09-28: deterministic capability replies get the same
+      // ChatGPT-style Sources block as model replies. Compute before persist
+      // so history matches what the user saw.
+      const capReply = appendSources(cap.reply, routes, false, []);
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },
-        { thread_id: tid, role: "assistant", content: cap.reply, meta: { capability: true } },
+        { thread_id: tid, role: "assistant", content: capReply, meta: { capability: true } },
       ]);
       // Deterministic walkthroughs create playbook progress just like the
       // model's start_walkthrough action does, so the app's Home tab tracks it.
@@ -327,7 +332,7 @@ serve(async (req) => {
           status: "active", updated_at: new Date().toISOString(),
         }, { onConflict: "user_id,route_id" });
       }
-      return json(cors, { thread_id: tid, reply: cap.reply, action: null });
+      return json(cors, { thread_id: tid, reply: capReply, action: null });
     }
 
     // Deterministic reminder intent: the user asked to be reminded about a
@@ -375,11 +380,13 @@ serve(async (req) => {
 
     const fastReply = bypassDeterministic ? null : tryFastPath(message, standardRoutes, playbook?.routes as RouteCard | undefined, agentVals, hist);
     if (fastReply) {
+      // Owner rule 2026-09-28: same Sources block as model replies.
+      const fastFinal = appendSources(fastReply, routes, false, []);
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },
-        { thread_id: tid, role: "assistant", content: fastReply, meta: { fast_path: true } },
+        { thread_id: tid, role: "assistant", content: fastFinal, meta: { fast_path: true } },
       ]);
-      return json(cors, { thread_id: tid, reply: fastReply, action: null });
+      return json(cors, { thread_id: tid, reply: fastFinal, action: null });
     }
 
     const profileLine = profile
@@ -651,6 +658,13 @@ serve(async (req) => {
         }, { onConflict: "user_id,route_id" });
       }
     }
+
+    // Deterministic Sources block (owner rule): every factual reply ends with
+    // a ChatGPT-style Sources block of tappable official URLs. Runs after all
+    // correction passes so corrected replies get sources too; the URLs come
+    // from the route cards / finance facts themselves, so they're grounded by
+    // construction. Skips when the model already added one.
+    reply = appendSources(reply, routes, financeMode, financeIds);
 
     // Persist
     await supabase.from("agent_messages").insert([

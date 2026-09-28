@@ -1158,10 +1158,24 @@ function titleCaseMerchant(key: string): string {
   return key.split(/(\s+|\+)/).map((p) => /^\s|\+$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join("");
 }
 
-export function tryCancelIntent(message: string): { reply: string } | null {
+export function tryCancelIntent(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
   if (!CANCEL_INTENT_RX.test(message)) return null;
-  const merchant = extractCancelMerchant(message);
-  if (!merchant && !CANCEL_SUBCTX_RX.test(message)) return null; // "cancel my order" — not ours
+  let merchant = extractCancelMerchant(message);
+  if (!merchant && !CANCEL_SUBCTX_RX.test(message)) {
+    // Follow-up inside a cancellation thread ("and the direct link?", "what
+    // about the phone number?") — reuse the merchant from the last
+    // cancel-path reply in this thread instead of asking again.
+    for (let i = hist.length - 1; i >= 0; i--) {
+      const h = hist[i];
+      if (h.role !== "assistant") continue;
+      const mm = String(h.content ?? "").match(/^\*\*Canceling (.+?)\*\*/);
+      if (mm) { merchant = mm[1].toLowerCase(); break; }
+    }
+    if (!merchant) return null; // "cancel my order" etc. — not ours
+  }
   if (!merchant) {
     return {
       reply:
@@ -1680,7 +1694,7 @@ export async function tryCapabilities(
   // failing.
   const audit = await trySubscriptionAudit(message, ctx);
   if (audit) return { reply: audit };
-  const cancelIntent = tryCancelIntent(message);
+  const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };
   const receipt = tryReceiptCheck(message);
   if (receipt) return { reply: receipt };

@@ -1131,7 +1131,7 @@ export function tryBillNegotiation(
   // Kit already delivered and they're asking again — compact script re-send
   // instead of a wall of repetition; anything else goes back to the model.
   if (threadHasNegotiateKit(hist)) {
-    if (/(script|what.*say|negotiat|cheaper plan|walk.*through)/i.test(message)) {
+    if (/(script|what (do|should) i say|negotiat|cheaper plan|walk.*through)/i.test(message)) {
       return { reply: negotiateKit(ispKey, message, hist) };
     }
     return null;

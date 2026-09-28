@@ -25,7 +25,7 @@ module.exports = {
       pattern: "try the Earn section with the difficulty filter",
       desc: "Chat deep-links an empty earn queue to the Earn section" },
     { kind: "static", file: "index", op: "contains",
-      pattern: "label: \"Profile\"",
-      desc: "built app ships the Profile tab label" },
+      pattern: "label: \"You\"",
+      desc: "built app ships the You tab label" },
   ],
 };

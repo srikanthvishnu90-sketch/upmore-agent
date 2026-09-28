@@ -1579,10 +1579,10 @@
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
 
-  <!-- ================= PROFILE ================= -->
-  <section class="screen" id="profile" aria-label="Profile">
+  <!-- ================= YOU ================= -->
+  <section class="screen" id="profile" aria-label="You">
     <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
-      <h1 class="ptitle">Profile</h1>
+      <h1 class="ptitle">You</h1>
       <div class="pcard">
         <div class="pava" id="pAva">V</div>
         <div><b id="pName">Friend</b><p class="psub" id="pMail" style="margin-top:2px; font-size:12.5px"></p><p class="psub" id="pLine" style="margin-top:2px"></p></div>
@@ -2651,7 +2651,9 @@
   forgotLink.className = "legal";
   forgotLink.style.marginTop = "10px";
   forgotLink.innerHTML = '<a href="#" id="forgotPw">Forgot password?</a>';
-  $("pwGo").closest(".pwform").appendChild(forgotLink);
+  // Defensive: never crash the login screen if the form markup changes.
+  const pwForm = $("pwGo") && $("pwGo").closest(".pwform");
+  if (pwForm) pwForm.appendChild(forgotLink);
   $("forgotPw").onclick = async (e) => {
     e.preventDefault();
     const email = $("loginEmail").value.trim();
@@ -7056,7 +7058,7 @@
     // Data-sale / charge questions are ABOUT our policy — never refuse them.
     if (has("do you sell", "selling my data", "sell user data", "do you charge", "is upmore free", "cost to use"))
       return { paras: [
-        "No. We never sell your data — your tracked subscriptions, money log, and plan stay yours, and you can export or delete everything from the Profile tab.",
+        "No. We never sell your data — your tracked subscriptions, money log, and plan stay yours, and you can export or delete everything from the You tab.",
         "Upmore is free for you. If we ever earned a commission on an offer, the offer's card would carry a badge saying so — right now none do." ] };
 
     /* Save-side intents: deterministic answers, honest about what the app can do */

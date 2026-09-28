@@ -22,9 +22,9 @@ module.exports = {
       pattern: "export or delete everything",
       desc: "Profile tab offers export and delete of all user data" },
     { kind: "guideThread", prompts: ["is upmore free", "do you sell my data"],
-      expect: [ { t: "contains", re: "Profile tab" }, { t: "contains", re: "never sell your data" } ] },
+      expect: [ { t: "contains", re: "You tab" }, { t: "contains", re: "never sell your data" } ] },
     { kind: "static", file: "template", op: "contains",
-      pattern: "id: \"profile\", label: \"Profile\"",
-      desc: "Profile tab registered in the tab bar" },
+      pattern: "id: \"you\", label: \"You\"",
+      desc: "You tab registered in the tab bar" },
   ],
 };

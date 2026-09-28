@@ -1417,6 +1417,7 @@ export async function trySubscriptionAudit(
     .map((s) => ({ ...s, yearly: s.monthly * 12 }))
     .sort((a, b) => b.yearly - a.yearly);
   const seenFamilies = new Set<string>();
+  const srcUrls: string[] = [];
   const blocks = ranked.map((s, i) => {
     const fam = subFamily(s.name);
     let verdict: string, reason: string;
@@ -1437,6 +1438,10 @@ export async function trySubscriptionAudit(
     const priceBit = s.raw != null && s.per && s.per !== "/mo"
       ? `${fmtMoney(s.raw)}${s.per} (${fmtMoney(s.monthly)}/mo, ${fmtMoney(s.yearly)}/year)`
       : `${fmtMoney(s.monthly)}/mo (${fmtMoney(s.yearly)}/year)`;
+    // Owner rule 2026-09-28: factual replies end with a Sources block of the
+    // official URLs actually cited. Collect cancel URLs for the block below.
+    const cp = findCancelPath(s.name);
+    if (cp?.url && !srcUrls.includes(cp.url)) srcUrls.push(cp.url);
     return (
       `**${i + 1}. ${s.name}** — ${priceBit}\n` +
       `${verdict}: ${reason}\n` +
@@ -1451,7 +1456,8 @@ export async function trySubscriptionAudit(
     blocks.join("\n\n") +
     `\n\nTotal: ${fmtMoney(total)}/mo — that's ${fmtMoney(total * 12)}/year walking out the door. ` +
     `Tell me you don't use one and I'll move it to cut #1.\n\n` +
-    `I can't cancel these for you — you click the link and confirm. Tell me when one dies and I'll log the saving.`
+    `I can't cancel these for you — you click the link and confirm. Tell me when one dies and I'll log the saving.` +
+    (srcUrls.length ? `\n\nSources:\n` + srcUrls.join("\n") : "")
   );
 }
 

@@ -27,7 +27,18 @@ import {
   playbookRegistry, merchantDirectory, GENERIC_FALLBACK,
   normalizeMerchant, resolveMerchant,
   type MerchantPlaybook, type Resolution,
-} from "./merchant-catalog.ts";
+ } from "./merchant-catalog.ts";
+// Shared execution-trust logic (2026-09-28): the SAME module the fixtures
+// exercise. Guards live there once — index.ts calls them, never re-implements.
+import {
+  decideExecuteGate,
+  decideOtpSubmit,
+  otpIsExpired,
+  OTP_TTL_MS,
+  pushShot,
+  runDeclarative,
+  type BrowserOutcome,
+} from "./execution-guards.ts";
 
 const ALLOWED_ORIGINS = new Set([
   "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app",
@@ -397,10 +408,7 @@ class BbPage {
 const playbooks: Record<string, (ctx: ExecContext) => Promise<ExecResult>> = {};
 
 // ---- browser playbooks ----
-type BrowserOutcome =
-  | { awaitingOtp: true; otpHint: string; resume: Record<string, unknown> }
-  | { ok: true }
-  | { ok: false; error: string };
+// (BrowserOutcome is imported from ./execution-guards.ts — the shared trust module.)
 
 type BrowserPlaybookDef = {
   // Run until the OTP pause (or terminal). Must never store secrets in ev.
@@ -408,12 +416,6 @@ type BrowserPlaybookDef = {
   // Continue after the user supplies the code. `otp` must never be stored.
   resume: (ctx: ExecContext, page: BbPage, otp: string, ev: Record<string, unknown>, resume: Record<string, unknown>) => Promise<BrowserOutcome>;
 };
-
-function pushShot(ev: Record<string, unknown>, shot: { label: string; data: string } | null) {
-  if (!shot) return;
-  const shots = (ev.shots as Array<{ label: string; data: string }>) || (ev.shots = []);
-  shots.push(shot);
-}
 
 // Devin (Cognition AI) browser playbook.
 // Verified 2026-09-26: login is email-first + passwordless email OTP
@@ -605,137 +607,7 @@ async function recordGuidedRun(opts: {
   return { ok: false, path: "guided", reason, directory_entry };
 }
 
-// Declarative runner: executes a VERIFIED catalog playbook using only the
-// existing BbPage capabilities. Unverified playbooks never reach this — the
-// gate in serve() refuses them before vault/Browserbase access.
-async function runDeclarative(
-  ctx: ExecContext, page: BbPage, pb: MerchantPlaybook,
-  ev: Record<string, unknown>, fromIndex: number, otp: string | null,
-): Promise<BrowserOutcome> {
-  const steps = pb.steps;
-  const fail = (error: string): BrowserOutcome => ({ ok: false, error });
-  // ---- Stop-guards (2026-09-28): before EVERY step, scan the visible page
-  // for tripwires. The agent cancels or it stops — it never improvises through
-  // account creation, terms acceptance, payment entry, consent, or plan
-  // changes. On tripwire: abort immediately with evidence; guided fallback.
-  const TRIPWIRES: Array<{ kind: string; patterns: RegExp[] }> = [
-    { kind: "account_creation", patterns: [
-      /create (your|an|a) account/i, /sign up for/i, /register (your|an|a) account/i,
-      /set up (your|an) account/i, /create a password/i, /choose a password/i ] },
-    { kind: "terms_acceptance", patterns: [
-      /i agree to (the )?terms/i, /accept (the )?(terms|privacy)/i,
-      /agree to (the )?(terms of (service|use)|privacy policy)/i,
-      /by continuing,? you agree/i, /acknowledge (the )?(terms|privacy)/i ] },
-    { kind: "payment_details", patterns: [
-      /add (a |your )?card/i, /enter (your )?payment/i, /billing details/i,
-      /card number/i, /payment method/i, /update (your )?billing/i,
-      /enter (your )?credit card/i ] },
-    { kind: "consent", patterns: [
-      /consent to/i, /give (us )?permission/i, /authorize (us )?to/i,
-      /opt.?in to (marketing|data|tracking)/i, /grant access to/i ] },
-    { kind: "plan_change", patterns: [
-      /switch (your )?plan/i, /change (your )?plan/i, /downgrade/i,
-      /choose (a |your )?(new )?plan/i, /pick (a |your )?plan/i,
-      /special offer/i, /stay (for|with)/i, /we'll (give|offer)/i ] },
-  ];
-  async function tripwireScan(): Promise<string | null> {
-    let text = "";
-    try { text = String(await page.eval("document.body.innerText || \"\"").catch(() => "")); }
-    catch { return null; }
-    // Skip the scan on the merchant's own login page (credential fields are
-    // expected there — the playbook's typeInto steps handle them).
-    if (/sign ?in|log ?in/i.test(text) && /password/i.test(text) &&
-        !/create (your|an) account|sign up/i.test(text)) return null;
-    for (const t of TRIPWIRES) {
-      for (const re of t.patterns) {
-        if (re.test(text)) return t.kind;
-      }
-    }
-    return null;
-  }
-  for (let i = fromIndex; i < steps.length; i++) {
-    const tripped = await tripwireScan();
-    if (tripped) {
-      ev.stopped_at_tripwire = tripped;
-      ev.tripwire_step_index = i;
-      try { pushShot(ev, await page.screenshot("tripwire-" + tripped)); } catch { /* best effort */ }
-      return fail(`Stopped: the page asked for ${tripped.replace(/_/g, " ")} — the agent never proceeds through that. Nothing was changed.`);
-    }
-    const a = steps[i];
-    switch (a.kind) {
-      case "goto":
-        await page.goto(a.url);
-        break;
-      case "waitFor": {
-        const ok = await page.waitFor(a.js, a.timeoutMs ?? 20000);
-        if (!ok && a.required !== false) {
-          return fail(`Timed out waiting for ${a.label ?? "the page"} — the site layout may have changed. Nothing was changed.`);
-        }
-        break;
-      }
-      case "clickText": {
-        const clicked = await page.clickText(a.pattern);
-        if (!clicked) return fail(`Could not find a control matching "${a.pattern}" — the site layout may have changed. Nothing was changed.`);
-        break;
-      }
-      case "clickFirst": {
-        const clicked = await page.clickFirst(a.selectors);
-        if (!clicked && a.required !== false) return fail("Could not find the expected control — the site layout may have changed. Nothing was changed.");
-        break;
-      }
-      case "clickDialogButton": {
-        const clicked = await page.clickDialogButton(a.pattern);
-        if (!clicked) return fail(`Could not click the confirmation control matching "${a.pattern}". Nothing was changed.`);
-        break;
-      }
-      case "typeInto": {
-        const text = a.credential === "username" ? ctx.username
-          : a.credential === "password" ? ctx.password
-          : a.text ?? "";
-        const typed = await page.typeInto(a.selectors, text);
-        if (!typed) return fail("Could not find the sign-in field — the site layout may have changed. Nothing was changed.");
-        break;
-      }
-      case "otpPause": {
-        // Pause for the user's one-time code; keep the session alive.
-        ev.resume = { stage: "otp", step_index: i + 1 };
-        pushShot(ev, await page.screenshot("otp-prompt"));
-        return {
-          awaitingOtp: true,
-          otpHint: a.hint,
-          resume: ev.resume as Record<string, unknown>,
-        };
-      }
-      case "fillOtp": {
-        const how = await page.fillOtp(otp ?? "");
-        ev.otp_entry = how || null;
-        if (!how) return fail("The code field disappeared — the session may have expired. Nothing was changed.");
-        break;
-      }
-      case "screenshot":
-        pushShot(ev, await page.screenshot(a.label));
-        break;
-      case "requireText": {
-        const pageText = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
-        const m = new RegExp(a.patterns.join("|"), "i").exec(pageText);
-        if (m) {
-          const idx = pageText.indexOf(m[0]);
-          ev.confirmation_text = pageText.slice(Math.max(0, idx - 120), idx + 200);
-        } else {
-          return fail("Clicked cancel but no confirmation text appeared — check the merchant account before retrying.");
-        }
-        break;
-      }
-    }
-  }
-  // Success requires BOTH visible confirmation text AND a final screenshot.
-  const shots = ev.shots as Array<{ label: string; data: string }> | undefined;
-  if (!ev.confirmation_text || !shots || !shots.length) {
-    return fail("No visible confirmation captured — not reporting success. Check the merchant account.");
-  }
-  ev.note = `${pb.display_name} subscription cancellation confirmed in the browser.`;
-  return { ok: true };
-}
+// runDeclarative lives in ./execution-guards.ts (shared trust module).
 
 // Build a browser playbook from a verified catalog entry. Only called for
 // verified:true playbooks; unverified entries are refused by the gate.
@@ -749,31 +621,7 @@ function declarativeDef(pb: MerchantPlaybook): BrowserPlaybookDef {
   };
 }
 
-// ================= Category exclusion (2026-09-28) =================
-// Defense in depth: the client can be bypassed, so the executor re-checks
-// before the atomic claim. Returns the exclusion reason, or null if clear.
-// Insurance, utilities, and contracts/ETFs are matched deterministically;
-// user-marked keep/shared arrives via approval_context (the client is the
-// source of the user's marking; the server enforces it).
-const EXCLUDED_PATTERNS: Array<{ category: string; re: RegExp }> = [
-  { category: "insurance", re: /insurance|geico|progressive|state farm|allstate|usaa|liberty mutual|farmers ins|nationwide|travelers/i },
-  { category: "utility", re: /comed|con ?ed|pseg|duke energy|pacific gas|pg&e|national grid|southern california edison|florida power|xcel|dte energy|ameranill|water|electric|gas company|power company/i },
-  { category: "contract", re: /early termination|termination fee|etf|contract/i },
-];
-function checkExcludedCategory(
-  merchantKey: string, merchantName: string,
-  approval: Record<string, unknown>,
-): string | null {
-  const hay = `${merchantKey} ${merchantName}`;
-  for (const { category, re } of EXCLUDED_PATTERNS) {
-    if (re.test(hay)) return category;
-  }
-  const ctx = (approval.approval_context || {}) as Record<string, unknown>;
-  if (ctx.has_early_termination_fee) return "contract (early termination fee)";
-  if (ctx.user_marked_keep) return "marked keep by you";
-  if (ctx.user_marked_shared) return "marked shared by you";
-  return null;
-}
+// checkExcludedCategory lives in ./execution-guards.ts (shared trust module).
 
 // ================= Cancel claims (2026-09-28) =================
 // A "done" agent run never means "cancelled" — it means CLAIMED. The claim
@@ -842,12 +690,17 @@ serve(async (req) => {
     // Browserbase session is killed. KeepAlive sessions bill per minute and
     // are a dangling-access risk — they must not outlive the TTL.
     try {
-      const { data: expired } = await admin.from("exec_runs")
-        .select("id, browserbase_session_id")
+      // The expiry DECISION is otpIsExpired (shared trust module) — the same
+      // function the fixtures exercise. otp_expires_at is set with OTP_TTL_MS.
+      const now = Date.now();
+      const { data: awaiting } = await admin.from("exec_runs")
+        .select("id, browserbase_session_id, otp_expires_at")
         .eq("user_id", user.id)
         .eq("status", "awaiting_otp")
-        .lt("otp_expires_at", new Date().toISOString());
-      for (const r of expired || []) {
+        .not("otp_expires_at", "is", null);
+      const expired = (awaiting || []).filter((r) =>
+        otpIsExpired(r.otp_expires_at as string, now));
+      for (const r of expired) {
         if (r.browserbase_session_id) {
           try { await bbStopSession(r.browserbase_session_id as string); } catch { /* best effort */ }
         }
@@ -1023,14 +876,15 @@ serve(async (req) => {
       if (!run || run.user_id !== user.id) {
         return json({ error: "Run not found" }, 404);
       }
-      // Never accept an OTP for a run that isn't awaiting one or isn't the caller's.
-      if (run.status !== "awaiting_otp") {
-        return json({ error: `Run is ${run.status}, not waiting for a code` }, 409);
-      }
-      // 30-minute TTL (2026-09-28): expired pauses are dead — the sweeper (or
-      // this check) fails them and the session is killed. Never accept a code
-      // for an expired pause.
-      if (run.otp_expires_at && new Date(run.otp_expires_at).getTime() < Date.now()) {
+      // OTP acceptance decision (2026-09-28): the shared decideOtpSubmit —
+      // the SAME function the fixtures exercise. Expired pauses are dead:
+      // the session is killed and the run is failed. Never accept a code for
+      // an expired pause, and never for a run that isn't awaiting one.
+      const otpDecision = decideOtpSubmit(
+        { status: run.status as string, otp_expires_at: run.otp_expires_at as string | null },
+        Date.now(),
+      );
+      if (!otpDecision.proceed && otpDecision.code === "expired") {
         if (run.browserbase_session_id) {
           try { await bbStopSession(run.browserbase_session_id as string); } catch { /* best effort */ }
         }
@@ -1039,7 +893,10 @@ serve(async (req) => {
           error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
           finished_at: new Date().toISOString(),
         }).eq("id", run.id);
-        return json({ error: "This verification code expired — the 30-minute window passed. Nothing was changed." }, 410);
+        return json({ error: otpDecision.error }, 410);
+      }
+      if (!otpDecision.proceed) {
+        return json({ error: otpDecision.error }, 409);
       }
       if (!run.browserbase_session_id) {
         return json({ error: "Run has no browser session" }, 409);
@@ -1134,57 +991,33 @@ serve(async (req) => {
     const { approval_id } = body;
     if (!approval_id) return json({ error: "approval_id required" }, 400);
 
-    // Load + verify approval. Must be owned by caller and in approved state.
+    // Load the approval; the shared decideExecuteGate (execution-guards.ts —
+    // the SAME function the fixtures exercise) verifies ownership, approved
+    // status, the terminal done-run guard, action, approval_context, and the
+    // category exclusion, in that order.
     const { data: approval } = await admin.from("exec_approvals")
       .select("*").eq("id", approval_id).maybeSingle();
-    if (!approval || approval.user_id !== user.id) {
-      return json({ error: "Approval not found" }, 404);
-    }
-    if (approval.status !== "approved") {
-      return json({ error: `Approval is ${approval.status}, not approved` }, 409);
-    }
     // Retry scoping (2026-09-28): an approval that already produced a terminal
     // "done" run may NEVER execute again — a new cancellation needs a new
     // explicit approval. Retries of failed attempts go through retry_run.
-    {
-      const { data: doneRun } = await admin.from("exec_runs")
-        .select("id").eq("approval_id", approval.id).eq("status", "done").limit(1).maybeSingle();
-      if (doneRun) {
-        return json({ error: "This approval already completed — approve again for a new cancellation" }, 409);
-      }
-    }
-    if (approval.action !== "cancel_subscription") {
-      return json({ error: `Unsupported action ${approval.action}` }, 400);
-    }
-    // approval_context (2026-09-28): the evidentiary record of informed
-    // consent — the exact strings the user saw on the approval screen.
-    // Refuse to execute approvals that predate it.
-    if (!approval.approval_context || typeof approval.approval_context !== "object") {
-      const r = await recordGuidedRun({
-        admin, approval, userId: user.id,
-        reason: "missing_approval_context",
-        note: "This approval was created before the full disclosure screen existed — approve again from the current screen so the record is complete.",
-        directory_entry: null,
-      });
-      return json(r, 409);
-    }
-    // Category exclusion re-check (2026-09-28, defense in depth): the client
-    // can be bypassed, so the executor re-verifies before the atomic claim.
-    // Insurance, utilities, contracts/ETFs, and user-marked keep/shared never
-    // enter the agent path.
-    {
-      const mkey = String(approval.merchant_key || "").toLowerCase();
-      const mname = String(approval.merchant || "").toLowerCase();
-      const excluded = checkExcludedCategory(mkey, mname, approval);
-      if (excluded) {
+    // (Read-only pre-check so the shared gate can enforce it.)
+    const { data: doneRun } = await admin.from("exec_runs")
+      .select("id").eq("approval_id", approval_id).eq("status", "done").limit(1).maybeSingle();
+    const gate = decideExecuteGate(approval, {
+      callerOwns: !!approval && approval.user_id === user.id,
+      doneRunExists: !!doneRun,
+    });
+    if (!gate.proceed) {
+      if (gate.guidedReason) {
         const r = await recordGuidedRun({
           admin, approval, userId: user.id,
-          reason: "excluded_category",
-          note: `The agent never touches ${excluded} — that one stays with you to decide directly.`,
+          reason: gate.guidedReason,
+          note: gate.note || gate.error,
           directory_entry: null,
         });
-        return json(r, 400);
+        return json(r, gate.status);
       }
+      return json({ error: gate.error }, gate.status);
     }
     // Resolve the merchant through the catalog (statement descriptors are
     // noisy: "SPOTIFY USA", "MICROSOFT*XBOX", ...). The executor gate:
@@ -1342,7 +1175,7 @@ serve(async (req) => {
             evidence: ev,
             browserbase_session_id: session.id,
             otp_hint: outcome.otpHint,
-            otp_expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(), // shared 30-min TTL
           }).eq("id", run.id);
           return json({ ok: false, status: "awaiting_otp", run_id: run.id, otp_hint: outcome.otpHint, otp_expires_in_minutes: 30 });
         }

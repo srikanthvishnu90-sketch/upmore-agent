@@ -44,6 +44,7 @@
     --accent-soft: rgba(255,106,45,.14);
     --accent-ink: #1D1006;   /* text on accent */
     --up: #2E9E6B;          /* Success / on-pace — green is DEMOTED from brand */
+    --up-hi: #6FD598;       /* Light green — selected/active states on dark */
     --up-soft: rgba(46,158,107,.14);
     --down: #E14A4A;        /* Danger / over budget */
     --down-soft: rgba(225,74,74,.12);
@@ -302,8 +303,9 @@
     font-size: 11.5px; font-weight: 600; color: var(--dim); padding: 4px 10px; min-height: 48px; min-width: 48px;
     justify-content: center; border-radius: 999px; }
   .tab svg { width: 24px; height: 24px; }
-  /* Accent discipline: nav selection is a NEUTRAL pill — never the brand accent. */
-  .tab[aria-selected="true"] { color: var(--text); background: rgba(255,255,255,.09); }
+  /* Founder direction 2026-09-28: green is the selected/active color —
+     nav selection, segmented controls, and the send button carry it. */
+  .tab[aria-selected="true"] { color: var(--up-hi); background: rgba(46,158,107,.16); }
 
   /* ---------- guide ---------- */
   #guide::before { content: ""; position: absolute; left: 50%; top: 90px; width: min(420px, 100vw); height: min(420px, 100vw); transform: translateX(-50%);
@@ -910,7 +912,7 @@
   .csegbtn { height: 32px; border: 0; border-radius: 999px; background: none; color: var(--nsil2);
     font-size: 13px; font-weight: 600; padding: 0 18px; display: flex; align-items: center; gap: 6px;
     min-height: 32px; }
-  .csegbtn.on { background: var(--ns3); color: var(--nhi); }
+  .csegbtn.on { background: rgba(46,158,107,.18); color: var(--up-hi); }
   .crundot { width: 6px; height: 6px; border-radius: 50%; background: var(--nmint); flex: none; }
 
   /* ---------- chat: feed + messages ---------- */
@@ -991,11 +993,11 @@
   .cctx { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--nsil2);
     max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cdotok { width: 6px; height: 6px; border-radius: 50%; background: var(--nmint); flex: none; }
-  .csend { width: 44px; height: 44px; border-radius: 50%; border: 0; background: none;
-    display: grid; place-items: center; }
-  .csend .cin { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
-    background: linear-gradient(180deg, #F4F5F6, #C9CDD0); color: #000; }
-  .csend:disabled .cin { background: var(--ns3); color: var(--nsil3); }
+  .csend { width: 40px; height: 40px; border-radius: 50%; border: 0;
+    display: grid; place-items: center; flex: none;
+    background: linear-gradient(180deg, #37A26F, #257A52); color: #fff;
+    box-shadow: 0 4px 14px rgba(46,158,107,.35), inset 0 1px 0 rgba(255,255,255,.25); }
+  .csend:disabled { background: var(--ns3); color: var(--nsil3); box-shadow: none; }
   .cfine { text-align: center; margin: 8px 4px 0; font-size: 11px; line-height: 1.3; color: var(--nsil3); }
 
   /* ---------- tasks ---------- */

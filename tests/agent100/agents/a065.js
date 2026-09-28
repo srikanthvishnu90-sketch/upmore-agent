@@ -1,8 +1,8 @@
-// a065 (tabs): You tab — data controls (export/delete) and the business model.
+// a065 (tabs): Profile tab — data controls (export/delete) and the business model.
 module.exports = {
   id: "a065",
   lane: "tabs",
-  title: "You tab owns export, delete, and the privacy promise",
+  title: "Profile tab owns export, delete, and the privacy promise",
   persona: {
     name: "Aisha B.",
     age: 29,
@@ -14,17 +14,17 @@ module.exports = {
     tech: "high",
     bankConnected: false,
     dataTier: "thin",
-    notes: "privacy-minded; opens the You tab before trusting the app",
+    notes: "privacy-minded; opens the Profile tab before trusting the app",
   },
   modes: ["dry"],
   steps: [
     { kind: "static", file: "template", op: "contains",
       pattern: "export or delete everything",
-      desc: "You tab offers export and delete of all user data" },
+      desc: "Profile tab offers export and delete of all user data" },
     { kind: "guideThread", prompts: ["is upmore free", "do you sell my data"],
-      expect: [ { t: "contains", re: "You tab" }, { t: "contains", re: "never sell your data" } ] },
+      expect: [ { t: "contains", re: "Profile tab" }, { t: "contains", re: "never sell your data" } ] },
     { kind: "static", file: "template", op: "contains",
-      pattern: "id: \"profile\", label: \"You\"",
-      desc: "You tab registered in the tab bar" },
+      pattern: "id: \"profile\", label: \"Profile\"",
+      desc: "Profile tab registered in the tab bar" },
   ],
 };

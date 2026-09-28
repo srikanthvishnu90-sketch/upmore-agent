@@ -862,6 +862,207 @@
     background: linear-gradient(180deg, #FFFFFF 0%, var(--silver) 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent; }
   .donut-center .l { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+
+  /* ============ NEW TABS DESIGN SYSTEM (2026-09-28: Chat / Tasks / Feed) ============
+     Spec: Schibsted Grotesk (already self-hosted), pure black bg, silver scale,
+     mint/amber/coral reserved for STATE only. Type scale + spacing per spec.
+     Scoped to .nx sections + shared bits (badge) so existing screens keep v3. */
+  :root {
+    --nbg: #000000; --ns1: #0C0C0D; --ns2: #141415; --ns3: #1C1C1E; --nline: #232326;
+    --nhi: #F2F3F4; --nsil: #D6D9DB; --nsil2: #A2A6AA; --nsil3: #6A6E72;
+    --nmint: #6FE39B; --namber: #D4A04C; --ncoral: #E0705F;
+  }
+  section.nx { background: var(--nbg); }
+  .ntitle { font-size: 17px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--nhi); margin: 0; padding: calc(var(--top) + 12px) 20px 0; }
+  .nsummary { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 6px 0 0; padding: 0 20px; }
+  .nheadrow { display: flex; align-items: center; justify-content: space-between; padding-right: 12px; }
+  .nheadrow .ntitle { padding-left: 20px; }
+  .ciconbtn { width: 44px; height: 44px; border-radius: 999px; border: 0; background: none;
+    display: grid; place-items: center; color: var(--nsil2); margin-top: calc(var(--top) + 4px); }
+  .nsec { font-size: 12px; line-height: 1.3; font-weight: 500; color: var(--nsil3);
+    margin: 24px 0 0; padding: 0 20px; }
+  .nfoot { font-size: 12px; line-height: 1.4; color: var(--nsil3); padding: 16px 20px 0; margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- tab badge (amber count) ---------- */
+  .tab { position: relative; }
+  .tabbadge { position: absolute; top: 2px; right: 8px; min-width: 18px; height: 18px;
+    padding: 0 5px; border-radius: 999px; background: var(--namber); color: #000;
+    font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+    font-variant-numeric: tabular-nums; }
+
+  /* ---------- chat: segmented control ---------- */
+  .csegwrap { display: flex; justify-content: center; padding: calc(var(--top) + 10px) 0 4px; }
+  .cseg { display: flex; background: var(--ns1); border: 1px solid var(--nline); border-radius: 999px;
+    padding: 2px; height: 36px; }
+  .csegbtn { height: 32px; border: 0; border-radius: 999px; background: none; color: var(--nsil2);
+    font-size: 13px; font-weight: 600; padding: 0 18px; display: flex; align-items: center; gap: 6px;
+    min-height: 32px; }
+  .csegbtn.on { background: var(--ns3); color: var(--nhi); }
+  .crundot { width: 6px; height: 6px; border-radius: 50%; background: var(--nmint); flex: none; }
+
+  /* ---------- chat: feed + messages ---------- */
+  .cfeed { flex: 1; overflow-y: auto; padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .cfeed::-webkit-scrollbar { display: none; }
+  .cempty { margin: auto 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
+  .corb { width: 44px; height: 44px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, #F2F3F4 0%, #C9CDD0 45%, #6FE39B 130%);
+    box-shadow: 0 0 24px rgba(111,227,155,.18); }
+  .cheadline { font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--nhi); margin: 16px 0 0; }
+  .csub { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 8px 0 0; max-width: 300px; }
+  .csugg { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .csugg button { text-align: left; background: none; border: 1px solid var(--nline); border-radius: 14px;
+    padding: 12px 14px; min-height: 44px; width: 100%; }
+  .csugg b { display: block; font-size: 14px; line-height: 1.35; font-weight: 600; color: var(--nhi); }
+  .csugg span { display: block; font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 2px; }
+  .umsg { align-self: flex-end; max-width: 80%; background: var(--ns3); color: var(--nhi);
+    border-radius: 18px 18px 6px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5; }
+  .amsg { align-self: stretch; color: var(--nhi); font-size: 15px; line-height: 1.55;
+    letter-spacing: -0.003em; }
+  .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
+  .amsg b { font-weight: 600; }
+  .amsg a { color: var(--nhi); }
+  .asrc { font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 6px; }
+  .tstamp { align-self: center; font-size: 11px; line-height: 1.3; font-weight: 500;
+    letter-spacing: 0.01em; color: var(--nsil3); margin: 6px 0 -6px; }
+  .ctyping { display: flex; gap: 5px; padding: 6px 0; }
+  .ctyping i { width: 6px; height: 6px; border-radius: 50%; background: var(--nsil3); animation: ctp 1.2s infinite; }
+  .ctyping i:nth-child(2) { animation-delay: .15s; } .ctyping i:nth-child(3) { animation-delay: .3s; }
+  @keyframes ctp { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+  /* ---------- chat: task run ---------- */
+  .taskrun { align-self: stretch; display: flex; flex-direction: column; gap: 12px; }
+  .onit { display: flex; align-items: center; gap: 10px; color: var(--nhi); font-size: 15px; }
+  .pulseorb { width: 16px; height: 16px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, #F2F3F4 0%, #C9CDD0 60%, #6FE39B 140%);
+    animation: porb 1.6s ease-in-out infinite; }
+  @keyframes porb { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.25); opacity: 1; } }
+  .steps { display: flex; flex-direction: column; gap: 10px; margin: 2px 0; }
+  .step { display: flex; align-items: center; gap: 12px; font-size: 14px; line-height: 1.35; min-height: 44px; }
+  .step .sc { width: 18px; height: 18px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    border: 1.5px solid var(--nsil3); }
+  .step[data-st="pending"] { color: var(--nsil3); }
+  .step[data-st="working"] { color: var(--nsil2); }
+  .step[data-st="working"] .sc { border-color: transparent; border-top-color: var(--nsil2); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .step[data-st="done"] { color: var(--nhi); }
+  .step[data-st="done"] .sc { background: var(--nmint); border-color: var(--nmint); color: #000;
+    font-size: 11px; font-weight: 700; }
+  .step[data-st="failed"] { color: var(--nhi); }
+  .step[data-st="failed"] .sc { background: var(--ncoral); border-color: var(--ncoral); color: #000;
+    font-size: 12px; font-weight: 700; }
+  .step .sdet { display: block; font-size: 12px; color: var(--nsil3); margin-top: 2px; }
+
+  /* ---------- handoff card ---------- */
+  .handoff { background: var(--ns1); border: 1px solid var(--nline); border-radius: 16px; padding: 16px; }
+  .handoff h4 { font-size: 14px; line-height: 1.35; font-weight: 600; letter-spacing: -0.005em;
+    color: var(--nhi); margin: 0; }
+  .handoff p { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 6px 0 0; }
+  .hrow { display: flex; gap: 8px; margin-top: 12px; }
+  .hbtn { height: 36px; border-radius: 999px; font-size: 13px; font-weight: 600; padding: 0 18px;
+    border: 0; min-height: 36px; }
+  .hbtn-p { background: linear-gradient(180deg, #F4F5F6, #C9CDD0); color: #000; flex: 1; }
+  .hbtn-g { background: none; border: 1px solid var(--nline); color: var(--nhi); }
+
+  /* ---------- chat: composer ---------- */
+  .ccomposer { position: relative; z-index: 2; padding: 8px 16px calc(var(--bot) + 84px); }
+  .cbox { background: var(--ns1); border: 1px solid #2A2B2E; border-radius: 24px; padding: 12px 12px 10px 16px; }
+  .cbox:focus-within { border-color: var(--nsil3); }
+  .cbox textarea { width: 100%; background: none; border: 0; outline: 0; resize: none; color: var(--nhi);
+    font-size: 15px; line-height: 1.45; font-family: inherit; max-height: 130px; padding: 0; display: block; }
+  .cbox textarea::placeholder { color: var(--nsil3); }
+  .ctoolrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .ctool { width: 44px; height: 44px; border-radius: 50%; border: 0; background: none;
+    display: grid; place-items: center; color: var(--nsil2); }
+  .ctool .cin { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+  .cctx { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--nsil2);
+    max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cdotok { width: 6px; height: 6px; border-radius: 50%; background: var(--nmint); flex: none; }
+  .csend { width: 44px; height: 44px; border-radius: 50%; border: 0; background: none;
+    display: grid; place-items: center; }
+  .csend .cin { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    background: linear-gradient(180deg, #F4F5F6, #C9CDD0); color: #000; }
+  .csend:disabled .cin { background: var(--ns3); color: var(--nsil3); }
+  .cfine { text-align: center; margin: 8px 4px 0; font-size: 11px; line-height: 1.3; color: var(--nsil3); }
+
+  /* ---------- tasks ---------- */
+  .tgroup { margin-top: 4px; }
+  .trow { padding: 16px 20px; border-bottom: 1px solid var(--nline); }
+  .tline1 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .ttitle { font-size: 14px; line-height: 1.35; font-weight: 600; letter-spacing: -0.005em; color: var(--nhi); }
+  .tamt { font-size: 14px; line-height: 1; font-weight: 600; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tamt.in { color: var(--nmint); } .tamt.out { color: var(--nhi); }
+  .tline2 { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 13px;
+    line-height: 1.45; color: var(--nsil2); }
+  .tdot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .tdot.amb { background: var(--namber); } .tdot.mnt { background: var(--nmint); }
+  .tline3 { font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 4px; }
+  .tbtns { display: flex; gap: 8px; margin-top: 12px; }
+  .tbtn { height: 36px; border-radius: 999px; font-size: 13px; font-weight: 600; padding: 0 18px;
+    min-height: 36px; border: 0; }
+  .tbtn-p { background: linear-gradient(180deg, #F4F5F6, #C9CDD0); color: #000; }
+  .tbtn-g { background: none; border: 1px solid var(--nline); color: var(--nhi); }
+  .tagentwork { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px;
+    color: var(--nsil2); }
+  .tdonehead { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0;
+    padding: 16px 20px; min-height: 44px; }
+  .tdonehead .nsec { margin: 0; padding: 0; }
+  .tdonehead .chev { margin-left: auto; color: var(--nsil3); font-size: 14px; }
+  .tcheck { width: 18px; height: 18px; border-radius: 50%; background: var(--nmint); color: #000;
+    display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; }
+  .tempty { padding: 72px 20px 0; }
+  .tempty h2 { font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em;
+    color: var(--nhi); margin: 0; }
+  .tempty p { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 8px 0 0; }
+
+  /* ---------- feed ---------- */
+  .nmarkets { display: flex; gap: 8px; padding: 14px 20px 4px; overflow-x: auto; }
+  .nmarkets::-webkit-scrollbar { display: none; }
+  .mkt { flex: 1 0 auto; min-width: 104px; }
+  .mkt .mk { font-size: 11px; font-weight: 500; letter-spacing: 0.01em; color: var(--nsil3); }
+  .mkt .mv { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--nhi);
+    font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .mkt .mc { font-size: 12px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .mkt .mc.up { color: var(--nmint); } .mkt .mc.dn { color: var(--ncoral); }
+  .frow { display: block; padding: 14px 20px; border-bottom: 1px solid var(--nline); text-decoration: none; }
+  .frow h3 { font-size: 14px; line-height: 1.35; font-weight: 600; letter-spacing: -0.005em;
+    color: var(--nhi); margin: 0; }
+  .frow .fsum { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 6px 0 0; }
+  .frow .fmeta { display: flex; gap: 8px; align-items: center; margin-top: 8px;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.01em; color: var(--nsil3); }
+  .nloading { padding: 40px 20px; text-align: center; font-size: 13px; color: var(--nsil3); }
+  .nerr { padding: 24px 20px; font-size: 13px; line-height: 1.5; color: var(--nsil2); }
+
+  /* ---------- profile: agent access (new section, new system) ---------- */
+  .aasec { margin: 18px 16px 0; background: var(--ns1); border: 1px solid var(--nline); border-radius: 16px;
+    padding: 16px; }
+  .aasec h3 { font-size: 14px; font-weight: 600; color: var(--nhi); margin: 0; }
+  .aasec .asub { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 6px 0 0; }
+  .aarow { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--nline); }
+  .aarow:last-of-type { border-bottom: 0; }
+  .aarow .agrow { flex: 1; }
+  .aarow .an { font-size: 14px; font-weight: 600; color: var(--nhi); }
+  .aarow .ad { font-size: 12px; color: var(--nsil3); margin-top: 2px; }
+  .aabtn { height: 36px; border-radius: 999px; font-size: 13px; font-weight: 600; padding: 0 16px;
+    background: none; border: 1px solid var(--nline); color: var(--nhi); min-height: 36px; }
+  .aarevoke { width: 100%; height: 44px; border-radius: 999px; margin-top: 12px; font-size: 13px;
+    font-weight: 600; background: none; border: 1px solid var(--ncoral); color: var(--ncoral); }
+  .bbok { color: var(--mint); font-weight: 600; }
+  .bbbad { color: var(--amber); font-weight: 600; }
+  .aulist { margin-top: 4px; }
+  .aurow { padding: 12px 0; border-bottom: 1px solid var(--nline); }
+  .aurow .am { font-size: 14px; font-weight: 600; color: var(--nhi); }
+  .aurow .aemd { font-size: 12px; color: var(--nsil3); margin-top: 3px; line-height: 1.45; }
+  .aurow .aout { font-size: 12px; margin-top: 3px; font-weight: 600; }
+  .aout.ok { color: var(--nmint); } .aout.bad { color: var(--ncoral); }
+  .aout.warn { color: var(--namber); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulseorb, .ctyping i, .step[data-st="working"] .sc { animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -1312,7 +1513,7 @@
   <!-- ================= PROFILE ================= -->
   <section class="screen" id="profile" aria-label="Profile">
     <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
-      <h1 class="ptitle">You</h1>
+      <h1 class="ptitle">Profile</h1>
       <div class="pcard">
         <div class="pava" id="pAva">V</div>
         <div><b id="pName">Friend</b><p class="psub" id="pMail" style="margin-top:2px; font-size:12.5px"></p><p class="psub" id="pLine" style="margin-top:2px"></p></div>
@@ -1354,6 +1555,7 @@
         <button class="linkbtn" id="exportData">Export data</button>
         <button class="linkbtn" id="deleteData">Delete data</button>
       </div>
+      <div id="agentAccessMount" style="margin-top:8px"></div>
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
@@ -1400,8 +1602,8 @@
     </div>
   </div>
 
-  <!-- ================= GUIDE ================= -->
-  <section class="screen" id="guide" aria-label="Guide">
+  <!-- bank-connect + first-sync payoff sheets (moved out of the old guide
+       section 2026-09-28; used app-wide, positioned fixed by .sheet) -->
     <div class="sheet" id="connectSheet" hidden>
       <div class="sheetcard">
         <div class="row"><b style="font-size:18px">Connect your bank</b><button class="iconbtn" id="connectClose" aria-label="Close connections">✕</button></div>
@@ -1433,21 +1635,56 @@
         <button class="ghostbtn" id="payoffClose" style="margin-top:8px">Later</button>
       </div>
     </div>
-    <div class="chead">
-      <span style="width:38px;flex:none" aria-hidden="true"></span>
-      <div class="title"><b>Upmore</b></div>
-      <button class="iconbtn" id="newchat" aria-label="New chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
-    </div>
-    <div class="chat" id="chat"><div class="empty" id="empty"></div></div>
-    <div class="composer">
-      <div class="field">
-        <input id="input" placeholder="Ask anything" autocomplete="off" aria-label="Message">
-        <button class="send" id="send" disabled aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+
+  <!-- ================= CHAT ================= -->
+  <section class="screen nx" id="chat" aria-label="Chat">
+    <div class="csegwrap">
+      <div class="cseg" role="tablist" aria-label="Chat mode">
+        <button class="csegbtn on" id="segAgent" role="tab" aria-selected="true"><span class="crundot" id="agentRunDot" hidden></span>Agent</button>
+        <button class="csegbtn" id="segAsk" role="tab" aria-selected="false">Ask</button>
       </div>
-      <p class="fine" style="text-align:center;margin:8px 4px 0;font-size:11px;color:var(--dim)">The Guide is an AI assistant — it explains and educates, but it's not a human advisor and never gives personalized financial advice.</p>
+    </div>
+    <div class="cfeed" id="chatFeed" aria-live="polite"></div>
+    <div class="ccomposer">
+      <div class="cbox" id="chatBox">
+        <textarea id="chatInput" rows="1" placeholder="Hand off a task" autocomplete="off" aria-label="Message"></textarea>
+        <div class="ctoolrow">
+          <button class="ctool" id="chatAttach" aria-label="Attach a file"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 1 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+          <span class="cctx" id="chatCtx"><span class="cdotok"></span><span id="chatCtxText">Demo data</span></span>
+          <span style="flex:1"></span>
+          <button class="ctool" id="chatVoice" aria-label="Voice input"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/></svg></button>
+          <button class="csend" id="chatSend" aria-label="Send" disabled><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        </div>
+      </div>
+      <p class="cfine">Upmore is an AI assistant &mdash; it explains and does the prep. It&apos;s not a human advisor and never gives personalized financial advice.</p>
     </div>
     <nav class="tabs" role="tablist" data-nav></nav>
   </section>
+
+  <!-- ================= TASKS ================= -->
+  <section class="screen nx" id="tasks" aria-label="Tasks">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <h1 class="ntitle">Tasks</h1>
+      <p class="nsummary" id="tasksSummary"></p>
+      <div id="tasksGroups"></div>
+    </div>
+    <nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+
+  <!-- ================= FEED ================= -->
+  <section class="screen nx" id="feed" aria-label="Feed">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div class="nheadrow">
+        <h1 class="ntitle">Feed</h1>
+        <button class="ciconbtn" id="feedRefresh" aria-label="Refresh feed"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg></button>
+      </div>
+      <div id="feedMarkets" class="nmarkets"></div>
+      <div id="feedList"></div>
+      <p class="nfoot" id="feedFoot"></p>
+    </div>
+    <nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+
 
     <div class="sheet" id="subSheet" hidden>
       <div class="sheetcard">
@@ -1728,14 +1965,14 @@
   }
 
   /* ================= Router ================= */
-  const order = ["splash","welcome","time","about","situation","plan","phone","home","guide","profile"];
-  const LEGACY_TABS = { money: "home" };
+  const order = ["splash","welcome","time","about","situation","plan","phone","home","chat","profile"];
+  const LEGACY_TABS = { money: "home", guide: "chat" };
   const TABS = [
     { id: "home", label: "Home", icon: '<path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>' },
-    { id: "guide", label: "Guide", icon: '<path d="M12 3l2.1 6.4L20.5 11l-6.4 2.1L12 19.5l-2.1-6.4L3.5 11l6.4-1.6z"/>' },
-    { id: "explore", label: "Explore", icon: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>' },
-    { id: "save", label: "Save", icon: '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/>' },
-    { id: "profile", label: "You", icon: '<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c1.4-3.8 4.4-5.5 7.5-5.5s6.1 1.7 7.5 5.5"/>' }
+    { id: "chat", label: "Chat", icon: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>' },
+    { id: "tasks", label: "Tasks", badge: true, icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
+    { id: "feed", label: "Feed", icon: '<path d="M4 4h12a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M20 8h2v10a2 2 0 0 1-2 2"/><path d="M8 9h8M8 13h8M8 17h5"/>' },
+    { id: "profile", label: "Profile", icon: '<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20.5c1.4-3.8 4.4-5.5 7.5-5.5s6.1 1.7 7.5 5.5"/>' }
   ];
   /* Single source of truth for the tab bar: every screen's <nav data-nav>
      is rendered from TABS, so tabs can never drift out of sync again. */
@@ -1744,7 +1981,7 @@
     document.querySelectorAll("nav[data-nav]").forEach(nav => {
       nav.setAttribute("role", "tablist");
       nav.innerHTML = TABS.map(t =>
-        `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${t.id === current}">${svg(t.icon)}${t.label}</button>`).join("");
+        `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${t.id === current}">${svg(t.icon)}${t.label}${t.badge ? `<span class="tabbadge" id="tabBadge-${t.id}" hidden></span>` : ""}</button>`).join("");
       nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => show(b.dataset.tab));
     });
   }
@@ -1760,9 +1997,11 @@
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.tab === id ? "true" : "false"));
     if (id === "plan") buildPlan();
     if (id === "home") renderHome();
+    if (id === "chat") renderChatTab();
+    if (id === "tasks") renderTasks();
+    if (id === "feed") renderFeed();
     if (id === "explore") { renderExplore(); renderQueue(); }
     if (id === "save") renderTracker();
-    if (id === "guide") renderGuideEmpty();
     if (id === "profile") renderProfile();
     if (id === "transactions") renderTxScreen();
     if (id === "monthview") renderMonthScreen();
@@ -1930,7 +2169,7 @@
      not the marketing splash. Timer stands down when boot chose any other
      screen (session -> home, etc.) */
   let bootDone = false;
-  const splashToGuide = () => { guideFirstRun = true; show("guide"); };
+  const splashToGuide = () => { guideFirstRun = true; show("chat"); };
   $("splash").onclick = () => { if (current === "splash") splashToGuide(); };
   setTimeout(() => { if (!bootDone && current === "splash") splashToGuide(); }, 1800);
 
@@ -2381,7 +2620,7 @@
     const r = routeById(id);
     if (!r || !r.steps.length) return;
     lastRouteId = String(id);
-    show("guide");
+    show("chat");
     chat.innerHTML = "";
     // Resume where the user left off: first step not yet marked done.
     const doneSteps = prog[id] || [];
@@ -2501,7 +2740,7 @@
       }
       chat.scrollTop = chat.scrollHeight;
     };
-    help.onclick = () => { guideAsk(`I'm stuck on step ${walk.i + 1} of ${r.provider}: ${s.text}`); };
+    help.onclick = () => { chatAsk(`I'm stuck on step ${walk.i + 1} of ${r.provider}: ${s.text}`); };
     chat.scrollTop = chat.scrollHeight;
   }
 
@@ -2637,7 +2876,7 @@
         sub: "You're spending more than you have coming in. That's a fact about the numbers, not about you — here's what to do next.",
         dollars: 0, conf: 1, urg: 3, eff: 5,
         cta: "See what changed", act: () => { show("transactions"); },
-        cta2: "Talk to the guide", act2: () => { show("guide"); guideAsk("My free cash is negative — what should I look at first?"); },
+        cta2: "Talk to the guide", act2: () => { show("chat"); chatAsk("My free cash is negative — what should I look at first?"); },
         why: "Free cash negative on consecutive checks — surfacing actions, not trims."
       });
     }
@@ -2845,7 +3084,7 @@
             type: "spike", id: "catspike-" + sc.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase(),
             title: sc.title, sub: sc.body,
             dollars: sc.dollars, conf: sc.confidence, urg: sc.urgency, eff: sc.effort,
-            cta: "Review", act: () => { show("guide"); guideAsk("Show me my spending by category"); },
+            cta: "Review", act: () => { show("chat"); chatAsk("Show me my spending by category"); },
             why: sc.evidence
           });
         });
@@ -2866,8 +3105,8 @@
                   cf.push({ merchant: dc.merchant, date: dc.detected_date, amount: dc.dollars, at: new Date().toISOString() });
                   localStorage.setItem("upmore_confirmed_dup", JSON.stringify(cf));
                 } catch (e) {}
-                show("guide");
-                guideAsk("I was double charged by " + dc.merchant + " on " + dc.detected_date + " for $" + dc.dollars.toFixed(2) + ". How do I dispute it?");
+                show("chat");
+                chatAsk("I was double charged by " + dc.merchant + " on " + dc.detected_date + " for $" + dc.dollars.toFixed(2) + ". How do I dispute it?");
               },
               why: dc.evidence
             });
@@ -2906,7 +3145,7 @@
           title: "They charged you anyway",
           sub: `${rec.merchant} billed ${per} after you cancelled — check it and dispute if it's wrong.`,
           dollars: Number(rec.amount || 0), conf: 1.0, urg: 4, eff: 10,
-          cta: "What now", act: () => { show("guide"); guideAsk(`I cancelled ${rec.merchant} but they charged me ${per} anyway. What should I do?`); },
+          cta: "What now", act: () => { show("chat"); chatAsk(`I cancelled ${rec.merchant} but they charged me ${per} anyway. What should I do?`); },
           why: "Charge reappeared after a confirmed cancel — needs review." });
       }
     } catch (e) {}
@@ -4631,7 +4870,7 @@
       ["save_ledger", "created_at"], ["save_renewals", "created_at"], ["save_claims", "created_at"],
       ["save_receipts", "created_at"], ["simplefin_connections", "connected_at"],
       ["simplefin_requests", "requested_at"], ["playbook_progress", "started_at"],
-      ["reminders", "created_at"], ["finance_accounts", "created_at"],
+      ["route_reminders", "created_at"], ["reminders", "created_at"], ["agent_tasks", "created_at"], ["agent_steps", "created_at"], ["action_ledger", "created_at"], ["finance_accounts", "created_at"],
       ["finance_alerts", "created_at"], ["finance_goals", "created_at"],
       ["finance_snapshots", "created_at"],
       ["referral_credits", "created_at"], ["user_subscriptions", "created_at"],
@@ -4985,12 +5224,12 @@
     $("subSheet").hidden = true;
     if (cerr) { toast("Couldn't cancel — try again"); return; }
     renderSubs(); renderQueue();
-    show("guide");
+    show("chat");
     const fl = cancelFlowFor(s.merchant);
     const brief = fl
       ? `I just cancelled my ${s.merchant} subscription (${money$(s.amount)}${INTPER[s.billing_interval] || ""}). Walk me through confirming it's really cancelled. The direct cancel page is ${fl.url || "in the app settings"}, and the steps are: ${fl.steps}`
       : `I just cancelled my ${s.merchant} subscription. Walk me through confirming it's really cancelled on their site.`;
-    guideAsk(brief);
+    chatAsk(brief);
   }
 
   /* ============ Real-world execution agent (Tier 2) ============ */
@@ -5159,8 +5398,8 @@
       // The route has real steps: walk the user through them instead of
       // dropping them in the Guide with a dead-end "Open move" button.
       if (r.steps && r.steps.length) { startWalkthrough(r.id); return; }
-      show("guide");
-      guideAsk(`I want to start this promo: ${r.provider} \u2014 ${String(r.reward || "").slice(0, 100)}. Give me the exact steps to claim it.`);
+      show("chat");
+      chatAsk(`I want to start this promo: ${r.provider} \u2014 ${String(r.reward || "").slice(0, 100)}. Give me the exact steps to claim it.`);
     };
   }
   $("subSheetClose").onclick = () => { $("subSheet").hidden = true; };
@@ -5174,7 +5413,7 @@
   // First-run: brand-new users land on the Guide (chatbox) straight from the
   // splash, greeted by name when we know it. Set by the splash/boot path.
   let guideFirstRun = false;
-  const chat = $("chat"), input = $("input"), send = $("send");
+  let chat = null; // active thread container (chat module repoints per mode)
 
   function guideCtx() {
     const d = planData();
@@ -6419,7 +6658,7 @@
         const d = String(r.difficulty || "").toLowerCase();
         return wantEasy ? (d.includes("very easy") || d.includes("easy")) : true;
       }).slice(0, 3);
-      if (!pool.length) return { paras: ["Nothing in the queue matches that right now — try the Explore tab with the difficulty filter."] };
+      if (!pool.length) return { paras: ["Nothing in the queue matches that right now — try the Earn section with the difficulty filter."] };
       const r = pool[0];
       pendingOffer = r.id;
       return { paras: [
@@ -6538,7 +6777,7 @@
     // Data-sale / charge questions are ABOUT our policy — never refuse them.
     if (has("do you sell", "selling my data", "sell user data", "do you charge", "is upmore free", "cost to use"))
       return { paras: [
-        "No. We never sell your data — your tracked subscriptions, money log, and plan stay yours, and you can export or delete everything from the You tab.",
+        "No. We never sell your data — your tracked subscriptions, money log, and plan stay yours, and you can export or delete everything from the Profile tab.",
         "Upmore is free for you. If we ever earned a commission on an offer, the offer's card would carry a badge saying so — right now none do." ] };
 
     /* Save-side intents: deterministic answers, honest about what the app can do */
@@ -7173,111 +7412,33 @@
             busy = false; return;
           }
         } catch (e) { /* fall through to refusal */ }
-        addAI(deepCapital ? deepCapital.paras : [capitalRefusal()]); busy = false; return;
+        addAI(deepCapital ? deepCapital.paras : [capitalRefusal()], null, { text: "General guidance — not from your accounts." }); busy = false; return;
       }
       // Tracked data first: the user's own deadlines/subscriptions/ledger
       // must never be intercepted by the remote agent's generic replies.
       const tr = await trackedAnswer(text);
-      if (tr) { addAI(tr.paras, tr.card); busy = false; return; }
+      if (tr) { addAI(tr.paras, tr.card, { text: "From your tracked subscriptions, renewals, and money log." }); busy = false; return; }
       const j = await agentAsk(text);
       if (j && j.reply) {
         // Real agent reply. Apply walkthrough actions.
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) {
           const r = routeById(j.action.route_id);
-          if (r) { addAI([j.reply]); startWalkthrough(j.action.route_id); busy = false; return; }
+          if (r) { addAI([j.reply], null, { text: "From Upmore's analysis of your data." }); startWalkthrough(j.action.route_id); busy = false; return; }
         }
-        addAI([j.reply]);
+        addAI([j.reply], null, { text: "From Upmore's analysis of your data." });
       } else {
         const r = guideAnswer(text);
-        if (r.action === "walkthrough" && r.routeId) { addAI(r.paras, r.card); startWalkthrough(r.routeId); }
-        else addAI(r.paras, r.card);
+        if (r.action === "walkthrough" && r.routeId) { addAI(r.paras, r.card, null, { text: "General guidance — not from your accounts." }); startWalkthrough(r.routeId); }
+        else addAI(r.paras, r.card, null, { text: "General guidance — not from your accounts." });
       }
     } catch (e) {
       const r = guideAnswer(text);
-      if (r.action === "walkthrough" && r.routeId) { addAI(r.paras, r.card); startWalkthrough(r.routeId); }
-      else addAI(r.paras, r.card);
+      if (r.action === "walkthrough" && r.routeId) { addAI(r.paras, r.card, null, { text: "General guidance — not from your accounts." }); startWalkthrough(r.routeId); }
+      else addAI(r.paras, r.card, null, { text: "General guidance — not from your accounts." });
     }
     busy = false;
   }
-  function renderGuideEmpty() {
-    if (guideInit && $("empty")) return;
-    guideInit = true;
-    $("guide").classList.remove("talking");
-    // First-run: the chatbox greets by name when we know it. GPT-style:
-    // no starter-question cards — the chatbox is the interface. First-run
-    // gets Log in / Sign up buttons (welcome keeps the 18+/terms disclosure).
-    let h2 = "What should we look at first?";
-    let intro = "";
-    let ctxHtml = `<p class="ctx">${guideCtx()}</p>`;
-    let authHtml = "";
-    if (guideFirstRun) {
-      guideFirstRun = false;
-      const nm = (typeof displayName === "function") ? displayName() : "Friend";
-      const first = (nm && nm !== "Friend") ? String(nm).split(" ")[0] : null;
-      h2 = first ? `Hey ${esc(first)}, I'm Upmore — your personal finance agent.`
-                 : `Hey, I'm Upmore — your personal finance agent.`;
-      intro = `<p class="fine">I find you extra money and show you your money like a CFO. Ask me anything below.</p>`;
-      ctxHtml = "";
-      authHtml = `<div class="authrow">
-        <button class="abtn primary" data-auth="signup">Sign up</button>
-        <button class="abtn" data-auth="login">Log in</button>
-      </div>`;
-    }
-    chat.innerHTML = `<div class="empty" id="empty"><div class="orb"></div>
-      <h2>${h2}</h2>
-      ${intro}
-      ${ctxHtml}
-      ${authHtml}</div>`;
-    chat.querySelectorAll(".abtn").forEach(b => b.onclick = () => {
-      show(b.dataset.auth === "login" ? "login" : "welcome");
-    });
-  }
-  function addMe(text) {
-    const e = $("empty"); if (e) e.remove();
-    $("guide").classList.add("talking");
-    const m = document.createElement("div"); m.className = "msg me"; m.textContent = text; chat.appendChild(m);
-  }
-  // Minimal chat markdown: escape HTML first, then **bold**, bare links, newlines.
-  const md = (s) => esc(s)
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-    .replace(/\n/g, "<br>");
-  function addAI(paras, card) {
-    const m = document.createElement("div"); m.className = "msg ai";
-    m.innerHTML = `<div class="typing"><i></i><i></i><i></i></div>`;
-    chat.appendChild(m); chat.scrollTop = chat.scrollHeight;
-    setTimeout(() => {
-      m.querySelector(".typing").remove();
-      m.insertAdjacentHTML("beforeend", paras.map(p => `<p>${md(p)}</p>`).join(""));
-      if (card) m.insertAdjacentHTML("beforeend",
-        `<div class="mini"><span>${card.tag}</span><b>${card.title}</b><span>${card.meta}</span>${card.aff ? `<span class="abadge">Affiliate</span>` : ""}<button data-open>Open move</button></div>`);
-      const b = m.querySelector("[data-open]");
-      if (b) b.onclick = () => {
-        const r = card.id ? routeById(card.id) : null;
-        // The move has real steps: open the walkthrough right here instead of
-        // bouncing the user back to Home to find the Start button again.
-        if (r && r.steps && r.steps.length) { startWalkthrough(r.id); return; }
-        show("explore");
-        const q = $("xq");
-        if (q && r) { q.value = r.provider || ""; q.dispatchEvent(new Event("input", { bubbles: true })); }
-        if (card.id) setTimeout(() => {
-          const elx = document.querySelector(`[data-xcard="${card.id}"]`);
-          if (elx) { const dd = elx.querySelector(".xdetail"); if (dd) dd.hidden = false; elx.scrollIntoView({ block: "center" }); }
-        }, 600);
-      };
-      chat.scrollTop = chat.scrollHeight; busy = false;
-    }, 900);
-  }
-  function ask(text) { guideAsk(text); }
-  input.oninput = () => send.disabled = !input.value.trim();
-  function submit() {
-    const v = input.value.trim(); if (!v || busy) return;
-    input.value = ""; send.disabled = true;
-    guideAsk(v);
-  }
-  send.onclick = submit;
-  input.onkeydown = e => { if (e.key === "Enter") submit(); };
-  $("newchat").onclick = () => { guideInit = false; busy = false; renderGuideEmpty(); };
+  /* Chat rendering lives in the chat/tasks/feed module at the end of this script. */
 
   /* ================= Explore: the real route catalog ================= */
   const XICONS = {
@@ -7441,6 +7602,7 @@
     const tl = { "15":"15 minutes", "60":"about an hour", "180":"a few hours" }[d.time] || "about an hour";
     $("pLine").textContent = [st, tl + " a week"].filter(Boolean).join(" · ");
     renderLedger(); wireLedger(); wireYouExtras(); renderHousehold();
+    renderAgentAccess();
     // FIX (R2 8-023): Disconnect row is visible only while a live bank is connected.
     if ($("bankDisconnectRow")) $("bankDisconnectRow").hidden = !bankConnectedLive();
     $("signOut").hidden = !who;
@@ -7723,7 +7885,7 @@
   function startCancelFlow(sub) {
     const mid = sub.merchant_id;
     cancelStates[mid] = CancelState.STARTED;
-    show("guide");
+    show("chat");
     chat.innerHTML = "";
     const day = new Date(sub.next_date).getDate();
     const ordinal = day === 1 || day === 21 || day === 31 ? "st" : day === 2 || day === 22 ? "nd" : day === 3 || day === 23 ? "rd" : "th";
@@ -10165,7 +10327,7 @@
       if (minorBlocked()) { show("blocked"); return; }
       if (!(await tosAccepted())) { show("tos"); return; }
       const hh0 = LEGACY_TABS[h] || h;
-      const tab = order.includes(hh0) && ["home", "guide", "profile"].includes(hh0) ? hh0 : "home";
+      const tab = order.includes(hh0) && ["home", "chat", "profile"].includes(hh0) ? hh0 : "home";
       show(tab);
       return;
     }
@@ -10292,7 +10454,7 @@
             sub: `First charge ${money$(s.amount)} hits ${s.next_billing_date}. Cancel before if you're not keeping it.`,
             dollars: Number(s.amount) * 12, conf: 0.95, urg: 5, eff: 3,
             cta: "How to cancel",
-            act: () => { show("guide"); if (typeof guideAsk === "function") guideAsk(`How do I cancel ${s.merchant} before the trial ends on ${s.next_billing_date}?`); },
+            act: () => { show("chat"); if (typeof guideAsk === "function") chatAsk(`How do I cancel ${s.merchant} before the trial ends on ${s.next_billing_date}?`); },
             why: "Trial converts to a paid charge within 7 days."
           });
         }
@@ -11123,6 +11285,803 @@
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     });
   }
+/* ============================================================
+   CHAT / TASKS / FEED / PROFILE-AGENT MODULE (2026-09-28)
+   Black + Schibsted visual system. Agent engine, demo timers,
+   tasks tab, news feed, profile agent access + audit log.
+   ============================================================ */
+
+/* ---------- thread state ---------- */
+let chatMode = "agent";
+let chatWired = false;
+let agentTaskRunning = false;
+let stepChannel = null;
+const chatThreads = {
+  agent: { scroll: 0, empty: true, lastTs: 0 },
+  ask:   { scroll: 0, empty: true, lastTs: 0 },
+};
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const HAS_NUM_RE = /\d/;
+
+function chatFeedEl() { return $("chatFeed"); }
+function threadEl(m) { return $(m === "agent" ? "threadAgent" : "threadAsk"); }
+function scrollChat() { const f = chatFeedEl(); if (f) f.scrollTop = f.scrollHeight; }
+
+function setChatMode(m) {
+  const feed = chatFeedEl(); if (!feed) return;
+  chatThreads[chatMode].scroll = feed.scrollTop;
+  chatMode = m;
+  chat = threadEl(m);
+  $("threadAgent").hidden = m !== "agent";
+  $("threadAsk").hidden = m !== "ask";
+  $("segAgent").classList.toggle("on", m === "agent");
+  $("segAsk").classList.toggle("on", m === "ask");
+  $("segAgent").setAttribute("aria-selected", String(m === "agent"));
+  $("segAsk").setAttribute("aria-selected", String(m === "ask"));
+  $("chatInput").placeholder = m === "agent" ? "Hand off a task" : "Ask about your money";
+  feed.scrollTop = chatThreads[m].scroll;
+}
+function chatClearThread() {
+  const t = chatThreads[chatMode];
+  t.empty = true; t.lastTs = 0;
+  chat.innerHTML = chatEmptyHTML(chatMode);
+  wireSuggButtons(chat);
+  chatFeedEl().scrollTop = 0;
+}
+function updateChatCtx() {
+  try {
+    const now = new Date();
+    const d = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+    const el = $("chatCtx"); if (el) el.textContent = d;
+  } catch (e) {}
+}
+
+/* ---------- empty states ---------- */
+function taskDueShort(t) {
+  try { return taskDueText(t); } catch (e) { return ""; }
+}
+function agentSuggRows() {
+  let open = [];
+  try { open = (tasksCache || []).filter(t => t.state === "open").slice(0, 3); } catch (e) {}
+  if (open.length) return open.map(t =>
+    `<button data-task-sugg="${esc(t.id)}"><b>${esc(t.title)}</b><span>${esc(taskDueShort(t))}</span></button>`).join("");
+  return [
+    ["Find subscriptions I can cancel", "Scan for recurring charges"],
+    ["Check for unclaimed money", "Search state registries"],
+    ["Lower my electric bill", "Compare plans and promos"],
+  ].map(s => `<button data-agt-sugg="${esc(s[0])}"><b>${esc(s[0])}</b><span>${esc(s[1])}</span></button>`).join("");
+}
+function askSuggRows() {
+  return [
+    ["Where is my money going?", "Spending by category"],
+    ["What subscriptions do I have?", "From your tracked list"],
+    ["How much have I saved?", "From your money log"],
+  ].map(s => `<button data-ask-sugg="${esc(s[0])}"><b>${esc(s[0])}</b><span>${esc(s[1])}</span></button>`).join("");
+}
+function chatEmptyHTML(m) {
+  const sub = m === "agent"
+    ? "I check your accounts and do the prep. You confirm anything that moves money."
+    : "Every answer shows the numbers it came from.";
+  const head = m === "agent" ? "What can I take off your plate?" : "What do you want to know?";
+  const rows = m === "agent" ? agentSuggRows() : askSuggRows();
+  return `<div class="cempty"><div class="corb"></div><h2 class="cheadline">${head}</h2><p class="csub">${sub}</p><div class="csugg">${rows}</div></div>`;
+}
+function wireSuggButtons(root) {
+  if (!root) return;
+  root.querySelectorAll("[data-task-sugg]").forEach(b => b.onclick = () => doThisForMe(b.dataset.taskSugg));
+  root.querySelectorAll("[data-agt-sugg]").forEach(b => b.onclick = () => startAgentTask({ title: b.dataset.agtSugg, script: genericScript(b.dataset.agtSugg), demo: true }));
+  root.querySelectorAll("[data-ask-sugg]").forEach(b => b.onclick = () => chatAsk(b.dataset.askSugg));
+}
+
+/* ---------- message rendering (replaces old guide renderer) ---------- */
+function chatNoteEmpty() {
+  const t = chatThreads[chatMode];
+  if (t.empty) { t.empty = false; chat.innerHTML = ""; }
+}
+function maybeTs() {
+  const t = chatThreads[chatMode]; const now = Date.now();
+  if (t.lastTs && now - t.lastTs > 600000) {
+    const s = document.createElement("div"); s.className = "tstamp";
+    s.textContent = new Date(now).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    chat.appendChild(s);
+  }
+  t.lastTs = now;
+}
+function addMe(text) {
+  chatNoteEmpty(); maybeTs();
+  const d = document.createElement("div");
+  d.className = "umsg"; d.textContent = text;
+  chat.appendChild(d); scrollChat();
+}
+const md = (s) => esc(s)
+  .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+  .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+  .replace(/\n/g, "<br>");
+function addAI(paras, card, prov) {
+  chatNoteEmpty(); maybeTs();
+  const m = document.createElement("div"); m.className = "amsg";
+  m.innerHTML = '<div class="ctyping"><i></i><i></i><i></i></div>';
+  chat.appendChild(m); scrollChat();
+  setTimeout(() => {
+    const tp = m.querySelector(".ctyping"); if (tp) tp.remove();
+    let html = paras.map(p => `<p>${md(p)}</p>`).join("");
+    if (prov && prov.text && HAS_NUM_RE.test(paras.join(" "))) {
+      html += `<p class="asrc">${esc(prov.text)}</p>`;
+    }
+    if (card) {
+      html += `<div class="mini"><span>${esc(card.tag || "")}</span><b>${esc(card.title || "")}</b><span>${esc(card.meta || "")}</span>${card.aff ? `<span class="abadge">Affiliate</span>` : ""}<button data-open>Open move</button></div>`;
+    }
+    m.insertAdjacentHTML("beforeend", html);
+    const b = m.querySelector("[data-open]");
+    if (b && card) b.onclick = () => {
+      const r = card.id ? routeById(card.id) : null;
+      if (r && r.steps && r.steps.length) { startWalkthrough(r.id); return; }
+      show("explore");
+      const q = $("xq");
+      if (q && r) { q.value = r.provider || ""; q.dispatchEvent(new Event("input", { bubbles: true })); }
+      if (card.id) setTimeout(() => {
+        const elx = document.querySelector(`[data-xcard="${card.id}"]`);
+        if (elx) { const dd = elx.querySelector(".xdetail"); if (dd) dd.hidden = false; elx.scrollIntoView({ block: "center" }); }
+      }, 600);
+    };
+    scrollChat(); busy = false;
+  }, 700);
+}
+
+/* ---------- chat shell ---------- */
+function renderChatTab() {
+  if (!chatWired) { chatWired = true; wireChat(); }
+  // refresh empty-state suggestions if the thread is still empty
+  ["agent", "ask"].forEach(m => {
+    if (chatThreads[m].empty) {
+      const el = threadEl(m);
+      if (el) { el.innerHTML = chatEmptyHTML(m); wireSuggButtons(el); }
+    }
+  });
+  updateChatCtx();
+  updateTasksBadge();
+  setChatMode(chatMode);
+}
+function wireChat() {
+  const feed = chatFeedEl();
+  feed.innerHTML = '<div id="threadAgent"></div><div id="threadAsk" hidden></div>';
+  chat = $("threadAgent");
+  $("threadAgent").innerHTML = chatEmptyHTML("agent");
+  $("threadAsk").innerHTML = chatEmptyHTML("ask");
+  wireSuggButtons(feed);
+  setChatMode(chatMode);
+  $("segAgent").onclick = () => setChatMode("agent");
+  $("segAsk").onclick = () => setChatMode("ask");
+  const ta = $("chatInput");
+  ta.addEventListener("input", () => {
+    $("chatSend").disabled = !ta.value.trim();
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
+  });
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSubmit(); }
+  });
+  $("chatSend").onclick = chatSubmit;
+  $("chatAttach").onclick = () => toast("Attachments are coming soon.");
+  $("chatVoice").onclick = () => toast("Voice input is coming soon.");
+}
+function chatSubmit() {
+  const ta = $("chatInput"); if (!ta) return;
+  const v = ta.value.trim();
+  if (!v || busy) return;
+  ta.value = ""; ta.style.height = "auto"; $("chatSend").disabled = true;
+  if (chatMode === "ask") guideAsk(v);
+  else startAgentTask({ title: v, script: genericScript(v), demo: true });
+}
+function chatAsk(text) { setChatMode("ask"); guideAsk(text); }
+function updateAgentDot() {
+  const d = $("agentRunDot"); if (d) d.hidden = !agentTaskRunning;
+}
+
+/* ============================================================
+   TASK ENGINE (Agent mode)
+   ============================================================ */
+function genericScript(title) {
+  return {
+    steps: ["Understanding the request", "Checking your accounts", "Preparing your handoff"],
+    summary: "Here's what I found — review the handoff below.",
+    handoff: {
+      title: "Here's your next step",
+      line: "I did the prep. One tap finishes it.",
+      primary: "View details",
+      primaryFn: () => toast("Details coming right up."),
+      ghost: "Dismiss",
+      ghostFn: null,
+    },
+    ledgerAction: "agent_task",
+  };
+}
+function copyText(s) {
+  const done = () => toast("Copied.");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
+  } else fallbackCopy(s, done);
+}
+function fallbackCopy(s, done) {
+  const ta = document.createElement("textarea");
+  ta.value = s; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); done(); } catch (e) { toast("Copy failed — long-press to copy."); }
+  ta.remove();
+}
+function disputeNote(t) {
+  return `Hello, I'm disputing a duplicate charge on my account. I was charged ${money$(t.amount)} twice by ${t.merchant || "the merchant"} — two identical charges minutes apart. I've attached both transaction records. Please reverse one of the charges. Thank you.`;
+}
+function taskScript(t) {
+  const amt = t.amount != null ? money$(t.amount) : "";
+  if (t.type === "bill_due") return {
+    steps: [`Checking your ${t.merchant || "bill"} balance`, "Prefilling the payment details", "Preparing your handoff"],
+    summary: `Your ${t.title} is ${amt}, ${taskDueText(t)}. Everything is prefilled — one tap opens it.`,
+    handoff: {
+      title: `Ready to pay ${amt}`,
+      line: "Payments stay with you. Open the biller — it's prefilled.",
+      primary: "Open biller",
+      primaryFn: () => { if (t.url) window.open(t.url, "_blank", "noopener"); },
+      ghost: "Not now",
+      ghostFn: null,
+    },
+    ledgerAction: "bill_pay_prep",
+  };
+  if (t.type === "trial_converting") return {
+    steps: ["Confirming the trial end date", "Locating the cancel page", "Preparing your handoff"],
+    summary: `Your trial converts ${taskDueShort(t)} — cancel before then to avoid the charge.`,
+    handoff: {
+      title: `Cancel before you're charged ${amt}`,
+      line: "One tap opens the cancel page. Nothing is cancelled until you confirm.",
+      primary: "Open cancel page",
+      primaryFn: () => { if (t.url) window.open(t.url, "_blank", "noopener"); },
+      ghost: "Keep it",
+      ghostFn: null,
+    },
+    ledgerAction: "trial_cancel_prep",
+  };
+  if (t.type === "dispute_window") return {
+    steps: ["Pulling both charges", "Drafting the dispute note", "Preparing your handoff"],
+    summary: `Found it — two ${amt} charges minutes apart. The dispute note is drafted.`,
+    handoff: {
+      title: "Dispute draft ready",
+      line: "Copy the note and paste it in your bank's dispute flow.",
+      primary: "Copy dispute note",
+      primaryFn: () => copyText(disputeNote(t)),
+      ghost: "Dismiss",
+      ghostFn: null,
+    },
+    ledgerAction: "dispute_draft",
+  };
+  if (t.type === "claim_found") return {
+    steps: ["Confirming the registry match", "Gathering what you'll need", "Preparing your handoff"],
+    summary: `There is ${amt} waiting for you. The claim takes about 5 minutes.`,
+    handoff: {
+      title: `Claim your ${amt}`,
+      line: "File with the state — it's your money.",
+      primary: "Start the claim",
+      primaryFn: () => show("claimDetail"),
+      ghost: "Later",
+      ghostFn: null,
+    },
+    ledgerAction: "claim_prep",
+  };
+  return genericScript(t.title);
+}
+
+async function startAgentTask(opts) {
+  const { title, reminderId, script, demo, failAt, failReason } = opts;
+  setChatMode("agent");
+  addMe(title);
+  agentTaskRunning = true; updateAgentDot();
+  if (reminderId) mutateTask(reminderId, { state: "agent_working" });
+  const run = document.createElement("div"); run.className = "taskrun";
+  const orbRow = document.createElement("div"); orbRow.className = "onit";
+  orbRow.innerHTML = '<span class="pulseorb"></span><span>On it.</span>';
+  const stepsEl = document.createElement("div"); stepsEl.className = "steps";
+  run.appendChild(orbRow); run.appendChild(stepsEl);
+  chat.appendChild(run); scrollChat();
+  const stepEls = script.steps.map(s => {
+    const d = document.createElement("div"); d.className = "step"; d.dataset.st = "pending";
+    const c = document.createElement("span"); c.className = "sc";
+    const tx = document.createElement("span"); tx.textContent = s;
+    d.appendChild(c); d.appendChild(tx); stepsEl.appendChild(d);
+    return d;
+  });
+  let dbTaskId = null;
+  try { dbTaskId = await persistTaskStart(title, reminderId, script.steps); } catch (e) {}
+  let failed = false;
+  for (let i = 0; i < stepEls.length; i++) {
+    stepEls[i].dataset.st = "working"; scrollChat();
+    await persistStep(dbTaskId, i, "working");
+    await sleep(demo === false ? 400 : 900 + Math.random() * 700);
+    if (failAt === i) {
+      failed = true;
+      stepEls[i].dataset.st = "failed";
+      stepEls[i].querySelector(".sc").textContent = "!";
+      const det = document.createElement("span"); det.className = "sdet";
+      det.textContent = failReason || "Something went wrong.";
+      stepEls[i].appendChild(det);
+      await persistStep(dbTaskId, i, "failed", failReason || "Something went wrong.");
+      break;
+    }
+    stepEls[i].dataset.st = "done";
+    stepEls[i].querySelector(".sc").textContent = "✓";
+    await persistStep(dbTaskId, i, "done");
+  }
+  const sumEl = document.createElement("div"); sumEl.className = "amsg";
+  const sp = document.createElement("p");
+  sp.textContent = failed ? (script.failSummary || "I couldn't finish that step — nothing was changed.") : script.summary;
+  sumEl.appendChild(sp); chat.appendChild(sumEl);
+  renderHandoff(run, script.handoff, { failed, reminderId, title, dbTaskId, demo });
+  try {
+    await writeLedger({
+      task_id: dbTaskId,
+      action: failed ? "agent_task_failed" : (script.ledgerAction || "agent_task"),
+      outcome: failed ? "failed" : "done",
+      evidence: { title, demo: demo !== false },
+    });
+  } catch (e) {}
+  agentTaskRunning = false; updateAgentDot();
+  if (reminderId && failed) mutateTask(reminderId, { state: "open" });
+  if (current === "tasks") renderTasks();
+  scrollChat();
+}
+
+function renderHandoff(run, h, ctx) {
+  const el = document.createElement("div"); el.className = "handoff";
+  const t = document.createElement("h4"); t.textContent = h.title;
+  const p = document.createElement("p"); p.textContent = h.line;
+  const row = document.createElement("div"); row.className = "hrow";
+  const pb = document.createElement("button"); pb.className = "hbtn hbtn-p"; pb.textContent = h.primary;
+  pb.onclick = async () => {
+    try { if (h.primaryFn) await h.primaryFn(); } catch (e) {}
+    if (ctx.reminderId) {
+      mutateTask(ctx.reminderId, { state: "done", done_at: new Date().toISOString() });
+      row.innerHTML = "";
+      const done = document.createElement("button"); done.className = "hbtn hbtn-p"; done.textContent = "Done ✓"; done.disabled = true;
+      const undo = document.createElement("button"); undo.className = "hbtn hbtn-g"; undo.textContent = "Undo";
+      undo.onclick = () => { mutateTask(ctx.reminderId, { state: "open", done_at: null }); renderTasks(); };
+      row.appendChild(done); row.appendChild(undo);
+      renderTasks(); updateTasksBadge();
+      toast("Marked done.");
+    }
+  };
+  row.appendChild(pb);
+  if (h.ghost) {
+    const gb = document.createElement("button"); gb.className = "hbtn hbtn-g"; gb.textContent = h.ghost;
+    gb.onclick = () => { try { if (h.ghostFn) h.ghostFn(); } catch (e) {} };
+    row.appendChild(gb);
+  }
+  el.appendChild(t); el.appendChild(p); el.appendChild(row);
+  run.appendChild(el); scrollChat();
+}
+
+/* ---------- persistence (best effort) ---------- */
+async function persistTaskStart(title, reminderId, steps) {
+  if (!supa || !session || !session.user) return null;
+  try {
+    const { data, error } = await supa.from("agent_tasks")
+      .insert({ user_id: session.user.id, reminder_id: reminderId || null, title })
+      .select("id").single();
+    if (error || !data) return null;
+    const rows = steps.map((s, i) => ({ task_id: data.id, position: i, label: s }));
+    await supa.from("agent_steps").insert(rows);
+    subscribeTaskSteps(data.id);
+    return data.id;
+  } catch (e) { return null; }
+}
+async function persistStep(taskId, i, status, detail) {
+  if (!supa || !taskId) return;
+  try {
+    await supa.from("agent_steps").update({ status, detail: detail || null })
+      .eq("task_id", taskId).eq("position", i);
+  } catch (e) {}
+}
+function subscribeTaskSteps(taskId) {
+  try {
+    if (stepChannel) supa.removeChannel(stepChannel);
+    stepChannel = supa.channel("task-" + taskId)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "agent_steps", filter: "task_id=eq." + taskId }, () => {})
+      .subscribe();
+  } catch (e) {}
+}
+async function writeLedger(entry) {
+  if (!supa || !session || !session.user) return;
+  try {
+    await supa.from("action_ledger").insert({
+      user_id: session.user.id,
+      task_id: entry.task_id || null,
+      action: entry.action,
+      rail: entry.rail || null,
+      partner: entry.partner || null,
+      amount: entry.amount != null ? entry.amount : null,
+      tier: "T0",
+      approved_by: "user",
+      evidence: entry.evidence || {},
+      outcome: entry.outcome || null,
+    });
+  } catch (e) {}
+}
+
+/* ============================================================
+   TASKS TAB
+   ============================================================ */
+let tasksCache = null;
+
+function userTz() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (e) { return "UTC"; }
+}
+function demoDue(days) {
+  const d = new Date(); d.setDate(d.getDate() + days); d.setHours(12, 0, 0, 0);
+  return d.toISOString();
+}
+function DEMO_TASK_SEEDS() {
+  const tz = userTz();
+  return [
+    { id: "demo-comed", type: "bill_due", title: "Pay the ComEd electric bill", merchant: "ComEd", amount: 184.20, direction: "owed_by_user", due_at: demoDue(17), timezone: tz, evidence: [{ text: "Charged on the 14th for the last 3 months. Up from $172." }], state: "open", url: "https://www.comed.com" },
+    { id: "demo-paramount", type: "trial_converting", title: "Paramount+ trial ends soon", merchant: "Paramount+", amount: 7.99, direction: "owed_by_user", due_at: demoDue(5), timezone: tz, evidence: [{ text: "Trial started recently. Converts to $7.99/mo unless cancelled." }], state: "open", url: "https://www.paramountplus.com" },
+    { id: "demo-netflix", type: "dispute_window", title: "Netflix charged you twice", merchant: "Netflix", amount: 15.49, direction: "owed_to_user", due_at: demoDue(60), timezone: tz, evidence: [{ text: "Two $15.49 charges 4 minutes apart." }], state: "open" },
+    { id: "demo-ilclaim", type: "claim_found", title: "$340 in Illinois unclaimed property", merchant: "Illinois iCash", amount: 340, direction: "owed_to_user", due_at: demoDue(90), timezone: tz, evidence: [{ text: "Name + Chicago address match. File via Illinois iCash." }], state: "open", url: "https://icash.illinois.gov" },
+  ];
+}
+function taskOverlay() {
+  try { return JSON.parse(localStorage.getItem("upmore-task-overlay") || "{}"); } catch (e) { return {}; }
+}
+function saveTaskOverlay(o) {
+  try { localStorage.setItem("upmore-task-overlay", JSON.stringify(o)); } catch (e) {}
+}
+function mutedTypes() {
+  try { return JSON.parse(localStorage.getItem("upmore-muted-types") || "[]"); } catch (e) { return []; }
+}
+async function getTasks() {
+  if (tasksCache) return tasksCache;
+  let items = [];
+  if (supa && session && session.user) {
+    try {
+      const { data } = await supa.from("reminders").select("*")
+        .eq("user_id", session.user.id).order("due_at", { ascending: true });
+      if (data && data.length) items = data.map(r => ({ ...r, demo: false }));
+    } catch (e) {}
+  }
+  if (!items.length) items = DEMO_TASK_SEEDS().map(t => ({ ...t, demo: true }));
+  const ov = taskOverlay();
+  const mt = mutedTypes();
+  items = items
+    .map(t => (ov[t.id] ? { ...t, ...ov[t.id] } : t))
+    .filter(t => !mt.includes(t.type));
+  tasksCache = items;
+  return items;
+}
+async function mutateTask(id, patch) {
+  const items = await getTasks();
+  const t = items.find(x => x.id === id); if (!t) return;
+  Object.assign(t, patch);
+  if (!t.demo && supa && session && session.user) {
+    try { await supa.from("reminders").update(patch).eq("id", id); } catch (e) {}
+  } else {
+    const ov = taskOverlay(); ov[id] = { ...(ov[id] || {}), ...patch }; saveTaskOverlay(ov);
+  }
+  tasksCache = items;
+  updateTasksBadge();
+}
+function evidenceText(t) {
+  const ev = t.evidence;
+  if (!ev) return "";
+  if (Array.isArray(ev)) return ev.map(e => (typeof e === "string" ? e : (e && e.text) || "")).filter(Boolean).join(" ");
+  if (typeof ev === "object") return ev.text || "";
+  return String(ev);
+}
+function daysUntil(iso) {
+  if (!iso) return null;
+  const tz = userTz();
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+  const p = s => s.split("-").map(Number);
+  const [y1, m1, dd1] = p(fmt.format(new Date()));
+  const [y2, m2, dd2] = p(fmt.format(new Date(iso)));
+  return Math.round((Date.UTC(y2, m2 - 1, dd2) - Date.UTC(y1, m1 - 1, dd1)) / 864e5);
+}
+function dueDateLabel(iso, tz) {
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: tz || userTz(), month: "short", day: "numeric" }).format(new Date(iso));
+  } catch (e) { return ""; }
+}
+function taskDueText(t) {
+  if (!t.due_at) return "No due date";
+  const d = daysUntil(t.due_at);
+  const lbl = dueDateLabel(t.due_at, t.timezone);
+  const closing = /claim|dispute|return|window|trial|promo|enrol/i.test(t.type || "") ? "Window closes " : "Due ";
+  if (d == null) return "No due date";
+  if (d < 0) return `${closing}${lbl}, ${-d} day${-d === 1 ? "" : "s"} overdue`;
+  if (d === 0) return `${closing}${lbl}, today`;
+  if (d === 1) return `${closing}${lbl}, tomorrow`;
+  return `${closing}${lbl}, in ${d} days`;
+}
+function taskRowHTML(t) {
+  const amt = t.amount != null
+    ? `<span class="tamt num ${t.direction === "owed_to_user" ? "in" : "out"}">${t.direction === "owed_to_user" ? "+" : ""}${money$(t.amount)}</span>`
+    : "";
+  const dot = t.direction === "owed_to_user" ? "mnt" : "amb";
+  const working = t.state === "agent_working"
+    ? `<div class="tagentwork"><span class="pulseorb"></span><span>Agent working</span></div>` : "";
+  const snooze = t.type === "bill_due"
+    ? `<button class="tbtn tbtn-g" data-snooze="${t.id}">Snooze</button>` : "";
+  return `<div class="trow" data-task="${t.id}">
+    <div class="tline1"><span class="ttitle">${esc(t.title)}</span>${amt}</div>
+    <div class="tline2"><span class="tdot ${dot}"></span><span>${esc(taskDueText(t))}</span></div>
+    <div class="tline3">${esc(evidenceText(t))}</div>
+    <div class="tbtns"><button class="tbtn tbtn-p" data-doit="${t.id}">Do this for me</button><button class="tbtn tbtn-g" data-dismiss="${t.id}">Dismiss</button>${snooze}</div>
+    ${working}</div>`;
+}
+async function renderTasks() {
+  const g = $("tasksGroups"); if (!g) return;
+  const items = (await getTasks()).filter(t => evidenceText(t));
+  const now = Date.now();
+  const open = items.filter(t => t.state === "open" || t.state === "agent_working");
+  const done = items
+    .filter(t => t.state === "done" && t.done_at && now - new Date(t.done_at).getTime() < 7 * 864e5)
+    .sort((a, b) => new Date(b.done_at) - new Date(a.done_at));
+  const groups = [["This week", []], ["This month", []], ["Later", []]];
+  for (const t of open) {
+    const d = daysUntil(t.due_at);
+    const gi = d == null || d > 30 ? 2 : d > 7 ? 1 : 0;
+    groups[gi][1].push(t);
+  }
+  const byDue = (a, b) => {
+    const ao = a.direction === "owed_to_user" ? 0 : 1, bo = b.direction === "owed_to_user" ? 0 : 1;
+    if (ao !== bo) return ao - bo;
+    const da = a.due_at ? new Date(a.due_at).getTime() : Infinity;
+    const db = b.due_at ? new Date(b.due_at).getTime() : Infinity;
+    return da - db;
+  };
+  groups.forEach(gr => gr[1].sort(byDue));
+  // summary
+  const needYou = open.length;
+  const waiting = open.filter(t => t.direction === "owed_to_user" && t.amount)
+    .reduce((s, t) => s + (+t.amount || 0), 0);
+  $("tasksSummary").textContent = needYou === 0 ? ""
+    : `${needYou} thing${needYou === 1 ? "" : "s"} need${needYou === 1 ? "s" : ""} you.` +
+      (waiting > 0 ? ` ${money$(waiting)} is waiting for you.` : "");
+  let html = "";
+  for (const [label, list] of groups) {
+    if (!list.length) continue;
+    html += `<div class="tgroup"><p class="nsec">${label}</p>${list.map(taskRowHTML).join("")}</div>`;
+  }
+  if (!open.length) {
+    html = `<div class="tempty"><h2>Nothing due right now.</h2><p>I'll put anything that expires here.</p></div>`;
+  }
+  if (done.length) {
+    html += `<div class="tgroup"><button class="tdonehead" id="doneHead"><span class="tcheck">✓</span><span class="nsec">Done this week</span><span class="chev">›</span></button><div id="doneList" hidden>${done.map(taskRowHTML).join("")}</div></div>`;
+  }
+  g.innerHTML = html;
+  g.querySelectorAll("[data-doit]").forEach(b => b.onclick = () => doThisForMe(b.dataset.doit));
+  g.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => dismissTask(b.dataset.dismiss));
+  g.querySelectorAll("[data-snooze]").forEach(b => b.onclick = () => snoozeTask(b.dataset.snooze));
+  const dh = $("doneHead");
+  if (dh) dh.onclick = () => { const l = $("doneList"); if (l) l.hidden = !l.hidden; };
+  updateTasksBadge();
+}
+async function doThisForMe(id) {
+  const items = await getTasks();
+  const t = items.find(x => x.id === id); if (!t) return;
+  show("chat");
+  startAgentTask({ title: t.title, reminderId: id, script: taskScript(t), demo: t.demo !== false });
+}
+async function dismissTask(id) {
+  const items = await getTasks();
+  const t = items.find(x => x.id === id); if (!t) return;
+  await mutateTask(id, { state: "dismissed", dismissed_at: new Date().toISOString() });
+  try {
+    const k = "upmore-dismiss-counts";
+    const c = JSON.parse(localStorage.getItem(k) || "{}");
+    c[t.type] = (c[t.type] || 0) + 1;
+    localStorage.setItem(k, JSON.stringify(c));
+    const asked = JSON.parse(localStorage.getItem("upmore-mute-asked") || "{}");
+    if (c[t.type] >= 3 && !asked[t.type]) {
+      asked[t.type] = 1; localStorage.setItem("upmore-mute-asked", JSON.stringify(asked));
+      setTimeout(() => {
+        if (confirm("You've dismissed this kind of task 3 times. Stop showing it?")) {
+          const m = mutedTypes(); m.push(t.type);
+          try { localStorage.setItem("upmore-muted-types", JSON.stringify(m)); } catch (e) {}
+          tasksCache = null;
+          renderTasks();
+        }
+      }, 300);
+    }
+  } catch (e) {}
+  renderTasks();
+}
+async function snoozeTask(id) {
+  const items = await getTasks();
+  const t = items.find(x => x.id === id); if (!t || !t.due_at) return;
+  const d = new Date(t.due_at); d.setDate(d.getDate() + 7);
+  await mutateTask(id, { due_at: d.toISOString() });
+  toast("Snoozed for a week.");
+  renderTasks();
+}
+async function updateTasksBadge() {
+  try {
+    const items = await getTasks();
+    const n = items.filter(t => t.state === "open").length;
+    document.querySelectorAll('[id="tabBadge-tasks"]').forEach(b => {
+      b.hidden = n === 0;
+      b.textContent = String(n);
+    });
+  } catch (e) {}
+}
+
+/* ============================================================
+   FEED
+   ============================================================ */
+let feedCache = null;
+async function renderFeed(force) {
+  const list = $("feedList"); if (!list) return;
+  const rb = $("feedRefresh");
+  if (rb && !rb.dataset.wired) { rb.dataset.wired = "1"; rb.onclick = () => renderFeed(true); }
+  if (!force && feedCache && Date.now() - feedCache.at < 15 * 60 * 1000) { paintFeed(feedCache.data); return; }
+  list.innerHTML = '<div class="nloading">Loading the latest…</div>';
+  try {
+    const r = await fetch(UPMORE_BACKEND_URL + "/functions/v1/news-feed", { headers: { apikey: UPMORE_ANON_KEY } });
+    if (!r.ok) throw new Error("bad status");
+    const data = await r.json();
+    feedCache = { at: Date.now(), data };
+    try { localStorage.setItem("upmore-feed", JSON.stringify(feedCache)); } catch (e) {}
+    paintFeed(data);
+  } catch (e) {
+    let stale = null;
+    try { stale = JSON.parse(localStorage.getItem("upmore-feed") || "null"); } catch (e2) {}
+    if (stale && stale.data) { feedCache = stale; paintFeed(stale.data); return; }
+    list.innerHTML = '<div class="nerr">Couldn\'t load the feed. Check your connection and try again.</div>';
+    $("feedMarkets").innerHTML = ""; $("feedFoot").textContent = "";
+  }
+}
+function paintFeed(data) {
+  const mk = $("feedMarkets");
+  mk.innerHTML = (data.markets || []).slice(0, 3).map(m => {
+    const label = m.label || m.name || "";
+    const price = m.price != null
+      ? Number(m.price).toLocaleString("en-US", { maximumFractionDigits: 2 }) : "—";
+    const chg = m.change != null ? Number(m.change) : (m.chg != null ? Number(m.chg) : null);
+    const pct = m.changePct != null ? Number(m.changePct) : (m.change_percent != null ? Number(m.change_percent) : null);
+    const cls = chg == null ? "" : (chg >= 0 ? "up" : "dn");
+    const chgTxt = chg == null ? ""
+      : `${chg >= 0 ? "+" : ""}${chg.toFixed(2)}${pct != null ? ` (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%)` : ""}`;
+    return `<div class="mkt"><div class="mk">${esc(label)}</div><div class="mv num">${esc(price)}</div><div class="mc num ${cls}">${esc(chgTxt)}</div></div>`;
+  }).join("");
+  const items = (data.items || []).slice(0, 30);
+  $("feedList").innerHTML = items.map(it =>
+    `<a class="frow" href="${esc(it.link || "#")}" target="_blank" rel="noopener"><h3>${esc(it.title || "")}</h3>` +
+    (it.summary ? `<p class="fsum">${esc(it.summary)}</p>` : "") +
+    `<div class="fmeta"><span>${esc(it.source || "")}</span><span>·</span><span>${esc(timeAgo(it.published))}</span></div></a>`
+  ).join("") || '<div class="nerr">No headlines right now.</div>';
+  const srcs = [...new Set(items.map(i => i.source).filter(Boolean))];
+  $("feedFoot").textContent = srcs.length
+    ? `Headlines from ${srcs.join(", ")} · refreshes every 15 min` : "";
+}
+function timeAgo(iso) {
+  if (!iso) return "";
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24); return `${d}d ago`;
+}
+
+/* ============================================================
+   PROFILE — AGENT ACCESS + AUDIT LOG
+   ============================================================ */
+async function renderAgentAccess() {
+  const mount = $("agentAccessMount"); if (!mount) return;
+  if (!supa || !session || !session.user) {
+    mount.innerHTML = `<div class="aasec"><h3>Agent access</h3><p class="asub">Sign in to manage the logins you've saved for the agent.</p></div>
+      <div class="aasec"><h3>Audit log</h3><p class="asub">Sign in to see every action the agent has taken.</p></div>`;
+    return;
+  }
+  let refs = [];
+  try {
+    const { data } = await supa.from("exec_credential_refs")
+      .select("merchant_key,label,created_at").eq("user_id", session.user.id).order("created_at", { ascending: false });
+    refs = data || [];
+  } catch (e) {}
+  mount.innerHTML = `
+    <div class="aasec"><h3>Agent access</h3>
+      <p class="asub">${refs.length ? "Logins the agent can use — only after you approve each action." : "No saved logins. When you let the agent act somewhere, its login appears here."}</p>
+      <div>${refs.map(r => `<div class="aarow"><div class="agrow"><div class="an">${esc(r.label || r.merchant_key)}</div><div class="ad">Saved ${esc(new Date(r.created_at).toLocaleDateString())}</div></div><button class="aabtn" data-disconnect="${esc(r.merchant_key)}">Disconnect</button></div>`).join("")}</div>
+      ${refs.length ? `<button class="aarevoke" id="revokeAll">Revoke all agent access</button><p class="asub" id="revokeStatus" style="margin-top:8px"></p>` : ""}
+      <button class="aabtn" id="bbSelfTest" style="margin-top:12px">Test browser connection</button>
+      <p class="asub" id="bbTestStatus" style="margin-top:8px">Browser automation: not yet verified.</p>
+    </div>
+    <div class="aasec"><h3>Audit log</h3><p class="asub">Every run the agent has attempted, newest first.</p>
+      <div class="aulist" id="auditList"><p class="asub">Loading…</p></div>
+      <button class="aabtn" id="auditExport" style="margin-top:12px">Export JSON</button></div>`;
+  mount.querySelectorAll("[data-disconnect]").forEach(b => b.onclick = () => disconnectMerchant(b.dataset.disconnect));
+  const ra = $("revokeAll"); if (ra) ra.onclick = revokeAllAccess;
+  const bt = $("bbSelfTest"); if (bt) bt.onclick = testBrowserConnection;
+  const ae = $("auditExport"); if (ae) ae.onclick = exportAuditLog;
+  renderAuditList();
+}
+/* One-tap Browserbase key check: runs the real browser_selftest action with the
+   user's session. Shows ok (mint) or the real failure reason (amber = needs_setup)
+   inline. Never assumes the key works until the test passes. */
+async function testBrowserConnection() {
+  const st = $("bbTestStatus");
+  if (st) st.textContent = "Testing…";
+  try {
+    const { data, error } = await supa.functions.invoke("agent-exec", { body: { action: "browser_selftest" } });
+    if (error) throw new Error(error.message || "request failed");
+    if (data && data.ok) {
+      if (st) st.innerHTML = '<span class="bbok">Browser connection ok.</span>';
+      toast("Browser connection ok.");
+    } else {
+      const msg = (data && data.error) || "unknown error";
+      if (st) st.innerHTML = `<span class="bbbad">Browser connection failed — ${esc(msg)}</span>`;
+    }
+  } catch (e) {
+    if (st) st.innerHTML = `<span class="bbbad">Browser connection failed — ${esc((e && e.message) || String(e))}</span>`;
+  }
+}
+async function disconnectMerchant(key) {
+  if (!confirm(`Disconnect the agent's ${key} login?`)) return;
+  try {
+    const { data, error } = await supa.functions.invoke("exec-vault-store", { body: { action: "delete", merchant_key: key } });
+    if (error || !data || !data.ok) throw new Error("delete failed");
+    toast("Disconnected.");
+  } catch (e) { toast("Couldn't disconnect — try again."); }
+  renderAgentAccess();
+}
+async function revokeAllAccess() {
+  if (!confirm("Revoke ALL agent access? This deletes every saved login and stops any running agent task immediately.")) return;
+  const st = $("revokeStatus"); if (st) st.textContent = "Revoking…";
+  try {
+    const { data, error } = await supa.functions.invoke("agent-exec", { body: { action: "revoke_all" } });
+    if (error || !data || !data.ok) throw new Error((data && data.error) || "revoke failed");
+    const left = (data.credentials_remaining || 0) + (data.vault_secrets_remaining || 0);
+    const lines = (data.checklist || []).map(c => `${c.label || c.merchant_key}: ${c.credential === "deleted" ? "deleted" : "DELETE FAILED"}`);
+    if (st) st.innerHTML = esc(`Done — ${data.runs_revoked || 0} run(s) stopped, ${data.approvals_cancelled || 0} approval(s) cancelled. `)
+      + (left === 0 ? "Nothing remains." : `<b>Warning: ${left} credential(s) may remain.</b>`)
+      + (lines.length ? "<br>" + esc(lines.join(" · ")) : "");
+    toast(left === 0 ? "All agent access revoked." : "Revoke finished with warnings — see details.");
+  } catch (e) { if (st) st.textContent = "Revoke failed — try again."; toast("Revoke failed."); }
+  renderAgentAccess();
+}
+async function renderAuditList() {
+  const el = $("auditList"); if (!el) return;
+  try {
+    const [runsRes, apprRes] = await Promise.all([
+      supa.from("exec_runs").select("id,approval_id,status,error,started_at,finished_at,evidence")
+        .eq("user_id", session.user.id).order("started_at", { ascending: false }).limit(50),
+      supa.from("exec_approvals").select("id,merchant,action,status,created_at").eq("user_id", session.user.id),
+    ]);
+    const runs = runsRes.data || [];
+    const merchants = {}; (apprRes.data || []).forEach(a => { merchants[a.id] = a; });
+    if (!runs.length) { el.innerHTML = '<p class="asub">No runs yet.</p>'; return; }
+    el.innerHTML = runs.map(r => {
+      const a = merchants[r.approval_id] || {};
+      const out = r.status === "done" ? ["ok", "Done"]
+        : r.status === "revoked" ? ["warn", "Revoked by you"] : ["bad", "Failed"];
+      const ev = r.evidence || {};
+      const note = ev.note || ev.reason || r.error || "";
+      return `<div class="aurow"><div class="am">${esc(a.merchant || "Unknown merchant")}</div>
+        <div class="aemd">${esc(new Date(r.started_at).toLocaleString())} · approval ${esc(String(r.approval_id || "").slice(0, 8))}${note ? " · " + esc(String(note).slice(0, 120)) : ""}</div>
+        <div class="aout ${out[0]}">${out[1]}</div></div>`;
+    }).join("");
+  } catch (e) { el.innerHTML = '<p class="asub">Couldn\'t load the audit log.</p>'; }
+}
+async function exportAuditLog() {
+  try {
+    const { data } = await supa.from("exec_runs").select("*")
+      .eq("user_id", session.user.id).order("started_at", { ascending: false });
+    const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), runs: data || [] }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "upmore-audit-log.json"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("Audit log exported.");
+  } catch (e) { toast("Export failed."); }
+}
+
+/* ---------- init ---------- */
+// refresh the tasks badge shortly after boot (demo seeds, no network)
+setTimeout(() => { try { updateTasksBadge(); } catch (e) {} }, 2000);
+
 </script>
 </body>
 </html>

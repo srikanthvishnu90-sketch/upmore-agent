@@ -1,2 +1,4 @@
 *.pyc
 .beta_jwt
+tests/agent100/results/
+shots-5tab/

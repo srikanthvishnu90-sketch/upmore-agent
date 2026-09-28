@@ -1,8 +1,8 @@
-// a063 (tabs): Explore tab — the earn catalog lives there and the Guide points at it.
+// a063 (tabs): Earn section — the earning catalog lives there and the chat points at it.
 module.exports = {
   id: "a063",
   lane: "tabs",
-  title: "Explore tab holds the earning catalog",
+  title: "Earn section holds the earning catalog",
   persona: {
     name: "Devon M.",
     age: 24,
@@ -14,13 +14,13 @@ module.exports = {
     tech: "high",
     bankConnected: false,
     dataTier: "none",
-    notes: "taps Explore looking for ways to earn between classes",
+    notes: "taps Earn looking for ways to earn between classes",
   },
   modes: ["dry"],
   steps: [
     { kind: "static", file: "template", op: "contains",
-      pattern: "id: \"explore\", label: \"Explore\"",
-      desc: "Explore tab registered in the tab bar" },
+      pattern: "aria-label=\"Explore ways to earn\"",
+      desc: "Earn section registered with an accessible earn label" },
     { kind: "guide", prompt: "i'm 24 and in grad school, how do i start earning",
       expect: [ { t: "contains", re: "easiest routes" } ] },
     { kind: "static", file: "template", op: "contains",

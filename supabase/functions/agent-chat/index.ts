@@ -160,7 +160,7 @@ serve(async (req) => {
         .select("*, routes!inner(*)").eq("user_id", user.id).eq("status", "active")
         .order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       // Due reminders: due_at passed and not yet sent.
-      supabase.from("reminders")
+      supabase.from("route_reminders")
         .select("route_id, kind, message, due_at").eq("user_id", user.id)
         .is("sent_at", null).lte("due_at", nowIso)
         .order("due_at", { ascending: true }).limit(3),
@@ -276,7 +276,7 @@ serve(async (req) => {
     // line — the words alone do nothing).
     const remIntent = tryReminderIntent(message, routes);
     if (remIntent) {
-      const { error: detRemErr } = await supabase.from("reminders").insert({
+      const { error: detRemErr } = await supabase.from("route_reminders").insert({
         user_id: user.id,
         route_id: remIntent.routeId,
         kind: "nudge",
@@ -600,7 +600,7 @@ serve(async (req) => {
     let reminderFailed = false;
     if (action?.type === "set_reminder" && typeof action.route_id === "string") {
       if (routeIdSet.has(action.route_id)) {
-        const { error: remErr } = await supabase.from("reminders").insert({
+        const { error: remErr } = await supabase.from("route_reminders").insert({
           user_id: user.id,
           route_id: action.route_id,
           kind: typeof action.kind === "string" ? action.kind.slice(0, 40) : "nudge",

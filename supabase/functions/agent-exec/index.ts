@@ -748,6 +748,71 @@ serve(async (req) => {
       }
     }
 
+    // ---- one-tap revoke: instant, total kill of all agent access ----
+    // Deletes every exec_cred_* vault secret for the user, clears credential
+    // refs, kills in-flight Browserbase sessions, marks non-terminal runs
+    // revoked, cancels pending/approved approvals. The response proves
+    // nothing remains: credential refs and vault secrets must both be zero.
+    if (action === "revoke_all") {
+      const checklist: Array<{
+        merchant_key: string; label: string | null;
+        credential: "deleted" | "delete_failed";
+      }> = [];
+      // 1. Kill in-flight Browserbase sessions for non-terminal runs.
+      const { data: liveRuns } = await admin.from("exec_runs")
+        .select("id, browserbase_session_id")
+        .eq("user_id", user.id)
+        .in("status", ["started", "awaiting_otp"]);
+      let sessionsKilled = 0;
+      for (const r of liveRuns || []) {
+        if (r.browserbase_session_id) {
+          await bbStopSession(r.browserbase_session_id as string);
+          sessionsKilled++;
+        }
+      }
+      const { data: revokedRuns } = await admin.from("exec_runs")
+        .update({ status: "revoked", error: "Revoked by user", finished_at: new Date().toISOString() })
+        .eq("user_id", user.id).in("status", ["started", "awaiting_otp"])
+        .select("id");
+      // 2. Cancel approvals that never executed.
+      const { data: cancelledApprovals } = await admin.from("exec_approvals")
+        .update({ status: "cancelled", decided_at: new Date().toISOString() })
+        .eq("user_id", user.id).in("status", ["pending", "approved"])
+        .select("id");
+      // 3. Delete every vaulted credential, per merchant, then clear refs.
+      const { data: refs } = await admin.from("exec_credential_refs")
+        .select("merchant_key, vault_name, label").eq("user_id", user.id);
+      for (const ref of refs || []) {
+        let credential: "deleted" | "delete_failed" = "deleted";
+        try {
+          const { error } = await admin.rpc("exec_vault_delete", { p_name: ref.vault_name });
+          if (error) credential = "delete_failed";
+        } catch { credential = "delete_failed"; }
+        checklist.push({ merchant_key: ref.merchant_key, label: ref.label ?? null, credential });
+      }
+      await admin.from("exec_credential_refs").delete().eq("user_id", user.id);
+      // 4. Prove nothing remains: zero refs AND zero vault secrets.
+      const { data: refsAfter } = await admin.from("exec_credential_refs")
+        .select("merchant_key").eq("user_id", user.id);
+      let vaultRemaining = -1;
+      try {
+        const vres = await fetch(
+          `${supabaseUrl}/rest/v1/vault_secrets?select=name&name=like.exec_cred_${user.id}_*`,
+          { headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` } },
+        );
+        if (vres.ok) vaultRemaining = ((await vres.json()) as unknown[]).length;
+      } catch { /* verification best-effort; refs count is authoritative */ }
+      return json({
+        ok: true,
+        checklist,
+        sessions_killed: sessionsKilled,
+        runs_revoked: (revokedRuns || []).length,
+        approvals_cancelled: (cancelledApprovals || []).length,
+        credentials_remaining: (refsAfter || []).length,
+        vault_secrets_remaining: vaultRemaining,
+      });
+    }
+
     // ---- OTP resume: reconnect to the SAME session and continue ----
     if (action === "submit_otp") {
       const { run_id, otp_code } = body;

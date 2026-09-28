@@ -47,9 +47,19 @@ serve(async (req) => {
     if (authErr || !user) return json({ error: "Invalid session" }, 401);
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { merchant_key, username, password, label } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { merchant_key, username, password, label } = body;
     if (!merchant_key || !MERCHANT_ALLOWLIST.has(merchant_key)) {
       return json({ error: "Unsupported merchant" }, 400);
+    }
+    // Per-merchant disconnect: delete the vault secret + the ref row.
+    if (body.action === "delete") {
+      const vaultName = `exec_cred_${user.id}_${merchant_key}`;
+      const { error: derr } = await admin.rpc("exec_vault_delete", { p_name: vaultName });
+      if (derr) return json({ error: "Could not delete login" }, 500);
+      await admin.from("exec_credential_refs").delete()
+        .eq("user_id", user.id).eq("merchant_key", merchant_key);
+      return json({ ok: true, merchant_key, deleted: true });
     }
     if (!username || !password || String(password).length < 1) {
       return json({ error: "Username and password required" }, 400);

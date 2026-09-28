@@ -1158,6 +1158,81 @@ function titleCaseMerchant(key: string): string {
   return key.split(/(\s+|\+)/).map((p) => /^\s|\+$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join("");
 }
 
+function merchantFromCancelHistory(hist: { role: string; content: string }[]): string | null {
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const h = hist[i];
+    if (h.role !== "assistant") continue;
+    const mm = String(h.content ?? "").match(/^\*\*Canceling (.+?)\*\*/);
+    if (mm) return mm[1].toLowerCase();
+  }
+  return null;
+}
+
+// ---- 9a1. Billing-party cancellation ----
+// "My Netflix is billed through Apple" — the merchant can't cancel it; the
+// billing party (Apple / Google Play) must. Deterministic, because the model
+// hallucinates support-article URLs here (2026-09-28: invented
+// support.apple.com/en-us/118622 — the real article is /118428). Both URLs
+// below were verified live (HTTP 200) on 2026-09-28; use the canonical forms.
+const APPLE_SUPPORT_URL = "https://support.apple.com/en-us/118428";
+const PLAY_SUPPORT_URL = "https://support.google.com/googleplay/answer/7018481";
+
+export function tryBillingPartyCancel(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (!/\bapple\b|\bapp store\b|\bgoogle play\b|\bplay store\b/i.test(message)) return null;
+  // Only inside a cancellation context: a cancel verb here, or a cancel-path
+  // reply earlier in the thread. "My Apple bill went up" alone stays with the
+  // model — this branch is for cancelling through the billing party.
+  if (!CANCEL_INTENT_RX.test(message) && !merchantFromCancelHistory(hist)) return null;
+  const apple = /\bapple\b|\bapp store\b/i.test(message);
+  const merchant = extractCancelMerchant(message) || merchantFromCancelHistory(hist);
+  const display = merchant ? titleCaseMerchant(merchant) : "your subscription";
+  const lines: string[] = [];
+  if (apple) {
+    lines.push(
+      `**Canceling ${display} (billed through Apple)** — Apple is the billing party, so you cancel with Apple:`,
+      ``,
+      `**On iPhone/iPad:**`,
+      `1. Open Settings and tap your name at the top.`,
+      `2. Tap Subscriptions.`,
+      `3. Tap ${display}, then tap Cancel Subscription and confirm.`,
+      ``,
+      `**On Mac:**`,
+      `1. Open System Settings and click your name.`,
+      `2. Click Subscriptions.`,
+      `3. Select ${display}, then click Cancel Subscription and confirm.`,
+      ``,
+      `**On the web:**`,
+      APPLE_SUPPORT_URL,
+      `1. Sign in with your Apple ID.`,
+      `2. Go to Subscriptions, find ${display}, and cancel.`,
+      ``,
+      `Access runs until the end of the current billing period — no partial-month refunds. Tell me "it's done" and I'll log the saving.`,
+      ``,
+      `Sources:`,
+      `- ${APPLE_SUPPORT_URL}`,
+    );
+  } else {
+    lines.push(
+      `**Canceling ${display} (billed through Google Play)** — Google is the billing party, so cancel in the Play Store:`,
+      ``,
+      `1. Open the Google Play Store app.`,
+      `2. Tap your profile → Payments & subscriptions → Subscriptions.`,
+      `3. Tap ${display} → Cancel subscription and confirm.`,
+      ``,
+      PLAY_SUPPORT_URL,
+      ``,
+      `Access runs until the end of the current billing period — no partial-month refunds. Tell me "it's done" and I'll log the saving.`,
+      ``,
+      `Sources:`,
+      `- ${PLAY_SUPPORT_URL}`,
+    );
+  }
+  return { reply: lines.join("\n") };
+}
+
 export function tryCancelIntent(
   message: string,
   hist: { role: string; content: string }[] = [],
@@ -1168,12 +1243,7 @@ export function tryCancelIntent(
     // Follow-up inside a cancellation thread ("and the direct link?", "what
     // about the phone number?") — reuse the merchant from the last
     // cancel-path reply in this thread instead of asking again.
-    for (let i = hist.length - 1; i >= 0; i--) {
-      const h = hist[i];
-      if (h.role !== "assistant") continue;
-      const mm = String(h.content ?? "").match(/^\*\*Canceling (.+?)\*\*/);
-      if (mm) { merchant = mm[1].toLowerCase(); break; }
-    }
+    merchant = merchantFromCancelHistory(hist);
     if (!merchant) return null; // "cancel my order" etc. — not ours
   }
   if (!merchant) {
@@ -1203,6 +1273,7 @@ export function tryCancelIntent(
       ? `I can't click it for you — the last tap is yours. Do it at the link above, then tell me "it's done" and I'll log the saving.`
       : `Tell me "it's done" once you've cancelled and I'll log the saving.`,
   );
+  if (cp?.url) lines.push("", "Sources:", `- ${cp.url}`);
   return { reply: lines.join("\n") };
 }
 
@@ -1696,6 +1767,8 @@ export async function tryCapabilities(
   if (audit) return { reply: audit };
   const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };
+  const billingParty = tryBillingPartyCancel(message, hist);
+  if (billingParty) return { reply: billingParty.reply };
   const receipt = tryReceiptCheck(message);
   if (receipt) return { reply: receipt };
   const claimIntent = tryClaimIntent(message);

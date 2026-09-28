@@ -1,11 +1,12 @@
 {
-  "next": 5,
+  "next": 6,
   "in_flight": [],
   "done": {
     "1": "pass",
     "2": "pass",
     "3": "pass",
-    "4": "pass"
+    "4": "pass",
+    "5": "pass"
   },
   "bumps": {},
   "mode": "pairs: 2 agents per feature, same feature at the same time"

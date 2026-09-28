@@ -17,7 +17,7 @@ import {
   SCAM_FALLBACK,
   RouteCard,
 } from "./_shared/agent.ts";
-import { tryCapabilities, tryReminderIntent, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
+import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
 import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact } from "./_shared/finance_facts.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
@@ -290,7 +290,15 @@ serve(async (req) => {
     // Deterministic output needs no grounding post-check; persist like fast path.
     const exclHist = [{ role: "user", content: userContent },
       ...((exclRes.data ?? []).map((m: any) => ({ role: "user", content: String(m.content ?? "") })))];
-    const cap = await tryCapabilities(message, routes, { supa: supabase, userId: user.id }, hist, exclHist);
+    // FIX (2026-09-28, agent 5 C8): when the user is correcting the previous
+    // reply, skip ALL deterministic paths and route to the model. The lesson
+    // block (renderLessonsBlock) is only injected into the model prompt, so
+    // deterministic route answers could never acknowledge or apply a
+    // correction — they'd just repeat the same mistake class (e.g. another
+    // KEH card after "that's wrong, I asked about textbooks"). Corrections
+    // are rare, so the extra model call is negligible.
+    const bypassDeterministic = !!userCorrection;
+    const cap = bypassDeterministic ? null : await tryCapabilities(message, routes, { supa: supabase, userId: user.id }, hist, exclHist);
     if (cap) {
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },
@@ -311,7 +319,7 @@ serve(async (req) => {
     // known route. Create it directly instead of relying on the model to emit
     // a set_reminder action (it sometimes promises in words and forgets the
     // line — the words alone do nothing).
-    const remIntent = tryReminderIntent(message, routes);
+    const remIntent = bypassDeterministic ? null : tryReminderIntent(message, routes);
     if (remIntent) {
       const { error: detRemErr } = await supabase.from("route_reminders").insert({
         user_id: user.id,
@@ -338,7 +346,19 @@ serve(async (req) => {
       return json(cors, { thread_id: tid, reply: detFail, action: null });
     }
 
-    const fastReply = tryFastPath(message, standardRoutes, playbook?.routes as RouteCard | undefined, agentVals, hist);
+    // FIX (2026-09-28, agent 5 C11): "remind me ..." with no route match used
+    // to fall through silently — no reminder created, no acknowledgment, the
+    // request just vanished. Say plainly what reminders can do.
+    if (!bypassDeterministic && isGenericReminderRequest(message)) {
+      const noRouteRem = `I can set reminders tied to a specific route — like "remind me tomorrow to check the Florence Bank bonus terms for R2748". Which route is this reminder for?`;
+      await supabase.from("agent_messages").insert([
+        { thread_id: tid, role: "user", content: userContent },
+        { thread_id: tid, role: "assistant", content: noRouteRem, meta: { capability: true, no_route_reminder: true } },
+      ]);
+      return json(cors, { thread_id: tid, reply: noRouteRem, action: null });
+    }
+
+    const fastReply = bypassDeterministic ? null : tryFastPath(message, standardRoutes, playbook?.routes as RouteCard | undefined, agentVals, hist);
     if (fastReply) {
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },

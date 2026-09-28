@@ -956,6 +956,12 @@ export function tryMonthlyEstimate(
 // creates the reminder itself instead of relying on the model to emit an
 // action line (the model sometimes promises in words and forgets the line).
 const REMIND_RX = /\bremind me\b/i;
+// FIX (2026-09-28, agent 5 C11): "remind me ..." with no route match used to
+// fall through silently — the request vanished. Exported so the caller can
+// answer honestly instead of dropping it.
+export function isGenericReminderRequest(message: string): boolean {
+  return REMIND_RX.test(message);
+}
 const WHEN_WORDS_RX = /\btomorrow\b|in\s+\d+\s*(hour|day|week)s?\b|\b\d{4}-\d{2}-\d{2}/i;
 
 export function tryReminderIntent(

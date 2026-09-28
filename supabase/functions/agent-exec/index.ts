@@ -56,7 +56,7 @@ const ALLOWED_ORIGINS = new Set([
 function corsFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
   const h: Record<string, string> = {
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Vary": "Origin",
   };
   if (ALLOWED_ORIGINS.has(origin)) h["Access-Control-Allow-Origin"] = origin;

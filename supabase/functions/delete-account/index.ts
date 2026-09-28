@@ -101,6 +101,25 @@ serve(async (req: Request) => {
     });
   } catch { /* best-effort: account deletion proceeds regardless */ }
 
+  // FIX (QA-B2 2026-09-28): purge the user's action_ledger rows before deleting
+  // the auth user. The ledger's append-only trigger blocks ON DELETE CASCADE,
+  // so any user with ledger entries could never delete their account —
+  // contradicting the app's "export or delete everything anytime" promise.
+  // purge_user_action_ledger is SECURITY DEFINER, service_role only.
+  const purgeRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/purge_user_action_ledger`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_uid: uid }),
+  });
+  if (!purgeRes.ok) {
+    const t = await purgeRes.text().catch(() => "");
+    return new Response(`ledger purge failed: ${t.slice(0, 200)}`, { status: 502 });
+  }
+
   // Delete the auth user (cascades to profiles, threads, messages, etc.)
   const delRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${uid}`, {
     method: "DELETE",

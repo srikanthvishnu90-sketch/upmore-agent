@@ -2187,13 +2187,13 @@
   });
 
   /* splash: tap, or auto-advance once boot leaves a fresh user on splash.
-     Brand-new users land on the Guide (chatbox) with a personal greeting —
-     not the marketing splash. Timer stands down when boot chose any other
-     screen (session -> home, etc.) */
+     Brand-new users land on Welcome — Get started (onboarding -> signup)
+     or Log in. The splash never skips the auth funnel. Timer stands down
+     when boot chose any other screen (session -> home, etc.) */
   let bootDone = false;
-  const splashToGuide = () => { guideFirstRun = true; show("chat"); };
-  $("splash").onclick = () => { if (current === "splash") splashToGuide(); };
-  setTimeout(() => { if (!bootDone && current === "splash") splashToGuide(); }, 1800);
+  const splashToWelcome = () => { show("welcome"); };
+  $("splash").onclick = () => { if (current === "splash") splashToWelcome(); };
+  setTimeout(() => { if (!bootDone && current === "splash") splashToWelcome(); }, 1800);
 
   /* ================= Signup: choices ================= */
   document.querySelectorAll("[data-pick]").forEach(g => {
@@ -5509,9 +5509,6 @@
   /* ================= Guide ================= */
   /* ================= Guide: answers from the real catalog ================= */
   let guideInit = false, busy = false;
-  // First-run: brand-new users land on the Guide (chatbox) straight from the
-  // splash, greeted by name when we know it. Set by the splash/boot path.
-  let guideFirstRun = false;
   let chat = null; // active thread container (chat module repoints per mode)
 
   function guideCtx() {

@@ -1,13 +1,24 @@
 // Upmore plaid edge function — server-side Plaid integration (read-only).
 // Actions via POST JSON {action, ...}:
 //   status      -> {plaid_configured, connected, month_spend_cents, cap_cents,
-//                   capped, last_updated, next_manual_refresh_at}
+//                   capped, last_updated, next_manual_refresh_at,
+//                   needs_reauth, last_sync_at}
 //   link_token  -> {link_token} (503 honest error if PLAID_CLIENT_ID/PLAID_SECRET missing)
 //   exchange    -> {public_token} -> stores access token in Vault -> {connected: true}
+//                  (also clears any needs_reauth flag + resolves open
+//                  plaid_reconnect reminders for the user)
 //   holdings    -> sanitized {accounts, holdings, securities} (+ cached flags);
 //                  202 {retry:true} if PRODUCT_NOT_READY
 //   refresh     -> on-demand /investments/refresh (add-on) + fresh holdings
-//   disconnect  -> deletes the vault token -> {connected: false}
+//   disconnect  -> deletes the vault token + sync state -> {connected: false}
+//
+// READ-ONLY POSTURE (2026-09-28, founder-confirmed): Upmore's investing
+// surface is facts-only analysis — positions, allocation, fees, dividends.
+// There is NO order-placement path anywhere in this codebase (no /orders,
+// no broker calls, no trade intents); the Investments X-ray cannot buy, sell,
+// or move money by construction. Automated investing stays OFF until a
+// registered investment adviser or licensed broker-dealer partner exists;
+// until then this function only ever READS investments data.
 //
 // COST ARMOR 2026-09-27 (founder order): the server is the authority on Plaid
 // spend. Pricing (pay-as-you-go): Investments Holdings $0.18/item/month,
@@ -228,6 +239,16 @@ serve(async (req) => {
       const spend = await monthSpend(admin, user.id);
       const cache = await getCache(admin, user.id);
       const nextManual = await nextManualRefreshAt(admin, user.id);
+      // "Connect once" sync state: reauth flag + last successful sync.
+      let needsReauth = false, lastSyncAt: string | null = null;
+      try {
+        const { data: items } = await admin.from("plaid_items")
+          .select("needs_reauth,last_sync_at").eq("user_id", user.id);
+        for (const it of items || []) {
+          if (it.needs_reauth) needsReauth = true;
+          if (it.last_sync_at && (!lastSyncAt || it.last_sync_at > lastSyncAt)) lastSyncAt = it.last_sync_at;
+        }
+      } catch (_) { /* sync tables missing -> treat as not stale-flagged */ }
       return json({
         plaid_configured: plaidConfigured,
         connected: !!token,
@@ -236,6 +257,8 @@ serve(async (req) => {
         capped: spend >= PLAID_MONTHLY_CAP_CENTS,
         last_updated: cache?.fetched_at || null,
         next_manual_refresh_at: nextManual,
+        needs_reauth: needsReauth,
+        last_sync_at: lastSyncAt,
       });
     }
 
@@ -243,7 +266,10 @@ serve(async (req) => {
       if (!plaidConfigured) return json({ error: "Plaid not configured yet", plaid_configured: false }, 503);
       const { ok, data } = await plaidCall(host, clientId, plaidSecret, "/link/token/create", {
         client_name: "Upmore",
-        products: ["investments"],
+        // "connect once": one consent covers investments (X-ray) AND
+        // transactions (subscription detection / billing-cycle watcher), so
+        // the user never has to re-link to unlock a new feature.
+        products: ["investments", "transactions"],
         country_codes: ["US"],
         language: "en",
         user: { client_user_id: user.id },
@@ -269,6 +295,17 @@ serve(async (req) => {
         p_secret: String(data.access_token),
       });
       if (verr) return json({ error: "Could not save connection" }, 500);
+      // Successful (re-)auth clears the connect-once machinery: reauth flags
+      // and any open reconnect nudges for this user.
+      try {
+        await admin.from("plaid_items").update({
+          needs_reauth: false, last_sync_error: null, consecutive_failures: 0,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", user.id);
+        await admin.from("reminders").update({
+          state: "done", done_at: new Date().toISOString(),
+        }).eq("user_id", user.id).eq("type", "plaid_reconnect").eq("state", "open");
+      } catch (_) { /* lifecycle cleanup must never break connect */ }
       // Remember the Plaid item_id for spend-ledger granularity (one item per
       // user in the current vault scheme; "default" for legacy connections).
       try {
@@ -405,6 +442,15 @@ serve(async (req) => {
     if (action === "disconnect") {
       const { error: derr } = await admin.rpc("exec_vault_delete", { p_name: name });
       if (derr) return json({ error: "Could not remove connection" }, 500);
+      // Full server-side cleanup: sync state, cached transactions, and any
+      // open reconnect nudges (there is nothing left to reconnect).
+      try {
+        await admin.from("plaid_items").delete().eq("user_id", user.id);
+        await admin.from("plaid_txn_cache").delete().eq("user_id", user.id);
+        await admin.from("reminders").update({
+          state: "done", done_at: new Date().toISOString(),
+        }).eq("user_id", user.id).eq("type", "plaid_reconnect").eq("state", "open");
+      } catch (_) { /* cleanup must never break disconnect */ }
       return json({ connected: false });
     }
 

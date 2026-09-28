@@ -9703,6 +9703,21 @@
     const ago = days <= 0 ? "today" : days === 1 ? "1d ago" : days + "d ago";
     return "Updated " + ago + " · auto-refreshes weekly";
   }
+  // CONNECT-ONCE 2026-09-28: honest relative time for the last successful
+  // server sync, used by the reconnect banner. Never claims freshness.
+  function syncAgoText(iso) {
+    try {
+      const ms = Date.now() - new Date(iso).getTime();
+      if (isNaN(ms) || ms < 0) return "a while ago";
+      const mins = Math.floor(ms / 60000);
+      if (mins < 1) return "just now";
+      if (mins < 60) return mins + "m ago";
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + "h ago";
+      const days = Math.floor(hrs / 24);
+      return days === 1 ? "yesterday" : days + " days ago";
+    } catch (e) { return "a while ago"; }
+  }
   function nextMonthLabel() {
     // Real month boundary, no hardcoded dates: first day of next month.
     const d = new Date();
@@ -9848,6 +9863,18 @@
       connHtml = `<div class="pcard"><p class="bsum" style="font-size:14px"><b>Connect your brokerages.</b> Read-only — Upmore sees positions, never moves money, can't trade.</p>
         <button class="cta" id="invPlaidConnect" style="margin-top:10px">Connect investments</button>
         <p class="fine" style="margin-top:8px">Via Plaid. Your brokerage login goes to your brokerage, never to Upmore.</p></div>`;
+    } else if (status.needs_reauth) {
+      // CONNECT-ONCE 2026-09-28: Plaid says the login is stale
+      // (ITEM_LOGIN_REQUIRED). Never present old data as current: say so,
+      // show the honest last-sync time, and offer the user's own re-auth tap.
+      const ago = status.last_sync_at ? syncAgoText(status.last_sync_at) : "a while";
+      connHtml = `<div class="pcard"><p class="bsum" style="font-size:14px"><b>Brokerage connection needs attention.</b></p>
+        <p class="psub" style="margin-top:8px">Your bank asked for a fresh login, so automatic syncing paused. Below are your positions as of the last successful sync (${esc(ago)}) — they may be out of date. Nothing was changed.</p>
+        <div class="row" style="gap:8px;margin-top:10px">
+          <button class="cta" id="invReconnect" style="flex:1;margin:0">Reconnect</button>
+          <button class="ghostbtn" id="invDisconnect" style="flex:1;margin:0">Disconnect</button>
+        </div>
+        <p class="fine" style="margin-top:8px">Your login goes to your brokerage through Plaid, never to Upmore.</p></div>`;
     } else {
       // COST ARMOR 2026-09-27: refresh button mirrors the server's cost
       // governor — disabled with countdown inside the 24h window, paused
@@ -10000,6 +10027,9 @@
 
     // wiring
     const pc = $("invPlaidConnect"); if (pc) pc.onclick = () => maybeConsent("plaid", plaidConnectFlow);
+    // CONNECT-ONCE 2026-09-28: the reconnect banner's button reuses the same
+    // Plaid Link flow — re-auth is always the user's own tap.
+    const rc = $("invReconnect"); if (rc) rc.onclick = () => maybeConsent("plaid", plaidConnectFlow);
     const rf = $("invRefresh"); if (rf) rf.onclick = () => { plaidStatusCache = null; refreshPlaidHoldings(); };
     const dc = $("invDisconnect"); if (dc) dc.onclick = async () => {
       try { await plaidInvoke({ action: "disconnect" }); } catch (e) {}
@@ -11907,11 +11937,18 @@ function taskRowHTML(t) {
     ? `<div class="tagentwork"><span class="pulseorb"></span><span>Agent working</span></div>` : "";
   const snooze = t.type === "bill_due"
     ? `<button class="tbtn tbtn-g" data-snooze="${t.id}">Snooze</button>` : "";
+  // CONNECT-ONCE 2026-09-28: a reconnect nudge is the user's own tap through
+  // Plaid Link — "Do this for me" would wrongly start an agent task, so this
+  // type gets a Reconnect button that opens the investments screen (whose
+  // banner carries the real re-auth flow).
+  const mainBtn = t.type === "plaid_reconnect"
+    ? `<button class="tbtn tbtn-p" data-reconnect="${t.id}">Reconnect</button>`
+    : `<button class="tbtn tbtn-p" data-doit="${t.id}">Do this for me</button>`;
   return `<div class="trow" data-task="${t.id}">
     <div class="tline1"><span class="ttitle">${esc(t.title)}</span>${amt}</div>
     <div class="tline2"><span class="tdot ${dot}"></span><span>${esc(taskDueText(t))}</span></div>
     <div class="tline3">${esc(evidenceText(t))}</div>
-    <div class="tbtns"><button class="tbtn tbtn-p" data-doit="${t.id}">Do this for me</button><button class="tbtn tbtn-g" data-dismiss="${t.id}">Dismiss</button>${snooze}</div>
+    <div class="tbtns">${mainBtn}<button class="tbtn tbtn-g" data-dismiss="${t.id}">Dismiss</button>${snooze}</div>
     ${working}</div>`;
 }
 async function renderTasks() {
@@ -11956,6 +11993,7 @@ async function renderTasks() {
   }
   g.innerHTML = html;
   g.querySelectorAll("[data-doit]").forEach(b => b.onclick = () => doThisForMe(b.dataset.doit));
+  g.querySelectorAll("[data-reconnect]").forEach(b => b.onclick = () => show("investments"));
   g.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => dismissTask(b.dataset.dismiss));
   g.querySelectorAll("[data-snooze]").forEach(b => b.onclick = () => snoozeTask(b.dataset.snooze));
   const dh = $("doneHead");

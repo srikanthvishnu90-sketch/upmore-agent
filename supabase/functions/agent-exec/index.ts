@@ -37,7 +37,12 @@ import {
   OTP_TTL_MS,
   pushShot,
   runDeclarative,
+  categorizeExecFailure,
+  shouldSkipRetryExec,
+  execLessonTitle,
+  REPEAT_FAILURE_REVERIFY_THRESHOLD,
   type BrowserOutcome,
+  type ExecLessonRow,
 } from "./execution-guards.ts";
 
 const ALLOWED_ORIGINS = new Set([
@@ -609,6 +614,100 @@ async function recordGuidedRun(opts: {
 
 // runDeclarative lives in ./execution-guards.ts (shared trust module).
 
+// ================= Learning from mistakes (2026-09-28) =================
+// The agent's failure memory. fetchExecLessons pulls open lessons for the
+// merchant (plus global ones) BEFORE a run; learnFromRunOutcome records the
+// terminal outcome AFTER it. Guided refusals (no playbook, unverified,
+// excluded category, learned skips) are by-design — they are audited in
+// exec_runs but never become lessons.
+
+/** Open (unresolved) lessons for this merchant + global ones, most-seen first. */
+async function fetchExecLessons(
+  admin: any, merchantKey: string,
+): Promise<ExecLessonRow[]> {
+  try {
+    const { data } = await admin.from("agent_lessons")
+      .select("id, category, title, times_seen, what_to_do_instead")
+      .eq("resolved", false)
+      .is("user_id", null)
+      .in("scope", ["global", `merchant:${merchantKey}`])
+      .order("times_seen", { ascending: false })
+      .limit(5);
+    return (data ?? []) as ExecLessonRow[];
+  } catch {
+    return []; // lesson fetch must never block execution
+  }
+}
+
+/**
+ * Record the terminal outcome of a real run. Failures are categorized
+ * (deterministic, via the shared categorizeExecFailure) and deduped per
+ * (scope, category): a repeat sighting bumps times_seen instead of adding a
+ * row, and 3+ sightings of a site-change failure flag the playbook for
+ * re-verification. A success resolves the merchant's open lessons and counts
+ * as an application of any lesson that was injected into the run.
+ */
+async function learnFromRunOutcome(opts: {
+  admin: any;
+  merchantKey: string;
+  merchantLabel: string;
+  finalStatus: "done" | "failed";
+  error: string | null;
+  ev: Record<string, unknown>;
+  runId: string;
+  appliedLessonIds: string[];
+}): Promise<void> {
+  const { admin, merchantKey, merchantLabel, finalStatus, error, runId, appliedLessonIds } = opts;
+  const scope = `merchant:${merchantKey}`;
+  try {
+    if (finalStatus === "failed") {
+      const ev = (opts.ev ?? {}) as Record<string, unknown>;
+      const analysis = categorizeExecFailure(error ?? "", ev);
+      const { data: existing } = await admin.from("agent_lessons")
+        .select("id, times_seen").eq("resolved", false).is("user_id", null)
+        .eq("scope", scope).eq("category", analysis.category)
+        .limit(1).maybeSingle();
+      if (existing) {
+        const seen = (existing.times_seen ?? 1) + 1;
+        await admin.from("agent_lessons").update({
+          times_seen: seen,
+          what_happened: (error ?? "unknown error").slice(0, 500),
+          signal: (error ?? "").slice(0, 200),
+          needs_reverification: seen >= REPEAT_FAILURE_REVERIFY_THRESHOLD &&
+            (analysis.category === "layout_changed" || analysis.category === "no_confirmation"),
+          updated_at: new Date().toISOString(),
+        }).eq("id", existing.id);
+      } else {
+        await admin.from("agent_lessons").insert({
+          user_id: null,
+          kind: "exec_failure",
+          scope,
+          category: analysis.category,
+          title: execLessonTitle(analysis.category, merchantLabel),
+          what_happened: (error ?? "unknown error").slice(0, 500),
+          what_to_do_instead: analysis.what_to_do_instead,
+          signal: (error ?? "").slice(0, 200),
+          source_run_id: runId && /^[0-9a-f-]{36}$/i.test(runId) ? runId : null,
+        });
+      }
+    } else {
+      // Success: the loop closes. Lessons injected into this run count as
+      // applied; open lessons for the merchant are resolved — the current
+      // approach demonstrably works again.
+      if (appliedLessonIds.length) {
+        // Atomic increment of times_applied for the lessons this run used.
+        await admin.rpc("agent_lessons_bump_applied", { p_ids: appliedLessonIds });
+      }
+      const note = `Resolved by successful run ${runId.slice(0, 8)} on ${new Date().toISOString().slice(0, 10)} — the current approach works.`;
+      await admin.from("agent_lessons").update({
+        resolved: true, resolved_note: note, updated_at: new Date().toISOString(),
+      }).eq("resolved", false).is("user_id", null).eq("scope", scope);
+    }
+  } catch (e) {
+    console.error("learnFromRunOutcome failed:", (e as Error)?.message);
+  }
+}
+
 // Build a browser playbook from a verified catalog entry. Only called for
 // verified:true playbooks; unverified entries are refused by the gate.
 function declarativeDef(pb: MerchantPlaybook): BrowserPlaybookDef {
@@ -862,6 +961,18 @@ serve(async (req) => {
           note: note ? String(note).slice(0, 1000) : null,
         }).select("id").single();
       if (repErr) return json({ error: "Could not record report" }, 500);
+      // Learning: a mismatch report is the user teaching the agent the
+      // playbook no longer matches the site — record it as a layout_changed
+      // lesson immediately (it also feeds the 3-report auto-demotion).
+      await learnFromRunOutcome({
+        admin, merchantKey: mkey, merchantLabel: mkey,
+        finalStatus: "failed",
+        error: "User reported the playbook didn't match the merchant's site" +
+          (note ? `: ${String(note).slice(0, 300)}` : ""),
+        ev: { source: "user_mismatch_report" },
+        runId: String(run_id ?? ""),
+        appliedLessonIds: [],
+      });
       return json({ ok: true, report_id: report.id });
     }
 
@@ -893,6 +1004,20 @@ serve(async (req) => {
           error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
           finished_at: new Date().toISOString(),
         }).eq("id", run.id);
+        // Learning: an expired OTP pause is a categorized, learnable failure.
+        {
+          const evm = (run.evidence as Record<string, unknown>) ?? {};
+          const mkey = String(evm.merchant ?? "");
+          if (mkey) {
+            await learnFromRunOutcome({
+              admin, merchantKey: mkey, merchantLabel: mkey,
+              finalStatus: "failed",
+              error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
+              ev: evm, runId: run.id,
+              appliedLessonIds: (evm.lessons_applied_ids as string[]) ?? [],
+            });
+          }
+        }
         return json({ error: otpDecision.error }, 410);
       }
       if (!otpDecision.proceed) {
@@ -968,6 +1093,13 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: finalStatus, decided_at: new Date().toISOString(),
         }).eq("id", run.approval_id);
+        // Learning: record the resumed run's terminal outcome.
+        await learnFromRunOutcome({
+          admin, merchantKey: resumeKey,
+          merchantLabel: String(approval.merchant ?? resumeKey),
+          finalStatus, error: err, ev, runId: run.id,
+          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
+        });
         if (finalStatus === "done") {
           await writeCancelClaim(admin, approval, user.id, run.id, resumeKey);
         }
@@ -983,6 +1115,13 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: "failed", decided_at: new Date().toISOString(),
         }).eq("id", run.approval_id);
+        await learnFromRunOutcome({
+          admin, merchantKey: resumeKey,
+          merchantLabel: String(approval.merchant ?? resumeKey),
+          finalStatus: "failed", error: "Resume failed: " + msg,
+          ev, runId: run.id,
+          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
+        });
         return json({ ok: false, status: "failed", error: "Resume failed: " + msg }, 500);
       }
     }
@@ -1066,6 +1205,25 @@ serve(async (req) => {
       }
     }
     const merchantKey = resolved.merchant_key;
+    // Learning from mistakes (2026-09-28): pull the agent's failure memory
+    // for this merchant BEFORE touching vault credentials or Browserbase. If
+    // past attempts kept failing the same way, the agent has learned this
+    // path does not work — skip the doomed run and go straight to guided.
+    // Otherwise the lessons ride along in the run evidence and the response
+    // so the user can see what was learned.
+    const execLessons = await fetchExecLessons(admin, merchantKey);
+    const skipRetry = shouldSkipRetryExec(execLessons);
+    if (skipRetry.skip) {
+      const r = await recordGuidedRun({
+        admin, approval, userId: user.id,
+        reason: "learned_repeat_failure",
+        note: skipRetry.reason ?? "Past attempts kept failing the same way — using the guided path instead.",
+        directory_entry: resolved.directory,
+      });
+      return json({ ...r, learned_from: skipRetry.lesson?.title ?? null }, 400);
+    }
+    const appliedLessonIds = execLessons.map((l) => l.id);
+    const appliedLessonTitles = execLessons.map((l) => l.title);
     const browserDef = browserPlaybooks[merchantKey] ?? declarativeDef(resolved.playbook);
     const httpPlaybook = playbooks[merchantKey];
     if (!browserDef && !httpPlaybook) {
@@ -1144,6 +1302,9 @@ serve(async (req) => {
           playbook_version: resolved.playbook.version ?? 1,
           playbook_verified_at: resolved.playbook.last_verified_at ?? null,
           merchant_key: merchantKey,
+          // Learning: the past lessons injected into this attempt.
+          lessons_applied: appliedLessonTitles,
+          lessons_applied_ids: appliedLessonIds,
         },
       })
       .select("id").single();
@@ -1153,6 +1314,7 @@ serve(async (req) => {
       let session: { id: string; connectUrl: string } | null = null;
       const ev: Record<string, unknown> = {
         merchant: merchantKey, driver: "browserbase",
+        lessons_applied: appliedLessonTitles,
       };
       const directory_entry = resolved.directory;
       try {
@@ -1191,6 +1353,12 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: finalStatus, decided_at: new Date().toISOString(),
         }).eq("id", approval.id);
+        // Learning: record this terminal outcome in the failure memory.
+        await learnFromRunOutcome({
+          admin, merchantKey,
+          merchantLabel: String(approval.merchant ?? merchantKey),
+          finalStatus, error: err, ev, runId: run.id, appliedLessonIds,
+        });
         if (finalStatus === "done") {
           await writeCancelClaim(admin, approval, user.id, run.id, merchantKey);
         }
@@ -1209,6 +1377,12 @@ serve(async (req) => {
         await admin.from("exec_approvals").update({
           status: "failed", decided_at: new Date().toISOString(),
         }).eq("id", approval.id);
+        await learnFromRunOutcome({
+          admin, merchantKey,
+          merchantLabel: String(approval.merchant ?? merchantKey),
+          finalStatus: "failed", error: "Browser run failed: " + msg,
+          ev, runId: run.id, appliedLessonIds,
+        });
         return json({ ok: false, status: "failed", error: "Browser run failed: " + msg, directory_entry }, 500);
       }
     }
@@ -1235,6 +1409,14 @@ serve(async (req) => {
       status: finalStatus,
       decided_at: new Date().toISOString(),
     }).eq("id", approval.id);
+    // Learning: record this terminal outcome in the failure memory.
+    await learnFromRunOutcome({
+      admin, merchantKey,
+      merchantLabel: String(approval.merchant ?? merchantKey),
+      finalStatus, error: result.error || null,
+      ev: result.evidence as Record<string, unknown>,
+      runId: run.id, appliedLessonIds,
+    });
     if (finalStatus === "done") {
       await writeCancelClaim(admin, approval, user.id, run.id, merchantKey);
     }

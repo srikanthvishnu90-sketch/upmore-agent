@@ -19,6 +19,14 @@ import {
 } from "./_shared/agent.ts";
 import { tryCapabilities, tryReminderIntent, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
 import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact } from "./_shared/finance_facts.ts";
+// Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
+// real-trust fixtures exercise. index.ts calls them, never re-implements.
+import {
+  lessonRelevant,
+  detectUserCorrection,
+  renderLessonsBlock,
+  type ChatLesson,
+} from "./_shared/lessons.ts";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
@@ -255,6 +263,22 @@ serve(async (req) => {
     // Recent history
     const hist = ((histRes.data ?? []).reverse());
 
+    // Learning from mistakes (2026-09-28): if the user is correcting the
+    // previous reply, record it as a lesson — fire-and-forget, never blocks
+    // the reply. Past lessons relevant to this message are fetched for the
+    // model prompt below.
+    const userCorrection = detectUserCorrection(message, hist);
+    if (userCorrection) {
+      recordChatLesson(supabase, user.id, {
+        kind: "user_correction", scope: "global", category: "user_correction",
+        title: `You were corrected: "${userCorrection.correction.slice(0, 80)}"`,
+        what_happened: `After you said "${userCorrection.prevReply.slice(0, 200)}", the user corrected you: "${userCorrection.correction}".`,
+        what_to_do_instead: "When the user corrects you, acknowledge the correction plainly, adjust your answer to what they actually meant, and don't defend the wrong one.",
+        signal: userCorrection.correction.slice(0, 200),
+      }).then(() => {}, () => {});
+    }
+    const chatLessons = await fetchChatLessons(supabase, user.id, message);
+
     // FAST-PATH: deterministic answers for factual questions about verified
     // routes. Skips the Anthropic call entirely (<500ms vs ~9s). Only triggers
     // for safe factual patterns; everything else goes to the model.
@@ -396,7 +420,8 @@ serve(async (req) => {
     // ("how can I improve my credit score" must not return a bank bonus).
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
-    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + financeNudge;
+    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + financeNudge +
+      renderLessonsBlock(chatLessons);
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the
     // $10/mo margin. 900 model calls/month (~30/day) caps worst-case AI cost
@@ -514,6 +539,15 @@ serve(async (req) => {
     const violations = checkGrounding(reply, routes, message, financeMode, financeIds);
     if (violations.length) {
       console.warn("grounding violations", violations);
+      // Learning: the model made an ungrounded claim and got caught — record
+      // the mistake so the lesson is injected into future prompts.
+      recordChatLesson(supabase, user.id, {
+        kind: "chat_caught", scope: "global", category: "grounding_violation",
+        title: `Made an ungrounded claim (${violations.slice(0, 3).join(", ")})`,
+        what_happened: `Reply to "${message.slice(0, 120)}" tripped grounding: ${violations.slice(0, 3).join("; ")}.`,
+        what_to_do_instead: "Every factual claim about a route must come from the route card — never invent payouts, links, steps, or availability. When the card doesn't say it, say you don't know instead of filling the gap.",
+        signal: violations.slice(0, 3).join("|"),
+      });
       // A blocked debunk still warns: the user asked about a scam, and a
       // generic deflection would leave them unprotected. The scam fallback
       // names the pattern without inventing any amounts or URLs.
@@ -530,6 +564,15 @@ serve(async (req) => {
       // questions get an explicit no-guarantee line.
       const correction = findFalseNoRouteClaim(reply, routes);
       if (correction) {
+        // Learning: the model denied a route that exists — record it scoped
+        // to the route so the next similar question gets the lesson.
+        recordChatLesson(supabase, user.id, {
+          kind: "chat_caught", scope: `route:${correction.route_id}`, category: "false_no_route",
+          title: `Claimed no verified route for "${correction.provider}" — route ${correction.route_id} exists`,
+          what_happened: `Told the user there was no verified route, but ${correction.route_id} (${correction.provider}) is verified.`,
+          what_to_do_instead: `Route ${correction.route_id} (${correction.provider}) IS verified for this kind of question — check the catalog before ever saying "I don't have a route for X".`,
+          signal: correction.route_id,
+        });
         const cc: string[] = Array.isArray(correction.catches) ? correction.catches : [];
         const q = message.toLowerCase();
         let hedge = "";
@@ -577,7 +620,7 @@ serve(async (req) => {
     // Persist
     await supabase.from("agent_messages").insert([
       { thread_id: tid, role: "user", content: userContent },
-      { thread_id: tid, role: "assistant", content: reply, meta: { action, violations } },
+      { thread_id: tid, role: "assistant", content: reply, meta: { action, violations, lessons_applied: chatLessons.map((l) => l.id) } },
     ]);
     // Apply walkthrough actions to playbook_progress. Model actions are
     // validated against the real route catalog first: a hallucinated
@@ -731,9 +774,27 @@ serve(async (req) => {
     // Safety net: the model sometimes promises a reminder in words without
     // emitting the set_reminder action (the words alone do nothing). Catch the
     // lie in flight rather than letting the user believe it's set.
-    if (!reminderFailed && action?.type !== "set_reminder" &&
-        /i('ve| have) set a reminder|reminder (is )?set|i'll remind you/i.test(finalReply)) {
+    const reminderPromiseCaught = !reminderFailed && action?.type !== "set_reminder" &&
+        /i('ve| have) set a reminder|reminder (is )?set|i'll remind you/i.test(finalReply);
+    if (reminderPromiseCaught) {
       finalReply += `\n\nQuick correction: I said I'd set a reminder just now, but it didn't actually save. Tell me again and I'll make sure it sticks.`;
+      // Learning: the model promised without acting — record it so the
+      // lesson ("words don't save reminders") is injected next time.
+      recordChatLesson(supabase, user.id, {
+        kind: "chat_caught", scope: "global", category: "reminder_promise",
+        title: "Promised a reminder in words without the set_reminder action",
+        what_happened: `Reply said a reminder was set but no set_reminder action was emitted (thread ${tid.slice(0, 8)}).`,
+        what_to_do_instead: "Never tell the user a reminder is set in words alone — words save nothing. Only the set_reminder action (or the deterministic reminder path) actually creates it.",
+        signal: finalReply.slice(0, 200),
+      });
+    }
+
+    // Learning: count this reply as an application of the injected lessons
+    // when the reply survived grounding (a violated reply learned nothing).
+    if (chatLessons.length && violations.length === 0) {
+      supabase.rpc("agent_lessons_note_applied", {
+        p_ids: chatLessons.map((l) => l.id),
+      }).then(() => {}, () => {});
     }
 
     return json(cors, { thread_id: tid, reply: finalReply, action });
@@ -746,6 +807,83 @@ serve(async (req) => {
 function json(cors: Record<string, string>, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "content-type": "application/json" } });
 }
+
+// ================= Learning from mistakes (2026-09-28) =================
+// The chat side of the agent's failure memory. Caught mistakes (grounding
+// violations, false no-route claims, reminder promises without actions) and
+// user corrections are recorded as lessons; before the model call, lessons
+// relevant to the message are injected into the prompt so the agent applies
+// what it learned instead of repeating the mistake. Relevance, correction
+// detection, and prompt rendering are pure shared functions (./_shared/
+// lessons.ts — the same ones the real-trust fixtures exercise); only the
+// DB reads/writes live here.
+
+/** Open lessons (global + the user's own) relevant to this message. */
+async function fetchChatLessons(
+  supa: any, userId: string, message: string,
+): Promise<ChatLesson[]> {
+  try {
+    const { data } = await supa.from("agent_lessons")
+      .select("id, category, scope, title, what_to_do_instead, times_seen")
+      .eq("resolved", false)
+      .or(`user_id.is.null,user_id.eq.${userId}`)
+      .order("times_seen", { ascending: false })
+      .limit(20);
+    const rows = (data ?? []) as ChatLesson[];
+    return rows.filter((l) => lessonRelevant(l, message)).slice(0, 3);
+  } catch {
+    return []; // lesson fetch must never break chat
+  }
+}
+
+/**
+ * Record a chat-side lesson. Deterministic categories dedupe per
+ * (user, scope, category) — a repeat sighting bumps times_seen instead of
+ * adding a row. User corrections are never deduped: each one is its own
+ * record. The caller treats this as fire-and-forget (it never throws).
+ */
+async function recordChatLesson(
+  supa: any, userId: string,
+  lesson: {
+    kind: string; scope: string; category: string; title: string;
+    what_happened: string; what_to_do_instead: string; signal?: string;
+  },
+): Promise<void> {
+  try {
+    if (lesson.kind !== "user_correction") {
+      const { data: existing } = await supa.from("agent_lessons")
+        .select("id, times_seen").eq("resolved", false)
+        .eq("user_id", userId).eq("scope", lesson.scope)
+        .eq("category", lesson.category).limit(1).maybeSingle();
+      if (existing) {
+        await supa.from("agent_lessons").update({
+          times_seen: (existing.times_seen ?? 1) + 1,
+          what_happened: lesson.what_happened.slice(0, 500),
+          signal: (lesson.signal ?? "").slice(0, 200),
+          updated_at: new Date().toISOString(),
+        }).eq("id", existing.id);
+        return;
+      }
+    }
+    await supa.from("agent_lessons").insert({
+      user_id: userId,
+      kind: lesson.kind,
+      scope: lesson.scope,
+      category: lesson.category,
+      title: lesson.title.slice(0, 200),
+      what_happened: lesson.what_happened.slice(0, 500),
+      what_to_do_instead: lesson.what_to_do_instead.slice(0, 500),
+      signal: (lesson.signal ?? "").slice(0, 200),
+    });
+  } catch (e) {
+    console.error("recordChatLesson failed:", (e as Error)?.message);
+  }
+}
+
+/**
+ * detectUserCorrection and renderLessonsBlock live in ./_shared/lessons.ts
+ * (shared with the real-trust fixtures) — imported at the top of this file.
+ */
 
 // Resolve {{name}}/{{email}}/{{state}} step placeholders with the user's real
 // values (plain text in chat; the app renders tap-to-copy chips for the same

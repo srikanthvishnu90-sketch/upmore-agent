@@ -21,6 +21,7 @@ import { run as stop } from "./guards-stop.js";
 import { run as otp } from "./guards-otp.js";
 import { run as exclusion } from "./guards-exclusion.js";
 import { run as approvalE2E } from "./guards-approval-e2e.js";
+import { run as lessons } from "./guards-lessons.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -36,9 +37,39 @@ function wiring() {
     "OTP_TTL_MS",
     "runDeclarative(",
     "pushShot(",
+    // Learning-from-mistakes wiring (2026-09-28): the deployed executor must
+    // call the shared learning functions, not re-implement them.
+    "categorizeExecFailure(",
+    "shouldSkipRetryExec(",
+    "execLessonTitle(",
+    "fetchExecLessons(",
+    "learnFromRunOutcome(",
   ];
   for (const token of mustCall) {
     check(`index.ts calls shared \`${token}\``, src.includes(token));
+  }
+
+  // agent-chat wiring: the deployed chat must call the shared lesson
+  // helpers from ./_shared/lessons.ts, not re-implement them.
+  const chatSrc = readFileSync(join(root, "supabase/functions/agent-chat/index.ts"), "utf8");
+  const chatMustCall = [
+    'from "./_shared/lessons.ts"',
+    "lessonRelevant(",
+    "detectUserCorrection(",
+    "renderLessonsBlock(",
+    "fetchChatLessons(",
+    "recordChatLesson(",
+  ];
+  for (const token of chatMustCall) {
+    check(`agent-chat/index.ts calls \`${token}\``, chatSrc.includes(token));
+  }
+  const chatMustNotDuplicate = [
+    "function lessonRelevant(",
+    "function detectUserCorrection(",
+    "function renderLessonsBlock(",
+  ];
+  for (const token of chatMustNotDuplicate) {
+    check(`agent-chat/index.ts has no local duplicate \`${token}\``, !chatSrc.includes(token), "local mirror found");
   }
 
   const mustNotDuplicate = [
@@ -58,6 +89,7 @@ await stop();
 await otp();
 await exclusion();
 await approvalE2E();
+await lessons();
 wiring();
 
 const t = totals();

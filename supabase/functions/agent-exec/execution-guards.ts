@@ -361,3 +361,189 @@ export function buildCancelClaimRow(
     subscription_id: ctx.subscription_id ?? null,
   };
 }
+
+// ================= Learning from mistakes (2026-09-28) =================
+// The agent's failure memory. Every terminal execution outcome is
+// categorized here (pure, deterministic — the same function the fixtures
+// exercise); agent-exec/index.ts persists the lesson and retrieves it
+// before the next run for the same merchant. The loop is:
+//   record (categorize the failure) -> understand (what to do instead) ->
+//   fix (skip doomed retries, escalate repeats) -> apply (inject the lesson
+//   into the next attempt) -> resolve (a later success closes the lesson).
+
+export type ExecFailureCategory =
+  | "tripwire_stop"
+  | "layout_changed"
+  | "otp_expired"
+  | "no_confirmation"
+  | "auth_failed"
+  | "session_died"
+  | "other";
+
+export type ExecFailureAnalysis = {
+  category: ExecFailureCategory;
+  /** What the agent must do differently next time — stored as the lesson. */
+  what_to_do_instead: string;
+  /** Whether an immediate blind retry could ever help. */
+  retryable: boolean;
+};
+
+/**
+ * Deterministic failure categorization over the executor's own error
+ * strings (runDeclarative's fail() messages and the resume path). Pure:
+ * same error in -> same category out, no model, no network.
+ */
+export function categorizeExecFailure(
+  error: string,
+  ev?: Record<string, unknown>,
+): ExecFailureAnalysis {
+  const e = String(error || "");
+  const stoppedKind =
+    (ev && typeof ev.stopped_at_tripwire === "string" && ev.stopped_at_tripwire) ||
+    (/Stopped: the page asked for ([a-z ]+)/i.exec(e)?.[1] ?? null);
+
+  if (stoppedKind || /tripwire/i.test(e)) {
+    const kind = (stoppedKind || "that step").replace(/_/g, " ");
+    return {
+      category: "tripwire_stop",
+      what_to_do_instead:
+        `Never proceed through "${kind}" — stop the browser run and use the guided self-serve fallback. ` +
+        `Do not retry the automated path for this merchant until the playbook is re-verified; the stop is by design, not a flake.`,
+      retryable: false,
+    };
+  }
+  if (/code expired|window expired|otp.*expir/i.test(e)) {
+    return {
+      category: "otp_expired",
+      what_to_do_instead:
+        "The one-time code expired before it was used. Warn the user up front that the code dies after 30 minutes, " +
+        "and only start the run when they are ready to paste the code immediately.",
+      retryable: true,
+    };
+  }
+  if (/timed out waiting/i.test(e)) {
+    return {
+      category: "layout_changed",
+      what_to_do_instead:
+        "The merchant's site layout changed — the playbook's selectors no longer match. " +
+        "Do not blindly re-run the same steps; the flow must be re-verified against the live site first. " +
+        "Offer the guided self-serve path meanwhile.",
+      retryable: true,
+    };
+  }
+  if (/sign-in field|credential|\blogin\b/i.test(e)) {
+    return {
+      category: "auth_failed",
+      what_to_do_instead:
+        "Sign-in failed — the login page or the stored credentials changed. Verify the login flow (and ask the user to " +
+        "re-check saved credentials) before any retry; repeated login attempts can lock the account.",
+      retryable: true,
+    };
+  }
+  if (/Could not find|layout may have changed|expected control/i.test(e)) {
+    return {
+      category: "layout_changed",
+      what_to_do_instead:
+        "The merchant's site layout changed — the playbook's selectors no longer match. " +
+        "Do not blindly re-run the same steps; the flow must be re-verified against the live site first. " +
+        "Offer the guided self-serve path meanwhile.",
+      retryable: true,
+    };
+  }
+  if (/no confirmation|confirmation text/i.test(e)) {
+    return {
+      category: "no_confirmation",
+      what_to_do_instead:
+        "The cancel click happened but no confirmation text appeared. Never claim success without visible confirmation — " +
+        "check the merchant account directly before retrying, and do not re-click blindly (double-cancel risk).",
+      retryable: true,
+    };
+  }
+  if (/session.*expired|Resume failed|session may have/i.test(e)) {
+    return {
+      category: "session_died",
+      what_to_do_instead:
+        "The browser session died mid-run. Start a fresh run rather than resuming a dead session, and tell the user " +
+        "plainly what happened instead of silently retrying.",
+      retryable: true,
+    };
+  }
+  return {
+    category: "other",
+    what_to_do_instead:
+      "An uncategorized failure occurred. Record the exact error, do not retry blindly, and surface the honest " +
+      "failure to the user with the guided fallback.",
+    retryable: true,
+  };
+}
+
+export type ExecLessonRow = {
+  id: string;
+  category: string;
+  title: string;
+  times_seen: number;
+  what_to_do_instead: string;
+};
+
+/** After this many sightings of the same failure, stop retrying the
+ *  automated path entirely — the agent has learned it does not work. */
+export const REPEAT_FAILURE_SKIP_THRESHOLD = 2;
+/** After this many sightings, flag the playbook for re-verification. */
+export const REPEAT_FAILURE_REVERIFY_THRESHOLD = 3;
+
+/**
+ * Decide whether the automated path should be skipped for this merchant
+ * because past attempts kept failing the same way. Pure and fixture-tested.
+ * tripwire_stop is never retried (by-design stop); layout_changed and
+ * friends stop after REPEAT_FAILURE_SKIP_THRESHOLD sightings.
+ */
+export function shouldSkipRetryExec(
+  lessons: ExecLessonRow[],
+): { skip: boolean; lesson?: ExecLessonRow; reason?: string } {
+  const open = lessons.filter((l) => l.category !== "other");
+  // A by-design stop never becomes retryable — one sighting is enough.
+  const stop = open.find((l) => l.category === "tripwire_stop");
+  if (stop) {
+    return {
+      skip: true,
+      lesson: stop,
+      reason:
+        "Learned from a past attempt: the automated path stops by design here " +
+        `(${stop.title}). Going straight to the guided path instead of repeating a run that cannot proceed.`,
+    };
+  }
+  const repeated = open.find((l) => l.times_seen >= REPEAT_FAILURE_SKIP_THRESHOLD);
+  if (repeated) {
+    return {
+      skip: true,
+      lesson: repeated,
+      reason:
+        `Learned from ${repeated.times_seen} past attempts: ${repeated.title}. ` +
+        "Repeating the same automated run would fail the same way — using the guided path instead.",
+    };
+  }
+  return { skip: false };
+}
+
+/** Human-readable lesson title for a fresh exec failure. */
+export function execLessonTitle(
+  category: ExecFailureCategory,
+  merchantLabel: string,
+): string {
+  switch (category) {
+    case "tripwire_stop":
+      return `${merchantLabel}: automated run stopped by a safety tripwire`;
+    case "layout_changed":
+      return `${merchantLabel}: site layout changed, playbook steps no longer match`;
+    case "otp_expired":
+      return `${merchantLabel}: one-time code expired before use`;
+    case "no_confirmation":
+      return `${merchantLabel}: cancel clicked but no confirmation appeared`;
+    case "auth_failed":
+      return `${merchantLabel}: sign-in failed during the run`;
+    case "session_died":
+      return `${merchantLabel}: browser session died mid-run`;
+    default:
+      return `${merchantLabel}: automated run failed`;
+  }
+}

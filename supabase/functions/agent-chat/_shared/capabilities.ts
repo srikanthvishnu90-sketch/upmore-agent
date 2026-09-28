@@ -1281,7 +1281,15 @@ export function tryCancelIntent(
 // Triggers: "audit my subscriptions", "review my subscriptions",
 // "what am I paying for". DB read (save_subscriptions) when ctx is present;
 // otherwise parse name+$ pairs the user pastes inline; otherwise ask.
-const AUDIT_RX = /\b(audit|review)\b[^.?]{0,40}\bsubscriptions?\b|\bwhat am i paying for\b|\bsubscriptions?\b[^.?]{0,15}\b(audit|review)\b/i;
+const AUDIT_RX = /\b(audit|review)\b[^.?]{0,40}\bsubscriptions?\b|\bwhat am i paying for\b|\bsubscriptions?\b[^.?]{0,15}\b(audit|review)\b|\b(find|list|show)\b[^.?]{0,30}\b(every|all|my)\b[^.?]{0,20}\bsubscriptions?\b|\bsubscriptions?\b[^.?]{0,30}\b(paying for|pay for)\b|\bwhat\b[^.?]{0,20}\bsubscriptions?\b/i;
+// Known subscription merchants/phrases — spots a pasted subscription list
+// ("Netflix 15.49, Spotify 11.99") even without the word "audit".
+const SUB_HINT_RX = new RegExp(
+  `(^|[^a-z0-9])(${Object.keys(CANCEL_PATHS)
+    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|")})($|[^a-z0-9])`,
+  "i",
+);
 
 interface InlineSub { name: string; monthly: number; raw?: number; per?: string }
 
@@ -1341,17 +1349,30 @@ function cancelPathBlock(name: string): string {
 export async function trySubscriptionAudit(
   message: string,
   ctx?: CapCtx,
+  hist: { role: string; content: string }[] = [],
 ): Promise<string | null> {
-  // Primary trigger: explicit "audit my subscriptions"-style phrasing.
+  // Primary trigger: explicit "audit my subscriptions"-style phrasing, or
+  // subscription-listing phrasing ("find every subscription I'm paying for").
   // Secondary trigger: "audit"/"review" plus a pasted list of 2+ priced
   // items ("audit: Netflix $15.49, Spotify $11.99") — a single priced item
   // with "audit" alone is not enough to fire, to avoid hijacking.
+  // Tertiary trigger: 2+ priced items plus subscription context — the word
+  // "subscription", a known subscription merchant, or a reply to the audit's
+  // own "tell me each one" prompt. Catches "Netflix 15.49, Spotify 11.99 —
+  // what's my total?" without hijacking "lunch $15, gas $20".
   const primary = AUDIT_RX.test(message);
   let inline: InlineSub[] = [];
   if (!primary) {
-    if (!/\b(audit|review)\b/i.test(message)) return null;
     inline = parseInlineSubs(message);
-    if (inline.length < 2) return null;
+    const askedForList = hist.some(
+      (h) => h.role === "assistant" && /let's audit your subscriptions/i.test(String(h.content ?? "")),
+    );
+    const subCtx =
+      /\bsubscriptions?\b/i.test(message) || SUB_HINT_RX.test(message) || askedForList;
+    if (!(inline.length >= 2 && subCtx)) {
+      if (!/\b(audit|review)\b/i.test(message)) return null;
+      if (inline.length < 2) return null;
+    }
   }
 
   let subs: InlineSub[] = [];
@@ -1763,7 +1784,7 @@ export async function tryCapabilities(
   // never preempt an "earn" intent. ctx is optional: without it the DB-backed
   // paths degrade gracefully (ask-for-input, inline parsing) instead of
   // failing.
-  const audit = await trySubscriptionAudit(message, ctx);
+  const audit = await trySubscriptionAudit(message, ctx, hist);
   if (audit) return { reply: audit };
   const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };

@@ -70,6 +70,14 @@ const GENERIC_PROVIDER_WORDS = new Set([
   // identifiers in a user message — "five" in "five words" matched
   // "Five Star Credit Union".
   "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  // FIX (2026-09-28, feature-#2 test): common verbs/nouns that are also
+  // provider names must never match on their own — "can you help me"
+  // matched provider "Help" (Ting referral promo R6341). Same class:
+  // "Account", "Go", "Home", "Refer", "Share", "Try" are all provider names
+  // in the catalog. Multi-word matches ("Ting referral") still work.
+  "help", "helps", "helping", "account", "accounts", "go", "goes", "going",
+  "home", "refer", "refers", "referring", "referral", "referrals",
+  "share", "shares", "sharing", "try", "tries", "trying",
 ]);
 function isGenericProviderWord(w: string): boolean {
   return GENERIC_PROVIDER_WORDS.has(w);

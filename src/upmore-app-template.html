@@ -942,7 +942,7 @@
 
   /* ---------- chat: feed + messages ---------- */
   .cfeed { flex: 1; overflow-y: auto; padding: 12px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
-  #threadAgent, #threadAsk { display: flex; flex-direction: column; gap: 14px; }
+  #threadMain { display: flex; flex-direction: column; gap: 14px; }
   .cfeed::-webkit-scrollbar { display: none; }
   .cempty { margin: auto 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
   .corb { width: 44px; height: 44px; border-radius: 50%; flex: none;
@@ -7466,10 +7466,9 @@
   }
   function newGuideChat() {
     upmoreThread = null;
-    ["agent", "ask"].forEach(m => {
-      const t = chatThreads[m]; t.empty = true; t.lastTs = 0;
-      const el = threadEl(m); el.innerHTML = chatEmptyHTML(m); wireSuggButtons(el);
-    });
+    chatThread.empty = true; chatThread.lastTs = 0;
+    const el = threadEl(chatMode);
+    el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el);
     $("chatsSheet").hidden = true;
     renderChatThreadList();
     const ta = $("chatInput"); if (ta) ta.focus();
@@ -7492,7 +7491,7 @@
     upmoreThread = id;
     renderChatThreadList();
     const el = threadEl(chatMode);
-    chatThreads[chatMode].empty = false; chatThreads[chatMode].lastTs = Date.now();
+    chatThread.empty = false; chatThread.lastTs = Date.now();
     el.innerHTML = `<div class="item"><div class="grow"><p class="m">Loading chat…</p></div></div>`;
     try {
       const { data, error } = await supa.from("agent_messages")
@@ -7501,7 +7500,7 @@
       el.innerHTML = "";
       (data || []).forEach(m => histBubble(el, m.role, m.content));
       if (!(data || []).length) {
-        chatThreads[chatMode].empty = true;
+        chatThread.empty = true;
         el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el);
       }
     } catch (e) {
@@ -11707,34 +11706,38 @@ let chatMode = "agent";
 let chatWired = false;
 let agentTaskRunning = false;
 let stepChannel = null;
-const chatThreads = {
-  agent: { scroll: 0, empty: true, lastTs: 0 },
-  ask:   { scroll: 0, empty: true, lastTs: 0 },
-};
+// UNIFIED VIEW (2026-09-28): one conversation per chat. The Agent/Ask toggle
+// changes how the NEXT message is handled (composer behavior + placeholder),
+// never the view — switching modes used to show an empty pane and read as
+// "my chat was wiped". Thread state is per active view, not per mode.
+const chatThread = { scroll: 0, empty: true, lastTs: 0 };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const HAS_NUM_RE = /\d/;
 
 function chatFeedEl() { return $("chatFeed"); }
-function threadEl(m) { return $(m === "agent" ? "threadAgent" : "threadAsk"); }
+function threadEl(m) { return $("threadMain"); }
 function scrollChat() { const f = chatFeedEl(); if (f) f.scrollTop = f.scrollHeight; }
 
 function setChatMode(m) {
   const feed = chatFeedEl(); if (!feed) return;
-  chatThreads[chatMode].scroll = feed.scrollTop;
+  chatThread.scroll = feed.scrollTop;
   chatMode = m;
   chat = threadEl(m);
-  $("threadAgent").hidden = m !== "agent";
-  $("threadAsk").hidden = m !== "ask";
   $("segAgent").classList.toggle("on", m === "agent");
   $("segAsk").classList.toggle("on", m === "ask");
   $("segAgent").setAttribute("aria-selected", String(m === "agent"));
   $("segAsk").setAttribute("aria-selected", String(m === "ask"));
   $("chatInput").placeholder = m === "agent" ? "Hand off a task" : "Ask about your money";
-  feed.scrollTop = chatThreads[m].scroll;
+  // If the thread is still empty, show the new mode's empty state so the
+  // suggestions match what the mode does.
+  if (chatThread.empty && chat) {
+    chat.innerHTML = chatEmptyHTML(m);
+    wireSuggButtons(chat);
+  }
+  feed.scrollTop = chatThread.scroll;
 }
 function chatClearThread() {
-  const t = chatThreads[chatMode];
-  t.empty = true; t.lastTs = 0;
+  chatThread.empty = true; chatThread.lastTs = 0;
   chat.innerHTML = chatEmptyHTML(chatMode);
   wireSuggButtons(chat);
   chatFeedEl().scrollTop = 0;
@@ -11790,11 +11793,10 @@ function wireSuggButtons(root) {
 
 /* ---------- message rendering (replaces old guide renderer) ---------- */
 function chatNoteEmpty() {
-  const t = chatThreads[chatMode];
-  if (t.empty) { t.empty = false; chat.innerHTML = ""; }
+  if (chatThread.empty) { chatThread.empty = false; chat.innerHTML = ""; }
 }
 function maybeTs() {
-  const t = chatThreads[chatMode]; const now = Date.now();
+  const t = chatThread; const now = Date.now();
   if (t.lastTs && now - t.lastTs > 600000) {
     const s = document.createElement("div"); s.className = "tstamp";
     s.textContent = new Date(now).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -11864,12 +11866,10 @@ function renderChatTab() {
   // opens instantly. Fire-and-forget — the sheet re-loads on open anyway.
   loadChatThreads().then(() => {}, () => {});
   // refresh empty-state suggestions if the thread is still empty
-  ["agent", "ask"].forEach(m => {
-    if (chatThreads[m].empty) {
-      const el = threadEl(m);
-      if (el) { el.innerHTML = chatEmptyHTML(m); wireSuggButtons(el); }
-    }
-  });
+  if (chatThread.empty) {
+    const el = threadEl(chatMode);
+    if (el) { el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el); }
+  }
   updateChatCtx();
   updateTasksBadge();
   setChatMode(chatMode);
@@ -11901,10 +11901,9 @@ function renderChatImages() {
 }
 function wireChat() {
   const feed = chatFeedEl();
-  feed.innerHTML = '<div id="threadAgent"></div><div id="threadAsk" hidden></div>';
-  chat = $("threadAgent");
-  $("threadAgent").innerHTML = chatEmptyHTML("agent");
-  $("threadAsk").innerHTML = chatEmptyHTML("ask");
+  feed.innerHTML = '<div id="threadMain"></div>';
+  chat = $("threadMain");
+  $("threadMain").innerHTML = chatEmptyHTML(chatMode);
   wireSuggButtons(feed);
   setChatMode(chatMode);
   $("segAgent").onclick = () => setChatMode("agent");

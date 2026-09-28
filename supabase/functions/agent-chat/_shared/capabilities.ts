@@ -1134,14 +1134,38 @@ const CANCEL_INTENT_RX = /\bcancel(l)?(ed|ing)?\b/i;
 const CANCEL_SUBCTX_RX = /\bsubscription|membership|\bplan\b/i;
 const CANCEL_GENERIC_WORDS = /^(it|this|that|these|those|everything|all|them|subscription|membership|plan|account|service)$/i;
 
-function extractCancelMerchant(message: string): string | null {
+// Negation-aware merchant extraction (2026-09-28): "not Netflix",
+// "don't cancel Netflix", "except Netflix", "everything but Netflix" must
+// EXCLUDE the merchant — never render its cancel card.
+function isMerchantNegated(lower: string, escKey: string): boolean {
+  return new RegExp(
+    `\\bnot\\s+(?:my\\s+|the\\s+)?${escKey}\\b` +
+      `|\\b(?:do\\s+not|don't|dont|doesn't|doesnt|didn't|didnt|won't|wont|can't|cant|couldn't|couldnt)\\s+(?:cancel\\s+)?(?:my\\s+|the\\s+)?${escKey}\\b` +
+      `|\\bexcept\\s+(?:my\\s+|the\\s+)?${escKey}\\b` +
+      `|\\bbut\\s+(?:not\\s+)?(?:my\\s+|the\\s+)?${escKey}\\b`,
+  ).test(lower);
+}
+
+function extractCancelMerchants(message: string): string[] {
   const m = message.toLowerCase();
+  const hits: { key: string; idx: number }[] = [];
   for (const key of Object.keys(CANCEL_PATHS)) {
     const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // (^|[^a-z0-9])...($|[^a-z0-9]) instead of \b: keys like "disney+" end in
     // a non-word char, where a trailing \b can never match.
-    if (new RegExp(`(^|[^a-z0-9])${esc}($|[^a-z0-9])`).test(m)) return key;
+    const mm = new RegExp(`(^|[^a-z0-9])${esc}($|[^a-z0-9])`).exec(m);
+    if (!mm) continue;
+    if (isMerchantNegated(m, esc)) continue;
+    hits.push({ key, idx: mm.index });
   }
+  // Message order, not catalog order: "cancel Spotify then Netflix" lists Spotify first.
+  hits.sort((a, b) => a.idx - b.idx);
+  return hits.map((h) => h.key);
+}
+
+function extractCancelMerchant(message: string): string | null {
+  const all = extractCancelMerchants(message);
+  if (all.length) return all[0];
   // Fallback: "cancel my X subscription/membership" — only when the message
   // carries subscription context, so "cancel it myself" or "cancel my order"
   // never invent a merchant.
@@ -1155,7 +1179,43 @@ function extractCancelMerchant(message: string): string | null {
 }
 
 function titleCaseMerchant(key: string): string {
+  if (key.toLowerCase() === "icloud+") return "iCloud+";
   return key.split(/(\s+|\+)/).map((p) => /^\s|\+$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join("");
+}
+
+// Unknown merchant names inside a cancel list: "cancel Spotify, iCloud+, and
+// Planet Fitness" — Planet Fitness has no catalog entry, but the user named
+// it, so it gets the honest generic card rather than being silently dropped.
+// Conservative: only from comma/and lists, skips negations ("not X",
+// "except X") and anything overlapping an already-extracted known merchant.
+function extractUnknownCancelNames(
+  message: string,
+  known: string[],
+): { name: string; idx: number }[] {
+  const m = message.toLowerCase();
+  if (!CANCEL_SUBCTX_RX.test(message) && !(known.length && /,|\band\b/.test(m))) return [];
+  const cm = message.match(/\bcancel(?:l)?(?:ed|ing)?\s+(?:my\s+|the\s+)?([^.?!]+)/i);
+  if (!cm) return [];
+  const seg = cm[1].replace(/\s*[—–-]\s*not\s+[^.?!]*$/i, "");
+  const out: { name: string; idx: number }[] = [];
+  for (const part of seg.split(/,|\band\b/i)) {
+    const name = part
+      .trim()
+      .replace(/^(my|the)\s+/i, "")
+      .replace(/\s+(subscription|membership|plan|account)s?$/i, "")
+      .replace(/\s*[—–-]\s*$/, "")
+      .trim();
+    if (!name || name.length > 40) continue;
+    if (CANCEL_GENERIC_WORDS.test(name)) continue;
+    if (/\b(not|except|but|don't|doesn't|never)\b/i.test(name)) continue;
+    if (/'/.test(name)) continue; // contractions aren't merchant names
+    const esc = name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (isMerchantNegated(m, esc)) continue;
+    if (known.some((k) => subNameMatches(k, name))) continue;
+    if (out.some((o) => subNameMatches(o.name, name))) continue;
+    out.push({ name, idx: m.indexOf(part.trim().toLowerCase()) });
+  }
+  return out;
 }
 
 function merchantFromCancelHistory(hist: { role: string; content: string }[]): string | null {
@@ -1233,48 +1293,132 @@ export function tryBillingPartyCancel(
   return { reply: lines.join("\n") };
 }
 
-export function tryCancelIntent(
-  message: string,
-  hist: { role: string; content: string }[] = [],
-): { reply: string } | null {
-  if (!CANCEL_INTENT_RX.test(message)) return null;
-  let merchant = extractCancelMerchant(message);
-  if (!merchant && !CANCEL_SUBCTX_RX.test(message)) {
-    // Follow-up inside a cancellation thread ("and the direct link?", "what
-    // about the phone number?") — reuse the merchant from the last
-    // cancel-path reply in this thread instead of asking again.
-    merchant = merchantFromCancelHistory(hist);
-    if (!merchant) return null; // "cancel my order" etc. — not ours
-  }
-  if (!merchant) {
-    return {
-      reply:
-        `I can help with that. Which subscription do you want to cancel? ` +
-        `Name it and I'll pull the exact cancel path — the steps plus the official link.`,
-    };
-  }
+// One deterministic cancel card. Shared by tryCancelIntent (single or
+// multi-merchant) and tryCancelUnused so the format is identical everywhere.
+function cancelCardFor(merchant: string, srcUrls: string[]): string {
   const cp = findCancelPath(merchant);
   const display = titleCaseMerchant(merchant);
   const lines = [`**Canceling ${display}** — here's the exact path:`, ""];
   if (cp) {
-    if (cp.url) lines.push(cp.url);
+    if (cp.url) {
+      lines.push(cp.url);
+      if (!srcUrls.includes(cp.url)) srcUrls.push(cp.url);
+    }
     cp.steps.forEach((st, i) => lines.push(`${i + 1}. ${st}`));
     if (cp.phone) lines.push(`Phone: ${cp.phone}`);
     lines.push(`Watch for: ${cp.retention_warning}`);
   } else {
     lines.push(
       `I don't have a verified path for ${display} yet — cancel from the billing section of ` +
-      `the merchant's own account page (or inside the app's Settings → Subscriptions), and get a written confirmation.`,
+        `the merchant's own account page (or inside the app's Settings → Subscriptions), and get a written confirmation.`,
     );
   }
-  lines.push(
-    "",
-    cp
+  return lines.join("\n");
+}
+
+export function tryCancelIntent(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (!CANCEL_INTENT_RX.test(message)) return null;
+  const knownMerchants = extractCancelMerchants(message);
+  // Merge unknown list names in message order (dedupe overlaps).
+  const merged: { name: string; idx: number }[] = knownMerchants.map((k) => ({
+    name: k,
+    idx: message.toLowerCase().indexOf(k.toLowerCase()),
+  }));
+  for (const u of extractUnknownCancelNames(message, knownMerchants)) merged.push(u);
+  merged.sort((a, b) => a.idx - b.idx);
+  let merchants = merged.map((x) => x.name);
+  if (!merchants.length && !CANCEL_SUBCTX_RX.test(message)) {
+    // Follow-up inside a cancellation thread ("and the direct link?", "what
+    // about the phone number?") — reuse the merchant from the last
+    // cancel-path reply in this thread instead of asking again.
+    const fromHist = merchantFromCancelHistory(hist);
+    if (fromHist) merchants = [fromHist];
+    else return null; // "cancel my order" etc. — not ours
+  }
+  if (!merchants.length) {
+    const single = extractCancelMerchant(message);
+    if (single) merchants = [single];
+  }
+  if (!merchants.length) {
+    return {
+      reply:
+        `I can help with that. Which subscription do you want to cancel? ` +
+        `Name it and I'll pull the exact cancel path — the steps plus the official link.`,
+    };
+  }
+  const srcUrls: string[] = [];
+  const cards = merchants.map((m) => cancelCardFor(m, srcUrls));
+  const one = merchants.length === 1;
+  const known = one && !!findCancelPath(merchants[0]);
+  const closing = !one
+    ? `I can't click these for you — the last tap is yours. Do it at the links above, then tell me "it's done" and I'll log the saving.`
+    : known
       ? `I can't click it for you — the last tap is yours. Do it at the link above, then tell me "it's done" and I'll log the saving.`
-      : `Tell me "it's done" once you've cancelled and I'll log the saving.`,
-  );
-  if (cp?.url) lines.push("", "Sources:", `- ${cp.url}`);
-  return { reply: lines.join("\n") };
+      : `Tell me "it's done" once you've cancelled and I'll log the saving.`;
+  const sources = srcUrls.length ? `\n\nSources:\n` + srcUrls.map((u) => `- ${u}`).join("\n") : "";
+  return { reply: cards.join("\n\n") + "\n\n" + closing + sources };
+}
+
+// ---- 9a0. Cancel-unused follow-up ----
+// After a deterministic audit, the user declares usage ("I only really watch
+// Netflix", "cancel everything but Netflix"): re-parse the priced list from
+// this thread's history and render cancel cards for the unused ones.
+// Deterministic so the model can't hallucinate the wrong targets.
+const AUDIT_DONE_RX = /subscription audit, ranked by yearly cost/i;
+const KEEP_RX =
+  /\bi\s+(?:only\s+)?(?:really\s+|actually\s+)?(?:use|watch|need|keep|want(?!\s+to))\s+([a-z0-9][a-z0-9+&' .()-]{1,30}?)(?=\s*[—–\-:;,.!?]|\s+the\s+rest|\s+and\s+(?:the\s+rest|everything)|\s*$)/i;
+const CANCEL_REST_RX =
+  /\bcancel\b[^.?]{0,40}\b(everything|all|the\s+rest|the\s+others)\b|\b(everything|all)\s+(but|except)\b/i;
+const EXCEPT_RX =
+  /\b(?:but|except)\s+(?:my\s+|the\s+)?([a-z0-9][a-z0-9+&' .()-]{1,30}?)(?=\s*[—–\-:;,.!?]|\s*$)/i;
+
+function subNameMatches(kept: string, name: string): boolean {
+  const k = kept.toLowerCase().replace(/[^a-z0-9+]/g, "");
+  const n = name.toLowerCase().replace(/[^a-z0-9+]/g, "");
+  return !!k && !!n && (n.includes(k) || k.includes(n));
+}
+
+export function tryCancelUnused(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (
+    !hist.some((h) => h.role === "assistant" && AUDIT_DONE_RX.test(String(h.content ?? "")))
+  )
+    return null;
+  const keepM = KEEP_RX.exec(message);
+  const restM = !keepM && CANCEL_REST_RX.test(message);
+  if (!keepM && !restM) return null;
+  // Re-parse the priced list the user gave earlier in this thread.
+  let subs: InlineSub[] = [];
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if (hist[i].role !== "user") continue;
+    const parsed = parseInlineSubs(String(hist[i].content ?? ""));
+    if (parsed.length >= 2) {
+      subs = parsed;
+      break;
+    }
+  }
+  if (subs.length < 2) return null;
+  let kept = "";
+  if (keepM) kept = keepM[1].trim().replace(/^(my|the)\s+/i, "");
+  const exM = EXCEPT_RX.exec(message);
+  if (exM) kept = exM[1].trim().replace(/^(my|the)\s+/i, "");
+  const unused = kept ? subs.filter((s) => !subNameMatches(kept, s.name)) : subs;
+  if (!unused.length) return null;
+  const srcUrls: string[] = [];
+  const cards = unused.map((s) => cancelCardFor(s.name, srcUrls));
+  const intro = kept
+    ? `Got it — keeping ${titleCaseMerchant(kept)}. These look unused, so here's the exact cancel path for each:`
+    : `Here's the exact cancel path for each of the rest:`;
+  const closing =
+    `I can't click these for you — the last tap is yours. Do it at the links above, ` +
+    `then tell me "it's done" and I'll log the saving.`;
+  const sources = srcUrls.length ? `\n\nSources:\n` + srcUrls.map((u) => `- ${u}`).join("\n") : "";
+  return { reply: intro + "\n\n" + cards.join("\n\n") + "\n\n" + closing + sources };
 }
 
 // ---- 9a. Subscription audit ----
@@ -1794,6 +1938,8 @@ export async function tryCapabilities(
   if (audit) return { reply: audit };
   const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };
+  const cancelUnused = tryCancelUnused(message, hist);
+  if (cancelUnused) return { reply: cancelUnused };
   const billingParty = tryBillingPartyCancel(message, hist);
   if (billingParty) return { reply: billingParty.reply };
   const receipt = tryReceiptCheck(message);

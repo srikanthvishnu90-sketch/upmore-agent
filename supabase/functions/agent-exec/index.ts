@@ -835,6 +835,198 @@ serve(async (req) => {
       }
     }
 
+    // ---- verify_devin_live: ONE-SHOT supervised graduation run (2026-09-28)
+    // Per PLAYBOOK_VERIFICATION.md, the Devin playbook graduates only after
+    // one real, live, authenticated Browserbase run. The normal execute path
+    // refuses unverified playbooks, so this supervised action runs the ACTUAL
+    // playbook code (browserPlaybooks["devin"]) against production with the
+    // caller's vaulted Devin login. Two phases:
+    //   { action:"verify_devin_live", phase:"start", approval_id }
+    //     -> { status:"awaiting_otp", run_id, otp_hint }
+    //   { action:"verify_devin_live", phase:"resume", run_id, otp_code }
+    //     -> { ok, status:"done"|"failed", evidence }
+    // Requires a real exec_approvals row (devin, cancel_subscription,
+    // approved, caller-owned) — this run performs the REAL cancellation the
+    // user approved. REMOVE AFTER GRADUATION.
+    if (action === "verify_devin_live") {
+      const phase = body.phase || "start";
+      const def = browserPlaybooks["devin"];
+      if (!def) return json({ error: "Devin playbook missing" }, 500);
+      if (!bbEnvReady()) return json({ error: "Browserbase not configured" }, 503);
+      // Load vaulted credential (same pattern as execute).
+      const { data: credRef } = await admin.from("exec_credential_refs")
+        .select("*").eq("user_id", user.id).eq("merchant_key", "devin").maybeSingle();
+      if (!credRef) return json({ error: "No saved Devin login for this user" }, 409);
+      const vvres = await fetch(
+        `${supabaseUrl}/rest/v1/vault_secrets?select=secret&name=eq.${encodeURIComponent((credRef as { vault_name: string }).vault_name)}`,
+        { headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` } },
+      );
+      if (!vvres.ok) return json({ error: "Could not read saved login" }, 500);
+      const vrows = await vvres.json();
+      let vcred: { username?: string; password?: string } = {};
+      try { vcred = JSON.parse(vrows?.[0]?.secret || "{}"); } catch { /* ignore */ }
+      if (!vcred.username) return json({ error: "Saved login is incomplete" }, 409);
+
+      if (phase === "start") {
+        const approvalId = body.approval_id;
+        if (!approvalId) return json({ error: "approval_id required" }, 400);
+        const { data: approval } = await admin.from("exec_approvals")
+          .select("*").eq("id", approvalId).maybeSingle();
+        if (!approval || (approval as Record<string, unknown>).user_id !== user.id ||
+            (approval as Record<string, unknown>).merchant_key !== "devin" ||
+            (approval as Record<string, unknown>).action !== "cancel_subscription" ||
+            (approval as Record<string, unknown>).status !== "approved") {
+          return json({ error: "Approval not valid for verification run" }, 409);
+        }
+        const { data: claimed } = await admin.from("exec_approvals")
+          .update({ status: "executing" })
+          .eq("id", (approval as Record<string, unknown>).id).eq("user_id", user.id)
+          .eq("action", "cancel_subscription").eq("status", "approved")
+          .select("id");
+        if (!claimed || !claimed.length) return json({ error: "Approval already claimed" }, 409);
+        const ctx: ExecContext = {
+          username: vcred.username, password: vcred.password || "",
+          approval: approval as Record<string, unknown>, admin,
+        };
+        const { data: run } = await admin.from("exec_runs").insert({
+          approval_id: (approval as Record<string, unknown>).id, user_id: user.id, status: "started",
+          evidence: { merchant: "devin", driver: "browserbase", verification_run: true, playbook_version: 1 },
+        }).select("id").single();
+        const runId = (run as { id: string }).id;
+        let session: { id: string; connectUrl: string } | null = null;
+        const ev: Record<string, unknown> = { merchant: "devin", driver: "browserbase", verification_run: true };
+        try {
+          session = await bbCreateSession(true); // keepAlive: survives the OTP pause
+          ev.session_id = session.id;
+          const cdp = await Cdp.connect(session.connectUrl);
+          let outcome: BrowserOutcome;
+          try {
+            const page = await BbPage.open(cdp);
+            outcome = await def.start(ctx, page, ev);
+          } finally { cdp.close(); }
+          if ("awaitingOtp" in outcome && (outcome as { awaitingOtp?: boolean }).awaitingOtp) {
+            ev.resume = (outcome as { resume?: unknown }).resume;
+            await admin.from("exec_runs").update({
+              status: "awaiting_otp", evidence: ev,
+              browserbase_session_id: session.id,
+              otp_hint: (outcome as { otpHint?: string }).otpHint,
+              otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+            }).eq("id", runId);
+            return json({ ok: false, status: "awaiting_otp", run_id: runId,
+              otp_hint: (outcome as { otpHint?: string }).otpHint });
+          }
+          await bbStopSession(session.id);
+          const finalStatus = outcome.ok ? "done" : "failed";
+          const err = outcome.ok ? null : (outcome as { error: string }).error;
+          await admin.from("exec_runs").update({
+            status: finalStatus, evidence: ev, error: err, finished_at: new Date().toISOString(),
+          }).eq("id", runId);
+          await admin.from("exec_approvals").update({ status: finalStatus, decided_at: new Date().toISOString() })
+            .eq("id", (approval as Record<string, unknown>).id);
+          return json({ ok: outcome.ok, status: finalStatus, evidence: ev, error: err });
+        } catch (e) {
+          if (session) await bbStopSession(session.id);
+          const msg = String((e as Error)?.message || e);
+          await admin.from("exec_runs").update({
+            status: "failed", evidence: ev, error: "Verification run failed: " + msg,
+            finished_at: new Date().toISOString(),
+          }).eq("id", runId);
+          await admin.from("exec_approvals").update({ status: "failed", decided_at: new Date().toISOString() })
+            .eq("id", (approval as Record<string, unknown>).id);
+          return json({ ok: false, status: "failed", error: "Verification run failed: " + msg }, 500);
+        }
+      }
+
+      if (phase === "resume") {
+        const { run_id, otp_code } = body;
+        if (!run_id || typeof otp_code !== "string" || !otp_code.trim()) {
+          return json({ error: "run_id and otp_code required" }, 400);
+        }
+        const { data: run } = await admin.from("exec_runs").select("*").eq("id", run_id).maybeSingle();
+        if (!run || (run as Record<string, unknown>).user_id !== user.id) {
+          return json({ error: "Run not found" }, 404);
+        }
+        const otpDecision = decideOtpSubmit(
+          { status: (run as Record<string, unknown>).status as string,
+            otp_expires_at: (run as Record<string, unknown>).otp_expires_at as string | null },
+          Date.now(),
+        );
+        if (!otpDecision.proceed) {
+          if ((run as Record<string, unknown>).browserbase_session_id) {
+            try { await bbStopSession((run as Record<string, unknown>).browserbase_session_id as string); } catch { /* best effort */ }
+          }
+          await admin.from("exec_runs").update({
+            status: "failed", error: otpDecision.error, finished_at: new Date().toISOString(),
+          }).eq("id", (run as Record<string, unknown>).id);
+          return json({ error: otpDecision.error }, otpDecision.code === "expired" ? 410 : 409);
+        }
+        if (!(run as Record<string, unknown>).browserbase_session_id) {
+          return json({ error: "Run has no browser session" }, 409);
+        }
+        const { data: locked } = await admin.from("exec_runs")
+          .update({ status: "started" })
+          .eq("id", (run as Record<string, unknown>).id).eq("status", "awaiting_otp")
+          .select("id");
+        if (!locked || !locked.length) return json({ error: "This code is already being processed" }, 409);
+        const { data: approval } = await admin.from("exec_approvals")
+          .select("*").eq("id", (run as Record<string, unknown>).approval_id).maybeSingle();
+        if (!approval || (approval as Record<string, unknown>).user_id !== user.id) {
+          await admin.from("exec_runs").update({
+            status: "failed", error: "Approval is not valid for resume", finished_at: new Date().toISOString(),
+          }).eq("id", (run as Record<string, unknown>).id);
+          return json({ error: "Approval is not valid for resume" }, 409);
+        }
+        const ev: Record<string, unknown> =
+          ((run as Record<string, unknown>).evidence as Record<string, unknown>) || {};
+        ev.resumed_at = new Date().toISOString();
+        const resumeState = (ev.resume as Record<string, unknown>) || {};
+        const ctx: ExecContext = {
+          username: vcred.username, password: vcred.password || "",
+          approval: approval as Record<string, unknown>, admin,
+        };
+        try {
+          const { connectUrl } = await bbRefreshSession(
+            (run as Record<string, unknown>).browserbase_session_id as string);
+          const cdp = await Cdp.connect(connectUrl);
+          let outcome: BrowserOutcome;
+          try {
+            const page = await BbPage.open(cdp);
+            // The OTP travels only into the page — never into evidence/logs.
+            outcome = await def.resume!(ctx, page, otp_code.trim(), ev, resumeState);
+          } finally { cdp.close(); }
+          await bbStopSession((run as Record<string, unknown>).browserbase_session_id as string);
+          const finalStatus = outcome.ok ? "done" : "failed";
+          const err = outcome.ok ? null : (outcome as { error: string }).error;
+          await admin.from("exec_runs").update({
+            status: finalStatus, evidence: ev, error: err, finished_at: new Date().toISOString(),
+          }).eq("id", (run as Record<string, unknown>).id);
+          await admin.from("exec_approvals").update({ status: finalStatus, decided_at: new Date().toISOString() })
+            .eq("id", (approval as Record<string, unknown>).id);
+          await learnFromRunOutcome({
+            admin, merchantKey: "devin", merchantLabel: "Devin",
+            finalStatus, error: err, ev, runId: (run as Record<string, unknown>).id as string,
+            appliedLessonIds: [],
+          });
+          if (finalStatus === "done") {
+            await writeCancelClaim(admin, approval as Record<string, unknown>, user.id,
+              (run as Record<string, unknown>).id as string, "devin");
+          }
+          return json(outcome.ok
+            ? { ok: true, status: finalStatus, evidence: ev, error: err }
+            : { ok: false, status: finalStatus, evidence: ev, error: err });
+        } catch (e) {
+          try { await bbStopSession((run as Record<string, unknown>).browserbase_session_id as string); } catch { /* best effort */ }
+          const msg = String((e as Error)?.message || e);
+          await admin.from("exec_runs").update({
+            status: "failed", evidence: ev, error: "Verification resume failed: " + msg,
+            finished_at: new Date().toISOString(),
+          }).eq("id", (run as Record<string, unknown>).id);
+          return json({ ok: false, status: "failed", error: "Verification resume failed: " + msg }, 500);
+        }
+      }
+      return json({ error: "Unknown phase" }, 400);
+    }
+
     // ---- one-tap revoke: instant, total kill of all agent access ----
     // Deletes every exec_cred_* vault secret for the user, clears credential
     // refs, kills in-flight Browserbase sessions, marks non-terminal runs

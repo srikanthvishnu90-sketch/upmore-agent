@@ -35,7 +35,7 @@ const UA =
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
   "Content-Type": "application/json",
 };
 

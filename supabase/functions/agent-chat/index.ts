@@ -870,31 +870,19 @@ async function recordChatLesson(
   },
 ): Promise<void> {
   try {
-    if (lesson.kind !== "user_correction") {
-      const { data: existing } = await supa.from("agent_lessons")
-        .select("id, times_seen").eq("resolved", false)
-        .eq("user_id", userId).eq("scope", lesson.scope)
-        .eq("category", lesson.category).limit(1).maybeSingle();
-      if (existing) {
-        await supa.from("agent_lessons").update({
-          times_seen: (existing.times_seen ?? 1) + 1,
-          what_happened: lesson.what_happened.slice(0, 500),
-          signal: (lesson.signal ?? "").slice(0, 200),
-          updated_at: new Date().toISOString(),
-        }).eq("id", existing.id);
-        return;
-      }
-    }
-    await supa.from("agent_lessons").insert({
-      user_id: userId,
-      kind: lesson.kind,
-      scope: lesson.scope,
-      category: lesson.category,
-      title: lesson.title.slice(0, 200),
-      what_happened: lesson.what_happened.slice(0, 500),
-      what_to_do_instead: lesson.what_to_do_instead.slice(0, 500),
-      signal: (lesson.signal ?? "").slice(0, 200),
+    // Atomic caller-owned upsert via record_agent_lesson (SECURITY DEFINER).
+    // The old select+update path was RLS-denied (no UPDATE policy on
+    // agent_lessons) so repeated lessons silently failed to increment.
+    const { error } = await supa.rpc("record_agent_lesson", {
+      p_kind: lesson.kind,
+      p_scope: lesson.scope,
+      p_category: lesson.category,
+      p_title: lesson.title,
+      p_what_happened: lesson.what_happened,
+      p_what_to_do_instead: lesson.what_to_do_instead,
+      p_signal: lesson.signal ?? "",
     });
+    if (error) throw error;
   } catch (e) {
     console.error("recordChatLesson failed:", (e as Error)?.message);
   }

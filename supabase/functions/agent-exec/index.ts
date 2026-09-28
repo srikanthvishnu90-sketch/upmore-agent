@@ -1315,6 +1315,10 @@ serve(async (req) => {
       const ev: Record<string, unknown> = {
         merchant: merchantKey, driver: "browserbase",
         lessons_applied: appliedLessonTitles,
+        // Learning: preserve the applied lesson IDs through the OTP pause —
+        // without this, the awaiting_otp evidence overwrites the run row's
+        // lessons_applied_ids and resumed runs never increment times_applied.
+        lessons_applied_ids: appliedLessonIds,
       };
       const directory_entry = resolved.directory;
       try {

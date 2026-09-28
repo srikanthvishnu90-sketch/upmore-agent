@@ -1,0 +1,1 @@
+{"cleanUrls":true,"headers":[{"headers":[{"key":"Cache-Control","value":"public, max-age=86400"}],"source":"/img/(.*)"},{"headers":[{"key":"Cache-Control","value":"public, max-age=86400"}],"source":"/(icon-.*|apple-touch-icon.png|manifest.webmanifest)"}]}

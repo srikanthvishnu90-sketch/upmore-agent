@@ -1,0 +1,30 @@
+// a063 (tabs): Explore tab — the earn catalog lives there and the Guide points at it.
+module.exports = {
+  id: "a063",
+  lane: "tabs",
+  title: "Explore tab holds the earning catalog",
+  persona: {
+    name: "Devon M.",
+    age: 24,
+    state: "CA",
+    incomeMonthly: 1800,
+    debts: [],
+    employment: "grad student",
+    goals: ["find side gigs", "cover rent gap"],
+    tech: "high",
+    bankConnected: false,
+    dataTier: "none",
+    notes: "taps Explore looking for ways to earn between classes",
+  },
+  modes: ["dry"],
+  steps: [
+    { kind: "static", file: "template", op: "contains",
+      pattern: "id: \"explore\", label: \"Explore\"",
+      desc: "Explore tab registered in the tab bar" },
+    { kind: "guide", prompt: "i'm 24 and in grad school, how do i start earning",
+      expect: [ { t: "contains", re: "easiest routes" } ] },
+    { kind: "static", file: "template", op: "contains",
+      pattern: "aria-label=\"Explore ways to earn\"",
+      desc: "Explore screen carries an accessible earn label" },
+  ],
+};

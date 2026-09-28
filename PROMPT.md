@@ -6,12 +6,15 @@ Paste everything below the line into Claude Code. Run it with both repos cloned.
 
 You are building the doing layer of **Upmore** ("your all-in-one finance agent") — the part where the app stops just showing money and starts acting on it: cancelling subscriptions, disputing charges, finding unclaimed money, paying bills. ChatGPT Finances is read-only analysis. Upmore acts. That difference is the entire product.
 
-## The two repos
+## The repo — self-contained
 
-1. **App repo** (the code you change): `srikanthvishnu90-sketch/Upmore`
-   Clone it, work on `main`, push small commits often, `git pull` before starting work.
-2. **Program repo** (the source of truth — spec, plan, this prompt): `srikanthvishnu90-sketch/upmore-agent`
-   Read `SPEC.md` (the full capability spec, ~260 capabilities, permission tiers T0–T4, the never list) and `BUILD_PLAN.md` (waves + speed estimates) before writing any code. When the spec and your instincts disagree, the spec wins. When the spec and Vishnu disagree, Vishnu wins.
+1. **This repo** (`srikanthvishnu90-sketch/upmore-agent`) contains the **full app** — every current feature and the complete agentic layer — plus the program docs. Clone this one repo and build here.
+   - App: `src/upmore-app-template.html` (edit this, never `index.html`), `src/build-app.py` (regenerates `index.html` + `sw.js` — run after every change, commit generated files too).
+   - Agentic layer: `supabase/functions/` — `agent-exec` (Browserbase CDP driver, OTP handoff, atomic approval claims, verified-playbook gate, `merchant-catalog.ts`), `agent-chat`, `exec-vault-store`, `plaid`, `simplefin-*`, `stripe-*`.
+   - Tests: `tests/agent100/` (dry run must stay 103/103). Plans: `plans/cancel-agent/`.
+2. **Program docs** (same repo): `SPEC.md` (the full capability spec, ~260 capabilities, permission tiers T0–T4, the never list) and `BUILD_PLAN.md` (waves + speed estimates). Read both before writing any code. When the spec and your instincts disagree, the spec wins. When the spec and Vishnu disagree, Vishnu wins.
+
+Note: production deploys from `srikanthvishnu90-sketch/Upmore` (Vercel). Until Vishnu says otherwise, build here and sync changed files back there for deploy — paths mirror that repo 1:1, so sync is a straight copy.
 
 ## Build system — read this twice
 

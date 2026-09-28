@@ -1,8 +1,12 @@
 # Chatbox 59-Task Completion Test
 
-**Directive (Vishnu, 2026-09-28):** Run only when Muse judges the app can "connect everything"
-(all integrations wired: Plaid, Gmail/calendar, subscriptions, cancellation agent, etc.),
-after the 10/10 quality gate — not before.
+**Directive (Vishnu, 2026-09-28, superseding):** Run the full 59 NOW — do not wait
+for integrations or the 10/10 gate. Two fresh, independent testers on the SAME
+feature concurrently. Notify Vishnu only with exactly `#N ✅` after both fresh
+testers pass, or if a genuine blocker needs him. No routine progress reports.
+If either tester fails or the pair disagrees: investigate, fix, deploy, then
+test again with a fresh pair and new accounts before notifying Vishnu.
+Do not stop until Vishnu has been notified of all 59 results.
 
 **Method:** Each task is tested in the chatbox (Guide/Agent) with the BASIC prompt shown.
 **Pass criterion:** the prompt is simple, but the output must be *completion of the task* —

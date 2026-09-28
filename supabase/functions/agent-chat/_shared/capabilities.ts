@@ -720,6 +720,255 @@ function lastMentionedRouteId(hist: { role: string; content: string }[]): string
   return null;
 }
 
+// ---------- Bill-increase investigation ----------
+// "My Spotify bill went up — find out why and fix it" (feature #4).
+// Three real failure modes drove this deterministic handler:
+//  1. Price-increase answers came back as bare model prose with no Sources
+//     block (owner hard rule) and pointed at "spotify.com" with no raw URL.
+//  2. The subscription-audit parser fired on conversational price answers
+//     ("It was $11.99 a month, this month's charge was $16.99") and invented
+//     subscription entities from sentence fragments.
+//  3. "Walk me through downgrading — give me the exact steps and links"
+//     substring-matched provider "Link" (R6411) and returned a Zales coupon
+//     card (fixed at the matcher; the downgrade path is owned here).
+const BILL_UP_RX =
+  /\b(bill|price|subscription|plan)\b[^.?]{0,40}\b(went up|gone up|increased|rose|higher|jumped|more expensive)\b|\b(went up|gone up|increased|rose|jumped)\b[^.?]{0,40}\b(bill|price|subscription|plan)\b/i;
+const BILL_REPORT_RX =
+  /\b(bill|price|charge)\b[^.?]{0,30}\bwas\b[^.?]{0,30}\$?\d{1,4}\.\d{2}|\bnow\b[^.?]{0,20}\$?\d{1,4}\.\d{2}/i;
+const DOWNGRADE_RX =
+  /\b(downgrade|downgrading|switch to (a )?cheaper|change (my |the )?plan)\b/i;
+// Amounts with or without the $ sign — testers wrote "11.99" as often as
+// "$11.99". Decimals required so "I'm 20" never parses as money.
+const AMOUNT_RX = /\$?(\d{1,4}\.\d{2})\b/g;
+// Investing questions must never land here ("Spotify raised prices — should
+// I buy the stock?").
+const INVEST_RX = /\b(stock|stocks|shares|invest|portfolio|ticker)\b/i;
+
+// Verified Spotify US pricing facts (announced Jan 15, 2026; effective on
+// February 2026 billing dates; third US increase since Jul 2023).
+const SPOTIFY_TIERS: [string, number][] = [
+  ["Individual", 12.99],
+  ["Duo", 18.99],
+  ["Family", 21.99],
+  ["Student", 6.99],
+];
+const SPOTIFY_TIERS_PREV: [string, number][] = [
+  ["Individual", 11.99],
+  ["Duo", 16.99],
+  ["Family", 19.99],
+  ["Student", 5.99],
+];
+const SPOTIFY_SOURCES = [
+  "https://www.spotify.com/us/premium/",
+  "https://support.spotify.com/us/article/change-premium-plans/",
+  "https://www.aberdeennews.com/story/tech/2026/01/16/spotify-raising-prices-premium/88211401007/",
+];
+
+function billThreadMerchant(
+  hist: { role: string; content: string }[],
+): string | null {
+  // The user named a subscription merchant alongside a bill-increase
+  // complaint earlier in the thread.
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const h = hist[i];
+    if (h.role !== "user") continue;
+    const c = String(h.content ?? "");
+    if (BILL_UP_RX.test(c) || BILL_REPORT_RX.test(c)) {
+      const m = extractCancelMerchant(c);
+      if (m) return m;
+    }
+  }
+  return null;
+}
+
+function spotifyTierName(price: number): string | null {
+  for (const [name, p] of [...SPOTIFY_TIERS, ...SPOTIFY_TIERS_PREV]) {
+    if (Math.abs(p - price) < 0.005) return name;
+  }
+  return null;
+}
+
+function spotifyDiagnose(oldP: number, newP: number): string {
+  const oldTier = spotifyTierName(oldP);
+  const newTier = spotifyTierName(newP);
+  const oldPrev = SPOTIFY_TIERS_PREV.find(([, p]) => Math.abs(p - oldP) < 0.005);
+  const newCur = SPOTIFY_TIERS.find(([, p]) => Math.abs(p - newP) < 0.005);
+  if (
+    oldPrev && newCur && oldPrev[0] === newCur[0] &&
+    Math.abs(newP - oldP) < 2.01
+  ) {
+    return (
+      `**That's the standard price increase, not a plan change.** You were on **${oldPrev[0]}** at $${oldP.toFixed(2)}; ` +
+      `Spotify's Feb 2026 increase moved that exact tier to **$${newP.toFixed(2)}**. ` +
+      `Same plan, same account — the bill just went up by $${(newP - oldP).toFixed(2)}.`
+    );
+  }
+  if (oldTier && newTier && oldTier !== newTier) {
+    return (
+      `**That's not the standard price increase — it's a plan-tier change.** The same-plan increase would only be ` +
+      `$1–2 (e.g. Individual $11.99 → $12.99 in Feb 2026). But $${oldP.toFixed(2)} was the **${oldTier}** price and ` +
+      `$${newP.toFixed(2)} matches the **${newTier}** tier — so your plan was switched (by you, someone on your ` +
+      `account, or a promo/trial ending). Check "Your plan" on your Spotify account page to confirm the tier.`
+    );
+  }
+  return (
+    `**That jump doesn't match any standard Spotify increase.** A same-plan increase is only $1–2; ` +
+    `$${oldP.toFixed(2)} → $${newP.toFixed(2)} is bigger, so the likely causes are a plan-tier change, a trial or ` +
+    `promo ending, or a billing-party change (Apple/Google Play/carrier). Check "Your plan" and the receipt on ` +
+    `your Spotify account page — the plan name and billing party are listed there.`
+  );
+}
+
+function spotifyDowngradeSteps(): string {
+  return (
+    `**Downgrading Spotify — exact steps:**\n\n` +
+    `1. Open your Spotify account page in a browser and log in (plan changes live there, not fully in the mobile app).\n` +
+    `2. Under **Subscription**, select **Manage your subscription**.\n` +
+    `3. Click **Change plan**.\n` +
+    `4. Choose **Individual** ($12.99/mo) → **Select**.\n` +
+    `5. **Continue** → **Confirm** → **Update subscription**.\n\n` +
+    `You're charged the new price when your current plan's credit runs out — that becomes your new billing date. ` +
+    `Dropping from Duo/Family: you'll pick which members keep Premium; anyone not picked moves to free Spotify. ` +
+    `Pay through Google Play? Do it in the app instead: profile picture → **Settings and privacy** → **Account** → ` +
+    `**Your plan** → **See available plans**.\n\n` +
+    `I can't make the change for you — the last tap is yours — but that's the whole path.\n` +
+    `Full official guide: https://support.spotify.com/us/article/change-premium-plans/`
+  );
+}
+
+function billWhyReply(merchant: string): string {
+  if (merchant === "spotify") {
+    return (
+      `I can't look inside your Spotify account, so I can't say for certain which change hit your bill — ` +
+      `but here's what's factual, and the quick check that pins it down.\n\n` +
+      `**What Spotify actually changed (US):** On Jan 15, 2026 Spotify raised US Premium prices for the third time ` +
+      `since 2023 — Individual $11.99 → **$12.99/mo**, Duo $16.99 → $18.99, Family $19.99 → $21.99, ` +
+      `Student $5.99 → $6.99. New prices took effect on February 2026 billing dates.\n\n` +
+      `**The key distinction:** a same-plan increase is only $1–2. If your jump is bigger than that, your *plan tier* ` +
+      `likely changed — or a trial/promo ended. That's a different fix than a price bump.\n\n` +
+      `**Pin it down (about a minute):**\n` +
+      `1. Open your Spotify account page in a browser and log in.\n` +
+      `2. Under "Your plan" it shows your current tier and next charge — compare it with the current prices: ` +
+      `https://www.spotify.com/us/premium/\n\n` +
+      `Tell me the old and new amounts (e.g. "$11.99, now $16.99") and I'll tell you exactly which change it matches.\n\n` +
+      spotifyDowngradeSteps() +
+      `\n\nSources:\n` + SPOTIFY_SOURCES.join("\n")
+    );
+  }
+  const cp = findCancelPath(merchant);
+  const disp = merchant.charAt(0).toUpperCase() + merchant.slice(1);
+  let out =
+    `I can't see inside your ${disp} account, so I can't say for certain what changed — here's how to pin it ` +
+    `down fast, honestly.\n\n` +
+    `1. Open your ${disp} account page in a browser and check your current plan/tier and next charge under ` +
+    `Billing or Subscription.\n` +
+    `2. Compare with their current published prices — if the jump matches a published increase, that's your answer; ` +
+    `if it's bigger, your plan tier likely changed or a trial/promo ended.\n\n` +
+    `Tell me the old and new amounts and the plan name shown on your account page, and I'll help you read it.\n\n` +
+    `To pay less, the usual fix is switching to a cheaper tier from the same account page — the last tap is yours, ` +
+    `I can't change it for you.`;
+  if (cp?.steps?.length) {
+    out += `\n\n**Cancel path** (if you'd rather drop it):\n` +
+      cp.steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+  }
+  if (cp?.url) out += `\n\nSources:\n${cp.url}`;
+  return out;
+}
+
+export function tryBillIncrease(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (INVEST_RX.test(message)) return null;
+  const upNow = BILL_UP_RX.test(message);
+  const reportNow = BILL_REPORT_RX.test(message);
+  const merchantNow = upNow || reportNow ? extractCancelMerchant(message) : null;
+  const merchantHist = merchantNow ? null : billThreadMerchant(hist);
+  const merchant = merchantNow ?? merchantHist;
+  if (!merchant) return null;
+
+  // Downgrade walkthrough inside a billing thread, or naming the merchant
+  // directly ("downgrade my Spotify").
+  if (DOWNGRADE_RX.test(message) && (merchantHist || extractCancelMerchant(message))) {
+    const body =
+      merchant === "spotify"
+        ? spotifyDowngradeSteps()
+        : billWhyReply(merchant);
+    const src =
+      merchant === "spotify"
+        ? `\n\nSources:\n` + SPOTIFY_SOURCES.join("\n")
+        : "";
+    return { reply: body + src };
+  }
+
+  // Price answer inside a billing thread: "It was $11.99, now $16.99."
+  // A real pasted subscription list ("Netflix $15.49, Spotify $11.99") is
+  // left for the audit — it parses into 2+ sane merchant names.
+  if (merchantHist && !upNow) {
+    const amounts = [...message.matchAll(AMOUNT_RX)].map((m) =>
+      parseFloat(m[1])
+    );
+    if (amounts.length >= 2 && parseInlineSubs(message).length < 2) {
+      const oldP = amounts[0];
+      const newP = amounts[amounts.length - 1];
+      let body: string;
+      if (merchant === "spotify") {
+        body = spotifyDiagnose(oldP, newP);
+      } else {
+        const disp = merchant.charAt(0).toUpperCase() + merchant.slice(1);
+        body =
+          `Your ${disp} charge went $${oldP.toFixed(2)} → $${newP.toFixed(2)}. I don't have verified ` +
+          `price-history facts for ${disp}, so I can't name the increase the way I can for Spotify — check your ` +
+          `current plan/tier and next charge on your ${disp} account page and compare with their published prices. ` +
+          `If the jump is bigger than a normal increase, your plan tier likely changed or a trial ended.`;
+      }
+      const fix =
+        merchant === "spotify"
+          ? `\n\n**The fix:**\n` + spotifyDowngradeSteps()
+          : "";
+      const src =
+        merchant === "spotify"
+          ? `\n\nSources:\n` + SPOTIFY_SOURCES.join("\n")
+          : "";
+      return { reply: body + fix + src };
+    }
+    return null;
+  }
+
+  // Fresh bill-increase complaint naming a merchant — including the cold
+  // single-message form ("my Spotify bill was $11.99, now $16.99").
+  if (upNow || (extractCancelMerchant(message) && BILL_REPORT_RX.test(message))) {
+    const mNow = extractCancelMerchant(message);
+    if (!mNow) return null;
+    if (upNow) return { reply: billWhyReply(mNow) };
+    const amounts = [...message.matchAll(AMOUNT_RX)].map((m) =>
+      parseFloat(m[1])
+    );
+    if (amounts.length >= 2) {
+      const disp =
+        mNow === "spotify" ? "Spotify"
+        : mNow.charAt(0).toUpperCase() + mNow.slice(1);
+      const diag =
+        mNow === "spotify"
+          ? spotifyDiagnose(amounts[0], amounts[amounts.length - 1])
+          : `Your ${disp} charge went $${amounts[0].toFixed(2)} → $${amounts[amounts.length - 1].toFixed(2)}. ` +
+            `I don't have verified price-history facts for ${disp} — check your plan/tier and next charge on ` +
+            `your account page and compare with their published prices.`;
+      const fix =
+        mNow === "spotify"
+          ? `\n\n**The fix:**\n` + spotifyDowngradeSteps()
+          : "";
+      const src =
+        mNow === "spotify"
+          ? `\n\nSources:\n` + SPOTIFY_SOURCES.join("\n")
+          : "";
+      return { reply: diag + fix + src };
+    }
+    return { reply: billWhyReply(mNow) };
+  }
+  return null;
+}
+
 export function tryWalkthrough(
   message: string,
   routes: any[],
@@ -736,10 +985,16 @@ export function tryWalkthrough(
     }
   }
   if (!rid) {
-    const hit = routes.find(
-      (r) => String(r.provider ?? "").length > 3 &&
-        t.includes(String(r.provider).toLowerCase()),
-    );
+    // Word boundaries, not substrings: "give me the exact steps and links"
+    // once matched provider "Link" (R6411) inside "links" and hijacked a
+    // Spotify downgrade question with a Zales coupon card.
+    const hit = routes.find((r) => {
+      const p = String(r.provider ?? "").toLowerCase().trim();
+      return (
+        p.length > 3 &&
+        new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t)
+      );
+    });
     if (hit) rid = hit.route_id;
   }
   if (!rid) {
@@ -1437,7 +1692,23 @@ const SUB_HINT_RX = new RegExp(
 
 interface InlineSub { name: string; monthly: number; raw?: number; per?: string }
 
-function parseInlineSubs(message: string): InlineSub[] {
+// Garbage-name filter for the inline parser. The parser once turned the
+// conversational sentence "It was $11.99 a month, this month's charge was
+// $16.99" into fake subscriptions ("a month and this month's charge was —
+// $16.99/mo"). A parsed name must look like a merchant name, not a sentence
+// fragment.
+function saneSubName(name: string): boolean {
+  const n = name.trim();
+  const words = n.split(/\s+/);
+  if (words.length > 3 || n.length > 28) return false;
+  if (/^[A-Z]/.test(n)) return true;
+  // Lowercase-start names ("iCloud+", "eBay") pass only when short and
+  // spaceless — a fragment like "a month and this month's charge was"
+  // always has spaces.
+  return !/\s/.test(n);
+}
+
+export function parseInlineSubs(message: string): InlineSub[] {
   const out: InlineSub[] = [];
   const re =
     /([A-Za-z][\w+&' .()-]{1,40}?)\s*\$?\s*(\d{1,3}(?:\.\d{1,2})?)\s*(\/mo(?:nth)?|per month|a month|\/y(?:ea)?r|\/annual(?:ly)?|per year|a year|\/wk|\/week|per week|\/qtr|\/quarter(?:ly)?)?(?=[,.;\n]|$)/gi;
@@ -1455,7 +1726,7 @@ function parseInlineSubs(message: string): InlineSub[] {
     } else if (/^(qtr|quarter|quarterly)$/.test(iv)) {
       monthly = raw / 3; per = "/qtr";
     }
-    if (name.length >= 2 && raw > 0 && raw < 10000 && monthly > 0)
+    if (name.length >= 2 && saneSubName(name) && raw > 0 && raw < 10000 && monthly > 0)
       out.push({ name, monthly, raw, per });
   }
   return out;
@@ -1924,6 +2195,11 @@ export async function tryCapabilities(
   if (plan) return { reply: plan };
   const makeMe = tryMakeMeX(message, routes, hist, exclHist);
   if (makeMe) return { reply: makeMe };
+  // Bill-increase investigation (feature #4) before walkthrough and audit:
+  // price answers in a billing thread must be diagnosed, not audit-mangled,
+  // and "walk me through downgrading" must not route to earn walkthroughs.
+  const billUp = tryBillIncrease(message, hist);
+  if (billUp) return billUp;
   const walk = tryWalkthrough(message, routes, hist);
   if (walk) return walk;
   const monthly = tryMonthlyEstimate(message, routes);

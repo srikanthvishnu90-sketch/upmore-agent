@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-buibkZ48YvotytfT+kQLkG0jVBBQvLfMRgoIaxPzZsM=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-vje/RiR7zgqi8fqmsFLMOwdkfHQNXLP67ReNvtpZYHE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1318,6 +1318,7 @@
           <p class="formerr" id="signupErr" role="alert"></p>
           <button class="go" id="pwSignupGo"><span>Create account</span></button>
         </div>
+        <p class="legal" style="margin-top:10px">Already have an account? <a href="#" id="signupToLogin">Log in</a></p>
       </div>
       <div class="spacer"></div>
     </div>
@@ -2639,6 +2640,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Login screen links */
   $("welcomeLogin").onclick = (e) => { e.preventDefault(); show("login"); };
   $("loginToSignup").onclick = (e) => { e.preventDefault(); show("welcome"); };
+  // Signup (#phone) -> login: a returning user who tapped "Get started" must
+  // be able to reach the login form without going back through onboarding.
+  $("signupToLogin").onclick = (e) => { e.preventDefault(); show("login"); };
 
   /* Email + password sign-in (real production login, no demo shortcuts) */
   $("pwGo").onclick = async () => {
@@ -7365,6 +7369,28 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // Local finance facts: verified 2026 figures for anonymous users (and as a
     // fast path). Signed-in users get the full agent, which already ran first.
     const ff = guideFinanceFacts(t, false); if (ff) return ff;
+
+    // APP KNOWLEDGE (2026-09-28, live audit): signed-out users ask about the
+    // app itself — "how many tabs", "which tab is the chat on". Answer directly
+    // instead of the canned catalog fallback.
+    if (has("how many tabs", "how many tab", "number of tabs") || (has("tabs") && has("how many", "what are", "list", "name"))) {
+      return { paras: ["The app has 5 tabs: Home, Guide, Explore, Save, and You. The chat lives on the Guide tab — that's the second one."] };
+    }
+    if ((has("which tab", "what tab") && has("chat", "talk", "message", "ask", "agent")) || has("where is the chat", "where's the chat", "find the chat")) {
+      return { paras: ["The chat is on the Guide tab — second from the left in the bottom bar. Tap Guide and type away."] };
+    }
+    if (has("what can you do", "what do you do", "how does this work", "what is upmore", "what's upmore")) {
+      return { paras: [
+        "Upmore finds you real ways to earn extra money — bank bonuses, cashback, surveys, resale — with verified terms and every catch shown up front.",
+        "The Guide (this chat) walks you through offers step by step. Sign in and it can also research general money questions with the full agent, track your tasks, and keep your chats."
+      ] };
+    }
+    // REMINDER INTENT while signed out (2026-09-28, live audit): "remind me
+    // tomorrow to cancel Netflix" got the canned fallback and created nothing.
+    // Be honest: reminders need sign-in. Never pretend one was set.
+    if (has("remind me", "remindme", "set a reminder", "remind me to")) {
+      return { paras: ["I can't set reminders until you sign in — they live in your account so they survive app restarts.", "Once you're signed in, just say \"remind me tomorrow to cancel Netflix\" and I'll set it."] };
+    }
 
     return { paras: [
       `I can look up any of the ${D.routes.length} routes in the catalog — try a category like bank bonuses, surveys, or cashback, or name a provider like Fetch.`,

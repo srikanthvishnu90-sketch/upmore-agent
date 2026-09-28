@@ -1139,6 +1139,213 @@ export function tryBillNegotiation(
   return { reply: negotiateKit(ispKey, message, hist) };
 }
 
+// Feature #7 (2026-09-28): duplicate-charge refund help. Paired testing
+// caught a catch-22: the model path's unlisted_url grounding nukes any reply
+// whose support URLs aren't route cards, so refund walkthroughs were either
+// nuked to SAFE_FALLBACK (Netflix tester B, twice) or omitted URLs entirely
+// (violating the owner rule that every visit instruction carries its raw
+// https:// URL). This owns the intent deterministically: user-supplied facts
+// only, official merchant URLs (verified 200 on 2026-09-28), exact steps
+// ending at the user's final tap, honest no-filing framing, and a Sources
+// block on every factual reply. This path bypasses the model + grounding
+// nuke entirely (same pattern as #5/#6).
+interface DupMerchantInfo {
+  name: string;
+  billingUrl: string;
+  supportUrl: string;
+}
+// Official URLs verified 200 on 2026-09-28. Only official domains — never
+// guess a support URL for a merchant not listed here.
+const DUP_MERCHANTS: Record<string, DupMerchantInfo> = {
+  spotify: {
+    name: "Spotify",
+    billingUrl: "https://www.spotify.com/account/billing/overview/",
+    supportUrl: "https://support.spotify.com/contact-us",
+  },
+  netflix: {
+    name: "Netflix",
+    billingUrl: "https://www.netflix.com/youraccount",
+    supportUrl: "https://help.netflix.com/contactus",
+  },
+  apple: {
+    name: "Apple",
+    billingUrl: "https://support.apple.com/billing",
+    supportUrl: "https://support.apple.com/billing",
+  },
+  google: {
+    name: "Google",
+    billingUrl: "https://support.google.com/googleplay/answer/2479637",
+    supportUrl: "https://support.google.com/",
+  },
+  amazon: {
+    name: "Amazon",
+    billingUrl: "https://www.amazon.com/gp/css/order-history",
+    supportUrl: "https://www.amazon.com/gp/help/customer/contact-us",
+  },
+};
+const DUP_RX =
+  /\b(double[\s-]?charg\w*|charg\w*(?:\s+(?:me|us|my|\$[\d,]+(?:\.\d{1,2})?|on))*\s+twice\b|duplicate\s+(?:charg\w*|refund\w*)|refund\w*\s+(?:the\s+)?duplicate|two\s+(?:separate\s+)?charges?|billed\s+twice|same\s+charg\w*\s+twice)\b/i;
+const DUP_KIT_MARKER_RX = /duplicate refund — the exact play/i;
+const DUP_BANK_RX = /\b(bank|dispute|chargeback|card company|credit card company)\b/i;
+// CANCEL_PATHS keys that map onto a refund-kit merchant ("Apple Music" and
+// "iCloud+" both bill through Apple; "Google One" through Google).
+const DUP_KEY_ALIASES: Record<string, string> = {
+  "amazon prime": "amazon",
+  "apple music": "apple",
+  "icloud+": "apple",
+  "google one": "google",
+};
+const DUP_GENERIC_MERCHANT_RX =
+  /\b([A-Z][A-Za-z0-9+&' .-]{1,30}?)\s+(?:charged me|billed me|double[\s-]?charged me)\b/;
+const DUP_MERCHANT_STOPWORDS = /^(they|it|the company|my bank|the bank|someone)$/i;
+
+function extractDupMerchantKey(message: string): string | null {
+  // CANCEL_PATHS keys first (spotify, netflix, "amazon prime", "apple music"...).
+  const known = extractCancelMerchant(message);
+  if (known) {
+    if (DUP_MERCHANTS[known]) return known;
+    const alias = DUP_KEY_ALIASES[known];
+    if (alias) return alias;
+  }
+  // Direct match on the refund-kit merchant keys ("Apple double-charged me").
+  const m = message.toLowerCase();
+  for (const key of Object.keys(DUP_MERCHANTS)) {
+    const esc = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`(^|[^a-z0-9])${esc}($|[^a-z0-9])`).test(m)) return key;
+  }
+  return null;
+}
+
+function extractDupMerchantName(message: string): string | null {
+  const key = extractDupMerchantKey(message);
+  if (key) return DUP_MERCHANTS[key].name;
+  const mm = message.match(DUP_GENERIC_MERCHANT_RX);
+  if (mm) {
+    const name = mm[1].trim();
+    if (!DUP_MERCHANT_STOPWORDS.test(name)) return name;
+  }
+  return null;
+}
+
+function threadDupMerchant(hist: { role: string; content: string }[]): { key: string | null; name: string | null } {
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const c = String(hist[i].content ?? "");
+    const key = extractDupMerchantKey(c);
+    if (key) return { key, name: DUP_MERCHANTS[key].name };
+    const name = extractDupMerchantName(c);
+    if (name) return { key: null, name };
+  }
+  return { key: null, name: null };
+}
+
+// User-supplied charge facts: amounts and dates as the user stated them.
+// Never invent — if nothing was supplied, the kit says "your charges".
+function dupFacts(
+  message: string,
+  hist: { role: string; content: string }[],
+): { amounts: string[]; dates: string[] } {
+  const text = message + " " + hist.map((h) => String(h.content ?? "")).join(" ");
+  const amounts: string[] = [];
+  for (const m of text.match(/\$[\d,]+(?:\.\d{2})?/g) ?? []) {
+    const n = "$" + m.replace(/[^0-9.]/g, "");
+    if (!amounts.includes(n)) amounts.push(n);
+  }
+  const dates: string[] = [];
+  const dateRx =
+    /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{4})?\b|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/gi;
+  for (const m of text.match(dateRx) ?? []) {
+    if (!dates.includes(m)) dates.push(m);
+  }
+  return { amounts, dates };
+}
+
+function dupChargeLine(facts: { amounts: string[]; dates: string[] }): string {
+  if (facts.amounts.length) {
+    const amt = facts.amounts.join(" and ");
+    const when = facts.dates.length ? ` on ${facts.dates.join(" and ")}` : "";
+    return `${amt}${when}`;
+  }
+  return "your duplicate charge";
+}
+
+function dupRefundKit(
+  merchant: { key: string | null; name: string | null },
+  facts: { amounts: string[]; dates: string[] },
+): string {
+  const dispName = merchant.name ?? "the merchant";
+  const info = merchant.key ? DUP_MERCHANTS[merchant.key] : null;
+  const chargeLine = dupChargeLine(facts);
+  const billingStep = info
+    ? `**1. Confirm both charges:** open your billing history and check the two charges match — same amount, same plan:\n${info.billingUrl}`
+    : `**1. Confirm both charges:** open the merchant's billing/account history and check the two charges match — same amount, same plan.`;
+  const supportStep = info
+    ? `**2. Ask ${dispName} for the refund:** go to their support page and choose Billing / Refund / Duplicate charge:\n${info.supportUrl}`
+    : `**2. Ask ${dispName} for the refund:** use the merchant's official support page (from their website's Contact or Help section) and choose Billing / Refund / Duplicate charge.`;
+  const msg =
+    `**3. Send this, word for word:**\n` +
+    `> "Hi — I was charged ${chargeLine} for the same ${dispName} subscription. ` +
+    `Please refund the duplicate charge. Order/account details are attached."`;
+  const src = info ? `\n\nSources:\n${info.billingUrl}\n${info.supportUrl}` : "";
+  return (
+    `**Getting your ${dispName} duplicate refund — the exact play:**\n\n` +
+    `Straight up: I can't file the dispute or request the refund for you — no ` +
+    `agent here can move money on your behalf. But everything below is ready ` +
+    `to go; the only taps left are yours.\n\n` +
+    `${billingStep}\n\n` +
+    `${supportStep}\n\n` +
+    `${msg}\n\n` +
+    `**4. If they won't refund:** call the number on the back of your card and ` +
+    `dispute it as a duplicate charge — see the bank script below.\n\n` +
+    bankDisputeScript(dispName, facts) +
+    src
+  );
+}
+
+function bankDisputeScript(
+  dispName: string,
+  facts: { amounts: string[]; dates: string[] },
+): string {
+  const chargeLine = dupChargeLine(facts);
+  return (
+    `**What to tell your bank (word for word):**\n` +
+    `> "I'd like to dispute a duplicate charge. ${dispName} charged me ` +
+    `${chargeLine} for the same subscription — only one charge is valid. ` +
+    `I've already asked the merchant for a refund of the duplicate."`
+  );
+}
+
+export function tryDuplicateCharge(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { reply: string } | null {
+  if (INVEST_RX.test(message)) return null;
+  // Never steal a real cancellation request from the cancellation path.
+  if (/\bcancel\b/i.test(message)) return null;
+  const intentNow = DUP_RX.test(message);
+  const intentHist = hist.some((h) => DUP_RX.test(String(h.content ?? "")));
+  if (!intentNow && !intentHist) return null;
+  const merchant =
+    (extractDupMerchantName(message) && { key: extractDupMerchantKey(message), name: extractDupMerchantName(message) }) ||
+    threadDupMerchant(hist);
+  if (!merchant.name) {
+    // One short question, no fake facts — the testers' T1 expectation.
+    return {
+      reply:
+        "I can walk you through the exact refund steps — which merchant charged you twice, and what was the amount?",
+    };
+  }
+  const facts = dupFacts(message, hist);
+  if (hist.some((h) => DUP_KIT_MARKER_RX.test(String(h.content ?? "")))) {
+    // Kit already delivered. Bank/dispute follow-ups get the compact script;
+    // anything else goes back to the model.
+    if (DUP_BANK_RX.test(message)) {
+      return { reply: bankDisputeScript(merchant.name, facts) };
+    }
+    return null;
+  }
+  return { reply: dupRefundKit(merchant, facts) };
+}
+
 export function tryWalkthrough(
   message: string,
   routes: any[],
@@ -2481,6 +2688,11 @@ export async function tryCapabilities(
   // earn-route card or the subscription audit.
   const billNeg = tryBillNegotiation(message, hist);
   if (billNeg) return billNeg;
+  // Duplicate-charge refunds (feature #7) before walkthrough/audit: the
+  // model path's unlisted_url grounding nukes merchant support URLs, so the
+  // refund kit is served deterministically with verified official links.
+  const dupCharge = tryDuplicateCharge(message, hist);
+  if (dupCharge) return dupCharge;
   const walk = tryWalkthrough(message, routes, hist);
   if (walk) return walk;
   const monthly = tryMonthlyEstimate(message, routes);

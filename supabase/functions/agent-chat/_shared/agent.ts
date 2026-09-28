@@ -300,7 +300,8 @@ export function checkGrounding(
   routes: RouteCard[],
   userMessage = "",
   financeMode = false,
-  financeIds: string[] = []
+  financeIds: string[] = [],
+  threadUserText = "",
 ): string[] {
   // Even if the model forgot the [FINANCE] marker, a question that matched
   // finance facts is judged by finance grounding (scoped to the matched facts),
@@ -349,6 +350,13 @@ export function checkGrounding(
     }
   }
   for (const m of userMessage.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
+    allowedMoney.add(normAmt(m));
+  }
+  // FIX (2026-09-28, #7 finding): amounts the user stated earlier in the
+  // thread count as user-supplied — otherwise every multi-turn money
+  // conversation stonewalls with invented_amount the moment the user stops
+  // retyping the figure.
+  for (const m of threadUserText.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
     allowedMoney.add(normAmt(m));
   }
   for (const m of lowered.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
@@ -410,6 +418,23 @@ export const SAFE_FALLBACK =
   "state it as fact. Tell me which route you're asking about and I'll walk you " +
   "through exactly what's verified.";
 
+// Billing-mode fallback: same honesty, but reads sanely in billing /
+// subscription / charge threads where "which route you're asking about" is
+// nonsensical (feature #7 finding).
+export const BILLING_SAFE_FALLBACK =
+  "I want to be careful here — I can't verify that figure right now, so I won't " +
+  "state it as fact. For the official number, check your statement or the " +
+  "provider's billing page directly — and if you tell me the merchant, amount, " +
+  "and date I'll help you put the dispute together.";
+
+// True when the thread is about billing/subscription/charges — used to pick
+// the billing fallback instead of the route-specific one.
+export function isBillingContext(message: string, threadText = ""): boolean {
+  return /\b(bill|billing|charg\w*|subscription|refund|dispute|double[\s-]?charg\w*)\b/i.test(
+    message + " " + threadText,
+  );
+}
+
 // Finance-mode fallback: same honesty, but points at official sources instead
 // of routes (a finance question has no route to ask about).
 export const FINANCE_SAFE_FALLBACK =
@@ -441,7 +466,7 @@ export function appendSources(
   financeIds: string[]
 ): string {
   if (/sources:/i.test(reply)) return reply;
-  if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK) return reply;
+  if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK || reply === BILLING_SAFE_FALLBACK) return reply;
   const urls: string[] = [];
   const push = (u: string | null | undefined) => {
     if (!u) return;

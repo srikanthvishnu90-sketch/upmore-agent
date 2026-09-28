@@ -15,6 +15,8 @@ import {
   appendSources,
   SAFE_FALLBACK,
   FINANCE_SAFE_FALLBACK,
+  BILLING_SAFE_FALLBACK,
+  isBillingContext,
   SCAM_FALLBACK,
   RouteCard,
 } from "./_shared/agent.ts";
@@ -659,7 +661,8 @@ serve(async (req) => {
     // A question that matched finance facts is finance-mode even if the model
     // forgot the marker: finance grounding + finance fallback apply.
     if (financeIds.length) financeMode = true;
-    const violations = checkGrounding(reply, routes, message, financeMode, financeIds);
+    const violations = checkGrounding(reply, routes, message, financeMode, financeIds,
+      exclHist.map((h) => String(h.content ?? "")).join("\n"));
     if (violations.length) {
       console.warn("grounding violations", violations);
       // Learning: the model made an ungrounded claim and got caught — record
@@ -675,7 +678,12 @@ serve(async (req) => {
       // generic deflection would leave them unprotected. The scam fallback
       // names the pattern without inventing any amounts or URLs.
       // Finance-mode violations get the finance fallback (no route to ask about).
-      reply = isDebunkReply(reply) ? SCAM_FALLBACK : (financeMode ? FINANCE_SAFE_FALLBACK : SAFE_FALLBACK);
+      // Billing-thread violations get the billing fallback (the route-specific
+      // "which route you're asking about" is nonsensical there).
+      reply = isDebunkReply(reply) ? SCAM_FALLBACK
+        : financeMode ? FINANCE_SAFE_FALLBACK
+        : isBillingContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? BILLING_SAFE_FALLBACK
+        : SAFE_FALLBACK;
       action = null;
     } else if (financeMode) {
       // Finance answers skip the route-correction pass below (no route claim).

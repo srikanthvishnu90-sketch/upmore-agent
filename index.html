@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-3m4O+mNbBowDqE3SJLr7pNSSFbBD/leO4DXBuLJ2zXY=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Bhpygge7mW4AT8k3cLbDt9dQoGH9FiRg5eouAqqrFOE=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-09WdwBxQS/rKZdsiC4dEiLUVXyZIS2J4HrAcmDk7vPQ=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -428,7 +428,7 @@
     color:#fff; font-weight:700; font-size:28px; margin:4px auto 10px; }
   .danger { background:var(--coral); color:#17251E; border:none; border-radius:12px; padding:14px; font-size:16px; font-weight:700; width:100%; cursor:pointer; }
   .primary { background:#F4F5F2; color:#17251E; border:none; border-radius:12px; padding:14px; font-size:16px; font-weight:700; width:100%; cursor:pointer; }
-  .ghostbtn { background:none; border:none; color:var(--muted); font-size:15px; padding:12px; width:100%; cursor:pointer; }
+  /* (ghostbtn lives below at line ~595 — single definition, no duplicates) */
   .hero.t-green { background:linear-gradient(160deg, rgba(79,163,122,.17), rgba(79,163,122,.03) 70%); border-color:rgba(79,163,122,.28); }
   .hero.t-sky { background:linear-gradient(160deg, rgba(111,179,214,.16), rgba(111,179,214,.03) 70%); border-color:rgba(111,179,214,.28); }
   .hkick { font-size:12.5px; font-weight:600; color:var(--muted); }
@@ -594,6 +594,9 @@
   .xfoot { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; font-size:12.5px; color:var(--dim); }
   .xfoot a { color:var(--sky); font-weight:600; text-decoration:none; white-space:nowrap; }
   .ghostbtn { width:100%; margin-top:12px; padding:14px 16px; min-height:48px; border-radius:14px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-size:15px; font-weight:600; cursor:pointer; }
+  /* FIX 2026-09-28: .ghostbtn's width:100% crushed the household name input
+     when the button sits in a flex row — the button stole the full row. */
+  #hhAdd { width:auto; flex:none; }
   .uptag { font-style:normal; color:var(--sky); font-size:12px; }
 
   .wsec { margin:24px 0 10px; font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
@@ -930,8 +933,10 @@
     padding: 12px 14px; min-height: 44px; width: 100%; }
   .csugg b { display: block; font-size: 14px; line-height: 1.35; font-weight: 600; color: var(--nhi); }
   .csugg span { display: block; font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 2px; }
-  .umsg { align-self: flex-end; max-width: 80%; background: var(--ns3); color: var(--nhi);
-    border-radius: 18px 18px 6px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5; }
+  .umsg { align-self: flex-end; max-width: 80%; color: #fff;
+    background: linear-gradient(180deg, #37A26F, #257A52);
+    border-radius: 18px 18px 6px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(46,158,107,.28), inset 0 1px 0 rgba(255,255,255,.22); }
   .amsg { align-self: stretch; color: var(--nhi); font-size: 15px; line-height: 1.55;
     letter-spacing: -0.003em; }
   .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
@@ -1015,7 +1020,7 @@
   .tline3 { font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 4px; }
   .tbtns { display: flex; gap: 8px; margin-top: 12px; }
   .tbtn { height: 36px; border-radius: 999px; font-size: 13px; font-weight: 600; padding: 0 18px;
-    min-height: 36px; border: 0; }
+    min-height: 36px; border: 0; white-space: nowrap; }
   .tbtn-p { background: linear-gradient(180deg, #F4F5F6, #C9CDD0); color: #000; }
   .tbtn-g { background: none; border: 1px solid var(--nline); color: var(--nhi); }
   .tagentwork { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px;
@@ -4722,7 +4727,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   async function renderLedger() {
     const box = $("ledgerList"), tots = $("ledgerTotals");
     if (!box || !tots) return;
-    if (!saveUid()) { tots.innerHTML = ""; box.innerHTML = `<p class="psub">Sign in to keep your money log.</p>`; return; }
+    if (!saveUid()) { tots.innerHTML = ""; box.innerHTML = `<p class="psub" style="padding:16px 18px">Sign in to keep your money log.</p>`; return; }
     const rows = await saveRows("save_ledger", "occurred_on", false);
     const sums = {};
     LEDGER_BUCKETS.forEach(b => sums[b] = 0);
@@ -10463,7 +10468,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       if (minorBlocked()) { show("blocked"); return; }
       if (!(await tosAccepted())) { show("tos"); return; }
       const hh0 = LEGACY_TABS[h] || h;
-      const tab = order.includes(hh0) && ["home", "chat", "profile"].includes(hh0) ? hh0 : "home";
+      const tab = $(hh0) && ["home", "chat", "tasks", "feed", "profile"].includes(hh0) ? hh0 : "home";
       show(tab);
       return;
     }
@@ -10472,7 +10477,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     let hasOnboarding = false;
     try { hasOnboarding = !!localStorage.getItem("upmore-onboarding"); } catch (e) {}
     const hh1 = LEGACY_TABS[h] || h;
-    if (order.includes(hh1) && hh1 !== "splash") { show(hh1); bootDone = true; }
+    if ($(hh1) && hh1 !== "splash") { show(hh1); bootDone = true; }
     else if (hasOnboarding) { show("login"); bootDone = true; }
     else { show("splash"); /* splash timer advances to welcome */ }
   })();

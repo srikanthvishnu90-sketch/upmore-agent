@@ -2027,7 +2027,7 @@
 
   /* ================= Router ================= */
   const order = ["splash","welcome","time","about","situation","plan","phone","home","chat","profile"];
-  const LEGACY_TABS = { money: "home", guide: "chat" };
+  const LEGACY_TABS = { money: "home", guide: "chat", you: "profile", thread: "chat" };
   /* Founder spec: Home, Guide, Explore, Save, You — Guide is the 2nd tab and
      the chatbox lives on it. `screen` maps the tab to the underlying screen id
      (kept stable so every show("chat")/show("profile") call keeps working). */
@@ -2051,14 +2051,23 @@
     });
   }
   let current = "splash";
-  function show(id) {
-    if (!$(id)) id = "splash";
+  function show(id, o) {
     id = LEGACY_TABS[id] || id;
     if (!$(id)) id = "splash";
     hideToast();
     document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
     current = id;
-    if (location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
+    // NAV FIX (agent4 F1/F4/F5, 2026-09-28): in-app navigation uses pushState
+    // so the browser/system back button walks back through in-app screens
+    // instead of ejecting the user. history.state.appDepth marks in-app
+    // depth for back(). Pass {replace:true} for boot, auth transitions,
+    // and error screens so they don't pollute history. The hashchange
+    // handler (back/forward buttons, address-bar edits) hits the
+    // location.hash guard and only re-renders — no double entries.
+    const wantHash = "#" + id;
+    const depth = (history.state && typeof history.state.appDepth === "number") ? history.state.appDepth : 0;
+    if (o && o.replace) history.replaceState({ appDepth: depth }, "", wantHash);
+    else if (location.hash !== wantHash) history.pushState({ appDepth: depth + 1 }, "", wantHash);
     document.querySelectorAll(".tab").forEach(t => {
       const tab = TABS.find(x => x.id === t.dataset.tab);
       t.setAttribute("aria-selected", tab && tabScreen(tab) === id ? "true" : "false");
@@ -2080,6 +2089,13 @@
     if (id === "referral") renderReferral();
     if (id === "subscription") renderSubscription();
     if (id === "claimDetail") renderClaim();
+    // Deep link / reload onto cfoDetail with no tool open yet: default to
+    // the first CFO tool so the screen is never empty (agent4 F2/F3).
+    // openCFO re-enters show(), but cfoBody is then populated so this
+    // branch does not recurse.
+    if (id === "cfoDetail") {
+      try { if (!$("cfoBody").firstChild && typeof openCFO === "function" && typeof CFO_TOOLS !== "undefined" && CFO_TOOLS[0]) openCFO(CFO_TOOLS[0].id); } catch (e) {}
+    }
     renderNav();
   }
 
@@ -2222,18 +2238,31 @@
     // back buttons and strand signed-out users.
   }
   const next = () => show(order[Math.min(order.indexOf(current) + 1, order.length - 1)]);
-  // Back: previous onboarding step when on a funneled screen; Home for every
-  // detail screen (they aren't in `order`). Never strands the user on splash.
-  const back = () => { const i = order.indexOf(current); show(i > 0 ? order[i - 1] : "home"); };
+  // Back: when there's in-app history depth, use the real history stack so
+  // the in-app back arrow and the browser/system back button behave
+  // identically (agent4 F4). Otherwise (fresh deep load with no in-app
+  // entries) fall back to the old deterministic behavior: previous
+  // onboarding step when on a funneled screen, Home otherwise. Never
+  // strands the user on splash.
+  const back = () => {
+    const st = history.state;
+    const d = st && typeof st.appDepth === "number" ? st.appDepth : 0;
+    if (d > 0) { history.back(); return; }
+    const i = order.indexOf(current);
+    show(i > 0 ? order[i - 1] : "home", { replace: true });
+  };
   document.querySelectorAll("[data-next]").forEach(b => b.onclick = next);
   document.querySelectorAll("[data-back]").forEach(b => b.onclick = back);
   // Route external hash changes too (address-bar edits, back/forward buttons).
-  // show() uses replaceState, which never fires this, so there is no loop.
+  // show() only writes history when the hash differs, and pushState never
+  // fires hashchange, so there is no loop: this path re-renders only.
   window.addEventListener("hashchange", () => {
     const h = location.hash.slice(1);
     if (/(^|&)access_token=/.test(h)) return; // let supabase-js consume OAuth callbacks
     const id = LEGACY_TABS[h] || h;
-    if ($(id) && id !== current) show(id);
+    // Alias hashes (#you, #guide, ...) normalize to their screen with a
+    // replace so they don't stack duplicate history entries.
+    if ($(id) && id !== current) show(id, { replace: h !== id });
   });
 
   /* splash: tap, or auto-advance once boot leaves a fresh user on splash.
@@ -2241,7 +2270,7 @@
      or Log in. The splash never skips the auth funnel. Timer stands down
      when boot chose any other screen (session -> home, etc.) */
   let bootDone = false;
-  const splashToWelcome = () => { show("welcome"); };
+  const splashToWelcome = () => { show("welcome", { replace: true }); };
   $("splash").onclick = () => { if (current === "splash") splashToWelcome(); };
   setTimeout(() => { if (!bootDone && current === "splash") splashToWelcome(); }, 1800);
 
@@ -2639,9 +2668,9 @@
       if (!session) throw new Error("Signed in, but no session was created. Please try again.");
       await ensureProfile();
       await loadProgress();
-      if (minorBlocked()) { show("blocked"); return; }
-      if (!(await tosAccepted())) { show("tos"); return; }
-      show("home");
+      if (minorBlocked()) { show("blocked", { replace: true }); return; }
+      if (!(await tosAccepted())) { show("tos", { replace: true }); return; }
+      show("home", { replace: true });
     } catch (e) {
       err.textContent = (e && e.message) || "Couldn't log you in. Please try again.";
       btn.disabled = false; btn.innerHTML = label;
@@ -2696,9 +2725,9 @@
       if (!session) throw new Error("Password updated, but no session was created. Please log in with your new password.");
       await ensureProfile();
       await loadProgress();
-      if (minorBlocked()) { show("blocked"); return; }
-      if (!(await tosAccepted())) { show("tos"); return; }
-      show("home");
+      if (minorBlocked()) { show("blocked", { replace: true }); return; }
+      if (!(await tosAccepted())) { show("tos", { replace: true }); return; }
+      show("home", { replace: true });
     } catch (e) {
       err.textContent = (e && e.message) || "Couldn't update your password. Please try again.";
       btn.disabled = false; btn.innerHTML = label;
@@ -2729,9 +2758,9 @@
       await ensureProfile();
       await loadProgress();
       try { localStorage.setItem("upmore-onboarding", "1"); } catch (e) {}
-      if (minorBlocked()) { show("blocked"); return; }
-      if (!(await tosAccepted())) { show("tos"); return; }
-      show("home");
+      if (minorBlocked()) { show("blocked", { replace: true }); return; }
+      if (!(await tosAccepted())) { show("tos", { replace: true }); return; }
+      show("home", { replace: true });
     } catch (e) {
       err.textContent = (e && e.message) || "Couldn't create your account. Please try again.";
       btn.disabled = false; btn.innerHTML = label;
@@ -3973,9 +4002,10 @@
     ({ debt: cfoDebt, cash: cfoCash, tax: cfoTax, insurance: cfoInsurance,
        runway: cfoRunway, close: cfoClose, income: cfoIncome, credit: cfoCredit })[id](body);
     show("cfoDetail");
-    // Explicit back: override any global data-back wiring for this screen.
-    const back = document.querySelector("#cfoDetail [data-back]");
-    if (back) back.onclick = () => show("home");
+    // Explicit back: route through the shared history-aware back() so the
+    // in-app arrow matches the browser back button (agent4 F4).
+    const backBtn = document.querySelector("#cfoDetail [data-back]");
+    if (backBtn) backBtn.onclick = () => back();
   }
 
   /* ---- 1. Debt sequencing ---- */
@@ -4596,8 +4626,8 @@
   function openClaim() {
     renderClaim();
     show("claimDetail");
-    const back = document.querySelector("#claimDetail [data-back]");
-    if (back) back.onclick = () => show("home");
+    const backBtn2 = document.querySelector("#claimDetail [data-back]");
+    if (backBtn2) backBtn2.onclick = () => back();
   }
 
   function renderClaim() {
@@ -5101,7 +5131,7 @@
   if ($("tosAgree")) $("tosAgree").onclick = async () => {
     $("tosAgree").disabled = true;
     // Fail closed: only proceed when the acceptance row is actually recorded.
-    if (await acceptTos()) { show("home"); }
+    if (await acceptTos()) { show("home", { replace: true }); }
     else {
       toast("Couldn't record your acceptance — check your connection and try again.");
       $("tosAgree").disabled = false;
@@ -5151,7 +5181,7 @@
       } catch (e) {}
       session = null; dbProfile = null;
       $("deleteSheet").hidden = true;
-      show("welcome");
+      show("welcome", { replace: true });
     };
   }
 
@@ -7779,7 +7809,7 @@
   }
 
   supa.auth.onAuthStateChange((ev) => {
-    if (ev === "PASSWORD_RECOVERY") { show("resetpw"); return; }
+    if (ev === "PASSWORD_RECOVERY") { show("resetpw", { replace: true }); return; }
     if (ev === "SIGNED_OUT") {
       try {
         localStorage.removeItem("upmore-onboarding");
@@ -8078,7 +8108,7 @@
       try { await supa.auth.signOut(); } catch (e) {}
       session = null; dbProfile = null;
       upmoreThread = null; upmoreThreads = []; // numerous chats: clear on sign-out
-      show("welcome");
+      show("welcome", { replace: true });
     };
     if ($("referralRow")) $("referralRow").onclick = () => show("referral");
     if ($("tasksRow")) $("tasksRow").onclick = () => show("tasks");
@@ -10826,11 +10856,16 @@
       } catch (e) {}
       await ensureProfile();
       await loadProgress();
-      if (minorBlocked()) { show("blocked"); return; }
-      if (!(await tosAccepted())) { show("tos"); return; }
+      if (minorBlocked()) { show("blocked", { replace: true }); return; }
+      if (!(await tosAccepted())) { show("tos", { replace: true }); return; }
       const hh0 = LEGACY_TABS[h] || h;
-      const tab = $(hh0) && ["home", "chat", "tasks", "feed", "profile"].includes(hh0) ? hh0 : "home";
-      show(tab);
+      // NAV FIX (agent4 F2/F3): honor the requested hash on boot for every
+      // registered screen outside the signed-out auth funnel, so bookmarks,
+      // shared links, and reloads restore the user's place instead of
+      // silently dumping to Home. Unknown hashes and funnel screens -> home.
+      const FUNNEL = ["splash", "welcome", "time", "about", "situation", "plan", "phone", "login", "blocked", "tos"];
+      const dest = $(hh0) && !FUNNEL.includes(hh0) ? hh0 : "home";
+      show(dest, { replace: true });
       return;
     }
     // No session: returning users (onboarding answers saved) go straight to
@@ -10838,9 +10873,9 @@
     let hasOnboarding = false;
     try { hasOnboarding = !!localStorage.getItem("upmore-onboarding"); } catch (e) {}
     const hh1 = LEGACY_TABS[h] || h;
-    if ($(hh1) && hh1 !== "splash") { show(hh1); bootDone = true; }
-    else if (hasOnboarding) { show("login"); bootDone = true; }
-    else { show("splash"); /* splash timer advances to welcome */ }
+    if ($(hh1) && hh1 !== "splash") { show(hh1, { replace: true }); bootDone = true; }
+    else if (hasOnboarding) { show("login", { replace: true }); bootDone = true; }
+    else { show("splash", { replace: true }); /* splash timer advances to welcome */ }
   })();
 
   /* ================= SPEC 09: "NOBODY SHOULD WIN" (2026-09-26) =================

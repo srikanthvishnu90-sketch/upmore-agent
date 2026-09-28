@@ -1426,6 +1426,112 @@ export function tryReminderIntent(
   return { routeId: rid, when, text };
 }
 
+// ---------- Feature #6 (2026-09-28): free-trial tracking ----------
+// Paired testing caught the model claiming trial reminders were "set" while
+// nothing was persisted — agent-chat had no free-form reminder path. This
+// parses trial services + end dates deterministically; index.ts persists one
+// route_reminders row per trial (route_id null) due the day before the trial
+// ends, and the existing due-reminder surfacing warns the user in chat.
+const TRIAL_INTENT_RX = /\b(free\s+trials?|trials?)\b/i;
+const TRIAL_ACTION_RX = /\b(track|warn|remind|expir|monitor|charg)/i;
+const TRIAL_ASKED_MARKER_RX = /which free trials do you have/i;
+const MONTH_NUM: Record<string, number> = {
+  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+};
+const MONTH_RX = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
+
+export interface ParsedTrial {
+  service: string;
+  endDate: string; // YYYY-MM-DD
+}
+
+function parseTrialDate(s: string, now: Date): string | null {
+  const refYear = now.getUTCFullYear();
+  let m = s.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
+  if (m) {
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  }
+  m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?\b/);
+  if (m) {
+    const y = m[3] ? +m[3] : refYear;
+    const d = new Date(Date.UTC(y, +m[1] - 1, +m[2]));
+    if (isNaN(d.getTime())) return null;
+    return withSaneYear(d, !m[3], now);
+  }
+  m = s.match(new RegExp(`\\b${MONTH_RX}\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:\\s*,?\\s*(20\\d{2}))?`, "i"));
+  if (m) {
+    const mon = MONTH_NUM[monthFull(m[1])];
+    const y = m[3] ? +m[3] : refYear;
+    const d = new Date(Date.UTC(y, (mon ?? 1) - 1, +m[2]));
+    if (isNaN(d.getTime()) || !mon) return null;
+    return withSaneYear(d, !m[3], now);
+  }
+  return null;
+}
+
+function monthFull(abbr: string): string {
+  const a = abbr.slice(0, 3).toLowerCase();
+  return Object.keys(MONTH_NUM).find((k) => k.startsWith(a)) ?? "";
+}
+
+// No explicit year and the date fell >30 days in the past → assume next year
+// ("trial ends January 5" said in September means next January).
+function withSaneYear(d: Date, noYear: boolean, now: Date): string {
+  if (noYear && d.getTime() < now.getTime() - 30 * 864e5) {
+    d = new Date(Date.UTC(d.getUTCFullYear() + 1, d.getUTCMonth(), d.getUTCDate()));
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+export function prettyTrialDate(iso: string): string {
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const [y, mo, d] = iso.split("-").map(Number);
+  return `${names[mo - 1]} ${d}, ${y}`;
+}
+
+function parseTrialsFromMessage(
+  message: string,
+  now: Date,
+): ParsedTrial[] {
+  const out: ParsedTrial[] = [];
+  // Global scan: "YouTube Premium free trial ends October 1, 2026, and Apple
+  // TV+ free trial ends October 15, 2026" yields two trials. The lazy service
+  // group backtracks to the longest service name ("YouTube Premium", not
+  // "Premium"); a leading "and"/"or" belongs to the previous date's tail.
+  const re =
+    /((?:[\w+&'.-]+\s+)+?)(?:free\s+)?trial\s+ends?(?:\s+on)?\s+(.+?)(?=(?:[\w+&'.-]+\s+)+(?:free\s+)?trial\s+ends?|;|$)/gi;
+  for (const m of message.matchAll(re)) {
+    const service = m[1].replace(/^(?:and|or|plus|my|the)\s+/i, "").trim();
+    const endDate = parseTrialDate(m[2], now);
+    if (service && endDate && service.length <= 60) out.push({ service, endDate });
+  }
+  return out;
+}
+
+function trialIntent(text: string): boolean {
+  return TRIAL_INTENT_RX.test(text) && TRIAL_ACTION_RX.test(text);
+}
+
+export function tryTrialTracker(
+  message: string,
+  hist: { role: string; content: string }[] = [],
+): { needDetails: true } | { trials: ParsedTrial[] } | null {
+  if (INVEST_RX.test(message)) return null;
+  const intentNow = trialIntent(message);
+  const intentHist = hist.some((h) => trialIntent(String(h.content ?? "")));
+  if (!intentNow && !intentHist) return null;
+  const trials = parseTrialsFromMessage(message, new Date());
+  if (trials.length) return { trials };
+  // Asked already and they answered without parseable dates — let the model
+  // handle the confused follow-up instead of looping the question.
+  if (intentHist || hist.some((h) => TRIAL_ASKED_MARKER_RX.test(String(h.content ?? "")))) {
+    return null;
+  }
+  return { needDetails: true };
+}
+
 // ---------- 5. Privacy guard: never serve another user's data ----------
 // Fires before the fast path so "show me another user's email" can never be
 // misread as an offers question. Nothing is leaked; the refusal is explicit.

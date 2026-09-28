@@ -18,7 +18,7 @@ import {
   SCAM_FALLBACK,
   RouteCard,
 } from "./_shared/agent.ts";
-import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
+import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryTrialTracker, prettyTrialDate, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
 import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact } from "./_shared/finance_facts.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
@@ -371,6 +371,69 @@ serve(async (req) => {
       }
       console.error("deterministic reminder insert failed:", detRemErr.message);
       const detFail = `Quick heads-up: I tried to save that reminder but it didn't stick (technical hiccup on my end). Want me to try again?`;
+      await supabase.from("agent_messages").insert([
+        { thread_id: tid, role: "user", content: userContent },
+        { thread_id: tid, role: "assistant", content: detFail, meta: { capability: true } },
+      ]);
+      return json(cors, { thread_id: tid, reply: detFail, action: null });
+    }
+
+    // Feature #6 (2026-09-28): free-trial tracking. The model used to claim
+    // trial reminders were set while nothing was persisted — agent-chat had
+    // no free-form reminder path. Parse deterministically and persist one
+    // route_reminders row per trial (route_id null) due the day before the
+    // trial ends; the existing due-reminder surfacing warns the user in chat
+    // on/after the warn date.
+    const trialCap = bypassDeterministic ? null : tryTrialTracker(message, hist);
+    if (trialCap) {
+      if ("needDetails" in trialCap) {
+        const ask = `Got it — I'll track them and warn you before each one charges. Which free trials do you have, and when does each one end? (e.g. "Hulu ends Oct 3, Paramount+ ends Oct 10")`;
+        await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: ask, meta: { capability: true, trial_tracker: true } },
+        ]);
+        return json(cors, { thread_id: tid, reply: ask, action: null });
+      }
+      const withWarn = trialCap.trials.map((t) => {
+        const warn = new Date(t.endDate + "T00:00:00Z");
+        warn.setUTCDate(warn.getUTCDate() - 1);
+        return { trial: t, warnIso: warn.toISOString().slice(0, 10) };
+      });
+      // Dedupe: don't re-track a trial that's already being watched.
+      const { data: existingTrials } = await supabase.from("route_reminders")
+        .select("message").eq("user_id", user.id).eq("kind", "trial_warning").is("sent_at", null);
+      const haveMsgs = (existingTrials ?? []).map((r: any) => String(r.message).toLowerCase());
+      const isDup = (svc: string) => haveMsgs.some((m) => m.includes(svc.toLowerCase()));
+      const fresh = withWarn.filter((w) => !isDup(w.trial.service));
+      const already = withWarn.filter((w) => isDup(w.trial.service));
+      const rows = fresh.map((w) => ({
+        user_id: user.id,
+        route_id: null,
+        kind: "trial_warning",
+        message: `⚠️ ${w.trial.service} free trial ends ${prettyTrialDate(w.trial.endDate)} — cancel before you're charged.`.slice(0, 280),
+        due_at: `${w.warnIso}T09:00:00.000Z`,
+        channel: "agent",
+      }));
+      const { error: trialErr } = rows.length
+        ? await supabase.from("route_reminders").insert(rows)
+        : { error: null };
+      if (!trialErr) {
+        const lines = fresh.map((w) =>
+          `• ${w.trial.service} — trial ends ${prettyTrialDate(w.trial.endDate)} → I'll warn you ${prettyTrialDate(w.warnIso)}`);
+        const dup = already.map((w) => `• ${w.trial.service} — already tracked, warning stays set.`);
+        const n = fresh.length + already.length;
+        const detReply =
+          `Done — tracking ${n} free trial${n === 1 ? "" : "s"}. I'll warn you right here in chat before each one charges:\n\n` +
+          [...lines, ...dup].join("\n") +
+          `\n\nJust open the app on or after a warning date and I'll flag it at the top of our chat so you can cancel in time.`;
+        await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: detReply, meta: { capability: true, trial_tracker: true } },
+        ]);
+        return json(cors, { thread_id: tid, reply: detReply, action: null });
+      }
+      console.error("trial reminder insert failed:", trialErr.message);
+      const detFail = `Quick heads-up: I tried to save those trial reminders but they didn't stick (technical hiccup on my end). Want me to try again?`;
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },
         { thread_id: tid, role: "assistant", content: detFail, meta: { capability: true } },

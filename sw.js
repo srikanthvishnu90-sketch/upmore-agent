@@ -1,8 +1,8 @@
 // Upmore service worker: app-shell cache + offline fallback.
-// be77215 is stamped by src/build-app.py (short git hash) so every deploy
+// f1b82ce is stamped by src/build-app.py (short git hash) so every deploy
 // gets a fresh cache version — a stale service worker must never serve an
 // old build of the app shell.
-const CACHE = "upmore-be77215";
+const CACHE = "upmore-f1b82ce";
 const SHELL = [
   "/",
   "/index.html",

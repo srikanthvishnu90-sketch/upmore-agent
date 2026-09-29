@@ -726,10 +726,32 @@ async function cluelyResume(
   if (!portalReady) {
     return { ok: false, error: "The sign-in link didn't open the billing portal (expired or invalid). Nothing was changed." };
   }
-  // Click "cancel subscription/plan" (word-boundary match avoids dismiss buttons).
-  const clicked = await page.clickText("cancel (your |the )?(subscription|plan)");
+  // Click "cancel subscription/plan" — try multiple patterns, then any cancel-like button.
+  let clicked: string | null = await page.clickText("cancel (your |the )?(subscription|plan)");
+  if (!clicked) {
+    clicked = await page.clickText("cancel plan");
+  }
+  if (!clicked) {
+    // Aggressive: any visible button/link with "cancel" in text (but not "don't cancel"/"keep").
+    clicked = await page.eval(`(() => {
+      const els = [...document.querySelectorAll("button, a, [role=button]")];
+      for (const el of els) {
+        const t = ((el.innerText || el.textContent) || "").trim();
+        if (!t || el.offsetParent === null) continue;
+        const tl = t.toLowerCase();
+        if (/\\bcancel\\b/.test(tl) && !/don.t cancel|keep|not now|never mind/.test(tl)) {
+          el.scrollIntoView({ block: "center" });
+          el.click();
+          return t.slice(0, 80);
+        }
+      }
+      return null;
+    })()`).catch(() => null) as string | null;
+  }
   ev.cancel_clicked = clicked;
   if (!clicked) {
+    ev.dashboard_text = ((await page.eval(
+      "(document.body.innerText || '').slice(0,1000)").catch(() => "")) as string);
     return { ok: false, error: "Opened the billing portal but found no cancel control — nothing was changed." };
   }
   // Observe: dialog, navigation, or nothing. Poll 20s.

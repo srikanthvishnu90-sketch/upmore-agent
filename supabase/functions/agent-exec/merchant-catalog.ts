@@ -111,6 +111,49 @@ export const playbookRegistry: Record<string, MerchantPlaybook> = {
   // Steps reflect public cancellation guides, not live navigation.
   // ------------------------------------------------------------------
 
+  cluely: {
+    merchant_key: "cluely",
+    display_name: "Cluely",
+    verified: false,
+    version: 1,
+    last_verified_at: null,
+    verification_note: "PUBLIC RESEARCH ONLY 2026-09-29 - NOT LIVE-VERIFIED: official Cluely support article (https://support.cluely.com/en/articles/11128019-cancel-subscription) says cancel from the DESKTOP APP: profile icon -> Settings -> Billing -> Manage, which opens the Stripe customer billing portal (one-click cancellation). Second article (https://support.cluely.com/en/articles/12026933-how-can-i-manage-my-cluely-subscription-including-switching-plans-and-requesting-refunds) confirms Settings -> Billing -> Manage Plan -> Stripe portal; support will not act directly; refunds are a separate flow. Conflicting docs on access-end timing ('cancels your access to Pro features immediately' vs 'continue using all features until your subscription expires') - verify live. No prorated refund. Login: email+password (official settings article: profile settings can 'set account passwords'). Exact persistent account URL unknown; SSO/OTP methods unverified. REQUIRES one live, authenticated Browserbase run before execution.",
+    auth: "email_password",
+    account_url: "https://cluely.com/",
+    source: "https://support.cluely.com/en/articles/11128019-cancel-subscription (+ 12026933, 13008320, 12418681)",
+    evidence_texts: ["cancell?ed", "cancellation confirmed", "no longer be billed", "you won't be charged again"],
+    steps: [
+      { kind: "goto", url: "https://cluely.com/" },
+      { kind: "screenshot", label: "cluely-landing" },
+      // Public docs: the actual cancel flow lives in the desktop app
+      // (profile icon -> Settings -> Billing -> Manage -> Stripe portal),
+      // or the Stripe customer billing portal directly. Exact navigation,
+      // login surface, and confirmation sequence must be discovered in
+      // the live verification run - not invented here.
+    ],
+  },
+
+  myclaw: {
+    merchant_key: "myclaw",
+    display_name: "MyClaw",
+    verified: false,
+    version: 1,
+    last_verified_at: null,
+    verification_note: "PUBLIC RESEARCH ONLY 2026-09-29 - NOT LIVE-VERIFIED: official pricing page (https://myclaw.ai/openclaw) says subscribers can upgrade/downgrade/cancel at any time; monthly plans keep access until end of billing period; annual plans described as prorated for remaining months (automatic vs support-requested unknown). Official ToS (https://myclaw.ai/ja/terms): subscriptions auto-renew, payments via third-party providers, fees non-refundable unless required by law. Third-party (https://winningpc.com/myclaw-coupon-promo-codes/): billing handled by Stripe; 'cancel anytime from your account settings'; 7-day money-back on initial purchase only. STILL UNKNOWN: exact dashboard/account URL, login method (signup is 'with your email'), exact cancel navigation/button text, Stripe portal-link availability, confirmation email, OTP sender. REQUIRES one live, authenticated Browserbase run before execution.",
+    auth: "unknown",
+    account_url: "https://myclaw.ai/",
+    source: "https://myclaw.ai/openclaw, https://myclaw.ai/ja/terms, https://winningpc.com/myclaw-coupon-promo-codes/",
+    evidence_texts: ["cancell?ed", "subscription cancelled", "no longer be billed", "won't be charged again"],
+    steps: [
+      { kind: "goto", url: "https://myclaw.ai/" },
+      { kind: "screenshot", label: "myclaw-landing" },
+      // Public sources only say 'cancel anytime from your account settings'
+      // with Stripe-powered billing. Exact dashboard URL, login surface,
+      // cancel navigation, and confirmation sequence must be discovered in
+      // the live verification run - not invented here.
+    ],
+  },
+
   spotify: {
     merchant_key: "spotify",
     display_name: "Spotify",
@@ -871,6 +914,31 @@ export const playbookRegistry: Record<string, MerchantPlaybook> = {
 // merchant's own account page (search-confirmed); steps are the human flow.
 
 export const merchantDirectory: Record<string, DirectoryEntry> = {
+  cluely: {
+    merchant_key: "cluely",
+    display_name: "Cluely",
+    deep_link: "https://cluely.com/",
+    steps: [
+      "Open the Cluely desktop app, click your profile icon, and go to Settings -> Billing.",
+      "Click Manage to open the Stripe customer billing portal.",
+      "Click Cancel subscription in the portal and confirm.",
+      "Note: Cluely's docs conflict on access-end timing (immediately vs until expiry) and state no prorated refund; keep the confirmation text.",
+    ],
+    billing_note: "Pro+ $149.99/month, billed through Stripe; refunds are a separate support flow ([email protected]).",
+    source: "https://support.cluely.com/en/articles/11128019-cancel-subscription",
+  },
+  myclaw: {
+    merchant_key: "myclaw",
+    display_name: "MyClaw",
+    deep_link: "https://myclaw.ai/",
+    steps: [
+      "Sign in at myclaw.ai and open your account settings / dashboard.",
+      "Cancel your subscription from the account settings (billing is handled by Stripe).",
+      "Keep the confirmation message; monthly access should continue until the end of the billing period.",
+    ],
+    billing_note: "Pro $39/month, auto-renews; 7-day money-back on initial purchase only (ToS: fees non-refundable unless required by law).",
+    source: "https://myclaw.ai/openclaw, https://myclaw.ai/ja/terms",
+  },
   devin: {
     merchant_key: "devin",
     display_name: "Devin",
@@ -1286,6 +1354,13 @@ const ALIASES: Record<string, string> = {
   "comed": "comed",
   "devin": "devin",
   "cognition": "devin",
+  "cluely": "cluely",
+  "cluely pro": "cluely",
+  "cluely pro plus": "cluely",
+  "cluely ai": "cluely",
+  "myclaw": "myclaw",
+  "my claw": "myclaw",
+  "myclaw ai": "myclaw",
 };
 
 export function normalizeMerchant(raw: string): string {

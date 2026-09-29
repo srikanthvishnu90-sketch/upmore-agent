@@ -630,14 +630,23 @@ async function cluelyStart(
   ctx: ExecContext, page: BbPage, ev: Record<string, unknown>,
 ): Promise<BrowserOutcome> {
   ev.login_url = CLUELY_PORTAL_LOGIN;
-  await page.goto(ev.login_url as string);
+  await page.goto(ev.login_url as string, 45000);
   ev.after_goto_url = await page.url().catch(() => null);
   ev.title = await page.title().catch(() => null);
+  // Stripe portal is a React app — wait for it to render.
+  await sleep(5000);
+  // Wait for any email-like input to appear (up to 20s).
+  const inputAppeared = await page.waitFor(`(() => {
+    return !!document.querySelector('input[type="email"], input[name="email"], input[autocomplete="email"], input[placeholder*="mail" i]');
+  })()`, 20000);
+  ev.input_appeared = inputAppeared;
   pushShot(ev, await page.screenshot("portal-login"));
 
   const emailSel = await page.typeInto(EMAIL_SELECTORS, ctx.username);
   ev.email_field = emailSel;
   if (!emailSel) {
+    ev.page_text_sample = ((await page.eval(
+      "(document.body.innerText || '').slice(0,800)").catch(() => "")) as string);
     return { ok: false, error: "Stripe portal showed no email field — layout changed. Nothing was changed." };
   }
   const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]']);
@@ -761,10 +770,14 @@ async function myclawStart(
   ctx: ExecContext, page: BbPage, ev: Record<string, unknown>,
 ): Promise<BrowserOutcome> {
   ev.login_url = "https://myclaw.ai/login";
-  await page.goto(ev.login_url as string);
+  await page.goto(ev.login_url as string, 45000);
   ev.after_goto_url = await page.url().catch(() => null);
   ev.title = await page.title().catch(() => null);
+  // Let the React app render.
+  await sleep(5000);
   pushShot(ev, await page.screenshot("login"));
+  ev.login_text_sample = ((await page.eval(
+    "(document.body.innerText || '').slice(0,800)").catch(() => "")) as string);
 
   // Attempt 1: email flow (magic link/code).
   const emailSel = await page.typeInto(EMAIL_SELECTORS, ctx.username);

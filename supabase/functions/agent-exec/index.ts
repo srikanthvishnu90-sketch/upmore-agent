@@ -649,11 +649,23 @@ async function cluelyStart(
       "(document.body.innerText || '').slice(0,800)").catch(() => "")) as string);
     return { ok: false, error: "Stripe portal showed no email field — layout changed. Nothing was changed." };
   }
-  const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]']);
-  const contText = contSel ? contSel : await page.clickText("^(continue|sign in|log in|send.*link)$");
+  // Wait a moment for the form to validate the email.
+  await sleep(2000);
+  const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]', 'button:not([type])']);
+  const contText = contSel ? contSel : await page.clickText("^(continue|sign in|log in|send.*link|submit)$");
   ev.continue_clicked = contSel || contText;
   if (!ev.continue_clicked) {
-    return { ok: false, error: "Entered the email but found no continue button. Nothing was changed." };
+    // Last resort: press Enter in the email field.
+    const enterWorked = await page.eval(`(() => {
+      const el = document.querySelector('input[type="email"], input[name="email"]');
+      if (!el) return false;
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }));
+      return true;
+    })()`).catch(() => false);
+    ev.enter_key_tried = enterWorked;
+    if (!enterWorked) {
+      return { ok: false, error: "Entered the email but found no continue button. Nothing was changed." };
+    }
   }
   // Stripe confirms the link was sent ("Check your email", "we sent you a link", etc.).
   const linkCheck = `(() => {

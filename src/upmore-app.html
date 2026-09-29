@@ -302,9 +302,9 @@
     font-size: 11.5px; font-weight: 600; color: var(--dim); padding: 4px 10px; min-height: 48px; min-width: 48px;
     justify-content: center; border-radius: 999px; }
   .tab svg { width: 24px; height: 24px; }
-  /* Founder direction 2026-09-28: dark green is the selected/active color,
-     kept subtle on the tab bar — no solid pill. */
-  .tab[aria-selected="true"] { color: #fff; background: rgba(46,125,91,.22); }
+  /* FIX 2026-09-29 (bug 1): Consistent selected-tab indicator — solid green
+     on ALL tabs (was: subtle tint on bottom bar vs solid on Guide toggle). */
+  .tab[aria-selected="true"] { color: #fff; background: #2E7D5B; }
 
   /* ---------- guide ---------- */
   #guide::before { content: ""; position: absolute; left: 50%; top: 90px; width: min(420px, 100vw); height: min(420px, 100vw); transform: translateX(-50%);
@@ -453,7 +453,8 @@
   .xrow { display:flex; gap:12px; align-items:center; }
   .xtile { flex:none; width:44px; height:44px; border-radius:14px; display:grid; place-items:center; }
   .xbody { flex:1; min-width:0; }
-  .xbody b { display:block; font-size:15px; font-weight:600; line-height:1.3; }
+  /* FIX 2026-09-29 (bug 2): Card title top padding — was colliding with card top edge. */
+  .xbody b { display:block; font-size:15px; font-weight:600; line-height:1.3; padding-top:2px; }
   .xbody span { font-size:12.5px; color:var(--muted); }
   .xpay { font-size:14.5px; font-weight:600; white-space:nowrap; }
   .xdetail { margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); font-size:13.5px; line-height:1.5; color:var(--muted); display:grid; gap:8px; }
@@ -575,9 +576,11 @@
   .xcats .chip { white-space:nowrap; }
   .lane { display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--muted); margin:0 0 14px; }
   .lane .tgl { width:46px; height:27px; flex:none; }
-  .xpill { font-size:11.5px; font-weight:600; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:4px 9px; white-space:nowrap; align-self:center; }
-  .rbadge { font-size:10.5px; font-weight:700; color:#17251E; background:var(--silver); border-radius:6px; padding:2px 6px; margin-left:6px; vertical-align:1px; }
-  .vbadge { font-size:10.5px; font-weight:700; color:var(--muted); background:var(--surface-2); border-radius:6px; padding:2px 6px; margin-left:6px; vertical-align:1px; }
+  /* FIX 2026-09-29 (bug 2): Pill aligned to top — was vertically centered and crowding/overlapping the description text. */
+  .xpill { font-size:11.5px; font-weight:600; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:4px 9px; white-space:nowrap; align-self:flex-start; margin-top:2px; }
+  .rbadge { font-size:10.5px; font-weight:700; color:#17251E; background:var(--silver); border-radius:6px; padding:2px 6px; margin-left:6px; vertical-align:1px; white-space:nowrap; }
+  /* FIX 2026-09-29 (bug 2): Badge must not break mid-title — was wrapping awkwardly inside card titles. */
+  .vbadge { font-size:10.5px; font-weight:700; color:var(--muted); background:var(--surface-2); border-radius:6px; padding:2px 6px; margin-left:6px; vertical-align:1px; white-space:nowrap; }
   // FIX (E2-v2 F2): Variant badges must override the green default.
   // Was: unverified/retired/expired rendered GREEN (wrong — implies verified).
   // Now: gray for unverified, red for retired/expired.
@@ -923,7 +926,9 @@
   .umsgimgs img { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; }
   /* ---------- chat: segmented control ---------- */
   .csegwrap { display: flex; justify-content: center; padding: calc(var(--top) + 10px) 0 4px; position: relative; }
-  .ctasksbtn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  /* FIX 2026-09-29 (bug 3): Buttons aligned with toggle, below status bar.
+     Was: top:50% centered in header incl. safe-area padding — overlapped status bar icons. */
+  .ctasksbtn { position: absolute; right: 12px; top: calc(var(--top) + 10px);
     display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
     border-radius: 999px; background: var(--ns1); border: 1px solid var(--nline);
     color: var(--ink); font-size: 13px; font-weight: 600; }
@@ -1582,7 +1587,8 @@
 
   <!-- ================= YOU ================= -->
   <section class="screen" id="profile" aria-label="You">
-    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+    <!-- FIX 2026-09-29 (bug 4): Increased bottom padding — Household card was hidden behind tab bar. -->
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 140px)">
       <h1 class="ptitle">You</h1>
       <div class="pcard">
         <div class="pava" id="pAva">V</div>

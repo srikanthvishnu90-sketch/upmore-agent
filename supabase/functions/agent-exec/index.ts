@@ -1504,14 +1504,17 @@ serve(async (req) => {
     // REMOVE AFTER GRADUATION.
     let founderBypass = false;
     let user: { id: string } | null = null;
-    if (jwt === serviceKey) {
-      const earlyBody = await req.json().catch(() => ({})) as Record<string, unknown>;
-      if (earlyBody.action === "verify_merchant_live" && earlyBody.founder_bypass === true) {
-        founderBypass = true;
-        // Reconstruct the request with the parsed body for downstream use.
-        (req as unknown as { _parsedBody: unknown })._parsedBody = earlyBody;
+    try {
+      const b64 = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(atob(b64)) as { role?: string };
+      if (payload.role === "service_role") {
+        const earlyBody = await req.json().catch(() => ({})) as Record<string, unknown>;
+        if (earlyBody.action === "verify_merchant_live" && earlyBody.founder_bypass === true) {
+          founderBypass = true;
+          (req as unknown as { _parsedBody: unknown })._parsedBody = earlyBody;
+        }
       }
-    }
+    } catch { /* not a decodable JWT; fall through to normal auth */ }
     if (!founderBypass) {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: `Bearer ${jwt}` } },

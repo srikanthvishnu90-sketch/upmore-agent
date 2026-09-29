@@ -1837,7 +1837,14 @@ export function tryScamGuard(message: string): string | null {
 // never give tax/legal/investment advice (deflect to a licensed pro); we
 // never state an unverified saving; we never ask for merchant credentials.
 
-export interface CapCtx { supa: any; userId: string }
+export interface CapCtx {
+  supa: any;
+  userId: string;
+  // For calling the execution agent as the user (cancel-for-real flow).
+  jwt?: string;
+  supabaseUrl?: string;
+  anonKey?: string;
+}
 
 const fmtMoney = (n: number): string =>
   `$${(Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, "")}`;
@@ -2656,6 +2663,220 @@ export async function tryLedgerSummary(
   return out;
 }
 
+// ---- Cancel-for-real via the execution agent (2026-09-28) ----
+// When the user asks to cancel a subscription and the merchant has an exec
+// playbook, Upmore offers to do it for real instead of just giving steps.
+// Flow: intent -> describe_merchant -> explicit approval prompt -> (yes)
+// create approval + invoke exec -> awaiting_otp -> ask for code -> submit ->
+// report honestly. Unverified playbooks are offered ONLY as explicitly
+// labeled supervised verification runs, never silently. The chatbox never
+// asks for or handles merchant passwords — those live in the vault, saved
+// via the app's Agent tab.
+const EXEC_OFFER_MARKER_RX = /<!--exec-offer:([a-z0-9_]+)-->/;
+const EXEC_AFFIRM_RX = /^\s*(yes|yeah|yep|yup|sure|ok|okay|confirm|do it|go ahead|proceed|run it|yes please)\b/i;
+const EXEC_DECLINE_RX = /^\s*(no|nope|stop|cancel|never mind|nevermind|not now)\b/i;
+const OTP_CODE_RX = /^\s*\d[\d\s-]{3,10}\s*$/;
+const EXEC_STOP_RX = /\b(stop|cancel that|never mind|nevermind|forget it|don't do it|dont do it)\b/i;
+
+type ExecDesc = {
+  ok: boolean; merchant_key: string; display_name: string;
+  has_playbook: boolean; verified: boolean; has_credential: boolean;
+  deep_link: string | null;
+};
+
+function execCtxReady(ctx?: CapCtx): ctx is CapCtx & { jwt: string; supabaseUrl: string; anonKey: string } {
+  return !!ctx && !!ctx.jwt && !!ctx.supabaseUrl && !!ctx.anonKey;
+}
+
+async function callExec(
+  ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
+  body: Record<string, unknown>,
+  timeoutMs = 110000,
+): Promise<any> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${ctx.supabaseUrl}/functions/v1/agent-exec`, {
+      method: "POST",
+      headers: {
+        "apikey": ctx.anonKey,
+        "Authorization": `Bearer ${ctx.jwt}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    });
+    return await res.json().catch(() => ({ error: `exec returned HTTP ${res.status}` }));
+  } catch (e) {
+    return { __transport_error: String((e as Error)?.message || e) };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function describeMerchant(
+  ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
+  merchant: string,
+): Promise<ExecDesc | null> {
+  const d = await callExec(ctx, { action: "describe_merchant", merchant }, 20000);
+  if (!d || !d.ok || d.__transport_error) return null;
+  return d as ExecDesc;
+}
+
+function execSources(deepLink: string | null): string {
+  return deepLink ? `\n\nSources:\n- ${deepLink}` : "";
+}
+
+// User replies with the sign-in code while a run is paused at awaiting_otp.
+export async function tryExecOtpResume(
+  message: string,
+  ctx?: CapCtx,
+  hist: { role: string; content: string }[] = [],
+): Promise<{ reply: string } | null> {
+  if (!execCtxReady(ctx)) return null;
+  let run: any = null;
+  try {
+    const { data } = await ctx.supa.from("exec_runs")
+      .select("id, approval_id, status, otp_expires_at, evidence")
+      .eq("user_id", ctx.userId).eq("status", "awaiting_otp")
+      .order("started_at", { ascending: false }).limit(1).maybeSingle();
+    if (data && data.otp_expires_at && new Date(data.otp_expires_at).getTime() > Date.now()) run = data;
+  } catch { return null; }
+  if (!run) return null;
+  const ev = (run.evidence ?? {}) as Record<string, unknown>;
+  const merchant = String(ev.merchant ?? "the merchant");
+  if (EXEC_STOP_RX.test(message)) {
+    await callExec(ctx, { action: "kill_run", run_id: run.id }, 20000);
+    return { reply: `Stopped — nothing was changed in your ${merchant} account.` };
+  }
+  if (!OTP_CODE_RX.test(message)) return null; // not a code; let other handlers take it
+  const code = message.replace(/\D/g, "");
+  const r = await callExec(ctx, { action: "submit_otp", run_id: run.id, otp_code: code }, 120000);
+  if (r.__transport_error) {
+    return { reply: `I sent the code but lost the connection before seeing the result. Nothing is confirmed yet — say "check it" and I'll look up what happened.` };
+  }
+  if (r.status === "done") {
+    const evd = (r.evidence ?? {}) as Record<string, unknown>;
+    const conf = typeof evd.confirmation_text === "string" && evd.confirmation_text.trim()
+      ? `\n\nDevin's confirmation: "${evd.confirmation_text.trim().slice(0, 300)}"`
+      : "";
+    return { reply: `Done — your ${merchant} subscription is cancelled.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` };
+  }
+  const err = String(r.error ?? "something went wrong on the merchant's site");
+  return {
+    reply: `It didn't go through: ${err} Nothing was changed. ` +
+      `You can still cancel directly in your ${merchant} account settings and I'll log the saving when you tell me it's done.`,
+  };
+}
+
+async function runCancelExec(
+  ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
+  desc: ExecDesc,
+): Promise<string> {
+  // Fresh describe at execution time — state may have changed since the offer.
+  const fresh = await describeMerchant(ctx, desc.merchant_key);
+  const d = fresh ?? desc;
+  if (!d.has_credential) {
+    return `I don't have your ${d.display_name} login saved, so I can't sign in to cancel it. ` +
+      `Save it first in the app (Agent tab → Saved logins → ${d.display_name}), then say "cancel my ${d.display_name} subscription" again and I'll do it.` +
+      execSources(d.deep_link);
+  }
+  const { data: ap, error: aerr } = await ctx.supa.from("exec_approvals").insert({
+    user_id: ctx.userId, merchant: d.display_name, merchant_key: d.merchant_key,
+    action: "cancel_subscription", status: "approved", decided_at: new Date().toISOString(),
+  }).select("id").single();
+  if (aerr || !ap) {
+    return `I couldn't start the cancellation (technical hiccup on my end) — nothing was touched. Want me to try again?`;
+  }
+  const invokeBody = { approval_id: (ap as { id: string }).id };
+  const r = await callExec(ctx, invokeBody, 115000);
+  if (r.status === "awaiting_otp") {
+    return `Devin emailed you a sign-in code — reply here with just the code and I'll enter it to continue the cancellation.<!--exec-otp:${String(r.run_id ?? "")}-->`;
+  }
+  if (r.status === "done") {
+    const evd = (r.evidence ?? {}) as Record<string, unknown>;
+    const conf = typeof evd.confirmation_text === "string" && evd.confirmation_text.trim()
+      ? `\n\nDevin's confirmation: "${evd.confirmation_text.trim().slice(0, 300)}"`
+      : "";
+    return `Done — your ${d.display_name} subscription is cancelled.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` +
+      execSources(d.deep_link);
+  }
+  if (r.__transport_error) {
+    // The run may still be executing server-side — check the run row.
+    try {
+      const { data: run } = await ctx.supa.from("exec_runs")
+        .select("id, status").eq("approval_id", (ap as { id: string }).id)
+        .order("started_at", { ascending: false }).limit(1).maybeSingle();
+      if (run && run.status === "awaiting_otp") {
+        return `Devin emailed you a sign-in code — reply here with just the code and I'll enter it to continue the cancellation.`;
+      }
+    } catch { /* fall through */ }
+    return `I started the cancellation but lost the connection before seeing the result — nothing is confirmed. Say "check my Devin cancellation" and I'll look up exactly what happened.`;
+  }
+  const err = String(r.error ?? "something went wrong on the merchant's site");
+  return `It didn't go through: ${err} Nothing was changed. ` +
+    `You can still cancel directly in your ${d.display_name} account settings and I'll log the saving when you tell me it's done.` +
+    execSources(d.deep_link);
+}
+
+// Confirm turn for a pending exec offer: the previous assistant message was
+// our offer (marked <!--exec-offer:key-->) and the user just affirmed or
+// declined it. Checked BEFORE the cancel-intent gate because a bare "YES"
+// carries no cancel keyword.
+export async function tryExecOfferConfirm(
+  message: string,
+  ctx?: CapCtx,
+  hist: { role: string; content: string }[] = [],
+): Promise<{ reply: string } | null> {
+  if (!execCtxReady(ctx)) return null;
+  const lastAsst = [...hist].reverse().find((h) => h.role === "assistant");
+  const offerM = lastAsst ? EXEC_OFFER_MARKER_RX.exec(String(lastAsst.content ?? "")) : null;
+  if (!offerM) return null;
+  if (EXEC_DECLINE_RX.test(message)) {
+    return { reply: `Got it — I won't touch it. The guided cancel steps are still there whenever you want them.` };
+  }
+  if (EXEC_AFFIRM_RX.test(message)) {
+    const desc = await describeMerchant(ctx, offerM[1]);
+    if (!desc || !desc.has_playbook) {
+      return { reply: `I lost track of that one — which subscription did you want me to cancel?` };
+    }
+    return { reply: await runCancelExec(ctx, desc) };
+  }
+  return null; // not an answer to the offer — other handlers take it
+}
+
+export async function tryCancelExec(
+  message: string,
+  ctx?: CapCtx,
+  hist: { role: string; content: string }[] = [],
+): Promise<{ reply: string } | null> {
+  if (!execCtxReady(ctx)) return null;
+  if (!CANCEL_INTENT_RX.test(message)) return null;
+  // New intent: exactly one merchant, and it must have an exec playbook.
+  // (Zero or 2+ merchants fall through to the guided tryCancelIntent.)
+  const known = extractCancelMerchants(message);
+  const single = known.length === 1 ? known[0] : (known.length === 0 ? extractCancelMerchant(message) : null);
+  if (!single) return null;
+  const desc = await describeMerchant(ctx, single);
+  if (!desc || !desc.has_playbook) return null;
+  if (!desc.has_credential) {
+    return {
+      reply:
+        `I can cancel your ${desc.display_name} subscription for you directly — sign in as you and cancel it, no steps for you to follow. ` +
+        `First I need your ${desc.display_name} login saved: open the app, go to the Agent tab → Saved logins → ${desc.display_name}. ` +
+        `Then say "cancel my ${desc.display_name} subscription" again and I'll do it.` +
+        execSources(desc.deep_link) + `<!--exec-offer:${desc.merchant_key}-->`,
+    };
+  }
+  const offer = desc.verified
+    ? `I can cancel your ${desc.display_name} subscription for you right now — sign in as you and cancel it, no steps for you to follow. ` +
+      `Reply YES to have Upmore cancel it, or NO to leave it alone.`
+    : `I can cancel your ${desc.display_name} subscription for you — but heads up, this would be a supervised first run: ` +
+      `Upmore hasn't verified the one-click path for ${desc.display_name} yet, so I'll drive it step by step and report exactly what happens. ` +
+      `Reply YES to have Upmore cancel it, or NO to leave it alone.`;
+  return { reply: offer + execSources(desc.deep_link) + `<!--exec-offer:${desc.merchant_key}-->` };
+}
+
 export async function tryCapabilities(
   message: string,
   routes: RouteCard[],
@@ -2674,6 +2895,14 @@ export async function tryCapabilities(
   if (scam) return { reply: scam };
   const sysprompt = trySyspromptGuard(message);
   if (sysprompt) return { reply: sysprompt };
+  // Execution-agent OTP resume FIRST: a sign-in code reply must reach the
+  // paused run, never any other handler.
+  const otpResume = await tryExecOtpResume(message, ctx, hist);
+  if (otpResume) return { reply: otpResume.reply };
+  // Pending exec-offer confirm ("YES"/"NO") before anything else: a bare
+  // "YES" must reach the offer, not a billing/dispute handler.
+  const offerConfirm = await tryExecOfferConfirm(message, ctx, hist);
+  if (offerConfirm) return { reply: offerConfirm.reply };
   const plan = tryPlanStack(message, routes, hist, exclHist);
   if (plan) return { reply: plan };
   const makeMe = tryMakeMeX(message, routes, hist, exclHist);
@@ -2705,6 +2934,10 @@ export async function tryCapabilities(
   // failing.
   const audit = await trySubscriptionAudit(message, ctx, hist);
   if (audit) return { reply: audit };
+  // Cancel-for-real via the execution agent BEFORE the guided cancel cards:
+  // when the merchant has a playbook, Upmore offers to do it itself.
+  const cancelExec = await tryCancelExec(message, ctx, hist);
+  if (cancelExec) return { reply: cancelExec.reply };
   const cancelIntent = tryCancelIntent(message, hist);
   if (cancelIntent) return { reply: cancelIntent.reply };
   const cancelUnused = tryCancelUnused(message, hist);

@@ -87,14 +87,15 @@ export const playbookRegistry: Record<string, MerchantPlaybook> = {
   devin: {
     merchant_key: "devin",
     display_name: "Devin",
-    verified: false,
-    version: 1,
-    verification_note: "STRUCTURAL PASS 2026-09-28: schema OK (all required fields); 0 declarative steps (dedicated executor path, not the declarative runner); account_url check: HTTP 200 (login page); evidence_texts non-empty and plausible; flow login -> navigate -> cancel -> confirm coherent. STILL UNVERIFIED - requires one live, authenticated Browserbase run against the merchant's production site before execution. Bundle-analysis authored 2026-09-26 from shipped JS bundle; dedicated executor path in index.ts (0 declarative steps by design).",
+    verified: true,
+    version: 2,
+    last_verified_at: "2026-09-29T01:53:00Z",
+    verification_note: "LIVE-VERIFIED 2026-09-28/29: full supervised Browserbase run via Upmore chatbox completed a REAL Devin subscription cancellation on production (app.devin.ai). Flow: email OTP login -> /settings/billing -> Cancel subscription -> confirm dialog -> Devin confirmation text captured: 'Your last invoice is unpaid, so your subscription will be canceled immediately instead of at the end of the billing cycle, and the pending charge for it will stop.' Run graduated the playbook; verify_devin_live one-shot removed.",
     auth: "email_otp",
     account_url: "https://app.devin.ai/auth/login?redirect=/&reauth=true",
     steps: [], // dedicated implementation; the declarative runner is never used
     evidence_texts: ["cancell?ed", "cancellation confirmed", "no longer be billed", "access until"],
-    source: "agent-exec/index.ts dedicated implementation (2026-09-26 recon)",
+    source: "agent-exec/index.ts dedicated implementation (2026-09-26 recon; hardened 2026-09-28: observe-and-adapt confirm, /settings/plans first, Enter-key OTP fallback, billing-discovery settle waits)",
   },
 
   // ------------------------------------------------------------------

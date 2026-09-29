@@ -20,7 +20,7 @@ import {
   SCAM_FALLBACK,
   RouteCard,
 } from "./_shared/agent.ts";
-import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryTrialTracker, prettyTrialDate, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards } from "./_shared/capabilities.ts";
+import { tryCapabilities, tryReminderIntent, isGenericReminderRequest, tryTrialTracker, prettyTrialDate, tryGamblingGuard, tryFakeDocGuard, tryContestGuard, tryCryptoGuard, tryFakeReviewGuard, tryTaxFraudGuard, tryPrivacyGuard, tryScamGuard, trySyspromptGuard, tryGiftRewardSafe, tryServerGuards, type CapCtx } from "./_shared/capabilities.ts";
 import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact } from "./_shared/finance_facts.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
@@ -328,7 +328,13 @@ serve(async (req) => {
     // KEH card after "that's wrong, I asked about textbooks"). Corrections
     // are rare, so the extra model call is negligible.
     const bypassDeterministic = !!userCorrection;
-    const cap = bypassDeterministic ? null : await tryCapabilities(message, routes, { supa: supabase, userId: user.id }, hist, exclHist);
+    const capCtx: CapCtx = {
+      supa: supabase, userId: user.id,
+      jwt: authM[1],
+      supabaseUrl: Deno.env.get("SUPABASE_URL")!,
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+    };
+    const cap = bypassDeterministic ? null : await tryCapabilities(message, routes, capCtx, hist, exclHist);
     if (cap) {
       // Owner rule 2026-09-28: deterministic capability replies get the same
       // ChatGPT-style Sources block as model replies. Compute before persist

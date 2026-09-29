@@ -46,6 +46,11 @@ export interface MerchantPlaybook {
   evidence_texts: string[];
   // Where the steps were confirmed (public research, not live navigation).
   source: string;
+  // Senders whose emails carry this merchant's OTP codes. Used ONLY by the
+  // auto-OTP fetcher: Gmail search is restricted to these senders + recent
+  // messages, and only while a run is actively awaiting a code. Never shown
+  // to the client; the code never leaves the server.
+  otp_senders?: string[];
 }
 
 export interface DirectoryEntry {
@@ -95,6 +100,8 @@ export const playbookRegistry: Record<string, MerchantPlaybook> = {
     account_url: "https://app.devin.ai/auth/login?redirect=/&reauth=true",
     steps: [], // dedicated implementation; the declarative runner is never used
     evidence_texts: ["cancell?ed", "cancellation confirmed", "no longer be billed", "access until"],
+    // Live-verified 2026-09-28: Devin's sign-in code arrives from this sender.
+    otp_senders: ["no-reply@cognition.ai"],
     source: "agent-exec/index.ts dedicated implementation (2026-09-26 recon; hardened 2026-09-28: observe-and-adapt confirm, /settings/plans first, Enter-key OTP fallback, billing-discovery settle waits)",
   },
 

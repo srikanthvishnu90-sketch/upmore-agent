@@ -818,6 +818,258 @@ async function writeCancelClaim(
 }
 
 // ================= serve =================
+// ---- Gmail auto-OTP (2026-09-28) ----
+// Lets the executor fetch a merchant sign-in code from the user's connected
+// Gmail itself, so the user never has to retype codes. Hard scoping:
+//   - gmail.readonly OAuth scope only;
+//   - search restricted to the merchant's catalog otp_senders + last 15 min;
+//   - only while a run owned by the user is actively awaiting_otp;
+//   - the code travels only into the resume path below — it is never logged,
+//     never stored, and never returned to any client.
+function gmailVaultName(userId: string): string {
+  return `oauth_gmail_${userId}`;
+}
+
+async function getGmailAccessToken(admin: any, userId: string): Promise<string> {
+  const { data: conn } = await admin.from("user_oauth_connections")
+    .select("vault_name").eq("user_id", userId).eq("provider", "gmail").maybeSingle();
+  const expected = gmailVaultName(userId);
+  if (!conn || conn.vault_name !== expected) {
+    throw Object.assign(new Error("Gmail is not connected"), { code: "not_connected" });
+  }
+  const { data: raw, error } = await admin.rpc("oauth_vault_read", { p_name: expected });
+  if (error || !raw) throw new Error("Could not read Gmail credentials");
+  let tok: any;
+  try { tok = JSON.parse(String(raw)); } catch { throw new Error("Could not read Gmail credentials"); }
+  if (tok.access_token && Date.now() < Number(tok.expires_at || 0) - 60000) {
+    return String(tok.access_token);
+  }
+  if (!tok.refresh_token) throw new Error("Gmail session expired — reconnect Gmail in the app");
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "",
+      client_secret: Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "",
+      refresh_token: String(tok.refresh_token),
+      grant_type: "refresh_token",
+    }),
+  });
+  const nt = await r.json().catch(() => ({}));
+  if (!r.ok || !nt.access_token) throw new Error("Gmail session expired — reconnect Gmail in the app");
+  const updated = {
+    ...tok,
+    access_token: nt.access_token,
+    refresh_token: nt.refresh_token || tok.refresh_token,
+    expires_at: Date.now() + (Number(nt.expires_in) || 3600) * 1000,
+  };
+  await admin.rpc("oauth_vault_store", { p_name: expected, p_secret: JSON.stringify(updated) });
+  return String(nt.access_token);
+}
+
+function b64ToText(b64: string): string {
+  try {
+    const bin = atob(b64.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch { return ""; }
+}
+
+function gmailMessageText(full: any): string {
+  let out = String(full?.snippet || "") + "\n";
+  const headers: any[] = full?.payload?.headers || [];
+  for (const h of headers) {
+    if (/^subject$/i.test(String(h?.name || ""))) out += String(h.value || "") + "\n";
+  }
+  const walk = (p: any): void => {
+    if (!p) return;
+    const mt = String(p.mimeType || "");
+    if ((mt === "text/plain" || mt === "text/html") && p.body?.data) {
+      let t = b64ToText(String(p.body.data));
+      if (mt === "text/html") t = t.replace(/<[^>]+>/g, " ");
+      out += t + "\n";
+    }
+    for (const q of p.parts || []) walk(q);
+  };
+  walk(full?.payload);
+  return out;
+}
+
+// First 6-digit group wins (all current OTP merchants use 6 digits);
+// fall back to any 4-8 digit group.
+function extractOtpCode(text: string): string | null {
+  const m = text.match(/\b(\d{6})\b/) || text.match(/\b(\d{4,8})\b/);
+  return m ? m[1] : null;
+}
+
+async function searchGmailForOtp(accessToken: string, sender: string): Promise<string | null> {
+  const q = `from:${sender} newer_than:15m`;
+  const listRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=5`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const list = await listRes.json().catch(() => ({}));
+  if (!listRes.ok) return null;
+  for (const m of list.messages || []) {
+    if (!m?.id) continue;
+    const fullRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(m.id)}?format=full`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const full = await fullRes.json().catch(() => ({}));
+    if (!fullRes.ok) continue;
+    const code = extractOtpCode(gmailMessageText(full));
+    if (code) return code;
+  }
+  return null;
+}
+
+// Shared OTP resume path (2026-09-28): manual submit_otp AND auto
+// fetch_otp both funnel through here. The code travels only into the
+// page below — never into evidence/logs, and never back to a client.
+async function resumeRunWithOtp(
+  admin: any, user: { id: string }, run: any, otpCode: string,
+): Promise<{ body: any; status: number }> {
+  const R = (body: unknown, status = 200) => ({ body, status });
+      // OTP acceptance decision (2026-09-28): the shared decideOtpSubmit —
+      // the SAME function the fixtures exercise. Expired pauses are dead:
+      // the session is killed and the run is failed. Never accept a code for
+      // an expired pause, and never for a run that isn't awaiting one.
+      const otpDecision = decideOtpSubmit(
+        { status: run.status as string, otp_expires_at: run.otp_expires_at as string | null },
+        Date.now(),
+      );
+      if (!otpDecision.proceed && otpDecision.code === "expired") {
+        if (run.browserbase_session_id) {
+          try { await bbStopSession(run.browserbase_session_id as string); } catch { /* best effort */ }
+        }
+        await admin.from("exec_runs").update({
+          status: "failed",
+          error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        // Learning: an expired OTP pause is a categorized, learnable failure.
+        {
+          const evm = (run.evidence as Record<string, unknown>) ?? {};
+          const mkey = String(evm.merchant ?? "");
+          if (mkey) {
+            await learnFromRunOutcome({
+              admin, merchantKey: mkey, merchantLabel: mkey,
+              finalStatus: "failed",
+              error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
+              ev: evm, runId: run.id,
+              appliedLessonIds: (evm.lessons_applied_ids as string[]) ?? [],
+            });
+          }
+        }
+        return R({ error: otpDecision.error }, 410);
+      }
+      if (!otpDecision.proceed) {
+        return R({ error: otpDecision.error }, 409);
+      }
+      if (!run.browserbase_session_id) {
+        return R({ error: "Run has no browser session" }, 409);
+      }
+      // Atomic lock: only one resume proceeds.
+      const { data: locked } = await admin.from("exec_runs")
+        .update({ status: "started" })
+        .eq("id", run.id).eq("status", "awaiting_otp")
+        .select("id");
+      if (!locked || !locked.length) {
+        return R({ error: "This code is already being processed" }, 409);
+      }
+
+      const { data: approval } = await admin.from("exec_approvals")
+        .select("*").eq("id", run.approval_id).maybeSingle();
+      // Revalidate the approval on resume: ownership, action, and that the
+      // run's merchant still resolves to a VERIFIED playbook. OTP codes are
+      // never stored — otp_code travels only into the page below.
+      if (!approval || approval.user_id !== user.id ||
+          approval.action !== "cancel_subscription" ||
+          !["approved", "executing"].includes(approval.status as string)) {
+        await admin.from("exec_runs").update({
+          status: "failed", error: "Approval is not valid for resume",
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        return R({ error: "Approval is not valid for resume" }, 409);
+      }
+      const resumeKey = normalizeMerchant(String(approval.merchant_key || ""));
+      const resumePb = playbookRegistry[resumeKey];
+      if (!resumePb || resumePb.verified !== true) {
+        const directory_entry = merchantDirectory[resumeKey] ?? GENERIC_FALLBACK;
+        await admin.from("exec_runs").update({
+          status: "failed",
+          evidence: { path: "guided", reason: "unverified_playbook", directory_entry },
+          error: "unverified_playbook",
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        return R({ ok: false, path: "guided", reason: "unverified_playbook", directory_entry }, 409);
+      }
+      const def = browserPlaybooks[resumeKey] ?? declarativeDef(resumePb);
+
+      const ev: Record<string, unknown> = {
+        ...((run.evidence as Record<string, unknown>) || {}),
+        resumed_at: new Date().toISOString(),
+      };
+      const resumeState = (ev.resume as Record<string, unknown>) || {};
+      let sessionAlive = false;
+      try {
+        const { connectUrl } = await bbRefreshSession(run.browserbase_session_id as string);
+        sessionAlive = true;
+        const cdp = await Cdp.connect(connectUrl);
+        let outcome: BrowserOutcome;
+        try {
+          const page = await BbPage.open(cdp);
+          // The OTP travels only into the page — never into evidence/logs.
+          outcome = await def.resume(
+            { username: "", password: "", approval, admin },
+            page, otpCode.trim(), ev, resumeState);
+        } finally {
+          cdp.close();
+        }
+        await bbStopSession(run.browserbase_session_id as string);
+        const finalStatus = outcome.ok ? "done" : "failed";
+        const err = outcome.ok ? null : (outcome as { error: string }).error;
+        await admin.from("exec_runs").update({
+          status: finalStatus, evidence: ev, error: err,
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        await admin.from("exec_approvals").update({
+          status: finalStatus, decided_at: new Date().toISOString(),
+        }).eq("id", run.approval_id);
+        // Learning: record the resumed run's terminal outcome.
+        await learnFromRunOutcome({
+          admin, merchantKey: resumeKey,
+          merchantLabel: String(approval.merchant ?? resumeKey),
+          finalStatus, error: err, ev, runId: run.id,
+          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
+        });
+        if (finalStatus === "done") {
+          await writeCancelClaim(admin, approval, user.id, run.id, resumeKey);
+        }
+        return R({ ok: outcome.ok, status: finalStatus, error: err });
+      } catch (e) {
+        if (sessionAlive) await bbStopSession(run.browserbase_session_id as string);
+        const msg = String(e?.message || e);
+        await admin.from("exec_runs").update({
+          status: "failed", evidence: ev,
+          error: "Resume failed: " + msg,
+          finished_at: new Date().toISOString(),
+        }).eq("id", run.id);
+        await admin.from("exec_approvals").update({
+          status: "failed", decided_at: new Date().toISOString(),
+        }).eq("id", run.approval_id);
+        await learnFromRunOutcome({
+          admin, merchantKey: resumeKey,
+          merchantLabel: String(approval.merchant ?? resumeKey),
+          finalStatus: "failed", error: "Resume failed: " + msg,
+          ev, runId: run.id,
+          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
+        });
+        return R({ ok: false, status: "failed", error: "Resume failed: " + msg }, 500);
+      }
+}
+
 serve(async (req) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -1088,143 +1340,62 @@ serve(async (req) => {
       if (!run || run.user_id !== user.id) {
         return json({ error: "Run not found" }, 404);
       }
-      // OTP acceptance decision (2026-09-28): the shared decideOtpSubmit —
-      // the SAME function the fixtures exercise. Expired pauses are dead:
-      // the session is killed and the run is failed. Never accept a code for
-      // an expired pause, and never for a run that isn't awaiting one.
-      const otpDecision = decideOtpSubmit(
-        { status: run.status as string, otp_expires_at: run.otp_expires_at as string | null },
-        Date.now(),
-      );
-      if (!otpDecision.proceed && otpDecision.code === "expired") {
-        if (run.browserbase_session_id) {
-          try { await bbStopSession(run.browserbase_session_id as string); } catch { /* best effort */ }
-        }
-        await admin.from("exec_runs").update({
-          status: "failed",
-          error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
-          finished_at: new Date().toISOString(),
-        }).eq("id", run.id);
-        // Learning: an expired OTP pause is a categorized, learnable failure.
-        {
-          const evm = (run.evidence as Record<string, unknown>) ?? {};
-          const mkey = String(evm.merchant ?? "");
-          if (mkey) {
-            await learnFromRunOutcome({
-              admin, merchantKey: mkey, merchantLabel: mkey,
-              finalStatus: "failed",
-              error: "The verification window expired (30 minutes). Nothing was changed — start again if you still want this cancelled.",
-              ev: evm, runId: run.id,
-              appliedLessonIds: (evm.lessons_applied_ids as string[]) ?? [],
-            });
-          }
-        }
-        return json({ error: otpDecision.error }, 410);
-      }
-      if (!otpDecision.proceed) {
-        return json({ error: otpDecision.error }, 409);
-      }
-      if (!run.browserbase_session_id) {
-        return json({ error: "Run has no browser session" }, 409);
-      }
-      // Atomic lock: only one resume proceeds.
-      const { data: locked } = await admin.from("exec_runs")
-        .update({ status: "started" })
-        .eq("id", run.id).eq("status", "awaiting_otp")
-        .select("id");
-      if (!locked || !locked.length) {
-        return json({ error: "This code is already being processed" }, 409);
-      }
+      const res = await resumeRunWithOtp(admin, user, run, otp_code);
+      return json(res.body, res.status);
+    }
 
-      const { data: approval } = await admin.from("exec_approvals")
-        .select("*").eq("id", run.approval_id).maybeSingle();
-      // Revalidate the approval on resume: ownership, action, and that the
-      // run's merchant still resolves to a VERIFIED playbook. OTP codes are
-      // never stored — otp_code travels only into the page below.
-      if (!approval || approval.user_id !== user.id ||
-          approval.action !== "cancel_subscription" ||
-          !["approved", "executing"].includes(approval.status as string)) {
-        await admin.from("exec_runs").update({
-          status: "failed", error: "Approval is not valid for resume",
-          finished_at: new Date().toISOString(),
-        }).eq("id", run.id);
-        return json({ error: "Approval is not valid for resume" }, 409);
+    // Auto-OTP (2026-09-28): fetch the merchant's sign-in code from the
+    // user's connected Gmail and resume the run with it — no user retyping.
+    // Returns {ok:false, auto_otp:<reason>} for every non-success path so the
+    // caller (chatbox/app) can fall back to asking the user. The code itself
+    // is NEVER included in any response, log, or evidence row.
+    if (action === "fetch_otp") {
+      const { run_id } = body;
+      if (!run_id) return json({ error: "run_id required" }, 400);
+      const { data: run } = await admin.from("exec_runs")
+        .select("*").eq("id", run_id).maybeSingle();
+      if (!run || run.user_id !== user.id) {
+        return json({ error: "Run not found" }, 404);
       }
-      const resumeKey = normalizeMerchant(String(approval.merchant_key || ""));
-      const resumePb = playbookRegistry[resumeKey];
-      if (!resumePb || resumePb.verified !== true) {
-        const directory_entry = merchantDirectory[resumeKey] ?? GENERIC_FALLBACK;
-        await admin.from("exec_runs").update({
-          status: "failed",
-          evidence: { path: "guided", reason: "unverified_playbook", directory_entry },
-          error: "unverified_playbook",
-          finished_at: new Date().toISOString(),
-        }).eq("id", run.id);
-        return json({ ok: false, path: "guided", reason: "unverified_playbook", directory_entry }, 409);
+      const evm = (run.evidence as Record<string, unknown>) ?? {};
+      const mkey = normalizeMerchant(String(evm.merchant_key ?? evm.merchant ?? ""));
+      const senders = playbookRegistry[mkey]?.otp_senders;
+      if (!senders || !senders.length) {
+        return json({ ok: false, auto_otp: "unsupported", status: run.status });
       }
-      const def = browserPlaybooks[resumeKey] ?? declarativeDef(resumePb);
-
-      const ev: Record<string, unknown> = {
-        ...((run.evidence as Record<string, unknown>) || {}),
-        resumed_at: new Date().toISOString(),
-      };
-      const resumeState = (ev.resume as Record<string, unknown>) || {};
-      let sessionAlive = false;
+      let accessToken: string;
       try {
-        const { connectUrl } = await bbRefreshSession(run.browserbase_session_id as string);
-        sessionAlive = true;
-        const cdp = await Cdp.connect(connectUrl);
-        let outcome: BrowserOutcome;
-        try {
-          const page = await BbPage.open(cdp);
-          // The OTP travels only into the page — never into evidence/logs.
-          outcome = await def.resume(
-            { username: "", password: "", approval, admin },
-            page, otp_code.trim(), ev, resumeState);
-        } finally {
-          cdp.close();
-        }
-        await bbStopSession(run.browserbase_session_id as string);
-        const finalStatus = outcome.ok ? "done" : "failed";
-        const err = outcome.ok ? null : (outcome as { error: string }).error;
-        await admin.from("exec_runs").update({
-          status: finalStatus, evidence: ev, error: err,
-          finished_at: new Date().toISOString(),
-        }).eq("id", run.id);
-        await admin.from("exec_approvals").update({
-          status: finalStatus, decided_at: new Date().toISOString(),
-        }).eq("id", run.approval_id);
-        // Learning: record the resumed run's terminal outcome.
-        await learnFromRunOutcome({
-          admin, merchantKey: resumeKey,
-          merchantLabel: String(approval.merchant ?? resumeKey),
-          finalStatus, error: err, ev, runId: run.id,
-          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
-        });
-        if (finalStatus === "done") {
-          await writeCancelClaim(admin, approval, user.id, run.id, resumeKey);
-        }
-        return json({ ok: outcome.ok, status: finalStatus, error: err });
-      } catch (e) {
-        if (sessionAlive) await bbStopSession(run.browserbase_session_id as string);
-        const msg = String(e?.message || e);
-        await admin.from("exec_runs").update({
-          status: "failed", evidence: ev,
-          error: "Resume failed: " + msg,
-          finished_at: new Date().toISOString(),
-        }).eq("id", run.id);
-        await admin.from("exec_approvals").update({
-          status: "failed", decided_at: new Date().toISOString(),
-        }).eq("id", run.approval_id);
-        await learnFromRunOutcome({
-          admin, merchantKey: resumeKey,
-          merchantLabel: String(approval.merchant ?? resumeKey),
-          finalStatus: "failed", error: "Resume failed: " + msg,
-          ev, runId: run.id,
-          appliedLessonIds: (ev.lessons_applied_ids as string[]) ?? [],
-        });
-        return json({ ok: false, status: "failed", error: "Resume failed: " + msg }, 500);
+        accessToken = await getGmailAccessToken(admin, user.id);
+      } catch (e: any) {
+        const reason = (e as any)?.code === "not_connected" ? "not_connected" : "gmail_error";
+        return json({ ok: false, auto_otp: reason, status: run.status, error: String(e?.message || e) });
       }
+      // Poll for the code email: it usually lands 20-60s after the login
+      // form is submitted. Bail early if the run stops waiting.
+      let code: string | null = null;
+      for (let i = 0; i < 6 && !code; i++) {
+        if (i > 0) await sleep(15000);
+        const { data: cur } = await admin.from("exec_runs")
+          .select("status").eq("id", run.id).maybeSingle();
+        if (!cur || cur.status !== "awaiting_otp") {
+          return json({ ok: false, auto_otp: "run_changed", status: cur?.status ?? "unknown" });
+        }
+        for (const s of senders) {
+          try { code = await searchGmailForOtp(accessToken, s); } catch { code = null; }
+          if (code) break;
+        }
+      }
+      if (!code) {
+        return json({ ok: false, auto_otp: "not_found", status: "awaiting_otp" });
+      }
+      const rres = await resumeRunWithOtp(admin, user, run, code);
+      return json({ ...rres.body, auto_otp: "fetched" }, rres.status);
+    }
+
+    if (action === "gmail_status") {
+      const { data } = await admin.from("user_oauth_connections")
+        .select("email").eq("user_id", user.id).eq("provider", "gmail").maybeSingle();
+      return json({ connected: !!data, email: data?.email ?? null });
     }
 
     // ---- default: execute an approved approval ----

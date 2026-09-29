@@ -2769,6 +2769,25 @@ export async function tryExecOtpResume(
   };
 }
 
+// Done-reply for the auto-OTP path: re-reads the run row for the merchant's
+// confirmation text (fetch_otp never returns evidence — it returns only
+// status, like submit_otp).
+async function execAutoDoneReply(
+  ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
+  d: ExecDesc, runId: string,
+): Promise<string> {
+  let conf = "";
+  try {
+    const { data } = await ctx.supa.from("exec_runs")
+      .select("evidence").eq("id", runId).maybeSingle();
+    const evd = (((data as unknown) as { evidence?: unknown })?.evidence ?? {}) as Record<string, unknown>;
+    const ct = typeof evd.confirmation_text === "string" ? evd.confirmation_text.trim() : "";
+    if (ct) conf = `\n\n${d.display_name}'s confirmation: "${ct.slice(0, 300)}"`;
+  } catch { /* best effort — the cancellation itself is what matters */ }
+  return `Done — your ${d.display_name} subscription is cancelled, no code needed.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` +
+    execSources(d.deep_link);
+}
+
 async function runCancelExec(
   ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
   desc: ExecDesc,
@@ -2791,7 +2810,28 @@ async function runCancelExec(
   const invokeBody = { approval_id: (ap as { id: string }).id };
   const r = await callExec(ctx, invokeBody, 115000);
   if (r.status === "awaiting_otp") {
-    return `Devin emailed you a sign-in code — reply here with just the code and I'll enter it to continue the cancellation.<!--exec-otp:${String(r.run_id ?? "")}-->`;
+    const runId = String(r.run_id ?? "");
+    // Auto-OTP (2026-09-28): if the user's Gmail is connected and this
+    // merchant's code emails are known, the executor fetches the code itself
+    // — the user never retypes anything. Any non-success falls back to the
+    // manual ask below; the run keeps waiting either way.
+    if (runId) {
+      const auto = await callExec(ctx, { action: "fetch_otp", run_id: runId }, 110000);
+      if (auto && (auto.status === "done" || auto.ok === true)) {
+        return await execAutoDoneReply(ctx, d, runId);
+      }
+      if (auto && auto.status === "failed") {
+        const err = String(auto.error ?? "something went wrong on the merchant's site");
+        return `It didn't go through: ${err} Nothing was changed. ` +
+          `You can still cancel directly in your ${d.display_name} account settings and I'll log the saving when you tell me it's done.` +
+          execSources(d.deep_link);
+      }
+      const gmailTip = auto && (auto as Record<string, unknown>).auto_otp === "not_connected"
+        ? ` (Tip: connect Gmail in the app's Agent tab and I'll grab these codes myself next time.)`
+        : "";
+      return `${d.display_name} emailed you a sign-in code — reply here with just the code and I'll enter it to continue the cancellation.${gmailTip}<!--exec-otp:${runId}-->`;
+    }
+    return `${d.display_name} emailed you a sign-in code — reply here with just the code and I'll enter it to continue the cancellation.<!--exec-otp:${runId}-->`;
   }
   if (r.status === "done") {
     const evd = (r.evidence ?? {}) as Record<string, unknown>;

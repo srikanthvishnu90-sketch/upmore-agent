@@ -651,9 +651,26 @@ async function cluelyStart(
   }
   // Wait a moment for the form to validate the email.
   await sleep(2000);
-  const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]', 'button:not([type])']);
-  const contText = contSel ? contSel : await page.clickText("^(continue|sign in|log in|send.*link|submit)$");
-  ev.continue_clicked = contSel || contText;
+  // Try multiple button strategies: submit buttons, then text match, then any button in the form.
+  let contClicked: string | null = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]']);
+  if (!contClicked) {
+    contClicked = await page.clickText("^(continue|sign in|log in|send.*link|send|submit)$");
+  }
+  if (!contClicked) {
+    // Last resort: click any visible button near the email field.
+    contClicked = await page.eval(`(() => {
+      const emailEl = document.querySelector('input[type="email"], input[name="email"]');
+      if (!emailEl) return null;
+      const form = emailEl.closest('form') || document;
+      const btns = [...form.querySelectorAll('button')].filter(b => b.offsetParent !== null);
+      if (btns.length === 0) return null;
+      const btn = btns[0];
+      btn.scrollIntoView({ block: 'center' });
+      btn.click();
+      return (btn.innerText || 'button').slice(0, 40);
+    })()`).catch(() => null) as string | null;
+  }
+  ev.continue_clicked = contClicked;
   if (!ev.continue_clicked) {
     // Last resort: press Enter in the email field.
     const enterWorked = await page.eval(`(() => {

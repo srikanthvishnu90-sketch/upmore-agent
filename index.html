@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-V0PGBCCkDRGytkVOanA9WyftcD43Rzo2Cl7VcV3zzD4=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-ESpChxVv+Ao5e9J6KUJpjVn20V/iTiMyfYVhdNfaFzE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -21,14 +21,14 @@
     src:url("fonts/schibsted-grotesk.woff2") format("woff2");
   }
   :root {
-    /* UPMORE COLOR SYSTEM v3 (Vishnu 2026-09-27). Dark mode only.
-       ONE brand accent (orange) — strictly for CTAs, links, hero chart lines.
-       Green is a STATE color (money/success/pace): home money figures, income,
-       on-pace states, success confirmations — never the brand accent.
+    /* UPMORE COLOR SYSTEM (reverted per Vishnu 2026-09-29). Dark mode only.
+       GREEN is the brand/main color — CTAs, links, hero chart lines, splash.
+       Green is also the state color (money/success/pace): home money figures,
+       income, on-pace states, success confirmations.
        Category hues are identity-pinned (chart1-7) and reused consistently.
-       v3: deep charcoal canvas + ambient aurora glows + gradient-border cards. */
+       Deep charcoal canvas + ambient aurora glows + gradient-border cards. */
     --bg: #0F0F11;          /* Base — deep charcoal, not flat black */
-    --ambient-orange: rgba(255,106,45,.10);
+    --ambient-green: rgba(46,158,107,.10);
     --ambient-violet: rgba(139,92,246,.10);
     --ambient-teal: rgba(45,212,191,.05);
     --surface: #1F1F1D;     /* Raised — cards, sheets */
@@ -40,10 +40,10 @@
     --dim: #8A958F;         /* Muted — timestamps, disabled (4.5:1+ on --bg) */
     --silver: #C9CFCA;      /* logo, icons, neutral accents */
     --silver-hi: #E8ECE8;   /* hero gradient top */
-    --accent: #FF6A2D;      /* THE brand accent — CTAs, links, hero chart line only */
-    --accent-soft: rgba(255,106,45,.14);
-    --accent-ink: #1D1006;   /* text on accent */
-    --up: #2E9E6B;          /* Success / on-pace — green is DEMOTED from brand */
+    --accent: #2E9E6B;      /* THE brand accent (green) — CTAs, links, hero chart line */
+    --accent-soft: rgba(46,158,107,.16);
+    --accent-ink: #FFFFFF;   /* text on accent */
+    --up: #2E9E6B;          /* Success / on-pace — same green as brand */
     --up-hi: #6FD598;       /* Light green — selected/active states on dark */
     --up-soft: rgba(46,158,107,.14);
     --down: #E14A4A;        /* Danger / over budget */
@@ -96,7 +96,7 @@
   /* ---------- device frame (desktop preview) ---------- */
   .device { position: relative; width: 100%; height: 100%; overflow: hidden;
     background:
-      radial-gradient(60% 42% at 10% -4%, var(--ambient-orange), transparent 70%),
+      radial-gradient(60% 42% at 10% -4%, var(--ambient-green), transparent 70%),
       radial-gradient(52% 38% at 92% 104%, var(--ambient-violet), transparent 70%),
       radial-gradient(38% 28% at 62% 58%, var(--ambient-teal), transparent 70%),
       var(--bg); }
@@ -129,12 +129,11 @@
   .dock { padding: 14px 22px calc(var(--bot) + 18px);
     background: linear-gradient(180deg, rgba(15,15,17,0) 0%, var(--bg) 42%); }
 
-  /* splash */
+  /* splash — green brand (restored per Vishnu 2026-09-29) */
   #splash { align-items: center; justify-content: center;
     background:
-      radial-gradient(70% 45% at 50% 22%, rgba(255,106,45,.14) 0%, transparent 70%),
-      radial-gradient(60% 40% at 50% 90%, rgba(139,92,246,.10) 0%, transparent 70%),
-      var(--bg);
+      linear-gradient(125deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.05) 46%, rgba(255,255,255,0) 60%),
+      radial-gradient(110% 70% at 50% 30%, #2E5A44 0%, #1B3528 45%, #0A0F0C 100%);
   }
   #splash .mark { width: 132px; height: 132px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35));
     animation: arrive .8s cubic-bezier(.25,.8,.25,1) .15s both; }
@@ -839,10 +838,10 @@
   #home .hero-card { margin-top: 0; }
   #home [data-widget] { margin-top: 12px; }
   #home .conn-card .cc-go { font-size: 22px; line-height: 1; }
-  /* Net-worth hero: soft orange outer glow. */
+  /* Net-worth hero: soft green outer glow. */
   #nwHero.hero-card {
     box-shadow: inset 0 1px 0 rgba(255,255,255,.08),
-      0 0 54px rgba(255,106,45,.11), 0 20px 48px rgba(0,0,0,.45);
+      0 0 54px rgba(46,158,107,.12), 0 20px 48px rgba(0,0,0,.45);
   }
   /* Mobile-first type scale: compact headlines, hero numerals with presence
      but never billboard size. */
@@ -852,11 +851,11 @@
   /* Signature motif: the aurora flow ribbon. Thin multi-hue band under the home
      hero figure; recurs as a divider on detail pages. */
   .aurora-ribbon { height: 3px; border-radius: 999px; margin: 16px 0 2px; opacity: .95;
-    background: linear-gradient(90deg, #FF6A2D, #F472B6, #A78BFA, #2DD4BF, #60A5FA, #FF6A2D);
+    background: linear-gradient(90deg, #2E9E6B, #F472B6, #A78BFA, #2DD4BF, #60A5FA, #2E9E6B);
     background-size: 220% 100%; animation: aurora-slide 9s linear infinite; }
   .aurora-band { height: 20px; margin: 12px -6px -4px; border-radius: 50%;
     filter: blur(16px); opacity: .45;
-    background: linear-gradient(90deg, #FF6A2D, #F472B6, #A78BFA, #2DD4BF, #FF6A2D);
+    background: linear-gradient(90deg, #2E9E6B, #F472B6, #A78BFA, #2DD4BF, #2E9E6B);
     background-size: 220% 100%; animation: aurora-slide 9s linear infinite; }
   @keyframes aurora-slide { to { background-position: 220% 0; } }
   @media (prefers-reduced-motion: reduce) { .aurora-ribbon, .aurora-band { animation: none; } }
@@ -11280,7 +11279,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const Y = v => H - P - ((v - min) / rng) * (H - 2 * P);
     const line = arr => arr.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
     const gid = svgUid("ag"); const fid = svgUid("af");
-    const lineColor = opts.lineColor || "#FF6A2D";
+    const lineColor = opts.lineColor || "#2E9E6B";
     const d = line(data);
     const area = `${d}L${X(data.length - 1).toFixed(1)},${(H - P).toFixed(1)}L${X(0).toFixed(1)},${(H - P).toFixed(1)}Z`;
     // v3: subtle dotted grid + luminous line over a rich gradient fill.
@@ -11301,7 +11300,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </svg>`;
   }
   function sparkSVG(vals, color, w, h) {
-    color = color || "#FF6A2D"; w = w || 64; h = h || 22;
+    color = color || "#2E9E6B"; w = w || 64; h = h || 22;
     const data = (vals || []).filter(v => typeof v === "number" && isFinite(v));
     if (data.length < 2) return "";
     const min = Math.min.apply(null, data), max = Math.max.apply(null, data), rng = Math.max(1e-9, max - min);
@@ -11670,7 +11669,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <p class="hero-num num">${bm0(nw.total)}</p>
         <div class="aurora-ribbon" aria-hidden="true" style="margin:14px 0 0"></div>
         <p class="psub" style="margin:6px 0 0">${bm0(nw.bank)} in accounts · ${bm0(nw.assets)} other assets · ${bm0(nw.liabs + nw.debts)} owed</p>
-        <div style="margin-top:10px">${areaChartSVG(snapVals, { lineColor: "#FF6A2D", label: "Net worth history", h: 130 })}</div>
+        <div style="margin-top:10px">${areaChartSVG(snapVals, { lineColor: "#2E9E6B", label: "Net worth history", h: 130 })}</div>
         <p class="fine" style="margin:8px 0 0">Snapshot taken ${nowStamp}. Bank balances update when you sync; manual items only change when you edit them. Revalue big items yearly (home, car) and volatile ones (crypto) whenever you check — the "valued" date on each row is your freshness signal.</p>
       </div>`;
     body.innerHTML = `

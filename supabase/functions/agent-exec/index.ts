@@ -729,9 +729,10 @@ async function cluelyResume(
     return { ok: false, error: "The sign-in link didn't open the billing portal (expired or invalid). Nothing was changed." };
   }
   // Click "cancel subscription/plan" — try multiple patterns, then any cancel-like button.
-  let clicked: string | null = await page.clickText("cancel (your |the )?(subscription|plan)");
+  // Use negative lookbehind to avoid "Don't cancel" / "Do not cancel" buttons.
+  let clicked: string | null = await page.clickText("(?<!don['']t |do not |never )\\bcancel (your |the )?(subscription|plan)");
   if (!clicked) {
-    clicked = await page.clickText("cancel plan");
+    clicked = await page.clickText("(?<!don['']t |do not |never )\\bcancel plan\\b");
   }
   if (!clicked) {
     // Aggressive: any visible button/link with "cancel" in text (but not "don't cancel"/"keep").
@@ -741,7 +742,9 @@ async function cluelyResume(
         const t = ((el.innerText || el.textContent) || "").trim();
         if (!t || el.offsetParent === null) continue;
         const tl = t.toLowerCase();
-        if (/\\bcancel\\b/.test(tl) && !/don.t cancel|keep|not now|never mind/.test(tl)) {
+        // Must contain "cancel" as a word, must NOT be a "don't cancel" / "keep" dismissal.
+        if (/\\bcancel\\b/.test(tl) &&
+            !/don['']t cancel|do not cancel|never mind|keep (my|the|your)|not now|go back/.test(tl)) {
           el.scrollIntoView({ block: "center" });
           el.click();
           return t.slice(0, 80);

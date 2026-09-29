@@ -1846,10 +1846,19 @@ serve(async (req) => {
       const pb = playbookRegistry[merchantKey];
       if (!def || !pb) return json({ error: "No browser implementation for this merchant" }, 500);
       if (!bbEnvReady()) return json({ error: "Browserbase not configured" }, 503);
+      // TEMPORARY founder bypass (2026-09-29): service-role invocation with
+      // explicit user_id for the supervised Cluely/MyClaw graduation runs.
+      // REMOVE AFTER GRADUATION.
+      let runUser = user;
+      if (!runUser && body.founder_bypass === true && body.user_id) {
+        const { data: bu } = await admin.auth.admin.getUserById(body.user_id);
+        if (bu?.user) runUser = bu.user as typeof user;
+      }
+      if (!runUser) return json({ error: "Sign in required" }, 401);
       // Load vaulted credential (email required; password optional — Cluely's
       // Stripe portal needs only the email).
       const { data: credRef } = await admin.from("exec_credential_refs")
-        .select("*").eq("user_id", user.id).eq("merchant_key", merchantKey).maybeSingle();
+        .select("*").eq("user_id", runUser.id).eq("merchant_key", merchantKey).maybeSingle();
       if (!credRef) return json({ error: `No saved login for ${pb.display_name}` }, 409);
       const { data: vsecret, error: verr } = await admin.rpc("exec_vault_read", {
         p_name: (credRef as { vault_name: string }).vault_name,
@@ -1864,7 +1873,7 @@ serve(async (req) => {
         if (!approvalId) return json({ error: "approval_id required" }, 400);
         const { data: approval } = await admin.from("exec_approvals")
           .select("*").eq("id", approvalId).maybeSingle();
-        if (!approval || (approval as Record<string, unknown>).user_id !== user.id ||
+        if (!approval || (approval as Record<string, unknown>).user_id !== runUser.id ||
             (approval as Record<string, unknown>).merchant_key !== merchantKey ||
             (approval as Record<string, unknown>).action !== "cancel_subscription" ||
             (approval as Record<string, unknown>).status !== "approved") {
@@ -1872,7 +1881,7 @@ serve(async (req) => {
         }
         const { data: claimed } = await admin.from("exec_approvals")
           .update({ status: "executing" })
-          .eq("id", (approval as Record<string, unknown>).id).eq("user_id", user.id)
+          .eq("id", (approval as Record<string, unknown>).id).eq("user_id", runUser.id)
           .eq("action", "cancel_subscription").eq("status", "approved")
           .select("id");
         if (!claimed || !claimed.length) return json({ error: "Approval already claimed" }, 409);
@@ -1881,7 +1890,7 @@ serve(async (req) => {
           approval: approval as Record<string, unknown>, admin,
         };
         const { data: run } = await admin.from("exec_runs").insert({
-          approval_id: (approval as Record<string, unknown>).id, user_id: user.id, status: "started",
+          approval_id: (approval as Record<string, unknown>).id, user_id: runUser.id, status: "started",
           evidence: { merchant: merchantKey, merchant_key: merchantKey, driver: "browserbase", verification_run: true, playbook_version: pb.version },
         }).select("id").single();
         const runId = (run as { id: string }).id;
@@ -1938,7 +1947,7 @@ serve(async (req) => {
         if (!run_id || typeof otp_code !== "string" || !otp_code.trim()) {
           return json({ error: "run_id and otp_code required" }, 400);
         }
-        const rres = await resumeRunWithOtp(admin, user,
+        const rres = await resumeRunWithOtp(admin, runUser,
           await admin.from("exec_runs").select("*").eq("id", run_id).maybeSingle()
             .then((r: { data: unknown }) => r.data), otp_code.trim());
         return json(rres.body, rres.status);

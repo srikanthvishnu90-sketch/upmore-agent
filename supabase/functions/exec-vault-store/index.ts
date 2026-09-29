@@ -25,7 +25,7 @@ function corsFor(req: Request): Record<string, string> {
 }
 
 // Merchants the agent has a playbook for. Never accept arbitrary keys.
-const MERCHANT_ALLOWLIST = new Set(["devin"]);
+const MERCHANT_ALLOWLIST = new Set(["devin", "cluely", "myclaw"]);
 
 serve(async (req) => {
   const cors = corsFor(req);

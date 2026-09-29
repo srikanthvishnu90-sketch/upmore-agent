@@ -618,11 +618,382 @@ async function devinResume(
   return { ok: true };
 }
 
+// ---- Cluely (2026-09-29): Stripe Customer Portal magic-link flow ----
+// Cluely's official cancellation article links its Stripe Customer Portal
+// directly (no Cluely web login, no desktop app needed). Entering the
+// subscription email makes Stripe email a one-time sign-in link; opening it
+// lands in the portal where the subscription can be cancelled.
+// Two phases: start (email -> await link) / resume (link -> cancel).
+const CLUELY_PORTAL_LOGIN = "https://billing.stripe.com/p/login/8x2eVddxPgET2ZhazV2Ry00";
+
+async function cluelyStart(
+  ctx: ExecContext, page: BbPage, ev: Record<string, unknown>,
+): Promise<BrowserOutcome> {
+  ev.login_url = CLUELY_PORTAL_LOGIN;
+  await page.goto(ev.login_url as string);
+  ev.after_goto_url = await page.url().catch(() => null);
+  ev.title = await page.title().catch(() => null);
+  pushShot(ev, await page.screenshot("portal-login"));
+
+  const emailSel = await page.typeInto(EMAIL_SELECTORS, ctx.username);
+  ev.email_field = emailSel;
+  if (!emailSel) {
+    return { ok: false, error: "Stripe portal showed no email field — layout changed. Nothing was changed." };
+  }
+  const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]']);
+  const contText = contSel ? contSel : await page.clickText("^(continue|sign in|log in|send.*link)$");
+  ev.continue_clicked = contSel || contText;
+  if (!ev.continue_clicked) {
+    return { ok: false, error: "Entered the email but found no continue button. Nothing was changed." };
+  }
+  // Stripe confirms the link was sent ("Check your email", "we sent you a link", etc.).
+  const linkCheck = `(() => {
+    const t = (document.body.innerText || "").toLowerCase();
+    return /check your (email|inbox)|we (sent|emailed) you|sign-in link|login link|email.*link.*sent/i.test(t);
+  })()`;
+  const linkSent = await page.waitFor(linkCheck, 15000);
+  ev.link_sent = linkSent;
+  ev.after_continue_url = await page.url().catch(() => null);
+  pushShot(ev, await page.screenshot("link-sent"));
+  if (!linkSent) {
+    ev.post_continue_text = ((await page.eval(
+      "(document.body.innerText || '').slice(0,1200)").catch(() => "")) as string);
+    return { ok: false, error: "Entered the email but Stripe gave no sign-in-link confirmation. Nothing was changed." };
+  }
+  return {
+    awaitingOtp: true,
+    otpHint: "Stripe emailed you a sign-in link — it will be picked up automatically to continue.",
+    resume: { stage: "magic_link" },
+  };
+}
+
+async function cluelyResume(
+  ctx: ExecContext, page: BbPage, magicLink: string,
+  ev: Record<string, unknown>, _resume: Record<string, unknown>,
+): Promise<BrowserOutcome> {
+  void ctx; void _resume;
+  if (!/^https:\/\/billing\.stripe\.com\//i.test(magicLink.trim())) {
+    return { ok: false, error: "The sign-in link didn't look like a Stripe portal URL — refusing to open it. Nothing was changed." };
+  }
+  await page.goto(magicLink.trim(), 45000);
+  ev.after_link_url = await page.url().catch(() => null);
+  // Portal dashboard: wait for subscription info to render.
+  const portalReady = await page.waitFor(`(() => {
+    const t = (document.body.innerText || "").toLowerCase();
+    return /cluely|pro\\+|subscription|plan/i.test(t) &&
+      !/loading|please wait/i.test(t.slice(0, 500));
+  })()`, 30000);
+  ev.portal_ready = portalReady;
+  pushShot(ev, await page.screenshot("portal-dashboard"));
+  if (!portalReady) {
+    return { ok: false, error: "The sign-in link didn't open the billing portal (expired or invalid). Nothing was changed." };
+  }
+  // Click "cancel subscription/plan" (word-boundary match avoids dismiss buttons).
+  const clicked = await page.clickText("cancel (your |the )?(subscription|plan)");
+  ev.cancel_clicked = clicked;
+  if (!clicked) {
+    return { ok: false, error: "Opened the billing portal but found no cancel control — nothing was changed." };
+  }
+  // Observe: dialog, navigation, or nothing. Poll 20s.
+  const preCancelUrl = await page.url().catch(() => null);
+  let dialogSeen = false;
+  let urlChanged = false;
+  const ct0 = Date.now();
+  while (Date.now() - ct0 < 20000) {
+    const txt = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
+    if (/are you sure|confirm|cancellation|before you go|lose access|keep (your|the) (subscription|plan)/i.test(txt)) {
+      dialogSeen = true; break;
+    }
+    const u = await page.url().catch(() => null);
+    if (u && u !== preCancelUrl) { urlChanged = true; break; }
+    const modal = await page.eval(
+      `!!document.querySelector('[role="dialog"],[role="alertdialog"],[data-state="open"]')`
+    ).catch(() => false);
+    if (modal) { dialogSeen = true; break; }
+    await sleep(1000);
+  }
+  ev.confirm_dialog = dialogSeen;
+  pushShot(ev, await page.screenshot("cancel-dialog"));
+  if (!dialogSeen && !urlChanged) {
+    return { ok: false, error: "Clicked cancel but the portal didn't respond — nothing was changed." };
+  }
+  const confirmed = await page.clickDialogButton(
+    "confirm|yes,?\\s*cancel|cancel (my |the )?subscription|end (my |the )?(subscription|plan)"
+  ) || await page.eval(`(() => {
+    const els = [...document.querySelectorAll("button, [role=button], input[type=submit]")];
+    const bad = /keep|back|not now|never mind|dismiss|close/i;
+    const good = /^(confirm|yes[,.]?\\s*(cancel|do it)|cancel (my |the )?(subscription|plan)|end (my |the )?(subscription|plan))$/i;
+    for (const el of els) {
+      const t = ((el.innerText || el.value) || "").trim();
+      if (!t || el.offsetParent === null) continue;
+      if (good.test(t) && !bad.test(t)) {
+        el.scrollIntoView({ block: "center" }); el.click();
+        return t.slice(0, 80);
+      }
+    }
+    return null;
+  })()`).catch(() => null);
+  ev.confirm_clicked = confirmed;
+  if (!confirmed) {
+    return { ok: false, error: "The cancel dialog appeared but the confirm button couldn't be clicked — nothing was changed." };
+  }
+  await sleep(4000);
+  const pageText = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
+  const m = pageText.match(/cancell?ed|cancellation confirmed|subscription (will |has )?(end|cancel)|no longer be billed|access until/i);
+  if (m) {
+    const i = pageText.indexOf(m[0]);
+    ev.confirmation_text = pageText.slice(Math.max(0, i - 120), i + 200);
+  }
+  pushShot(ev, await page.screenshot("confirmation"));
+  if (!m) {
+    return { ok: false, error: "Clicked cancel but no confirmation text appeared — check the Stripe portal before retrying." };
+  }
+  ev.note = "Cluely subscription cancellation confirmed in the Stripe portal.";
+  return { ok: true };
+}
+
+// ---- MyClaw.ai (2026-09-29): web login + dashboard cancel ----
+// Login at myclaw.ai/login offers Google SSO, Slack SSO, and an email flow.
+// Strategy: try the email flow first (likely a magic link/code — no password,
+// no 2FA surface); fall back to Google SSO with the vaulted Google login.
+// After login, discover the billing/subscription area adaptively.
+async function myclawStart(
+  ctx: ExecContext, page: BbPage, ev: Record<string, unknown>,
+): Promise<BrowserOutcome> {
+  ev.login_url = "https://myclaw.ai/login";
+  await page.goto(ev.login_url as string);
+  ev.after_goto_url = await page.url().catch(() => null);
+  ev.title = await page.title().catch(() => null);
+  pushShot(ev, await page.screenshot("login"));
+
+  // Attempt 1: email flow (magic link/code).
+  const emailSel = await page.typeInto(EMAIL_SELECTORS, ctx.username);
+  ev.email_field = emailSel;
+  if (emailSel) {
+    const contSel = await page.clickFirst(['button[type="submit"]', 'input[type="submit"]']);
+    const contText = contSel ? contSel : await page.clickText("^(continue|sign in|log in)$");
+    ev.email_continue_clicked = contSel || contText;
+    if (ev.email_continue_clicked) {
+      const magicCheck = `(() => {
+        const t = (document.body.innerText || "").toLowerCase();
+        return /check your email|enter (the )?code|verification code|one-time|we sent you|magic link/i.test(t) ||
+          !!document.querySelector('input[autocomplete="one-time-code"], input[name*="code" i], input[name*="otp" i]');
+      })()`;
+      const magicSeen = await page.waitFor(magicCheck, 15000);
+      ev.email_magic_prompt = magicSeen;
+      ev.after_email_continue_url = await page.url().catch(() => null);
+      pushShot(ev, await page.screenshot("email-flow"));
+      if (magicSeen) {
+        return {
+          awaitingOtp: true,
+          otpHint: "MyClaw emailed you a sign-in link/code — it will be picked up automatically to continue.",
+          resume: { stage: "email_magic" },
+        };
+      }
+      // Email flow didn't yield a magic prompt (maybe password?). Fall through to Google SSO.
+      ev.email_flow_note = "Email flow gave no magic-link/code prompt; trying Google SSO.";
+    }
+  }
+
+  // Attempt 2: Google SSO (confirmed login method).
+  const googleClicked = await page.clickText("continue with google");
+  ev.google_clicked = googleClicked;
+  if (!googleClicked) {
+    return { ok: false, error: "MyClaw login showed neither a working email flow nor a Google button. Nothing was changed." };
+  }
+  // Google's identifier page.
+  const gEmailSel = await page.waitFor(`(() => !!document.querySelector('input[type="email"]'))()`, 15000)
+    .then((ok) => ok ? page.typeInto(['input[type="email"]'], ctx.username) : null);
+  ev.google_email_field = gEmailSel;
+  if (!gEmailSel) {
+    return { ok: false, error: "Google sign-in showed no email field. Nothing was changed." };
+  }
+  const gNext1 = await page.clickText("^(next)$");
+  ev.google_next1 = gNext1;
+  await sleep(2500);
+  // Google's password page.
+  const gPassSel = await page.waitFor(`(() => !!document.querySelector('input[type="password"]'))()`, 15000)
+    .then((ok) => ok ? page.typeInto(['input[type="password"]'], ctx.password || "") : null);
+  ev.google_password_field = gPassSel;
+  if (!gPassSel) {
+    // Might be a "Verify it's you" / 2FA challenge instead of a password field.
+    const pageText = ((await page.eval("(document.body.innerText || '').slice(0,1500)").catch(() => "")) as string);
+    ev.google_challenge_text = pageText.slice(0, 500);
+    if (/verify (it's|its) you|2-step|two-step|try another way|confirm.*identity/i.test(pageText)) {
+      return { ok: false, error: "Google asked for extra verification (2FA/\"Verify it's you\") which the agent cannot complete. Nothing was changed — you'll need to approve it on your phone, then I can retry." };
+    }
+    return { ok: false, error: "Google sign-in showed no password field. Nothing was changed." };
+  }
+  if (!ctx.password) {
+    return { ok: false, error: "Google sign-in needs the Google password, which isn't saved. Nothing was changed." };
+  }
+  const gNext2 = await page.clickText("^(next)$");
+  ev.google_next2 = gNext2;
+  await sleep(4000);
+  // Check for post-password challenges.
+  const postText = ((await page.eval("(document.body.innerText || '').slice(0,1500)").catch(() => "")) as string);
+  if (/verify (it's|its) you|2-step|two-step|try another way|confirm.*identity|phone.*verif/i.test(postText)) {
+    ev.google_challenge_text = postText.slice(0, 500);
+    pushShot(ev, await page.screenshot("google-challenge"));
+    return { ok: false, error: "Google asked for extra verification after the password (2FA/\"Verify it's you\") which the agent cannot complete. Nothing was changed." };
+  }
+  // Wait to land back in MyClaw (logged in).
+  const loggedIn = await page.waitFor(`(() => {
+    const u = location.href;
+    return u.includes("myclaw.ai") && !u.includes("/login") && !u.includes("accounts.google.com");
+  })()`, 45000);
+  ev.logged_in = loggedIn;
+  ev.post_login_url = await page.url().catch(() => null);
+  pushShot(ev, await page.screenshot("logged-in"));
+  if (!loggedIn) {
+    return { ok: false, error: "Google sign-in didn't complete (wrong password or challenge). Nothing was changed." };
+  }
+  // Logged in via Google SSO — proceed to find billing/cancel in the same phase.
+  return await myclawFindAndCancel(page, ev);
+}
+
+// Shared: after MyClaw login (email-magic or Google), discover billing and cancel.
+async function myclawFindAndCancel(
+  page: BbPage, ev: Record<string, unknown>,
+): Promise<BrowserOutcome> {
+  await sleep(3000);
+  let billingUrl: string | null = null;
+  const foundLink = await page.eval(`(() => {
+    const els = [...document.querySelectorAll("a[href]")];
+    const m = els.find((a) =>
+      /billing|subscription/i.test(a.getAttribute("href") || "") ||
+      /billing|subscription|plan/i.test(a.innerText || ""));
+    return m ? m.getAttribute("href") : null;
+  })()`).catch(() => null);
+  if (foundLink) {
+    try {
+      billingUrl = foundLink.startsWith("http")
+        ? foundLink
+        : new URL(foundLink, await page.url()).toString();
+      await page.goto(billingUrl, 25000);
+    } catch { billingUrl = null; }
+  }
+  if (!billingUrl) {
+    for (const p of ["/settings/billing", "/settings/subscription", "/billing",
+                     "/account/billing", "/settings", "/account", "/dashboard/settings"]) {
+      const u = "https://myclaw.ai" + p;
+      await page.goto(u, 25000);
+      await sleep(2500);
+      const t = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
+      if (/cancel (your |the )?(subscription|plan)|billing/i.test(t)) { billingUrl = u; break; }
+      ev["billing_try_" + p.replace(/\//g, "_")] = t.slice(0, 300);
+    }
+  }
+  ev.billing_url = billingUrl;
+  pushShot(ev, await page.screenshot("billing"));
+  if (!billingUrl) {
+    return { ok: false, error: "Signed in to MyClaw, but couldn't find the billing page — nothing was changed." };
+  }
+  const clicked = await page.clickText("cancel (your |the )?(subscription|plan)");
+  ev.cancel_clicked = clicked;
+  if (!clicked) {
+    return { ok: false, error: "Found MyClaw billing but no cancel-subscription control — nothing was changed." };
+  }
+  const preCancelUrl = await page.url().catch(() => null);
+  let dialogSeen = false;
+  let urlChanged = false;
+  const ct0 = Date.now();
+  while (Date.now() - ct0 < 20000) {
+    const txt = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
+    if (/are you sure|confirm|cancellation|before you go|lose access|keep (your|the) (subscription|plan)/i.test(txt)) {
+      dialogSeen = true; break;
+    }
+    const u = await page.url().catch(() => null);
+    if (u && u !== preCancelUrl) { urlChanged = true; break; }
+    const modal = await page.eval(
+      `!!document.querySelector('[role="dialog"],[role="alertdialog"],[data-state="open"]')`
+    ).catch(() => false);
+    if (modal) { dialogSeen = true; break; }
+    await sleep(1000);
+  }
+  ev.confirm_dialog = dialogSeen;
+  pushShot(ev, await page.screenshot("cancel-dialog"));
+  if (!dialogSeen && !urlChanged) {
+    return { ok: false, error: "Clicked cancel but the page didn't respond — nothing was changed." };
+  }
+  const confirmed = await page.clickDialogButton(
+    "confirm|yes,?\\s*cancel|cancel (my |the )?subscription|end (my |the )?(subscription|plan)"
+  ) || await page.eval(`(() => {
+    const els = [...document.querySelectorAll("button, [role=button], input[type=submit]")];
+    const bad = /keep|back|not now|never mind|dismiss|close/i;
+    const good = /^(confirm|yes[,.]?\\s*(cancel|do it)|cancel (my |the )?(subscription|plan)|end (my |the )?(subscription|plan))$/i;
+    for (const el of els) {
+      const t = ((el.innerText || el.value) || "").trim();
+      if (!t || el.offsetParent === null) continue;
+      if (good.test(t) && !bad.test(t)) {
+        el.scrollIntoView({ block: "center" }); el.click();
+        return t.slice(0, 80);
+      }
+    }
+    return null;
+  })()`).catch(() => null);
+  ev.confirm_clicked = confirmed;
+  if (!confirmed) {
+    return { ok: false, error: "The cancel dialog appeared but the confirm button couldn't be clicked — nothing was changed." };
+  }
+  await sleep(4000);
+  const pageText = ((await page.eval("document.body.innerText || \"\"").catch(() => "")) as string);
+  const m = pageText.match(/cancell?ed|cancellation confirmed|subscription (will |has )?(end|cancel)|no longer be billed|access until/i);
+  if (m) {
+    const i = pageText.indexOf(m[0]);
+    ev.confirmation_text = pageText.slice(Math.max(0, i - 120), i + 200);
+  }
+  pushShot(ev, await page.screenshot("confirmation"));
+  if (!m) {
+    return { ok: false, error: "Clicked cancel but no confirmation text appeared — check the MyClaw dashboard before retrying." };
+  }
+  ev.note = "MyClaw.ai subscription cancellation confirmed in the browser.";
+  return { ok: true };
+}
+
+async function myclawResume(
+  ctx: ExecContext, page: BbPage, magic: string,
+  ev: Record<string, unknown>, resume: Record<string, unknown>,
+): Promise<BrowserOutcome> {
+  void ctx;
+  const stage = (resume as { stage?: string })?.stage;
+  if (stage === "email_magic" && /^https:\/\//i.test(magic.trim())) {
+    // Magic link: open it to complete login.
+    await page.goto(magic.trim(), 45000);
+    const loggedIn = await page.waitFor(`(() => {
+      const u = location.href;
+      return u.includes("myclaw.ai") && !u.includes("/login");
+    })()`, 45000);
+    ev.magic_link_logged_in = loggedIn;
+    ev.post_login_url = await page.url().catch(() => null);
+    pushShot(ev, await page.screenshot("magic-logged-in"));
+    if (!loggedIn) {
+      return { ok: false, error: "The MyClaw sign-in link didn't complete login (expired or invalid). Nothing was changed." };
+    }
+    return await myclawFindAndCancel(page, ev);
+  }
+  // Otherwise treat as a one-time code typed into the page.
+  const how = await page.fillOtp(magic);
+  ev.otp_entry = how || null;
+  if (!how) {
+    return { ok: false, error: "The code field disappeared — the session may have expired. Nothing was changed." };
+  }
+  await sleep(2000);
+  const loggedIn = await page.waitFor(`(() => {
+    const u = location.href;
+    return u.includes("myclaw.ai") && !u.includes("/login");
+  })()`, 45000);
+  ev.logged_in = loggedIn;
+  if (!loggedIn) {
+    return { ok: false, error: "The code was rejected or expired — nothing was changed." };
+  }
+  return await myclawFindAndCancel(page, ev);
+}
+
 const browserPlaybooks: Record<string, BrowserPlaybookDef> = {
-  // Only runs when a real approved exec_approvals row exists — the serve()
-  // handler enforces this before any playbook is invoked. Never invent
-  // approvals, never run in tests.
   "devin": { start: devinStart, resume: devinResume },
+  "cluely": { start: cluelyStart, resume: cluelyResume },
+  "myclaw": { start: myclawStart, resume: myclawResume },
 };
 
 // ================= merchant catalog wiring =================
@@ -902,6 +1273,21 @@ function extractOtpCode(text: string): string | null {
   return m ? m[1] : null;
 }
 
+// Magic-link extraction (2026-09-29): for merchants whose sign-in email
+// carries a one-time URL instead of a code (Cluely's Stripe portal). Finds
+// the first https URL on an allowlisted host. The link travels only into
+// the run's browser via the resume path — never into evidence/logs.
+function extractMagicLink(text: string, hosts: string[]): string | null {
+  const urls = text.match(/https?:\/\/[^\s"'<>]+/gi) || [];
+  for (const u of urls) {
+    try {
+      const host = new URL(u).hostname.toLowerCase();
+      if (hosts.some((h) => host === h || host.endsWith("." + h))) return u;
+    } catch { /* not a URL */ }
+  }
+  return null;
+}
+
 async function searchGmailForOtp(accessToken: string, sender: string): Promise<string | null> {
   const q = `from:${sender} newer_than:15m`;
   const listRes = await fetch(
@@ -920,6 +1306,30 @@ async function searchGmailForOtp(accessToken: string, sender: string): Promise<s
     if (!fullRes.ok) continue;
     const code = extractOtpCode(gmailMessageText(full));
     if (code) return code;
+  }
+  return null;
+}
+
+async function searchGmailForMagicLink(
+  accessToken: string, sender: string, hosts: string[],
+): Promise<string | null> {
+  const q = `from:${sender} newer_than:15m`;
+  const listRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=5`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  const list = await listRes.json().catch(() => ({}));
+  if (!listRes.ok) return null;
+  for (const m of list.messages || []) {
+    if (!m?.id) continue;
+    const fullRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(m.id)}?format=full`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    const full = await fullRes.json().catch(() => ({}));
+    if (!fullRes.ok) continue;
+    const link = extractMagicLink(gmailMessageText(full), hosts);
+    if (link) return link;
   }
   return null;
 }
@@ -995,7 +1405,11 @@ async function resumeRunWithOtp(
       }
       const resumeKey = normalizeMerchant(String(approval.merchant_key || ""));
       const resumePb = playbookRegistry[resumeKey];
-      if (!resumePb || resumePb.verified !== true) {
+      // Verification runs (verify_merchant_live one-shot) are allowed through:
+      // they are the supervised path that GRADUATES a playbook. The run's
+      // evidence carries verification_run:true from the start phase.
+      const isVerificationRun = (run.evidence as Record<string, unknown>)?.verification_run === true;
+      if (!resumePb || (resumePb.verified !== true && !isVerificationRun)) {
         const directory_entry = merchantDirectory[resumeKey] ?? GENERIC_FALLBACK;
         await admin.from("exec_runs").update({
           status: "failed",
@@ -1359,10 +1773,17 @@ serve(async (req) => {
       }
       const evm = (run.evidence as Record<string, unknown>) ?? {};
       const mkey = normalizeMerchant(String(evm.merchant_key ?? evm.merchant ?? ""));
-      const senders = playbookRegistry[mkey]?.otp_senders;
+      const pb = playbookRegistry[mkey];
+      const senders = pb?.otp_senders;
       if (!senders || !senders.length) {
         return json({ ok: false, auto_otp: "unsupported", status: run.status });
       }
+      // otp_kind "magic_link": the email carries a one-time sign-in URL
+      // (Cluely's Stripe portal). "code_or_link": accept whichever arrives.
+      const otpKind = pb?.otp_kind ?? "code";
+      const linkHosts = mkey === "cluely"
+        ? ["billing.stripe.com"]
+        : mkey === "myclaw" ? ["myclaw.ai", "accounts.google.com"] : [];
       let accessToken: string;
       try {
         accessToken = await getGmailAccessToken(admin, user.id);
@@ -1370,10 +1791,10 @@ serve(async (req) => {
         const reason = (e as any)?.code === "not_connected" ? "not_connected" : "gmail_error";
         return json({ ok: false, auto_otp: reason, status: run.status, error: String(e?.message || e) });
       }
-      // Poll for the code email: it usually lands 20-60s after the login
+      // Poll for the sign-in email: it usually lands 20-60s after the login
       // form is submitted. Bail early if the run stops waiting.
-      let code: string | null = null;
-      for (let i = 0; i < 6 && !code; i++) {
+      let secret: string | null = null;
+      for (let i = 0; i < 6 && !secret; i++) {
         if (i > 0) await sleep(15000);
         const { data: cur } = await admin.from("exec_runs")
           .select("status").eq("id", run.id).maybeSingle();
@@ -1381,14 +1802,23 @@ serve(async (req) => {
           return json({ ok: false, auto_otp: "run_changed", status: cur?.status ?? "unknown" });
         }
         for (const s of senders) {
-          try { code = await searchGmailForOtp(accessToken, s); } catch { code = null; }
-          if (code) break;
+          try {
+            if (otpKind === "magic_link") {
+              secret = await searchGmailForMagicLink(accessToken, s, linkHosts);
+            } else if (otpKind === "code_or_link") {
+              secret = await searchGmailForOtp(accessToken, s) ||
+                await searchGmailForMagicLink(accessToken, s, linkHosts);
+            } else {
+              secret = await searchGmailForOtp(accessToken, s);
+            }
+          } catch { secret = null; }
+          if (secret) break;
         }
       }
-      if (!code) {
+      if (!secret) {
         return json({ ok: false, auto_otp: "not_found", status: "awaiting_otp" });
       }
-      const rres = await resumeRunWithOtp(admin, user, run, code);
+      const rres = await resumeRunWithOtp(admin, user, run, secret);
       return json({ ...rres.body, auto_otp: "fetched" }, rres.status);
     }
 
@@ -1396,6 +1826,124 @@ serve(async (req) => {
       const { data } = await admin.from("user_oauth_connections")
         .select("email").eq("user_id", user.id).eq("provider", "gmail").maybeSingle();
       return json({ connected: !!data, email: data?.email ?? null });
+    }
+
+    // ---- verify_merchant_live: ONE-SHOT supervised graduation run (2026-09-29)
+    // The normal execute path refuses unverified playbooks, so this supervised
+    // action runs the merchant's DEDICATED implementation (browserPlaybooks)
+    // against production with the caller's vaulted login. Two phases:
+    //   { action:"verify_merchant_live", phase:"start", merchant_key, approval_id }
+    //     -> { status:"awaiting_otp", run_id, otp_hint }
+    //   { action:"verify_merchant_live", phase:"resume", run_id, otp_code }
+    //     -> { ok, status:"done"|"failed", evidence }
+    // Requires a real exec_approvals row (cancel_subscription, approved,
+    // caller-owned, matching merchant) — this run performs the REAL
+    // cancellation the user approved. REMOVE AFTER GRADUATION.
+    if (action === "verify_merchant_live") {
+      const phase = body.phase || "start";
+      const merchantKey = normalizeMerchant(String(body.merchant_key || ""));
+      const def = browserPlaybooks[merchantKey];
+      const pb = playbookRegistry[merchantKey];
+      if (!def || !pb) return json({ error: "No browser implementation for this merchant" }, 500);
+      if (!bbEnvReady()) return json({ error: "Browserbase not configured" }, 503);
+      // Load vaulted credential (email required; password optional — Cluely's
+      // Stripe portal needs only the email).
+      const { data: credRef } = await admin.from("exec_credential_refs")
+        .select("*").eq("user_id", user.id).eq("merchant_key", merchantKey).maybeSingle();
+      if (!credRef) return json({ error: `No saved login for ${pb.display_name}` }, 409);
+      const { data: vsecret, error: verr } = await admin.rpc("exec_vault_read", {
+        p_name: (credRef as { vault_name: string }).vault_name,
+      });
+      if (verr || !vsecret) return json({ error: "Could not read saved login" }, 500);
+      let vcred: { username?: string; password?: string } = {};
+      try { vcred = JSON.parse(vsecret || "{}"); } catch { /* ignore */ }
+      if (!vcred.username) return json({ error: "Saved login is incomplete" }, 409);
+
+      if (phase === "start") {
+        const approvalId = body.approval_id;
+        if (!approvalId) return json({ error: "approval_id required" }, 400);
+        const { data: approval } = await admin.from("exec_approvals")
+          .select("*").eq("id", approvalId).maybeSingle();
+        if (!approval || (approval as Record<string, unknown>).user_id !== user.id ||
+            (approval as Record<string, unknown>).merchant_key !== merchantKey ||
+            (approval as Record<string, unknown>).action !== "cancel_subscription" ||
+            (approval as Record<string, unknown>).status !== "approved") {
+          return json({ error: "Approval not valid for verification run" }, 409);
+        }
+        const { data: claimed } = await admin.from("exec_approvals")
+          .update({ status: "executing" })
+          .eq("id", (approval as Record<string, unknown>).id).eq("user_id", user.id)
+          .eq("action", "cancel_subscription").eq("status", "approved")
+          .select("id");
+        if (!claimed || !claimed.length) return json({ error: "Approval already claimed" }, 409);
+        const ctx: ExecContext = {
+          username: vcred.username, password: vcred.password || "",
+          approval: approval as Record<string, unknown>, admin,
+        };
+        const { data: run } = await admin.from("exec_runs").insert({
+          approval_id: (approval as Record<string, unknown>).id, user_id: user.id, status: "started",
+          evidence: { merchant: merchantKey, merchant_key: merchantKey, driver: "browserbase", verification_run: true, playbook_version: pb.version },
+        }).select("id").single();
+        const runId = (run as { id: string }).id;
+        let session: { id: string; connectUrl: string } | null = null;
+        const ev: Record<string, unknown> = { merchant: merchantKey, merchant_key: merchantKey, driver: "browserbase", verification_run: true };
+        try {
+          session = await bbCreateSession(true); // keepAlive: survives the OTP pause
+          ev.session_id = session.id;
+          const cdp = await Cdp.connect(session.connectUrl);
+          let outcome: BrowserOutcome;
+          try {
+            const page = await BbPage.open(cdp);
+            outcome = await def.start(ctx, page, ev);
+          } finally { cdp.close(); }
+          if ("awaitingOtp" in outcome && (outcome as { awaitingOtp?: boolean }).awaitingOtp) {
+            ev.resume = (outcome as { resume?: unknown }).resume;
+            await admin.from("exec_runs").update({
+              status: "awaiting_otp", evidence: ev,
+              browserbase_session_id: session.id,
+              otp_hint: (outcome as { otpHint?: string }).otpHint,
+              otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+            }).eq("id", runId);
+            return json({ ok: false, status: "awaiting_otp", run_id: runId,
+              otp_hint: (outcome as { otpHint?: string }).otpHint });
+          }
+          await bbStopSession(session.id);
+          const finalStatus = outcome.ok ? "done" : "failed";
+          const err = outcome.ok ? null : (outcome as { error: string }).error;
+          await admin.from("exec_runs").update({
+            status: finalStatus, evidence: ev, error: err, finished_at: new Date().toISOString(),
+          }).eq("id", runId);
+          await learnFromRunOutcome({
+            admin, merchantKey, merchantLabel: pb.display_name,
+            finalStatus, error: err, ev, runId, appliedLessonIds: [],
+          });
+          await admin.from("exec_approvals").update({ status: finalStatus, decided_at: new Date().toISOString() })
+            .eq("id", (approval as Record<string, unknown>).id);
+          return json({ ok: outcome.ok, status: finalStatus, evidence: ev, error: err });
+        } catch (e) {
+          if (session) await bbStopSession(session.id);
+          const msg = String((e as Error)?.message || e);
+          await admin.from("exec_runs").update({
+            status: "failed", evidence: ev, error: "Verification run failed: " + msg,
+            finished_at: new Date().toISOString(),
+          }).eq("id", runId);
+          await admin.from("exec_approvals").update({ status: "failed", decided_at: new Date().toISOString() })
+            .eq("id", (approval as Record<string, unknown>).id);
+          return json({ ok: false, status: "failed", error: "Verification run failed: " + msg }, 500);
+        }
+      }
+
+      if (phase === "resume") {
+        const { run_id, otp_code } = body;
+        if (!run_id || typeof otp_code !== "string" || !otp_code.trim()) {
+          return json({ error: "run_id and otp_code required" }, 400);
+        }
+        const rres = await resumeRunWithOtp(admin, user,
+          await admin.from("exec_runs").select("*").eq("id", run_id).maybeSingle()
+            .then((r: { data: unknown }) => r.data), otp_code.trim());
+        return json(rres.body, rres.status);
+      }
+      return json({ error: "Unknown phase" }, 400);
     }
 
     // ---- default: execute an approved approval ----

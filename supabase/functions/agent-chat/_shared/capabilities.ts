@@ -2807,7 +2807,13 @@ async function runCancelExec(
   if (aerr || !ap) {
     return `I couldn't start the cancellation (technical hiccup on my end) — nothing was touched. Want me to try again?`;
   }
-  const invokeBody = { approval_id: (ap as { id: string }).id };
+  // Unverified playbooks run through the supervised verification one-shot
+  // (which performs the real cancellation and graduates the playbook);
+  // verified playbooks use the normal execute path.
+  const invokeBody = d.verified
+    ? { approval_id: (ap as { id: string }).id }
+    : { action: "verify_merchant_live", phase: "start",
+        merchant_key: d.merchant_key, approval_id: (ap as { id: string }).id };
   const r = await callExec(ctx, invokeBody, 115000);
   if (r.status === "awaiting_otp") {
     const runId = String(r.run_id ?? "");

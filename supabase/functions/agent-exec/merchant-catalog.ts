@@ -51,6 +51,11 @@ export interface MerchantPlaybook {
   // messages, and only while a run is actively awaiting a code. Never shown
   // to the client; the code never leaves the server.
   otp_senders?: string[];
+  // "code" (default): the email carries a 6-digit sign-in code.
+  // "magic_link": the email carries a one-time sign-in URL (opened in the
+  //   run's browser instead of typing a code).
+  // "code_or_link": accept whichever the email carries.
+  otp_kind?: "code" | "magic_link" | "code_or_link";
 }
 
 export interface DirectoryEntry {
@@ -115,43 +120,32 @@ export const playbookRegistry: Record<string, MerchantPlaybook> = {
     merchant_key: "cluely",
     display_name: "Cluely",
     verified: false,
-    version: 1,
+    version: 2,
     last_verified_at: null,
-    verification_note: "PUBLIC RESEARCH ONLY 2026-09-29 - NOT LIVE-VERIFIED. FOUNDER-CONFIRMED 2026-09-29: account logs in via Google SSO with srikanthvishnu90@gmail.com (use the site's 'Continue with Google' option, not email+password). Official Cluely support article (https://support.cluely.com/en/articles/11128019-cancel-subscription) says cancel from the DESKTOP APP: profile icon -> Settings -> Billing -> Manage, which opens the Stripe customer billing portal (one-click cancellation). Conflicting docs on access-end timing ('cancels your access to Pro features immediately' vs 'continue using all features until your subscription expires') - verify live. No prorated refund. REQUIRES one live, authenticated Browserbase run before execution.",
-    auth: "email_password",
-    account_url: "https://cluely.com/",
-    source: "https://support.cluely.com/en/articles/11128019-cancel-subscription (+ 12026933, 13008320, 12418681)",
+    verification_note: "DEDICATED IMPLEMENTATION 2026-09-29 (not live-verified yet). Flow: Cluely's official cancellation article links its Stripe Customer Portal directly (https://billing.stripe.com/p/login/8x2eVddxPgET2ZhazV2Ry00) — no Cluely web login, no desktop app needed. Agent enters the subscription email, Stripe emails a one-time sign-in link, agent opens it, cancels the subscription in the portal, captures confirmation. Implemented as cluelyStart/cluelyResume in agent-exec/index.ts. REQUIRES one live, authenticated Browserbase run before execution.",
+    auth: "email_otp",
+    account_url: "https://billing.stripe.com/p/login/8x2eVddxPgET2ZhazV2Ry00",
+    source: "https://support.cluely.com/en/articles/11128019-cancel-subscription + agent-exec/index.ts dedicated implementation (2026-09-29)",
     evidence_texts: ["cancell?ed", "cancellation confirmed", "no longer be billed", "you won't be charged again"],
-    steps: [
-      { kind: "goto", url: "https://cluely.com/" },
-      { kind: "screenshot", label: "cluely-landing" },
-      // Public docs: the actual cancel flow lives in the desktop app
-      // (profile icon -> Settings -> Billing -> Manage -> Stripe portal),
-      // or the Stripe customer billing portal directly. Exact navigation,
-      // login surface, and confirmation sequence must be discovered in
-      // the live verification run - not invented here.
-    ],
+    otp_senders: ["stripe.com"],
+    otp_kind: "magic_link",
+    steps: [], // dedicated implementation; the declarative runner is never used
   },
 
   myclaw: {
     merchant_key: "myclaw",
     display_name: "MyClaw",
     verified: false,
-    version: 1,
+    version: 2,
     last_verified_at: null,
-    verification_note: "PUBLIC RESEARCH ONLY 2026-09-29 - NOT LIVE-VERIFIED. FOUNDER-CONFIRMED 2026-09-29: account logs in via Google SSO with srikanthvishnu90@gmail.com (use the site's Google sign-in option). Official pricing page (https://myclaw.ai/openclaw) says subscribers can upgrade/downgrade/cancel at any time; monthly plans keep access until end of billing period; annual plans described as prorated for remaining months (automatic vs support-requested unknown). Official ToS (https://myclaw.ai/ja/terms): subscriptions auto-renew, payments via third-party providers, fees non-refundable unless required by law. Third-party (https://winningpc.com/myclaw-coupon-promo-codes/): billing handled by Stripe; 'cancel anytime from your account settings'; 7-day money-back on initial purchase only. STILL UNKNOWN: exact dashboard/account URL, exact cancel navigation/button text, Stripe portal-link availability, confirmation email, OTP sender. REQUIRES one live, authenticated Browserbase run before execution.",
-    auth: "unknown",
-    account_url: "https://myclaw.ai/",
-    source: "https://myclaw.ai/openclaw, https://myclaw.ai/ja/terms, https://winningpc.com/myclaw-coupon-promo-codes/",
+    verification_note: "DEDICATED IMPLEMENTATION 2026-09-29 (not live-verified yet). Flow: myclaw.ai/login — try the email flow first (likely magic link/code), fall back to Google SSO with the vaulted Google login (founder-confirmed: srikanthvishnu90@gmail.com). After login, discover billing/subscription adaptively, cancel, capture confirmation. Implemented as myclawStart/myclawResume in agent-exec/index.ts. REQUIRES one live, authenticated Browserbase run before execution.",
+    auth: "email_otp",
+    account_url: "https://myclaw.ai/login",
+    source: "https://myclaw.ai/pricing + agent-exec/index.ts dedicated implementation (2026-09-29)",
     evidence_texts: ["cancell?ed", "subscription cancelled", "no longer be billed", "won't be charged again"],
-    steps: [
-      { kind: "goto", url: "https://myclaw.ai/" },
-      { kind: "screenshot", label: "myclaw-landing" },
-      // Public sources only say 'cancel anytime from your account settings'
-      // with Stripe-powered billing. Exact dashboard URL, login surface,
-      // cancel navigation, and confirmation sequence must be discovered in
-      // the live verification run - not invented here.
-    ],
+    otp_senders: ["myclaw.ai"],
+    otp_kind: "code_or_link",
+    steps: [], // dedicated implementation; the declarative runner is never used
   },
 
   spotify: {

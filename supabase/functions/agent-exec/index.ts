@@ -715,11 +715,13 @@ async function cluelyResume(
   }
   await page.goto(magicLink.trim(), 45000);
   ev.after_link_url = await page.url().catch(() => null);
-  // Portal dashboard: wait for subscription info to render.
+  // Portal dashboard: wait for actual subscription content to render (not just the brand header).
   const portalReady = await page.waitFor(`(() => {
     const t = (document.body.innerText || "").toLowerCase();
-    return /cluely|pro\\+|subscription|plan/i.test(t) &&
-      !/loading|please wait/i.test(t.slice(0, 500));
+    // Need real billing content: plan name, subscription status, invoices, or payment method.
+    const hasContent = /pro\\+|subscription (active|canceled|trialing)|current plan|next invoice|payment method|billing history|invoices/i.test(t);
+    const stillLoading = /loading|please wait/i.test(t.slice(0, 800));
+    return hasContent && !stillLoading;
   })()`, 30000);
   ev.portal_ready = portalReady;
   pushShot(ev, await page.screenshot("portal-dashboard"));

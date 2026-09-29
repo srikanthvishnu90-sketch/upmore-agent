@@ -1497,12 +1497,29 @@ serve(async (req) => {
 
     const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
     if (!jwt) return json({ error: "Sign in required" }, 401);
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
-    });
-    const { data: { user }, error: authErr } = await userClient.auth.getUser(jwt);
-    if (authErr || !user) return json({ error: "Invalid session" }, 401);
     const admin = createClient(supabaseUrl, serviceKey);
+    // TEMPORARY founder bypass (2026-09-29): service-role invocation for the
+    // supervised Cluely/MyClaw graduation runs. The body is parsed early;
+    // only verify_merchant_live with founder_bypass=true is allowed through.
+    // REMOVE AFTER GRADUATION.
+    let founderBypass = false;
+    let user: { id: string } | null = null;
+    if (jwt === serviceKey) {
+      const earlyBody = await req.json().catch(() => ({})) as Record<string, unknown>;
+      if (earlyBody.action === "verify_merchant_live" && earlyBody.founder_bypass === true) {
+        founderBypass = true;
+        // Reconstruct the request with the parsed body for downstream use.
+        (req as unknown as { _parsedBody: unknown })._parsedBody = earlyBody;
+      }
+    }
+    if (!founderBypass) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: `Bearer ${jwt}` } },
+      });
+      const { data: { user: u }, error: authErr } = await userClient.auth.getUser(jwt);
+      if (authErr || !u) return json({ error: "Invalid session" }, 401);
+      user = u as { id: string };
+    }
 
     // ---- OTP sweeper (2026-09-28): lazily expire stale awaiting_otp runs.
     // Runs on every invocation so no external scheduler is required: any
@@ -1532,7 +1549,8 @@ serve(async (req) => {
       }
     } catch { /* sweeper is best-effort; never block the request */ }
 
-    const body = await req.json().catch(() => ({}));
+    const body = ((req as unknown as { _parsedBody?: unknown })._parsedBody ??
+      await req.json().catch(() => ({}))) as Record<string, unknown>;
     const action = body.action || "execute";
 
     // ---- health check: real Browserbase session, safe target only ----
@@ -1850,8 +1868,8 @@ serve(async (req) => {
       // explicit user_id for the supervised Cluely/MyClaw graduation runs.
       // REMOVE AFTER GRADUATION.
       let runUser = user;
-      if (!runUser && body.founder_bypass === true && body.user_id) {
-        const { data: bu } = await admin.auth.admin.getUserById(body.user_id);
+      if (!runUser && founderBypass && body.user_id) {
+        const { data: bu } = await admin.auth.admin.getUserById(String(body.user_id));
         if (bu?.user) runUser = bu.user as typeof user;
       }
       if (!runUser) return json({ error: "Sign in required" }, 401);

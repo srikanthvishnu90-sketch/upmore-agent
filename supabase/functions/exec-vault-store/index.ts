@@ -61,9 +61,10 @@ serve(async (req) => {
         .eq("user_id", user.id).eq("merchant_key", merchant_key);
       return json({ ok: true, merchant_key, deleted: true });
     }
-    if (!username || !password || String(password).length < 1) {
-      return json({ error: "Username and password required" }, 400);
+    if (!username || String(username).length < 1) {
+      return json({ error: "Username required" }, 400);
     }
+    // Password optional: some merchants (Cluely's Stripe portal) are email-only.
 
     const vaultName = `exec_cred_${user.id}_${merchant_key}`;
     const secret = JSON.stringify({ username: String(username), password: String(password) });

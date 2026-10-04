@@ -190,7 +190,7 @@ serve(async (req) => {
               .order("route_id").range(p * 1000, p * 1000 + 999)
           ),
         );
-    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes] = await Promise.all([
+    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes, subsRes, renewRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("playbook_progress")
         .select("*, routes!inner(*)").eq("user_id", user.id).eq("status", "active")
@@ -221,6 +221,17 @@ serve(async (req) => {
       supabase.from("listings")
         .select("id, title, description, budget_max, created_at").eq("status", "open")
         .order("created_at", { ascending: false }).limit(10),
+      // User's saved subscriptions (Save tab) — the agent CAN see these.
+      // This is what powers "find my subscriptions" and related features.
+      supabase.from("save_subscriptions")
+        .select("merchant, plan_name, amount, currency, billing_interval, next_billing_date, status, cancel_url, detected_via")
+        .eq("user_id", user.id).eq("status", "active")
+        .order("amount", { ascending: false }),
+      // Upcoming renewals — for proactive trial/subscription warnings.
+      supabase.from("save_renewals")
+        .select("name, renews_on, kind, status")
+        .eq("user_id", user.id).eq("status", "upcoming").gte("renews_on", nowIso.split("T")[0])
+        .order("renews_on", { ascending: true }).limit(10),
     ]);
     const profile = profRes.data;
     // Agentic walkthrough parity: {{name}}/{{email}}/{{state}} values resolved
@@ -534,7 +545,23 @@ serve(async (req) => {
       : (openListings.length > 0
         ? `Wanted board has ${openListings.length} open electronics listing(s), none matching this message — don't mention them unless the user asks about electronics/selling.`
         : "Wanted board is empty right now.");
-    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine +
+    // USER'S SAVED SUBSCRIPTIONS (Save tab) — the agent CAN see these.
+    // This is the data source for "find my subscriptions" and related asks.
+    const subs = subsRes.data ?? [];
+    const renewals = renewRes.data ?? [];
+    const subscriptionLine = subs.length > 0
+      ? `USER'S SAVED SUBSCRIPTIONS (you CAN see these — this is real data from their Save tab, not a guess): ` +
+        subs.map((s: any) => {
+          const amt = s.amount != null ? `$${s.amount}${s.billing_interval ? `/${s.billing_interval}` : ""}` : "price unknown";
+          const next = s.next_billing_date ? `, next charge ${s.next_billing_date}` : "";
+          const cancel = s.cancel_url ? `, cancel at ${s.cancel_url}` : "";
+          return `${s.merchant}${s.plan_name ? ` (${s.plan_name})` : ""}: ${amt}${next}${cancel}`;
+        }).join("; ") + "." +
+        (renewals.length > 0
+          ? ` UPCOMING RENEWALS: ` + renewals.map((r: any) => `${r.name} on ${r.renews_on}${r.kind ? ` (${r.kind})` : ""}`).join("; ") + "."
+          : "")
+      : "USER'S SAVED SUBSCRIPTIONS: the user has no subscriptions saved in their Save tab yet. Say so honestly — do NOT claim you cannot see their data. Tell them to add subscriptions in the Save tab (or connect their bank/email when those integrations are live) and you'll track them.";
+    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine +
       `\n${catalogLine}\n\n` +
       "\n\nROUTE CARDS (only source of truth):\n" + renderRouteCards(promptRoutes);
 
@@ -551,7 +578,7 @@ serve(async (req) => {
     // ("how can I improve my credit score" must not return a bank bonus).
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
-    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + financeNudge +
+    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + financeNudge +
       renderLessonsBlock(chatLessons);
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the

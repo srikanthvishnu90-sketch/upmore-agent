@@ -7935,9 +7935,9 @@
         // Real agent reply. Apply walkthrough actions.
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) {
           const r = routeById(j.action.route_id);
-          if (r) { addAI([j.reply], null, { text: "From Upmore's analysis of your data." }); startWalkthrough(j.action.route_id); busy = false; return; }
+          if (r) { addAI([j.reply], null, null); startWalkthrough(j.action.route_id); busy = false; return; }
         }
-        addAI([j.reply], null, { text: "From Upmore's analysis of your data." });
+        addAI([j.reply], null, null);
       } else {
         const r = guideAnswer(text);
         const imgNote = hasImg ? ["I couldn't look at your photo just now — the analysis service didn't respond. Here's what I can answer from your message:"] : [];
@@ -12200,7 +12200,7 @@ async function agentChat(text, images) {
     } else {
       const j = await agentAsk(text, images);
       if (j && j.reply) {
-        paras = [j.reply]; prov = { text: "From Upmore's analysis of your data." }; src = "agent";
+        paras = [j.reply]; prov = null; src = "agent";
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) walkthrough = j.action.route_id;
       } else {
         const r = guideAnswer(text);

@@ -190,7 +190,7 @@ serve(async (req) => {
               .order("route_id").range(p * 1000, p * 1000 + 999)
           ),
         );
-    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes, subsRes, renewRes] = await Promise.all([
+    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes, subsRes, renewRes, settleRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("playbook_progress")
         .select("*, routes!inner(*)").eq("user_id", user.id).eq("status", "active")
@@ -232,6 +232,12 @@ serve(async (req) => {
         .select("name, renews_on, kind, status")
         .eq("user_id", user.id).eq("status", "upcoming").gte("renews_on", nowIso.split("T")[0])
         .order("renews_on", { ascending: true }).limit(10),
+      // Open class action settlements — verified, with live claim deadlines.
+      // Powers "find class actions I'm eligible for" matching.
+      supabase.from("class_action_settlements")
+        .select("name, case_name, category, summary, eligibility, eligibility_states, claim_deadline, payout_summary, proof_required, claim_url")
+        .eq("status", "open").gte("claim_deadline", nowIso.split("T")[0])
+        .order("claim_deadline", { ascending: true }).limit(15),
     ]);
     const profile = profRes.data;
     // Agentic walkthrough parity: {{name}}/{{email}}/{{state}} values resolved
@@ -561,7 +567,17 @@ serve(async (req) => {
           ? ` UPCOMING RENEWALS: ` + renewals.map((r: any) => `${r.name} on ${r.renews_on}${r.kind ? ` (${r.kind})` : ""}`).join("; ") + "."
           : "")
       : "USER'S SAVED SUBSCRIPTIONS: the user has no subscriptions saved in their Save tab yet. Say so honestly — do NOT claim you cannot see their data. Tell them to add subscriptions in the Save tab (or connect their bank/email when those integrations are live) and you'll track them.";
-    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine +
+    // OPEN CLASS ACTION SETTLEMENTS — verified, with live deadlines.
+    // Match the user's scenario (state, products, services) against these.
+    const settlements = settleRes.data ?? [];
+    const settlementLine = settlements.length > 0
+      ? `OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements): ` +
+        settlements.map((s: any) => {
+          const states = (s.eligibility_states?.length ?? 0) > 0 ? ` [states: ${s.eligibility_states.join(", ")}]` : " [nationwide]";
+          return `${s.name} — deadline ${s.claim_deadline}${states}. Payout: ${s.payout_summary} Proof: ${s.proof_required}. Eligibility: ${s.eligibility} Claim: ${s.claim_url}`;
+        }).join("\n") + "."
+      : "No open class action settlements in the directory right now.";
+    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine +
       `\n${catalogLine}\n\n` +
       "\n\nROUTE CARDS (only source of truth):\n" + renderRouteCards(promptRoutes);
 
@@ -578,7 +594,7 @@ serve(async (req) => {
     // ("how can I improve my credit score" must not return a bank bonus).
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
-    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + financeNudge +
+    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + financeNudge +
       renderLessonsBlock(chatLessons);
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the

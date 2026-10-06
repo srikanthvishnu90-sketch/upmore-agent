@@ -571,10 +571,10 @@ serve(async (req) => {
     // Match the user's scenario (state, products, services) against these.
     const settlements = settleRes.data ?? [];
     const settlementLine = settlements.length > 0
-      ? `${settlements.length} OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements): ` +
+      ? `${settlements.length} OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements or dollar figures — quote fund sizes and payouts EXACTLY as written here): ` +
         settlements.map((s: any) => {
           const states = (s.eligibility_states?.length ?? 0) > 0 ? ` [states: ${s.eligibility_states.join(", ")}]` : " [nationwide]";
-          return `${s.name} — deadline ${s.claim_deadline}${states}. Payout: ${s.payout_summary} Proof: ${s.proof_required}. Eligibility: ${s.eligibility} Claim: ${s.claim_url}`;
+          return `${s.name} — deadline ${s.claim_deadline}${states}. ${s.summary} Payout: ${s.payout_summary} Proof: ${s.proof_required}. Eligibility: ${s.eligibility} Claim: ${s.claim_url}`;
         }).join("\n") + "."
       : "No open class action settlements in the directory right now.";
     const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine +
@@ -712,7 +712,7 @@ serve(async (req) => {
     if (financeIds.length) financeMode = true;
     const violations = checkGrounding(reply, routes, message, financeMode, financeIds,
       exclHist.map((h) => String(h.content ?? "")).join("\n"),
-      settlements.map((s: any) => ({ claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary })));
+      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary })));
     if (violations.length) {
       console.warn("grounding violations", violations);
       // Learning: the model made an ungrounded claim and got caught — record

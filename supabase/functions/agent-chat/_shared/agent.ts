@@ -339,7 +339,7 @@ export function checkGrounding(
   financeMode = false,
   financeIds: string[] = [],
   threadUserText = "",
-  settlements: { claim_url?: string; settlement_site_url?: string; payout_summary?: string }[] = [],
+  settlements: { name?: string; claim_url?: string; settlement_site_url?: string; payout_summary?: string }[] = [],
 ): string[] {
   // Even if the model forgot the [FINANCE] marker, a question that matched
   // finance facts is judged by finance grounding (scoped to the matched facts),
@@ -386,9 +386,14 @@ export function checkGrounding(
       const t = JSON.stringify(r);
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
-    // Class action settlement payouts are verified data too — quoting a
-    // settlement's payout figure is faithful, not invented.
+    // Class action settlement payouts are verified data too — but scoped to
+    // settlements the reply actually names (same name-fragment rule as
+    // appendSources), so one settlement's figures can't launder another's.
+    const loweredReply2 = reply.toLowerCase();
     for (const s of settlements) {
+      const nm = String(s.name ?? "").toLowerCase();
+      const frag = nm.split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
+      if (!frag || !loweredReply2.includes(frag)) continue;
       const t = String(s.payout_summary ?? "");
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }

@@ -2507,6 +2507,9 @@ export async function tryClaimDeadlines(
   message: string,
   ctx?: CapCtx,
 ): Promise<string | null> {
+  // Class-action / lawsuit queries belong to the settlements directory
+  // (agent prompt), not the save-side claim tracker — never hijack them.
+  if (/\bclass actions?\b|lawsuits?\b|\bsettlements?\b/i.test(message)) return null;
   if (!CLAIM_RX.test(message)) return null;
 
   let claims: any[] = [];

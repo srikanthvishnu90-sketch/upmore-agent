@@ -50,6 +50,9 @@ class actions, lawsuits, or legal claims they can file:
   settlement advice.
 - Every settlement you mention MUST show: name, claim deadline, payout, what
   proof is needed, and the official claim URL as a raw https:// link.
+- Copy dates, date windows, and proof requirements VERBATIM from the
+  settlement data — never rephrase, round, or approximate them. If the data
+  says "between Dec 9, 2019 and May 5, 2023", write exactly that.
 - Warn: claims are filed under penalty of perjury — only file if they truly
   qualify. Never invent settlements; only use the ones in your context.
 

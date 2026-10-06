@@ -386,14 +386,11 @@ export function checkGrounding(
       const t = JSON.stringify(r);
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
-    // Class action settlement payouts are verified data too — but scoped to
-    // settlements the reply actually names (same name-fragment rule as
-    // appendSources), so one settlement's figures can't launder another's.
-    const loweredReply2 = reply.toLowerCase();
+    // Class action settlement payouts are verified data — quoting any of them
+    // is faithful, not invented. (Kept global across the directory: scoping
+    // amounts to name-mentioned settlements nuked legitimate replies when
+    // the model abbreviated a settlement's name.)
     for (const s of settlements) {
-      const nm = String(s.name ?? "").toLowerCase();
-      const frag = nm.split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
-      if (!frag || !loweredReply2.includes(frag)) continue;
       const t = String(s.payout_summary ?? "");
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
@@ -562,7 +559,7 @@ export function appendSources(
       const nm = String(s.name ?? "").toLowerCase();
       // Match on a distinctive fragment (first 3+ word run) to avoid
       // false positives on generic words.
-      const frag = nm.split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
+      const frag = nm.split(/\s+/).filter((w) => w.length > 3).slice(0, 2).join(" ");
       if (frag && loweredReply.includes(frag)) push(s.claim_url);
     }
   }

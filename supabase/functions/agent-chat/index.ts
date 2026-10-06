@@ -16,7 +16,9 @@ import {
   SAFE_FALLBACK,
   FINANCE_SAFE_FALLBACK,
   BILLING_SAFE_FALLBACK,
+  SETTLEMENT_SAFE_FALLBACK,
   isBillingContext,
+  isSettlementContext,
   SCAM_FALLBACK,
   RouteCard,
 } from "./_shared/agent.ts";
@@ -733,6 +735,7 @@ serve(async (req) => {
       reply = isDebunkReply(reply) ? SCAM_FALLBACK
         : financeMode ? FINANCE_SAFE_FALLBACK
         : isBillingContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? BILLING_SAFE_FALLBACK
+        : isSettlementContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? SETTLEMENT_SAFE_FALLBACK
         : SAFE_FALLBACK;
       action = null;
     } else if (financeMode) {

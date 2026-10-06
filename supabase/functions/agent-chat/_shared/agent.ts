@@ -473,9 +473,20 @@ export const SAFE_FALLBACK =
   "state it as fact. Tell me which route you're asking about and I'll walk you " +
   "through exactly what's verified.";
 
-// Billing-mode fallback: same honesty, but reads sanely in billing /
-// subscription / charge threads where "which route you're asking about" is
-// nonsensical (feature #7 finding).
+// Settlement fallback: same honesty, but points at the official settlement
+// site instead of routes (a settlement question has no route to ask about).
+export const SETTLEMENT_SAFE_FALLBACK =
+  "I want to be careful here — I can't verify that figure right now, so I won't " +
+  "state it as fact. For the official terms, check the settlement website directly — " +
+  "and if you tell me which settlement you're asking about I'll pull up its deadline, payout, and claim link.";
+
+// True when the thread is about class action settlements — used to pick the
+// settlement fallback instead of the route-specific one.
+export function isSettlementContext(message: string, threadText = ""): boolean {
+  return /\b(class actions?|settlements?|lawsuits?)\b/i.test(
+    message + " " + threadText,
+  );
+}
 export const BILLING_SAFE_FALLBACK =
   "I want to be careful here — I can't verify that figure right now, so I won't " +
   "state it as fact. For the official number, check your statement or the " +
@@ -521,8 +532,15 @@ export function appendSources(
   financeIds: string[],
   settlements: { name?: string; claim_url?: string }[] = [],
 ): string {
+  // A model-written Sources block with no actual URLs in it (e.g. a bare
+  // "Sources:\nhttps://") is broken — strip it so the deterministic block
+  // below replaces it instead of deferring to the broken one.
+  const srcBlock = reply.match(/\n\nsources:\s*([\s\S]*)$/i);
+  if (srcBlock && !/https?:\/\/\S+\.\S+/.test(srcBlock[1])) {
+    reply = reply.slice(0, srcBlock.index).trimEnd();
+  }
   if (/sources:/i.test(reply)) return reply;
-  if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK || reply === BILLING_SAFE_FALLBACK) return reply;
+  if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK || reply === BILLING_SAFE_FALLBACK || reply === SETTLEMENT_SAFE_FALLBACK) return reply;
   const urls: string[] = [];
   const push = (u: string | null | undefined) => {
     if (!u) return;

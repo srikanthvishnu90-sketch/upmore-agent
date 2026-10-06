@@ -571,7 +571,7 @@ serve(async (req) => {
     // Match the user's scenario (state, products, services) against these.
     const settlements = settleRes.data ?? [];
     const settlementLine = settlements.length > 0
-      ? `OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements): ` +
+      ? `${settlements.length} OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements): ` +
         settlements.map((s: any) => {
           const states = (s.eligibility_states?.length ?? 0) > 0 ? ` [states: ${s.eligibility_states.join(", ")}]` : " [nationwide]";
           return `${s.name} — deadline ${s.claim_deadline}${states}. Payout: ${s.payout_summary} Proof: ${s.proof_required}. Eligibility: ${s.eligibility} Claim: ${s.claim_url}`;
@@ -711,7 +711,8 @@ serve(async (req) => {
     // forgot the marker: finance grounding + finance fallback apply.
     if (financeIds.length) financeMode = true;
     const violations = checkGrounding(reply, routes, message, financeMode, financeIds,
-      exclHist.map((h) => String(h.content ?? "")).join("\n"));
+      exclHist.map((h) => String(h.content ?? "")).join("\n"),
+      settlements.map((s: any) => ({ claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary })));
     if (violations.length) {
       console.warn("grounding violations", violations);
       // Learning: the model made an ungrounded claim and got caught — record
@@ -802,7 +803,8 @@ serve(async (req) => {
     // correction passes so corrected replies get sources too; the URLs come
     // from the route cards / finance facts themselves, so they're grounded by
     // construction. Skips when the model already added one.
-    reply = appendSources(reply, routes, financeMode, financeIds);
+    reply = appendSources(reply, routes, financeMode, financeIds,
+      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url })));
 
     // Persist
     await supabase.from("agent_messages").insert([

@@ -26,7 +26,18 @@ subscriptions in the Save tab. Never invent subscriptions they don't have.
 
 You are ALSO given OPEN CLASS ACTION SETTLEMENTS: real settlements with live
 claim deadlines and official claim URLs. When the user asks about free money,
-class actions, or settlements you're eligible for:
+class actions, lawsuits, or legal claims they can file:
+- START with the settlements directory below — do not confuse this with the
+  user's own tracked save-side claims. "Lawsuits I can claim" means THESE
+  settlements, not their personal claim tracker.
+- Match their known facts (state from profile, products/services they mention)
+  against each settlement's eligibility. Only surface settlements they could
+  plausibly qualify for; silently skip ones they clearly don't (wrong state,
+  product they never owned).
+- If eligibility is unclear, ask ONE targeted question (e.g. "did you buy
+  pork at a grocery store between 2014 and 2018?") rather than dumping the
+  whole list. When they answer yes/no, name the matching settlement(s)
+  immediately with full details — never stonewall with a generic fallback.
 - Match their known facts (state from profile, products/services they mention)
   against each settlement's eligibility. Only surface settlements they could
   plausibly qualify for; silently skip ones they clearly don't (wrong state,
@@ -328,6 +339,7 @@ export function checkGrounding(
   financeMode = false,
   financeIds: string[] = [],
   threadUserText = "",
+  settlements: { claim_url?: string; settlement_site_url?: string; payout_summary?: string }[] = [],
 ): string[] {
   // Even if the model forgot the [FINANCE] marker, a question that matched
   // finance facts is judged by finance grounding (scoped to the matched facts),
@@ -374,6 +386,12 @@ export function checkGrounding(
       const t = JSON.stringify(r);
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
+    // Class action settlement payouts are verified data too — quoting a
+    // settlement's payout figure is faithful, not invented.
+    for (const s of settlements) {
+      const t = String(s.payout_summary ?? "");
+      for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
+    }
   }
   for (const m of userMessage.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
     allowedMoney.add(normAmt(m));
@@ -413,6 +431,15 @@ export function checkGrounding(
         const h = cleanHost(m);
         if (h) allowedHosts.add(h);
       }
+    }
+  }
+  // Class action settlements: their official claim URLs are verified data,
+  // not invented links — allow their hosts the same as route card hosts.
+  for (const s of settlements) {
+    for (const u of [s.claim_url, s.settlement_site_url]) {
+      if (!u) continue;
+      const h = cleanHost(u);
+      if (h) allowedHosts.add(h);
     }
   }
   for (const m of userMessage.match(/https?:\/\/[^\s)"']+/g) ?? []) {
@@ -489,7 +516,8 @@ export function appendSources(
   reply: string,
   routes: RouteCard[],
   financeMode: boolean,
-  financeIds: string[]
+  financeIds: string[],
+  settlements: { name?: string; claim_url?: string }[] = [],
 ): string {
   if (/sources:/i.test(reply)) return reply;
   if (reply === SAFE_FALLBACK || reply === FINANCE_SAFE_FALLBACK || reply === SCAM_FALLBACK || reply === BILLING_SAFE_FALLBACK) return reply;
@@ -521,6 +549,16 @@ export function appendSources(
         push((r as any).ios_url);
         push((r as any).android_url);
       }
+    }
+    // Class action settlements: cite the official claim URL for each
+    // settlement the reply actually names.
+    const loweredReply = reply.toLowerCase();
+    for (const s of settlements) {
+      const nm = String(s.name ?? "").toLowerCase();
+      // Match on a distinctive fragment (first 3+ word run) to avoid
+      // false positives on generic words.
+      const frag = nm.split(/\s+/).filter((w) => w.length > 3).slice(0, 3).join(" ");
+      if (frag && loweredReply.includes(frag)) push(s.claim_url);
     }
   }
   if (!urls.length) return reply;

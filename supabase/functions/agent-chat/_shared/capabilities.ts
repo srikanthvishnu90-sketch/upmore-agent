@@ -695,7 +695,7 @@ const WALK_ALIASES: Array<[RegExp, string]> = [
   [/swagbucks/, "R0140"], [/prolific/, "R0220"],
   [/user\s?testing/, "R0221"], [/online\s?verdict/, "R0292"],
   [/google opinion/, "R0446"], [/missing\s?money|unclaimed/, "R0295"],
-  [/class action|\bftc\b|settlement/, "R0302"],
+  [/class action|\bftc\b|settlement|lawsuit/, "R0302"],
   [/microsoft rewards|bing rewards/, "R0355"], [/nielsen/, "R0213"],
   [/\bchime\b/, "R0098"], [/\bsofi\b/, "R0096"], [/\bchase\b/, "R0036"],
 ];

@@ -573,11 +573,11 @@ serve(async (req) => {
     // Match the user's scenario (state, products, services) against these.
     const settlements = settleRes.data ?? [];
     const settlementLine = settlements.length > 0
-      ? `${settlements.length} OPEN CLASS ACTION SETTLEMENTS (verified — these are real, with live claim deadlines; match the user's facts against the eligibility, never invent settlements or dollar figures — quote fund sizes and payouts EXACTLY as written here): ` +
-        settlements.map((s: any) => {
-          const states = (s.eligibility_states?.length ?? 0) > 0 ? ` [states: ${s.eligibility_states.join(", ")}]` : " [nationwide]";
-          return `${s.name} — deadline ${s.claim_deadline}${states}. ${s.summary} Payout: ${s.payout_summary} Proof: ${s.proof_required}. Eligibility: ${s.eligibility} Claim: ${s.claim_url}`;
-        }).join("\n") + "."
+      ? `OPEN CLASS ACTION SETTLEMENTS — ${settlements.length} verified entries. THIS BLOCK IS THE ONLY SOURCE OF TRUTH FOR THESE SETTLEMENTS. Your training data may contain different deadlines, fund sizes, or states for cases with similar names — IGNORE your memory and use ONLY what is written here. Quote fund sizes, payouts, dates, and proof requirements EXACTLY as written; never rephrase, round, or approximate them.\n` +
+        settlements.map((s: any, i: number) => {
+          const states = (s.eligibility_states?.length ?? 0) > 0 ? s.eligibility_states.join(", ") : "nationwide (all US states)";
+          return `[Settlement ${i + 1}/${settlements.length}]\nName: ${s.name}\nClaim deadline: ${s.claim_deadline}\nEligible states: ${states}\nWhat happened: ${s.summary}\nPayout: ${s.payout_summary}\nProof required: ${s.proof_required}\nWho qualifies: ${s.eligibility}\nFile here: ${s.claim_url}`;
+        }).join("\n\n")
       : "No open class action settlements in the directory right now.";
     const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine +
       `\n${catalogLine}\n\n` +
@@ -714,7 +714,7 @@ serve(async (req) => {
     if (financeIds.length) financeMode = true;
     const violations = checkGrounding(reply, routes, message, financeMode, financeIds,
       exclHist.map((h) => String(h.content ?? "")).join("\n"),
-      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary })));
+      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary, summary: s.summary })));
     if (violations.length) {
       console.warn("grounding violations", violations);
       // Learning: the model made an ungrounded claim and got caught — record

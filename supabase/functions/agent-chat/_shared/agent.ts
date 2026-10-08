@@ -382,6 +382,7 @@ export function checkGrounding(
   financeIds: string[] = [],
   threadUserText = "",
   settlements: { name?: string; claim_url?: string; settlement_site_url?: string; payout_summary?: string; summary?: string }[] = [],
+  ipos: { company_name?: string; ticker?: string; official_url?: string; price_low?: number | string; price_high?: number | string; notes?: string }[] = [],
 ): string[] {
   // Even if the model forgot the [FINANCE] marker, a question that matched
   // finance facts is judged by finance grounding (scoped to the matched facts),
@@ -436,6 +437,15 @@ export function checkGrounding(
       const t = String(s.payout_summary ?? "") + " " + String((s as any).summary ?? "");
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
+    // IPO / pre-IPO offering prices are verified data — quoting the price
+    // range is faithful, not invented.
+    for (const o of ipos) {
+      for (const p of [o.price_low, o.price_high]) {
+        if (p == null) continue;
+        const m = "$" + String(p).replace(/[^0-9.]/g, "");
+        allowedMoney.add(normAmt(m));
+      }
+    }
   }
   for (const m of userMessage.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
     allowedMoney.add(normAmt(m));
@@ -485,6 +495,12 @@ export function checkGrounding(
       const h = cleanHost(u);
       if (h) allowedHosts.add(h);
     }
+  }
+  // IPO / pre-IPO offerings: their official page URLs are verified data too.
+  for (const o of ipos) {
+    if (!o.official_url) continue;
+    const h = cleanHost(o.official_url);
+    if (h) allowedHosts.add(h);
   }
   for (const m of userMessage.match(/https?:\/\/[^\s)"']+/g) ?? []) {
     try {

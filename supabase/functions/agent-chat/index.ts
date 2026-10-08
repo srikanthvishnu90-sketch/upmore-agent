@@ -766,7 +766,8 @@ serve(async (req) => {
     if (financeIds.length) financeMode = true;
     const violations = checkGrounding(reply, routes, message, financeMode, financeIds,
       exclHist.map((h) => String(h.content ?? "")).join("\n"),
-      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary, summary: s.summary })));
+      settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url, settlement_site_url: s.settlement_site_url, payout_summary: s.payout_summary, summary: s.summary })),
+      ipos.map((o: any) => ({ company_name: o.company_name, ticker: o.ticker, official_url: o.official_url, price_low: o.price_low, price_high: o.price_high, notes: o.notes })));
     if (violations.length) {
       console.warn("grounding violations", violations);
       // Learning: the model made an ungrounded claim and got caught — record

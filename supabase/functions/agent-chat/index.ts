@@ -94,20 +94,49 @@ serve(async (req) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const authM = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!authM) return json(cors, { error: "unauthorized" }, 401);
+    // Read the body once up front: the bridge override below needs as_user_id
+    // and the main flow needs thread_id/message/images.
+    const body = await req.json().catch(() => ({}));
+
+    // TEST BRIDGE ONLY (iMessage): when the bearer token is EXACTLY the
+    // service_role key, the caller may run the turn as a specific user via
+    // `as_user_id`. This exists solely for the first-party iMessage test
+    // bridge. The normal user-JWT path below is completely unchanged.
+    // The key itself is never logged.
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isBridgeCall = serviceKey !== "" && authM[1] === serviceKey;
+    const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let bridgeUserId: string | null = null;
+    if (isBridgeCall) {
+      const raw = typeof body.as_user_id === "string" ? body.as_user_id : "";
+      if (!UUID_RX.test(raw)) return json(cors, { error: "as_user_id must be a valid UUID" }, 400);
+      bridgeUserId = raw;
+    }
+
     // The gateway already verified the JWT signature (verify_jwt=true). Extract
     // the user token and pass it EXPLICITLY: auth.getUser() with no argument
     // reads the client session, which does not exist in an edge function, so it
     // would always return null and every signed-in user would get a 401.
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const authM = authHeader.match(/^Bearer\s+(.+)$/i);
-    if (!authM) return json(cors, { error: "unauthorized" }, 401);
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: { user } } = await supabase.auth.getUser(authM[1]);
-    if (!user) return json(cors, { error: "unauthorized" }, 401);
+    let supabase: any;
+    let user: { id: string; email?: string | null };
+    if (bridgeUserId) {
+      // Bridge path: service_role client (bypasses RLS); every query below is
+      // still explicitly scoped with .eq("user_id", user.id).
+      supabase = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+      user = { id: bridgeUserId };
+    } else {
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: { user: u } } = await supabase.auth.getUser(authM[1]);
+      if (!u) return json(cors, { error: "unauthorized" }, 401);
+      user = u;
+    }
 
     // The rate limiter FKs to profiles — make sure a profile row exists first
     // (the app upserts on sign-in, but API/test callers may not). Without this
@@ -119,8 +148,13 @@ serve(async (req) => {
     // the agent_rl_bump RPC — atomic row-locked increment so concurrent
     // requests can't double-spend. A false return is a real 429 (with
     // Retry-After); an RPC *error* is a 500, never a fake "slow down".
+    // Bridge path: the hardened agent_rl_bump derives the user from
+    // auth.uid(), which is null for service_role callers, so it would always
+    // 429. agent_rl_bump_as takes the user explicitly and is executable ONLY
+    // by service_role (our own backend) — same window math, same limit.
+    const rlFn = bridgeUserId ? "agent_rl_bump_as" : "agent_rl_bump";
     const RATE_LIMIT = 60;
-    const { data: rlOk, error: rlErr } = await supabase.rpc("agent_rl_bump", { p_user: user.id, p_limit: RATE_LIMIT });
+    const { data: rlOk, error: rlErr } = await supabase.rpc(rlFn, { p_user: user.id, p_limit: RATE_LIMIT });
     if (rlErr) {
       console.error("agent_rl_bump failed:", rlErr.message);
       return json(cors, { error: "internal" }, 500);
@@ -132,7 +166,7 @@ serve(async (req) => {
       );
     }
 
-    const { thread_id, message, images } = await req.json();
+    const { thread_id, message, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
     if (!message || typeof message !== "string") return json(cors, { error: "message required" }, 400);
     if (message.length > MAX_MESSAGE_LEN) return json(cors, { error: "message too long" }, 400);
     // Optional photo attachments: validated Anthropic image blocks (max 3,

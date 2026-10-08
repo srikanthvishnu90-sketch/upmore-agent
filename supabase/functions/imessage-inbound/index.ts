@@ -15,11 +15,12 @@
 // agent-chat (service-role bearer + as_user_id) -> bubble-format reply ->
 // LoopMessage send (skipped entirely in dry-run).
 //
-// Outbound path: the edge function NEVER holds LoopMessage API keys (they
-// live in Muse's Secure Vault as use-only credentials). After the reply
-// bubbles are computed, one row per bubble is INSERTed into the
-// public.imessage_outbox table; a VM-side sender worker drains it through
-// the vault surrogate. No keys in env, no keys in code, ever.
+// Outbound path: the edge function sends each bubble directly to LoopMessage
+// using the per-agent API key from the Supabase secret
+// LOOPMESSAGE_RUWE_API_KEY / LOOPMESSAGE_UPMORE_API_KEY. The raw key goes in
+// the Authorization header (no Bearer prefix). If the key for that agent is
+// missing, the agent turn still runs but sending is skipped with a clear
+// warning logged (webhook still returns 200).
 // Mandatory shared-secret gate (standard webhook pattern, like Stripe).
 // The request must carry it as ?secret= or the x-imessage-secret header.
 // verify_jwt is OFF for this ingress function on purpose: LoopMessage's
@@ -33,6 +34,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const ALLOWED_SENDER_DIGITS = "12246029341"; // Vishnu's phone, E.164 digits
 const BRIDGE_USER_ID = "c38e413f-6937-47bc-9e4a-5e19fafb3069"; // Vishnu's Upmore user id (identifier, not a secret)
+const LOOPMESSAGE_SEND_URL = "https://a.loopmessage.com/api/v1/message/send/";
 const MAX_BUBBLES = 4;
 const BUBBLE_CHARS = 700;
 
@@ -183,6 +185,12 @@ serve(async (req) => {
       return json({ ok: true, ignored: "unknown sender" });
     }
 
+    // Per-agent LoopMessage API key. Missing key does NOT fail the webhook:
+    // the turn still runs and the send is skipped with a warning (checked
+    // again below, after dry_run handling).
+    const apiKey =
+      Deno.env.get(agent === "ruwe" ? "LOOPMESSAGE_RUWE_API_KEY" : "LOOPMESSAGE_UPMORE_API_KEY") ?? "";
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
@@ -275,19 +283,30 @@ serve(async (req) => {
       return json({ ok: true, dry_run: true, agent, thread_id: threadId, bubbles });
     }
 
-    // Outbox pattern: enqueue one row per bubble; the VM-side sender worker
-    // drains the outbox through the vault-held LoopMessage credentials.
+    if (!apiKey) {
+      // Turn ran and was persisted above; only the outbound send is skipped.
+      // Still 200: the webhook itself was authenticated and handled.
+      console.warn(
+        `imessage-inbound: LoopMessage API key missing for agent ${agent} ` +
+        `(set secret ${agent === "ruwe" ? "LOOPMESSAGE_RUWE_API_KEY" : "LOOPMESSAGE_UPMORE_API_KEY"}); send skipped.`,
+      );
+      return json({ ok: true, agent, thread_id: threadId, bubbles_sent: 0, warning: "loopmessage key not configured" });
+    }
+
     const contact = "+1" + ALLOWED_SENDER_DIGITS;
-    const { error: obErr } = await admin.from("imessage_outbox").insert(
-      bubbles.map((b, i) => ({
-        agent,
-        contact,
-        text: b.slice(0, 5000),
-        seq: i,
-      })),
-    );
-    if (obErr) throw new Error("outbox insert failed: " + obErr.message.slice(0, 160));
-    return json({ ok: true, agent, thread_id: threadId, queued: bubbles.length });
+    for (let i = 0; i < bubbles.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, 600));
+      const sres = await fetch(LOOPMESSAGE_SEND_URL, {
+        method: "POST",
+        headers: { Authorization: apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ contact, text: bubbles[i].slice(0, 5000) }),
+      });
+      if (!sres.ok) {
+        const eb = await sres.text().catch(() => "");
+        throw new Error(`LoopMessage send failed HTTP ${sres.status}: ${eb.slice(0, 160)}`);
+      }
+    }
+    return json({ ok: true, agent, thread_id: threadId, bubbles_sent: bubbles.length });
   } catch (e) {
     console.error("imessage-inbound:", e);
     return json({ ok: false, error: "internal" }, 500);

@@ -70,9 +70,46 @@ $500."
 - `copy_leaders` table (name, source, risk profile, cached performance).
 - `copy_follows` table (user → leader, allocation %, max position %, stop-loss %).
 - `trade_orders` table (full audit trail, approval-gated).
-- Research in progress (2026-10-08): deep-dive on Dub, eToro, Public,
-  Autopilot, Composer, ZuluTrade, Collective2 — mechanics, who you can copy,
-  fees, API availability, and non-app signal sources (13F, STOCK Act).
+- **App landscape researched 2026-10-08** (Dub, eToro, Public, Autopilot,
+  Composer, ZuluTrade, Collective2 + others):
+
+| App | Mechanics | API for third parties? |
+|-----|-----------|------------------------|
+| Dub | In-house brokerage; tap Copy on strategy marketplace (politician trackers, hedge-fund trackers, creator portfolios, premium RIA strategies); $100 min, $9.99/mo | **No** |
+| eToro | CopyTrader: allocate to a Popular Investor, auto-mirror; $200 min | **YES — the only one** (public API launched Oct 2025: market data, portfolio analytics, social, trade execution, scoped agent tokens) |
+| Autopilot | Connects YOUR brokerage (Robinhood/Schwab); auto-executes disclosed trades; $500/portfolio, $100/yr | **No** (works through broker APIs, not its own) |
+| Public | Not copy-trading — recurring baskets only | No |
+| Composer | No-code rule strategies ("symphonies"); acquired by SoFi ~Oct 2026 | No |
+| ZuluTrade | Link broker, follow signal providers (mostly pseudonymous FX quants) | Partial (provider-side) |
+| Collective2 | Subscribe to quant strategies, AutoTrade in your brokerage | Publisher-side only |
+
+**Key insight:** Dub and Autopilot's headline strategies are built from FREE
+public disclosures (STOCK Act filings, 13F) — fully replicable without any
+app. eToro is the only app with a genuine developer API.
+
+**Verified copyable names (seeded into `copy_leaders` 2026-10-08):**
+- Nancy Pelosi (congressional disclosure tracker — Dub + Autopilot)
+- Jerome Powell (Fed Chair tracker — Dub)
+- Dan Crenshaw, Tommy Tuberville (congressional trackers — Autopilot)
+- Warren Buffett / Berkshire Hathaway (13F top holdings — Autopilot, Dub)
+- Bill Ackman / Pershing Square (13F — Dub)
+- Michael Burry / Scion Asset Management (13F — Autopilot)
+
+**Non-app signal sources (free, official):**
+- SEC 13F (EDGAR): any manager >$100M — 45-day lag, quarterly, longs only
+- STOCK Act PTRs: every member of Congress — ≤45-day lag, dollar ranges only
+- SEC Form 4: corporate insiders — 2 business days, fastest legal signal
+- 13D/13G: activist stake-building
+- Aggregators with APIs: Quiver Quant, Unusual Whales (paid tiers, optional)
+
+**Ranked integration order:** 1) 13F direct ingestion (free, covers Buffett/
+Ackman/Burry) → 2) congressional disclosures (the viral Pelosi use case) →
+3) eToro public API (leader discovery + alt execution rail) → 4) Form 4
+insiders (fastest signal) → 5) Alpaca execution (already planned).
+
+**Honesty notes the agent must keep:** 13F/PTR data is 6–10 weeks stale —
+position as "follow their strategy" (long-horizon holders), never real-time
+edge; trackers are built from disclosures, not the person's live trades.
 
 **Pre-IPO names (OpenAI, Anthropic, Oura) — wired 2026-10-08:**
 - Oura: real IPO via Coinbase IPO Access ($40–44, announced 2026-09-21) —

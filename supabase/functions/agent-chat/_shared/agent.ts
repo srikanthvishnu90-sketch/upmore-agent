@@ -437,14 +437,16 @@ export function checkGrounding(
       const t = String(s.payout_summary ?? "") + " " + String((s as any).summary ?? "");
       for (const m of t.match(/\$[\d,]+(\.\d+)?/g) ?? []) allowedMoney.add(normAmt(m));
     }
-    // IPO / pre-IPO offering prices are verified data — quoting the price
-    // range is faithful, not invented.
-    for (const o of ipos) {
-      for (const p of [o.price_low, o.price_high]) {
-        if (p == null) continue;
-        const m = "$" + String(p).replace(/[^0-9.]/g, "");
-        allowedMoney.add(normAmt(m));
-      }
+  }
+  // IPO / pre-IPO offering prices are verified directory data — quoting the
+  // price range is faithful, not invented. Kept OUTSIDE the finance-mode
+  // branch: IPO questions trigger finance mode, and the amounts must be
+  // quotable there too.
+  for (const o of ipos) {
+    for (const p of [o.price_low, o.price_high]) {
+      if (p == null) continue;
+      const m = "$" + String(p).replace(/[^0-9.]/g, "");
+      allowedMoney.add(normAmt(m));
     }
   }
   for (const m of userMessage.match(/\$[\d,]+(\.\d+)?/g) ?? []) {

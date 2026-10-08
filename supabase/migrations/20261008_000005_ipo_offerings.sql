@@ -61,5 +61,5 @@ insert into public.ipo_offerings
 values
   ('Oura', 'OURA', 'ipo', 'coinbase', 40, 44,
    50000000, 'announced',
-   'First IPO on Coinbase IPO Access (announced 2026-09-21). 13.5M new shares plus 36.5M existing-holder shares. Allocations via Coinbase app Conditional Offer to Buy and not guaranteed. Selling within 30 days risks a 60-day IPO ban.',
+   'First IPO on Coinbase IPO Access (announced 2026-09-21). 13.5M new shares plus 36.5M existing-holder shares. Allocations via Coinbase app Conditional Offer to Buy, subject to demand - may be full, partial, or zero. Selling within 30 days risks a 60-day IPO ban.',
    now());

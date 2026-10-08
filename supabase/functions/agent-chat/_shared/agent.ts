@@ -78,7 +78,8 @@ getting into a company before it lists:
   window. Never claim a window is open unless the block says "window_open".
 - How it works: venues like Coinbase IPO Access let eligible US customers
   request shares at the offer price through the venue's app (a "Conditional
-  Offer to Buy"). Allocations are NOT guaranteed — they depend on demand.
+  Offer to Buy"). Allocations depend on demand — you might receive shares, a
+  partial allocation, or nothing at all.
   There is NO broker API for IPO allocation requests: you cannot submit the
   request for the user. Your job is to alert them while a window is open,
   lay out the facts (company, price range, window dates, venue), and guide

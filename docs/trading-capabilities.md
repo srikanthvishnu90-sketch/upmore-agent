@@ -1,0 +1,196 @@
+# Upmore Trading Capabilities — Deep-Dive Dossier
+
+Purpose: every trading capability dug deep — connectors, data, database,
+execution, approvals, test plan — so that build → test → complete is
+mechanical for each one. A capability is only "complete" when a real
+end-to-end run works: connector live, data flowing, job done, receipt kept.
+
+Status legend: SHIPPED (live in prod) · DB-READY (tables live, logic pending)
+· SPECCED (design done) · MISSING (not started)
+
+## Capability index
+
+| # | Capability | Status | Blocker |
+|---|-----------|--------|---------|
+| 1 | Pre-IPO / IPO access | SHIPPED | Fresh IPO calendar feed (manual seeding now) |
+| 2 | Copy trading | DB-READY | Leader universe + signal ingestion + execution |
+| 3 | Trade via app (user-directed) | SPECCED | Alpaca keys + account + order execution path |
+| 4 | Auto-invest | DB-READY | Rules engine + scheduler + Alpaca execution |
+| 5 | Portfolio tracking & drift alerts | DB-READY | Broker holdings sync (Alpaca or Plaid) |
+
+---
+
+## 1. Pre-IPO / IPO access — SHIPPED
+
+**User story:** "Get me into the Oura IPO at the offer price."
+
+**What exists:**
+- `ipo_offerings` table (global directory: company, ticker, type, provider,
+  price range, window dates, status, official URL, verified_at).
+- `ipo_requests` table (per-user interest/request tracking).
+- Agent guidance in SYSTEM_PROMPT (IPO / PRE-IPO ACCESS section): alert on
+  open windows, lay out facts, guide the user to request in the venue's app.
+- Grounding validator allowlists IPO prices and official URLs.
+- Seeded: Oura (OURA) via Coinbase IPO Access, announced 2026-09-21, $40–44.
+- Verified end-to-end with a dry-run turn (agent answered from verified data,
+  honest about unconfirmed window, correct tone).
+
+**Access reality (verified 2026-10-08):** Coinbase IPO Access launched
+2026-09-21 — eligible US retail customers request IPO shares at the offer
+price through the Coinbase app ("Conditional Offer to Buy"). There is NO
+broker API for IPO allocation requests. Upmore's capability is therefore:
+track → alert → guide; the user taps in the venue's app.
+
+**Connectors:** none (app-only venue). No keys needed.
+
+**Data feeds:** IPO calendar — currently manual seeding. UPGRADE PATH:
+Benzinga Private Markets Newsfeed API (launched Aug 2026, REST, covers
+private transactions and pre-IPO activity) or manual curation per offering.
+
+**Approval & safety:** requesting shares commits funds — always needs the
+user's explicit yes for the exact request (company, max shares, max price).
+Honest catches the agent must state: allocations depend on demand (may be
+partial/zero); flipping within ~30 days risks a 60-day IPO ban; true
+pre-IPO secondary markets usually need accredited-investor status.
+
+**Test plan:** dry-run turn asking "any IPOs I can get into?" → PASSED
+(2026-10-08). Next: live turn when a real window opens; verify alert timing.
+
+**Gaps:** (a) automated IPO calendar feed; (b) window-open push alerts;
+(c) `ipo_requests` write path from chat ("remind me / track this one").
+
+---
+
+## 2. Copy trading — DB-READY
+
+**User story:** "Copy Nancy Pelosi's portfolio / the best investors on Dub with
+$500."
+
+**What exists:**
+- `copy_leaders` table (name, source, risk profile, cached performance).
+- `copy_follows` table (user → leader, allocation %, max position %, stop-loss %).
+- `trade_orders` table (full audit trail, approval-gated).
+- Research in progress (2026-10-08): deep-dive on Dub, eToro, Public,
+  Autopilot, Composer, ZuluTrade, Collective2 — mechanics, who you can copy,
+  fees, API availability, and non-app signal sources (13F, STOCK Act).
+
+**Connectors:** TBD by research — likely Alpaca (execution) + signal source
+per leader (app API if public, else 13F filings / disclosures).
+
+**Data feeds:** leader trade signals — the core unsolved piece. Options:
+(a) platform APIs (if public), (b) 13F filings (45-day lag, quarterly),
+(c) STOCK Act disclosures for politicians (up to 45-day lag),
+(d) curated manual leaders.
+
+**Approval & safety:** every mirrored trade is a `trade_orders` row requiring
+an `exec_approvals` row — one approval per trade — until the autonomous
+framework is authorized. Risk controls on every follow: allocation cap, max
+position %, stop-loss %.
+
+**Test plan:** (1) seed one leader + one follow (paper account); (2) ingest a
+real leader trade signal; (3) agent proposes the mirror trade with exact
+terms; (4) user approves; (5) order submitted to Alpaca paper; (6) fill
+reconciled into `trade_orders`. Complete = steps 1–6 with receipts.
+
+**Gaps / decisions needed:** (a) WHO to copy — leader universe (Vishnu's
+call, research will recommend); (b) signal ingestion per leader;
+(c) Alpaca execution path (shared with capability 3).
+
+---
+
+## 3. Trade via app (user-directed) — SPECCED
+
+**User story:** "Buy $50 of VOO."
+
+**What exists:**
+- Alpaca skill (`~/workspace/skills/alpaca/SKILL.md`): Upmore's path is the
+  **Broker API** (`broker-api.sandbox.alpaca.markets` paper /
+  `broker-api.alpaca.markets` live), HTTP Basic auth, orders at
+  `POST /v1/trading/accounts/{account_id}/orders`. Numbers as strings;
+  every write async (accepted → filled/canceled).
+- `brokerage_accounts` table (provider, paper flag, vault key ref — keys
+  NEVER in the DB).
+- `trade_orders` table (audit trail).
+
+**Connectors:** Alpaca Broker API — keys NOT yet installed (need
+`ALPACA_BROKER_KEY_ID` / `ALPACA_BROKER_SECRET` as Supabase secrets),
+no brokerage sub-account opened yet. Paper first; live only after Vishnu's
+explicit approval AND Alpaca partnership gates.
+
+**Data feeds:** Alpaca market data (`data.alpaca.markets`) for quotes.
+
+**Approval & safety:** one approval per order, exact terms (symbol, side,
+qty, order type). Paper default. Never market-open surprises: limit orders
+preferred for user-directed trades.
+
+**Test plan:** (1) install paper keys; (2) open paper sub-account;
+(3) user says "buy $50 of VOO" → agent proposes exact order;
+(4) user approves; (5) order submitted; (6) fill reconciled. Complete =
+real paper fill with receipt.
+
+**Gaps:** (a) Alpaca keys; (b) sub-account opening flow; (c) order execution
+edge function / agent tool; (d) fill reconciliation job.
+
+---
+
+## 4. Auto-invest — DB-READY
+
+**User story:** "Invest $200 every month into my 80/20 portfolio and rebalance
+when it drifts."
+
+**What exists:**
+- `auto_invest_rules` table (rule types: recurring_buy, rebalance,
+  drift_trigger; allocations JSONB; amount; frequency; drift threshold;
+  cash reserve).
+- `portfolio_snapshots` table (holdings, cash, equity per account).
+- `trade_orders` table (each generated order approval-gated).
+
+**Connectors:** Alpaca (execution + holdings sync). Same keys as capability 3.
+
+**Data feeds:** portfolio holdings (Alpaca positions API or Plaid
+`plaid_holdings_cache` — exists); market prices for drift math.
+
+**Approval & safety:** rules are standing instructions, but EVERY generated
+order still needs per-order approval until the autonomous framework is
+authorized. Kill switch: pausing the rule stops everything.
+
+**Test plan:** (1) create a recurring_buy rule (paper, $10); (2) scheduler
+evaluates → proposes order; (3) user approves; (4) fill reconciled;
+(5) drift_trigger test: snapshot drift > threshold → rebalance proposed.
+Complete = one full scheduled cycle with receipts.
+
+**Gaps:** (a) rules-evaluation scheduler (cron); (b) drift-math job;
+(c) Alpaca execution (shared with 3).
+
+---
+
+## 5. Portfolio tracking & drift alerts — DB-READY
+
+**User story:** "How did my investments do today? Am I off target?"
+
+**What exists:** `portfolio_snapshots`, `finance_snapshots`,
+`plaid_holdings_cache` tables.
+
+**Connectors:** Alpaca positions API or Plaid holdings (Plaid production
+access pending — application submitted 2026-09-27).
+
+**Test plan:** sync holdings → snapshot → drift computed → alert delivered.
+
+**Gaps:** holdings sync job; snapshot cadence; alert copy.
+
+---
+
+## Build order (proposed)
+
+1. Capability 3 (trade via app) — unlocks execution for 2 and 4.
+2. Capability 5 (portfolio tracking) — unlocks drift math for 4.
+3. Capability 4 (auto-invest) — needs 3 + 5.
+4. Capability 2 (copy trading) — needs 3 + leader universe decision.
+5. Capability 1 expansions (IPO calendar feed, window alerts).
+
+## Decisions needed from Vishnu
+
+- [ ] Copy trading: whose trades do we copy? (research will recommend top 3–5)
+- [ ] Alpaca: approve installing paper API keys to start building execution
+- [ ] Autonomous-trading framework: NOT authorized — every order stays
+      approval-gated until he explicitly authorizes it

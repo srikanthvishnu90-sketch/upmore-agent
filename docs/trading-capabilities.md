@@ -74,6 +74,21 @@ $500."
   Autopilot, Composer, ZuluTrade, Collective2 — mechanics, who you can copy,
   fees, API availability, and non-app signal sources (13F, STOCK Act).
 
+**Pre-IPO names (OpenAI, Anthropic, Oura) — wired 2026-10-08:**
+- Oura: real IPO via Coinbase IPO Access ($40–44, announced 2026-09-21) —
+  in `ipo_offerings`, agent guides the request flow.
+- OpenAI / Anthropic: NO retail pre-IPO path exists — both companies voided
+  unauthorized SPV/tokenized transfers (OpenAI May 2026, Anthropic Feb 2026).
+  OpenAI filed a confidential S-1 (June 2026, reportedly eyeing 2027);
+  Anthropic targets late-2026 (unconfirmed). Both tracked in `ipo_offerings`
+  as announced; agent watches for their IPO windows.
+- Public proxy TODAY: DXYZ (Destiny Tech100) — publicly traded fund holding
+  OpenAI, Anthropic, Stripe; buyable via any brokerage (so via Alpaca too).
+  Caveats the agent states plainly: 150%+ NAV premium at times, extreme
+  volatility, ~2.5% fees.
+- Copy-trading angle: a leader sleeve can hold DXYZ for pre-IPO AI exposure;
+  direct OpenAI/Anthropic shares unlock only at their IPOs.
+
 **Connectors:** TBD by research — likely Alpaca (execution) + signal source
 per leader (app API if public, else 13F filings / disclosures).
 

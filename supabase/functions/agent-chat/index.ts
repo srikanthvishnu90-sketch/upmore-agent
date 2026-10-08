@@ -226,7 +226,7 @@ serve(async (req) => {
               .order("route_id").range(p * 1000, p * 1000 + 999)
           ),
         );
-    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes, subsRes, renewRes, settleRes] = await Promise.all([
+    const [profRes, playRes, remRes, verPages, histRes, exclRes, expRes, expiredRes, listRes, subsRes, renewRes, settleRes, ipoRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("playbook_progress")
         .select("*, routes!inner(*)").eq("user_id", user.id).eq("status", "active")
@@ -274,6 +274,12 @@ serve(async (req) => {
         .select("name, case_name, category, summary, eligibility, eligibility_states, claim_deadline, payout_summary, proof_required, claim_url")
         .eq("status", "open").gte("claim_deadline", nowIso.split("T")[0])
         .order("claim_deadline", { ascending: true }).limit(15),
+      // IPO / pre-IPO offerings — verified, with live allocation windows.
+      // Powers "any IPOs I can get into" alerts and guidance.
+      supabase.from("ipo_offerings")
+        .select("company_name, ticker, offering_type, provider, price_low, price_high, expected_date, window_opens, window_closes, status, shares_offered, official_url, notes, verified_at")
+        .in("status", ["announced", "window_open"])
+        .order("expected_date", { ascending: true }).limit(15),
     ]);
     const profile = profRes.data;
     // Agentic walkthrough parity: {{name}}/{{email}}/{{state}} values resolved
@@ -613,7 +619,19 @@ serve(async (req) => {
           return `[Settlement ${i + 1}/${settlements.length}]\nName: ${s.name}\nClaim deadline: ${s.claim_deadline}\nEligible states: ${states}\nWhat happened: ${s.summary}\nPayout: ${s.payout_summary}\nProof required: ${s.proof_required}\nWho qualifies: ${s.eligibility}\nFile here: ${s.claim_url}`;
         }).join("\n\n")
       : "No open class action settlements in the directory right now.";
-    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine +
+    // IPO / PRE-IPO OFFERINGS — verified, with live allocation windows.
+    // The agent alerts on open windows and guides the user to request
+    // allocations in the venue's app (no broker API exists for IPO offers).
+    const ipos = (typeof ipoRes !== "undefined" && ipoRes.data) ? ipoRes.data : [];
+    const ipoLine = ipos.length > 0
+      ? `IPO / PRE-IPO OFFERINGS — ${ipos.length} verified entries. THIS BLOCK IS THE ONLY SOURCE OF TRUTH FOR THESE OFFERINGS. Your training data may contain different prices, dates, or tickers — IGNORE your memory and use ONLY what is written here. Quote prices, dates, and share counts EXACTLY as written; never rephrase, round, or approximate them. Never claim a window is open unless status says "window_open" AND window_closes is in the future.\n` +
+        ipos.map((o: any, i: number) => {
+          const price = o.price_low && o.price_high ? `$${o.price_low}-$${o.price_high}` : "TBD";
+          const win = o.window_opens && o.window_closes ? `Window: ${o.window_opens} to ${o.window_closes}` : "Window: TBD";
+          return `[Offering ${i + 1}/${ipos.length}]\nCompany: ${o.company_name}${o.ticker ? ` (${o.ticker})` : ""}\nType: ${o.offering_type}\nVenue: ${o.provider}\nPrice range: ${price}\n${win}\nStatus: ${o.status}\nNotes: ${o.notes ?? ""}${o.official_url ? `\nOfficial page: ${o.official_url}` : ""}`;
+        }).join("\n\n")
+      : "No IPO or pre-IPO offerings in the directory right now.";
+    const system = SYSTEM_PROMPT + "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + "\n" + ipoLine +
       `\n${catalogLine}\n\n` +
       "\n\nROUTE CARDS (only source of truth):\n" + renderRouteCards(promptRoutes);
 
@@ -630,7 +648,7 @@ serve(async (req) => {
     // ("how can I improve my credit score" must not return a bank bonus).
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
-    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + financeNudge +
+    const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + "\n" + ipoLine + financeNudge +
       renderLessonsBlock(chatLessons);
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the

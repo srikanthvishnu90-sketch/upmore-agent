@@ -1,258 +1,255 @@
 # Upmore — 200 Capabilities
 
-One capability per item. Each is a distinct thing Upmore can do — not
-variations of the same feature. Deep, tough, grounded in what Upmore has:
-trading via Alpaca, copy-trading leaders, IPO/pre-IPO tracking, subscription
-management, bill reminders, settlement matching, CFO tools, bank connections,
-proactive alerts, and the money-route catalog.
+Each line is one capability, written the way you'd actually ask for it.
+One line = one feature, covering its full scope.
 
-## Trading & markets (1–28)
+## Trading & markets
 
-1. **Place market stock orders** — buy or sell any US stock/ETF at the current price, approval-gated, paper first.
-2. **Place limit orders** — buy or sell only at your price or better, day or GTC.
-3. **Place stop-loss orders** — auto-sell a position if it falls to your trigger price.
-4. **Trailing stop orders** — a stop that follows the price upward and locks in gains.
-5. **Fractional share trading** — buy $50 of a $600 stock, no whole-share requirement.
-6. **Extended-hours trading** — place orders before the open and after the close.
-7. **Cancel and modify open orders** — change a limit price, cancel single orders, or cancel-all with per-order confirmation.
-8. **Portfolio performance tracking** — daily, monthly, and since-inception returns with deposits accounted for, never inflated by contributions.
-9. **Benchmark comparison** — your returns vs the S&P 500 over the same period, no cherry-picked dates.
-10. **Sector and asset allocation breakdown** — where your money actually sits, biggest overweights named.
-11. **Dividend tracking** — what you earned this year, what's coming next, yield on cost per holding.
-12. **Dividend reinvestment (DRIP)** — auto-reinvest payouts, with honest fallback if the broker doesn't support it.
-13. **Corporate action handling** — splits, mergers, and ticker changes reflected correctly with cost basis intact.
-14. **Wash sale detection** — flag sells repurchased within 30 days, with dates.
-15. **Tax-loss harvesting flags** — surface underwater positions and harvestable losses as facts, never recommendations.
-16. **Realized gains reporting** — short-term vs long-term totals from actual fills.
-17. **Earnings calendar** — when your holdings report next, with optional reminders.
-18. **Stock research briefs** — fundamentals, valuation, and news with cited sources.
-19. **Analyst ratings aggregation** — what the street says about a stock, sourced, no spin.
-20. **Price alerts** — notify on any threshold or percent move you set.
-21. **Watchlists** — track tickers you don't own yet, with move alerts.
-22. **Paper trading mode** — practice every feature with fake money before real dollars.
-23. **Buying power checks** — what you can actually spend, reported live before any order.
-24. **Pattern day-trade guard** — warn before an order would trigger a PDT violation.
-25. **After-hours quotes** — live prices when the market is closed.
-26. **Order history and receipts** — every fill with price, time, and a permanent audit trail.
-27. **Cost basis tracking** — what you paid per position, adjusted for splits and corporate actions.
-28. **Multi-account portfolio view** — every brokerage account's holdings in one picture.
+1. "buy and sell stocks and ETFs for me at the market price"
+2. "buy and sell stocks at a limit price I set"
+3. "put stop-losses on my positions"
+4. "set trailing stops that follow the price up"
+5. "buy fractional shares for me"
+6. "trade for me before the market opens and after it closes"
+7. "cancel or change my open orders"
+8. "tell me how my portfolio is performing"
+9. "compare my returns to the S&P 500"
+10. "show me my allocation by sector and asset"
+11. "track my dividends and tell me what's coming next"
+12. "reinvest my dividends automatically"
+13. "handle stock splits and mergers in my portfolio"
+14. "flag wash sales in my account"
+15. "find tax-loss harvesting opportunities for me"
+16. "tell me my realized gains and losses this year"
+17. "remind me when my stocks report earnings"
+18. "research a stock for me before I buy"
+19. "show me what analysts say about a stock"
+20. "alert me when a stock hits a price I set"
+21. "keep a watchlist of stocks I'm eyeing"
+22. "let me paper trade before using real money"
+23. "tell me my buying power before I trade"
+24. "warn me before I trigger a pattern day-trade violation"
+25. "give me live quotes after hours"
+26. "show me my full order history with receipts"
+27. "track my cost basis on every position"
+28. "show all my brokerage accounts in one view"
 
-## Copy trading (29–44)
+## Copy trading
 
-29. **Follow a copy-trading leader** — mirror a leader's portfolio with your chosen dollar allocation.
-30. **Pelosi disclosure tracker** — mirror Nancy Pelosi's disclosed congressional trades.
-31. **Buffett / Berkshire 13F tracker** — mirror Berkshire's top 15 holdings each quarter.
-32. **Ackman / Pershing 13F tracker** — mirror Pershing Square's top holdings.
-33. **Burry / Scion 13F tracker** — mirror Scion Asset Management's top holdings.
-34. **Congressional tracker bundle** — Crenshaw, Tuberville, and Powell disclosure trackers.
-35. **Add a custom leader** — track any investor's public disclosures you name.
-36. **Per-leader allocation caps** — limit total dollars behind any single leader.
-37. **Per-position caps** — no single mirrored position above your chosen percent.
-38. **Leader stop-losses** — auto-pause a leader's sleeve at your loss limit.
-39. **Leader performance comparison** — rank your leaders side by side with as-of dates.
-40. **Filing-freshness reporting** — how old the data behind each leader is, stated plainly in weeks.
-41. **New-filing alerts** — notify the day a leader's new disclosure publishes.
-42. **Leader conflict resolution** — when two leaders disagree on a stock, show both filings and let you pick.
-43. **Pause and resume a leader** — stop new mirrors without selling existing positions.
-44. **Unfollow with unwind** — exit a leader, selling mirrored positions or keeping them, your choice.
+29. "copy a top investor's trades with my money"
+30. "copy Nancy Pelosi's disclosed trades"
+31. "copy Warren Buffett's portfolio from 13F filings"
+32. "copy Bill Ackman's portfolio"
+33. "copy Michael Burry's portfolio"
+34. "copy congressional traders like Crenshaw and Tuberville"
+35. "add a new investor for me to copy"
+36. "cap how much money I put behind each leader"
+37. "cap any single copied position at a percent I set"
+38. "put stop-losses on my copy-trading leaders"
+39. "rank my copy leaders by performance"
+40. "tell me how fresh each leader's data is"
+41. "alert me when a leader files new trades"
+42. "tell me when two of my leaders disagree on a stock"
+43. "pause and resume copying a leader"
+44. "stop copying a leader and unwind or keep the positions"
 
-## IPO & pre-IPO (45–56)
+## IPO & pre-IPO
 
-45. **IPO calendar** — upcoming IPOs with price ranges, share counts, and expected dates.
-46. **IPO window alerts** — notify when an allocation window you care about opens.
-47. **IPO allocation requests** — guided step-by-step to request shares in the venue's app.
-48. **Oura IPO tracking** — live price range, window status, and Coinbase IPO Access steps.
-49. **OpenAI IPO watch** — track the path to listing, alert at the public S-1.
-50. **Anthropic IPO watch** — track the path to listing, alert at the public S-1.
-51. **Pre-IPO proxy investing** — DXYZ exposure with the NAV-premium math stated up front.
-52. **Flipping-ban warnings** — the 30-day sale / 60-day ban risks, stated before you request.
-53. **Allocation honesty** — partial or zero allocations possible; never imply a guarantee.
-54. **Secondary-market guidance** — accredited paths (Forge, EquityZen) explained with minimums and lockups.
-55. **Tokenized pre-IPO scam detection** — flag voided or unauthorized offerings before you touch them.
-56. **Post-IPO tracking** — how your IPO shares perform after listing, with lockup reminders.
+45. "show me upcoming IPOs with prices and dates"
+46. "alert me when an IPO window opens"
+47. "walk me through requesting IPO shares in the app"
+48. "get me into the Oura IPO"
+49. "watch OpenAI's IPO and alert me at the S-1"
+50. "watch Anthropic's IPO and alert me at the S-1"
+51. "give me pre-IPO exposure I can buy today"
+52. "warn me about IPO flipping bans before I request shares"
+53. "tell me my real odds of getting IPO shares"
+54. "explain secondary markets for pre-IPO shares"
+55. "tell me if a pre-IPO offer is a scam"
+56. "track my IPO shares after they list"
 
-## Auto-invest (57–64)
+## Auto-invest
 
-57. **Recurring buys** — invest a fixed dollar amount on your schedule into chosen assets.
-58. **Scheduled auto-rebalancing** — bring allocation back to target on a cadence you set.
-59. **Drift-triggered rebalancing** — rebalance only when drift exceeds your threshold.
-60. **Round-up investing** — invest spare change from everyday transactions.
-61. **Paycheck-split investing** — route a percent of each paycheck straight to investments.
-62. **Cash-sweep investing** — invest checking surplus above your safety buffer.
-63. **Auto-invest kill switch** — pause every rule instantly with one command.
-64. **Rule performance reports** — what your auto-invest rules bought, and what they earned.
+57. "invest a fixed amount every month automatically"
+58. "rebalance my portfolio on a schedule"
+59. "rebalance me only when my allocation drifts too far"
+60. "invest my spare change automatically"
+61. "send part of every paycheck to my investments"
+62. "invest my extra checking cash above a buffer I set"
+63. "pause all my auto-invest rules instantly"
+64. "report what my auto-invest rules did"
 
-## Subscriptions (65–78)
+## Subscriptions
 
-65. **Subscription discovery** — find every recurring charge across all connected accounts.
-66. **Cancellation guidance** — exact steps and official links per merchant, never faked.
-67. **Trial-to-paid trap alerts** — warn two days before a trial converts to a charge.
-68. **Price-increase detection** — flag when a subscription quietly costs more than before.
-69. **Duplicate-service detection** — two apps doing the same job, with the combined cost.
-70. **Annual vs monthly math** — which billing cycle actually saves money, with your real prices.
-71. **Renewal reminders** — what's renewing this week, with a keep/review/cancel line each.
-72. **Pause vs cancel analysis** — when pausing beats canceling, with the real savings.
-73. **Family-plan splitting** — per-person cost math and monthly collection reminders.
-74. **Unused-subscription waste reports** — dollars burned on things you haven't touched.
-75. **Apple-billed subscription routing** — the iPhone Settings path when the merchant isn't the biller.
-76. **Subscription spend totals** — monthly and annualized recurring spend in one number.
-77. **Cancellation verification** — confirm it actually cancelled, not just that you clicked.
-78. **Re-subscribe timing** — when a promo or price drop makes rejoining worth it.
+65. "find every subscription I'm paying for"
+66. "cancel my subscriptions and confirm they're dead"
+67. "warn me before a free trial charges me"
+68. "tell me when a subscription raises its price"
+69. "find subscriptions that do the same thing"
+70. "tell me if annual or monthly billing is cheaper"
+71. "remind me what's renewing this week"
+72. "tell me whether to pause or cancel a subscription"
+73. "split my family plan costs with the group"
+74. "show me money I'm wasting on subscriptions I don't use"
+75. "cancel subscriptions billed through Apple"
+76. "tell me my total subscription spend"
+77. "verify my cancellation actually went through"
+78. "tell me when it's worth re-subscribing to something"
 
-## Bills & payments (79–92)
+## Bills & payments
 
-79. **Due-bill reminders** — proactive "you have $16 due Friday — want me to pay it?"
-80. **Bill prioritization** — when cash is short, order bills by shutoff risk, credit impact, and fees.
-81. **Overdraft protection checks** — refuse to propose any payment that would overdraw.
-82. **Autopay setup guidance** — per bill, with amount type, source, and first debit date confirmed.
-83. **Bill negotiation scripts** — ready-to-use call scripts with competitor prices to cite.
-84. **Usage vs rate analysis** — why your electric bill doubled: rate change, usage spike, or estimate.
-85. **Estimated-reading detection** — catch estimated utility bills and fix them with a real reading.
-86. **Year-over-year bill comparison** — same month last year, variance explained.
-87. **Late-fee dispute help** — payment-timestamp evidence plus a message draft you can send.
-88. **Fee-waiver call scripts** — first-time forgiveness requests that actually work.
-89. **Rent-on-card math** — convenience fees vs rewards value with your real numbers.
-90. **Medical bill negotiation** — payment-plan terms vs lump-sum discount, total cost of each.
-91. **Payment audit trail** — every proposed and approved payment logged with receipts.
-92. **Hidden recurring bill detection** — spot bills you didn't realize were recurring.
+79. "remind me of bills due and offer to pay them"
+80. "tell me which bills to pay first when cash is tight"
+81. "stop me from overdrawing when I pay bills"
+82. "set up autopay for my bills"
+83. "write me a script to negotiate my bills down"
+84. "tell me why my utility bill spiked"
+85. "catch estimated utility readings and fix them"
+86. "compare my bills to the same month last year"
+87. "help me dispute a bogus late fee"
+88. "write me a fee-waiver request"
+89. "tell me if paying rent on a credit card is worth it"
+90. "negotiate my medical bills down"
+91. "keep receipts for every bill I pay"
+92. "find recurring bills I forgot about"
 
-## Settlements (93–100)
+## Settlements
 
-93. **Settlement discovery** — match your life against the settlement directory automatically.
-94. **Eligibility checks** — one targeted question when needed, likely/not-likely verdicts, never guaranteed.
-95. **Deadline tracking** — filing windows monitored so you never miss one.
-96. **Proof-requirement guidance** — exactly what documentation each claim needs.
-97. **Attestation-risk warnings** — perjury warnings before you sign anything under oath.
-98. **Payout estimation** — per-person caps and pro-rata dilution explained honestly.
-99. **Claim-status follow-ups** — realistic timelines after filing: approval, appeals, administration.
-100. **New-settlement alerts** — when a new settlement matches your profile.
+93. "find class-action settlements I qualify for"
+94. "check if I'm eligible for a settlement"
+95. "track settlement deadlines for me"
+96. "tell me what proof a settlement claim needs"
+97. "warn me before I sign a settlement claim under oath"
+98. "estimate what a settlement will actually pay me"
+99. "tell me when my settlement money is coming"
+100. "alert me to new settlements that fit me"
 
-## Budgeting & spending (101–114)
+## Budgeting & spending
 
-101. **Spending categorization** — every transaction in its bucket, searchable.
-102. **Monthly spending reports** — by category, with trends vs prior months.
-103. **Merchant-level breakdowns** — exactly where the money went, top merchants named.
-104. **Income vs spending tracking** — the net number each month, across all accounts.
-105. **Budget creation** — category limits built from your real numbers, not templates.
-106. **Budget-breach alerts** — warn before a category blows past its limit.
-107. **Recurring charges in budgets** — subscriptions counted properly, not double-counted.
-108. **Cash-flow forecasting** — will you make it to payday at this burn rate?
-109. **Savings rate tracking** — percent of income saved, trended over time.
-110. **Spending velocity alerts** — unusual spikes flagged the day they happen.
-111. **Year-over-year spending** — this month vs the same month last year.
-112. **"What am I spending on?"** — the whole picture in one answer.
-113. **Discretionary vs fixed split** — what you can actually cut vs what's locked.
-114. **Paycheck planning** — allocate each paycheck to bills, savings, and investing before it arrives.
+101. "categorize all my spending"
+102. "give me a monthly spending report"
+103. "break down my spending by merchant"
+104. "tell me if I'm spending more than I earn"
+105. "build me a budget from my real numbers"
+106. "warn me before I blow a budget category"
+107. "count my subscriptions inside my budget"
+108. "forecast whether I'll make it to payday"
+109. "track my savings rate"
+110. "flag unusual spending spikes"
+111. "compare my spending to last year"
+112. "tell me what I'm spending money on"
+113. "split my spending into fixed vs discretionary"
+114. "plan out my next paycheck"
 
-## Banking & accounts (115–124)
+## Banking & accounts
 
-115. **Bank account connections** — link via Plaid or SimpleFIN with one flow.
-116. **Multi-account dashboard** — every balance, every institution, one view.
-117. **Transaction search** — find any transaction by merchant, amount, or date.
-118. **Pending vs posted reconciliation** — explain exactly why two balances disagree.
-119. **Duplicate-charge detection** — real double-charges vs auth-hold pairs, proven.
-120. **Account nicknames** — "spending account" instead of cryptic bank names.
-121. **Connection health monitoring** — detect stale syncs and re-auth without duplicating history.
-122. **Balance history** — how your cash moved over weeks and months.
-123. **Direct deposit tracking** — know the second your paycheck lands.
-124. **Clean account disconnect** — remove an account with clear rules on what history stays.
+115. "connect my bank accounts"
+116. "show all my account balances in one place"
+117. "search my transactions"
+118. "explain why my balance doesn't match my bank app"
+119. "catch duplicate charges"
+120. "let me nickname my accounts"
+121. "keep my bank connections healthy and re-auth cleanly"
+122. "show me my balance history"
+123. "tell me the second my paycheck lands"
+124. "disconnect a bank account cleanly"
 
-## Alerts & monitoring (125–136)
+## Alerts & monitoring
 
-125. **Custom price alerts** — any ticker, any threshold, one alert per trigger.
-126. **Low-balance alerts** — warn when checking drops below your floor.
-127. **Large-transaction alerts** — flag any charge over your limit, with merchant named.
-128. **Fee alerts** — any bank or broker fee, identified by type and account.
-129. **Quiet hours** — no pings after 10pm; overnight triggers queue for morning.
-130. **Alert dedup** — one event equals one alert, verified on the next trigger.
-131. **Urgency tiers** — info, warning, and urgent arrive with the right severity.
-132. **Morning money briefing** — balances, overnight activity, and what needs attention, daily at 7am.
-133. **Weekly money review** — Sunday recap plus the week ahead.
-134. **Anomaly detection** — "this doesn't look like you" flags on unusual activity.
-135. **Alert snoozing** — pause alert categories on your schedule, auto-resume after.
-136. **Alert history** — every alert that fired, when, and why.
+125. "alert me on any stock price I set"
+126. "warn me when my checking gets low"
+127. "flag any charge over an amount I set"
+128. "tell me whenever I'm charged a fee"
+129. "stay quiet after 10pm and queue alerts for morning"
+130. "never alert me twice for the same thing"
+131. "rank my alerts by urgency"
+132. "send me a money briefing every morning"
+133. "send me a weekly money review"
+134. "flag spending that doesn't look like me"
+135. "let me snooze alerts on my schedule"
+136. "show me every alert you sent me"
 
-## Earn & money-making (137–148)
+## Earn & money-making
 
-137. **Money-route catalog** — 1,400+ verified ways to make money with exact steps.
-138. **Fastest-$100 finder** — the top route by speed, with payout, time, and link.
-139. **Route stacking** — combine compatible routes into one coherent plan.
-140. **Bank bonus tracking** — requirement checklists with expected payout dates.
-141. **Offer legitimacy checks** — scam vs real verdicts with evidence cited.
-142. **Payout verification** — promised vs actual payout, gap cause named.
-143. **Gig-earnings routing** — send side-hustle earnings to investing automatically.
-144. **Side-hustle matching** — routes filtered by your available time and skills.
-145. **Unclaimed money search** — state databases checked for money owed to you.
-146. **Cashback optimization** — which card to use for which purchase.
-147. **Referral bonus tracking** — who owes you what and when it pays.
-148. **Income goal tracking** — progress toward your $1,000 beta target.
+137. "show me verified ways to make money"
+138. "find me the fastest way to make $100"
+139. "combine money-making routes into one plan"
+140. "track my bank bonus requirements"
+141. "tell me if a money offer is legit or a scam"
+142. "verify I got paid what a route promised"
+143. "route my gig earnings into investing"
+144. "match me with side hustles for my schedule"
+145. "search for unclaimed money in my name"
+146. "tell me which card to use for max cashback"
+147. "track referral bonuses owed to me"
+148. "track my progress to making $1,000"
 
-## Taxes (149–156)
+## Taxes
 
-149. **Tax-bracket positioning** — where you sit now, forward-looking only.
-150. **Quarterly estimated tax math** — what to set aside on 1099 income.
-151. **Deduction tracking** — what counts, with receipts organized.
-152. **Charitable giving records** — donation log ready for filing.
-153. **Investment tax summaries** — realized gains and losses organized for your return.
-154. **Roth vs traditional analysis** — educational, bracket-based, never personalized advice.
-155. **HSA/FSA guidance** — contribution limits and eligible expenses.
-156. **Tax-deadline reminders** — quarterlies, filing day, and extensions.
+149. "tell me my tax bracket and what it means"
+150. "calculate my quarterly estimated taxes"
+151. "track my tax deductions"
+152. "log my charitable donations for taxes"
+153. "summarize my investment taxes for filing"
+154. "explain Roth vs traditional for my situation"
+155. "guide my HSA and FSA contributions"
+156. "remind me of tax deadlines"
 
-## Insurance (157–162)
+## Insurance
 
-157. **Coverage adequacy checks** — renters and auto coverage vs your real exposure.
-158. **Policy gap analysis** — missing riders named specifically, with your policy numbers.
-159. **Renewal shopping reminders** — benchmark your premium before it renews.
-160. **Claims guidance** — step-by-step what to do after an incident.
-161. **Premium vs deductible math** — which tradeoff wins for you, with numbers.
-162. **Life and disability needs analysis** — how much coverage you actually need.
+157. "check if my insurance coverage is enough"
+158. "find gaps in my insurance policies"
+159. "remind me to shop my insurance before renewal"
+160. "walk me through filing an insurance claim"
+161. "tell me if a higher deductible is worth it"
+162. "calculate how much life and disability insurance I need"
 
-## Debt & credit (163–172)
+## Debt & credit
 
-163. **Debt payoff sequencing** — avalanche vs snowball run with your real balances and APRs.
-164. **Payoff-date projections** — the month each debt dies under your plan.
-165. **Interest-cost comparisons** — what each payoff strategy costs in total interest.
-166. **Balance-transfer analysis** — transfer fees vs interest saved, with the break-even.
-167. **Credit utilization tracking** — per card and overall, with the score impact explained.
-168. **Credit score monitoring** — what moved your score and why.
-169. **Late-payment recovery** — fee-waiver scripts and goodwill letter drafts.
-170. **Minimum-payment trap math** — what paying only minimums really costs you.
-171. **Debt consolidation analysis** — when consolidation helps and when it's a trap.
-172. **Emergency fund targeting** — the right number for your expenses, and the gap to close.
+163. "build my debt payoff plan"
+164. "tell me when each debt will be gone"
+165. "compare what each payoff strategy costs me"
+166. "tell me if a balance transfer is worth it"
+167. "track my credit utilization"
+168. "monitor my credit score and explain changes"
+169. "help me recover from a late payment"
+170. "show me what minimum payments really cost"
+171. "tell me if debt consolidation is a trap or a win"
+172. "set my emergency fund target and track it"
 
-## Research & learning (173–182)
+## Research & learning
 
-173. **Company deep-dives** — business, moat, and risks with cited sources.
-174. **Market explainers** — what happened today and why it matters.
-175. **Jargon translation** — any finance term explained in plain words.
-176. **Strategy explainers** — how 13F tracking or IPO Access actually works.
-177. **Risk education** — what volatility, NAV premiums, and fees mean in dollars.
-178. **Scam detection** — phishing texts, fake investments, and token scams identified.
-179. **News impact analysis** — "how does this headline affect my money?"
-180. **Historical comparisons** — "is this like 2008?" answered with data.
-181. **Learning recommendations** — the right book or resource for the topic at hand.
-182. **Myth-busting** — "guaranteed returns" and other lies, corrected with facts.
+173. "research a company deeply before I invest"
+174. "explain what happened in the markets today"
+175. "explain any finance term in plain words"
+176. "explain how a strategy like 13F tracking works"
+177. "teach me what investment risks mean in dollars"
+178. "tell me if a message or offer is a scam"
+179. "tell me how news affects my money"
+180. "compare today's market to history"
+181. "recommend what to read to learn a money topic"
+182. "bust money myths with facts"
 
-## Safety & approvals (183–190)
+## Safety & approvals
 
-183. **Per-action approvals** — one explicit yes for every money move, no bundles.
-184. **Approval receipts** — what executed, when, permanently logged.
-185. **Pending-approval management** — approve or reject individually, or kill them all.
-186. **Approval expiry** — stale approvals die safely instead of executing late.
-187. **Action audit trail** — "what did you do last Tuesday?" answered with receipts.
-188. **Idempotency protection** — "don't do that twice" proven with a single execution record.
-189. **Read-only default** — look at everything, touch nothing until you approve.
-190. **Scam intervention** — stop you before money goes to a scammer, with the evidence.
+183. "ask my permission before moving any money"
+184. "give me receipts for everything you do"
+185. "let me approve or kill pending actions"
+186. "expire my approvals so they can't execute late"
+187. "show me everything you did last week"
+188. "never do the same money move twice"
+189. "look but don't touch until I say so"
+190. "stop me before I send money to a scammer"
 
-## Goals & planning (191–200)
+## Goals & planning
 
-191. **Goal setting** — "save $5,000 by June" turned into a weekly plan.
-192. **Goal progress tracking** — where you stand, updated every time it matters.
-193. **Milestone recognition** — notice the wins, not just the gaps.
-194. **Runway calculation** — months of survival if income stopped tomorrow.
-195. **Retirement projections** — where you're headed at your current pace.
-196. **Big-purchase planning** — house or car, with the real affordability math.
-197. **Emergency readiness score** — one number for how prepared you are.
-198. **Net worth tracking** — everything you own minus everything you owe, trended.
-199. **Windfall allocation** — "what should I do with $1,000?" answered by priority.
-200. **Financial health score** — the whole picture in a single grade, with what moves it.
+191. "turn my savings goal into a weekly plan"
+192. "track my progress toward my goals"
+193. "call out my money wins"
+194. "tell me how long my cash lasts if income stops"
+195. "project my retirement at this pace"
+196. "plan a big purchase with real math"
+197. "score my emergency readiness"
+198. "track my net worth over time"
+199. "tell me what to do with a windfall"
+200. "grade my overall financial health"

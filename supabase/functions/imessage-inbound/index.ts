@@ -18,8 +18,13 @@
 // Secrets (set via sb.py secrets-set once Vishnu provides the keys):
 //   LOOPMESSAGE_RUWE_API_KEY, LOOPMESSAGE_UPMORE_API_KEY
 // Until set, the function fails cleanly with "not configured" (no crash).
-// Optional hardening: IMESSAGE_WEBHOOK_SECRET — when set, the request must
-// carry it as ?secret= or the x-imessage-secret header.
+// Mandatory shared-secret gate (standard webhook pattern, like Stripe).
+// The request must carry it as ?secret= or the x-imessage-secret header.
+// verify_jwt is OFF for this ingress function on purpose: LoopMessage's
+// webhook config cannot send custom Authorization headers, and the anon key
+// is public by design (it ships in the web app) so it was never a real
+// secret. The 256-bit secret + sender-number check below are the actual
+// security boundary.
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/+esm";
@@ -160,12 +165,11 @@ serve(async (req) => {
     }
     const agent = m[1];
 
-    // Optional shared-secret gate (hardening; unset by default).
+    // Mandatory shared-secret gate. Unauthenticated callers get 403 before
+    // any body parsing or processing happens.
     const webhookSecret = Deno.env.get("IMESSAGE_WEBHOOK_SECRET") ?? "";
-    if (webhookSecret) {
-      const got = url.searchParams.get("secret") ?? req.headers.get("x-imessage-secret") ?? "";
-      if (got !== webhookSecret) return json({ error: "forbidden" }, 403);
-    }
+    const got = url.searchParams.get("secret") ?? req.headers.get("x-imessage-secret") ?? "";
+    if (!webhookSecret || got !== webhookSecret) return json({ error: "forbidden" }, 403);
 
     const raw = await req.json().catch(() => ({}));
     const dryRun = url.searchParams.get("dry_run") === "1" || raw.dry_run === true;

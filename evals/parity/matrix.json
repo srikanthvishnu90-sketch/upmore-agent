@@ -5568,13 +5568,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-020",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Financial wellness content is delivered as the weekly money summary; no wellness-score capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 5,
-   "performed_pct": 20,
+   "performed": 6,
+   "performed_pct": 24,
    "gated": 3
   },
   "FC": {
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 61,
-  "performed_pct": 19.7,
+  "performed": 62,
+  "performed_pct": 20.1,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

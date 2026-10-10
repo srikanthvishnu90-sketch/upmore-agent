@@ -2061,12 +2061,14 @@
    "domain": "budgets and analytics",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/proactive.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/56-agent-proactive.js"
+   ],
+   "note": "Weekly money minute: verified savings and earnings first, estimates labeled as not yet booked, deadlines coming due, then news; an empty week says so.",
    "description": "weekly money summary"
   },
   {
@@ -5686,12 +5688,15 @@
    "domain": "agent core",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/proactive.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/56-agent-proactive.js",
+    "packages/domain/43-agent-loop.js"
+   ],
+   "note": "Engine findings become loop inputs with a stated reason; the loop's budget allows one proactive item a day, suppresses the rest with the reason daily_budget, and lets only a money-losing deadline within two days bypass it. A new subscription's next charge is not a deadline.",
    "description": "proactive budget enforcement"
   },
   {

@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 20% performed.
+25 outcomes, 100% accounted, 24% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-015 Life Plan goals | ANL-016 | CLAIMED |  |
 | BA-016 Spending analysis | ANL-001 | CLAIMED |  |
 | BA-017 Budget tracking | ANL-003 | CLAIMED |  |
-| BA-018 Financial wellness | ANL-020 | CLAIMED | Financial wellness content is delivered as the weekly money summary; no wellness-score capability exists. |
+| BA-018 Financial wellness | ANL-020 | TESTED | Financial wellness content is delivered as the weekly money summary; no wellness-score capability exists. |
 | BA-019 Banking and investing support | CORE-002 | TESTED | Banking and investing support questions are honest status answers. |
 | BA-020 Account and child transfer restrictions | PAY-020 | TESTED | Account and child transfer restrictions are payment limits and velocity checks. |
 | BA-021 Transfer fees and eligibility | TXN-018 | TESTED | Transfer fee eligibility is fee flagging with pre-send disclosure. |

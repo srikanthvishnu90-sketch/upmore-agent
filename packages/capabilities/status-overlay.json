@@ -1509,5 +1509,165 @@
       "packages/domain/62-agent-documents.js"
     ],
     "note": "phishing: nine weighted signals (credential asks, urgency, link mismatch, look-alike domains, generic greeting, attachment lures, gift cards or crypto, reply-to and sender domain mismatches); verdicts phishing, suspicious, or no signals found, never safe."
+  },
+  "EARN-013": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "sideIncomeMatch: a dated catalog of twelve surfaces matched to the user's skills, gear and hours, rated by effective hourly rate after fees, unpaid time, vehicle and cash-out cost; earn apps rated honestly under the floor; a benefits screening surfaced as not-work."
+  },
+  "EARN-001": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "bonusFinder: a dated bonus catalog filtered by state, the new-customer rule, direct-deposit size and movable cash; forgone interest netted; rated per hour of chores; early-closure window stated."
+  },
+  "EARN-009": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "portalEarnings: pending, confirmed and actually-landed kept apart from portal statements and the user's own credits; pending named as the portal's number, not money."
+  },
+  "EARN-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "activateOffer: a card-linked offer becomes a T3 loop request restating card, merchant, rate and expiry; already-active offers say so; the agent never clicks."
+  },
+  "EARN-017": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "complaintDraft: a dated, specific, polite complaint asking for a named remedy, with the follow-up date."
+  },
+  "SAVE-012": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "routePurchase: the best portal for a purchase from a dated rate table, stacked with the best card offer, with the coupon-code caveat."
+  },
+  "SAVE-013": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "offersForPlan: planned purchases matched to portal rates and card-linked offers (minimums and expiry honored)."
+  },
+  "CARD-002": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "bestCard: the user's own reward table, rotating windows, caps, activation state and foreign fees; the ranked list with the runner-up named."
+  },
+  "CARD-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "disputePacket: issuer reason codes, the merchant-first and lock-first ladders, evidence listed, as a T3 request the user files; no provider call."
+  },
+  "HOUS-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "moveBudget: line by line from the user's answers with typical figures marked as such and a 10 percent contingency; the old deposit netted."
+  },
+  "TAX-007": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "cryptoExport: a generic tax-tool CSV from the user's lots; a sale without a cost basis is listed, never invented."
+  },
+  "SAVE-009": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "energyPlans: yearly cost of each plan on the user's own usage, the saving against the current plan, term and exit fee stated."
+  },
+  "BILL-007": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "billCalendar: recurring bill-category debits from the ledger plus bills the user told me about, with autopay state and the manual ones counted."
+  },
+  "INV-001": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "portfolio: each brokerage account with its source and as-of, positions consolidated with the per-account breakdown, stale sources named."
+  },
+  "INV-009": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "priceAlerts: above, below and percent-move alerts against quotes with their own as-of; a stale or missing quote never fires."
+  },
+  "INV-019": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "rolloverStatus: the stages, the 60-day clock on an indirect rollover with the withholding trap, what is next and who owes it."
+  },
+  "SEC-001": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Fraud patterns on transactions: a probe-then-large pair or several first-time merchants in a day, a burst of charges within ten minutes, a double charge within minutes, impossible travel between card-present charges; safety severity, evidence rows named."
+  },
+  "PAY-001": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "prepareSend to a saved recipient: free rail first, exact confirm fields, handoff steps for tap rails, receipt with the reversal contract; the live rail stays gated on a partner."
+  },
+  "ACCT-006": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "connect through the aggregator adapter with a consent record in plain words and scopes; sync into the canonical schema with freshness stamps."
+  },
+  "ACCT-007": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "The manual CSV adapter: accounts and transactions typed or uploaded by the user, synced and normalized like any connector, ranked below aggregators as a source."
   }
 }

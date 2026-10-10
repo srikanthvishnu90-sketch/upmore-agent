@@ -79,3 +79,15 @@ test('quiet hours hold everything but safety until the window ends; three or mor
   const connectors={read:async()=>({value:1,source:'x',as_of:NOW}),write:async()=>({reference:'r'}),verify:async()=>({confirmed:true,source:'x'})};
   const out=await Loop.create({registry:{get:()=>null,answer:()=>({text:''})},connectors,clock:()=>NOW}).wake(feed);assert.equal(out.outcome,'alert');assert.match(out.message,/Someone signed in/);
 });
+
+test('SEC-001 on rows with times and places: a burst within ten minutes and an impossible-travel pair are safety, a double charge within minutes is urgent and disputable',()=>{
+  const T=(id,min,amt,merchant,extra)=>Object.assign({id,account_id:'cc1',posted_at:TODAY,at:`${TODAY}T12:${String(min).padStart(2,'0')}:00Z`,amount:-amt,merchant_raw:merchant},extra||{});
+  const burst=A.detect(Object.assign(base(),{transactions:life.transactions.concat([T('b1',0,12.5,'GAS MART'),T('b2',3,89,'ELECTRO HUB'),T('b3',5,240,'ELECTRO HUB'),T('b4',8,310,'GIFT CARD KIOSK')])}));
+  const fb=burst.find(x=>x.kind==='fraud_pattern'&&/within ten minutes/.test(x.title));assert.ok(fb,'burst detected');assert.equal(fb.severity,'safety');assert.equal(fb.capability_id,'SEC-001');assert.equal(fb.evidence.rows.length,4);assert.match(fb.text,/That is a card being run, not a person shopping\./);
+  const dbl=A.detect(Object.assign(base(),{transactions:life.transactions.concat([T('d1',0,45,'TACO SPOT'),T('d2',2,45,'TACO SPOT')])}));
+  const fd=dbl.find(x=>x.kind==='fraud_pattern'&&/twice within minutes/.test(x.title));assert.ok(fd);assert.equal(fd.severity,'urgent');same(fd.evidence.rows,['d2']);
+  const travel=A.detect(Object.assign(base(),{transactions:life.transactions.concat([T('g1',0,30,'CAFE AUSTIN',{card_present:true,location:{name:'Austin',lat:30.27,lon:-97.74}}),T('g2',50,120,'SHOP LISBON',{card_present:true,location:{name:'Lisbon',lat:38.72,lon:-9.14}})])}));
+  const ft=travel.find(x=>x.kind==='fraud_pattern'&&/km apart/.test(x.title));assert.ok(ft);assert.equal(ft.severity,'safety');assert.ok(ft.evidence.computed.km>7000);assert.match(ft.text,/One of them is not you\.$/);
+  const fine=A.detect(Object.assign(base(),{transactions:life.transactions.concat([T('h1',0,30,'CAFE AUSTIN',{card_present:true,location:{name:'Austin',lat:30.27,lon:-97.74}}),T('h2',50,20,'SHOP ROUND ROCK',{card_present:true,location:{name:'Round Rock',lat:30.51,lon:-97.68}})])}));
+  assert.ok(!fine.some(x=>x.kind==='fraud_pattern'),'thirty kilometres in fifty minutes is a person');
+});

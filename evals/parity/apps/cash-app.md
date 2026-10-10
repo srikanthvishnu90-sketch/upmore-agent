@@ -2,14 +2,14 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-38 outcomes, 100% accounted, 52.6% performed.
+38 outcomes, 100% accounted, 65.8% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
-| CA-001 Send money to a verified person | PAY-001 | CLAIMED |  |
+| CA-001 Send money to a verified person | PAY-001 | TESTED |  |
 | CA-002 Receive person-to-person payments | ALRT-007 | TESTED | Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022). |
 | CA-003 Resolve a recipient by verified handle | PAY-021 | TESTED |  |
-| CA-004 Link bank and debit funding | ACCT-006 | CLAIMED |  |
+| CA-004 Link bank and debit funding | ACCT-006 | TESTED |  |
 | CA-005 Display eligible stored balance | ACCT-001 | TESTED |  |
 | CA-006 Standard bank cashout | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | CA-007 Instant bank cashout with fee preview | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
@@ -25,8 +25,8 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-017 Green-status qualification | EARN-002 | TESTED | Green status is a direct-deposit qualification; the closest capability is the bonus requirement tracker (direct deposit count). |
 | CA-018 Eligible overdraft | SAVE-006 | TESTED | Cash App's free overdraft coverage is replaced by Upmore's overdraft-prevention move rather than replicated as credit. |
 | CA-019 Fractional stocks | non-parity: investment-platform | n/a | Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately. |
-| CA-020 Stock holdings and performance | INV-001 | CLAIMED | Reading existing holdings is portfolio read (doc 09); buying is excluded. |
-| CA-021 Bitcoin positions | INV-001 | CLAIMED | Reading an existing bitcoin position is portfolio read; buying/selling is excluded. |
+| CA-020 Stock holdings and performance | INV-001 | TESTED | Reading existing holdings is portfolio read (doc 09); buying is excluded. |
+| CA-021 Bitcoin positions | INV-001 | TESTED | Reading an existing bitcoin position is portfolio read; buying/selling is excluded. |
 | CA-022 Borrow eligibility and total fee | CRDT-009 | TESTED | Doc 03: Upmore surfaces cheaper alternatives to Borrow via payoff planning and never originates loans itself. |
 | CA-023 Afterpay financing | CRDT-008 | TESTED | Doc 03: BNPL plans are tracked as debt with stacking warnings; Upmore never initiates BNPL. |
 | CA-024 Sponsored child and teen accounts | SOC-007 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
@@ -35,7 +35,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-027 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CA-028 Account security lock | SEC-010 | TESTED | Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011). |
 | CA-029 Identity verification | SEC-012 | TESTED | KYC identity verification is the partner app's own onboarding; Upmore's nearest capability is verification of sensitive chat commands. |
-| CA-030 Fraud alerts | SEC-001 | CLAIMED |  |
+| CA-030 Fraud alerts | SEC-001 | TESTED |  |
 | CA-031 Erroneous payment refund request | PAY-024 | TESTED |  |
 | CA-032 Support escalation without reversal promise | PAY-023 | TESTED | Support escalation for a failed or wrong payment is failed-payment triage with honest no-reversal-promise framing. |
 | CA-033 Deposit eligible checks through a supported service | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |

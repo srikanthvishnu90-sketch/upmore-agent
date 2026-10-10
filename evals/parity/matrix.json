@@ -68,13 +68,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -155,13 +155,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -604,13 +604,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INV-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "09",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Reading existing holdings is portfolio read (doc 09); buying is excluded.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -633,13 +633,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INV-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "09",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Reading an existing bitcoin position is portfolio read; buying/selling is excluded.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -894,13 +894,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1082,13 +1082,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Upmore is not a checkout button; it delivers the right-card recommendation at the moment of online purchase.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1256,13 +1256,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Gift card balances are tracked as manually entered stored-value accounts.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1893,13 +1893,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2115,13 +2115,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INV-019",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "09",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2202,13 +2202,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Fraud-led account alerts map to fraud pattern detection; generic account alerts are ALRT-010.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2313,13 +2313,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2342,13 +2342,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2487,13 +2487,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2762,13 +2762,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INV-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "09",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Reading an existing crypto position is portfolio read (doc 09); trading is excluded.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2887,13 +2887,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INV-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "09",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2940,13 +2940,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TAX-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "15",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3761,13 +3761,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Permissioned state-portal connection is an aggregator-style account add.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4080,13 +4080,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4167,13 +4167,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4196,13 +4196,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Phone and internet offers are utility plan optimization.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4225,13 +4225,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4370,13 +4370,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4457,13 +4457,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4631,13 +4631,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5742,13 +5742,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5771,13 +5771,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Paid surveys are a side-income surface (doc 03 Propel row).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5800,13 +5800,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "App testing offers are a side-income surface.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5829,13 +5829,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Paid product reviews are a side-income surface.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5887,13 +5887,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Video and download offers are a side-income surface.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6201,13 +6201,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-017",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "low",
     "note": "Attribution disputes are drafted like service complaint credits; no earn-app dispute capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6230,13 +6230,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-013",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Doc 03 agent edge: Upmore computes the effective hourly rate and frames income as non-guaranteed.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6684,13 +6684,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "HOUS-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: life events planning maps to HOUS-009/HOUS-010.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6983,13 +6983,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "BILL-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: eBills ingestion is BILL-007.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7099,13 +7099,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7490,13 +7490,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-012",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7577,13 +7577,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "A funded-account signup bonus is surfaced by the signup bonus finder; the investing account itself is doc 09.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7664,13 +7664,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7722,13 +7722,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "A welcome bonus is surfaced by the signup bonus finder.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7944,13 +7944,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Checkout pre-fill is a merchant-page feature; Upmore delivers the card choice, not the fill.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7997,13 +7997,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Early fraud alerts on card misuse are fraud pattern detection.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8113,13 +8113,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "EARN-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "08",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Honey rewards linkage is cash-back portal earnings tracking.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8778,8 +8778,8 @@
    "non_parity": 6,
    "accounted": 38,
    "accounted_pct": 100,
-   "performed": 20,
-   "performed_pct": 52.6,
+   "performed": 25,
+   "performed_pct": 65.8,
    "gated": 7
   },
   "GW": {
@@ -8789,8 +8789,8 @@
    "non_parity": 8,
    "accounted": 27,
    "accounted_pct": 100,
-   "performed": 15,
-   "performed_pct": 55.6,
+   "performed": 18,
+   "performed_pct": 66.7,
    "gated": 1
   },
   "CH": {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 18,
-   "performed_pct": 52.9,
+   "performed": 24,
+   "performed_pct": 70.6,
    "gated": 5
   },
   "VE": {
@@ -8811,8 +8811,8 @@
    "non_parity": 10,
    "accounted": 41,
    "accounted_pct": 100,
-   "performed": 20,
-   "performed_pct": 48.8,
+   "performed": 25,
+   "performed_pct": 61,
    "gated": 6
   },
   "CO": {
@@ -8833,8 +8833,8 @@
    "non_parity": 0,
    "accounted": 23,
    "accounted_pct": 100,
-   "performed": 15,
-   "performed_pct": 65.2,
+   "performed": 20,
+   "performed_pct": 87,
    "gated": 3
   },
   "PP": {
@@ -8844,8 +8844,8 @@
    "non_parity": 3,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 20,
-   "performed_pct": 64.5,
+   "performed": 25,
+   "performed_pct": 80.6,
    "gated": 3
   },
   "BA": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 18,
-   "performed_pct": 72,
+   "performed": 20,
+   "performed_pct": 80,
    "gated": 3
   },
   "FC": {
@@ -8866,8 +8866,8 @@
    "non_parity": 2,
    "accounted": 28,
    "accounted_pct": 100,
-   "performed": 15,
-   "performed_pct": 53.6,
+   "performed": 24,
+   "performed_pct": 85.7,
    "gated": 2
   },
   "WF": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 15,
-   "performed_pct": 50,
+   "performed": 16,
+   "performed_pct": 53.3,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 177,
-  "performed_pct": 57.3,
+  "performed": 218,
+  "performed_pct": 70.6,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

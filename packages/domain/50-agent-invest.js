@@ -98,6 +98,30 @@
         confirm: { action: `${o.side === "buy" ? "Buy" : "Sell"} ${o.quantity} ${o.symbol} (${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""})`, amount: est !== null ? `about ${money(est)}` : "price at execution", recipient: null, from: o.account, fee: o.fee_cents ? money(o.fee_cents) : null, when: "at the next market open or now if the market is open" },
         statement: `${o.side === "buy" ? "Buy" : "Sell"} ${o.quantity} ${o.symbol} ${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""} in ${o.account}${est !== null ? `, about ${money(est)} at ${money(quote.price_cents)} (${quote.source}, as of ${quote.as_of})` : ""}. Confirm?` };
     }
-    return { consolidate, allocation, concentration, overlap, drift, screen, harvest, washSale, realized, contributionRoom, restateOrder, money };
+    // INV-001: the portfolio read across brokerages: each account with its source and as-of, positions consolidated with the per-account breakdown, stale sources named.
+    function portfolio(accounts, now) {
+      const DAY = 86400000, rows = (accounts || []).map(a => ({ id: a.id, source: a.source || "manual", as_of: a.as_of || null, stale: !!(now && a.as_of && now - Date.parse(a.as_of) > DAY), value_cents: (a.holdings || []).reduce((s, h) => s + int(h.value_cents !== undefined ? h.value_cents : divRound(Math.round(h.quantity * 10000) * h.price_cents, 10000), `${h.symbol} value`), 0), positions: (a.holdings || []).length }));
+      const c = consolidate(accounts);
+      return { accounts: rows, total_cents: rows.reduce((s, r) => s + r.value_cents, 0), positions: c.holdings.map(pos => Object.assign({}, pos, { by_account: (accounts || []).filter(a => (a.holdings || []).some(h => h.symbol === pos.symbol)).map(a => ({ account_id: a.id, source: a.source || "manual", quantity: (a.holdings || []).filter(h => h.symbol === pos.symbol).reduce((s, h) => s + h.quantity, 0) })) })), stale: rows.filter(r => r.stale).map(r => r.id), text: `${money(rows.reduce((s, r) => s + r.value_cents, 0))} across ${rows.length} account${rows.length === 1 ? "" : "s"} (${rows.map(r => `${r.id} ${money(r.value_cents)} per ${r.source}${r.as_of ? ` as of ${String(r.as_of).slice(0, 16).replace("T", " ")}` : ""}`).join("; ")}).${rows.some(r => r.stale) ? ` ${rows.filter(r => r.stale).map(r => r.id).join(", ")} is older than a day.` : ""}`, source: [...new Set(rows.map(r => r.source))].join(", "), as_of: rows.map(r => r.as_of).filter(Boolean).sort().pop() || null };
+    }
+    // INV-009: price alerts the user set, evaluated against quotes with their own as-of; a stale quote never fires.
+    function priceAlerts(alerts, quotes, now) {
+      const out = [], DAY = 86400000;
+      for (const a of alerts || []) { if (a.status === "paused") continue; const q = (quotes || []).find(x => x.symbol === a.symbol); if (!q) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: "no quote" }); continue; } const stale = now && q.as_of && now - Date.parse(q.as_of) > DAY; if (stale) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: `quote is stale (${q.as_of})` }); continue; }
+        let fired = false, text = null; const pct = q.prev_close_cents ? divRound((q.price_cents - q.prev_close_cents) * 10000, q.prev_close_cents) : null;
+        if (a.kind === "above" && q.price_cents >= a.price_cents) { fired = true; text = `${a.symbol} is ${money(q.price_cents)}, above your ${money(a.price_cents)} line (${q.source || "quote"}, ${q.as_of}).`; }
+        if (a.kind === "below" && q.price_cents <= a.price_cents) { fired = true; text = `${a.symbol} is ${money(q.price_cents)}, below your ${money(a.price_cents)} line (${q.source || "quote"}, ${q.as_of}).`; }
+        if (a.kind === "pct_move" && pct != null && Math.abs(pct) >= a.bps) { fired = true; text = `${a.symbol} moved ${pct >= 0 ? "up" : "down"} ${(Math.abs(pct) / 100).toFixed(1)} percent today to ${money(q.price_cents)} (${q.source || "quote"}, ${q.as_of}).`; }
+        out.push({ alert_id: a.id, symbol: a.symbol, fired, text, price_cents: q.price_cents, as_of: q.as_of, reason: fired ? null : "condition not met" }); }
+      return { fired: out.filter(o => o.fired), checked: out };
+    }
+    // INV-019: rollover status. The stages, the 60-day clock on an indirect rollover, and what is still owed by whom.
+    const ROLLOVER_STAGES = ["requested", "old_plan_processing", "funds_sent", "received", "invested"];
+    function rolloverStatus(r, today) {
+      const DAY = 86400000, idx = ROLLOVER_STAGES.indexOf(r.stage), indirect = r.method === "indirect", clock = indirect && r.funds_sent_on ? 60 - Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(r.funds_sent_on + "T00:00:00Z")) / DAY) : null;
+      const next = idx < 0 ? "tell me the stage" : idx === 0 ? `${r.from || "the old plan"} has to process the request; call them if nothing in 10 business days` : idx === 1 ? "the old plan sends the funds; a direct transfer goes plan to plan, an indirect one mails you a check" : idx === 2 ? (indirect ? `deposit the full amount into ${r.to || "the new account"}${clock != null ? ` within ${clock} days` : " within 60 days"}; if 20 percent was withheld, you must make it up from other money or that part becomes a taxable distribution` : `${r.to || "the new account"} should show it within 5 business days`) : idx === 3 ? "the cash is in; it is not invested until you choose, so it sits uninvested" : "done";
+      return { stage: r.stage, stage_index: idx, method: r.method || "direct", days_left_on_60_day_clock: clock, overdue: clock != null && clock < 0, next, text: `${r.from || "Old plan"} to ${r.to || "new account"} (${r.method || "direct"}): ${r.stage.replace(/_/g, " ")}. Next: ${next}.${clock != null && clock < 0 ? " The 60-day window has passed; talk to a tax professional about a waiver." : ""}`, source: "what you and the plans told me", as_of: today };
+    }
+    return { consolidate, allocation, concentration, overlap, drift, screen, harvest, washSale, realized, contributionRoom, restateOrder, portfolio, priceAlerts, rolloverStatus, ROLLOVER_STAGES, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentInvest;

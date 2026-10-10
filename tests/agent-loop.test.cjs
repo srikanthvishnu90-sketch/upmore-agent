@@ -106,7 +106,7 @@ test('T5 always asks even with an envelope; T2 drafts never send; GATED and unbu
   r=await loop.wake({kind:'message',request:{capability_id:'NOPE-001'}});
   assert.equal(r.outcome,'blocked');assert.equal(r.reason,'unknown_capability');assert.match(r.message,/not something Upmore can do/);
   const real=AgentLoop.create({registry:realRegistry,connectors:c,clock:clockAt({now:1})});
-  r=await real.wake({kind:'message',request:{capability_id:'PAY-001'}});
+  r=await real.wake({kind:'message',request:{capability_id:'SEC-003'}});
   assert.equal(r.outcome,'blocked');assert.equal(r.reason,'not_built');assert.match(r.message,/planned but not built yet/);
   assert.equal(c.calls.write.length,0);
 });

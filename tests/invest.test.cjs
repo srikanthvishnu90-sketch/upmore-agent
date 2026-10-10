@@ -99,3 +99,16 @@ test('execution flow: the order is restated and confirmed before the fake rail f
   const yes=await loop.wake({kind:'confirmation',confirmation_id:r2.confirmation_id,approved:true});
   assert.equal(yes.outcome,'confirmed');assert.equal(writes.length,1);assert.match(yes.message,/ref ord-77.*Confirmed by Example Broker/);
 });
+
+test('INV-001/009/019: the portfolio read names each source and as-of and flags stale ones; price alerts fire only on fresh quotes; rollover status runs the 60-day clock',()=>{
+  const sameJ=(a,b,m)=>assert.equal(JSON.stringify(a),JSON.stringify(b),m);const now=Date.UTC(2026,9,10,15,0,0);
+  const p=I.portfolio(accounts,now);assert.equal(p.accounts.length,accounts.length);assert.equal(p.total_cents,p.accounts.reduce((s,a)=>s+a.value_cents,0));assert.ok(p.positions.find(x=>x.symbol==='VTI').by_account.length>=2,'VTI held in two accounts, broken out per account');assert.match(p.text,/^\$[\d,.]+ across \d+ accounts \(fidelity-taxable \$[\d,.]+ per Fidelity as of 2026-10-10 14:14/);sameJ(p.stale,[]);
+  const stale=I.portfolio([Object.assign({},accounts[0],{as_of:'2026-10-01T00:00:00Z'})],now);sameJ(stale.stale,['fidelity-taxable']);assert.match(stale.text,/fidelity-taxable is older than a day\.$/);
+  const q=[{symbol:'NVDA',price_cents:19050,prev_close_cents:18533,as_of:'2026-10-10T14:30:00Z',source:'Fidelity'},{symbol:'VTI',price_cents:29000,prev_close_cents:30000,as_of:'2026-10-01T14:30:00Z',source:'Schwab'}];
+  const a=I.priceAlerts([{id:'a1',symbol:'NVDA',kind:'above',price_cents:19000},{id:'a2',symbol:'NVDA',kind:'pct_move',bps:200},{id:'a3',symbol:'VTI',kind:'below',price_cents:29500},{id:'a4',symbol:'XYZ',kind:'above',price_cents:1},{id:'a5',symbol:'NVDA',kind:'below',price_cents:100,status:'paused'}],q,now);
+  sameJ(a.fired.map(f=>f.alert_id),['a1','a2']);assert.equal(a.fired[0].text,'NVDA is $190.50, above your $190.00 line (Fidelity, 2026-10-10T14:30:00Z).');assert.match(a.fired[1].text,/^NVDA moved up 2\.8 percent today to \$190\.50/);
+  assert.match(a.checked.find(c=>c.alert_id==='a3').reason,/^quote is stale/);assert.equal(a.checked.find(c=>c.alert_id==='a4').reason,'no quote');assert.ok(!a.checked.some(c=>c.alert_id==='a5'));
+  const r=I.rolloverStatus({from:'Old 401k',to:'Schwab IRA',method:'indirect',stage:'funds_sent',funds_sent_on:'2026-09-01'},'2026-10-10');assert.equal(r.days_left_on_60_day_clock,21);assert.equal(r.overdue,false);assert.match(r.text,/deposit the full amount into Schwab IRA within 21 days; if 20 percent was withheld, you must make it up from other money/);
+  const late=I.rolloverStatus({from:'Old 401k',to:'Schwab IRA',method:'indirect',stage:'funds_sent',funds_sent_on:'2026-07-01'},'2026-10-10');assert.equal(late.overdue,true);assert.match(late.text,/talk to a tax professional about a waiver/);
+  assert.match(I.rolloverStatus({from:'A',to:'B',method:'direct',stage:'received'},'2026-10-10').next,/not invested until you choose/);
+});

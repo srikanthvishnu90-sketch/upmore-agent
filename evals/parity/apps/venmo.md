@@ -2,16 +2,16 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-41 outcomes, 100% accounted, 48.8% performed.
+41 outcomes, 100% accounted, 61% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
-| VE-001 Send money to friends | PAY-001 | CLAIMED |  |
+| VE-001 Send money to friends | PAY-001 | TESTED |  |
 | VE-002 Pay supported businesses | PAY-013 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | VE-003 Eligible Venmo checkout | PAY-013 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | VE-004 Balance-purchase identity verification | SEC-012 | TESTED | Balance-purchase identity verification is Venmo's KYC; the closest capability is verification of sensitive commands. |
 | VE-005 Debit payments | CARD-001 | TESTED | Venmo debit card is inventoried and recommended per purchase (CARD-002). |
-| VE-006 Stash offers | EARN-010 | CLAIMED |  |
+| VE-006 Stash offers | EARN-010 | TESTED |  |
 | VE-007 Reward tiers and caps | EARN-011 | TESTED | Reward tiers and caps are tracked in cross-program points valuation. |
 | VE-008 Credit application and hard inquiry | CRDT-007 | TESTED | Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's. |
 | VE-009 Credit spending management | CARD-004 | TESTED |  |
@@ -21,14 +21,14 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | VE-013 Wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | VE-014 Buy supported crypto | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
 | VE-015 Sell supported crypto | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
-| VE-016 Crypto holdings and valuation | INV-001 | CLAIMED | Reading an existing crypto position is portfolio read (doc 09); trading is excluded. |
+| VE-016 Crypto holdings and valuation | INV-001 | TESTED | Reading an existing crypto position is portfolio read (doc 09); trading is excluded. |
 | VE-017 Eligible crypto transfers | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
 | VE-018 Receive supported crypto | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
 | VE-019 Exchange rate and spread | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
 | VE-020 Crypto fee preview | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
-| VE-021 Crypto price alerts | INV-009 | CLAIMED |  |
+| VE-021 Crypto price alerts | INV-009 | TESTED |  |
 | VE-022 Separate-consent cashback conversion | non-parity: investment-platform | n/a | Auto-converting cashback into crypto is a recurring crypto purchase inside a P2P app; investment-platform surface (doc 09). |
-| VE-023 Crypto risks and taxes | TAX-007 | CLAIMED |  |
+| VE-023 Crypto risks and taxes | TAX-007 | TESTED |  |
 | VE-024 Complaint and support routes | PAY-024 | TESTED | Complaint and support routes map to the payment reversal or mitigation path. |
 | VE-025 Schedule a payment with explicit timing and cancellation boundaries | PAY-007 | TESTED |  |
 | VE-026 Split group expenses with recipient and privacy controls | PAY-004 | TESTED |  |

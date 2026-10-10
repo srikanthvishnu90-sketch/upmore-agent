@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 72% performed.
+25 outcomes, 100% accounted, 80% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-019 Banking and investing support | CORE-002 | TESTED | Banking and investing support questions are honest status answers. |
 | BA-020 Account and child transfer restrictions | PAY-020 | TESTED | Account and child transfer restrictions are payment limits and velocity checks. |
 | BA-021 Transfer fees and eligibility | TXN-018 | TESTED | Transfer fee eligibility is fee flagging with pre-send disclosure. |
-| BA-022 Receive eligible electronic bills and due reminders | BILL-007 | CLAIMED | Doc 03: eBills ingestion is BILL-007. |
+| BA-022 Receive eligible electronic bills and due reminders | BILL-007 | TESTED | Doc 03: eBills ingestion is BILL-007. |
 | BA-X01 Aggregate accounts from other institutions to see a combined view and estimated net worth. | ACCT-004 | TESTED | Aggregated combined view with net worth is net worth calculation over ACCT-003. |
-| BA-X02 Activate merchant cash-back deals on BofA cards. | EARN-010 | CLAIMED |  |
+| BA-X02 Activate merchant cash-back deals on BofA cards. | EARN-010 | TESTED |  |
 | BA-X03 Review and revoke third-party apps' access to bank data. | SEC-008 | TESTED | Reviewing and revoking third-party data access maps to the agent's session, device and access audit. |

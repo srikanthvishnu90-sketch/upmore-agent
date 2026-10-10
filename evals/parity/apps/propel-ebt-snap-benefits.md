@@ -2,11 +2,11 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-23 outcomes, 100% accounted, 65.2% performed.
+23 outcomes, 100% accounted, 87% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
-| PR-001 Permissioned state-portal connection | ACCT-006 | CLAIMED | Permissioned state-portal connection is an aggregator-style account add. |
+| PR-001 Permissioned state-portal connection | ACCT-006 | TESTED | Permissioned state-portal connection is an aggregator-style account add. |
 | PR-002 Supported EBT balances | ACCT-001 | TESTED |  |
 | PR-003 SNAP balances | ACCT-001 | TESTED |  |
 | PR-004 Supported WIC and TANF balances | ACCT-001 | TESTED |  |
@@ -17,12 +17,12 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PR-009 Supported EBT card lock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | PR-010 Supported out-of-state block | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | PR-011 Supported online block | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| PR-012 Suspicious activity monitoring | SEC-001 | CLAIMED |  |
+| PR-012 Suspicious activity monitoring | SEC-001 | TESTED |  |
 | PR-013 Confirm or dispute suspicious activity | TXN-010 | TESTED |  |
 | PR-014 State-specific protections | SEC-004 | TESTED | State-specific benefit-theft protections are surfaced through the breach response playbook. |
-| PR-015 Essential discounts | SAVE-013 | CLAIMED |  |
-| PR-016 Phone and internet offers | SAVE-009 | CLAIMED | Phone and internet offers are utility plan optimization. |
-| PR-017 Job and gig discovery | EARN-013 | CLAIMED |  |
+| PR-015 Essential discounts | SAVE-013 | TESTED |  |
+| PR-016 Phone and internet offers | SAVE-009 | TESTED | Phone and internet offers are utility plan optimization. |
+| PR-017 Job and gig discovery | EARN-013 | TESTED |  |
 | PR-018 State and territory availability | CORE-002 | TESTED | State availability is an honest capability-status answer. |
 | PR-019 Sensitive-identifier minimization | SEC-009 | TESTED | Sensitive-identifier minimization is a data-handling policy; the closest capability is the user-inspectable audit log. |
 | PR-020 Independent non-government disclosure | CORE-002 | TESTED | Non-government disclosure is an honest status statement about what the agent is. |

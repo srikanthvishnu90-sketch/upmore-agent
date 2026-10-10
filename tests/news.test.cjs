@@ -45,7 +45,7 @@ test('the three portfolio-relevant events score above the alert threshold, noise
   assert.equal(d('pltr-sec').decision,'alert');
   assert.equal(d('crm-infa').decision,'brief','a watchlist acquisition goes to the brief, not an interruption');assert.ok(d('crm-infa').score>0.25);
   assert.equal(d('nebius-raise').decision,'brief');assert.ok(d('nebius-raise').why.some(w=>/private holding Nebius/.test(w)));
-  assert.equal(d('fed-hold').decision,'silent','macro without a holdings link does not reach the brief on its own score');
+  assert.equal(d('fed-hold').decision,'brief','macro reaches the brief for everyone: rates touch everyone\'s money');
   const noise=r.scored.filter(x=>/Stocks mixed|Dow rises|S&P slips|Markets wrap|What to watch/.test(x.cluster.story.title));assert.ok(noise.length>=5);for(const n of noise)assert.ok(n.score<0.05,n.cluster.story.title);
   assert.equal(r.decisions.filter(x=>x.decision==='alert').length,2,'exactly the two owned-name material events interrupt');
   assert.match(N.explain(d('nvda-q3')),/^Why you're seeing this: you own NVDA/);
@@ -59,6 +59,24 @@ test('the brief has 5 to 8 items ordered by personal relevance with the most por
   assert.ok(b.items.some(i=>/Fed holds/.test(i.title)),'the broadly material macro item is the outside item');
 });
 
+test('on the labeled week (500 stories, 5 personas) the brain clears the doc 10 bars: brief precision over 80 percent, every material owned-name event alerts once, no false interruptions, no cross-company merges',()=>{
+  const B=require(path.join(root,'evals/news/benchmark.cjs'));const res=B.run(N);
+  assert.equal(res.stories,500);assert.equal(Object.keys(res.personas).length,5);
+  for(const [id,p] of Object.entries(res.personas)){
+    assert.ok(p.upmore.brief.precision>0.8,`${id} brief precision ${p.upmore.brief.precision}: ${JSON.stringify(p.upmore.brief.misses.map(m=>m.title))}`);
+    assert.equal(p.upmore.alerts.recall,1,`${id} missed ${JSON.stringify(p.upmore.alerts.missed_events)}`);
+    assert.equal(p.upmore.alerts.false_per_week,0,`${id} false alerts ${JSON.stringify(p.upmore.alerts.false_alerts.map(f=>f.title))}`);
+    assert.equal(p.upmore.alerts.duplicate_per_week,0,`${id} duplicate alerts`);
+    assert.equal(p.upmore.clustering.merged.length,0,`${id} merged clusters ${JSON.stringify(p.upmore.clustering.merged)}`);
+    assert.ok(p.upmore.clustering.fragmented.every(f=>f.kind==='topic'),'only entity-less topic pieces fragment');
+    // Only the one NEWS-014 slot per brief is allowed to be off-topic.
+    assert.ok(p.upmore.brief.misses.every(m=>/NEWS-014/.test(m.why)),`${id} a brief miss that is not the anti-bubble slot`);
+    assert.ok(p.baselines.raw_firehose.precision<0.15,'the raw feed is mostly irrelevant');
+    assert.ok(p.baselines.generic_app_notifications.interruptions_per_week>=p.upmore.alerts.truth_events*2,'a generic app pings on every syndicated copy; Upmore interrupts once per event');
+  }
+  assert.ok(res.totals.brief_precision_min>0.8&&res.totals.alert_recall_min===1&&res.totals.false_alerts_per_week_max===0);
+});
+
 test('mute feedback suppresses the topic in the next brief, taps raise weights with a cap, weights decay, and alerts pass the advice guard and respect quiet hours',()=>{
   const muted=N.learn(user,{kind:'mute',topic:'Salesforce'});
   const r=N.run(firehose(),muted,{now:NOW});assert.equal(r.decisions.find(x=>x.cluster.story.cluster_key==='crm-infa').decision,'silent');assert.ok(!N.brief(r).items.some(i=>/Salesforce/.test(i.title)));
@@ -67,6 +85,7 @@ test('mute feedback suppresses the topic in the next brief, taps raise weights w
   const d=N.decay(u,30);assert.equal(d.topic_weights['ai infrastructure'],0.3);assert.deepEqual(Object.keys(N.decay(u,400).topic_weights),[]);
   const nv=N.run(firehose(),user,{now:NOW}).decisions.find(x=>x.cluster.story.cluster_key==='nvda-q3');
   const a=N.alert(nv,user);assert.ok(a.text&&a.guard.ok);assert.match(a.text,/This touches NVDA in your portfolio\. https:/);assert.equal(a.tier,'T1');
-  const quiet=N.run(firehose(),user,{now:Date.UTC(2026,9,10,3,0,0),quiet:{start:22,end:7,utc_offset_hours:-5}});assert.equal(quiet.decisions.find(x=>x.cluster.story.cluster_key==='nvda-q3').decision,'alert_after_quiet_hours');
+  const quiet=N.run(firehose(),user,{now:Date.UTC(2026,9,11,3,0,0),quiet:{start:22,end:7,utc_offset_hours:-5}});// 22:00 local the same evening, the story 13h old: fresh, but inside quiet hours
+  assert.equal(quiet.decisions.find(x=>x.cluster.story.cluster_key==='nvda-q3').decision,'alert_after_quiet_hours');
   const bad=N.alert({cluster:{story:{title:'You should buy more NVDA now',summary:'It will go up.',link:'x'}},why:['you own NVDA']},user);assert.equal(bad.text,null);assert.equal(bad.guard.ok,false);
 });

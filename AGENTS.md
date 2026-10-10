@@ -11,7 +11,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Cancel outcome tests, real Chromium: `node tests/execution/live-local/run-live-local.js`
 - Python tests: `python3 tests/<name>.test.py`
 - Capability inventory: `scripts/capabilities --status | --domain BILL | --ask BILL-003 | --backlog [doc|group]` (regenerate: `python3 scripts/build-backlog.py && python3 scripts/build-capability-registry.py`)
-- Datasets (doc 12): `node evals/data/validate.cjs` (schemas + privacy lint), `node evals/data/run-adversarial.cjs` (injection + traps through the agent), generators under `evals/data/generators/`
+- Datasets (doc 12): `node evals/data/validate.cjs` (schemas + privacy lint), `node evals/data/run-adversarial.cjs` (injection + traps through the agent), generators under `evals/data/generators/`; news relevance benchmark (doc 10 bar): `node evals/news/benchmark.cjs`
 - Parity matrix (doc 03): `node evals/parity/build-matrix.cjs` (regenerate + coverage per app; `--check` fails on a stale matrix, an unaccounted outcome, or a coverage decrease)
 - Eval harness (doc 13): `node evals/runner.cjs` (release verdict, results under `evals/results/`), `node evals/runner.cjs --mutations` (the 10 planted defects must all be caught)
 - Record a check: `python3 scripts/capture-checks.py` writes `docs/testing/evidence-ledger.json`

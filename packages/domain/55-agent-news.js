@@ -13,8 +13,10 @@
     const DAY = 86400000;
     const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9$ ]+/g, " ").replace(/\s+/g, " ").trim();
     const NOISE = /\b(stocks? (mixed|edge|tick|drift|inch|waver|close (up|down|flat)|open (up|down|flat))|markets? (wrap|today|close|open|roundup)|dow (rises|falls|gains|loses|slips|climbs)|s&p (rises|falls|gains|loses|slips|climbs)|what to watch|futures (rise|fall|point)|wall street (rises|falls|slips|gains))\b/i;
-    const EVENT = [["acquisition", /\b(acquire[sd]?|acquisition|to buy|buys|buyout|takeover|merger|merge with|agrees to be acquired)\b/i], ["earnings", /\b(earnings|quarterly results|q[1-4] (results|revenue)|beats? (estimates|expectations)|misses? (estimates|expectations)|guidance (cut|raise|lowered|raised))\b/i], ["regulatory", /\b(sec (charges|sues|settles)|doj|antitrust|ftc|regulator|fined|probe|investigation)\b/i], ["executive", /\b(ceo|cfo|chief executive) (steps down|resigns|departs|exits|fired|ousted|to leave|named|appointed)\b/i], ["ipo", /\b(ipo|files to go public|s-1|public offering|direct listing)\b/i], ["funding", /\b(raises \$|funding round|series [a-f]\b|valuation of)\b/i], ["macro", /\b(fed|federal reserve|cpi|inflation|jobs report|payrolls|rate (hike|cut|decision))\b/i], ["dividend", /\b(dividend (cut|raise|increase|suspend))\b/i]];
+    const EVENT = [["acquisition", /\b(acquire[sd]?|acquisition|to buy|buys|buyout|takeover|merger|merge with|agrees to be acquired)\b/i], ["earnings", /\b(earnings|quarterly results|q[1-4] (results|revenue)|beats? (estimates|expectations)|misses? (estimates|expectations)|guidance (cut|raise|lowered|raised))\b/i], ["regulatory", /\b(sec (charges|sues|settles)|doj|antitrust|ftc|regulator|fined|probe|investigation)\b/i], ["executive", /\b((ceo|cfo|chief executive) (steps down|resigns|departs|exits|fired|ousted|to leave|to depart|to step down|will step down|named|appointed)|interim (ceo|cfo|chief executive)|(ceo|cfo|chief executive) (departure|transition|succession))\b/i], ["ipo", /\b(ipo|files to go public|s-1|public offering|direct listing)\b/i], ["funding", /\b(raises \$|raises new round|funding round|closes (a |its )?(\$[\d.]+ ?(million|billion) )?(funding|round)|series [a-f]\b|valuation of)\b/i], ["macro", /\b(fed|federal reserve|cpi|inflation|jobs report|payrolls|rate (hike|cut|decision))\b/i], ["dividend", /\b(dividend (cut|cuts|raise[sd]?|increase[sd]?|suspend(s|ed)?|boost(s|ed)?|hike[sd]?)|(raises|boosts|increases|hikes|cuts|suspends|lifts|slashes) (its |the |quarterly |annual )?dividend)\b/i]];
     const MATERIAL = new Set(["acquisition", "earnings", "regulatory", "executive", "dividend"]);
+    const SECTOR_EVENTS = new Set(["acquisition", "funding", "ipo", "regulatory", "earnings"]);
+    const CREDIBLE = 0.8; // an interruption needs a credible best source or independent confirmation
     const AUTHORITY = { "wsj": 1.0, "reuters": 1.0, "bloomberg": 1.0, "ft": 0.95, "sec edgar": 1.1, "press release": 1.05, "techcrunch": 0.85, "cnbc": 0.8, "ap": 0.9, "the information": 0.85, "blog": 0.3, "forum": 0.1 };
 
     // Entities: tickers and company names the user cares about, from holdings, watchlist, screens, employer and private holdings.
@@ -40,11 +42,12 @@
       for (const s of stories) {
         const t = norm(s.title), tokens = new Set(t.split(" ").filter(w => w.length > 3)), ev = (EVENT.find(([, re]) => re.test(s.title + " " + (s.summary || ""))) || ["none"])[0];
         const names = (s.entities || []).map(norm);
-        let g = groups.find(g => { const overlap = [...tokens].filter(w => g.tokens.has(w)).length; const sameNames = names.length && g.names.length && names.some(n => g.names.includes(n)); return (g.event === ev && sameNames) || (overlap >= Math.max(3, Math.ceil(Math.min(tokens.size, g.tokens.size) * 0.6)) && Math.abs((s.published_at || 0) - g.published_at) <= 3 * DAY) || (s.cluster_key && s.cluster_key === g.cluster_key); });
+        // Two stories with tagged entities that share none are different events however alike the headline template ("X CEO resigns", "Y CEO resigns").
+        let g = groups.find(g => { const overlap = [...tokens].filter(w => g.tokens.has(w)).length; const sameNames = names.length && g.names.length && names.some(n => g.names.includes(n)); if (names.length && g.names.length && !sameNames && !(s.cluster_key && s.cluster_key === g.cluster_key)) return false; return (g.event === ev && sameNames) || (overlap >= Math.max(3, Math.ceil(Math.min(tokens.size, g.tokens.size) * 0.6)) && Math.abs((s.published_at || 0) - g.published_at) <= 3 * DAY) || (s.cluster_key && s.cluster_key === g.cluster_key); });
         if (!g) { g = { id: `c${groups.length + 1}`, event: ev, names, tokens, published_at: s.published_at || 0, cluster_key: s.cluster_key || null, members: [] }; groups.push(g); }
         g.members.push(s); for (const w of tokens) g.tokens.add(w); for (const n of names) if (!g.names.includes(n)) g.names.push(n);
       }
-      return groups.map(g => { const best = g.members.slice().sort((a, b) => (AUTHORITY[norm(b.source)] || 0.5) - (AUTHORITY[norm(a.source)] || 0.5) || (a.published_at || 0) - (b.published_at || 0))[0]; return { id: g.id, event: g.event, story: best, sources: g.members.length, outlets: [...new Set(g.members.map(m => m.source))], published_at: Math.min(...g.members.map(m => m.published_at || 0)) }; });
+      return groups.map(g => { const best = g.members.slice().sort((a, b) => (AUTHORITY[norm(b.source)] || 0.5) - (AUTHORITY[norm(a.source)] || 0.5) || (a.published_at || 0) - (b.published_at || 0))[0]; return { id: g.id, event: g.event, story: best, sources: g.members.length, member_ids: g.members.map(m => m.id), outlets: [...new Set(g.members.map(m => m.source))], published_at: Math.min(...g.members.map(m => m.published_at || 0)) }; });
     }
     // Score: holdings match outranks everything, then watchlist, sector/theme, events in spaces the user reads, freshness, authority. Noise near zero.
     function score(c, prof, now) {
@@ -53,12 +56,13 @@
       const why = []; let v = 0;
       // Broadly material events carry a small base score with no personal link, so the brief can hold one item outside the user's usual topics (NEWS-014) without it ever outranking a holding.
       const owned = r.entities.filter(e => e.kind === "holding"), watched = r.entities.filter(e => e.kind === "watchlist"), priv = r.entities.filter(e => e.kind === "private"), emp = r.entities.filter(e => e.kind === "employer");
-      if (!r.entities.length) { if (c.event === "macro") { v += 0.15; why.push("broadly material: macro"); } else if ((c.event === "regulatory" || c.event === "acquisition" || c.event === "ipo") && c.sources >= 5) { v += 0.1; why.push(`broadly material: ${c.event} across ${c.sources} outlets`); } }
+      if (!r.entities.length) { if (c.event === "macro") { v += 0.3; why.push("broadly material: macro (rates, prices and jobs touch everyone's money)"); } else if ((c.event === "regulatory" || c.event === "acquisition" || c.event === "ipo") && c.sources >= 5) { v += 0.1; why.push(`broadly material: ${c.event} across ${c.sources} outlets`); } }
       if (owned.length) { v += 1.0; why.push(`you own ${owned.map(e => e.entity).join(", ")}`); }
       if (priv.length) { v += 0.9; why.push(`your private holding ${priv.map(e => e.entity).join(", ")}`); }
       if (emp.length) { v += 0.8; why.push(`your employer`); }
       if (watched.length) { v += 0.6; why.push(`on your watchlist: ${watched.map(e => e.entity).join(", ")}`); }
-      if (r.sectors.length) { v += 0.3; why.push(`sector you hold: ${r.sectors.join(", ")}`); }
+      // A sector word in a headline is not a sector story: "rolls out software update" is not software-sector news. Sector relevance needs a deal, filing, listing or results, or an ingest sector tag.
+      if (r.sectors.length && (SECTOR_EVENTS.has(c.event) || (s.sectors || []).some(t => r.sectors.includes(norm(t))))) { v += 0.3; why.push(`sector you hold: ${r.sectors.join(", ")}`); }
       if ((c.event === "acquisition" || c.event === "ipo" || c.event === "funding") && r.sectors.length) { v += 0.2; why.push("deal in a space you follow"); }
       for (const [topic, w] of Object.entries(prof.topic_weights)) if (norm(`${s.title} ${s.summary || ""}`).includes(norm(topic))) { v += w; why.push(`${w > 0 ? "more" : "less"} like this: ${topic}`); }
       const age = Math.max(0, (now - (c.published_at || now)) / DAY); v *= Math.max(0.3, 1 - age / 7);
@@ -67,10 +71,14 @@
       const muted = [...prof.muted].some(m => norm(`${s.title} ${s.summary || ""}`).includes(m)); if (muted) { v = 0; why.push("muted topic"); }
       return { score: +v.toFixed(3), why, relevance: r, material: MATERIAL.has(c.event) && owned.length > 0, muted };
     }
-    // Decide per doc 01: breaking on an owned name with a material event interrupts (T1 alert); everything else waits for the brief.
+    // Decide per doc 01: breaking on an owned name with a material event interrupts (T1 alert) while it is fresh (24h) and credible;
+    // the score orders the brief, it does not decide an interruption, so a day-old earnings miss on a holding is never decayed into silence.
     function decide(scored, opts) {
-      const o = opts || {}, threshold = o.alert_threshold || 1.4;
-      return scored.map(x => ({ cluster: x.cluster, score: x.score, decision: x.material && x.score >= threshold && !x.muted ? (inQuiet(o.now, o.quiet) ? "alert_after_quiet_hours" : "alert") : x.score >= (o.brief_threshold || 0.25) && !x.muted ? "brief" : "silent", why: x.why }));
+      const o = opts || {}, now = o.now || Date.now(), window = o.alert_window_ms || DAY;
+      const credible = c => (AUTHORITY[norm(c.story.source)] || 0.5) >= CREDIBLE || c.sources >= 3;
+      return scored.map(x => { const fresh = (now - (x.cluster.published_at || now)) <= window && (x.cluster.published_at || now) <= now + 3600000;
+        const alert = x.material && !x.muted && fresh && credible(x.cluster);
+        return { cluster: x.cluster, score: x.score, decision: alert ? (inQuiet(now, o.quiet) ? "alert_after_quiet_hours" : "alert") : x.score >= (o.brief_threshold || 0.25) && !x.muted ? "brief" : "silent", why: alert && !x.why.some(w => /fresh/.test(w)) ? x.why.concat([`fresh: ${Math.round((now - x.cluster.published_at) / 3600000)}h old, ${credible(x.cluster) ? "credible source" : ""}`]) : x.why }; });
     }
     function inQuiet(now, quiet) { if (!quiet || !now) return false; const h = new Date(now).getUTCHours() + (quiet.utc_offset_hours || 0); const hh = ((h % 24) + 24) % 24; return quiet.start > quiet.end ? (hh >= quiet.start || hh < quiet.end) : (hh >= quiet.start && hh < quiet.end); }
     function run(stories, user, opts) {
@@ -81,14 +89,16 @@
     // Delivery formats.
     function brief(run, opts) {
       const o = opts || {}, max = Math.min(8, Math.max(5, o.max || 8));
-      // Relevant items first; when fewer than five, fill from the best remaining non-noise, non-muted items so the brief is never thin.
-      const relevant = run.decisions.filter(d => d.decision !== "silent" && !d.cluster.muted), filler = run.decisions.filter(d => d.decision === "silent" && !d.cluster.muted && d.score >= 0.05 && !NOISE.test(d.cluster.story.title));
-      const isOutside = d => { const sc = run.scored.find(x => x.cluster.id === d.cluster.id); return !!sc && !sc.relevance.entities.length && !sc.relevance.sectors.length; };
-      const items = relevant.concat(filler.slice(0, Math.max(0, 5 - relevant.length))).slice(0, max).map((d, i) => ({ rank: i + 1, title: d.cluster.story.title, summary: twoSentences(d.cluster.story.summary), link: d.cluster.story.link, source: d.cluster.story.source, sources: d.cluster.sources, why: (isOutside(d) ? "outside your usual topics, but broadly material (NEWS-014); " : "") + d.why.join("; "), score: d.score, event: d.cluster.event }));
-      // Anti-filter-bubble: when something broadly material sits outside the user's usual topics, one such item is kept.
-      const outside = run.scored.find(x => !x.relevance.entities.length && MATERIAL.has(x.cluster.event) && x.score > 0.1 && (x.cluster.event === "regulatory" || x.cluster.event === "macro" || x.cluster.sources >= 5));
-      if (outside && !items.some(i => i.title === outside.cluster.story.title) && items.length >= 5) items[items.length - 1] = { rank: items.length, title: outside.cluster.story.title, summary: twoSentences(outside.cluster.story.summary), link: outside.cluster.story.link, source: outside.cluster.story.source, sources: outside.cluster.sources, why: "outside your usual topics, but broadly material (NEWS-014)", score: outside.score, event: outside.cluster.event };
-      return { items, count: items.length, first_is_most_relevant: items.length ? items[0].score >= Math.max(...items.map(i => i.score)) : true, text: items.map(i => `${i.rank}. ${i.title}. ${i.summary} (${i.source}${i.sources > 1 ? ` and ${i.sources - 1} more` : ""}) ${i.link}`).join("\n") };
+      // Relevant items only (a personal link, or macro). Of the broadly material items with no personal link, one is kept (NEWS-014); the brief is never padded to look full.
+      const scoredOf = d => run.scored.find(x => x.cluster.id === d.cluster.id);
+      const isOutside = d => { const sc = scoredOf(d); return !!sc && !sc.relevance.entities.length && !sc.relevance.sectors.length; };
+      const relevant = run.decisions.filter(d => d.decision !== "silent" && !d.cluster.muted);
+      let outsideKept = 0;
+      const chosen = relevant.filter(d => { if (!isOutside(d) || d.cluster.event === "macro") return true; if (outsideKept) return false; outsideKept++; return true; });
+      const extra = run.scored.find(x => !x.relevance.entities.length && !x.relevance.sectors.length && MATERIAL.has(x.cluster.event) && x.score > 0.05 && !x.muted && x.cluster.event !== "macro" && !chosen.some(d => d.cluster.id === x.cluster.id));
+      if (!outsideKept && extra && chosen.length >= 4) chosen.push({ cluster: extra.cluster, score: extra.score, decision: "brief", why: extra.why });
+      const items = chosen.slice(0, max).map((d, i) => ({ rank: i + 1, title: d.cluster.story.title, summary: twoSentences(d.cluster.story.summary), link: d.cluster.story.link, source: d.cluster.story.source, sources: d.cluster.sources, why: (isOutside(d) ? "outside your usual topics, but broadly material (NEWS-014); " : "") + d.why.join("; "), score: d.score, explain: explain(d) }));
+      return { items, count: items.length, thin: items.length < 5, first_is_most_relevant: items.length ? items[0].score >= Math.max(...items.map(i => i.score)) : true, text: items.map(i => `${i.rank}. ${i.title}. ${i.summary} (${i.source}${i.sources > 1 ? ` and ${i.sources - 1} more` : ""}) ${i.link}`).join("\n") + (items.length < 5 ? (items.length ? "\n" : "") + "That is everything that touches your money today; I don't pad this." : "") };
     }
     const twoSentences = s => { const parts = String(s || "").split(/(?<=[.!?])\s+/).filter(Boolean); return parts.slice(0, 2).join(" "); };
     function alert(d, user) {

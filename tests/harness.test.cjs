@@ -26,11 +26,11 @@ test('a seeded regression fails the run and names the failing layer',async()=>{
   assert.match(r.verdict,/diagnostic only/);
 });
 
-test('all ten planted mutations are caught and attributed to the right layer',async()=>{
+test('all eleven planted mutations are caught and attributed to the right layer',async()=>{
   const r=await R.mutations();
   const missed=r.mutations.filter(x=>!x.pass).map(x=>`${x.id} expected ${x.expected_layer}, caught by [${x.caught_by.join(',')}]`);
   assert.deepEqual(missed,[]);
-  assert.equal(r.caught,10);
+  assert.equal(r.caught,11);
 });
 
 test('patches must match exactly once, so a stale mutation cannot silently test nothing',()=>{

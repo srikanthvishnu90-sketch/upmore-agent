@@ -69,6 +69,19 @@ S["gold"] = {"file": "gold/drafts.json", "count_path": "conversations", "min_cou
             "review": {"type": "string", "enum": ["reviewed", "unreviewed"]},
             "principles": {"type": "array", "items": {"type": "string"}, "minItems": 1},
             "turns": {"type": "array", "minItems": 1, "items": {"type": "object"}}}}}}}}
+S["news-relevance"] = {"file": "labeled/news-relevance.json", "count_path": "stories", "min_count": 500, "unique_key": "id",
+    "schema": {"type": "object", "required": ["schema_version", "generated_by", "week_end", "days", "labeling", "rules", "personas", "events", "stories", "labels"], "properties": {
+        "days": {"type": "integer", "minimum": 7}, "rules": {"type": "array", "items": {"type": "string"}, "minItems": 6},
+        "personas": {"type": "array", "minItems": 5, "items": {"type": "object", "required": ["id", "title", "user"], "properties": {
+            "id": {"type": "string", "pattern": r"^P\d$"}, "user": {"type": "object", "required": ["holdings", "watchlist", "muted"], "properties": {
+                "holdings": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["symbol", "name", "sector"]}}}}}}},
+        "events": {"type": "array", "items": {"type": "object", "required": ["id", "kind", "event", "entities", "stories", "material"], "properties": {
+            "kind": {"type": "string", "enum": ["material", "mention", "private", "employer", "macro", "sector_deal", "sector_color", "topic", "noise", "filler"]},
+            "stories": {"type": "integer", "minimum": 1}, "material": {"type": "boolean"}}}},
+        "stories": {"type": "array", "items": {"type": "object", "required": ["id", "event_id", "title", "summary", "source", "link", "published_at", "entities", "kind"], "properties": {
+            "id": {"type": "string", "pattern": r"^NR-\d{3}$"}, "published_at": {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"},
+            "entities": {"type": "array", "items": {"type": "string"}}}}},
+        "labels": {"type": "object"}}}}
 S["savings-lives"]["schema"]["properties"]["lives"]["items"]["properties"]["debts"]["items"]["properties"] = {
     "id": {"type": "string"}, "balance_cents": {"type": "integer", "minimum": 0}, "apr_bps": {"type": "integer", "minimum": 0}, "min_payment_cents": {"type": "integer", "minimum": 0}}
 for name, schema in S.items():

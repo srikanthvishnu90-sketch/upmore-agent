@@ -39,6 +39,18 @@ test('the privacy lint rejects account, routing, card and SSN shaped strings and
   assert.deepEqual(Validator.privacyFindings('ref 88291, t-001, LIFE-040, 2026-10-10, 1234567890','x'),[]);
 });
 
+test('the news relevance set is one labeled week: 500 stories with syndicated repeats, 5 personas, a label for every cell from a written rule, controls that reach nobody',()=>{
+  const d=load('labeled/news-relevance.json');
+  assert.equal(d.stories.length,500);assert.equal(d.personas.length,5);assert.equal(d.rules.length,6);
+  const ids=new Set(d.stories.map(s=>s.id));assert.equal(ids.size,500);
+  for(const p of d.personas){const L=d.labels[p.id];assert.equal(Object.keys(L).length,500,p.id);for(const s of d.stories){const l=L[s.id];assert.ok(typeof l.relevant==='boolean'&&typeof l.alert==='boolean'&&/^R[1-6]$/.test(l.rule),`${p.id} ${s.id}`);if(l.alert)assert.ok(l.relevant,'alerts are relevant');}}
+  assert.ok(d.events.filter(e=>e.stories>=5).length>=15,'syndicated events present');
+  const held=p=>new Set(p.user.holdings.map(h=>h.name));
+  for(const s of d.stories.filter(s=>s.kind==='material')){const anyone=d.personas.some(p=>d.labels[p.id][s.id].alert);const heldByAnyone=d.personas.some(p=>s.entities.some(e=>held(p).has(e)));assert.equal(anyone,heldByAnyone,`${s.id}: material event alerts exactly the holders`);}
+  for(const s of d.stories.filter(s=>s.kind==='noise'||s.kind==='filler'))for(const p of d.personas)assert.equal(d.labels[p.id][s.id].relevant,false,'noise and filler reach nobody');
+  const week=new Set(d.stories.map(s=>s.published_at.slice(0,10)));assert.ok(week.size>=7,'the week spans seven days');
+});
+
 test('gold drafts cover every registry capability, every agent turn is reproduced by the composer, and nothing generated is marked reviewed',()=>{
   const g=load('gold/drafts.json');
   const covered=new Set(g.conversations.map(c=>c.capability_id));

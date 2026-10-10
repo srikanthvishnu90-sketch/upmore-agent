@@ -26,7 +26,7 @@ grant all on recovery_cases_fixture.saved to authenticated;
 select t.as_user('00000000-0000-0000-0000-000000000191');
 set role authenticated;
 insert into recovery_cases_fixture.saved values('fee',public.agent_recovery_case_open('00000000-0000-0000-0000-000000001901','bank_fee',recovery_cases_fixture.refs(array['fee']),current_date+7));
-select t.ok((select result->'case'->>'amount_cents'='3500' and result->'case'->>'status'='open' and result->'case'->'source_stale'='false'::jsonb from recovery_cases_fixture.saved where label='fee'),'case amount and original facts derive only from owned bank source');
+select t.ok((select result->'case'->>'amount_cents'='3500' and result->'case'->>'status'='open' and result->'case'->'source_stale'='false'::jsonb and (result->'case'->>'due_on')::date=current_date+7 from recovery_cases_fixture.saved where label='fee'),'case amount original facts and deadline derive from exact reviewed inputs');
 select t.ok((select jsonb_array_length(result->'case'->'source_snapshot')=1 and result->'case'->'source_snapshot'->0->>'user_id'=auth.uid()::text and result->'case'->'recovered_cents'='null'::jsonb from recovery_cases_fixture.saved where label='fee'),'source snapshot is owner-bound raw array and recovery remains unknown');
 select t.ok((public.agent_recovery_case_open('00000000-0000-0000-0000-000000001901','bank_fee',recovery_cases_fixture.refs(array['fee']),current_date+7)->>'replay')::boolean,'exact open retry returns one immutable receipt');
 select t.ok((public.agent_recovery_case_open('00000000-0000-0000-0000-000000001902','bank_fee',recovery_cases_fixture.refs(array['fee']),null)->>'deduplicated')::boolean,'new request cannot duplicate the same owner candidate or replace its deadline');
@@ -46,7 +46,7 @@ select t.must_fail($$select public.agent_recovery_case_open(gen_random_uuid(),'s
 select t.must_fail($$select public.agent_recovery_case_open(gen_random_uuid(),'duplicate_charge',recovery_cases_fixture.refs(array['fee','fee-two']))$$,'already covers','different kind or pair cannot overlap an active source claim');
 insert into recovery_cases_fixture.saved values('closed',public.agent_recovery_case_transition('00000000-0000-0000-0000-000000001903',(select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='fee'),1,'closed_user',true));
 insert into recovery_cases_fixture.saved values('duplicate',public.agent_recovery_case_open('00000000-0000-0000-0000-000000001904','duplicate_charge',recovery_cases_fixture.refs(array['fee','fee-two'])));
-select t.ok(((public.agent_recovery_case_open('00000000-0000-0000-0000-000000001905','duplicate_charge',jsonb_build_array(recovery_cases_fixture.refs(array['fee','fee-two'])->1,recovery_cases_fixture.refs(array['fee','fee-two'])->0)))->>'deduplicated')::boolean,'sorted source identities deduplicate reversed evidence order');
+select t.ok((public.agent_recovery_case_open('00000000-0000-0000-0000-000000001905','duplicate_charge',jsonb_build_array(recovery_cases_fixture.refs(array['fee','fee-two'])->1,recovery_cases_fixture.refs(array['fee','fee-two'])->0))->>'deduplicated')::boolean,'sorted source identities deduplicate reversed evidence order');
 select t.must_fail($$select public.agent_recovery_case_transition(gen_random_uuid(),(select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='fee'),2,'open',true)$$,'already covers','closed case cannot reopen over another active claim');
 select public.agent_recovery_case_transition(gen_random_uuid(),(select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='duplicate'),1,'closed_user',true);
 select public.agent_recovery_case_transition('00000000-0000-0000-0000-000000001906',(select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='fee'),2,'open',true);
@@ -67,6 +67,15 @@ select t.must_fail($$insert into public.agent_recovery_events(user_id,case_id,re
 reset role;
 update public.agent_financial_transactions set amount_cents=-4000 where user_id='00000000-0000-0000-0000-000000000191' and provider_transaction_id='fee';
 set role authenticated;
+select t.ok((public.agent_recovery_case_open('00000000-0000-0000-0000-000000001901','bank_fee',
+ (select jsonb_agg(jsonb_build_object('account_id',s->>'account_id','transaction_id',s->>'provider_transaction_id','fact_hash',s->>'fact_hash'))
+ from recovery_cases_fixture.saved f,lateral jsonb_array_elements(f.result->'case'->'source_snapshot') s where f.label='fee'),current_date+7)->'case'->>'source_stale')::boolean,
+ 'historical open replay recomputes current source staleness even without a case version change');
+select t.ok((public.agent_recovery_case_transition('00000000-0000-0000-0000-000000001906',
+ (select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='fee'),2,'open',true)->'case'->>'source_stale')::boolean,
+ 'historical transition replay recomputes staleness while preserving original reviewed status');
+select t.ok((select result->'case'->'source_stale'='false'::jsonb and result->'case'->>'version'='1' and result->'case'->>'status'='open'
+ from public.agent_recovery_receipts where request_id='00000000-0000-0000-0000-000000001901'),'replay overlay never mutates immutable original receipt');
 select t.ok((public.agent_recovery_case_open(gen_random_uuid(),'bank_fee',recovery_cases_fixture.refs(array['fee']))->'case'->>'source_stale')::boolean,'corrected source deduplicates original case and marks stale');
 select t.ok((select amount_cents=3500 and source_snapshot->0->>'amount_cents'='-3500' from public.agent_recovery_cases where kind='bank_fee'),'source correction never silently replaces original material terms');
 select t.must_fail($$select public.agent_recovery_case_transition(gen_random_uuid(),(select (result->'case'->>'id')::uuid from recovery_cases_fixture.saved where label='fee'),3,'user_reported_submitted',true)$$,'source changed','stale evidence cannot report a prepared case submitted');

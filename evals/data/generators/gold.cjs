@@ -103,15 +103,15 @@ function conversation(cap, persona, scenario) {
     else if (scenario === "correction mid-flow") { t.push({ user: "wrong amount, it was 40 not 45" }); t.push(turn({ kind: "correction_ack", fields: { ack: "$40.00, not $45.00.", fix: "Draft updated; still nothing sent." }, ctx: {} }, WHY.correction)); }
     principles.push("draft never sends");
   } else if (T === "T3" || T === "T5") {
-    const confirm = { kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 4000, recipient: T === "T5" ? "Marcus L (first time)" : "Marcus L", from: "checking", timing: "lands in minutes" }, ctx: { register: reg } };
+    const confirm = { kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 4000, recipient: T === "T5" ? "Marcus L (first time)" : "Marcus L", from: "checking", timing: "lands in minutes", fee_cents: 0 }, ctx: { register: reg } };
     t.push(turn(confirm, WHY.confirm + (T === "T5" ? " First-time recipient: always asks." : "")));
     if (scenario === "declined confirmation") { t.push({ user: reg === "casual" ? "nope" : "No, cancel that." }); t.push(turn({ kind: "declined", fields: {}, ctx: {} }, WHY.declined)); }
     else if (scenario === "correction mid-flow") { t.push({ user: "not marcus, marcus l from work" }); t.push(turn({ kind: "correction_ack", fields: { ack: "Marcus L from work, not Marcus.", fix: "Updated; still waiting for your yes." }, ctx: {} }, WHY.correction)); }
     else { t.push({ user: reg === "casual" ? "yes" : "Yes, go ahead." }); t.push(turn({ kind: "receipt", fields: { done: "Done", amount_cents: 4000, recipient: "Marcus L", rail: SOURCE, reference: "88291", followup: `${cap1(cap.name)} is complete.` }, ctx: {} }, WHY.receipt)); }
     principles.push("one explicit approval per action");
   } else if (T === "T4") {
-    if (scenario === "outside envelope") { t.push(turn({ kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 35000, recipient: "savings", from: "checking", timing: "today" }, ctx: { register: reg } }, WHY.outside)); principles.push("envelope edges fall back to confirmation"); }
-    else if (scenario === "declined confirmation") { t.push(turn({ kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 35000, recipient: "savings", from: "checking", timing: "today" }, ctx: { register: reg } }, WHY.outside)); t.push({ user: "no" }); t.push(turn({ kind: "declined", fields: {}, ctx: {} }, WHY.declined)); }
+    if (scenario === "outside envelope") { t.push(turn({ kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 35000, recipient: "savings", from: "checking", timing: "today", fee_cents: 0 }, ctx: { register: reg } }, WHY.outside)); principles.push("envelope edges fall back to confirmation"); }
+    else if (scenario === "declined confirmation") { t.push(turn({ kind: "confirm", fields: { action: cap1(cap.name.split(" ")[0]), amount_cents: 35000, recipient: "savings", from: "checking", timing: "today", fee_cents: 0 }, ctx: { register: reg } }, WHY.outside)); t.push({ user: "no" }); t.push(turn({ kind: "declined", fields: {}, ctx: {} }, WHY.declined)); }
     else { t.length = 0; t.push({ user: "(no user turn: the envelope rule ran)" }); t.push(turn({ kind: "receipt", fields: { done: "Moved", amount_cents: 5000, recipient: "savings", rail: SOURCE, reference: "77120", followup: "Inside your $100.00 envelope; say stop to revoke it." }, ctx: {} }, WHY.envelope)); principles.push("receipt every time inside an envelope"); }
   }
   return { id: `${cap.id}-${PERSONAS.indexOf(persona) + 1}-${scenario.replace(/\s+/g, "-")}`, capability_id: cap.id, title: `${cap1(cap.name)}, ${persona}, ${scenario}`, persona, scenario,

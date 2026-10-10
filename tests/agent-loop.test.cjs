@@ -75,7 +75,7 @@ test('T4 acts without confirmation inside the envelope, asks outside it, at the 
   let r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',key:'sweep-1',params:{amount_cents:5000,recipient:'savings'},amount_cents:5000,recipient:'savings',describe:'move $50.00 to savings'}});
   assert.equal(r.outcome,'confirmed');assert.equal(c.calls.write.length,1);assert.match(r.message,/Done: move \$50\.00 to savings/);
   ({c,loop}=mk());
-  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:5001},amount_cents:5001,recipient:'savings'}});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:5001},amount_cents:5001,recipient:'savings',confirm:{amount:'$50.01',recipient:'savings'}}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(c.calls.write.length,0);assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'outside_envelope');
   ({c,loop}=mk());
   r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'cousin'}});
@@ -127,9 +127,35 @@ test('a crashed send is recovered from the event log without a second execution'
   const rec=await second.wake({kind:'follow_up'});
   assert.equal(rec.outcome,'confirmed');assert.equal(c.calls.write.length,1,'no double execution');
   assert.equal(c.calls.verify[c.calls.verify.length-1][1],'PAY-001:marcus-40');assert.equal(second.state,'IDLE');
-  // A duplicate delivery of the same request after recovery reconciles outright: it is neither confirmed again nor re-executed (doc 06: "send $50" twice means once).
+  // A duplicate delivery of the same request after recovery is answered as already done, never re-confirmed or re-sent.
   const again=await second.wake({kind:'message',request:send});
-  assert.equal(again.outcome,'confirmed');assert.equal(c.calls.write.length,1,'same idempotency key never writes twice');
+  assert.equal(again.outcome,'already_done');assert.match(again.message,/already done earlier \(ref ref-1\)\. I did not do it again/);
+  assert.equal(c.calls.write.length,1,'same idempotency key never writes twice');assert.equal(second.state,'IDLE');
+});
+
+test('approval gaps: confirmations expire, the envelope is checked against the values written, money confirmations must restate amount and recipient',async()=>{
+  const t={now:1000};let c=fakeConnectors({});
+  let loop=AgentLoop.create({registry,connectors:c,clock:clockAt(t),confirm_ttl_ms:60000});
+  let r=await loop.wake({kind:'message',request:send});
+  t.now=1000+60001;
+  let x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'expired');assert.match(x.message,/expired after 1 minutes, so I did not act/);assert.equal(c.calls.write.length,0);assert.equal(loop.state,'IDLE');
+  assert.equal(loop.memory.outcomes.pop().result,'confirmation_expired');
+  // Envelope: the caller's summary says $1.00 but the params that would be written say $90.00.
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'SAVE-001',max_cents:5000}]});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,params:{amount_cents:9000},confirm:{amount:'$90.00',recipient:'savings'}}});
+  assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'outside_envelope');assert.equal(c.calls.write.length,0);
+  // Money confirmation without the exact amount and recipient is refused before anything is asked.
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
+  r=await loop.wake({kind:'message',request:{capability_id:'PAY-001',params:{amount_cents:4000,recipient:'marcus'},describe:'send $40'}});
+  assert.equal(r.outcome,'blocked');assert.equal(r.reason,'confirmation_incomplete');assert.equal(loop.state,'IDLE');assert.equal(c.calls.write.length,0);
+  // Re-approving a completed key is answered as already done at the moment of the ask, with no second confirmation prompt.
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
+  r=await loop.wake({kind:'message',request:send});await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  const dup=await loop.wake({kind:'message',request:send});
+  assert.equal(dup.outcome,'already_done');assert.equal(dup.confirmation_id,undefined);assert.equal(c.calls.write.length,1);
+  const fresh=await loop.wake({kind:'message',request:{...send,key:'marcus-40-second'}});
+  assert.equal(fresh.outcome,'awaiting_confirmation','a new key is a new action');
 });
 
 test('a write failure stops without a blind retry and reports the outcome as unknown',async()=>{
@@ -147,7 +173,7 @@ test('a rail rejection is reported as failed, not unknown and not success',async
   const c=fakeConnectors({verify:{confirmed:false,reason:'insufficient funds'}});const loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
   const r=await loop.wake({kind:'message',request:send});
   const f=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
-  assert.equal(f.outcome,'failed');assert.match(f.message,/did not go through \(insufficient funds\)\. Nothing was changed/);assert.equal(loop.state,'IDLE');
+  assert.equal(f.outcome,'failed');assert.match(f.message,/did not go through \(insufficient funds\), per the rail\. Nothing posted on their side/);assert.equal(loop.state,'IDLE');
 });
 
 test('decision order: a fraud alert preempts a queued proactive message; a direct request beats a watch; silence is the default',async()=>{

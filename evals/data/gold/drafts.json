@@ -35,7 +35,8 @@
        "action": "Send",
        "amount_cents": 8500,
        "recipient": "Sarah M (venmo @sarah-m)",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -268,7 +269,8 @@
        "action": "Send",
        "amount_cents": 4000,
        "recipient": "Marcus Chen (venmo @mchen)",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -323,7 +325,8 @@
        "amount_cents": 50000,
        "recipient": "Ally savings",
        "from": "Chase checking",
-       "timing": "arrives Monday"
+       "timing": "arrives Monday",
+       "fee_cents": 0
       },
       "ctx": {}
      },
@@ -1557,44 +1560,6 @@
    ]
   },
   {
-   "id": "ACCT-005-1-not-yet-built",
-   "capability_id": "ACCT-005",
-   "title": "Account health status per connector, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "account health status per connector?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Account health status per connector",
-       "capability": {
-        "id": "ACCT-005",
-        "name": "account health status per connector",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Account health status per connector isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "ACCT-006-1-happy-path",
    "capability_id": "ACCT-006",
    "title": "Add account via aggregator, terse low-effort texter, happy path",
@@ -1619,7 +1584,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -1678,7 +1644,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -1730,7 +1697,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -1887,7 +1855,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -1946,7 +1915,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -1998,7 +1968,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -2155,7 +2126,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -2214,7 +2186,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -2266,7 +2239,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -2357,44 +2331,6 @@
       "I don't have remove account yet: no connected account reports it. Connect the account that holds it and I can answer from its data"
      ],
      "why": "Says what it does not have and what it would take to know, instead of guessing."
-    }
-   ]
-  },
-  {
-   "id": "ACCT-008-1-not-yet-built",
-   "capability_id": "ACCT-008",
-   "title": "Remove account, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "remove account?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Remove account",
-       "capability": {
-        "id": "ACCT-008",
-        "name": "remove account",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Remove account isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -2791,44 +2727,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "ACCT-010-1-not-yet-built",
-   "capability_id": "ACCT-010",
-   "title": "Staleness labeling, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "staleness labeling?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Staleness labeling",
-       "capability": {
-        "id": "ACCT-010",
-        "name": "staleness labeling",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Staleness labeling isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -3314,7 +3212,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -3373,7 +3272,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -3425,7 +3325,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -11163,44 +11064,6 @@
    ]
   },
   {
-   "id": "ANL-008-1-not-yet-built",
-   "capability_id": "ANL-008",
-   "title": "Subscription total run-rate, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "subscription total run-rate?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Subscription total run-rate",
-       "capability": {
-        "id": "ANL-008",
-        "name": "subscription total run-rate",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Subscription total run-rate isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "ANL-009-1-happy-path",
    "capability_id": "ANL-009",
    "title": "Category trend detection, terse low-effort texter, happy path",
@@ -13797,44 +13660,6 @@
    ]
   },
   {
-   "id": "ANL-020-1-not-yet-built",
-   "capability_id": "ANL-020",
-   "title": "Weekly money summary, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "weekly money summary?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Weekly money summary",
-       "capability": {
-        "id": "ANL-020",
-        "name": "weekly money summary",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Weekly money summary isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-001-1-happy-path",
    "capability_id": "PAY-001",
    "title": "Send to saved recipient, terse low-effort texter, happy path",
@@ -13859,7 +13684,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -13918,7 +13744,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -13970,7 +13797,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14127,7 +13955,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -14186,7 +14015,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14238,7 +14068,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14395,7 +14226,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -14454,7 +14286,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14506,7 +14339,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14663,7 +14497,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -14722,7 +14557,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14774,7 +14610,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -14869,44 +14706,6 @@
    ]
   },
   {
-   "id": "PAY-004-1-not-yet-built",
-   "capability_id": "PAY-004",
-   "title": "Split an expense, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "split an expense?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Split an expense",
-       "capability": {
-        "id": "PAY-004",
-        "name": "split an expense",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Split an expense isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-005-1-happy-path",
    "capability_id": "PAY-005",
    "title": "Pay rent recurring, terse low-effort texter, happy path",
@@ -14968,7 +14767,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15005,7 +14805,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15097,12 +14898,12 @@
    ]
   },
   {
-   "id": "PAY-005-1-not-yet-built",
+   "id": "PAY-005-1-gated-capability",
    "capability_id": "PAY-005",
-   "title": "Pay rent recurring, terse low-effort texter, not yet built",
+   "title": "Pay rent recurring, terse low-effort texter, gated capability",
    "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
+   "scenario": "gated capability",
+   "assumes_status": "GATED",
    "review": "unreviewed",
    "principles": [
     "lead with the answer",
@@ -15121,14 +14922,15 @@
        "capability": {
         "id": "PAY-005",
         "name": "pay rent recurring",
-        "status": "CLAIMED"
+        "status": "GATED",
+        "gate_reason": "the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed"
        },
        "path": "I'll tell you the moment it is live."
       },
       "ctx": {}
      },
      "expected": [
-      "Pay rent recurring isn't available yet: it is not built yet. I'll tell you the moment it is live."
+      "Pay rent recurring isn't available yet: the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed. I'll tell you the moment it is live."
      ],
      "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
@@ -15159,7 +14961,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -15218,7 +15021,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15270,7 +15074,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15429,7 +15234,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -15488,7 +15294,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15540,7 +15347,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15697,7 +15505,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -15756,7 +15565,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15808,7 +15618,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -15965,7 +15776,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -16024,7 +15836,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16076,7 +15889,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16233,7 +16047,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -16292,7 +16107,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16344,7 +16160,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16439,12 +16256,12 @@
    ]
   },
   {
-   "id": "PAY-010-1-not-yet-built",
+   "id": "PAY-010-1-gated-capability",
    "capability_id": "PAY-010",
-   "title": "ACH push/pull, terse low-effort texter, not yet built",
+   "title": "ACH push/pull, terse low-effort texter, gated capability",
    "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
+   "scenario": "gated capability",
+   "assumes_status": "GATED",
    "review": "unreviewed",
    "principles": [
     "lead with the answer",
@@ -16463,14 +16280,16 @@
        "capability": {
         "id": "PAY-010",
         "name": "ACH push/pull",
-        "status": "CLAIMED"
+        "status": "GATED",
+        "gate_reason": "no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs"
        },
        "path": "I'll tell you the moment it is live."
       },
       "ctx": {}
      },
      "expected": [
-      "ACH push/pull isn't available yet: it is not built yet. I'll tell you the moment it is live."
+      "ACH push/pull isn't available yet: no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs.",
+      "I'll tell you the moment it is live."
      ],
      "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
@@ -16501,7 +16320,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -16560,7 +16380,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16612,7 +16433,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L (first time)",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16707,12 +16529,12 @@
    ]
   },
   {
-   "id": "PAY-011-1-not-yet-built",
+   "id": "PAY-011-1-gated-capability",
    "capability_id": "PAY-011",
-   "title": "Wire transfer, terse low-effort texter, not yet built",
+   "title": "Wire transfer, terse low-effort texter, gated capability",
    "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
+   "scenario": "gated capability",
+   "assumes_status": "GATED",
    "review": "unreviewed",
    "principles": [
     "lead with the answer",
@@ -16731,14 +16553,15 @@
        "capability": {
         "id": "PAY-011",
         "name": "wire transfer",
-        "status": "CLAIMED"
+        "status": "GATED",
+        "gate_reason": "wires need the same partner rail and stay T5 always"
        },
        "path": "I'll tell you the moment it is live."
       },
       "ctx": {}
      },
      "expected": [
-      "Wire transfer isn't available yet: it is not built yet. I'll tell you the moment it is live."
+      "Wire transfer isn't available yet: wires need the same partner rail and stay T5 always. I'll tell you the moment it is live."
      ],
      "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
@@ -16769,7 +16592,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -16828,7 +16652,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -16880,7 +16705,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17038,7 +16864,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -17097,7 +16924,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17149,7 +16977,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17307,7 +17136,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -17366,7 +17196,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17418,7 +17249,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17576,7 +17408,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -17635,7 +17468,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17687,7 +17521,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17845,7 +17680,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -17904,7 +17740,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -17956,7 +17793,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -18267,44 +18105,6 @@
    ]
   },
   {
-   "id": "PAY-017-1-not-yet-built",
-   "capability_id": "PAY-017",
-   "title": "IOU tracking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "iOU tracking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "IOU tracking",
-       "capability": {
-        "id": "PAY-017",
-        "name": "IOU tracking (who owes who)",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "IOU tracking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-018-1-happy-path",
    "capability_id": "PAY-018",
    "title": "IOU reminders, terse low-effort texter, happy path",
@@ -18329,7 +18129,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -18388,7 +18189,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -18440,7 +18242,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -18750,44 +18553,6 @@
    ]
   },
   {
-   "id": "PAY-019-1-not-yet-built",
-   "capability_id": "PAY-019",
-   "title": "Settle-up suggestion, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "settle-up suggestion?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Settle-up suggestion",
-       "capability": {
-        "id": "PAY-019",
-        "name": "settle-up suggestion",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Settle-up suggestion isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-020-1-happy-path",
    "capability_id": "PAY-020",
    "title": "Payment limits and velocity checks, terse low-effort texter, happy path",
@@ -18965,44 +18730,6 @@
    ]
   },
   {
-   "id": "PAY-020-1-not-yet-built",
-   "capability_id": "PAY-020",
-   "title": "Payment limits and velocity checks, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "payment limits and velocity checks?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Payment limits and velocity checks",
-       "capability": {
-        "id": "PAY-020",
-        "name": "payment limits and velocity checks",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Payment limits and velocity checks isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-021-1-happy-path",
    "capability_id": "PAY-021",
    "title": "Recipient verification before first send, terse low-effort texter, happy path",
@@ -19176,44 +18903,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "PAY-021-1-not-yet-built",
-   "capability_id": "PAY-021",
-   "title": "Recipient verification before first send, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "recipient verification before first send?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Recipient verification before first send",
-       "capability": {
-        "id": "PAY-021",
-        "name": "recipient verification before first send",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Recipient verification before first send isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -19399,44 +19088,6 @@
    ]
   },
   {
-   "id": "PAY-022-1-not-yet-built",
-   "capability_id": "PAY-022",
-   "title": "Payment receipt with rail confirmation, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "payment receipt with rail confirmation?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Payment receipt with rail confirmation",
-       "capability": {
-        "id": "PAY-022",
-        "name": "payment receipt with rail confirmation",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Payment receipt with rail confirmation isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-023-1-happy-path",
    "capability_id": "PAY-023",
    "title": "Failed payment triage and retry, terse low-effort texter, happy path",
@@ -19461,7 +19112,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -19520,7 +19172,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -19572,7 +19225,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -19729,7 +19383,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -19788,7 +19443,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -19840,7 +19496,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -19935,44 +19592,6 @@
    ]
   },
   {
-   "id": "PAY-024-1-not-yet-built",
-   "capability_id": "PAY-024",
-   "title": "Payment reversal or mitigation path, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "payment reversal or mitigation path?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Payment reversal or mitigation path",
-       "capability": {
-        "id": "PAY-024",
-        "name": "payment reversal or mitigation path",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Payment reversal or mitigation path isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "PAY-025-1-happy-path",
    "capability_id": "PAY-025",
    "title": "Allowance or recurring family send, terse low-effort texter, happy path",
@@ -20034,7 +19653,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -20071,7 +19691,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -20225,7 +19846,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -20284,7 +19906,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -20336,7 +19959,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -20647,44 +20271,6 @@
    ]
   },
   {
-   "id": "BILL-001-1-not-yet-built",
-   "capability_id": "BILL-001",
-   "title": "Subscription inventory from transactions, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "subscription inventory from transactions?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Subscription inventory from transactions",
-       "capability": {
-        "id": "BILL-001",
-        "name": "subscription inventory from transactions",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Subscription inventory from transactions isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "BILL-002-1-happy-path",
    "capability_id": "BILL-002",
    "title": "Subscription price increase detection, terse low-effort texter, happy path",
@@ -20862,44 +20448,6 @@
    ]
   },
   {
-   "id": "BILL-002-1-not-yet-built",
-   "capability_id": "BILL-002",
-   "title": "Subscription price increase detection, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "subscription price increase detection?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Subscription price increase detection",
-       "capability": {
-        "id": "BILL-002",
-        "name": "subscription price increase detection",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Subscription price increase detection isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "BILL-003-1-happy-path",
    "capability_id": "BILL-003",
    "title": "Cancel a subscription, terse low-effort texter, happy path",
@@ -20924,7 +20472,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -20983,7 +20532,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21035,7 +20585,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21154,7 +20705,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -21213,7 +20765,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21265,7 +20818,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21422,7 +20976,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -21481,7 +21036,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21533,7 +21089,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21690,7 +21247,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -21749,7 +21307,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -21801,7 +21360,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -22173,7 +21733,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -22232,7 +21793,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -22284,7 +21846,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -23029,44 +22592,6 @@
    ]
   },
   {
-   "id": "BILL-011-1-not-yet-built",
-   "capability_id": "BILL-011",
-   "title": "Annual subscription surfacing before renewal, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "annual subscription surfacing before renewal?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Annual subscription surfacing before renewal",
-       "capability": {
-        "id": "BILL-011",
-        "name": "annual subscription surfacing before renewal",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Annual subscription surfacing before renewal isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "BILL-012-1-happy-path",
    "capability_id": "BILL-012",
    "title": "Duplicate service detection, terse low-effort texter, happy path",
@@ -23240,44 +22765,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "BILL-012-1-not-yet-built",
-   "capability_id": "BILL-012",
-   "title": "Duplicate service detection, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "duplicate service detection?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Duplicate service detection",
-       "capability": {
-        "id": "BILL-012",
-        "name": "duplicate service detection (two music services)",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Duplicate service detection isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -23736,7 +23223,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -23795,7 +23283,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -23847,7 +23336,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -24004,7 +23494,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -24063,7 +23554,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -24115,7 +23607,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -25070,7 +24563,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -25129,7 +24623,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -25181,7 +24676,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -26652,7 +26148,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -26711,7 +26208,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -26763,7 +26261,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -26920,7 +26419,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -26979,7 +26479,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27031,7 +26532,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27189,7 +26691,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -27248,7 +26751,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27300,7 +26804,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27458,7 +26963,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -27517,7 +27023,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27569,7 +27076,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27727,7 +27235,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -27786,7 +27295,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -27838,7 +27348,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -28509,7 +28020,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -28546,7 +28058,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -28859,44 +28372,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "SAVE-002-1-not-yet-built",
-   "capability_id": "SAVE-002",
-   "title": "HYSA rate comparison and routing suggestion, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "hYSA rate comparison and routing suggestion?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "HYSA rate comparison and routing suggestion",
-       "capability": {
-        "id": "SAVE-002",
-        "name": "HYSA rate comparison and routing suggestion",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "HYSA rate comparison and routing suggestion isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -29321,7 +28796,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -29380,7 +28856,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -29432,7 +28909,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -29588,7 +29066,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -29625,7 +29104,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -29932,44 +29412,6 @@
    ]
   },
   {
-   "id": "SAVE-007-1-not-yet-built",
-   "capability_id": "SAVE-007",
-   "title": "Bill negotiation savings booking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "bill negotiation savings booking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Bill negotiation savings booking",
-       "capability": {
-        "id": "SAVE-007",
-        "name": "bill negotiation (see BILL-005) savings booking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Bill negotiation savings booking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "SAVE-008-1-happy-path",
    "capability_id": "SAVE-008",
    "title": "Insurance rebid shopping, terse low-effort texter, happy path",
@@ -29994,7 +29436,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -30053,7 +29496,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -30105,7 +29549,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -30481,7 +29926,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -30540,7 +29986,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -30592,7 +30039,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -30750,7 +30198,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -30809,7 +30258,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -30861,7 +30311,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -31844,44 +31295,6 @@
    ]
   },
   {
-   "id": "SAVE-015-1-not-yet-built",
-   "capability_id": "SAVE-015",
-   "title": "Debt interest optimization, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "debt interest optimization?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Debt interest optimization",
-       "capability": {
-        "id": "SAVE-015",
-        "name": "debt interest optimization (avalanche plan)",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Debt interest optimization isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "SAVE-016-1-happy-path",
    "capability_id": "SAVE-016",
    "title": "Balance transfer opportunity detection, terse low-effort texter, happy path",
@@ -32284,44 +31697,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "SAVE-017-1-not-yet-built",
-   "capability_id": "SAVE-017",
-   "title": "Subscription consolidation savings, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "subscription consolidation savings?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Subscription consolidation savings",
-       "capability": {
-        "id": "SAVE-017",
-        "name": "subscription consolidation savings",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Subscription consolidation savings isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -32741,44 +32116,6 @@
    ]
   },
   {
-   "id": "SAVE-019-1-not-yet-built",
-   "capability_id": "SAVE-019",
-   "title": "401k match capture check, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "401k match capture check?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "401k match capture check",
-       "capability": {
-        "id": "SAVE-019",
-        "name": "401k match capture check",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "401k match capture check isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "SAVE-020-1-happy-path",
    "capability_id": "SAVE-020",
    "title": "HSA or FSA max reminder, terse low-effort texter, happy path",
@@ -33055,7 +32392,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -33092,7 +32430,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -33283,7 +32622,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -33320,7 +32660,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -33846,44 +33187,6 @@
    ]
   },
   {
-   "id": "EARN-002-1-not-yet-built",
-   "capability_id": "EARN-002",
-   "title": "Bonus requirement tracker, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "bonus requirement tracker?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Bonus requirement tracker",
-       "capability": {
-        "id": "EARN-002",
-        "name": "bonus requirement tracker (direct deposit, debit count)",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Bonus requirement tracker isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-003-1-happy-path",
    "capability_id": "EARN-003",
    "title": "Referral program inventory and links, terse low-effort texter, happy path",
@@ -34065,44 +33368,6 @@
    ]
   },
   {
-   "id": "EARN-003-1-not-yet-built",
-   "capability_id": "EARN-003",
-   "title": "Referral program inventory and links, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "referral program inventory and links?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Referral program inventory and links",
-       "capability": {
-        "id": "EARN-003",
-        "name": "referral program inventory and links",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Referral program inventory and links isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-004-1-happy-path",
    "capability_id": "EARN-004",
    "title": "Referral payout tracking, terse low-effort texter, happy path",
@@ -34276,44 +33541,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "EARN-004-1-not-yet-built",
-   "capability_id": "EARN-004",
-   "title": "Referral payout tracking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "referral payout tracking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Referral payout tracking",
-       "capability": {
-        "id": "EARN-004",
-        "name": "referral payout tracking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Referral payout tracking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -34499,44 +33726,6 @@
    ]
   },
   {
-   "id": "EARN-005-1-not-yet-built",
-   "capability_id": "EARN-005",
-   "title": "Employer benefits audit, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "employer benefits audit?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Employer benefits audit",
-       "capability": {
-        "id": "EARN-005",
-        "name": "employer benefits audit (match, ESPP, stipends)",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Employer benefits audit isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-006-1-happy-path",
    "capability_id": "EARN-006",
    "title": "ESPP discount capture reminder, terse low-effort texter, happy path",
@@ -34710,44 +33899,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "EARN-006-1-not-yet-built",
-   "capability_id": "EARN-006",
-   "title": "ESPP discount capture reminder, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "eSPP discount capture reminder?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "ESPP discount capture reminder",
-       "capability": {
-        "id": "EARN-006",
-        "name": "ESPP discount capture reminder",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "ESPP discount capture reminder isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -35148,44 +34299,6 @@
    ]
   },
   {
-   "id": "EARN-008-1-not-yet-built",
-   "capability_id": "EARN-008",
-   "title": "Class action settlement matching, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "class action settlement matching?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Class action settlement matching",
-       "capability": {
-        "id": "EARN-008",
-        "name": "class action settlement matching",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Class action settlement matching isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-009-1-happy-path",
    "capability_id": "EARN-009",
    "title": "Cash-back portal earnings tracking, terse low-effort texter, happy path",
@@ -35425,7 +34538,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -35484,7 +34598,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -35536,7 +34651,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -35850,44 +34966,6 @@
    ]
   },
   {
-   "id": "EARN-011-1-not-yet-built",
-   "capability_id": "EARN-011",
-   "title": "Rewards points valuation across programs, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "rewards points valuation across programs?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Rewards points valuation across programs",
-       "capability": {
-        "id": "EARN-011",
-        "name": "rewards points valuation across programs",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Rewards points valuation across programs isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-012-1-happy-path",
    "capability_id": "EARN-012",
    "title": "Points transfer optimization suggestion, terse low-effort texter, happy path",
@@ -36065,44 +35143,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "EARN-012-1-not-yet-built",
-   "capability_id": "EARN-012",
-   "title": "Points transfer optimization suggestion, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "points transfer optimization suggestion?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Points transfer optimization suggestion",
-       "capability": {
-        "id": "EARN-012",
-        "name": "points transfer optimization suggestion",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Points transfer optimization suggestion isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -36724,44 +35764,6 @@
    ]
   },
   {
-   "id": "EARN-015-1-not-yet-built",
-   "capability_id": "EARN-015",
-   "title": "Product recall refund matching, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "product recall refund matching?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Product recall refund matching",
-       "capability": {
-        "id": "EARN-015",
-        "name": "product recall refund matching",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Product recall refund matching isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "EARN-016-1-happy-path",
    "capability_id": "EARN-016",
    "title": "Flight delay compensation claims, terse low-effort texter, happy path",
@@ -36786,7 +35788,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -36845,7 +35848,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -36897,7 +35901,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -37883,44 +36888,6 @@
    ]
   },
   {
-   "id": "INV-002-1-not-yet-built",
-   "capability_id": "INV-002",
-   "title": "Holdings consolidation and allocation, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "holdings consolidation and allocation?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Holdings consolidation and allocation",
-       "capability": {
-        "id": "INV-002",
-        "name": "holdings consolidation and allocation",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Holdings consolidation and allocation isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "INV-003-1-happy-path",
    "capability_id": "INV-003",
    "title": "Concentration risk reporting, terse low-effort texter, happy path",
@@ -38094,44 +37061,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "INV-003-1-not-yet-built",
-   "capability_id": "INV-003",
-   "title": "Concentration risk reporting, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "concentration risk reporting?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Concentration risk reporting",
-       "capability": {
-        "id": "INV-003",
-        "name": "concentration risk reporting",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Concentration risk reporting isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -38313,44 +37242,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "INV-004-1-not-yet-built",
-   "capability_id": "INV-004",
-   "title": "Portfolio overlap with indexes, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "portfolio overlap with indexes?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Portfolio overlap with indexes",
-       "capability": {
-        "id": "INV-004",
-        "name": "portfolio overlap with indexes",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Portfolio overlap with indexes isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -38970,44 +37861,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "INV-007-1-not-yet-built",
-   "capability_id": "INV-007",
-   "title": "User-defined screener runs, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "user-defined screener runs?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "User-defined screener runs",
-       "capability": {
-        "id": "INV-007",
-        "name": "user-defined screener runs",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "User-defined screener runs isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -39681,7 +38534,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -39740,7 +38594,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -39792,7 +38647,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -39887,12 +38743,12 @@
    ]
   },
   {
-   "id": "INV-011-1-not-yet-built",
+   "id": "INV-011-1-gated-capability",
    "capability_id": "INV-011",
-   "title": "User-directed buy order, terse low-effort texter, not yet built",
+   "title": "User-directed buy order, terse low-effort texter, gated capability",
    "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
+   "scenario": "gated capability",
+   "assumes_status": "GATED",
    "review": "unreviewed",
    "principles": [
     "lead with the answer",
@@ -39911,14 +38767,16 @@
        "capability": {
         "id": "INV-011",
         "name": "user-directed buy order",
-        "status": "CLAIMED"
+        "status": "GATED",
+        "gate_reason": "no broker-dealer partner rail (Alpaca or DriveWealth plus doc 14 compliance setup); the restate-and-confirm flow is proven against a fake rail in tests/invest.test.cjs"
        },
        "path": "I'll tell you the moment it is live."
       },
       "ctx": {}
      },
      "expected": [
-      "User-directed buy order isn't available yet: it is not built yet. I'll tell you the moment it is live."
+      "User-directed buy order isn't available yet: no broker-dealer partner rail (Alpaca or DriveWealth plus doc 14 compliance setup); the restate-and-confirm flow is proven against a fake rail in tests/invest.test.cjs.",
+      "I'll tell you the moment it is live."
      ],
      "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
@@ -39949,7 +38807,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -40008,7 +38867,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40060,7 +38920,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40155,12 +39016,12 @@
    ]
   },
   {
-   "id": "INV-012-1-not-yet-built",
+   "id": "INV-012-1-gated-capability",
    "capability_id": "INV-012",
-   "title": "User-directed sell order, terse low-effort texter, not yet built",
+   "title": "User-directed sell order, terse low-effort texter, gated capability",
    "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
+   "scenario": "gated capability",
+   "assumes_status": "GATED",
    "review": "unreviewed",
    "principles": [
     "lead with the answer",
@@ -40179,14 +39040,15 @@
        "capability": {
         "id": "INV-012",
         "name": "user-directed sell order",
-        "status": "CLAIMED"
+        "status": "GATED",
+        "gate_reason": "no broker-dealer partner rail; see INV-011"
        },
        "path": "I'll tell you the moment it is live."
       },
       "ctx": {}
      },
      "expected": [
-      "User-directed sell order isn't available yet: it is not built yet. I'll tell you the moment it is live."
+      "User-directed sell order isn't available yet: no broker-dealer partner rail; see INV-011. I'll tell you the moment it is live."
      ],
      "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
@@ -40254,7 +39116,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40291,7 +39154,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40445,7 +39309,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -40504,7 +39369,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40556,7 +39422,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -40647,44 +39514,6 @@
       "I don't have rebalance execution on user approval yet: no connected account reports it. Connect the account that holds it and I can answer from its data"
      ],
      "why": "Says what it does not have and what it would take to know, instead of guessing."
-    }
-   ]
-  },
-  {
-   "id": "INV-014-1-not-yet-built",
-   "capability_id": "INV-014",
-   "title": "Rebalance execution on user approval, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "rebalance execution on user approval?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Rebalance execution on user approval",
-       "capability": {
-        "id": "INV-014",
-        "name": "rebalance execution on user approval",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Rebalance execution on user approval isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -40866,44 +39695,6 @@
    ]
   },
   {
-   "id": "INV-015-1-not-yet-built",
-   "capability_id": "INV-015",
-   "title": "Tax-loss harvest candidate surfacing, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "tax-loss harvest candidate surfacing?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Tax-loss harvest candidate surfacing",
-       "capability": {
-        "id": "INV-015",
-        "name": "tax-loss harvest candidate surfacing",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Tax-loss harvest candidate surfacing isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "INV-016-1-happy-path",
    "capability_id": "INV-016",
    "title": "Wash sale checking, terse low-effort texter, happy path",
@@ -41077,44 +39868,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "INV-016-1-not-yet-built",
-   "capability_id": "INV-016",
-   "title": "Wash sale checking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "wash sale checking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Wash sale checking",
-       "capability": {
-        "id": "INV-016",
-        "name": "wash sale checking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Wash sale checking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -41306,44 +40059,6 @@
    ]
   },
   {
-   "id": "INV-017-1-not-yet-built",
-   "capability_id": "INV-017",
-   "title": "Cost basis and gains report, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "cost basis and gains report?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Cost basis and gains report",
-       "capability": {
-        "id": "INV-017",
-        "name": "cost basis and gains report",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Cost basis and gains report isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "INV-018-1-happy-path",
    "capability_id": "INV-018",
    "title": "Retirement account contribution tracking, terse low-effort texter, happy path",
@@ -41517,44 +40232,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "INV-018-1-not-yet-built",
-   "capability_id": "INV-018",
-   "title": "Retirement account contribution tracking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "retirement account contribution tracking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Retirement account contribution tracking",
-       "capability": {
-        "id": "INV-018",
-        "name": "retirement account contribution tracking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Retirement account contribution tracking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -42819,44 +41496,6 @@
    ]
   },
   {
-   "id": "INV-024-1-not-yet-built",
-   "capability_id": "INV-024",
-   "title": "Advice guard on every investing response, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "advice guard on every investing response?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Advice guard on every investing response",
-       "capability": {
-        "id": "INV-024",
-        "name": "advice guard on every investing response",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Advice guard on every investing response isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "CRDT-001-1-happy-path",
    "capability_id": "CRDT-001",
    "title": "Credit score monitoring, terse low-effort texter, happy path",
@@ -43534,7 +42173,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -43593,7 +42233,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -43645,7 +42286,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -45701,44 +44343,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "CRDT-013-1-not-yet-built",
-   "capability_id": "CRDT-013",
-   "title": "Autopay discount capture, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "autopay discount capture?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Autopay discount capture",
-       "capability": {
-        "id": "CRDT-013",
-        "name": "autopay discount capture",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Autopay discount capture isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -51440,44 +50044,6 @@
    ]
   },
   {
-   "id": "HOUS-001-1-not-yet-built",
-   "capability_id": "HOUS-001",
-   "title": "Rent amount and due date tracking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "rent amount and due date tracking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Rent amount and due date tracking",
-       "capability": {
-        "id": "HOUS-001",
-        "name": "rent amount and due date tracking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Rent amount and due date tracking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "HOUS-002-1-happy-path",
    "capability_id": "HOUS-002",
    "title": "Rent payment execution, terse low-effort texter, happy path",
@@ -51502,7 +50068,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -51561,7 +50128,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -51613,7 +50181,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -51770,7 +50339,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -51829,7 +50399,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -51881,7 +50452,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -53959,44 +52531,6 @@
    ]
   },
   {
-   "id": "NEWS-002-1-not-yet-built",
-   "capability_id": "NEWS-002",
-   "title": "Entity linking to holdings and watchlist, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "entity linking to holdings and watchlist?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Entity linking to holdings and watchlist",
-       "capability": {
-        "id": "NEWS-002",
-        "name": "entity linking to holdings and watchlist",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Entity linking to holdings and watchlist isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "NEWS-003-1-happy-path",
    "capability_id": "NEWS-003",
    "title": "Relevance scoring and ranking, terse low-effort texter, happy path",
@@ -54170,44 +52704,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "NEWS-003-1-not-yet-built",
-   "capability_id": "NEWS-003",
-   "title": "Relevance scoring and ranking, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "relevance scoring and ranking?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Relevance scoring and ranking",
-       "capability": {
-        "id": "NEWS-003",
-        "name": "relevance scoring and ranking",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Relevance scoring and ranking isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -54389,44 +52885,6 @@
    ]
   },
   {
-   "id": "NEWS-004-1-not-yet-built",
-   "capability_id": "NEWS-004",
-   "title": "Morning brief, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "morning brief?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Morning brief",
-       "capability": {
-        "id": "NEWS-004",
-        "name": "morning brief",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Morning brief isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "NEWS-005-1-happy-path",
    "capability_id": "NEWS-005",
    "title": "Breaking alert on portfolio names, terse low-effort texter, happy path",
@@ -54604,44 +53062,6 @@
    ]
   },
   {
-   "id": "NEWS-005-1-not-yet-built",
-   "capability_id": "NEWS-005",
-   "title": "Breaking alert on portfolio names, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "breaking alert on portfolio names?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Breaking alert on portfolio names",
-       "capability": {
-        "id": "NEWS-005",
-        "name": "breaking alert on portfolio names",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Breaking alert on portfolio names isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "NEWS-006-1-happy-path",
    "capability_id": "NEWS-006",
    "title": "Acquisitions tracker, terse low-effort texter, happy path",
@@ -54815,44 +53235,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "NEWS-006-1-not-yet-built",
-   "capability_id": "NEWS-006",
-   "title": "Acquisitions tracker, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "acquisitions tracker?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Acquisitions tracker",
-       "capability": {
-        "id": "NEWS-006",
-        "name": "acquisitions tracker",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Acquisitions tracker isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -55683,44 +54065,6 @@
    ]
   },
   {
-   "id": "NEWS-010-1-not-yet-built",
-   "capability_id": "NEWS-010",
-   "title": "Personalization from reads and skips, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "personalization from reads and skips?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Personalization from reads and skips",
-       "capability": {
-        "id": "NEWS-010",
-        "name": "personalization from reads and skips",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Personalization from reads and skips isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "NEWS-011-1-happy-path",
    "capability_id": "NEWS-011",
    "title": "Sentiment and theme tracking per holding, terse low-effort texter, happy path",
@@ -56328,44 +54672,6 @@
    ]
   },
   {
-   "id": "NEWS-013-1-not-yet-built",
-   "capability_id": "NEWS-013",
-   "title": "Weekly sector roundup, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "weekly sector roundup?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Weekly sector roundup",
-       "capability": {
-        "id": "NEWS-013",
-        "name": "weekly sector roundup",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Weekly sector roundup isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "NEWS-014-1-happy-path",
    "capability_id": "NEWS-014",
    "title": "Source diversity audit, terse low-effort texter, happy path",
@@ -56543,44 +54849,6 @@
       "Savings, not checking. Savings is $12,004.40 as of 2:14 pm today, per Example Bank."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "NEWS-014-1-not-yet-built",
-   "capability_id": "NEWS-014",
-   "title": "Source diversity audit, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "source diversity audit?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Source diversity audit",
-       "capability": {
-        "id": "NEWS-014",
-        "name": "source diversity audit",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Source diversity audit isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -59734,44 +58002,6 @@
    ]
   },
   {
-   "id": "SOC-003-1-not-yet-built",
-   "capability_id": "SOC-003",
-   "title": "Running balances per person, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "running balances per person?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Running balances per person",
-       "capability": {
-        "id": "SOC-003",
-        "name": "running balances per person",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Running balances per person isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "SOC-004-1-happy-path",
    "capability_id": "SOC-004",
    "title": "Settle-up execution, terse low-effort texter, happy path",
@@ -59796,7 +58026,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -59855,7 +58086,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -59907,7 +58139,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60101,7 +58334,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60138,7 +58372,8 @@
        "amount_cents": 35000,
        "recipient": "savings",
        "from": "checking",
-       "timing": "today"
+       "timing": "today",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60530,7 +58765,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -60589,7 +58825,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60641,7 +58878,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60799,7 +59037,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -60858,7 +59097,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -60910,7 +59150,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -61067,7 +59308,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -61126,7 +59368,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -61178,7 +59421,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -62218,7 +60462,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -62277,7 +60522,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -62329,7 +60575,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -62420,44 +60667,6 @@
       "I don't have breach response playbook yet: no connected account reports it. Connect the account that holds it and I can answer from its data"
      ],
      "why": "Says what it does not have and what it would take to know, instead of guessing."
-    }
-   ]
-  },
-  {
-   "id": "SEC-004-1-not-yet-built",
-   "capability_id": "SEC-004",
-   "title": "Breach response playbook, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "breach response playbook?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Breach response playbook",
-       "capability": {
-        "id": "SEC-004",
-        "name": "breach response playbook",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Breach response playbook isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -63508,44 +61717,6 @@
    ]
   },
   {
-   "id": "SEC-009-1-not-yet-built",
-   "capability_id": "SEC-009",
-   "title": "Agent action audit log, user-inspectable, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "agent action audit log, user-inspectable?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Agent action audit log, user-inspectable",
-       "capability": {
-        "id": "SEC-009",
-        "name": "agent action audit log, user-inspectable",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Agent action audit log, user-inspectable isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "SEC-010-1-happy-path",
    "capability_id": "SEC-010",
    "title": "Kill switch, terse low-effort texter, happy path",
@@ -63570,7 +61741,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -63629,7 +61801,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -63681,7 +61854,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -64202,44 +62376,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "SEC-012-1-not-yet-built",
-   "capability_id": "SEC-012",
-   "title": "Verification questions for sensitive chat commands, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "verification questions for sensitive chat commands?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Verification questions for sensitive chat commands",
-       "capability": {
-        "id": "SEC-012",
-        "name": "verification questions for sensitive chat commands",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Verification questions for sensitive chat commands isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },
@@ -66677,44 +64813,6 @@
    ]
   },
   {
-   "id": "CORE-012-1-not-yet-built",
-   "capability_id": "CORE-012",
-   "title": "Proactive budget enforcement, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "proactive budget enforcement?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Proactive budget enforcement",
-       "capability": {
-        "id": "CORE-012",
-        "name": "proactive budget enforcement",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Proactive budget enforcement isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
-    }
-   ]
-  },
-  {
    "id": "CORE-013-1-happy-path",
    "capability_id": "CORE-013",
    "title": "User data export, terse low-effort texter, happy path",
@@ -66958,7 +65056,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "casual"
@@ -67017,7 +65116,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -67069,7 +65169,8 @@
        "amount_cents": 4000,
        "recipient": "Marcus L",
        "from": "checking",
-       "timing": "lands in minutes"
+       "timing": "lands in minutes",
+       "fee_cents": 0
       },
       "ctx": {
        "register": "precise"
@@ -67375,44 +65476,6 @@
       "Joint account, not checking. The watch now runs on the joint account."
      ],
      "why": "Applies the correction, confirms the fix in one line, stores the correction."
-    }
-   ]
-  },
-  {
-   "id": "CORE-015-1-not-yet-built",
-   "capability_id": "CORE-015",
-   "title": "Capability eval runner integration, terse low-effort texter, not yet built",
-   "persona": "terse low-effort texter",
-   "scenario": "not yet built",
-   "assumes_status": "CLAIMED",
-   "review": "unreviewed",
-   "principles": [
-    "lead with the answer",
-    "numbers exact with source and as-of",
-    "honest about limits"
-   ],
-   "turns": [
-    {
-     "user": "capability eval runner integration?"
-    },
-    {
-     "agent": {
-      "kind": "limit",
-      "fields": {
-       "label": "Capability eval runner integration",
-       "capability": {
-        "id": "CORE-015",
-        "name": "capability eval runner integration",
-        "status": "CLAIMED"
-       },
-       "path": "I'll tell you the moment it is live."
-      },
-      "ctx": {}
-     },
-     "expected": [
-      "Capability eval runner integration isn't available yet: it is not built yet. I'll tell you the moment it is live."
-     ],
-     "why": "One plain sentence on the limit, then the path around it; no pretending."
     }
    ]
   },

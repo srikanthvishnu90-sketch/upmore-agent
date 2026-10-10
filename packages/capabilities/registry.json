@@ -2143,7 +2143,7 @@
    "owner_doc": "06",
    "status": "GATED",
    "test_ref": null,
-   "gate_reason": "the rent cycle (amount check, two business days early, urgent on failure) is built and tested, but paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern; no partner is signed",
+   "gate_reason": "the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed",
    "connectors": [],
    "implementation": [
     "packages/domain/54-agent-money.js"

@@ -4970,7 +4970,7 @@
   {
    "capability_id": "PAY-005",
    "tier": "T4",
-   "assumed_status": "TESTED",
+   "assumed_status": "GATED",
    "request": "pay rent recurring: $40.00 to Marcus L",
    "calls": [
     {
@@ -4990,7 +4990,7 @@
      },
      "output": {
       "tier": "T4",
-      "status": "TESTED"
+      "status": "GATED"
      }
     },
     {
@@ -4998,66 +4998,27 @@
      "call": "gate",
      "input": {
       "tier": "T4",
-      "envelope": "env-1"
+      "status": "GATED"
      },
      "output": {
-      "allowed": true,
-      "confirm": false
+      "allowed": false,
+      "reason": "gated"
      }
     },
     {
      "step": 4,
-     "call": "connectors.write",
-     "input": {
-      "capability_id": "PAY-005",
-      "params": {
-       "amount_cents": 4000,
-       "recipient": "Marcus L"
-      },
-      "idempotency_key": "PAY-005:trace"
-     },
-     "output": {
-      "reference": "ref-1001"
-     }
-    },
-    {
-     "step": 5,
-     "call": "connectors.verify",
-     "input": {
-      "capability_id": "PAY-005",
-      "idempotency_key": "PAY-005:trace",
-      "reference": "ref-1001"
-     },
-     "output": {
-      "confirmed": true,
-      "source": "Example Bank"
-     }
-    },
-    {
-     "step": 6,
-     "call": "memory.remember",
-     "input": {
-      "store": "outcomes",
-      "result": "confirmed"
-     },
-     "output": {}
-    },
-    {
-     "step": 7,
-     "call": "compose.receipt",
+     "call": "compose.blocked",
      "input": {},
      "output": {
-      "message": "Done: pay rent recurring: $40.00 to Marcus L (ref ref-1001). Confirmed by Example Bank."
+      "message": "pay rent recurring is blocked until a licensed partner or rail is in place: the rent cycle (amount check, two business days early, urgent on failure) is built and tested, but paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern; no partner is signed."
      }
     }
    ],
-   "verification_step": 5,
+   "verification_step": 3,
    "transitions": [
     "IDLE->OBSERVING",
     "OBSERVING->DECIDING",
-    "DECIDING->ACTING",
-    "ACTING->VERIFYING",
-    "VERIFYING->IDLE"
+    "DECIDING->IDLE"
    ],
    "final_state": "IDLE"
   },
@@ -5458,7 +5419,7 @@
   {
    "capability_id": "PAY-010",
    "tier": "T3",
-   "assumed_status": "TESTED",
+   "assumed_status": "GATED",
    "request": "ACH push/pull: $40.00 to Marcus L",
    "calls": [
     {
@@ -5478,100 +5439,42 @@
      },
      "output": {
       "tier": "T3",
-      "status": "TESTED"
+      "status": "GATED"
      }
     },
     {
      "step": 3,
      "call": "gate",
      "input": {
-      "tier": "T3"
+      "tier": "T3",
+      "status": "GATED"
      },
      "output": {
-      "allowed": true,
-      "confirm": true,
-      "draft_only": false
+      "allowed": false,
+      "reason": "gated"
      }
     },
     {
      "step": 4,
-     "call": "compose.confirm",
+     "call": "compose.blocked",
      "input": {},
      "output": {
-      "message": "Confirm: ACH push/pull $40.00 to Marcus L from checking, no fee, now. Reply yes to proceed."
-     }
-    },
-    {
-     "step": 5,
-     "call": "user.confirmation",
-     "input": {
-      "confirmation_id": "confirm-3"
-     },
-     "output": {
-      "approved": true
-     }
-    },
-    {
-     "step": 6,
-     "call": "connectors.write",
-     "input": {
-      "capability_id": "PAY-010",
-      "params": {
-       "amount_cents": 4000,
-       "recipient": "Marcus L"
-      },
-      "idempotency_key": "PAY-010:trace"
-     },
-     "output": {
-      "reference": "ref-1001"
-     }
-    },
-    {
-     "step": 7,
-     "call": "connectors.verify",
-     "input": {
-      "capability_id": "PAY-010",
-      "idempotency_key": "PAY-010:trace",
-      "reference": "ref-1001"
-     },
-     "output": {
-      "confirmed": true,
-      "source": "Example Bank"
-     }
-    },
-    {
-     "step": 8,
-     "call": "memory.remember",
-     "input": {
-      "store": "outcomes",
-      "result": "confirmed"
-     },
-     "output": {}
-    },
-    {
-     "step": 9,
-     "call": "compose.receipt",
-     "input": {},
-     "output": {
-      "message": "Done: ACH push/pull: $40.00 to Marcus L (ref ref-1001). Confirmed by Example Bank."
+      "message": "ACH push/pull is blocked until a licensed partner or rail is in place: no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs."
      }
     }
    ],
-   "verification_step": 7,
+   "verification_step": 3,
    "transitions": [
     "IDLE->OBSERVING",
     "OBSERVING->DECIDING",
-    "DECIDING->AWAITING_CONFIRMATION",
-    "AWAITING_CONFIRMATION->ACTING",
-    "ACTING->VERIFYING",
-    "VERIFYING->IDLE"
+    "DECIDING->IDLE"
    ],
    "final_state": "IDLE"
   },
   {
    "capability_id": "PAY-011",
    "tier": "T5",
-   "assumed_status": "TESTED",
+   "assumed_status": "GATED",
    "request": "wire transfer: $40.00 to Marcus L",
    "calls": [
     {
@@ -5591,93 +5494,35 @@
      },
      "output": {
       "tier": "T5",
-      "status": "TESTED"
+      "status": "GATED"
      }
     },
     {
      "step": 3,
      "call": "gate",
      "input": {
-      "tier": "T5"
+      "tier": "T5",
+      "status": "GATED"
      },
      "output": {
-      "allowed": true,
-      "confirm": true,
-      "draft_only": false
+      "allowed": false,
+      "reason": "gated"
      }
     },
     {
      "step": 4,
-     "call": "compose.confirm",
+     "call": "compose.blocked",
      "input": {},
      "output": {
-      "message": "Confirm: wire transfer $40.00 to Marcus L from checking, no fee, now. Reply yes to proceed."
-     }
-    },
-    {
-     "step": 5,
-     "call": "user.confirmation",
-     "input": {
-      "confirmation_id": "confirm-3"
-     },
-     "output": {
-      "approved": true
-     }
-    },
-    {
-     "step": 6,
-     "call": "connectors.write",
-     "input": {
-      "capability_id": "PAY-011",
-      "params": {
-       "amount_cents": 4000,
-       "recipient": "Marcus L"
-      },
-      "idempotency_key": "PAY-011:trace"
-     },
-     "output": {
-      "reference": "ref-1001"
-     }
-    },
-    {
-     "step": 7,
-     "call": "connectors.verify",
-     "input": {
-      "capability_id": "PAY-011",
-      "idempotency_key": "PAY-011:trace",
-      "reference": "ref-1001"
-     },
-     "output": {
-      "confirmed": true,
-      "source": "Example Bank"
-     }
-    },
-    {
-     "step": 8,
-     "call": "memory.remember",
-     "input": {
-      "store": "outcomes",
-      "result": "confirmed"
-     },
-     "output": {}
-    },
-    {
-     "step": 9,
-     "call": "compose.receipt",
-     "input": {},
-     "output": {
-      "message": "Done: wire transfer: $40.00 to Marcus L (ref ref-1001). Confirmed by Example Bank."
+      "message": "wire transfer is blocked until a licensed partner or rail is in place: wires need the same partner rail and stay T5 always."
      }
     }
    ],
-   "verification_step": 7,
+   "verification_step": 3,
    "transitions": [
     "IDLE->OBSERVING",
     "OBSERVING->DECIDING",
-    "DECIDING->AWAITING_CONFIRMATION",
-    "AWAITING_CONFIRMATION->ACTING",
-    "ACTING->VERIFYING",
-    "VERIFYING->IDLE"
+    "DECIDING->IDLE"
    ],
    "final_state": "IDLE"
   },
@@ -13356,7 +13201,7 @@
   {
    "capability_id": "INV-011",
    "tier": "T3",
-   "assumed_status": "TESTED",
+   "assumed_status": "GATED",
    "request": "user-directed buy order: $40.00 to Marcus L",
    "calls": [
     {
@@ -13376,100 +13221,42 @@
      },
      "output": {
       "tier": "T3",
-      "status": "TESTED"
+      "status": "GATED"
      }
     },
     {
      "step": 3,
      "call": "gate",
      "input": {
-      "tier": "T3"
+      "tier": "T3",
+      "status": "GATED"
      },
      "output": {
-      "allowed": true,
-      "confirm": true,
-      "draft_only": false
+      "allowed": false,
+      "reason": "gated"
      }
     },
     {
      "step": 4,
-     "call": "compose.confirm",
+     "call": "compose.blocked",
      "input": {},
      "output": {
-      "message": "Confirm: user-directed buy order $40.00 to Marcus L from checking, no fee, now. Reply yes to proceed."
-     }
-    },
-    {
-     "step": 5,
-     "call": "user.confirmation",
-     "input": {
-      "confirmation_id": "confirm-3"
-     },
-     "output": {
-      "approved": true
-     }
-    },
-    {
-     "step": 6,
-     "call": "connectors.write",
-     "input": {
-      "capability_id": "INV-011",
-      "params": {
-       "amount_cents": 4000,
-       "recipient": "Marcus L"
-      },
-      "idempotency_key": "INV-011:trace"
-     },
-     "output": {
-      "reference": "ref-1001"
-     }
-    },
-    {
-     "step": 7,
-     "call": "connectors.verify",
-     "input": {
-      "capability_id": "INV-011",
-      "idempotency_key": "INV-011:trace",
-      "reference": "ref-1001"
-     },
-     "output": {
-      "confirmed": true,
-      "source": "Example Bank"
-     }
-    },
-    {
-     "step": 8,
-     "call": "memory.remember",
-     "input": {
-      "store": "outcomes",
-      "result": "confirmed"
-     },
-     "output": {}
-    },
-    {
-     "step": 9,
-     "call": "compose.receipt",
-     "input": {},
-     "output": {
-      "message": "Done: user-directed buy order: $40.00 to Marcus L (ref ref-1001). Confirmed by Example Bank."
+      "message": "user-directed buy order is blocked until a licensed partner or rail is in place: no broker-dealer partner rail (Alpaca or DriveWealth plus doc 14 compliance setup); the restate-and-confirm flow is proven against a fake rail in tests/invest.test.cjs."
      }
     }
    ],
-   "verification_step": 7,
+   "verification_step": 3,
    "transitions": [
     "IDLE->OBSERVING",
     "OBSERVING->DECIDING",
-    "DECIDING->AWAITING_CONFIRMATION",
-    "AWAITING_CONFIRMATION->ACTING",
-    "ACTING->VERIFYING",
-    "VERIFYING->IDLE"
+    "DECIDING->IDLE"
    ],
    "final_state": "IDLE"
   },
   {
    "capability_id": "INV-012",
    "tier": "T3",
-   "assumed_status": "TESTED",
+   "assumed_status": "GATED",
    "request": "user-directed sell order: $40.00 to Marcus L",
    "calls": [
     {
@@ -13489,93 +13276,35 @@
      },
      "output": {
       "tier": "T3",
-      "status": "TESTED"
+      "status": "GATED"
      }
     },
     {
      "step": 3,
      "call": "gate",
      "input": {
-      "tier": "T3"
+      "tier": "T3",
+      "status": "GATED"
      },
      "output": {
-      "allowed": true,
-      "confirm": true,
-      "draft_only": false
+      "allowed": false,
+      "reason": "gated"
      }
     },
     {
      "step": 4,
-     "call": "compose.confirm",
+     "call": "compose.blocked",
      "input": {},
      "output": {
-      "message": "Confirm: user-directed sell order $40.00 to Marcus L from checking, no fee, now. Reply yes to proceed."
-     }
-    },
-    {
-     "step": 5,
-     "call": "user.confirmation",
-     "input": {
-      "confirmation_id": "confirm-3"
-     },
-     "output": {
-      "approved": true
-     }
-    },
-    {
-     "step": 6,
-     "call": "connectors.write",
-     "input": {
-      "capability_id": "INV-012",
-      "params": {
-       "amount_cents": 4000,
-       "recipient": "Marcus L"
-      },
-      "idempotency_key": "INV-012:trace"
-     },
-     "output": {
-      "reference": "ref-1001"
-     }
-    },
-    {
-     "step": 7,
-     "call": "connectors.verify",
-     "input": {
-      "capability_id": "INV-012",
-      "idempotency_key": "INV-012:trace",
-      "reference": "ref-1001"
-     },
-     "output": {
-      "confirmed": true,
-      "source": "Example Bank"
-     }
-    },
-    {
-     "step": 8,
-     "call": "memory.remember",
-     "input": {
-      "store": "outcomes",
-      "result": "confirmed"
-     },
-     "output": {}
-    },
-    {
-     "step": 9,
-     "call": "compose.receipt",
-     "input": {},
-     "output": {
-      "message": "Done: user-directed sell order: $40.00 to Marcus L (ref ref-1001). Confirmed by Example Bank."
+      "message": "user-directed sell order is blocked until a licensed partner or rail is in place: no broker-dealer partner rail; see INV-011."
      }
     }
    ],
-   "verification_step": 7,
+   "verification_step": 3,
    "transitions": [
     "IDLE->OBSERVING",
     "OBSERVING->DECIDING",
-    "DECIDING->AWAITING_CONFIRMATION",
-    "AWAITING_CONFIRMATION->ACTING",
-    "ACTING->VERIFYING",
-    "VERIFYING->IDLE"
+    "DECIDING->IDLE"
    ],
    "final_state": "IDLE"
   },

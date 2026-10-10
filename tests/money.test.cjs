@@ -85,9 +85,9 @@ test('full lifecycle on the fake rail through the loop: confirm before act, idem
   mode='timeout';const r2=await loop.wake({kind:'confirmation',confirmation_id:r1.confirmation_id,approved:true});assert.equal(r2.outcome,'unknown');assert.equal(writes.length,1);assert.match(r2.message,/I have not retried/);
   loop=mk();const r3=await loop.wake({kind:'follow_up'});assert.equal(r3.outcome,'confirmed');assert.equal(writes.length,1,'reconciled by read-back, never a second write');
   const rc=M.receipt(ach,{reference:'ach-1'});assert.match(rc.text,/confirmation ach-1/);
-  // duplicate instruction: the same send the same day carries the same key, so a second delivery reconciles instead of writing
+  // duplicate instruction: the same send the same day carries the same key, so a second delivery is answered as already done instead of written or re-confirmed
   assert.equal(M.sendKey(people[3],180000,TODAY),ach.request.key);
-  const r4=await loop.wake({kind:'message',request:ach.request});assert.equal(r4.outcome,'confirmed');assert.equal(writes.length,1);
+  const r4=await loop.wake({kind:'message',request:ach.request});assert.equal(r4.outcome,'already_done');assert.match(r4.message,/already done earlier/);assert.equal(writes.length,1);
   // failure is honest
   const fail=Object.assign({},ach.request,{key:'send:p4:180000:2026-10-11',idempotency_key:'fail-1'});mode='fail';const l2=Loop.create({registry,connectors:rail,clock:()=>t.now,guard:Guard});
   const f1=await l2.wake({kind:'message',request:fail});const f2=await l2.wake({kind:'confirmation',confirmation_id:f1.confirmation_id,approved:true});assert.equal(f2.outcome,'failed');assert.match(f2.message,/insufficient funds/);assert.ok(!/Sent|Done/.test(f2.message));

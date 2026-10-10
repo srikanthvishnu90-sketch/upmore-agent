@@ -22,6 +22,8 @@
       const t = String(text || "").trim();
       const c = ctx || {};
       if (!t) return { type: "smalltalk" };
+      // "Yes, but use the other account" is a correction that invalidates the proposal, never an approval of it.
+      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
       if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
       if (c.pending_confirmation && /^(n|no|nope|don'?t|stop|cancel that|actually no|never ?mind)\b/i.test(t)) return { type: "confirmation", approved: false };
       if (/^(no[,.]? |not |wrong|that'?s wrong|i (said|meant)|it'?s actually|correction:)/i.test(t) || /\bnot [A-Z][a-z]+ [A-Z][a-z]+\b/.test(t)) return { type: "correction" };
@@ -94,7 +96,7 @@
         if (f.restate) { need(f, ["context"]); parts.push(`${f.context} ${f.restate} ${reg === "casual" ? "ok?" : "Confirm?"}`); }
         else {
           need(f, ["action", "amount_cents", "recipient", "timing"]);
-          parts.push(`${f.action} ${money(f.amount_cents)} to ${f.recipient}${f.from ? ` from ${f.from}` : ""}? ${f.fee_cents ? `Fee ${money(f.fee_cents)}` : "Free"}, ${f.timing}.`);
+          parts.push(`${f.action} ${money(f.amount_cents)} to ${f.recipient}${f.from ? ` from ${f.from}` : ""}? ${Number.isFinite(f.fee_cents) ? (f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}` : "Free") : "Fee not yet quoted"}, ${f.timing}.`);
         }
       } else if (kind === "receipt") {
         need(f, ["done", "amount_cents", "recipient", "rail", "reference"]);

@@ -40,10 +40,13 @@
       if (t === "T4") {
         const env = (envelopes || []).find(e => e.capability_id === cap.id && e.active !== false && (!e.expires_at || e.expires_at > now));
         if (!env) return { allowed: true, confirm: true, reason: "no_envelope" };
-        const amt = Number(action && action.amount_cents);
+        // The envelope is checked against the exact values that will be written, never a summary the caller supplied separately.
+        const p = (action && action.params) || {};
+        const amt = Number(p.amount_cents !== undefined ? p.amount_cents : action && action.amount_cents);
+        const recipient = p.recipient !== undefined ? p.recipient : action && action.recipient;
         if (!Number.isSafeInteger(amt) || amt < 0) return { allowed: true, confirm: true, reason: "amount_unknown" };
         if (amt > env.max_cents) return { allowed: true, confirm: true, reason: "outside_envelope" };
-        if (env.recipient && action.recipient !== env.recipient) return { allowed: true, confirm: true, reason: "outside_envelope" };
+        if (env.recipient && recipient !== env.recipient) return { allowed: true, confirm: true, reason: "outside_envelope" };
         if (action.first_time) return { allowed: true, confirm: true, reason: "first_time_is_T5" };
         return { allowed: true, confirm: false, envelope: env.id };
       }
@@ -126,9 +129,13 @@
         }
       }
 
+      const keyFor = (item, cap) => item.idempotency_key || `${cap.id}:${item.key || JSON.stringify(item.params || {})}`;
       async function act(item, cap, g) {
-        const key = item.idempotency_key || `${cap.id}:${item.key || JSON.stringify(item.params || {})}`;
-        // Never re-execute a write whose ACTING entry already exists in the log.
+        const key = keyFor(item, cap);
+        // Never re-execute a write whose ACTING entry already exists in the log. A fresh request that reuses a
+        // completed key is told so plainly instead of being reported as newly done.
+        const prior = memory.outcomes.filter(x => x.idempotency_key === key && x.result === "confirmed").pop();
+        if (prior) return idle({ idempotency_key: key }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${prior.reference ? ` (ref ${prior.reference})` : ""}. I did not do it again.` });
         if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === key)) return reconcile(item, cap, key);
         transition("ACTING", { capability_id: cap.id, idempotency_key: key, params: item.params || null });
         let result;
@@ -144,10 +151,10 @@
         let v = null;
         try { v = await connectors.verify(cap.id, key, result && result.reference); } catch (_) { v = null; }
         const confirmed = v && v.confirmed === true;
-        const outcome = remember(memory, "outcomes", { capability_id: cap.id, idempotency_key: key, reference: result && result.reference || null,
+        const outcome = remember(memory, "outcomes", { capability_id: cap.id, idempotency_key: key, reference: result && result.reference || v && v.reference || null,
           result: confirmed ? "confirmed" : v && v.confirmed === false ? "failed" : "unknown", source: v && v.source || null }, clock());
         if (confirmed) return idle({ idempotency_key: key }, { outcome: "confirmed", message: compose("receipt", { action: item.describe || cap.name, reference: result && result.reference, verified: true, source: v.source || "the connector" }), outcome_record: outcome });
-        if (v && v.confirmed === false) return idle({ idempotency_key: key }, { outcome: "failed", message: `${item.describe || cap.name} did not go through (${v.reason || "the rail rejected it"}). Nothing was changed.` });
+        if (v && v.confirmed === false) return idle({ idempotency_key: key }, { outcome: "failed", message: `${item.describe || cap.name} did not go through (${v.reason || "the rail rejected it"}), per ${v.source || "the rail"}. Nothing posted on their side.` });
         transition("FOLLOW_UP_SCHEDULED", { idempotency_key: key }, { follow_up_at: clock() + (o.follow_up_ms || 15 * 60000) });
         return { outcome: "unknown", state, message: compose("unknown", { action: item.describe || cap.name }), idempotency_key: key };
       }
@@ -186,7 +193,8 @@
         // act: resolve the capability and gate it.
         const item = d.item, cap = registry.get(item.capability_id);
         // A duplicate instruction ("send $50" twice, a webhook delivered twice) carries the same idempotency key as a write already in the log: reconcile it, never confirm or write again.
-        if (cap) { const dupKey = item.idempotency_key || `${cap.id}:${item.key || JSON.stringify(item.params || {})}`; if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
+        // A request that reuses a completed key is told so plainly; one whose write is in flight or unresolved reconciles. Neither is gated or confirmed again.
+        if (cap) { const dupKey = keyFor(item, cap); const done = memory.outcomes.filter(x => x.idempotency_key === dupKey && x.result === "confirmed").pop(); if (done) return idle({ capability_id: cap.id, idempotency_key: dupKey }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${done.reference ? ` (ref ${done.reference})` : ""}. I did not do it again. Ask again with new details if you want a second one.` }); if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
         const g = gate(cap, item, envelopes, now);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
         // Compliance gate (doc 14): one call site, before anything can act. A regulated capability with no live partner fails closed with a specific message, whatever the prompt says.
@@ -198,7 +206,13 @@
           return idle({ capability_id: cap.id }, { outcome: "answer", message: compose("answer", { lead, source: r.source, as_of: r.as_of ? new Date(r.as_of).toISOString() : null, stale: r.stale }) + (r.down ? " The connector is down right now." : "") + flagNote, stale: r.stale, down: !!r.down, flags: r.flags || [] });
         }
         if (g.confirm) {
-          pending = { id: `confirm-${seq()}`, item, cap, draft_only: !!g.draft_only, created_at: now };
+          const done = memory.outcomes.filter(x => x.idempotency_key === keyFor(item, cap) && x.result === "confirmed").pop();
+          if (done) return idle({ capability_id: cap.id }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${done.reference ? ` (ref ${done.reference})` : ""}. I did not do it again. Ask again with new details if you want a second one.` });
+          // A money confirmation must restate the exact amount and recipient that will be written.
+          const p = item.params || {};
+          if (!g.draft_only && p.amount_cents !== undefined && !(item.confirm && item.confirm.amount && item.confirm.recipient))
+            return idle({ capability_id: cap.id }, { outcome: "blocked", reason: "confirmation_incomplete", message: "I can't ask you to approve a payment without restating the exact amount and recipient. Nothing was done." });
+          pending = { id: `confirm-${seq()}`, item, cap, draft_only: !!g.draft_only, created_at: now, expires_at: now + (o.confirm_ttl_ms || 15 * 60000) };
           transition("AWAITING_CONFIRMATION", { capability_id: cap.id, confirmation_id: pending.id, reason: g.reason || null, draft_only: pending.draft_only });
           return { outcome: "awaiting_confirmation", state, confirmation_id: pending.id, draft_only: pending.draft_only,
             message: g.draft_only ? `Draft ready: ${item.describe || cap.name}. Nothing is sent until you approve the exact content and destination.` : compose("confirm", item.confirm || { action: item.describe || cap.name }) };
@@ -209,6 +223,8 @@
         if (!pending) { const last = log.filter(e => e.to === "AWAITING_CONFIRMATION").pop(); if (!last) return idle(null, { outcome: "nothing_pending" }); return idle(null, { outcome: "lost_pending", message: "I lost the details of that pending action after a restart. Please ask again; nothing was done." }); }
         if (input.confirmation_id !== pending.id) return { outcome: "mismatch", state, message: "That confirmation does not match the pending action." };
         const p = pending; pending = null;
+        // A stale approval is not an approval: balances, prices and intent all move.
+        if (clock() > p.expires_at) { remember(memory, "outcomes", { capability_id: p.cap.id, result: "confirmation_expired" }, clock()); return idle({ confirmation_id: p.id }, { outcome: "expired", message: `That approval expired after ${Math.round((p.expires_at - p.created_at) / 60000)} minutes, so I did not act on it. Ask again and I'll re-confirm the details.` }); }
         if (!input.approved) { remember(memory, "outcomes", { capability_id: p.cap.id, result: "declined" }, clock()); return idle({ confirmation_id: p.id }, { outcome: "declined", message: "Okay, not doing that. Nothing was changed." }); }
         if (p.draft_only) { remember(memory, "outcomes", { capability_id: p.cap.id, result: "draft_approved", draft: p.item.params || null }, clock()); return idle({ confirmation_id: p.id }, { outcome: "draft_approved", message: `Approved draft recorded for ${p.item.describe || p.cap.name}. Sending is a separate, confirmed step.` }); }
         return act(p.item, p.cap, { confirm: false });

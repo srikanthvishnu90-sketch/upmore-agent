@@ -37,7 +37,8 @@ _Why this is right:_ Declining is cheap and final; the agent states nothing chan
      "amount_cents": 50000,
      "recipient": "Ally savings",
      "from": "Chase checking",
-     "timing": "arrives Monday"
+     "timing": "arrives Monday",
+     "fee_cents": 0
     },
     "ctx": {}
    },

@@ -197,7 +197,7 @@
   },
   "PAY-005": {
     "status": "GATED",
-    "gate_reason": "the rent cycle (amount check, two business days early, urgent on failure) is built and tested, but paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern; no partner is signed",
+    "gate_reason": "the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed",
     "implementation": [
       "packages/domain/54-agent-money.js"
     ]

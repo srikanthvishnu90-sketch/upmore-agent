@@ -37,7 +37,8 @@ _Why this is right:_ Leads with the outcome, exact amount, rail reference, then 
      "action": "Send",
      "amount_cents": 8500,
      "recipient": "Sarah M (venmo @sarah-m)",
-     "timing": "lands in minutes"
+     "timing": "lands in minutes",
+     "fee_cents": 0
     },
     "ctx": {
      "register": "casual"

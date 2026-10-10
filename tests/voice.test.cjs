@@ -104,6 +104,10 @@ test('classification maps every inbound message to one response type',()=>{
   assert.equal(c('thanks!'),'smalltalk');assert.equal(c(''),'smalltalk');
   same(V.classify('yes',{pending_confirmation:true}),{type:'confirmation',approved:true});
   same(V.classify('actually no',{pending_confirmation:true}),{type:'confirmation',approved:false});
+  same(V.classify('yes, but use the other account',{pending_confirmation:true}),{type:'correction',qualified_approval:true},'a qualified yes corrects the proposal instead of approving it');
+  same(V.classify('ok but make it $40',{pending_confirmation:true}),{type:'correction',qualified_approval:true});
+  assert.match(V.compose('confirm',{action:'Send',amount_cents:5000,recipient:'Marcus',timing:'arrives today'},{}).bubbles.join(' '),/Fee not yet quoted/,'an absent fee is unknown, never Free');
+  assert.match(V.compose('confirm',{action:'Send',amount_cents:5000,recipient:'Marcus',timing:'arrives today',fee_cents:0},{}).bubbles.join(' '),/Free/);
   assert.equal(c('yes'),'question','a bare yes with nothing pending is not a confirmation');
   assert.equal(V.classify('cancel my netflix subscription for me').intent.target,'netflix');
 });

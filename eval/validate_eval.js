@@ -5,9 +5,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const EVAL = '/home/hatch/workspace/upmore/eval/server_eval_full.json';
-const CAP = '/home/hatch/workspace/upmore/supabase/functions/agent-chat/_shared/capabilities.ts';
-const FF = '/home/hatch/workspace/upmore/supabase/functions/agent-chat/_shared/finance_facts.ts';
+// Paths resolve relative to this file so the validator runs from any checkout
+// (Codex on hatch, Claude Code on the Mac, cloud sessions) — never a machine path.
+const ROOT = path.resolve(__dirname, '..');
+const EVAL = path.join(ROOT, 'eval', 'server_eval_full.json');
+const CAP = path.join(ROOT, 'supabase', 'functions', 'agent-chat', '_shared', 'capabilities.ts');
+const FF = path.join(ROOT, 'supabase', 'functions', 'agent-chat', '_shared', 'finance_facts.ts');
 
 const capSrc = fs.readFileSync(CAP, 'utf8');
 

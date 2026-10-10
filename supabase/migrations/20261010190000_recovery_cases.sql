@@ -83,7 +83,7 @@ begin
  if uid is null then raise exception 'authenticated recovery owner required';end if;
  if p_request is null or p_kind is null or p_kind not in ('bank_fee','duplicate_charge','stale_hold')
   or jsonb_typeof(p_evidence) is distinct from 'array' then raise exception 'invalid recovery request';end if;
- if jsonb_array_length(p_evidence)<>case when p_kind='duplicate_charge' then 2 else 1 end then raise exception 'invalid recovery evidence count';end if;
+ if jsonb_array_length(p_evidence)<>(case when p_kind='duplicate_charge' then 2 else 1 end) then raise exception 'invalid recovery evidence count';end if;
  if p_due_on is not null and (not isfinite(p_due_on) or p_due_on<date '0001-01-01' or p_due_on>date '9999-12-31') then raise exception 'invalid recovery deadline';end if;
  request:=jsonb_build_object('action','open','kind',p_kind,'evidence',p_evidence,'due_on',p_due_on);
  -- Same order as ingestion/review locking; all request receipts and case

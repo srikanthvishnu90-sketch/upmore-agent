@@ -5,6 +5,1138 @@
   "TXN-002-export (CSV export) renumbered to TXN-012",
   "spec states 'Total: 316'; per-domain counts sum to 296"
  ],
+ "backlog": {
+  "source": "docs/instinct-spec-series/15.md",
+  "count": 112,
+  "items": [
+   {
+    "id": "B15-001",
+    "name": "Cash spending log with photos of paper receipts",
+    "group": "Everyday money operations",
+    "owner_doc": "05",
+    "status": "CLAIMED",
+    "attached_to": "TXN-014",
+    "related": [],
+    "refs": "doc 05, TXN-014"
+   },
+   {
+    "id": "B15-002",
+    "name": "ATM fee map: which nearby ATMs are free for the user's cards",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-003",
+    "name": "Foreign ATM and DCC warnings: always choose local currency",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-004",
+    "name": "Check writing status: outstanding checks that have not cleared",
+    "group": "Everyday money operations",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 06"
+   },
+   {
+    "id": "B15-005",
+    "name": "Deposit hold explanation: why a deposit is pending and when it clears",
+    "group": "Everyday money operations",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 06"
+   },
+   {
+    "id": "B15-006",
+    "name": "Safe-to-spend number that accounts for upcoming bills, not just balance",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-005",
+    "related": [],
+    "refs": "doc 02 ANL-005"
+   },
+   {
+    "id": "B15-007",
+    "name": "Payday countdown with bill coverage check",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-006",
+    "related": [],
+    "refs": "doc 02 ANL-006"
+   },
+   {
+    "id": "B15-008",
+    "name": "Duplicate subscription across family members",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-009",
+    "name": "Free tier downgrade paths for tools the user barely uses",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-010",
+    "name": "Annual vs monthly plan breakeven per actual usage",
+    "group": "Everyday money operations",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-011",
+    "name": "Credit score simulator: what paying off card X does to utilization",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 02 CRDT"
+   },
+   {
+    "id": "B15-012",
+    "name": "Thin-file coaching for users with little history",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 02 CRDT"
+   },
+   {
+    "id": "B15-013",
+    "name": "Authorized-user and tradeline strategy explainers",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-015",
+    "related": [],
+    "refs": "doc 02 CRDT-015"
+   },
+   {
+    "id": "B15-014",
+    "name": "Hard inquiry tracking with dispute path for unknown ones",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-007",
+    "related": [],
+    "refs": "doc 02 CRDT-007"
+   },
+   {
+    "id": "B15-015",
+    "name": "Credit freeze and thaw walkthroughs per bureau",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-014",
+    "related": [],
+    "refs": "doc 02 CRDT-014"
+   },
+   {
+    "id": "B15-016",
+    "name": "ChexSystems report for bank account denials",
+    "group": "Credit depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14"
+   },
+   {
+    "id": "B15-017",
+    "name": "Medical debt in collections: the special rules and pay-for-delete reality",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-016",
+    "related": [],
+    "refs": "doc 02 CRDT-016"
+   },
+   {
+    "id": "B15-018",
+    "name": "Goodwill letter drafts for isolated late payments",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-016",
+    "related": [],
+    "refs": "doc 02 CRDT-016"
+   },
+   {
+    "id": "B15-019",
+    "name": "Secured card graduation tracking",
+    "group": "Credit depth",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 02 CRDT"
+   },
+   {
+    "id": "B15-020",
+    "name": "Rental history and utility reporting to build credit",
+    "group": "Credit depth",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "HOUS-003",
+    "related": [],
+    "refs": "HOUS-003"
+   },
+   {
+    "id": "B15-021",
+    "name": "W-4 checkup after any life change, not just yearly",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-008",
+    "related": [],
+    "refs": "TAX-008"
+   },
+   {
+    "id": "B15-022",
+    "name": "Quarterly estimated tax calculation and payment reminders",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-003",
+    "related": [],
+    "refs": "TAX-003"
+   },
+   {
+    "id": "B15-023",
+    "name": "Crypto cost basis method choice (FIFO vs specific ID) with the tradeoff math",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-007",
+    "related": [],
+    "refs": "TAX-007"
+   },
+   {
+    "id": "B15-024",
+    "name": "HSA as an investment account: the triple-tax-advantage play",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-009",
+    "related": [],
+    "refs": "TAX-009"
+   },
+   {
+    "id": "B15-025",
+    "name": "Dependent care FSA vs child care credit optimizer",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-004",
+    "related": [],
+    "refs": "TAX-004"
+   },
+   {
+    "id": "B15-026",
+    "name": "Backdoor Roth mechanics explainer and step tracking",
+    "group": "Tax depth",
+    "owner_doc": "09",
+    "status": "CLAIMED",
+    "attached_to": "INV-018",
+    "related": [],
+    "refs": "INV-018"
+   },
+   {
+    "id": "B15-027",
+    "name": "Mega backdoor detection: does the employer plan allow after-tax contributions",
+    "group": "Tax depth",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-005",
+    "related": [],
+    "refs": "EARN-005"
+   },
+   {
+    "id": "B15-028",
+    "name": "State tax nexus flags for remote workers who moved",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-010",
+    "related": [],
+    "refs": "TAX-010"
+   },
+   {
+    "id": "B15-029",
+    "name": "Charitable bunching years for deduction maximization",
+    "group": "Tax depth",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-005",
+    "related": [],
+    "refs": "TAX-005"
+   },
+   {
+    "id": "B15-030",
+    "name": "529 plan state tax benefit comparison",
+    "group": "Tax depth",
+    "owner_doc": "09",
+    "status": "CLAIMED",
+    "attached_to": "INV-018",
+    "related": [],
+    "refs": "INV-018"
+   },
+   {
+    "id": "B15-031",
+    "name": "Household shared view with per-person permissions",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "SOC-006",
+    "related": [],
+    "refs": "SOC-006"
+   },
+   {
+    "id": "B15-032",
+    "name": "Kids' allowance with chores-to-payment rules",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "PAY-025",
+    "related": [],
+    "refs": "PAY-025"
+   },
+   {
+    "id": "B15-033",
+    "name": "Teen spending sub-accounts with category limits",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "SOC-007",
+    "related": [],
+    "refs": "SOC-007"
+   },
+   {
+    "id": "B15-034",
+    "name": "Allowance auto-raises on birthdays",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "PAY-025",
+    "related": [],
+    "refs": "PAY-025"
+   },
+   {
+    "id": "B15-035",
+    "name": "Family subscription consolidation audit",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "SOC-006",
+    "related": [],
+    "refs": "SOC-006"
+   },
+   {
+    "id": "B15-036",
+    "name": "Parent support planning: tracking money sent to family",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "SOC-001",
+    "related": [],
+    "refs": "SOC-001"
+   },
+   {
+    "id": "B15-037",
+    "name": "Divorce or separation financial untangling checklist",
+    "group": "Family and household",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14 playbooks"
+   },
+   {
+    "id": "B15-038",
+    "name": "Domestic partner expense-sharing agreements as tracked rules",
+    "group": "Family and household",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "SOC-002",
+    "related": [],
+    "refs": "SOC-002"
+   },
+   {
+    "id": "B15-039",
+    "name": "New job: benefits comparison between old and new, 401k rollover, W-4, insurance gaps",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-005",
+    "related": [
+     "INV-019"
+    ],
+    "refs": "EARN-005, INV-019"
+   },
+   {
+    "id": "B15-040",
+    "name": "Moving: address change checklist across every financial account, deposit tracking, utility transfers",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "HOUS-010",
+    "related": [],
+    "refs": "HOUS-010"
+   },
+   {
+    "id": "B15-041",
+    "name": "New baby: 529, dependent care, insurance adds, budget shock plan",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-009",
+    "related": [
+     "TAX-004"
+    ],
+    "refs": "INS-009, TAX-004"
+   },
+   {
+    "id": "B15-042",
+    "name": "Illness or disability: disability insurance claims, medical bill triage, income interruption plan",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-004",
+    "related": [],
+    "refs": "INS-004"
+   },
+   {
+    "id": "B15-043",
+    "name": "Death in family: account discovery, beneficiary claims, estate document checklist",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-008",
+    "related": [],
+    "refs": "INS-008"
+   },
+   {
+    "id": "B15-044",
+    "name": "First apartment: deposit, renters insurance, utility setup, furniture budget",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "HOUS-010",
+    "related": [],
+    "refs": "HOUS-010"
+   },
+   {
+    "id": "B15-045",
+    "name": "Buying a car: total cost math, loan pre-approval timing, insurance rebid",
+    "group": "Life events (playbooks the agent runs)",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-046",
+    "name": "Medical bill audit: upcoding and duplicate line detection",
+    "group": "Health money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-007",
+    "related": [],
+    "refs": "INS-007"
+   },
+   {
+    "id": "B15-047",
+    "name": "Medical bill negotiation: itemized bill request, prompt-pay discounts, charity care screening",
+    "group": "Health money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-048",
+    "name": "HSA/FSA receipt matching and reimbursement chasing",
+    "group": "Health money",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-009",
+    "related": [],
+    "refs": "TAX-009"
+   },
+   {
+    "id": "B15-049",
+    "name": "FSA use-it-or-lose-it countdown with eligible purchase suggestions",
+    "group": "Health money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "SAVE-020",
+    "related": [],
+    "refs": "SAVE-020"
+   },
+   {
+    "id": "B15-050",
+    "name": "Insurance EOB explanation in plain words",
+    "group": "Health money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-007",
+    "related": [],
+    "refs": "INS-007"
+   },
+   {
+    "id": "B15-051",
+    "name": "Prescription cost comparison across pharmacies and coupons",
+    "group": "Health money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 08"
+   },
+   {
+    "id": "B15-052",
+    "name": "Therapy and mental health benefit navigation",
+    "group": "Health money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-005",
+    "related": [],
+    "refs": "EARN-005"
+   },
+   {
+    "id": "B15-053",
+    "name": "FX and card selection per trip: which card has no foreign transaction fee",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CARD-002",
+    "related": [],
+    "refs": "CARD-002"
+   },
+   {
+    "id": "B15-054",
+    "name": "Travel notice handling across issuers",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CARD-013",
+    "related": [],
+    "refs": "CARD-013"
+   },
+   {
+    "id": "B15-055",
+    "name": "Trip budget tracking against plan",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-016",
+    "related": [],
+    "refs": "ANL-016"
+   },
+   {
+    "id": "B15-056",
+    "name": "Points and miles trip planning: best redemption for a specific trip",
+    "group": "Travel money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-012",
+    "related": [],
+    "refs": "EARN-012"
+   },
+   {
+    "id": "B15-057",
+    "name": "Flight delay and cancellation compensation",
+    "group": "Travel money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-016",
+    "related": [],
+    "refs": "EARN-016"
+   },
+   {
+    "id": "B15-058",
+    "name": "Hotel price-drop rebooking",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "SAVE-011",
+    "related": [],
+    "refs": "SAVE-011"
+   },
+   {
+    "id": "B15-059",
+    "name": "Currency exchange timing for cash needs",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-060",
+    "name": "Travel insurance decision support per trip cost",
+    "group": "Travel money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "INS family"
+   },
+   {
+    "id": "B15-061",
+    "name": "Financial document vault: IDs, policies, tax forms, titles, deeds",
+    "group": "Documents and the vault",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-002",
+    "related": [
+     "INS-010"
+    ],
+    "refs": "TAX-002, INS-010"
+   },
+   {
+    "id": "B15-062",
+    "name": "Warranty tracking from receipts with claim drafts",
+    "group": "Documents and the vault",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-014",
+    "related": [],
+    "refs": "EARN-014"
+   },
+   {
+    "id": "B15-063",
+    "name": "Return window tracking with reminders before expiry",
+    "group": "Documents and the vault",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "SAVE-011",
+    "related": [],
+    "refs": "SAVE-011"
+   },
+   {
+    "id": "B15-064",
+    "name": "Product recall matching against purchase history",
+    "group": "Documents and the vault",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-015",
+    "related": [],
+    "refs": "EARN-015"
+   },
+   {
+    "id": "B15-065",
+    "name": "Secure sharing of a document with an advisor or landlord",
+    "group": "Documents and the vault",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14"
+   },
+   {
+    "id": "B15-066",
+    "name": "Password and credential health for financial accounts",
+    "group": "Documents and the vault",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-007",
+    "related": [],
+    "refs": "SEC-007"
+   },
+   {
+    "id": "B15-067",
+    "name": "Beneficiary audit across every account, yearly",
+    "group": "Documents and the vault",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-008",
+    "related": [],
+    "refs": "INS-008"
+   },
+   {
+    "id": "B15-068",
+    "name": "Digital estate: what happens to accounts, documented",
+    "group": "Documents and the vault",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14"
+   },
+   {
+    "id": "B15-069",
+    "name": "Dark web monitoring for the user's emails and cards",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-003",
+    "related": [],
+    "refs": "SEC-003"
+   },
+   {
+    "id": "B15-070",
+    "name": "Data breach response playbook per breach",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-004",
+    "related": [],
+    "refs": "SEC-004"
+   },
+   {
+    "id": "B15-071",
+    "name": "SIM-swap risk: carrier PIN setup walkthrough",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-007",
+    "related": [],
+    "refs": "SEC-007"
+   },
+   {
+    "id": "B15-072",
+    "name": "Phishing detection on finance emails and texts",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-011",
+    "related": [],
+    "refs": "SEC-011"
+   },
+   {
+    "id": "B15-073",
+    "name": "Card-skimming pattern alerts",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-002",
+    "related": [],
+    "refs": "SEC-002"
+   },
+   {
+    "id": "B15-074",
+    "name": "New payee verification calls for large first sends",
+    "group": "Security and fraud depth",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "PAY-021",
+    "related": [],
+    "refs": "PAY-021"
+   },
+   {
+    "id": "B15-075",
+    "name": "Session audit for the agent itself: what devices, what actions",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-008",
+    "related": [],
+    "refs": "SEC-008"
+   },
+   {
+    "id": "B15-076",
+    "name": "Kill switch: one word pauses all agent actions",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-010",
+    "related": [],
+    "refs": "SEC-010"
+   },
+   {
+    "id": "B15-077",
+    "name": "Agent action audit log, user-inspectable, exportable",
+    "group": "Security and fraud depth",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-009",
+    "related": [],
+    "refs": "SEC-009"
+   },
+   {
+    "id": "B15-078",
+    "name": "Weekly money minute: one digest, skimmable, numbers only",
+    "group": "Agent operations and trust",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-020",
+    "related": [],
+    "refs": "ANL-020"
+   },
+   {
+    "id": "B15-079",
+    "name": "\"What did you do this week\" self-report",
+    "group": "Agent operations and trust",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": "SEC-009",
+    "related": [],
+    "refs": "SEC-009"
+   },
+   {
+    "id": "B15-080",
+    "name": "Standing instructions manager: review, pause, revoke",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-004",
+    "related": [],
+    "refs": "CORE-004"
+   },
+   {
+    "id": "B15-081",
+    "name": "Onboarding that interviews instead of forms",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-003",
+    "related": [],
+    "refs": "CORE-003"
+   },
+   {
+    "id": "B15-082",
+    "name": "Correction memory: never make the user correct the same thing twice",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-006",
+    "related": [],
+    "refs": "CORE-006"
+   },
+   {
+    "id": "B15-083",
+    "name": "Quiet hours and urgency override rules",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "ALRT-011",
+    "related": [],
+    "refs": "ALRT-011"
+   },
+   {
+    "id": "B15-084",
+    "name": "Multi-channel parity: same agent in iMessage, WhatsApp, app",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 01"
+   },
+   {
+    "id": "B15-085",
+    "name": "Voice input handling with read-back of money details",
+    "group": "Agent operations and trust",
+    "owner_doc": "11",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 11"
+   },
+   {
+    "id": "B15-086",
+    "name": "Latency budget: simple questions answer in seconds or say why not",
+    "group": "Agent operations and trust",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 01"
+   },
+   {
+    "id": "B15-087",
+    "name": "Offline behavior: what the agent says when connectors are down",
+    "group": "Agent operations and trust",
+    "owner_doc": "04",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 04"
+   },
+   {
+    "id": "B15-088",
+    "name": "Full data export in open formats, anytime",
+    "group": "Data and portability",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-013",
+    "related": [],
+    "refs": "CORE-013"
+   },
+   {
+    "id": "B15-089",
+    "name": "Account deletion with real purge, not soft-delete",
+    "group": "Data and portability",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-014",
+    "related": [],
+    "refs": "CORE-014"
+   },
+   {
+    "id": "B15-090",
+    "name": "Advisor handoff packet: organized export for a human advisor",
+    "group": "Data and portability",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-011",
+    "related": [],
+    "refs": "TAX-011"
+   },
+   {
+    "id": "B15-091",
+    "name": "Spreadsheet export for the user who wants their own model",
+    "group": "Data and portability",
+    "owner_doc": "04",
+    "status": "CLAIMED",
+    "attached_to": "TXN-012",
+    "related": [],
+    "refs": "TXN-012"
+   },
+   {
+    "id": "B15-092",
+    "name": "API for the user's own tools, read-only, key-scoped",
+    "group": "Data and portability",
+    "owner_doc": "04",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 04"
+   },
+   {
+    "id": "B15-093",
+    "name": "Import from Mint-style archives and other dead apps",
+    "group": "Data and portability",
+    "owner_doc": "04",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 04 MANUAL"
+   },
+   {
+    "id": "B15-094",
+    "name": "Paystub parsing: explain every line, catch errors",
+    "group": "Income and career money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-010",
+    "related": [],
+    "refs": "ANL-010"
+   },
+   {
+    "id": "B15-095",
+    "name": "Raise benchmarking against market data, framed as information",
+    "group": "Income and career money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-005",
+    "related": [],
+    "refs": "EARN-005"
+   },
+   {
+    "id": "B15-096",
+    "name": "Equity comp explainer: RSU vesting, sell-to-cover, concentration",
+    "group": "Income and career money",
+    "owner_doc": "09",
+    "status": "CLAIMED",
+    "attached_to": "INV-003",
+    "related": [],
+    "refs": "INV-003"
+   },
+   {
+    "id": "B15-097",
+    "name": "ESPP and option exercise decision support with tax math",
+    "group": "Income and career money",
+    "owner_doc": "08",
+    "status": "CLAIMED",
+    "attached_to": "EARN-006",
+    "related": [],
+    "refs": "EARN-006"
+   },
+   {
+    "id": "B15-098",
+    "name": "Side income tracking and quarterly tax set-aside automation",
+    "group": "Income and career money",
+    "owner_doc": "15",
+    "status": "CLAIMED",
+    "attached_to": "TAX-003",
+    "related": [],
+    "refs": "TAX-003"
+   },
+   {
+    "id": "B15-099",
+    "name": "Unemployment and severance navigation playbook",
+    "group": "Income and career money",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14"
+   },
+   {
+    "id": "B15-100",
+    "name": "Net worth trajectory with milestone dates",
+    "group": "Long-term and estate",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-017",
+    "related": [],
+    "refs": "ANL-017"
+   },
+   {
+    "id": "B15-101",
+    "name": "Retirement readiness math as information, not advice",
+    "group": "Long-term and estate",
+    "owner_doc": "09",
+    "status": "CLAIMED",
+    "attached_to": "INV-018",
+    "related": [],
+    "refs": "INV-018"
+   },
+   {
+    "id": "B15-102",
+    "name": "Social Security claiming age tradeoff explainer",
+    "group": "Long-term and estate",
+    "owner_doc": "09",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 09 education"
+   },
+   {
+    "id": "B15-103",
+    "name": "Long-term care insurance decision support",
+    "group": "Long-term and estate",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "INS-002",
+    "related": [],
+    "refs": "INS-002"
+   },
+   {
+    "id": "B15-104",
+    "name": "Will and trust document checklist with attorney handoff",
+    "group": "Long-term and estate",
+    "owner_doc": "14",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 14"
+   },
+   {
+    "id": "B15-105",
+    "name": "Annual financial physical: one standing review covering everything",
+    "group": "Long-term and estate",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "ANL-012",
+    "related": [],
+    "refs": "ANL-012"
+   },
+   {
+    "id": "B15-106",
+    "name": "Auto loan refinancing watch",
+    "group": "Vehicle money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "CRDT-011",
+    "related": [],
+    "refs": "CRDT-011"
+   },
+   {
+    "id": "B15-107",
+    "name": "Insurance rebid on vehicle change or move",
+    "group": "Vehicle money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": "SAVE-008",
+    "related": [],
+    "refs": "SAVE-008"
+   },
+   {
+    "id": "B15-108",
+    "name": "Fuel and maintenance cost tracking per vehicle",
+    "group": "Vehicle money",
+    "owner_doc": "06",
+    "status": "CLAIMED",
+    "attached_to": "HOUS-008",
+    "related": [],
+    "refs": "HOUS-008 pattern"
+   },
+   {
+    "id": "B15-109",
+    "name": "Lease vs buy math with the user's real numbers",
+    "group": "Vehicle money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-110",
+    "name": "Total cost of ownership before a purchase",
+    "group": "Vehicle money",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "doc 07"
+   },
+   {
+    "id": "B15-111",
+    "name": "A \"surprise me with money you found\" monthly audit across all engines",
+    "group": "Meta: the last five",
+    "owner_doc": "07",
+    "status": "CLAIMED",
+    "attached_to": null,
+    "related": [],
+    "refs": "docs 07, 08"
+   },
+   {
+    "id": "B15-112",
+    "name": "A public capability page generated from the registry, so users can see everything and request what is missing",
+    "group": "Meta: the last five",
+    "owner_doc": "01",
+    "status": "CLAIMED",
+    "attached_to": "CORE-002",
+    "related": [],
+    "refs": "CORE-002, doc 02"
+   }
+  ]
+ },
  "statuses": [
   "CLAIMED",
   "BUILT",

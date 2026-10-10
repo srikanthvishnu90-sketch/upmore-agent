@@ -75,7 +75,17 @@ def build():
         r["note"] = o.get("note")
         r["description"] = o.get("description", r["name"])
         del r["spec_gated"]
+    # Doc 15 backlog: CLAIMED items with owner docs, attached to the capability they deepen where the doc cites one. Never counted as capabilities.
+    backlog_path = root / "packages/capabilities/backlog.json"
+    backlog = json.loads(backlog_path.read_text())["items"] if backlog_path.exists() else []
+    known = {r["id"] for r in rows}
+    bad = [b["id"] for b in backlog if (b.get("attached_to") and b["attached_to"] not in known) or any(x not in known for x in b.get("related", []))]
+    if bad:
+        raise SystemExit(f"backlog items cite unknown registry ids: {bad}")
+    if any(b.get("status") != "CLAIMED" for b in backlog):
+        raise SystemExit("backlog items are CLAIMED until built; raise status in doc 02's overlay on the attached capability instead")
     return {"schema_version": 1, "source": str(spec.relative_to(root)), "corrections": corrections,
+            "backlog": {"source": "docs/instinct-spec-series/15.md", "count": len(backlog), "items": backlog},
             "statuses": ["CLAIMED", "BUILT", "TESTED", "VERIFIED", "GATED", "NOT_WIRED"],
             "tiers": {"T0": "inform", "T1": "watch", "T2": "draft", "T3": "act with confirmation",
                       "T4": "act within standing limits", "T5": "never autonomous"},

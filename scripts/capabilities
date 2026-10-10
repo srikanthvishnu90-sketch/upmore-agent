@@ -18,6 +18,13 @@ if (errors.length) { console.error("Capability registry invalid:\n" + errors.joi
 const reg = Registry.load(registry, exists);
 if (flag("--check")) { console.log(`Capability registry valid: ${reg.size} capabilities, ${reg.proven().length} proven`); process.exit(0); }
 if (flag("--ask")) { console.log(reg.answer(String(flag("--ask"))).text); process.exit(0); }
+if (flag("--backlog")) {
+  const items = (registry.backlog && registry.backlog.items) || [];
+  const only = typeof flag("--backlog") === "string" ? String(flag("--backlog")) : null;
+  for (const b of items.filter(b => !only || b.owner_doc === only || b.group.toLowerCase().includes(only.toLowerCase())))
+    console.log(`${b.id}  ${b.status.padEnd(8)} doc ${b.owner_doc}  ${(b.attached_to || "new").padEnd(8)} ${b.name}  [${b.group}]`);
+  process.exit(0);
+}
 if (flag("--domain")) {
   for (const c of reg.list(c => c.domain_code === String(flag("--domain")).toUpperCase()))
     console.log(`${c.id}  ${c.status.padEnd(9)} ${c.tier}  ${c.name}${c.note ? "  — " + c.note : ""}`);
@@ -31,3 +38,8 @@ for (const [code, d] of Object.entries(summary))
 const total = Object.values(summary).reduce((n, d) => n + d.total, 0);
 console.log("all".padEnd(8) + String(total).padStart(6) + statuses.map(s => String(reg.list(c => c.status === s).length).padStart(10)).join(""));
 if (registry.corrections && registry.corrections.length) console.log("\nspec corrections: " + registry.corrections.join("; "));
+if (registry.backlog) {
+  const items = registry.backlog.items, byDoc = {};
+  for (const b of items) byDoc[b.owner_doc] = (byDoc[b.owner_doc] || 0) + 1;
+  console.log(`\nbacklog (doc 15): ${items.length} items, all ${[...new Set(items.map(b => b.status))].join("/")}; ${items.filter(b => b.attached_to).length} deepen an existing capability, ${items.filter(b => !b.attached_to).length} are new surface; by owner doc ${Object.entries(byDoc).sort().map(([d, n]) => `${d}:${n}`).join(" ")}. List: scripts/capabilities --backlog [doc|group]`);
+}

@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 61.3% performed.
+31 outcomes, 100% accounted, 64.5% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -28,7 +28,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PP-020 Loan and state eligibility | non-parity: regulated-origination | n/a | Loan and state eligibility checks exist to originate BNPL credit, which Upmore never initiates (doc 03, doc 14). |
 | PP-021 Credit and repayment disclosures | CRDT-010 | TESTED | Credit and repayment disclosures are explained via the extra payment impact calculator on tracked debt. |
 | PP-022 Total financing cost | ANL-018 | TESTED | Total financing cost is a debt payoff projection on the tracked plan. |
-| PP-023 Package updates | TXN-015 | CLAIMED | Package updates have no registry capability; receipt ingestion from email is the closest data source. |
+| PP-023 Package updates | TXN-015 | TESTED | Package updates have no registry capability; receipt ingestion from email is the closest data source. |
 | PP-024 Transaction and cross-border fees | TXN-018 | TESTED |  |
 | PP-025 Resolution Center | PAY-024 | TESTED |  |
 | PP-X01 Apply for the PayPal Cashback Mastercard credit card and earn 3% on PayPal purchases, 1.5% elsewhere. | non-parity: regulated-origination | n/a | Submitting a credit card application is credit origination Upmore never performs; it only recommends the right card (CARD-002). |

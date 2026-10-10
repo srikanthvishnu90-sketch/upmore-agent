@@ -1140,13 +1140,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-015",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1198,13 +1198,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-015",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "low",
     "note": "Package tracking has no registry capability; the closest is receipt ingestion from email, which carries shipment data.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1285,13 +1285,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INS-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Doc 03: stored passes and tickets live in the document vault extended beyond insurance.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1367,13 +1367,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INS-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Doc 03: tickets go in the extended document vault.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1526,13 +1526,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "low",
     "note": "Cross-product privacy controls map to the agent's own session, device and data-access audit.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1642,13 +1642,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TAX-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "15",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: statements land in the document vault.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4109,13 +4109,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4998,13 +4998,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-015",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "low",
     "note": "Package updates have no registry capability; receipt ingestion from email is the closest data source.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5365,13 +5365,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-011",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "low",
     "note": "Security education is delivered as phishing detection in finance emails rather than content.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7128,13 +7128,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Reviewing and revoking third-party data access maps to the agent's session, device and access audit.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7886,13 +7886,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INS-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "A pass created from a photo or barcode is a stored document; Upmore cannot present it at a scanner.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7915,13 +7915,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "INS-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Insurance and vaccine cards go in the document vault; NFC hotel keys and badges are hardware-bound and not delivered.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8171,13 +8171,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TAX-012",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "15",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Child Tax Credit tracking is refund tracking.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8789,8 +8789,8 @@
    "non_parity": 8,
    "accounted": 27,
    "accounted_pct": 100,
-   "performed": 8,
-   "performed_pct": 29.6,
+   "performed": 15,
+   "performed_pct": 55.6,
    "gated": 1
   },
   "CH": {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 17,
-   "performed_pct": 50,
+   "performed": 18,
+   "performed_pct": 52.9,
    "gated": 5
   },
   "VE": {
@@ -8833,8 +8833,8 @@
    "non_parity": 0,
    "accounted": 23,
    "accounted_pct": 100,
-   "performed": 13,
-   "performed_pct": 56.5,
+   "performed": 15,
+   "performed_pct": 65.2,
    "gated": 3
   },
   "PP": {
@@ -8844,8 +8844,8 @@
    "non_parity": 3,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 19,
-   "performed_pct": 61.3,
+   "performed": 20,
+   "performed_pct": 64.5,
    "gated": 3
   },
   "BA": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 16,
-   "performed_pct": 64,
+   "performed": 18,
+   "performed_pct": 72,
    "gated": 3
   },
   "FC": {
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 164,
-  "performed_pct": 53.1,
+  "performed": 177,
+  "performed_pct": 57.3,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

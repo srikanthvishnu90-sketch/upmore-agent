@@ -1389,5 +1389,125 @@
       "packages/domain/61-agent-credit.js"
     ],
     "note": "collectorResponse: validation, cease, pay-for-delete and not-mine letters under the FDCPA with the 30-day timing; no identity number in any of them."
+  },
+  "INS-001": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "policies: the inventory from the vault's policy documents (line, issuer, premium, deductible, coverage, renewal) with the lines that have nothing on file named as a records gap, not a cover gap."
+  },
+  "INS-003": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "renewals: policies renewing within the lead time, days left, premium, and the rebid reminder with a deadline."
+  },
+  "INS-008": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "beneficiaryAudit: life, disability and retirement documents whose beneficiary is missing, never reviewed, older than a year, or predates a life event."
+  },
+  "INS-009": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "enrollmentWindows: the public marketplace and Medicare windows by their usual dates plus the user's own, with opens-in/open/closed state and a caveat that the year's official page decides."
+  },
+  "INS-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "vault: a metadata index (kind, issuer, dates, amounts, location, hash) that refuses any text with an identity or account number; list, find and remove."
+  },
+  "TAX-002": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "Tax forms as typed vault documents (W-2, 1099 family, 1098, 1095-A, K-1) by year and issuer, found by any field."
+  },
+  "TAX-003": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "estimatedTax: quarterly dates ahead with the amount from the user's expected tax divided by four, what is paid and what remains."
+  },
+  "TAX-005": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "donationLog: gifts in the year to the charities the user named, matched to vault acknowledgments; gifts of $250 or more without one are listed."
+  },
+  "TAX-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "taxCalendar: the usual federal filing, extension and contribution dates ahead, with the weekend-and-state caveat."
+  },
+  "TAX-012": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "refundTracker: filed date, typical e-file or paper window, state from the IRS status the user pastes; the tracker is named as the source."
+  },
+  "TXN-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "triageCharge: descriptor mapping, recurrence, history, pending, household card sharing and trial conversion in order; unexplained charges get lock-then-dispute with the draft offered."
+  },
+  "TXN-015": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "parseReceipt + matchReceipt: merchant, total, order number and date from a receipt email, matched to one charge by amount, date and merchant; ambiguity and no-match are reported, never guessed."
+  },
+  "TXN-016": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "attachPhoto: a photo receipt is attached by the total and merchant the user states, matched the same way; the agent does not claim to read the image."
+  },
+  "SEC-008": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "sessionAudit: the agent's own sessions by device and place, active ones, new-this-week ones called out; revokeSession ends any but the current."
+  },
+  "SEC-011": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "phishing: nine weighted signals (credential asks, urgency, link mismatch, look-alike domains, generic greeting, attachment lures, gift cards or crypto, reply-to and sender domain mismatches); verdicts phishing, suspicious, or no signals found, never safe."
   }
 }

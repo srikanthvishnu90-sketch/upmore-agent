@@ -2,13 +2,13 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-34 outcomes, 100% accounted, 50% performed.
+34 outcomes, 100% accounted, 52.9% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
 | CH-001 Account balances | ACCT-001 | TESTED |  |
 | CH-002 Transaction history | TXN-001 | TESTED |  |
-| CH-003 Electronic statements | TAX-002 | CLAIMED | Doc 03: statements land in the document vault. |
+| CH-003 Electronic statements | TAX-002 | TESTED | Doc 03: statements land in the document vault. |
 | CH-004 QuickDeposit mobile check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | CH-005 Eligible account transfers | PAY-009 | TESTED |  |
 | CH-006 Bill payments | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |

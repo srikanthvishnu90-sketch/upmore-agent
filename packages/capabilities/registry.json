@@ -1607,12 +1607,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "triageCharge: descriptor mapping, recurrence, history, pending, household card sharing and trial conversion in order; unexplained charges get lock-then-dispute with the draft offered.",
    "description": "unrecognized charge triage"
   },
   {
@@ -1688,12 +1690,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "parseReceipt + matchReceipt: merchant, total, order number and date from a receipt email, matched to one charge by amount, date and merchant; ambiguity and no-match are reported, never guessed.",
    "description": "receipt attachment from email"
   },
   {
@@ -1703,12 +1707,14 @@
    "domain": "transactions",
    "tier": "T2",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "attachPhoto: a photo receipt is attached by the total and merchant the user states, matched the same way; the agent does not claim to read the image.",
    "description": "receipt photo attachment"
   },
   {
@@ -4432,12 +4438,14 @@
    "domain": "taxes",
    "tier": "T1",
    "owner_doc": "15",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "Tax forms as typed vault documents (W-2, 1099 family, 1098, 1095-A, K-1) by year and issuer, found by any field.",
    "description": "document vault for tax forms"
   },
   {
@@ -4447,12 +4455,14 @@
    "domain": "taxes",
    "tier": "T1",
    "owner_doc": "15",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "estimatedTax: quarterly dates ahead with the amount from the user's expected tax divided by four, what is paid and what remains.",
    "description": "estimated tax reminders (quarterly)"
   },
   {
@@ -4477,12 +4487,14 @@
    "domain": "taxes",
    "tier": "T1",
    "owner_doc": "15",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "donationLog: gifts in the year to the charities the user named, matched to vault acknowledgments; gifts of $250 or more without one are listed.",
    "description": "charitable donation log with receipts"
   },
   {
@@ -4552,12 +4564,14 @@
    "domain": "taxes",
    "tier": "T1",
    "owner_doc": "15",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "taxCalendar: the usual federal filing, extension and contribution dates ahead, with the weekend-and-state caveat.",
    "description": "filing status and deadline calendar"
   },
   {
@@ -4582,12 +4596,14 @@
    "domain": "taxes",
    "tier": "T1",
    "owner_doc": "15",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "refundTracker: filed date, typical e-file or paper window, state from the IRS status the user pastes; the tracker is named as the source.",
    "description": "refund tracking"
   },
   {
@@ -4597,12 +4613,14 @@
    "domain": "insurance",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "policies: the inventory from the vault's policy documents (line, issuer, premium, deductible, coverage, renewal) with the lines that have nothing on file named as a records gap, not a cover gap.",
    "description": "policy inventory (health, auto, home, life)"
   },
   {
@@ -4627,12 +4645,14 @@
    "domain": "insurance",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "renewals: policies renewing within the lead time, days left, premium, and the rebid reminder with a deadline.",
    "description": "renewal date tracking with rebid reminder"
   },
   {
@@ -4702,12 +4722,14 @@
    "domain": "insurance",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "beneficiaryAudit: life, disability and retirement documents whose beneficiary is missing, never reviewed, older than a year, or predates a life event.",
    "description": "beneficiary audit reminder"
   },
   {
@@ -4717,12 +4739,14 @@
    "domain": "insurance",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "enrollmentWindows: the public marketplace and Medicare windows by their usual dates plus the user's own, with opens-in/open/closed state and a caveat that the year's official page decides.",
    "description": "open enrollment window alerts"
   },
   {
@@ -4732,12 +4756,14 @@
    "domain": "insurance",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "vault: a metadata index (kind, issuer, dates, amounts, location, hash) that refuses any text with an identity or account number; list, find and remove.",
    "description": "document storage for policies"
   },
   {
@@ -5607,12 +5633,14 @@
    "domain": "security and identity",
    "tier": "T0",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "sessionAudit: the agent's own sessions by device and place, active ones, new-this-week ones called out; revokeSession ends any but the current.",
    "description": "session and device audit for the agent itself"
   },
   {
@@ -5658,12 +5686,14 @@
    "domain": "security and identity",
    "tier": "T1",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/documents.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/62-agent-documents.js"
+   ],
+   "note": "phishing: nine weighted signals (credential asks, urgency, link mismatch, look-alike domains, generic greeting, attachment lures, gift cards or crypto, reply-to and sender domain mismatches); verdicts phishing, suspicious, or no signals found, never safe.",
    "description": "phishing detection in finance emails"
   },
   {

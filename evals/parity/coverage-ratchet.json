@@ -7,11 +7,11 @@
   },
   "GW": {
    "accounted_pct": 100,
-   "performed_pct": 29.6
+   "performed_pct": 55.6
   },
   "CH": {
    "accounted_pct": 100,
-   "performed_pct": 50
+   "performed_pct": 52.9
   },
   "VE": {
    "accounted_pct": 100,
@@ -23,15 +23,15 @@
   },
   "PR": {
    "accounted_pct": 100,
-   "performed_pct": 56.5
+   "performed_pct": 65.2
   },
   "PP": {
    "accounted_pct": 100,
-   "performed_pct": 61.3
+   "performed_pct": 64.5
   },
   "BA": {
    "accounted_pct": 100,
-   "performed_pct": 64
+   "performed_pct": 72
   },
   "FC": {
    "accounted_pct": 100,
@@ -44,6 +44,6 @@
  },
  "totals": {
   "accounted_pct": 100,
-  "performed_pct": 53.1
+  "performed_pct": 57.3
  }
 }

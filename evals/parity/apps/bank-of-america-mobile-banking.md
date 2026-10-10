@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 64% performed.
+25 outcomes, 100% accounted, 72% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-008 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | BA-009 Account alerts | ALRT-010 | TESTED | Configurable account alerts map to user-defined watches across the ALRT family. |
 | BA-010 Digital-wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
-| BA-011 Security education | SEC-011 | CLAIMED | Security education is delivered as phishing detection in finance emails rather than content. |
+| BA-011 Security education | SEC-011 | TESTED | Security education is delivered as phishing detection in finance emails rather than content. |
 | BA-012 Security meter | SEC-007 | TESTED | A security meter maps to credential rotation reminders; no security-score capability exists. |
 | BA-013 Fraud and identity-theft guidance | SEC-004 | TESTED |  |
 | BA-014 Eligible credit and FICO view | CRDT-001 | TESTED |  |
@@ -30,4 +30,4 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-022 Receive eligible electronic bills and due reminders | BILL-007 | CLAIMED | Doc 03: eBills ingestion is BILL-007. |
 | BA-X01 Aggregate accounts from other institutions to see a combined view and estimated net worth. | ACCT-004 | TESTED | Aggregated combined view with net worth is net worth calculation over ACCT-003. |
 | BA-X02 Activate merchant cash-back deals on BofA cards. | EARN-010 | CLAIMED |  |
-| BA-X03 Review and revoke third-party apps' access to bank data. | SEC-008 | CLAIMED | Reviewing and revoking third-party data access maps to the agent's session, device and access audit. |
+| BA-X03 Review and revoke third-party apps' access to bank data. | SEC-008 | TESTED | Reviewing and revoking third-party data access maps to the agent's session, device and access audit. |

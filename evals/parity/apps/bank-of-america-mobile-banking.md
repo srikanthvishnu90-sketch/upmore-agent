@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 52% performed.
+25 outcomes, 100% accounted, 56% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-006 Bill Pay | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | BA-007 Internal and external transfers | PAY-009 | CLAIMED |  |
 | BA-008 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
-| BA-009 Account alerts | ALRT-010 | CLAIMED | Configurable account alerts map to user-defined watches across the ALRT family. |
+| BA-009 Account alerts | ALRT-010 | TESTED | Configurable account alerts map to user-defined watches across the ALRT family. |
 | BA-010 Digital-wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | BA-011 Security education | SEC-011 | CLAIMED | Security education is delivered as phishing detection in finance emails rather than content. |
 | BA-012 Security meter | SEC-007 | TESTED | A security meter maps to credential rotation reminders; no security-score capability exists. |

@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-28 outcomes, 100% accounted, 46.4% performed.
+28 outcomes, 100% accounted, 53.6% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | FC-009 Inspect offer requirements | EARN-002 | TESTED |  |
 | FC-010 Completion and provider attribution | EARN-002 | TESTED | Completion and provider attribution are requirement tracking outcomes. |
 | FC-011 Rewards accounting | EARN-011 | TESTED | Earn-app rewards accounting has no dedicated ledger capability; rewards valuation across programs is closest. |
-| FC-012 Withdrawal thresholds | ALRT-010 | CLAIMED | Doc 03: cash-out threshold alerts are a T1 watch. |
+| FC-012 Withdrawal thresholds | ALRT-010 | TESTED | Doc 03: cash-out threshold alerts are a T1 watch. |
 | FC-013 PayPal cashout | PAY-015 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | FC-014 Bank cashout | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | FC-015 Crypto cashout | non-parity: investment-platform | n/a | Crypto-denominated payout puts earnings into a crypto custody surface; investment-platform feature excluded per doc 09. |
@@ -33,4 +33,4 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | FC-X05 New user receives a $10 welcome bonus tied to signup/first offer. | EARN-001 | CLAIMED | A welcome bonus is surfaced by the signup bonus finder. |
 | FC-X06 Gamified engagement features: weekly leagues, weekly lottery tickets, streaks, daily bonus ladder, open-case rewards, reward multipliers. | non-parity: gamification | n/a | Leagues, lotteries, streaks and bonus ladders farm attention; doc 03 and doc 11 say Upmore deliberately does not gamify and only tracks the money. |
 | FC-X07 Referral/affiliate program and bonus codes. | EARN-003 | TESTED |  |
-| FC-X08 Payout processing is outsourced to Tremendous (current) / Tango (legacy), who send claim emails and handle some payout support. | ALRT-007 | CLAIMED | Outsourced payout claim emails are handled by watching for the payout to land; no payout-processor capability exists. |
+| FC-X08 Payout processing is outsourced to Tremendous (current) / Tango (legacy), who send claim emails and handle some payout support. | ALRT-007 | TESTED | Outsourced payout claim emails are handled by watching for the payout to land; no payout-processor capability exists. |

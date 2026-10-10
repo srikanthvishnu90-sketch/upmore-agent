@@ -2,12 +2,12 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-38 outcomes, 100% accounted, 31.6% performed.
+38 outcomes, 100% accounted, 36.8% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
 | CA-001 Send money to a verified person | PAY-001 | CLAIMED |  |
-| CA-002 Receive person-to-person payments | ALRT-007 | CLAIMED | Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022). |
+| CA-002 Receive person-to-person payments | ALRT-007 | TESTED | Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022). |
 | CA-003 Resolve a recipient by verified handle | PAY-021 | TESTED |  |
 | CA-004 Link bank and debit funding | ACCT-006 | CLAIMED |  |
 | CA-005 Display eligible stored balance | ACCT-001 | TESTED |  |
@@ -18,7 +18,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-010 Debit merchant purchases | TXN-001 | TESTED | Card spending itself happens at the terminal; Upmore delivers the outcome as transaction visibility and CARD-002 card choice. |
 | CA-011 ATM access and fee eligibility | non-parity: hardware-bound | n/a | ATM withdrawal is a physical cash and card interaction; Upmore can only flag ATM fees afterwards (TXN-018). |
 | CA-012 Participating-store cash deposit | non-parity: hardware-bound | n/a | Depositing paper cash at a participating store requires a physical barcode scan and cash handoff the agent cannot perform. |
-| CA-013 Direct deposit and eligible early pay | ALRT-007 | CLAIMED |  |
+| CA-013 Direct deposit and eligible early pay | ALRT-007 | TESTED |  |
 | CA-014 Savings balances and goals | ACCT-018 | TESTED | Doc 03 anchors savings balance to ACCT-018; goal tracking is ANL-016. |
 | CA-015 Automatic saving rules | SAVE-001 | CLAIMED |  |
 | CA-016 Savings interest eligibility | SAVE-002 | TESTED |  |

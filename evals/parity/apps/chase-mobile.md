@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-34 outcomes, 100% accounted, 38.2% performed.
+34 outcomes, 100% accounted, 41.2% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CH-005 Eligible account transfers | PAY-009 | CLAIMED |  |
 | CH-006 Bill payments | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CH-007 Zelle sending | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| CH-008 Zelle receiving | ALRT-007 | CLAIMED | Receiving Zelle is a deposit-received alert; sending is PAY-012. |
+| CH-008 Zelle receiving | ALRT-007 | TESTED | Receiving Zelle is a deposit-received alert; sending is PAY-012. |
 | CH-009 Digital-wallet card provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | CH-010 Eligible Pay Over Time plans | CRDT-008 | TESTED | Pay Over Time plans are tracked as debt; Upmore never initiates BNPL (doc 03). |
 | CH-011 Plan fees and schedule | ANL-018 | TESTED | Plan fees and schedule are delivered as a debt payoff projection on the tracked plan. |

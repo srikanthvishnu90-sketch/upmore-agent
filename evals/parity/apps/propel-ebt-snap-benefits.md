@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-23 outcomes, 100% accounted, 52.2% performed.
+23 outcomes, 100% accounted, 56.5% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PR-005 EBT transaction history | TXN-001 | TESTED |  |
 | PR-006 Merchant and online details | TXN-004 | TESTED | Merchant and online purchase details are merchant normalization on EBT transactions. |
 | PR-007 Estimated benefit deposits | ANL-006 | TESTED | Estimated benefit deposit dates feed the cashflow forecast; arrival is ALRT-007. |
-| PR-008 Benefit policy alerts | ALRT-010 | CLAIMED | Benefit policy change alerts are a user-defined watch; no benefits-policy capability exists. |
+| PR-008 Benefit policy alerts | ALRT-010 | TESTED | Benefit policy change alerts are a user-defined watch; no benefits-policy capability exists. |
 | PR-009 Supported EBT card lock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | PR-010 Supported out-of-state block | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | PR-011 Supported online block | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |

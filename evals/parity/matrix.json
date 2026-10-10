@@ -97,13 +97,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -406,13 +406,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1314,13 +1314,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Flight and gate updates are a user-defined watch; compensation on delay is EARN-016.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1396,13 +1396,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Timely surfacing of a stored ticket is a scheduled watch on vault contents.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1782,13 +1782,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Receiving Zelle is a deposit-received alert; sending is PAY-012.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3085,13 +3085,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Purchase notifications are delivered as transaction alerts with fatigue guard (ALRT-012).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3964,13 +3964,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Benefit policy change alerts are a user-defined watch; no benefits-policy capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5312,13 +5312,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Configurable account alerts map to user-defined watches across the ALRT family.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6003,13 +6003,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Doc 03: cash-out threshold alerts are a T1 watch.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6317,13 +6317,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Configurable account alerts map to user-defined watches across the ALRT family.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7804,13 +7804,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ALRT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Outsourced payout claim emails are handled by watching for the payout to land; no payout-processor capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8778,8 +8778,8 @@
    "non_parity": 6,
    "accounted": 38,
    "accounted_pct": 100,
-   "performed": 12,
-   "performed_pct": 31.6,
+   "performed": 14,
+   "performed_pct": 36.8,
    "gated": 7
   },
   "GW": {
@@ -8789,8 +8789,8 @@
    "non_parity": 8,
    "accounted": 27,
    "accounted_pct": 100,
-   "performed": 6,
-   "performed_pct": 22.2,
+   "performed": 8,
+   "performed_pct": 29.6,
    "gated": 1
   },
   "CH": {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 13,
-   "performed_pct": 38.2,
+   "performed": 14,
+   "performed_pct": 41.2,
    "gated": 5
   },
   "VE": {
@@ -8822,8 +8822,8 @@
    "non_parity": 5,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 17,
-   "performed_pct": 54.8,
+   "performed": 18,
+   "performed_pct": 58.1,
    "gated": 6
   },
   "PR": {
@@ -8833,8 +8833,8 @@
    "non_parity": 0,
    "accounted": 23,
    "accounted_pct": 100,
-   "performed": 12,
-   "performed_pct": 52.2,
+   "performed": 13,
+   "performed_pct": 56.5,
    "gated": 3
   },
   "PP": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 13,
-   "performed_pct": 52,
+   "performed": 14,
+   "performed_pct": 56,
    "gated": 3
   },
   "FC": {
@@ -8866,8 +8866,8 @@
    "non_parity": 2,
    "accounted": 28,
    "accounted_pct": 100,
-   "performed": 13,
-   "performed_pct": 46.4,
+   "performed": 15,
+   "performed_pct": 53.6,
    "gated": 2
   },
   "WF": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 8,
-   "performed_pct": 26.7,
+   "performed": 9,
+   "performed_pct": 30,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 124,
-  "performed_pct": 40.1,
+  "performed": 135,
+  "performed_pct": 43.7,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

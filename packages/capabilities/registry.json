@@ -5087,12 +5087,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Low balance ahead from the cash flow forecast's low point under the buffer before the next income; urgent when negative; deadline is the day it happens.",
    "description": "low balance"
   },
   {
@@ -5102,12 +5104,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Large transaction: over the user's line, or three times the category's typical charge with at least five prior rows.",
    "description": "large transaction"
   },
   {
@@ -5117,12 +5121,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Unusual pattern: a first-time merchant at a large amount, or a category's 7-day spend at three times its trailing weekly average; several first-time merchants or a probe-then-large shape in one day is safety (SEC-001).",
    "description": "unusual spending pattern"
   },
   {
@@ -5132,12 +5138,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Bill increase: a steady recurring debit posted today 5 percent or more above its usual amount, with the yearly cost.",
    "description": "bill increase"
   },
   {
@@ -5147,12 +5155,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Renewal: a yearly or quarterly recurring charge or a flagged renewal due within 7 days, with keep, cancel or switch to monthly.",
    "description": "subscription renewal"
   },
   {
@@ -5162,12 +5172,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Payment failed: a connector event or a returned-payment descriptor today; urgent, with the retry-by date as a deadline.",
    "description": "payment failed"
   },
   {
@@ -5177,12 +5189,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Deposit received: a credit today at or above 80 percent of a recurring income amount.",
    "description": "deposit received"
   },
   {
@@ -5192,12 +5206,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Fee charged today, with the reversal request offered.",
    "description": "fee charged"
   },
   {
@@ -5207,12 +5223,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Security sign-in: a connector sign-in from a new device or place is safety; the agent never asks for the password.",
    "description": "security sign-in events"
   },
   {
@@ -5222,12 +5240,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Watch-specific: the user's words parsed into one of six conditions (balance below, charge over, merchant charges, deposit lands, category over per month, bill goes up), restated, refused when unparseable, evaluated over the same rows.",
    "description": "watch-specific (user-defined anything)"
   },
   {
@@ -5237,12 +5257,14 @@
    "domain": "alerts",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/alerts.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/59-agent-alerts.js"
+   ],
+   "note": "Quiet hours: everything but safety is held until the window ends, with the time it will be delivered.",
    "description": "quiet hours enforcement"
   },
   {
@@ -5257,9 +5279,10 @@
    "gate_reason": null,
    "connectors": [],
    "implementation": [
-    "packages/domain/43-agent-loop.js"
+    "packages/domain/43-agent-loop.js",
+    "packages/domain/59-agent-alerts.js"
    ],
-   "note": "Proactive budget: one non-urgent message per day, four per week; urgent, requested cadence and real deadlines bypass it; suppressed items are reported.",
+   "note": "Proactive budget: one non-urgent message per day, four per week; urgent, requested cadence and real deadlines bypass it; suppressed items are reported. At the alert layer, three or more non-safety items at once become one bundle, highest severity first (tests/alerts.test.cjs).",
    "description": "alert fatigue guard (bundle, prioritize)"
   },
   {

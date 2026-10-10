@@ -2,14 +2,14 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 54.8% performed.
+31 outcomes, 100% accounted, 58.1% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
 | CO-001 Current balances | ACCT-001 | TESTED |  |
 | CO-002 Detailed activity | TXN-001 | TESTED |  |
 | CO-003 Duplicate and surprise-charge alerts | TXN-009 | TESTED |  |
-| CO-004 Purchase notifications | ALRT-002 | CLAIMED | Purchase notifications are delivered as transaction alerts with fatigue guard (ALRT-012). |
+| CO-004 Purchase notifications | ALRT-002 | TESTED | Purchase notifications are delivered as transaction alerts with fatigue guard (ALRT-012). |
 | CO-005 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CO-006 CreditWise enrollment and scores | CRDT-001 | CLAIMED |  |
 | CO-007 Rewards balances | EARN-011 | TESTED |  |

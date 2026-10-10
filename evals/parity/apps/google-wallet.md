@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-27 outcomes, 100% accounted, 22.2% performed.
+27 outcomes, 100% accounted, 29.6% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -18,10 +18,10 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | GW-010 Loyalty cards | EARN-011 | TESTED |  |
 | GW-011 Gift cards | ACCT-007 | CLAIMED | Gift card balances are tracked as manually entered stored-value accounts. |
 | GW-012 Boarding passes | INS-010 | CLAIMED | Doc 03: stored passes and tickets live in the document vault extended beyond insurance. |
-| GW-013 Flight and gate updates | ALRT-010 | CLAIMED | Flight and gate updates are a user-defined watch; compensation on delay is EARN-016. |
+| GW-013 Flight and gate updates | ALRT-010 | TESTED | Flight and gate updates are a user-defined watch; compensation on delay is EARN-016. |
 | GW-014 Supported transit passes | non-parity: hardware-bound | n/a | Transit passes are tapped at NFC fare gates from the phone's secure element; Upmore cannot present them. |
 | GW-015 Event tickets | INS-010 | CLAIMED | Doc 03: tickets go in the extended document vault. |
-| GW-016 Timely ticket surfacing | ALRT-010 | CLAIMED | Timely surfacing of a stored ticket is a scheduled watch on vault contents. |
+| GW-016 Timely ticket surfacing | ALRT-010 | TESTED | Timely surfacing of a stored ticket is a scheduled watch on vault contents. |
 | GW-017 Supported state IDs | non-parity: hardware-bound | n/a | State IDs are presented from the phone's secure element to NFC readers; Upmore cannot hold or present a mobile ID credential. |
 | GW-018 Supported student IDs | non-parity: hardware-bound | n/a | Student IDs are NFC campus credentials bound to the device secure element. |
 | GW-019 Supported digital car keys | non-parity: hardware-bound | n/a | Digital car keys use NFC/UWB from the device and cannot be delivered through conversation. |

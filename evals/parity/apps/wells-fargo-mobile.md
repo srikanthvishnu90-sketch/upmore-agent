@@ -2,13 +2,13 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-30 outcomes, 100% accounted, 26.7% performed.
+30 outcomes, 100% accounted, 30% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
 | WF-001 Balances | ACCT-001 | TESTED |  |
 | WF-002 Transactions | TXN-001 | TESTED |  |
-| WF-003 Account alerts | ALRT-010 | CLAIMED | Configurable account alerts map to user-defined watches across the ALRT family. |
+| WF-003 Account alerts | ALRT-010 | TESTED | Configurable account alerts map to user-defined watches across the ALRT family. |
 | WF-004 Eligible account opening | non-parity: regulated-origination | n/a | Opening a new bank account is regulated KYC onboarding Upmore never performs; it only finds signup bonuses (EARN-001). |
 | WF-005 Zelle sending and receiving | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-006 Internal transfers | PAY-009 | CLAIMED |  |

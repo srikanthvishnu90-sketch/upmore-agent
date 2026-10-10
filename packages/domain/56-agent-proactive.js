@@ -54,6 +54,16 @@
         for (const d of r.decisions.filter(d => d.decision === "alert")) { const a = News.alert(d, input.news_user); if (a.text) out.watches.push({ key: "news:" + d.cluster.id, text: a.text, reason: "you hold this name", urgent: true }); }
         out.brief = News.brief(r);
       }
+      // Alerts (doc 02 ALRT): today's detectors and the user's own watches, already quiet-hours filtered and bundled; safety stays safety.
+      const Alerts = mod("AgentAlerts");
+      if (Alerts && input.transactions) {
+        const a = Alerts.run({ today: input.today, transactions: input.transactions, accounts: input.accounts_live || input.accounts, rules: input.rules, buffer_cents: input.buffer_cents, large_threshold_cents: input.large_threshold_cents, events: input.events, renewals: input.renewals, watches: input.watches, quiet: input.quiet }, { now });
+        out.sources.alerts = { firings: a.firings, held: a.held.length, quiet: a.quiet };
+        for (const s of a.safety) out.safety.push(s);
+        for (const w of a.watches) out.watches.push(w);
+        for (const p of a.proactive) out.proactive.push(Object.assign({ priority: 2 }, p));
+        out.held = a.held;
+      }
       // Fraud and scam shapes are safety: they beat everything (doc 01 decision order).
       for (const s of input.safety || []) out.safety.push(s);
       for (const p of out.proactive) { if (p.text && typeof p.text === "string" && /possible fraud|unauthorized|card-skimming/i.test(p.text)) { out.safety.push({ text: p.text, key: p.key }); p.suppressed_as_safety = true; } }

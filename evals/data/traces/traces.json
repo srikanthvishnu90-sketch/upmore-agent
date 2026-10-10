@@ -1,0 +1,56 @@
+{
+ "schema_version": 1,
+ "note": "Ordered connector call graphs per capability (doc 12 Dataset 3). Fixture inputs/outputs only; the verification_step is the call whose output, not the agent's assumption, decides success.",
+ "traces": [
+  {"capability_id": "BILL-003", "request": "cancel my spotify",
+   "calls": [
+    {"step": 1, "call": "registry.get", "input": {"id": "BILL-003"}, "output": {"tier": "T3", "status": "TESTED"}},
+    {"step": 2, "call": "merchantCatalog.resolve", "input": {"text": "spotify"}, "output": {"merchant_key": "spotify", "verified": false, "mode": "guided_or_local_fixture"}},
+    {"step": 3, "call": "voice.compose.confirm", "input": {"restate": "Cancel Spotify Premium ($11.99/month, next charge 2026-11-01) in your Spotify account."}, "output": {"confirmation_id": "confirm-3"}},
+    {"step": 4, "call": "user.confirm", "input": {"confirmation_id": "confirm-3"}, "output": {"approved": true}},
+    {"step": 5, "call": "agentExec.runDeclarative", "input": {"playbook": "spotify", "idempotency_key": "BILL-003:spotify:sub-1"}, "output": {"ok": true, "confirmation_text": "Premium has been cancelled", "shots": ["account", "confirmation"]}},
+    {"step": 6, "call": "cancelClaims.insert", "input": {"status": "open", "expected_billing_date": "2026-11-01", "grace_days": 2}, "output": {"claim_id": "claim-1"}},
+    {"step": 7, "call": "cancelWatcher.check", "input": {"claim_id": "claim-1", "after": "2026-11-03"}, "output": {"charge_found": false, "status": "confirmed"}},
+    {"step": 8, "call": "voice.compose.receipt", "input": {"done": "Cancelled", "verified": true}, "output": {"bubbles": ["Spotify is cancelled: no charge posted after 2026-11-01. $11.99/month avoided, verified."]}}
+   ],
+   "verification_step": 7},
+  {"capability_id": "SAVE-005", "request": "get my overdraft fee back",
+   "calls": [
+    {"step": 1, "call": "ledger.page", "input": {"account_id": "chk", "from": "2026-09-01", "to": "2026-10-10"}, "output": {"rows": 143, "source": "SimpleFIN", "as_of": "2026-10-10T14:02:00Z"}},
+    {"step": 2, "call": "AgentRecovery.scan", "input": {"today": "2026-10-10"}, "output": {"candidates": [{"id": "bank_fee:[[\"chk\",\"t88\"]]", "kind": "bank_fee", "fee_kind": "overdraft", "amount_cents": 3500, "status": "open"}]}},
+    {"step": 3, "call": "voice.compose.answer", "input": {"text": "One $35.00 overdraft fee on 2026-10-02, per SimpleFIN as of 2:02 pm. I can draft the refund request; you send it."}, "output": {"bubbles": 1}},
+    {"step": 4, "call": "user.confirm", "input": {"confirmation_id": "confirm-4", "draft_only": true}, "output": {"approved": true}},
+    {"step": 5, "call": "drafts.store", "input": {"kind": "bank_fee_reversal", "text": "Hello, I'm requesting a courtesy refund..."}, "output": {"draft_id": "d-1", "sent_by": "user"}},
+    {"step": 6, "call": "AgentRecovery.scan", "input": {"today": "2026-10-24"}, "output": {"candidates": [{"id": "bank_fee:[[\"chk\",\"t88\"]]", "status": "recovered", "recovered_cents": 3500, "reversal": {"transaction_id": "t131"}}]}},
+    {"step": 7, "call": "voice.compose.receipt", "input": {"done": "Refunded"}, "output": {"bubbles": ["Refunded. $35.00 overdraft fee credited on 2026-10-20 (per SimpleFIN). Verified."]}}
+   ],
+   "verification_step": 6},
+  {"capability_id": "TXN-009", "request": "was i charged twice at the gym",
+   "calls": [
+    {"step": 1, "call": "ledger.page", "input": {"account_id": "card", "from": "2026-10-01", "to": "2026-10-10"}, "output": {"rows": 61, "source": "SimpleFIN", "as_of": "2026-10-10T14:02:00Z"}},
+    {"step": 2, "call": "AgentRecovery.scan", "input": {"today": "2026-10-10", "accountId": "card"}, "output": {"candidates": [{"kind": "duplicate_charge", "amount_cents": 4000, "confidence": "likely", "evidence": ["t12", "t13"]}]}},
+    {"step": 3, "call": "voice.compose.answer", "input": {"text": "Two identical $40.00 charges from GYM on 2026-10-01, per SimpleFIN as of 2:02 pm. Two separate visits can be legitimate; if not, I'll draft the refund request."}, "output": {"bubbles": 1}}
+   ],
+   "verification_step": 2},
+  {"capability_id": "PAY-001", "request": "send sarah the 85 for the airbnb",
+   "calls": [
+    {"step": 1, "call": "registry.get", "input": {"id": "PAY-001"}, "output": {"tier": "T3", "status": "CLAIMED"}},
+    {"step": 2, "call": "voice.compose.limit", "input": {"capability": "PAY-001"}, "output": {"bubbles": ["Sending money isn't available yet: it is not built yet. I can draft the Venmo request text for you to send."]}}
+   ],
+   "verification_step": 1},
+  {"capability_id": "CORE-007", "request": "(follow-up wake after an unknown write)",
+   "calls": [
+    {"step": 1, "call": "eventLog.last", "input": {"state": "FOLLOW_UP_SCHEDULED"}, "output": {"idempotency_key": "PAY-001:marcus-40", "capability_id": "PAY-001"}},
+    {"step": 2, "call": "connectors.verify", "input": {"idempotency_key": "PAY-001:marcus-40"}, "output": {"confirmed": true, "source": "Example Bank", "reference": "ref-1"}},
+    {"step": 3, "call": "memory.outcomes.append", "input": {"result": "confirmed", "reference": "ref-1"}, "output": {"ok": true}},
+    {"step": 4, "call": "voice.compose.receipt", "input": {"done": "Sent", "reference": "ref-1"}, "output": {"bubbles": ["Done: send $40.00 to Marcus (ref ref-1). Confirmed by Example Bank."]}}
+   ],
+   "verification_step": 2},
+  {"capability_id": "CORE-002", "request": "can you zelle people",
+   "calls": [
+    {"step": 1, "call": "registry.answer", "input": {"id": "PAY-012"}, "output": {"status": "GATED", "text": "Zelle via bank partner (PAY-012) is blocked until a licensed partner or rail is in place."}},
+    {"step": 2, "call": "voice.compose.limit", "input": {"capability": "PAY-012"}, "output": {"bubbles": ["Zelle isn't available yet: it needs a bank partner."]}}
+   ],
+   "verification_step": 1}
+ ]
+}

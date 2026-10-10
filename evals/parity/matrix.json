@@ -1,0 +1,5645 @@
+{
+ "schema_version": 1,
+ "generated_from": {
+  "registry": "docs/instinct-spec-series/02.md",
+  "catalog_rows": 1009,
+  "mapped_rows": 309
+ },
+ "coverage": {
+  "CA": {
+   "app": "Cash App",
+   "rows": 38,
+   "parity_rows": 32,
+   "non_parity": 6,
+   "delivered": 0,
+   "gated": 4,
+   "claimed": 28,
+   "delivered_pct": 0.0
+  },
+  "GW": {
+   "app": "Google Wallet",
+   "rows": 27,
+   "parity_rows": 19,
+   "non_parity": 8,
+   "delivered": 0,
+   "gated": 1,
+   "claimed": 18,
+   "delivered_pct": 0.0
+  },
+  "CH": {
+   "app": "Chase Mobile",
+   "rows": 34,
+   "parity_rows": 29,
+   "non_parity": 5,
+   "delivered": 1,
+   "gated": 3,
+   "claimed": 25,
+   "delivered_pct": 3.4
+  },
+  "VE": {
+   "app": "Venmo",
+   "rows": 41,
+   "parity_rows": 31,
+   "non_parity": 10,
+   "delivered": 0,
+   "gated": 4,
+   "claimed": 27,
+   "delivered_pct": 0.0
+  },
+  "CO": {
+   "app": "Capital One Mobile",
+   "rows": 31,
+   "parity_rows": 26,
+   "non_parity": 5,
+   "delivered": 5,
+   "gated": 6,
+   "claimed": 15,
+   "delivered_pct": 19.2
+  },
+  "PR": {
+   "app": "Propel EBT & SNAP Benefits",
+   "rows": 23,
+   "parity_rows": 23,
+   "non_parity": 0,
+   "delivered": 2,
+   "gated": 3,
+   "claimed": 18,
+   "delivered_pct": 8.7
+  },
+  "PP": {
+   "app": "PayPal",
+   "rows": 31,
+   "parity_rows": 28,
+   "non_parity": 3,
+   "delivered": 1,
+   "gated": 3,
+   "claimed": 24,
+   "delivered_pct": 3.6
+  },
+  "BA": {
+   "app": "Bank of America Mobile Banking",
+   "rows": 25,
+   "parity_rows": 23,
+   "non_parity": 2,
+   "delivered": 3,
+   "gated": 2,
+   "claimed": 18,
+   "delivered_pct": 13.0
+  },
+  "FC": {
+   "app": "Freecash: Earn Money",
+   "rows": 28,
+   "parity_rows": 26,
+   "non_parity": 2,
+   "delivered": 0,
+   "gated": 1,
+   "claimed": 25,
+   "delivered_pct": 0.0
+  },
+  "WF": {
+   "app": "Wells Fargo Mobile",
+   "rows": 30,
+   "parity_rows": 23,
+   "non_parity": 7,
+   "delivered": 2,
+   "gated": 5,
+   "claimed": 16,
+   "delivered_pct": 8.7
+  }
+ },
+ "rows": [
+  {
+   "catalog_id": "CA-001",
+   "record_type": "seed",
+   "outcome": "Send money to a verified person",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-001",
+    "name": "send to saved recipient",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-002",
+   "record_type": "seed",
+   "outcome": "Receive person-to-person payments",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-007",
+    "name": "deposit received",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022)."
+  },
+  {
+   "catalog_id": "CA-003",
+   "record_type": "seed",
+   "outcome": "Resolve a recipient by verified handle",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-021",
+    "name": "recipient verification before first send",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-004",
+   "record_type": "seed",
+   "outcome": "Link bank and debit funding",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-006",
+    "name": "add account via aggregator",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-005",
+   "record_type": "seed",
+   "outcome": "Display eligible stored balance",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-006",
+   "record_type": "seed",
+   "outcome": "Standard bank cashout",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-007",
+   "record_type": "seed",
+   "outcome": "Instant bank cashout with fee preview",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: instant vs free 1-3 day transfer is PAY-010 with fee disclosure."
+  },
+  {
+   "catalog_id": "CA-008",
+   "record_type": "seed",
+   "outcome": "Credit-card funding with fee preview",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Credit-card funding is a fee-bearing rail choice; the agent discloses the fee before pulling funds."
+  },
+  {
+   "catalog_id": "CA-009",
+   "record_type": "seed",
+   "outcome": "Order and manage customizable debit card",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Physical card ordering is the issuer's; Upmore inventories and manages the card once it exists."
+  },
+  {
+   "catalog_id": "CA-010",
+   "record_type": "seed",
+   "outcome": "Debit merchant purchases",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Card spending itself happens at the terminal; Upmore delivers the outcome as transaction visibility and CARD-002 card choice."
+  },
+  {
+   "catalog_id": "CA-011",
+   "record_type": "seed",
+   "outcome": "ATM access and fee eligibility",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "ATM withdrawal is a physical cash and card interaction; Upmore can only flag ATM fees afterwards (TXN-018)."
+  },
+  {
+   "catalog_id": "CA-012",
+   "record_type": "seed",
+   "outcome": "Participating-store cash deposit",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Depositing paper cash at a participating store requires a physical barcode scan and cash handoff the agent cannot perform."
+  },
+  {
+   "catalog_id": "CA-013",
+   "record_type": "seed",
+   "outcome": "Direct deposit and eligible early pay",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-007",
+    "name": "deposit received",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-014",
+   "record_type": "seed",
+   "outcome": "Savings balances and goals",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-018",
+    "name": "cash position across all liquid accounts",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03 anchors savings balance to ACCT-018; goal tracking is ANL-016."
+  },
+  {
+   "catalog_id": "CA-015",
+   "record_type": "seed",
+   "outcome": "Automatic saving rules",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-001",
+    "name": "autosave rules (round-ups, payday sweep)",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-016",
+   "record_type": "seed",
+   "outcome": "Savings interest eligibility",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-002",
+    "name": "HYSA rate comparison and routing suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-017",
+   "record_type": "seed",
+   "outcome": "Green-status qualification",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-002",
+    "name": "bonus requirement tracker (direct deposit, debit count)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Green status is a direct-deposit qualification; the closest capability is the bonus requirement tracker (direct deposit count)."
+  },
+  {
+   "catalog_id": "CA-018",
+   "record_type": "seed",
+   "outcome": "Eligible overdraft",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-006",
+    "name": "overdraft prevention move",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Cash App's free overdraft coverage is replaced by Upmore's overdraft-prevention move rather than replicated as credit."
+  },
+  {
+   "catalog_id": "CA-019",
+   "record_type": "seed",
+   "outcome": "Fractional stocks",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately."
+  },
+  {
+   "catalog_id": "CA-020",
+   "record_type": "seed",
+   "outcome": "Stock holdings and performance",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INV-001",
+    "name": "portfolio read across brokerages",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Reading existing holdings is portfolio read (doc 09); buying is excluded."
+  },
+  {
+   "catalog_id": "CA-021",
+   "record_type": "seed",
+   "outcome": "Bitcoin positions",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INV-001",
+    "name": "portfolio read across brokerages",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Reading an existing bitcoin position is portfolio read; buying/selling is excluded."
+  },
+  {
+   "catalog_id": "CA-022",
+   "record_type": "seed",
+   "outcome": "Borrow eligibility and total fee",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-009",
+    "name": "payoff ordering plans (avalanche, snowball)",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Upmore surfaces cheaper alternatives to Borrow via payoff planning and never originates loans itself."
+  },
+  {
+   "catalog_id": "CA-023",
+   "record_type": "seed",
+   "outcome": "Afterpay financing",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: BNPL plans are tracked as debt with stacking warnings; Upmore never initiates BNPL."
+  },
+  {
+   "catalog_id": "CA-024",
+   "record_type": "seed",
+   "outcome": "Sponsored child and teen accounts",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-007",
+    "name": "teen or dependent sub-accounts",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-025",
+   "record_type": "seed",
+   "outcome": "Guardian visibility and controls",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-006",
+    "name": "household view with permissions",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-026",
+   "record_type": "seed",
+   "outcome": "Automatic allowance",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-025",
+    "name": "allowance or recurring family send",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-027",
+   "record_type": "seed",
+   "outcome": "Card lock and unlock",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-028",
+   "record_type": "seed",
+   "outcome": "Account security lock",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-010",
+    "name": "kill switch (pause all agent actions)",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011)."
+  },
+  {
+   "catalog_id": "CA-029",
+   "record_type": "seed",
+   "outcome": "Identity verification",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "KYC identity verification is the partner app's own onboarding; Upmore's nearest capability is verification of sensitive chat commands."
+  },
+  {
+   "catalog_id": "CA-030",
+   "record_type": "seed",
+   "outcome": "Fraud alerts",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-001",
+    "name": "fraud pattern detection on transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-031",
+   "record_type": "seed",
+   "outcome": "Erroneous payment refund request",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-024",
+    "name": "payment reversal or mitigation path",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-032",
+   "record_type": "seed",
+   "outcome": "Support escalation without reversal promise",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-023",
+    "name": "failed payment triage and retry",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Support escalation for a failed or wrong payment is failed-payment triage with honest no-reversal-promise framing."
+  },
+  {
+   "catalog_id": "GW-001",
+   "record_type": "seed",
+   "outcome": "Add eligible payment cards",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Adding a card to the agent is card inventory; wallet provisioning itself is hardware-bound."
+  },
+  {
+   "catalog_id": "GW-002",
+   "record_type": "seed",
+   "outcome": "Provision contactless cards",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "GW-003",
+   "record_type": "seed",
+   "outcome": "Phone tap-to-pay",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "GW-004",
+   "record_type": "seed",
+   "outcome": "Watch tap-to-pay",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "GW-005",
+   "record_type": "seed",
+   "outcome": "Online and in-app Google Pay checkout",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-002",
+    "name": "right card per purchase recommendation by reward rate",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Upmore is not a checkout button; it delivers the right-card recommendation at the moment of online purchase."
+  },
+  {
+   "catalog_id": "GW-006",
+   "record_type": "seed",
+   "outcome": "Recent eligible payment activity",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "GW-007",
+   "record_type": "seed",
+   "outcome": "Permissioned Gmail receipt import",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-015",
+    "name": "receipt attachment from email",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "GW-008",
+   "record_type": "seed",
+   "outcome": "Purchase detail organization",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-002",
+    "name": "search by merchant, amount, date, note",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Organized purchase detail is delivered as searchable, receipt-attached transactions; no dedicated purchase-organizer capability exists."
+  },
+  {
+   "catalog_id": "GW-009",
+   "record_type": "seed",
+   "outcome": "Supported US package tracking",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-015",
+    "name": "receipt attachment from email",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Package tracking has no registry capability; the closest is receipt ingestion from email, which carries shipment data."
+  },
+  {
+   "catalog_id": "GW-010",
+   "record_type": "seed",
+   "outcome": "Loyalty cards",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "GW-011",
+   "record_type": "seed",
+   "outcome": "Gift cards",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-007",
+    "name": "add account via manual entry",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Gift card balances are tracked as manually entered stored-value accounts."
+  },
+  {
+   "catalog_id": "GW-012",
+   "record_type": "seed",
+   "outcome": "Boarding passes",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INS-010",
+    "name": "document storage for policies",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Doc 03: stored passes and tickets live in the document vault extended beyond insurance."
+  },
+  {
+   "catalog_id": "GW-013",
+   "record_type": "seed",
+   "outcome": "Flight and gate updates",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Flight and gate updates are a user-defined watch; compensation on delay is EARN-016."
+  },
+  {
+   "catalog_id": "GW-014",
+   "record_type": "seed",
+   "outcome": "Supported transit passes",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Transit passes are tapped at NFC fare gates from the phone's secure element; Upmore cannot present them."
+  },
+  {
+   "catalog_id": "GW-015",
+   "record_type": "seed",
+   "outcome": "Event tickets",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INS-010",
+    "name": "document storage for policies",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Doc 03: tickets go in the extended document vault."
+  },
+  {
+   "catalog_id": "GW-016",
+   "record_type": "seed",
+   "outcome": "Timely ticket surfacing",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Timely surfacing of a stored ticket is a scheduled watch on vault contents."
+  },
+  {
+   "catalog_id": "GW-017",
+   "record_type": "seed",
+   "outcome": "Supported state IDs",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "State IDs are presented from the phone's secure element to NFC readers; Upmore cannot hold or present a mobile ID credential."
+  },
+  {
+   "catalog_id": "GW-018",
+   "record_type": "seed",
+   "outcome": "Supported student IDs",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Student IDs are NFC campus credentials bound to the device secure element."
+  },
+  {
+   "catalog_id": "GW-019",
+   "record_type": "seed",
+   "outcome": "Supported digital car keys",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Digital car keys use NFC/UWB from the device and cannot be delivered through conversation."
+  },
+  {
+   "catalog_id": "GW-020",
+   "record_type": "seed",
+   "outcome": "Saved items online and across Google",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Saved payment methods across Google surfaces map to the agent's card inventory; no cross-Google sync exists."
+  },
+  {
+   "catalog_id": "GW-021",
+   "record_type": "seed",
+   "outcome": "Cross-product privacy controls",
+   "apps": {
+    "GW": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-008",
+    "name": "session and device audit for the agent itself",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Cross-product privacy controls map to the agent's own session, device and data-access audit."
+  },
+  {
+   "catalog_id": "GW-022",
+   "record_type": "seed",
+   "outcome": "Lost-device security",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-010",
+    "name": "kill switch (pause all agent actions)",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Lost-device response is the kill switch plus issuer card locks."
+  },
+  {
+   "catalog_id": "CH-001",
+   "record_type": "seed",
+   "outcome": "Account balances",
+   "apps": {
+    "CH": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-002",
+   "record_type": "seed",
+   "outcome": "Transaction history",
+   "apps": {
+    "CH": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-003",
+   "record_type": "seed",
+   "outcome": "Electronic statements",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TAX-002",
+    "name": "document vault for tax forms",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: statements land in the document vault."
+  },
+  {
+   "catalog_id": "CH-004",
+   "record_type": "seed",
+   "outcome": "QuickDeposit mobile check deposit",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "CH-005",
+   "record_type": "seed",
+   "outcome": "Eligible account transfers",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-009",
+    "name": "transfer between own accounts",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-006",
+   "record_type": "seed",
+   "outcome": "Bill payments",
+   "apps": {
+    "CH": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-008",
+    "name": "bill pay through bank bill-pay",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-007",
+   "record_type": "seed",
+   "outcome": "Zelle sending",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-012",
+    "name": "Zelle via bank partner",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-008",
+   "record_type": "seed",
+   "outcome": "Zelle receiving",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-007",
+    "name": "deposit received",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Receiving Zelle is a deposit-received alert; sending is PAY-012."
+  },
+  {
+   "catalog_id": "CH-009",
+   "record_type": "seed",
+   "outcome": "Digital-wallet card provisioning",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "CH-010",
+   "record_type": "seed",
+   "outcome": "Eligible Pay Over Time plans",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Pay Over Time plans are tracked as debt; Upmore never initiates BNPL (doc 03)."
+  },
+  {
+   "catalog_id": "CH-011",
+   "record_type": "seed",
+   "outcome": "Plan fees and schedule",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-018",
+    "name": "debt payoff projection",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Plan fees and schedule are delivered as a debt payoff projection on the tracked plan."
+  },
+  {
+   "catalog_id": "CH-012",
+   "record_type": "seed",
+   "outcome": "Offers discovery and activation",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-010",
+    "name": "card-linked offer activation",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-013",
+   "record_type": "seed",
+   "outcome": "Rewards balances",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-014",
+   "record_type": "seed",
+   "outcome": "Rewards redemption",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-012",
+    "name": "points transfer optimization suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Redemption is delivered as the points valuation and best-redemption suggestion; the issuer executes."
+  },
+  {
+   "catalog_id": "CH-015",
+   "record_type": "seed",
+   "outcome": "Credit Journey enrollment and scores",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-001",
+    "name": "credit score monitoring",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-016",
+   "record_type": "seed",
+   "outcome": "Spending categories",
+   "apps": {
+    "CH": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-001",
+    "name": "spending by category over any window",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-017",
+   "record_type": "seed",
+   "outcome": "Budget creation and tracking",
+   "apps": {
+    "CH": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-003",
+    "name": "budget creation per category",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-018",
+   "record_type": "seed",
+   "outcome": "Self-directed investing",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately."
+  },
+  {
+   "catalog_id": "CH-019",
+   "record_type": "seed",
+   "outcome": "Investment funding",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Funding a brokerage account is an investment-platform flow excluded from the parity set (doc 09)."
+  },
+  {
+   "catalog_id": "CH-020",
+   "record_type": "seed",
+   "outcome": "Eligible retirement rollovers",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INV-019",
+    "name": "IRA or 401k rollover status",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-021",
+   "record_type": "seed",
+   "outcome": "Card management",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-022",
+   "record_type": "seed",
+   "outcome": "Card lock and unlock",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-023",
+   "record_type": "seed",
+   "outcome": "Fraud and account alerts",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-001",
+    "name": "fraud pattern detection on transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Fraud-led account alerts map to fraud pattern detection; generic account alerts are ALRT-010."
+  },
+  {
+   "catalog_id": "CH-024",
+   "record_type": "seed",
+   "outcome": "Biometric sign-in",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Biometric unlock is the host app's own device-authenticator feature; Upmore verifies sensitive chat commands (SEC-012) but does not own the phone's biometric sensor."
+  },
+  {
+   "catalog_id": "CH-025",
+   "record_type": "seed",
+   "outcome": "Multifactor authentication",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Bank MFA is the bank's; Upmore's equivalent is verification challenges on sensitive chat commands."
+  },
+  {
+   "catalog_id": "CH-026",
+   "record_type": "seed",
+   "outcome": "Support messages",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Secure support messaging maps to honest status answers from the agent."
+  },
+  {
+   "catalog_id": "CH-027",
+   "record_type": "seed",
+   "outcome": "Unauthorized transaction reporting",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-010",
+    "name": "dispute a charge",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-001",
+   "record_type": "seed",
+   "outcome": "Send money to friends",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-001",
+    "name": "send to saved recipient",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-002",
+   "record_type": "seed",
+   "outcome": "Pay supported businesses",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-013",
+    "name": "Venmo send via linked account",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-003",
+   "record_type": "seed",
+   "outcome": "Eligible Venmo checkout",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-013",
+    "name": "Venmo send via linked account",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "low",
+   "note": "Venmo checkout is a merchant-side button; the nearest rail is Venmo send via linked account."
+  },
+  {
+   "catalog_id": "VE-004",
+   "record_type": "seed",
+   "outcome": "Balance-purchase identity verification",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Balance-purchase identity verification is Venmo's KYC; the closest capability is verification of sensitive commands."
+  },
+  {
+   "catalog_id": "VE-005",
+   "record_type": "seed",
+   "outcome": "Debit payments",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Venmo debit card is inventoried and recommended per purchase (CARD-002)."
+  },
+  {
+   "catalog_id": "VE-006",
+   "record_type": "seed",
+   "outcome": "Stash offers",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-010",
+    "name": "card-linked offer activation",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-007",
+   "record_type": "seed",
+   "outcome": "Reward tiers and caps",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Reward tiers and caps are tracked in cross-program points valuation."
+  },
+  {
+   "catalog_id": "VE-008",
+   "record_type": "seed",
+   "outcome": "Credit application and hard inquiry",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-007",
+    "name": "hard inquiry alert",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's."
+  },
+  {
+   "catalog_id": "VE-009",
+   "record_type": "seed",
+   "outcome": "Credit spending management",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-004",
+    "name": "card balance and utilization",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-010",
+   "record_type": "seed",
+   "outcome": "Credit payments and rewards",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-006",
+    "name": "payment due date tracking",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Credit card payments are tracked by due date; rewards are EARN-011."
+  },
+  {
+   "catalog_id": "VE-011",
+   "record_type": "seed",
+   "outcome": "Cashback accrual and settlement",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Cashback accrual is tracked as rewards across programs."
+  },
+  {
+   "catalog_id": "VE-012",
+   "record_type": "seed",
+   "outcome": "Cashback redemption",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-012",
+    "name": "points transfer optimization suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Cashback redemption is delivered as redemption optimization; Venmo executes."
+  },
+  {
+   "catalog_id": "VE-013",
+   "record_type": "seed",
+   "outcome": "Wallet provisioning",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "VE-014",
+   "record_type": "seed",
+   "outcome": "Buy supported crypto",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-015",
+   "record_type": "seed",
+   "outcome": "Sell supported crypto",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-016",
+   "record_type": "seed",
+   "outcome": "Crypto holdings and valuation",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INV-001",
+    "name": "portfolio read across brokerages",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Reading an existing crypto position is portfolio read (doc 09); trading is excluded."
+  },
+  {
+   "catalog_id": "VE-017",
+   "record_type": "seed",
+   "outcome": "Eligible crypto transfers",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-018",
+   "record_type": "seed",
+   "outcome": "Receive supported crypto",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-019",
+   "record_type": "seed",
+   "outcome": "Exchange rate and spread",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-020",
+   "record_type": "seed",
+   "outcome": "Crypto fee preview",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "VE-021",
+   "record_type": "seed",
+   "outcome": "Crypto price alerts",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INV-009",
+    "name": "price alerts",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-022",
+   "record_type": "seed",
+   "outcome": "Separate-consent cashback conversion",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Auto-converting cashback into crypto is a recurring crypto purchase inside a P2P app; investment-platform surface (doc 09)."
+  },
+  {
+   "catalog_id": "VE-023",
+   "record_type": "seed",
+   "outcome": "Crypto risks and taxes",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TAX-007",
+    "name": "crypto transaction export for tax tools",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-024",
+   "record_type": "seed",
+   "outcome": "Complaint and support routes",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-024",
+    "name": "payment reversal or mitigation path",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Complaint and support routes map to the payment reversal or mitigation path."
+  },
+  {
+   "catalog_id": "CO-001",
+   "record_type": "seed",
+   "outcome": "Current balances",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-002",
+   "record_type": "seed",
+   "outcome": "Detailed activity",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-003",
+   "record_type": "seed",
+   "outcome": "Duplicate and surprise-charge alerts",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-009",
+    "name": "duplicate charge detection",
+    "status": "TESTED",
+    "tier": "T1",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-004",
+   "record_type": "seed",
+   "outcome": "Purchase notifications",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-002",
+    "name": "large transaction",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Purchase notifications are delivered as transaction alerts with fatigue guard (ALRT-012)."
+  },
+  {
+   "catalog_id": "CO-005",
+   "record_type": "seed",
+   "outcome": "Card lock and unlock",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-006",
+   "record_type": "seed",
+   "outcome": "CreditWise enrollment and scores",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-001",
+    "name": "credit score monitoring",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-007",
+   "record_type": "seed",
+   "outcome": "Rewards balances",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-008",
+   "record_type": "seed",
+   "outcome": "Cashback and miles redemption",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-012",
+    "name": "points transfer optimization suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Redemption is delivered as valuation and best-use suggestion; the issuer executes."
+  },
+  {
+   "catalog_id": "CO-009",
+   "record_type": "seed",
+   "outcome": "Auto-loan progress",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-010",
+   "record_type": "seed",
+   "outcome": "Auto-loan payments",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-006",
+    "name": "pay a bill",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "A local payment engine exists (supabase/functions/_shared/payment_service.ts) but no registered payment provider or owner launch approval; see docs/implementation/workstreams.md."
+   },
+   "confidence": "medium",
+   "note": "Auto-loan payments are a bill payment (GATED)."
+  },
+  {
+   "catalog_id": "CO-011",
+   "record_type": "seed",
+   "outcome": "Subscription discovery",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-001",
+    "name": "subscription inventory from transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-012",
+   "record_type": "seed",
+   "outcome": "Subscription charge details",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-020",
+    "name": "large transaction explanation on request",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Eno charge explanations are TXN-020."
+  },
+  {
+   "catalog_id": "CO-013",
+   "record_type": "seed",
+   "outcome": "Block unwanted recurring charges",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-003",
+    "name": "cancel a subscription",
+    "status": "TESTED",
+    "tier": "T3",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Blocking a recurring charge is delivered as cancellation at the merchant plus reactivation watch (BILL-018)."
+  },
+  {
+   "catalog_id": "CO-014",
+   "record_type": "seed",
+   "outcome": "Cancel supported subscriptions",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-003",
+    "name": "cancel a subscription",
+    "status": "TESTED",
+    "tier": "T3",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-015",
+   "record_type": "seed",
+   "outcome": "Blocking versus contract cancellation",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-017",
+    "name": "cancellation confirmation verification",
+    "status": "TESTED",
+    "tier": "T1",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Explaining block vs contract cancellation maps to cancellation confirmation verification."
+  },
+  {
+   "catalog_id": "CO-016",
+   "record_type": "seed",
+   "outcome": "Optional iOS balance widget",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "A home-screen widget is a surface; the outcome (balance at a glance) is read balance on ask."
+  },
+  {
+   "catalog_id": "CO-017",
+   "record_type": "seed",
+   "outcome": "Biometric sign-in",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Biometric unlock is the host app's own device-authenticator feature; Upmore verifies sensitive chat commands (SEC-012) but does not own the phone's biometric sensor."
+  },
+  {
+   "catalog_id": "CO-018",
+   "record_type": "seed",
+   "outcome": "Two-step authentication",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Two-step authentication maps to verification challenges on sensitive commands."
+  },
+  {
+   "catalog_id": "CO-019",
+   "record_type": "seed",
+   "outcome": "Check deposit",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "CO-020",
+   "record_type": "seed",
+   "outcome": "Store cash deposit barcode",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Cash deposit at a store via barcode is a physical cash handoff the agent cannot perform."
+  },
+  {
+   "catalog_id": "CO-021",
+   "record_type": "seed",
+   "outcome": "Digital-wallet provisioning",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "CO-022",
+   "record_type": "seed",
+   "outcome": "Zelle sending and receiving",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-012",
+    "name": "Zelle via bank partner",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-023",
+   "record_type": "seed",
+   "outcome": "Credit-card activation",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-014",
+    "name": "replacement card request",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "low",
+   "note": "Card activation is an issuer flow; the closest GATED capability is the replacement card request."
+  },
+  {
+   "catalog_id": "CO-024",
+   "record_type": "seed",
+   "outcome": "Replacement card linking",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-014",
+    "name": "replacement card request",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "medium",
+   "note": "Linking a replacement card is the replacement card request (GATED)."
+  },
+  {
+   "catalog_id": "CO-025",
+   "record_type": "seed",
+   "outcome": "Eligible virtual cards",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-012",
+    "name": "virtual card creation",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CO-026",
+   "record_type": "seed",
+   "outcome": "Eno balance and activation assistance",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Eno-style assistant answers are CORE-002, benchmarked in doc 13."
+  },
+  {
+   "catalog_id": "CO-027",
+   "record_type": "seed",
+   "outcome": "Missing new-account help",
+   "apps": {
+    "CO": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-005",
+    "name": "account health status per connector",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Missing new account help maps to per-connector account health status."
+  },
+  {
+   "catalog_id": "PR-001",
+   "record_type": "seed",
+   "outcome": "Permissioned state-portal connection",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-006",
+    "name": "add account via aggregator",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Permissioned state-portal connection is an aggregator-style account add."
+  },
+  {
+   "catalog_id": "PR-002",
+   "record_type": "seed",
+   "outcome": "Supported EBT balances",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-003",
+   "record_type": "seed",
+   "outcome": "SNAP balances",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-004",
+   "record_type": "seed",
+   "outcome": "Supported WIC and TANF balances",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-005",
+   "record_type": "seed",
+   "outcome": "EBT transaction history",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-006",
+   "record_type": "seed",
+   "outcome": "Merchant and online details",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-004",
+    "name": "merchant normalization (AMZN MKTP to Amazon)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Merchant and online purchase details are merchant normalization on EBT transactions."
+  },
+  {
+   "catalog_id": "PR-007",
+   "record_type": "seed",
+   "outcome": "Estimated benefit deposits",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-006",
+    "name": "cashflow forecast 30/60/90 days",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Estimated benefit deposit dates feed the cashflow forecast; arrival is ALRT-007."
+  },
+  {
+   "catalog_id": "PR-008",
+   "record_type": "seed",
+   "outcome": "Benefit policy alerts",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Benefit policy change alerts are a user-defined watch; no benefits-policy capability exists."
+  },
+  {
+   "catalog_id": "PR-009",
+   "record_type": "seed",
+   "outcome": "Supported EBT card lock",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-010",
+   "record_type": "seed",
+   "outcome": "Supported out-of-state block",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "low",
+   "note": "Out-of-state blocking is a card-control variant of freeze/lock (GATED)."
+  },
+  {
+   "catalog_id": "PR-011",
+   "record_type": "seed",
+   "outcome": "Supported online block",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "low",
+   "note": "Online-purchase blocking is a card-control variant of freeze/lock (GATED)."
+  },
+  {
+   "catalog_id": "PR-012",
+   "record_type": "seed",
+   "outcome": "Suspicious activity monitoring",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-001",
+    "name": "fraud pattern detection on transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-013",
+   "record_type": "seed",
+   "outcome": "Confirm or dispute suspicious activity",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-010",
+    "name": "unrecognized charge triage",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-014",
+   "record_type": "seed",
+   "outcome": "State-specific protections",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-004",
+    "name": "breach response playbook",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "State-specific benefit-theft protections are surfaced through the breach response playbook."
+  },
+  {
+   "catalog_id": "PR-015",
+   "record_type": "seed",
+   "outcome": "Essential discounts",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-013",
+    "name": "coupon and offer surfacing for planned spend",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-016",
+   "record_type": "seed",
+   "outcome": "Phone and internet offers",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-009",
+    "name": "energy and utility plan optimization",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Phone and internet offers are utility plan optimization."
+  },
+  {
+   "catalog_id": "PR-017",
+   "record_type": "seed",
+   "outcome": "Job and gig discovery",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PR-018",
+   "record_type": "seed",
+   "outcome": "State and territory availability",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "State availability is an honest capability-status answer."
+  },
+  {
+   "catalog_id": "PR-019",
+   "record_type": "seed",
+   "outcome": "Sensitive-identifier minimization",
+   "apps": {
+    "PR": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-009",
+    "name": "agent action audit log, user-inspectable",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Sensitive-identifier minimization is a data-handling policy; the closest capability is the user-inspectable audit log."
+  },
+  {
+   "catalog_id": "PR-020",
+   "record_type": "seed",
+   "outcome": "Independent non-government disclosure",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Non-government disclosure is an honest status statement about what the agent is."
+  },
+  {
+   "catalog_id": "PR-021",
+   "record_type": "seed",
+   "outcome": "Benefit-theft assistance",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-004",
+    "name": "breach response playbook",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Benefit-theft assistance is the breach response playbook."
+  },
+  {
+   "catalog_id": "PP-001",
+   "record_type": "seed",
+   "outcome": "Send money",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-001",
+    "name": "send to saved recipient",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-002",
+   "record_type": "seed",
+   "outcome": "Request money",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-003",
+    "name": "request money",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-003",
+   "record_type": "seed",
+   "outcome": "Eligible international payments",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-016",
+    "name": "international remittance",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-004",
+   "record_type": "seed",
+   "outcome": "Link bank accounts",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-006",
+    "name": "add account via aggregator",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-005",
+   "record_type": "seed",
+   "outcome": "Link credit and debit cards",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Linking cards to a wallet is card inventory."
+  },
+  {
+   "catalog_id": "PP-006",
+   "record_type": "seed",
+   "outcome": "Eligible balance account",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: PayPal balance is ACCT-001."
+  },
+  {
+   "catalog_id": "PP-007",
+   "record_type": "seed",
+   "outcome": "View balances",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-008",
+   "record_type": "seed",
+   "outcome": "Purchases and payments",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-009",
+   "record_type": "seed",
+   "outcome": "Subscription management",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-001",
+    "name": "subscription inventory from transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: subscription management is BILL-001 with BILL-003 cancellation."
+  },
+  {
+   "catalog_id": "PP-010",
+   "record_type": "seed",
+   "outcome": "Merchant offers",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-010",
+    "name": "card-linked offer activation",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-011",
+   "record_type": "seed",
+   "outcome": "Track rewards",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-012",
+   "record_type": "seed",
+   "outcome": "Pay eligible merchants",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-015",
+    "name": "PayPal send",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-013",
+   "record_type": "seed",
+   "outcome": "Purchase Protection claims",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-024",
+    "name": "payment reversal or mitigation path",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: purchase protection maps to dispute mitigation PAY-024."
+  },
+  {
+   "catalog_id": "PP-014",
+   "record_type": "seed",
+   "outcome": "Eligible money pools",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-005",
+    "name": "shared goal funding (trip fund)",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-015",
+   "record_type": "seed",
+   "outcome": "Debit-card access",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "PayPal debit card is inventoried and recommended per purchase (CARD-002)."
+  },
+  {
+   "catalog_id": "PP-016",
+   "record_type": "seed",
+   "outcome": "Savings access",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-002",
+    "name": "HYSA rate comparison and routing suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-017",
+   "record_type": "seed",
+   "outcome": "Crypto management",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09."
+  },
+  {
+   "catalog_id": "PP-018",
+   "record_type": "seed",
+   "outcome": "Pay in 4 loans",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Pay in 4 is tracked as debt with stacking warnings; Upmore never initiates BNPL."
+  },
+  {
+   "catalog_id": "PP-019",
+   "record_type": "seed",
+   "outcome": "Pay Monthly loans",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Pay Monthly loans are tracked as debt; Upmore never initiates BNPL."
+  },
+  {
+   "catalog_id": "PP-020",
+   "record_type": "seed",
+   "outcome": "Loan and state eligibility",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "regulated-origination",
+   "reason": "Loan and state eligibility checks exist to originate BNPL credit, which Upmore never initiates (doc 03, doc 14)."
+  },
+  {
+   "catalog_id": "PP-021",
+   "record_type": "seed",
+   "outcome": "Credit and repayment disclosures",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-010",
+    "name": "extra payment impact calculator",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Credit and repayment disclosures are explained via the extra payment impact calculator on tracked debt."
+  },
+  {
+   "catalog_id": "PP-022",
+   "record_type": "seed",
+   "outcome": "Total financing cost",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-018",
+    "name": "debt payoff projection",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Total financing cost is a debt payoff projection on the tracked plan."
+  },
+  {
+   "catalog_id": "PP-023",
+   "record_type": "seed",
+   "outcome": "Package updates",
+   "apps": {
+    "PP": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-015",
+    "name": "receipt attachment from email",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Package updates have no registry capability; receipt ingestion from email is the closest data source."
+  },
+  {
+   "catalog_id": "PP-024",
+   "record_type": "seed",
+   "outcome": "Transaction and cross-border fees",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-018",
+    "name": "fee flagging (overdraft, ATM, wire, foreign)",
+    "status": "TESTED",
+    "tier": "T1",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-025",
+   "record_type": "seed",
+   "outcome": "Resolution Center",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-024",
+    "name": "payment reversal or mitigation path",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-001",
+   "record_type": "seed",
+   "outcome": "Bank monitoring",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-003",
+    "name": "list accounts across institutions",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Bank monitoring is the cross-institution account list with alerts (ALRT family)."
+  },
+  {
+   "catalog_id": "BA-002",
+   "record_type": "seed",
+   "outcome": "Banking and Merrill views",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-003",
+    "name": "list accounts across institutions",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Combined banking and Merrill view is listing accounts across institutions; holdings detail is INV-001."
+  },
+  {
+   "catalog_id": "BA-003",
+   "record_type": "seed",
+   "outcome": "Erica assistance",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Erica-style Q&A is CORE-002, but truthful."
+  },
+  {
+   "catalog_id": "BA-004",
+   "record_type": "seed",
+   "outcome": "Zelle payments",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-012",
+    "name": "Zelle via bank partner",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-005",
+   "record_type": "seed",
+   "outcome": "Wire transfers",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-011",
+    "name": "wire transfer",
+    "status": "CLAIMED",
+    "tier": "T5",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-006",
+   "record_type": "seed",
+   "outcome": "Bill Pay",
+   "apps": {
+    "BA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-008",
+    "name": "bill pay through bank bill-pay",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-007",
+   "record_type": "seed",
+   "outcome": "Internal and external transfers",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-009",
+    "name": "transfer between own accounts",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-008",
+   "record_type": "seed",
+   "outcome": "Check deposit",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "BA-009",
+   "record_type": "seed",
+   "outcome": "Account alerts",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Configurable account alerts map to user-defined watches across the ALRT family."
+  },
+  {
+   "catalog_id": "BA-010",
+   "record_type": "seed",
+   "outcome": "Digital-wallet provisioning",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "BA-011",
+   "record_type": "seed",
+   "outcome": "Security education",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-011",
+    "name": "phishing detection in finance emails",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Security education is delivered as phishing detection in finance emails rather than content."
+  },
+  {
+   "catalog_id": "BA-012",
+   "record_type": "seed",
+   "outcome": "Security meter",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-007",
+    "name": "credential rotation reminders",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "A security meter maps to credential rotation reminders; no security-score capability exists."
+  },
+  {
+   "catalog_id": "BA-013",
+   "record_type": "seed",
+   "outcome": "Fraud and identity-theft guidance",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-004",
+    "name": "breach response playbook",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-014",
+   "record_type": "seed",
+   "outcome": "Eligible credit and FICO view",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-001",
+    "name": "credit score monitoring",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-015",
+   "record_type": "seed",
+   "outcome": "Life Plan goals",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-016",
+    "name": "goal tracking (vacation fund, emergency fund)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-016",
+   "record_type": "seed",
+   "outcome": "Spending analysis",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-001",
+    "name": "spending by category over any window",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-017",
+   "record_type": "seed",
+   "outcome": "Budget tracking",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-003",
+    "name": "budget creation per category",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-018",
+   "record_type": "seed",
+   "outcome": "Financial wellness",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-020",
+    "name": "weekly money summary",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Financial wellness content is delivered as the weekly money summary; no wellness-score capability exists."
+  },
+  {
+   "catalog_id": "BA-019",
+   "record_type": "seed",
+   "outcome": "Banking and investing support",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Banking and investing support questions are honest status answers."
+  },
+  {
+   "catalog_id": "BA-020",
+   "record_type": "seed",
+   "outcome": "Account and child transfer restrictions",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-020",
+    "name": "payment limits and velocity checks",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Account and child transfer restrictions are payment limits and velocity checks."
+  },
+  {
+   "catalog_id": "BA-021",
+   "record_type": "seed",
+   "outcome": "Transfer fees and eligibility",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-018",
+    "name": "fee flagging (overdraft, ATM, wire, foreign)",
+    "status": "TESTED",
+    "tier": "T1",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Transfer fee eligibility is fee flagging with pre-send disclosure."
+  },
+  {
+   "catalog_id": "FC-001",
+   "record_type": "seed",
+   "outcome": "Signup",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-003",
+    "name": "onboarding interview (accounts, goals, people)",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Earn-app signup is the app's own onboarding; Upmore's nearest capability is its onboarding interview."
+  },
+  {
+   "catalog_id": "FC-002",
+   "record_type": "seed",
+   "outcome": "Social sign-in",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-003",
+    "name": "onboarding interview (accounts, goals, people)",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Social sign-in is the app's own auth; no registry capability covers third-party login."
+  },
+  {
+   "catalog_id": "FC-003",
+   "record_type": "seed",
+   "outcome": "Earning offer discovery",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-004",
+   "record_type": "seed",
+   "outcome": "Surveys",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Paid surveys are a side-income surface (doc 03 Propel row)."
+  },
+  {
+   "catalog_id": "FC-005",
+   "record_type": "seed",
+   "outcome": "App testing",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "App testing offers are a side-income surface."
+  },
+  {
+   "catalog_id": "FC-006",
+   "record_type": "seed",
+   "outcome": "Product reviews",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Paid product reviews are a side-income surface."
+  },
+  {
+   "catalog_id": "FC-007",
+   "record_type": "seed",
+   "outcome": "Game offers",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-002",
+    "name": "bonus requirement tracker (direct deposit, debit count)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: game and app offers with milestone tracking are the EARN-002 pattern."
+  },
+  {
+   "catalog_id": "FC-008",
+   "record_type": "seed",
+   "outcome": "Supported videos and downloads",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Video and download offers are a side-income surface."
+  },
+  {
+   "catalog_id": "FC-009",
+   "record_type": "seed",
+   "outcome": "Inspect offer requirements",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-002",
+    "name": "bonus requirement tracker (direct deposit, debit count)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-010",
+   "record_type": "seed",
+   "outcome": "Completion and provider attribution",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-002",
+    "name": "bonus requirement tracker (direct deposit, debit count)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Completion and provider attribution are requirement tracking outcomes."
+  },
+  {
+   "catalog_id": "FC-011",
+   "record_type": "seed",
+   "outcome": "Rewards accounting",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Earn-app rewards accounting has no dedicated ledger capability; rewards valuation across programs is closest."
+  },
+  {
+   "catalog_id": "FC-012",
+   "record_type": "seed",
+   "outcome": "Withdrawal thresholds",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Doc 03: cash-out threshold alerts are a T1 watch."
+  },
+  {
+   "catalog_id": "FC-013",
+   "record_type": "seed",
+   "outcome": "PayPal cashout",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-015",
+    "name": "PayPal send",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "medium",
+   "note": "Cashout to PayPal lands on the PayPal rail (GATED)."
+  },
+  {
+   "catalog_id": "FC-014",
+   "record_type": "seed",
+   "outcome": "Bank cashout",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-015",
+   "record_type": "seed",
+   "outcome": "Crypto cashout",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Crypto-denominated payout puts earnings into a crypto custody surface; investment-platform feature excluded per doc 09."
+  },
+  {
+   "catalog_id": "FC-016",
+   "record_type": "seed",
+   "outcome": "Gift-card redemption",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Gift-card redemption is valued against other cash-out rails; no gift-card redemption capability exists."
+  },
+  {
+   "catalog_id": "FC-017",
+   "record_type": "seed",
+   "outcome": "Payout eligibility",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-002",
+    "name": "bonus requirement tracker (direct deposit, debit count)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Payout eligibility is requirement tracking toward the cash-out threshold."
+  },
+  {
+   "catalog_id": "FC-018",
+   "record_type": "seed",
+   "outcome": "Pending versus payable earnings",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-011",
+    "name": "pending vs posted explanation",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Pending vs payable earnings is the pending vs posted explanation."
+  },
+  {
+   "catalog_id": "FC-019",
+   "record_type": "seed",
+   "outcome": "Attribution disputes",
+   "apps": {
+    "FC": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-017",
+    "name": "hotel or service complaint credit drafts",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Attribution disputes are drafted like service complaint credits; no earn-app dispute capability exists."
+  },
+  {
+   "catalog_id": "FC-020",
+   "record_type": "seed",
+   "outcome": "Non-guaranteed side-income expectations",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-013",
+    "name": "side-income surfaces matched to user skills",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Doc 03 agent edge: Upmore computes the effective hourly rate and frames income as non-guaranteed."
+  },
+  {
+   "catalog_id": "WF-001",
+   "record_type": "seed",
+   "outcome": "Balances",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-001",
+    "name": "read balance",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-002",
+   "record_type": "seed",
+   "outcome": "Transactions",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-001",
+    "name": "list transactions with filters",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-003",
+   "record_type": "seed",
+   "outcome": "Account alerts",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-010",
+    "name": "watch-specific (user-defined anything)",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Configurable account alerts map to user-defined watches across the ALRT family."
+  },
+  {
+   "catalog_id": "WF-004",
+   "record_type": "seed",
+   "outcome": "Eligible account opening",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "regulated-origination",
+   "reason": "Opening a new bank account is regulated KYC onboarding Upmore never performs; it only finds signup bonuses (EARN-001)."
+  },
+  {
+   "catalog_id": "WF-005",
+   "record_type": "seed",
+   "outcome": "Zelle sending and receiving",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-012",
+    "name": "Zelle via bank partner",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-006",
+   "record_type": "seed",
+   "outcome": "Internal transfers",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-009",
+    "name": "transfer between own accounts",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-007",
+   "record_type": "seed",
+   "outcome": "Eligible external transfers",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-008",
+   "record_type": "seed",
+   "outcome": "Bill payments",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-008",
+    "name": "bill pay through bank bill-pay",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-009",
+   "record_type": "seed",
+   "outcome": "Check deposit",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "WF-010",
+   "record_type": "seed",
+   "outcome": "Fargo assistance",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: Fargo assistant Q&A is CORE-002."
+  },
+  {
+   "catalog_id": "WF-011",
+   "record_type": "seed",
+   "outcome": "Eligible FICO score",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-001",
+    "name": "credit score monitoring",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-012",
+   "record_type": "seed",
+   "outcome": "Credit alerts",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-007",
+    "name": "hard inquiry alert",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Credit alerts are delivered as hard inquiry alerts plus score monitoring (CRDT-001)."
+  },
+  {
+   "catalog_id": "WF-013",
+   "record_type": "seed",
+   "outcome": "Experian report review",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-002",
+    "name": "credit report pull and plain-English walkthrough",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-014",
+   "record_type": "seed",
+   "outcome": "Debt-to-income comparison",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-008",
+    "name": "debt inventory across all loans",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Debt-to-income comparison is computed from the debt inventory and income vs spend (ANL-002)."
+  },
+  {
+   "catalog_id": "WF-015",
+   "record_type": "seed",
+   "outcome": "Borrowing education",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CRDT-006",
+    "name": "new account impact explanation",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Borrowing education is delivered as new-account impact explanation; no education-content capability exists."
+  },
+  {
+   "catalog_id": "WF-016",
+   "record_type": "seed",
+   "outcome": "Life-event plans",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "HOUS-010",
+    "name": "move cost budgeting",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: life events planning maps to HOUS-009/HOUS-010."
+  },
+  {
+   "catalog_id": "WF-017",
+   "record_type": "seed",
+   "outcome": "WellsTrade access",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately."
+  },
+  {
+   "catalog_id": "WF-018",
+   "record_type": "seed",
+   "outcome": "Intuitive Investor access",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Robo-advisory investing is an investment-platform feature excluded from the parity set (doc 09)."
+  },
+  {
+   "catalog_id": "WF-019",
+   "record_type": "seed",
+   "outcome": "Adviser discovery",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "investment-platform",
+   "reason": "Finding a human financial adviser is an investment-advisory feature excluded from the parity set (doc 09)."
+  },
+  {
+   "catalog_id": "WF-020",
+   "record_type": "seed",
+   "outcome": "Language preferences",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-003",
+    "name": "onboarding interview (accounts, goals, people)",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Language preference is captured at onboarding; no localization capability exists in the registry."
+  },
+  {
+   "catalog_id": "WF-021",
+   "record_type": "seed",
+   "outcome": "Account and device eligibility",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-002",
+    "name": "honest status answers (what can you do)",
+    "status": "TESTED",
+    "tier": "T0",
+    "delivered": true,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Account and device eligibility is an honest capability-status answer."
+  },
+  {
+   "catalog_id": "WF-022",
+   "record_type": "seed",
+   "outcome": "Zelle fraud and protection education",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-021",
+    "name": "recipient verification before first send",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Zelle fraud education is delivered as recipient verification before first send."
+  },
+  {
+   "catalog_id": "CA-033",
+   "record_type": "discovery",
+   "outcome": "Deposit eligible checks through a supported service",
+   "apps": {
+    "CA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "VE-025",
+   "record_type": "discovery",
+   "outcome": "Schedule a payment with explicit timing and cancellation boundaries",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-007",
+    "name": "schedule a future payment",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-026",
+   "record_type": "discovery",
+   "outcome": "Split group expenses with recipient and privacy controls",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-004",
+    "name": "split an expense",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-027",
+   "record_type": "discovery",
+   "outcome": "Access an issuer-provided virtual card without fabricating credentials",
+   "apps": {
+    "VE": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-012",
+    "name": "virtual card creation",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-022",
+   "record_type": "discovery",
+   "outcome": "Receive eligible electronic bills and due reminders",
+   "apps": {
+    "BA": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "BILL-007",
+    "name": "bill due-date calendar",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: eBills ingestion is BILL-007."
+  },
+  {
+   "catalog_id": "WF-023",
+   "record_type": "discovery",
+   "outcome": "Activate or replace an eligible credit/debit card",
+   "apps": {
+    "WF": "CONDITIONAL"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-014",
+    "name": "replacement card request",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "UP-CF001",
+   "record_type": "discovery",
+   "outcome": "Forecast survival to payday with owned cash, obligations, income uncertainty and scenarios",
+   "apps": {},
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ANL-006",
+    "name": "cashflow forecast 30/60/90 days",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-X01",
+   "record_type": "discovery",
+   "outcome": "Aggregate accounts from other institutions to see a combined view and estimated net worth.",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ACCT-004",
+    "name": "net worth calculation",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Aggregated combined view with net worth is net worth calculation over ACCT-003."
+  },
+  {
+   "catalog_id": "BA-X02",
+   "record_type": "discovery",
+   "outcome": "Activate merchant cash-back deals on BofA cards.",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-010",
+    "name": "card-linked offer activation",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "BA-X03",
+   "record_type": "discovery",
+   "outcome": "Review and revoke third-party apps' access to bank data.",
+   "apps": {
+    "BA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-008",
+    "name": "session and device audit for the agent itself",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Reviewing and revoking third-party data access maps to the agent's session, device and access audit."
+  },
+  {
+   "catalog_id": "CO-X01",
+   "record_type": "discovery",
+   "outcome": "Sign in with a passkey",
+   "apps": {
+    "CO": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Passkey sign-in is the bank's authenticator; Upmore's equivalent is verification of sensitive commands."
+  },
+  {
+   "catalog_id": "CO-X02",
+   "record_type": "discovery",
+   "outcome": "Manage migrated Discover credit cards in the Capital One app",
+   "apps": {
+    "CO": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-001",
+    "name": "card inventory with networks and types",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Migrated Discover cards are managed through card inventory once linked."
+  },
+  {
+   "catalog_id": "CO-X03",
+   "record_type": "discovery",
+   "outcome": "Choose an overdraft handling option on checking",
+   "apps": {
+    "CO": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-006",
+    "name": "overdraft prevention move",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Choosing overdraft handling is replaced by proactive overdraft prevention moves."
+  },
+  {
+   "catalog_id": "CO-X04",
+   "record_type": "discovery",
+   "outcome": "Verify identity by tapping an AirKey-enabled card to the phone",
+   "apps": {
+    "CO": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "AirKey identity verification taps an NFC card to the phone; hardware-bound."
+  },
+  {
+   "catalog_id": "CA-X01",
+   "record_type": "discovery",
+   "outcome": "Mobile check deposit by photo",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "CA-X02",
+   "record_type": "discovery",
+   "outcome": "Split paychecks automatically across savings, stocks and bitcoin",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-001",
+    "name": "autosave rules (round-ups, payday sweep)",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Paycheck split to savings is a payday-sweep autosave rule; the stock and bitcoin legs are investment-platform and excluded."
+  },
+  {
+   "catalog_id": "CA-X03",
+   "record_type": "discovery",
+   "outcome": "Pay bills using account/routing number or card details from balance",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-006",
+    "name": "pay a bill",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "A local payment engine exists (supabase/functions/_shared/payment_service.ts) but no registered payment provider or owner launch approval; see docs/implementation/workstreams.md."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CA-X04",
+   "record_type": "discovery",
+   "outcome": "Cash App Tags \u2014 card-linked payment tags for ages 6+",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-007",
+    "name": "teen or dependent sub-accounts",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "low",
+   "note": "Card-linked payment tags for young children are a dependent sub-account variant."
+  },
+  {
+   "catalog_id": "CA-X05",
+   "record_type": "discovery",
+   "outcome": "Cash App Taxes free filing with bitcoin import",
+   "apps": {
+    "CA": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "regulated-origination",
+   "reason": "Upmore does not file taxes itself; it tracks refunds (TAX-012) and exports crypto activity for tax tools (TAX-007) per doc 03 and doc 14."
+  },
+  {
+   "catalog_id": "CH-X01",
+   "record_type": "discovery",
+   "outcome": "Autosave: automatic checking-to-savings transfers on schedule or per deposit",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-001",
+    "name": "autosave rules (round-ups, payday sweep)",
+    "status": "CLAIMED",
+    "tier": "T4",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X02",
+   "record_type": "discovery",
+   "outcome": "Link external bank accounts and transfer by ACH",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X03",
+   "record_type": "discovery",
+   "outcome": "Send domestic and international wires from app",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-011",
+    "name": "wire transfer",
+    "status": "CLAIMED",
+    "tier": "T5",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X04",
+   "record_type": "discovery",
+   "outcome": "Shop through Chase for bonus points",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SAVE-012",
+    "name": "cash-back portal routing before purchase",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X05",
+   "record_type": "discovery",
+   "outcome": "Points Boost elevated redemption value on select travel",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-012",
+    "name": "points transfer optimization suggestion",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X06",
+   "record_type": "discovery",
+   "outcome": "Export transactions (PDF, CSV, QFX/QIF, QBO) for tax/accounting",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-012",
+    "name": "CSV export",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "CH-X07",
+   "record_type": "discovery",
+   "outcome": "Investing sign-up bonus up to $1,000 for new funded accounts",
+   "apps": {
+    "CH": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-001",
+    "name": "bank signup bonus finder",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "A funded-account signup bonus is surfaced by the signup bonus finder; the investing account itself is doc 09."
+  },
+  {
+   "catalog_id": "FC-X01",
+   "record_type": "discovery",
+   "outcome": "Before first withdrawal, user completes identity verification with Veriff (government ID photo + selfie); no alternative method.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Veriff ID verification is the app's KYC; Upmore's nearest capability is verification of sensitive commands."
+  },
+  {
+   "catalog_id": "FC-X02",
+   "record_type": "discovery",
+   "outcome": "User enables email-code two-factor authentication; risk-based codes for new devices/IPs.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-012",
+    "name": "verification questions for sensitive chat commands",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Email-code two-factor maps to verification challenges on sensitive commands."
+  },
+  {
+   "catalog_id": "FC-X03",
+   "record_type": "discovery",
+   "outcome": "User earns shopping cashback via tracked partner-shop links; cashback Pending until shop confirms.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-009",
+    "name": "cash-back portal earnings tracking",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-X04",
+   "record_type": "discovery",
+   "outcome": "User deletes their account in Settings; separate GDPR data-deletion request processed within 30 days.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-014",
+    "name": "account deletion and data purge",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-X05",
+   "record_type": "discovery",
+   "outcome": "New user receives a $10 welcome bonus tied to signup/first offer.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-001",
+    "name": "bank signup bonus finder",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "A welcome bonus is surfaced by the signup bonus finder."
+  },
+  {
+   "catalog_id": "FC-X06",
+   "record_type": "discovery",
+   "outcome": "Gamified engagement features: weekly leagues, weekly lottery tickets, streaks, daily bonus ladder, open-case rewards, reward multipliers.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "gamification",
+   "reason": "Leagues, lotteries, streaks and bonus ladders farm attention; doc 03 and doc 11 say Upmore deliberately does not gamify and only tracks the money."
+  },
+  {
+   "catalog_id": "FC-X07",
+   "record_type": "discovery",
+   "outcome": "Referral/affiliate program and bonus codes.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-003",
+    "name": "referral program inventory and links",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "FC-X08",
+   "record_type": "discovery",
+   "outcome": "Payout processing is outsourced to Tremendous (current) / Tango (legacy), who send claim emails and handle some payout support.",
+   "apps": {
+    "FC": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "ALRT-007",
+    "name": "deposit received",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Outsourced payout claim emails are handled by watching for the payout to land; no payout-processor capability exists."
+  },
+  {
+   "catalog_id": "GW-X01",
+   "record_type": "discovery",
+   "outcome": "Parent-managed tap to pay for supervised children with parent email on successful payments.",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "GW-X02",
+   "record_type": "discovery",
+   "outcome": "US child prepaid balance with KYC'd family manager, PIN, add money, daily spending limit, lock, restricted merchants.",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-007",
+    "name": "teen or dependent sub-accounts",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "GW-X03",
+   "record_type": "discovery",
+   "outcome": "Create a pass from any photo/barcode (library, gym, parking) or downloaded pass file.",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INS-010",
+    "name": "document storage for policies",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "A pass created from a photo or barcode is a stored document; Upmore cannot present it at a scanner."
+  },
+  {
+   "catalog_id": "GW-X04",
+   "record_type": "discovery",
+   "outcome": "Store hotel keys, corporate badges and health insurance/vaccine cards.",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "INS-010",
+    "name": "document storage for policies",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Insurance and vaccine cards go in the document vault; NFC hotel keys and badges are hardware-bound and not delivered."
+  },
+  {
+   "catalog_id": "GW-X05",
+   "record_type": "discovery",
+   "outcome": "Google Pay direct checkout pre-fills Wallet payment options on retailer checkout pages.",
+   "apps": {
+    "GW": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-002",
+    "name": "right card per purchase recommendation by reward rate",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Checkout pre-fill is a merchant-page feature; Upmore delivers the card choice, not the fill."
+  },
+  {
+   "catalog_id": "PP-X01",
+   "record_type": "discovery",
+   "outcome": "Apply for the PayPal Cashback Mastercard credit card and earn 3% on PayPal purchases, 1.5% elsewhere.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "regulated-origination",
+   "reason": "Submitting a credit card application is credit origination Upmore never performs; it only recommends the right card (CARD-002)."
+  },
+  {
+   "catalog_id": "PP-X02",
+   "record_type": "discovery",
+   "outcome": "Get early fraud alerts, including when someone tries to add your card to another PayPal wallet.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SEC-001",
+    "name": "fraud pattern detection on transactions",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Early fraud alerts on card misuse are fraud pattern detection."
+  },
+  {
+   "catalog_id": "PP-X03",
+   "record_type": "discovery",
+   "outcome": "Store merchant loyalty card numbers/barcodes in the app and present them at checkout.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-011",
+    "name": "rewards points valuation across programs",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-X04",
+   "record_type": "discovery",
+   "outcome": "Donate to charities through PayPal.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-008",
+    "name": "gifting money with occasion notes",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: charity giving maps to gifting; receipts log to TAX-005."
+  },
+  {
+   "catalog_id": "PP-X05",
+   "record_type": "discovery",
+   "outcome": "Pay household bills from PayPal.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-006",
+    "name": "pay a bill",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "A local payment engine exists (supabase/functions/_shared/payment_service.ts) but no registered payment provider or owner launch approval; see docs/implementation/workstreams.md."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "PP-X06",
+   "record_type": "discovery",
+   "outcome": "Link a Honey account to combine rewards points with PayPal.",
+   "apps": {
+    "PP": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "EARN-009",
+    "name": "cash-back portal earnings tracking",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Honey rewards linkage is cash-back portal earnings tracking."
+  },
+  {
+   "catalog_id": "PR-X01",
+   "record_type": "discovery",
+   "outcome": "App available in English and Spanish.",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CORE-003",
+    "name": "onboarding interview (accounts, goals, people)",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Language preference is captured at onboarding; no localization capability exists in the registry."
+  },
+  {
+   "catalog_id": "PR-X02",
+   "record_type": "discovery",
+   "outcome": "Child Tax Credit tracking alongside EBT benefits.",
+   "apps": {
+    "PR": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TAX-012",
+    "name": "refund tracking",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Child Tax Credit tracking is refund tracking."
+  },
+  {
+   "catalog_id": "VE-X01",
+   "record_type": "discovery",
+   "outcome": "Request money from another user.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-003",
+    "name": "request money",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X02",
+   "record_type": "discovery",
+   "outcome": "Split a past purchase by sending charge requests.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-004",
+    "name": "split an expense",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X03",
+   "record_type": "discovery",
+   "outcome": "Track shared group expenses and settle up.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-002",
+    "name": "group expense tracking",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X04",
+   "record_type": "discovery",
+   "outcome": "Set default and per-payment privacy (Public/Friends/Private).",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-010",
+    "name": "social feed of settled debts optional and off by default",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X05",
+   "record_type": "discovery",
+   "outcome": "Standard free bank cashout via ACH.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X06",
+   "record_type": "discovery",
+   "outcome": "Instant cashout to eligible bank or debit card with fee preview.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-010",
+    "name": "ACH push/pull",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Instant vs standard cashout is PAY-010 with fee disclosure (doc 03 Cash App row)."
+  },
+  {
+   "catalog_id": "VE-X07",
+   "record_type": "discovery",
+   "outcome": "Enforce bank transfer and add-money limits by verification state.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-020",
+    "name": "payment limits and velocity checks",
+    "status": "CLAIMED",
+    "tier": "T1",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X08",
+   "record_type": "discovery",
+   "outcome": "Create a business profile to accept payments.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-003",
+    "name": "request money",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Doc 03 marks business profiles out of scope for v1; the closest capability is requesting money."
+  },
+  {
+   "catalog_id": "VE-X09",
+   "record_type": "discovery",
+   "outcome": "Accept in-person contactless payments with Tap to Pay on iPhone/Android.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "VE-X10",
+   "record_type": "discovery",
+   "outcome": "Mark personal payments as goods & services with a 2.99% seller fee.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-024",
+    "name": "payment reversal or mitigation path",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "low",
+   "note": "Goods-and-services marking buys purchase protection; Upmore delivers the dispute/mitigation path, not the seller-fee toggle."
+  },
+  {
+   "catalog_id": "VE-X11",
+   "record_type": "discovery",
+   "outcome": "Cash a check into Venmo with fee.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5)."
+  },
+  {
+   "catalog_id": "VE-X12",
+   "record_type": "discovery",
+   "outcome": "Teen accounts with parent-managed debit card lock and limits.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-007",
+    "name": "teen or dependent sub-accounts",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "VE-X13",
+   "record_type": "discovery",
+   "outcome": "Charity profiles accept donations at 1.9% + $0.10.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-008",
+    "name": "gifting money with occasion notes",
+    "status": "CLAIMED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": "Doc 03: charity profiles map to gifting."
+  },
+  {
+   "catalog_id": "VE-X14",
+   "record_type": "discovery",
+   "outcome": "Show payment status including Pending with estimated completion.",
+   "apps": {
+    "VE": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-022",
+    "name": "payment receipt with rail confirmation",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-X01",
+   "record_type": "discovery",
+   "outcome": "Turn debit/credit cards off and on, and activate or replace cards.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "CARD-011",
+    "name": "freeze or lock card via issuer where supported",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": "Card on/off is freeze/lock; activation and replacement is CARD-014."
+  },
+  {
+   "catalog_id": "WF-X02",
+   "record_type": "discovery",
+   "outcome": "Add eligible cards to digital wallets (Apple Pay, Google Pay, Samsung Pay, Paze, PayPal) and use cardless ATM access.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14)."
+  },
+  {
+   "catalog_id": "WF-X03",
+   "record_type": "discovery",
+   "outcome": "Send domestic or international digital wires.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-011",
+    "name": "wire transfer",
+    "status": "CLAIMED",
+    "tier": "T5",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-X04",
+   "record_type": "discovery",
+   "outcome": "Send international remittances via ExpressSend to 12 countries.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "PAY-016",
+    "name": "international remittance",
+    "status": "GATED",
+    "tier": "T3",
+    "delivered": false,
+    "gate_reason": "Spec doc 02 marks this capability as needing a partner or license."
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-X05",
+   "record_type": "discovery",
+   "outcome": "Grant view-only Guest User access to accounts via Account Access Manager.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "SOC-006",
+    "name": "household view with permissions",
+    "status": "CLAIMED",
+    "tier": "T2",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "high",
+   "note": null
+  },
+  {
+   "catalog_id": "WF-X06",
+   "record_type": "discovery",
+   "outcome": "Sync accounts with Quicken financial software.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": {
+    "registry_id": "TXN-012",
+    "name": "CSV export",
+    "status": "CLAIMED",
+    "tier": "T0",
+    "delivered": false,
+    "gate_reason": null
+   },
+   "confidence": "medium",
+   "note": "Quicken sync is delivered as transaction export."
+  },
+  {
+   "catalog_id": "WF-X07",
+   "record_type": "discovery",
+   "outcome": "Find ATMs/branches and book an appointment with a banker.",
+   "apps": {
+    "WF": "UNVERIFIED"
+   },
+   "catalog_status": "DISCOVERED",
+   "upmore": null,
+   "non_parity": "hardware-bound",
+   "reason": "ATM and branch lookup and banker appointments are physical-location services the agent does not replicate."
+  }
+ ]
+}

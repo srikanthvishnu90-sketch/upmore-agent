@@ -70,7 +70,7 @@ returns jsonb language sql stable set search_path=public as $$
    and t.account_id=s->>'account_id' and t.provider_transaction_id=s->>'provider_transaction_id'
   where t.fact_hash is distinct from s->>'fact_hash' or t.presence is distinct from 'observed'
    or t.is_pending is distinct from (s->>'is_pending')::boolean),
-  'recovered_cents',null,'recovery_verification','unavailable_user_report_only')
+  'due_on',c.deadline,'recovered_cents',null,'recovery_verification','unavailable_user_report_only')
 $$;
 revoke all on function public.agent_recovery_case_json(public.agent_recovery_cases) from public,anon,authenticated,service_role;
 
@@ -83,7 +83,7 @@ begin
  if uid is null then raise exception 'authenticated recovery owner required';end if;
  if p_request is null or p_kind is null or p_kind not in ('bank_fee','duplicate_charge','stale_hold')
   or jsonb_typeof(p_evidence) is distinct from 'array' then raise exception 'invalid recovery request';end if;
- if jsonb_array_length(p_evidence)<>case when p_kind='duplicate_charge' then 2 else 1 end then raise exception 'invalid recovery evidence count';end if;
+ if jsonb_array_length(p_evidence)<>(case when p_kind='duplicate_charge' then 2 else 1 end) then raise exception 'invalid recovery evidence count';end if;
  if p_due_on is not null and (not isfinite(p_due_on) or p_due_on<date '0001-01-01' or p_due_on>date '9999-12-31') then raise exception 'invalid recovery deadline';end if;
  request:=jsonb_build_object('action','open','kind',p_kind,'evidence',p_evidence,'due_on',p_due_on);
  -- Same order as ingestion/review locking; all request receipts and case
@@ -94,10 +94,13 @@ begin
  if found then
   if prior.request is distinct from request then raise exception 'recovery request changed';end if;
   select * into c from public.agent_recovery_cases where id=prior.case_id and user_id=uid;
-  return prior.result||jsonb_build_object('replay',true,'current_version',c.version,'superseded',c.version<>(prior.result->'case'->>'version')::integer);
+  return prior.result||jsonb_build_object('case',prior.result->'case'||jsonb_build_object(
+   'source_stale',public.agent_recovery_case_json(c)->'source_stale','due_on',c.deadline),
+   'replay',true,'current_version',c.version,'superseded',c.version<>(prior.result->'case'->>'version')::integer);
  end if;
  for r in select value from jsonb_array_elements(p_evidence) order by value->>'account_id',value->>'transaction_id' loop
-  if jsonb_typeof(r) is distinct from 'object' or (select count(*) from jsonb_object_keys(r))<>3
+  if jsonb_typeof(r) is distinct from 'object' then raise exception 'invalid recovery evidence';end if;
+  if (select count(*) from jsonb_object_keys(r))<>3
    or exists(select 1 from jsonb_object_keys(r) k where k not in ('account_id','transaction_id','fact_hash'))
    or jsonb_typeof(r->'account_id') is distinct from 'string' or jsonb_typeof(r->'transaction_id') is distinct from 'string'
    or jsonb_typeof(r->'fact_hash') is distinct from 'string' or r->>'fact_hash' !~ '^[a-f0-9]{64}$'
@@ -170,7 +173,9 @@ begin
  if found then
   if prior.request is distinct from request then raise exception 'recovery request changed';end if;
   select * into c from public.agent_recovery_cases where id=prior.case_id and user_id=uid;
-  return prior.result||jsonb_build_object('replay',true,'current_version',c.version,'superseded',c.version<>(prior.result->'case'->>'version')::integer);
+  return prior.result||jsonb_build_object('case',prior.result->'case'||jsonb_build_object(
+   'source_stale',public.agent_recovery_case_json(c)->'source_stale','due_on',c.deadline),
+   'replay',true,'current_version',c.version,'superseded',c.version<>(prior.result->'case'->>'version')::integer);
  end if;
  select * into c from public.agent_recovery_cases where user_id=uid and id=p_case for update;
  if not found then raise exception 'recovery case unavailable';end if;
@@ -202,7 +207,7 @@ declare uid uuid:=auth.uid();rows jsonb;
 begin
  if uid is null then raise exception 'authenticated recovery owner required';end if;
  if p_offset is null or p_offset<0 or p_offset>100000 then raise exception 'invalid recovery page';end if;
- select coalesce(jsonb_agg(public.agent_recovery_case_json(c) order by c.created_at desc,c.id),'[]'::jsonb) into rows
+ select coalesce(jsonb_agg(public.agent_recovery_case_json(c::public.agent_recovery_cases) order by c.created_at desc,c.id),'[]'::jsonb) into rows
  from (select * from public.agent_recovery_cases where user_id=uid order by created_at desc,id offset p_offset limit 21) c;
  return jsonb_build_object('owner_id',uid,'cases',case when jsonb_array_length(rows)>20 then rows-20 else rows end,
   'next_offset',case when jsonb_array_length(rows)>20 then p_offset+20 else null end,

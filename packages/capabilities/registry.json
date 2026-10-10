@@ -4776,12 +4776,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "Entity resolution against holdings, watchlist, private holdings, employer and screen sectors, by ticker, name and alias.",
    "description": "entity linking to holdings and watchlist"
   },
   {
@@ -4791,12 +4793,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "Owned names outrank everything; watchlist, sector, deal-in-space, learned topics, freshness and source authority follow; market noise scores near zero; muted topics score zero.",
    "description": "relevance scoring and ranking"
   },
   {
@@ -4806,12 +4810,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "5 to 8 items ordered by personal relevance, two-sentence summaries with links, one broadly material item outside the usual topics; ingestion is a fixture feed until the edge poller exists.",
    "description": "morning brief"
   },
   {
@@ -4821,12 +4827,15 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js",
+    "packages/domain/45-advice-guard.js"
+   ],
+   "note": "Owned name plus material event (earnings, acquisition, regulator, executive, dividend) interrupts; the text passes the advice guard; quiet hours defer it.",
    "description": "breaking alert on portfolio names"
   },
   {
@@ -4836,12 +4845,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "Acquisition clusters with size and any overlap with holdings or watchlist.",
    "description": "acquisitions tracker"
   },
   {
@@ -4896,12 +4907,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "Taps, expands, follow-ups and dismisses move capped topic weights; mute zeroes a topic; weights decay with a 30-day half-life; 'why am I seeing this' is answerable from the weights.",
    "description": "personalization from reads and skips"
   },
   {
@@ -4941,12 +4954,14 @@
    "domain": "news and intelligence",
    "tier": "T1",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "Sector roundup from the user's chosen sectors.",
    "description": "weekly sector roundup"
   },
   {
@@ -4956,12 +4971,14 @@
    "domain": "news and intelligence",
    "tier": "T0",
    "owner_doc": "10",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/news.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/55-agent-news.js"
+   ],
+   "note": "The brief keeps one broadly material item outside the user's usual topics; weights narrow but never blind.",
    "description": "source diversity audit"
   },
   {

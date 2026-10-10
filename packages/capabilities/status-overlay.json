@@ -1293,5 +1293,101 @@
       "packages/domain/60-agent-money-plans.js"
     ],
     "note": "Settled-debts feed: off unless the preference is explicitly true; nothing shared otherwise."
+  },
+  "CRDT-001": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "scoreMonitor over a score history: FICO bands, change since last, 30/90-day deltas, alert on a ten-point drop or a band change; source and as-of from the feed."
+  },
+  "CRDT-002": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "walkthrough of a report snapshot: accounts and ages, utilization from open cards, lates, inquiries, records; flags unknown accounts (fraud, not credit), closed accounts still reporting a balance, unexplained inquiries."
+  },
+  "CRDT-003": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "factors: standard reason codes explained with the user's own numbers; a code the bureau did not explain is not guessed."
+  },
+  "CRDT-004": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "disputeDraft: a bureau dispute letter naming the item by its last four digits and the reason, with the 30-day investigation step; never an identity number."
+  },
+  "CRDT-005": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "utilizationPlan: the cheapest pay-downs per card and in total to get under the target before statements close; says when cash does not cover it."
+  },
+  "CRDT-006": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "newAccountImpact: inquiry, average-age drop and utilization change computed from the report, stated as directions and mechanisms, never exact points."
+  },
+  "CRDT-007": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "inquiryAlerts: hard inquiries matching no known application (14-day window, lender name when given), with the date each leaves the report."
+  },
+  "CRDT-011": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "refinanceWatch: amortized payment per offer, monthly saving, breakeven on closing costs, total cost difference over the term; the best only when it pays back inside the term."
+  },
+  "CRDT-012": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "studentLoanEligibility: structural checks (loan type, employer kind, payment count, plan) against a dated rules table with its source; likely, on track or unlikely, servicer decides."
+  },
+  "CRDT-014": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "freezeGuidance: the three bureaus' freeze pages, what a freeze does and does not do, which are done; PINs never stored."
+  },
+  "CRDT-015": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "authorizedUserExplainer: the trade-offs against the user's own file thickness."
+  },
+  "CRDT-016": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "collectorResponse: validation, cease, pay-for-delete and not-mine letters under the FDCPA with the 30-day timing; no identity number in any of them."
   }
 }

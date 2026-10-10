@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-30 outcomes, 100% accounted, 36.7% performed.
+30 outcomes, 100% accounted, 50% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -16,11 +16,11 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | WF-008 Bill payments | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-009 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | WF-010 Fargo assistance | CORE-002 | TESTED | Doc 03: Fargo assistant Q&A is CORE-002. |
-| WF-011 Eligible FICO score | CRDT-001 | CLAIMED |  |
-| WF-012 Credit alerts | CRDT-007 | CLAIMED | Credit alerts are delivered as hard inquiry alerts plus score monitoring (CRDT-001). |
-| WF-013 Experian report review | CRDT-002 | CLAIMED |  |
+| WF-011 Eligible FICO score | CRDT-001 | TESTED |  |
+| WF-012 Credit alerts | CRDT-007 | TESTED | Credit alerts are delivered as hard inquiry alerts plus score monitoring (CRDT-001). |
+| WF-013 Experian report review | CRDT-002 | TESTED |  |
 | WF-014 Debt-to-income comparison | CRDT-008 | TESTED | Debt-to-income comparison is computed from the debt inventory and income vs spend (ANL-002). |
-| WF-015 Borrowing education | CRDT-006 | CLAIMED | Borrowing education is delivered as new-account impact explanation; no education-content capability exists. |
+| WF-015 Borrowing education | CRDT-006 | TESTED | Borrowing education is delivered as new-account impact explanation; no education-content capability exists. |
 | WF-016 Life-event plans | HOUS-010 | CLAIMED | Doc 03: life events planning maps to HOUS-009/HOUS-010. |
 | WF-017 WellsTrade access | non-parity: investment-platform | n/a | Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately. |
 | WF-018 Intuitive Investor access | non-parity: investment-platform | n/a | Robo-advisory investing is an investment-platform feature excluded from the parity set (doc 09). |

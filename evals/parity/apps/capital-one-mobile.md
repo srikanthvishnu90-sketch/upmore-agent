@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 61.3% performed.
+31 outcomes, 100% accounted, 64.5% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -11,7 +11,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CO-003 Duplicate and surprise-charge alerts | TXN-009 | TESTED |  |
 | CO-004 Purchase notifications | ALRT-002 | TESTED | Purchase notifications are delivered as transaction alerts with fatigue guard (ALRT-012). |
 | CO-005 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| CO-006 CreditWise enrollment and scores | CRDT-001 | CLAIMED |  |
+| CO-006 CreditWise enrollment and scores | CRDT-001 | TESTED |  |
 | CO-007 Rewards balances | EARN-011 | TESTED |  |
 | CO-008 Cashback and miles redemption | EARN-012 | TESTED | Redemption is delivered as valuation and best-use suggestion; the issuer executes. |
 | CO-009 Auto-loan progress | CRDT-008 | TESTED |  |

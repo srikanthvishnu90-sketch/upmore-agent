@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-41 outcomes, 100% accounted, 46.3% performed.
+41 outcomes, 100% accounted, 48.8% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -13,7 +13,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | VE-005 Debit payments | CARD-001 | TESTED | Venmo debit card is inventoried and recommended per purchase (CARD-002). |
 | VE-006 Stash offers | EARN-010 | CLAIMED |  |
 | VE-007 Reward tiers and caps | EARN-011 | TESTED | Reward tiers and caps are tracked in cross-program points valuation. |
-| VE-008 Credit application and hard inquiry | CRDT-007 | CLAIMED | Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's. |
+| VE-008 Credit application and hard inquiry | CRDT-007 | TESTED | Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's. |
 | VE-009 Credit spending management | CARD-004 | TESTED |  |
 | VE-010 Credit payments and rewards | CARD-006 | TESTED | Credit card payments are tracked by due date; rewards are EARN-011. |
 | VE-011 Cashback accrual and settlement | EARN-011 | TESTED | Cashback accrual is tracked as rewards across programs. |

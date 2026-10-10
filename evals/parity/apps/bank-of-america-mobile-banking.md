@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 60% performed.
+25 outcomes, 100% accounted, 64% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-011 Security education | SEC-011 | CLAIMED | Security education is delivered as phishing detection in finance emails rather than content. |
 | BA-012 Security meter | SEC-007 | TESTED | A security meter maps to credential rotation reminders; no security-score capability exists. |
 | BA-013 Fraud and identity-theft guidance | SEC-004 | TESTED |  |
-| BA-014 Eligible credit and FICO view | CRDT-001 | CLAIMED |  |
+| BA-014 Eligible credit and FICO view | CRDT-001 | TESTED |  |
 | BA-015 Life Plan goals | ANL-016 | TESTED |  |
 | BA-016 Spending analysis | ANL-001 | TESTED |  |
 | BA-017 Budget tracking | ANL-003 | TESTED |  |

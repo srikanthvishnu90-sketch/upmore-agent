@@ -1980,13 +1980,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2545,13 +2545,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3143,13 +3143,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5452,13 +5452,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6539,13 +6539,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6568,13 +6568,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Credit alerts are delivered as hard inquiry alerts plus score monitoring (CRDT-001).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6597,13 +6597,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6655,13 +6655,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Borrowing education is delivered as new-account impact explanation; no education-content capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 16,
-   "performed_pct": 47.1,
+   "performed": 17,
+   "performed_pct": 50,
    "gated": 5
   },
   "VE": {
@@ -8811,8 +8811,8 @@
    "non_parity": 10,
    "accounted": 41,
    "accounted_pct": 100,
-   "performed": 19,
-   "performed_pct": 46.3,
+   "performed": 20,
+   "performed_pct": 48.8,
    "gated": 6
   },
   "CO": {
@@ -8822,8 +8822,8 @@
    "non_parity": 5,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 19,
-   "performed_pct": 61.3,
+   "performed": 20,
+   "performed_pct": 64.5,
    "gated": 6
   },
   "PR": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 15,
-   "performed_pct": 60,
+   "performed": 16,
+   "performed_pct": 64,
    "gated": 3
   },
   "FC": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 11,
-   "performed_pct": 36.7,
+   "performed": 15,
+   "performed_pct": 50,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 156,
-  "performed_pct": 50.5,
+  "performed": 164,
+  "performed_pct": 53.1,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

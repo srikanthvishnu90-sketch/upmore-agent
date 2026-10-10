@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-34 outcomes, 100% accounted, 47.1% performed.
+34 outcomes, 100% accounted, 50% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CH-012 Offers discovery and activation | EARN-010 | CLAIMED |  |
 | CH-013 Rewards balances | EARN-011 | TESTED |  |
 | CH-014 Rewards redemption | EARN-012 | TESTED | Redemption is delivered as the points valuation and best-redemption suggestion; the issuer executes. |
-| CH-015 Credit Journey enrollment and scores | CRDT-001 | CLAIMED |  |
+| CH-015 Credit Journey enrollment and scores | CRDT-001 | TESTED |  |
 | CH-016 Spending categories | ANL-001 | TESTED |  |
 | CH-017 Budget creation and tracking | ANL-003 | TESTED |  |
 | CH-018 Self-directed investing | non-parity: investment-platform | n/a | Stock trading inside a non-investment app is an investment-platform feature excluded from the parity set; doc 09 covers user-directed orders separately. |

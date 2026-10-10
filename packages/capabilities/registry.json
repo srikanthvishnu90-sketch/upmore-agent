@@ -2139,12 +2139,14 @@
    "domain": "savings",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Employer match gap in dollars a year from stated terms; a draft election change the user submits.",
    "description": "401k match capture check"
   },
   {
@@ -2214,12 +2216,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Requirement checklist as data (direct deposit, debit count, minimum balance) checked against the bonus account's own transactions after the open date; fees and transfers never count as debits; the payout is verified only when the bonus credit posts.",
    "description": "bonus requirement tracker (direct deposit, debit count)"
   },
   {
@@ -2229,12 +2233,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Inventory of stated referral programs and payouts; sharing is user-initiated with a reviewed message, contacts are never touched.",
    "description": "referral program inventory and links"
   },
   {
@@ -2244,12 +2250,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Pending referrals tracked to the expected payout date; verified by the referral credit in the transactions.",
    "description": "referral payout tracking"
   },
   {
@@ -2259,12 +2267,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Match gap, HSA seed and unused stipends as arithmetic on stated plan terms; the terms are user-supplied until a payroll connector exists.",
    "description": "employer benefits audit (match, ESPP, stipends)"
   },
   {
@@ -2274,12 +2284,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "ESPP discount valued as salary x max percent x discount with the enrollment window as a deadline alert.",
    "description": "ESPP discount capture reminder"
   },
   {
@@ -2304,12 +2316,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Matches open settlements on the user's own merchants and states lived; wrong state or merchant alone never matches. Likely, not certain; the user files. Settlement rows come from class_action_settlements.",
    "description": "class action settlement matching"
   },
   {
@@ -2349,12 +2363,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Points valued at the stated real redemption rate, with the marketing rate shown as not the number.",
    "description": "rewards points valuation across programs"
   },
   {
@@ -2364,12 +2380,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Transfer partner above the cash rate surfaced as a sweet spot; expiring balances within 60 days carry a deadline.",
    "description": "points transfer optimization suggestion"
   },
   {
@@ -2409,12 +2427,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Recall refunds matched to a purchase at the recall's merchant in its window or amount; verified when the refund posts.",
    "description": "product recall refund matching"
   },
   {

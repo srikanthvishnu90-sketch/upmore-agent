@@ -1,4 +1,6 @@
 {
+  "CORE-015": {"status": "TESTED", "test_ref": "tests/harness.test.cjs", "implementation": ["evals/runner.cjs", "evals/scenarios/operating-model.cjs", "evals/mutations.cjs", "evals/gates/release.json"],
+    "note": "Five-layer harness with hard gates; results versioned under evals/results; ten planted mutations are caught and attributed; the naive baseline fails 22 of 25 scenarios."},
   "INV-024": {"status": "TESTED", "test_ref": "tests/invest.test.cjs", "implementation": ["packages/domain/45-advice-guard.js", "evals/data/labeled/advice-boundary.json"],
     "note": "Request classifier and response linter; 40 red-team + 20 held-out blocked, 40 legitimate allowed, run as a hard gate in evals/data/run-adversarial.cjs. Rule set awaits US securities counsel review before launch."},
   "INV-002": {"status": "TESTED", "test_ref": "tests/invest.test.cjs", "implementation": ["packages/domain/50-agent-invest.js"],

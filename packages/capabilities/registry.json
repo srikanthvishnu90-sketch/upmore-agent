@@ -4542,12 +4542,17 @@
    "domain": "agent core",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/harness.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "evals/runner.cjs",
+    "evals/scenarios/operating-model.cjs",
+    "evals/mutations.cjs",
+    "evals/gates/release.json"
+   ],
+   "note": "Five-layer harness with hard gates; results versioned under evals/results; ten planted mutations are caught and attributed; the naive baseline fails 22 of 25 scenarios.",
    "description": "capability eval runner integration"
   },
   {

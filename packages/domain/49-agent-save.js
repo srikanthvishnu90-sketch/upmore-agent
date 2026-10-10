@@ -40,8 +40,10 @@
       const M = Monitors();
       const recAll = M.recurring(input.transactions || [], input.today).filter(r => !Recovery().feeKind({ merchant_raw: r.merchant })), recActive = recAll.filter(r => !r.dormant);
       // Rent, loans, insurance, utilities and telecom repeat too, but they are bills (P2), not subscriptions (P1).
+      // Groceries and general retail repeat too, sometimes at the same amount by chance; they are never subscriptions.
+      const NOT_A_SUBSCRIPTION_RE = /\b(trader joe|kroger|costco|wholefds|whole foods|safeway|aldi|h-e-b|heb online|publix|wegmans|sprouts|instacart|target|walmart|wal-mart|amzn mktp|amazon\.com|grocery|market|supermarket|cvs|walgreens|home depot|lowes|ikea)\b/i;
       const BILL_RE = /\b(rent|mortgage|loan|nelnet|mohela|sallie|hoa|insurance|premium|electric|energy|power|gas co|water|utilit|comcast|xfinity|spectrum|charter|verizon|at&t|att\*|t-mobile|tmobile|mint mobile|google \*fi|visible|tuition|daycare|childcare|payroll)\b/i;
-      const bills_recurring = recActive.filter(r => BILL_RE.test(r.merchant)), rec = recActive.filter(r => !BILL_RE.test(r.merchant));
+      const bills_recurring = recActive.filter(r => BILL_RE.test(r.merchant)), rec = recActive.filter(r => !BILL_RE.test(r.merchant) && !NOT_A_SUBSCRIPTION_RE.test(r.merchant));
       const inventory = rec.map(r => ({ key: r.key, merchant: r.merchant, amount_cents: cents(r.amount), interval: r.interval, monthly_cents: monthly(r), annual_cents: monthly(r) * 12,
         since: r.firstDate, last: r.lastDate, next: r.nextDate, occurrences: r.occurrences, cost_since_first_cents: cents(r.amount) * r.occurrences, rows: r.rows }));
       const out = [];
@@ -64,7 +66,7 @@
         const txs = byKey[key].sort((a, b) => a.date.localeCompare(b.date));
         // The earlier price's cluster may already read as dormant (its last charge is two intervals back) while the merchant is active at the new price.
         const cluster = recAll.find(r => r.key === key);
-        if (txs.length < 3 || !cluster || BILL_RE.test(cluster.merchant)) continue;
+        if (txs.length < 3 || !cluster || BILL_RE.test(cluster.merchant) || NOT_A_SUBSCRIPTION_RE.test(cluster.merchant)) continue;
         const last = txs[txs.length - 1], before = txs.slice(0, -1).slice(-3);
         const prev = before.map(t => cents(Math.abs(t.amount))), was = prev[0], now = cents(Math.abs(last.amount));
         if (prev.some(p => Math.abs(p - was) > Math.max(divRound(was * 2, 100), 25))) continue;

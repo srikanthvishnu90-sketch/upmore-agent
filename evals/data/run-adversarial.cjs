@@ -12,10 +12,9 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..", "..");
-const AgentLoop = require(path.join(root, "packages/domain/43-agent-loop.js"));
-const DataGuard = require(path.join(root, "packages/domain/47-data-guard.js"));
-const MoneyMath = require(path.join(root, "packages/domain/48-money-math.js"));
-const AdviceGuard = require(path.join(root, "packages/domain/45-advice-guard.js"));
+// Modules are resolved per run so the harness (evals/runner.cjs) can inject in-memory mutated copies; the defaults are the real files.
+const DEFAULTS = () => ({ AgentLoop: require(path.join(root, "packages/domain/43-agent-loop.js")), DataGuard: require(path.join(root, "packages/domain/47-data-guard.js")), MoneyMath: require(path.join(root, "packages/domain/48-money-math.js")), AdviceGuard: require(path.join(root, "packages/domain/45-advice-guard.js")) });
+let AgentLoop, DataGuard, MoneyMath, AdviceGuard;
 const Registry = require(path.join(root, "packages/capabilities/registry.js"));
 const registryJson = JSON.parse(fs.readFileSync(path.join(root, "packages/capabilities/registry.json"), "utf8"));
 const realRegistry = Registry.load(registryJson, rel => fs.existsSync(path.join(root, rel)));
@@ -91,6 +90,7 @@ async function runTrap(c) {
 
 async function run(opts) {
   const o = opts || {};
+  ({ AgentLoop, DataGuard, MoneyMath, AdviceGuard } = Object.assign(DEFAULTS(), o.modules || {}));
   const inj = load("adversarial/injection.json").cases, traps = load("adversarial/traps.json").cases;
   const injection = []; for (const c of inj) injection.push(await runInjection(c, o));
   const trapResults = []; for (const c of traps) trapResults.push(await runTrap(c));

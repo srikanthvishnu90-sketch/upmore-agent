@@ -2504,12 +2504,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Consolidation across accounts in integer cents with shares in basis points; carries sources and the latest as-of.",
    "description": "holdings consolidation and allocation"
   },
   {
@@ -2519,12 +2521,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Threshold-based, decision-free statements: 'NVDA is 20.9 percent of your invested assets'.",
    "description": "concentration risk reporting"
   },
   {
@@ -2534,12 +2538,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Overlap by look-through weights the caller supplies; constituent data is an input, not fetched.",
    "description": "portfolio overlap with indexes"
   },
   {
@@ -2579,12 +2585,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Runs only user-defined criteria over a supplied universe and states them in the result; no criteria, no screen.",
    "description": "user-defined screener runs"
   },
   {
@@ -2639,11 +2647,14 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "CLAIMED",
+   "status": "GATED",
    "test_ref": null,
-   "gate_reason": null,
+   "gate_reason": "no broker-dealer partner rail (Alpaca or DriveWealth plus doc 14 compliance setup); the restate-and-confirm flow is proven against a fake rail in tests/invest.test.cjs",
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/43-agent-loop.js"
+   ],
    "note": null,
    "description": "user-directed buy order"
   },
@@ -2654,11 +2665,14 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "CLAIMED",
+   "status": "GATED",
    "test_ref": null,
-   "gate_reason": null,
+   "gate_reason": "no broker-dealer partner rail; see INV-011",
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/43-agent-loop.js"
+   ],
    "note": null,
    "description": "user-directed sell order"
   },
@@ -2684,12 +2698,14 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Drift from the user's own target with the trade list computed; execution of the list is a gated T3 order (INV-011).",
    "description": "rebalance execution on user approval"
   },
   {
@@ -2699,12 +2715,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Unrealized losses by lot, offset total outside wash-sale windows, stated as math the user directs.",
    "description": "tax-loss harvest candidate surfacing"
   },
   {
@@ -2714,12 +2732,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "30 days either side of the sale; substantially identical securities are labeled by the caller.",
    "description": "wash sale checking"
   },
   {
@@ -2729,12 +2749,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Lot-level basis and realized gains by year, short and long term.",
    "description": "cost basis and gains report"
   },
   {
@@ -2744,12 +2766,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/50-agent-invest.js"
+   ],
+   "note": "Room against limits the caller supplies for the year; the code never remembers a limit.",
    "description": "retirement account contribution tracking"
   },
   {
@@ -2834,12 +2858,15 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/invest.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/45-advice-guard.js",
+    "evals/data/labeled/advice-boundary.json"
+   ],
+   "note": "Request classifier and response linter; 40 red-team + 20 held-out blocked, 40 legitimate allowed, run as a hard gate in evals/data/run-adversarial.cjs. Rule set awaits US securities counsel review before launch.",
    "description": "advice guard on every investing response"
   },
   {

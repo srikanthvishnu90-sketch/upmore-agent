@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-30 outcomes, 100% accounted, 6.7% performed.
+30 outcomes, 100% accounted, 10% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | WF-004 Eligible account opening | non-parity: regulated-origination | n/a | Opening a new bank account is regulated KYC onboarding Upmore never performs; it only finds signup bonuses (EARN-001). |
 | WF-005 Zelle sending and receiving | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-006 Internal transfers | PAY-009 | CLAIMED |  |
-| WF-007 Eligible external transfers | PAY-010 | CLAIMED |  |
+| WF-007 Eligible external transfers | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | WF-008 Bill payments | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-009 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | WF-010 Fargo assistance | CORE-002 | TESTED | Doc 03: Fargo assistant Q&A is CORE-002. |
@@ -27,11 +27,11 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | WF-019 Adviser discovery | non-parity: investment-platform | n/a | Finding a human financial adviser is an investment-advisory feature excluded from the parity set (doc 09). |
 | WF-020 Language preferences | CORE-003 | CLAIMED | Language preference is captured at onboarding; no localization capability exists in the registry. |
 | WF-021 Account and device eligibility | CORE-002 | TESTED | Account and device eligibility is an honest capability-status answer. |
-| WF-022 Zelle fraud and protection education | PAY-021 | CLAIMED | Zelle fraud education is delivered as recipient verification before first send. |
+| WF-022 Zelle fraud and protection education | PAY-021 | TESTED | Zelle fraud education is delivered as recipient verification before first send. |
 | WF-023 Activate or replace an eligible credit/debit card | CARD-014 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-X01 Turn debit/credit cards off and on, and activate or replace cards. | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-X02 Add eligible cards to digital wallets (Apple Pay, Google Pay, Samsung Pay, Paze, PayPal) and use cardless ATM access. | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
-| WF-X03 Send domestic or international digital wires. | PAY-011 | CLAIMED |  |
+| WF-X03 Send domestic or international digital wires. | PAY-011 | GATED | wires need the same partner rail and stay T5 always |
 | WF-X04 Send international remittances via ExpressSend to 12 countries. | PAY-016 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-X05 Grant view-only Guest User access to accounts via Account Access Manager. | SOC-006 | CLAIMED |  |
 | WF-X06 Sync accounts with Quicken financial software. | TXN-012 | CLAIMED | Quicken sync is delivered as transaction export. |

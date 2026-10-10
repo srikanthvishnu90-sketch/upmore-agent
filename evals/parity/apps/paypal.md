@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 16.1% performed.
+31 outcomes, 100% accounted, 22.6% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -18,7 +18,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PP-010 Merchant offers | EARN-010 | CLAIMED |  |
 | PP-011 Track rewards | EARN-011 | TESTED |  |
 | PP-012 Pay eligible merchants | PAY-015 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| PP-013 Purchase Protection claims | PAY-024 | CLAIMED | Doc 03: purchase protection maps to dispute mitigation PAY-024. |
+| PP-013 Purchase Protection claims | PAY-024 | TESTED | Doc 03: purchase protection maps to dispute mitigation PAY-024. |
 | PP-014 Eligible money pools | SOC-005 | CLAIMED |  |
 | PP-015 Debit-card access | CARD-001 | CLAIMED | PayPal debit card is inventoried and recommended per purchase (CARD-002). |
 | PP-016 Savings access | SAVE-002 | TESTED |  |
@@ -30,7 +30,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PP-022 Total financing cost | ANL-018 | CLAIMED | Total financing cost is a debt payoff projection on the tracked plan. |
 | PP-023 Package updates | TXN-015 | CLAIMED | Package updates have no registry capability; receipt ingestion from email is the closest data source. |
 | PP-024 Transaction and cross-border fees | TXN-018 | TESTED |  |
-| PP-025 Resolution Center | PAY-024 | CLAIMED |  |
+| PP-025 Resolution Center | PAY-024 | TESTED |  |
 | PP-X01 Apply for the PayPal Cashback Mastercard credit card and earn 3% on PayPal purchases, 1.5% elsewhere. | non-parity: regulated-origination | n/a | Submitting a credit card application is credit origination Upmore never performs; it only recommends the right card (CARD-002). |
 | PP-X02 Get early fraud alerts, including when someone tries to add your card to another PayPal wallet. | SEC-001 | CLAIMED | Early fraud alerts on card misuse are fraud pattern detection. |
 | PP-X03 Store merchant loyalty card numbers/barcodes in the app and present them at checkout. | EARN-011 | TESTED |  |

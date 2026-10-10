@@ -189,6 +189,8 @@
         if (cap) { const dupKey = item.idempotency_key || `${cap.id}:${item.key || JSON.stringify(item.params || {})}`; if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
         const g = gate(cap, item, envelopes, now);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
+        // Compliance gate (doc 14): one call site, before anything can act. A regulated capability with no live partner fails closed with a specific message, whatever the prompt says.
+        if (o.compliance && typeof o.compliance.gate === "function" && cap.tier !== "T0" && cap.tier !== "T1") { const cg = o.compliance.gate(cap, o.partners || {}, { executes: true, kyc: o.kyc || null }); if (cg && cg.allowed === false) return idle({ capability_id: cap.id }, { outcome: "blocked", reason: "compliance:" + (cg.reason || cg.requirement), message: compose("blocked", { text: cg.message || `${cap.name} needs a licensed partner that is not in place.` }) }); }
         if (cap.tier === "T0" || cap.tier === "T1") {
           const r = await read(cap.id, item.params);
           const lead = r.value === null ? `I could not read ${cap.name} and have no earlier value.` : (item.lead ? item.lead(r.value) : `${cap.name}: ${JSON.stringify(r.value)}`);

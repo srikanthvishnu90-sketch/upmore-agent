@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-34 outcomes, 100% accounted, 11.8% performed.
+34 outcomes, 100% accounted, 14.7% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -30,12 +30,12 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CH-022 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CH-023 Fraud and account alerts | SEC-001 | CLAIMED | Fraud-led account alerts map to fraud pattern detection; generic account alerts are ALRT-010. |
 | CH-024 Biometric sign-in | non-parity: hardware-bound | n/a | Biometric unlock is the host app's own device-authenticator feature; Upmore verifies sensitive chat commands (SEC-012) but does not own the phone's biometric sensor. |
-| CH-025 Multifactor authentication | SEC-012 | CLAIMED | Bank MFA is the bank's; Upmore's equivalent is verification challenges on sensitive chat commands. |
+| CH-025 Multifactor authentication | SEC-012 | TESTED | Bank MFA is the bank's; Upmore's equivalent is verification challenges on sensitive chat commands. |
 | CH-026 Support messages | CORE-002 | TESTED | Secure support messaging maps to honest status answers from the agent. |
 | CH-027 Unauthorized transaction reporting | CARD-010 | CLAIMED |  |
 | CH-X01 Autosave: automatic checking-to-savings transfers on schedule or per deposit | SAVE-001 | CLAIMED |  |
-| CH-X02 Link external bank accounts and transfer by ACH | PAY-010 | CLAIMED |  |
-| CH-X03 Send domestic and international wires from app | PAY-011 | CLAIMED |  |
+| CH-X02 Link external bank accounts and transfer by ACH | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
+| CH-X03 Send domestic and international wires from app | PAY-011 | GATED | wires need the same partner rail and stay T5 always |
 | CH-X04 Shop through Chase for bonus points | SAVE-012 | CLAIMED |  |
 | CH-X05 Points Boost elevated redemption value on select travel | EARN-012 | TESTED |  |
 | CH-X06 Export transactions (PDF, CSV, QFX/QIF, QBO) for tax/accounting | TXN-012 | CLAIMED |  |

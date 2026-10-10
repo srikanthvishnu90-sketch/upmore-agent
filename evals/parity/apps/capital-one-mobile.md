@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 25.8% performed.
+31 outcomes, 100% accounted, 35.5% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CO-015 Blocking versus contract cancellation | BILL-017 | TESTED | Explaining block vs contract cancellation maps to cancellation confirmation verification. |
 | CO-016 Optional iOS balance widget | ACCT-001 | CLAIMED | A home-screen widget is a surface; the outcome (balance at a glance) is read balance on ask. |
 | CO-017 Biometric sign-in | non-parity: hardware-bound | n/a | Biometric unlock is the host app's own device-authenticator feature; Upmore verifies sensitive chat commands (SEC-012) but does not own the phone's biometric sensor. |
-| CO-018 Two-step authentication | SEC-012 | CLAIMED | Two-step authentication maps to verification challenges on sensitive commands. |
+| CO-018 Two-step authentication | SEC-012 | TESTED | Two-step authentication maps to verification challenges on sensitive commands. |
 | CO-019 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | CO-020 Store cash deposit barcode | non-parity: hardware-bound | n/a | Cash deposit at a store via barcode is a physical cash handoff the agent cannot perform. |
 | CO-021 Digital-wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
@@ -32,8 +32,8 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CO-024 Replacement card linking | CARD-014 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CO-025 Eligible virtual cards | CARD-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CO-026 Eno balance and activation assistance | CORE-002 | TESTED | Doc 03: Eno-style assistant answers are CORE-002, benchmarked in doc 13. |
-| CO-027 Missing new-account help | ACCT-005 | CLAIMED | Missing new account help maps to per-connector account health status. |
-| CO-X01 Sign in with a passkey | SEC-012 | CLAIMED | Passkey sign-in is the bank's authenticator; Upmore's equivalent is verification of sensitive commands. |
+| CO-027 Missing new-account help | ACCT-005 | TESTED | Missing new account help maps to per-connector account health status. |
+| CO-X01 Sign in with a passkey | SEC-012 | TESTED | Passkey sign-in is the bank's authenticator; Upmore's equivalent is verification of sensitive commands. |
 | CO-X02 Manage migrated Discover credit cards in the Capital One app | CARD-001 | CLAIMED | Migrated Discover cards are managed through card inventory once linked. |
 | CO-X03 Choose an overdraft handling option on checking | SAVE-006 | CLAIMED | Choosing overdraft handling is replaced by proactive overdraft prevention moves. |
 | CO-X04 Verify identity by tapping an AirKey-enabled card to the phone | non-parity: hardware-bound | n/a | AirKey identity verification taps an NFC card to the phone; hardware-bound. |

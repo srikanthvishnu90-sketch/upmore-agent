@@ -1221,12 +1221,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/connectors.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/51-connectors.js"
+   ],
+   "note": "HEALTHY, STALE, NEEDS_REAUTH, BROKEN, REVOKED per connector with the age of the last good sync; one calm relink message, one escalation, then quiet.",
    "description": "account health status per connector"
   },
   {
@@ -1266,12 +1268,14 @@
    "domain": "accounts",
    "tier": "T3",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/connectors.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/51-connectors.js"
+   ],
+   "note": "Revoke destroys the vault handle, stops syncs and writes the retention note; proven against the fake aggregator, not a live provider.",
    "description": "remove account"
   },
   {
@@ -1296,12 +1300,15 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/connectors.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/51-connectors.js",
+    "packages/domain/43-agent-loop.js"
+   ],
+   "note": "Every synced datum carries source, auth class and as-of; the loop labels stale reads in the same sentence.",
    "description": "staleness labeling"
   },
   {
@@ -5343,12 +5350,14 @@
    "domain": "security and identity",
    "tier": "T3",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/compliance.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/53-compliance.js"
+   ],
+   "note": "Breach, unauthorized-transaction, agent-error and partner-outage playbooks as step lists executed against fixtures; stop on a failed step.",
    "description": "breach response playbook"
   },
   {
@@ -5418,12 +5427,15 @@
    "domain": "security and identity",
    "tier": "T0",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/connectors.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/51-connectors.js",
+    "packages/domain/43-agent-loop.js"
+   ],
+   "note": "Connector audit log with secrets redacted plus the loop's event log; the user-inspectable surface is the data, the screen is not built.",
    "description": "agent action audit log, user-inspectable"
   },
   {
@@ -5463,12 +5475,14 @@
    "domain": "security and identity",
    "tier": "T1",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "A large first send asks a verification question the user answers in person terms; scam-pattern phrases stop the send outright.",
    "description": "verification questions for sensitive chat commands"
   },
   {

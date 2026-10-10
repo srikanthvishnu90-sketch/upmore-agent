@@ -3,7 +3,7 @@
  "per_app": {
   "CA": {
    "accounted_pct": 100,
-   "performed_pct": 5.3
+   "performed_pct": 13.2
   },
   "GW": {
    "accounted_pct": 100,
@@ -11,39 +11,39 @@
   },
   "CH": {
    "accounted_pct": 100,
-   "performed_pct": 11.8
+   "performed_pct": 14.7
   },
   "VE": {
    "accounted_pct": 100,
-   "performed_pct": 7.3
+   "performed_pct": 24.4
   },
   "CO": {
    "accounted_pct": 100,
-   "performed_pct": 25.8
+   "performed_pct": 35.5
   },
   "PR": {
    "accounted_pct": 100,
-   "performed_pct": 8.7
+   "performed_pct": 21.7
   },
   "PP": {
    "accounted_pct": 100,
-   "performed_pct": 16.1
+   "performed_pct": 22.6
   },
   "BA": {
    "accounted_pct": 100,
-   "performed_pct": 12
+   "performed_pct": 20
   },
   "FC": {
    "accounted_pct": 100,
-   "performed_pct": 25
+   "performed_pct": 32.1
   },
   "WF": {
    "accounted_pct": 100,
-   "performed_pct": 6.7
+   "performed_pct": 10
   }
  },
  "totals": {
   "accounted_pct": 100,
-  "performed_pct": 12
+  "performed_pct": 19.7
  }
 }

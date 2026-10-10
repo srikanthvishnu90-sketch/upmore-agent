@@ -2,18 +2,18 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-38 outcomes, 100% accounted, 5.3% performed.
+38 outcomes, 100% accounted, 13.2% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
 | CA-001 Send money to a verified person | PAY-001 | CLAIMED |  |
 | CA-002 Receive person-to-person payments | ALRT-007 | CLAIMED | Receiving a P2P payment surfaces as a deposit-received alert plus receipt (PAY-022). |
-| CA-003 Resolve a recipient by verified handle | PAY-021 | CLAIMED |  |
+| CA-003 Resolve a recipient by verified handle | PAY-021 | TESTED |  |
 | CA-004 Link bank and debit funding | ACCT-006 | CLAIMED |  |
 | CA-005 Display eligible stored balance | ACCT-001 | CLAIMED |  |
-| CA-006 Standard bank cashout | PAY-010 | CLAIMED |  |
-| CA-007 Instant bank cashout with fee preview | PAY-010 | CLAIMED | Doc 03: instant vs free 1-3 day transfer is PAY-010 with fee disclosure. |
-| CA-008 Credit-card funding with fee preview | PAY-010 | CLAIMED | Credit-card funding is a fee-bearing rail choice; the agent discloses the fee before pulling funds. |
+| CA-006 Standard bank cashout | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
+| CA-007 Instant bank cashout with fee preview | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
+| CA-008 Credit-card funding with fee preview | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | CA-009 Order and manage customizable debit card | CARD-001 | CLAIMED | Physical card ordering is the issuer's; Upmore inventories and manages the card once it exists. |
 | CA-010 Debit merchant purchases | TXN-001 | CLAIMED | Card spending itself happens at the terminal; Upmore delivers the outcome as transaction visibility and CARD-002 card choice. |
 | CA-011 ATM access and fee eligibility | non-parity: hardware-bound | n/a | ATM withdrawal is a physical cash and card interaction; Upmore can only flag ATM fees afterwards (TXN-018). |
@@ -34,9 +34,9 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-026 Automatic allowance | PAY-025 | CLAIMED |  |
 | CA-027 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CA-028 Account security lock | SEC-010 | CLAIMED | Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011). |
-| CA-029 Identity verification | SEC-012 | CLAIMED | KYC identity verification is the partner app's own onboarding; Upmore's nearest capability is verification of sensitive chat commands. |
+| CA-029 Identity verification | SEC-012 | TESTED | KYC identity verification is the partner app's own onboarding; Upmore's nearest capability is verification of sensitive chat commands. |
 | CA-030 Fraud alerts | SEC-001 | CLAIMED |  |
-| CA-031 Erroneous payment refund request | PAY-024 | CLAIMED |  |
+| CA-031 Erroneous payment refund request | PAY-024 | TESTED |  |
 | CA-032 Support escalation without reversal promise | PAY-023 | CLAIMED | Support escalation for a failed or wrong payment is failed-payment triage with honest no-reversal-promise framing. |
 | CA-033 Deposit eligible checks through a supported service | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | CA-X01 Mobile check deposit by photo | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |

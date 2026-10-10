@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-FrjJ0EwK2xoOuC8Gh6rrKDh64MZKUO6SSwQlmQjLsBQ=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-kbJ05UJHYMCrIkjkYlT58K+tR6/DnDUcVXymJqKX8V0=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -144,7 +144,7 @@
   .back { width: 44px; height: 44px; border: 0; background: none; border-radius: 12px;
     display: grid; place-items: center; margin-left: -8px; font-size: 21px; color: var(--muted); }
   .track { flex: 1; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
-  .fill { height: 100%; background: var(--mint); border-radius: 2px; transition: width .35s ease; }
+  .fill { height: 100%; background: var(--mint); border-radius: 2px; }
 
   h1 { font-size: 29px; line-height: 1.18; font-weight: 600; letter-spacing: -0.01em; }
   .why { margin-top: 10px; font-size: 15.5px; line-height: 1.5; color: var(--muted); max-width: 36ch; }
@@ -250,7 +250,7 @@
   .facts span { font-size: 11.5px; color: var(--muted); }
   .progress { margin-top: 16px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
   .bar2 { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
-  .bar2 i { display: block; height: 100%; width: 0; background: var(--mint); border-radius: 2px; transition: width .3s ease; }
+  .bar2 i { display: block; height: 100%; width: 0; background: var(--mint); border-radius: 2px; }
   .steps { margin-top: 12px; display: grid; }
   .stepbtn { display: flex; gap: 12px; align-items: center; text-align: left; background: none; border: 0;
     padding: 11px 0; font-size: 15px; border-top: 1px solid var(--line); }
@@ -445,7 +445,7 @@
   .checkline { display:flex; align-items:center; gap:10px; padding:10px 2px; font-size:15px; font-weight:600; }
   .checkline input { width:20px; height:20px; accent-color:var(--mint); }
   .xlist { margin-top:12px; display:flex; flex-direction:column; gap:10px; }
-  .livecard{display:block;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--coral);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--text)}
+  .livecard{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--text)}
   .livecard b{display:block;font-size:14.5px;line-height:1.35;margin-bottom:4px}
   .livecard .lmeta{font-size:12px;color:var(--muted)}
   .livecard .lpay{display:inline-block;font-size:12px;font-weight:800;color:var(--mint);background:var(--mint-soft);border-radius:8px;padding:2px 8px;margin-top:6px}
@@ -952,7 +952,7 @@
   .cempty { margin: auto 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
   .corb { width: 44px; height: 44px; border-radius: 50%; flex: none;
     background: radial-gradient(circle at 35% 30%, #F2F3F4 0%, #C9CDD0 45%, #6FE39B 130%);
-    box-shadow: 0 0 24px rgba(111,227,155,.18); }
+    box-shadow: 0 2px 8px rgba(0,0,0,.18); }
   .cheadline { font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em;
     color: var(--nhi); margin: 16px 0 0; }
   .csub { font-size: 13px; line-height: 1.45; color: var(--nsil2); margin: 8px 0 0; max-width: 300px; }
@@ -964,7 +964,7 @@
   .umsg { align-self: flex-end; max-width: 80%; color: #fff;
     background: linear-gradient(180deg, #2E7D5B, #1E5A3E);
     border-radius: 18px 18px 6px 18px; padding: 10px 14px; font-size: 14px; line-height: 1.5;
-    box-shadow: 0 4px 14px rgba(30,90,62,.4), inset 0 1px 0 rgba(255,255,255,.18); }
+    box-shadow: 0 2px 8px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.18); }
   .amsg { align-self: flex-start; max-width: 92%; color: var(--nhi);
     font-size: 15px; line-height: 1.55; letter-spacing: -0.003em; padding: 2px 0; }
   .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
@@ -1030,7 +1030,7 @@
   .csend { width: 40px; height: 40px; border-radius: 50%; border: 0;
     display: grid; place-items: center; flex: none;
     background: linear-gradient(180deg, #2E7D5B, #1E5A3E); color: #fff;
-    box-shadow: 0 4px 14px rgba(30,90,62,.4), inset 0 1px 0 rgba(255,255,255,.18); }
+    box-shadow: 0 2px 8px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.18); }
   .csend:disabled { background: var(--ns3); color: var(--nsil3); box-shadow: none; }
   .cfine { text-align: center; margin: 8px 4px 0; font-size: 11px; line-height: 1.3; color: var(--nsil3); }
 
@@ -1110,6 +1110,27 @@
   @media (prefers-reduced-motion: reduce) {
     .pulseorb, .ctyping i, .step[data-st="working"] .sc { animation: none !important; }
   }
+  .ledger-fields { display:flex; flex-wrap:wrap; gap:12px; margin:16px 0; }
+  .ledger-fields label { display:flex; flex:1 1 145px; flex-direction:column; gap:6px; font-size:14px; color:var(--muted); }
+  .ledger-fields input,.ledger-fields select { width:100%; min-height:44px; min-width:0; border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--surface); color:var(--text); color-scheme:dark; }
+  .ledger-fields .ghostbtn { margin:0; }
+  .ledger-row { width:100%; min-height:64px; display:flex; flex-direction:column; gap:6px; text-align:left; border:0; border-bottom:1px solid var(--line); padding:14px 0; background:none; color:var(--text); overflow-wrap:anywhere; }
+  .ledger-row span { font-size:13px; line-height:1.5; color:var(--muted); }
+  #ledgerEditor { padding:16px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  #financialreview .ghostbtn:disabled { opacity:.65; cursor:wait; }
+  .bill-row { padding:16px 0; border-bottom:1px solid var(--line); }
+  .bill-row h3 { font-size:1rem; margin:0 0 8px; }
+  .bill-row p,.bill-note { font-size:.875rem; line-height:1.5; overflow-wrap:anywhere; }
+  .bill-note { color:var(--text2); }
+  .bill-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  #billEditor { display:grid; gap:12px; margin-top:24px; }
+  #billEditor label { display:grid; gap:6px; }
+  #billEditor .bill-confirm { display:flex; align-items:flex-start; gap:8px; line-height:1.5; }
+  #billEditor input:not([type=checkbox]),#billEditor select { width:100%; min-height:44px; color:var(--text); color-scheme:dark; background:var(--surface-2); border:1px solid var(--line); padding:10px; border-radius:8px; }
+  #billEditor input[type=checkbox] { width:20px; min-width:20px; height:20px; margin-top:3px; }
+  #billAssessment { margin-top:20px; }
+  .bill-row .btn { margin-right:8px; margin-top:8px; }
+  #bills .btn { min-height:44px; }
 </style>
 </head>
 <body>
@@ -1490,6 +1511,78 @@
   
   
   
+  <section class="screen" id="financialreview" aria-label="Review bank activity">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div class="head"><button class="backbtn" data-back aria-label="Back">‹</button><div class="brand">Review bank activity</div></div>
+      <p class="psub">Classify your bank records. Saving a classification does not approve a payment.</p>
+      <form id="ledgerRange" class="ledger-fields">
+        <label>From<input id="ledgerFrom" type="date" required></label>
+        <label>Through<input id="ledgerTo" type="date" required></label>
+        <button class="ghostbtn" type="submit">Load activity</button>
+      </form>
+      <button class="ghostbtn" id="ledgerSync" type="button">Refresh connected bank</button>
+      <p id="ledgerStatus" class="psub" role="status" aria-live="polite"></p>
+      <p id="ledgerTotals" class="psub"></p>
+      <form id="ledgerEditor" hidden class="ledger-fields">
+        <p id="ledgerChosen" style="width:100%;overflow-wrap:anywhere"></p>
+        <label>Classification<select id="ledgerKind" required>
+          <option value="">Choose a classification</option><option value="expense">Expense</option>
+          <option value="income">Income</option><option value="loan_proceeds">Loan proceeds</option>
+          <option value="refund">Refund</option><option value="internal_transfer">Transfer between my accounts</option>
+          <option value="credit_payment">Credit card payment</option>
+          <option value="other">Other</option><option value="unknown">Unknown / remove classification</option>
+        </select></label>
+        <label>Category (optional)<input id="ledgerCategory" maxlength="80" autocomplete="off"></label>
+        <label id="ledgerLinkLabel" hidden>Linked record<select id="ledgerLink"></select></label>
+        <button class="ghostbtn" id="ledgerLinkMore" type="button" hidden>Load more possible matches</button>
+        <p class="psub" id="ledgerLinkNote" role="status" aria-live="polite"></p>
+        <button class="ghostbtn" type="submit" id="ledgerSave">Save my classification</button>
+      </form>
+      <div id="ledgerRows"></div>
+      <button class="ghostbtn" id="ledgerMore" type="button" hidden>Load more records</button>
+    </div><nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+  <section class="screen" id="recoveryreview" aria-label="Find possible refunds">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div class="head"><button class="backbtn" data-back aria-label="Back">‹</button><div class="brand">Find possible refunds</div></div>
+      <p class="psub">Review fees, possible duplicate charges and older pending holds in your retained bank history. A finding does not prove money is owed.</p>
+      <label class="bill-note" for="recoveryAccount">Included account</label>
+      <select id="recoveryAccount"><option value="">All retained accounts</option></select>
+      <button class="ghostbtn" id="recoveryReload" type="button">Check retained history</button>
+      <p id="recoveryStatus" class="psub" role="status" aria-live="polite"></p>
+      <div id="recoveryCoverage"></div>
+      <div id="recoveryRows" aria-label="Recovery candidates"></div>
+      <button class="ghostbtn" id="recoveryMore" type="button" hidden>Load more candidates</button>
+      <h2>Saved recovery cases</h2>
+      <p class="psub">Track preparation and what you report doing yourself. A closed case does not mean a refund was received.</p>
+      <button class="ghostbtn" id="recoveryCaseReload" type="button">Reload saved cases</button>
+      <p id="recoveryCaseStatus" class="psub" role="status" aria-live="polite"></p>
+      <div id="recoveryCases" aria-label="Saved recovery cases"></div>
+      <button class="ghostbtn" id="recoveryCaseMore" type="button" hidden>Load more saved cases</button>
+    </div><nav class="tabs" role="tablist" data-nav></nav>
+  </section>
+  <section class="screen" id="bills" aria-label="Bills and money owed">
+    <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
+      <div class="head"><button class="backbtn" data-back aria-label="Back">‹</button><div class="brand">Bills and money owed</div></div>
+      <p class="psub">Track current obligations and check the next step. Connecting a bank provides read access; payment authority is separate.</p>
+      <div class="bill-actions"><button id="billReload" type="button" class="ghostbtn">Reload bills</button><button id="billNew" type="button" class="ghostbtn">Add a current bill</button></div>
+      <p id="billStatus" class="psub" role="status" aria-live="polite"></p>
+      <div id="billRows" aria-label="Saved bills"></div>
+      <button id="billMore" type="button" class="ghostbtn" hidden>Load more bills</button>
+      <section id="billAssessment" aria-live="polite" aria-label="Bill next step"></section>
+      <form id="billEditor">
+        <h3 id="billEditorTitle">Add a current bill</h3>
+        <p class="bill-note">Use the current statement. These details come from you and have not been verified with the biller.</p>
+        <label>Biller or creditor<input id="billCreditor" type="text" maxlength="160" required autocomplete="off"></label>
+        <label>Amount currently due (USD)<input id="billAmount" type="text" inputmode="decimal" required autocomplete="off" placeholder="100.00"></label>
+        <label>Due date<input id="billDue" type="date" required></label>
+        <label>Bill type<select id="billKind" required><option value="">Choose type</option><option value="rent">Rent</option><option value="utility">Utility</option><option value="installment">Installment or BNPL</option><option value="credit">Credit card or loan</option><option value="tax">Tax</option><option value="medical">Medical</option><option value="invoice">Invoice</option><option value="insurance">Insurance</option><option value="informal">Personal debt</option><option value="other">Other</option></select></label>
+        <label>Autopay status<select id="billAutopay" required><option value="unknown">I don't know</option><option value="off">Off; no pending payment</option><option value="on">On</option></select></label>
+        <label class="bill-confirm"><input id="billConfirmed" type="checkbox" required>I checked that this bill belongs to me and the amount is currently unpaid.</label>
+        <div class="bill-actions"><button id="billSave" type="submit" class="ghostbtn">Save current bill</button><button id="billDismiss" type="button" class="ghostbtn" hidden>Dismiss possible bill</button></div>
+      </form>
+    </div><nav class="tabs" role="tablist" data-nav></nav>
+  </section>
   <!-- SPEC 04 Track: transaction list (tap strip) + month view (tap month label) -->
   <section class="screen" id="transactions" aria-label="Transactions">
     <div class="scroll" style="padding-bottom:calc(var(--bot) + 110px)">
@@ -1503,6 +1596,9 @@
         <button class="ghostbtn" id="txCalBtn" style="margin:0">Bills calendar →</button>
       </div>
       <div id="txBulkHost"></div>
+      <button class="ghostbtn" id="ledgerOpen" type="button">Review bank activity →</button>
+      <button class="ghostbtn" id="billOpen" type="button">Bills and money owed →</button>
+      <button class="ghostbtn" id="recoveryOpen" type="button">Find possible refunds →</button>
       <div id="txReview"></div>
       <div id="txList"></div>
       <button class="ghostbtn" id="txMonthBtn" style="margin-top:12px">View month vs average →</button>
@@ -1926,6 +2022,192 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       </div>
     </div>
 <script>
+/* Memory-only controller. A connection is not payment authority. */
+globalThis.UpmoreLedgerReview = function ({ identity, request, uuid }) {
+  let epoch = 0, pending = null, writing = false;
+  function invalidate(clearPending = true) { epoch++; if (clearPending) pending = null; }
+  function scope() {
+    const user = identity();
+    if (!user?.owner || !user?.token) throw new Error("Sign in to review your bank activity.");
+    const version = epoch;
+    return { user, current: () => version === epoch && identity()?.owner === user.owner };
+  }
+  async function read(body) {
+    const s = scope(), result = await request(body, s.user.token);
+    if (!s.current()) return null;
+    if (result.rows?.some(r => r.user_id !== s.user.owner || r.latest_review && r.latest_review.user_id !== s.user.owner)) throw new Error("Financial record ownership mismatch.");
+    return result;
+  }
+  async function save(row, kind, category, linked = null) {
+    if (writing) throw new Error("A classification is already being saved.");
+    const s = scope();
+    if (row.user_id !== s.user.owner) throw new Error("Choose your own transaction.");
+    if (!['expense', 'income', 'loan_proceeds', 'other', 'unknown','refund','internal_transfer','credit_payment'].includes(kind)) throw new Error("Choose a classification.");
+    if (!row.fact_hash) throw new Error("Refresh these bank facts before reviewing.");
+    const review = {account_id: row.account_id, transaction_id: row.provider_transaction_id, fact_hash: row.fact_hash, kind, category: category.trim() || null};
+    const pair = kind === 'internal_transfer' || kind === 'credit_payment';
+    if (pair || kind === 'refund') {
+      if (!linked || linked.user_id !== s.user.owner || !linked.fact_hash) throw new Error("Choose an owned linked record with current facts.");
+      if (row.account_id === linked.account_id && row.provider_transaction_id === linked.provider_transaction_id) throw new Error("Choose a different linked record.");
+      if (pair && review.category) throw new Error("Transfers and card payments are not spending categories.");
+      if (kind === 'refund' && review.category) throw new Error("A refund inherits its original expense category.");
+      Object.assign(review, {linked_account_id:linked.account_id,linked_transaction_id:linked.provider_transaction_id,linked_fact_hash:linked.fact_hash});
+    } else if (linked) throw new Error("This classification does not use a linked record.");
+    const signature = JSON.stringify(review);
+    // A lost response may have committed. An unchanged retry keeps its ID.
+    if (!pending || pending.signature !== signature || pending.owner !== s.user.owner) pending = {signature, owner: s.user.owner, id: uuid()};
+    const id = pending.id;
+    writing = true;
+    try {
+      const result = await request({action: pair ? 'classify_transaction_pair' : 'classify_transaction', confirmed: true, request_id: id, review}, s.user.token);
+      if (!s.current()) return null;
+      pending = null;
+      return result;
+    } finally { writing = false; }
+  }
+  return { read, save, invalidate };
+};
+
+</script>
+<script>
+/* Owner-scoped memory only. This controller prepares bills; it never pays. */
+globalThis.UpmoreBillWorkflow = function ({identity, request, uuid}) {
+  let epoch = 0, pending = null, writing = false;
+  const kinds = ['rent','utility','installment','credit','tax','medical','invoice','insurance','informal','other'];
+  function scope() {
+    const user = identity();
+    if (!user?.owner || !user?.token) throw Error('Sign in to see your bills.');
+    const generation = epoch;
+    return {user, current: () => generation === epoch && identity()?.owner === user.owner};
+  }
+  function owned(result, owner) {
+    if (!result || typeof result !== 'object' || Array.isArray(result) || result.ok !== true) throw Error('The bill service did not confirm this request. Retry unchanged details.');
+    if (result.obligations !== undefined && !Array.isArray(result.obligations)) throw Error('Bill list response is incomplete. Reload the list.');
+    if (result.obligations?.some(row => !row || typeof row !== 'object' || row.user_id !== owner) || result.obligation && result.obligation.user_id !== owner || result.task?.user_id && result.task.user_id !== owner) throw Error('Bill ownership mismatch.');
+    return result;
+  }
+  async function read(body) {
+    if (!['list','plan'].includes(body.action)) throw Error('Unsupported bill review.');
+    const s = scope(), result = await request(body, s.user.token);
+    if (!s.current()) return null;
+    owned(result,s.user.owner);
+    if (body.action === 'list' && (!Array.isArray(result.obligations) || result.obligations.some(row => typeof row.id !== 'string') || result.next_offset !== null && (!Number.isSafeInteger(result.next_offset) || result.next_offset <= (body.offset || 0)))) throw Error('Bill list response is incomplete. Reload the list.');
+    if (body.action === 'plan' && (result.obligation?.id !== body.obligation_id || !result.assessment || result.assessment.obligation_id && result.assessment.obligation_id !== body.obligation_id)) throw Error('The assessment does not match this bill. Reload its details.');
+    if (body.action === 'plan' && (!['blocked','needs_review','needs_information','needs_sync','monitoring','resolved','needs_connection','awaiting_approval'].includes(result.assessment.state) || typeof result.assessment.message !== 'string')) throw Error('The bill assessment is incomplete. Reload its details.');
+    return result;
+  }
+  function facts(input) {
+    const creditor = String(input.creditor || '').trim(), amount = String(input.amount || '').trim();
+    if (!creditor || creditor.length > 160) throw Error('Enter the biller name, up to 160 characters.');
+    if (!/^(0|[1-9]\d*)(\.\d{1,2})?$/.test(amount)) throw Error('Enter a USD amount with at most two decimal places.');
+    const [whole, fraction = ''] = amount.split('.');
+    const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2,'0'));
+    if (cents <= 0n || cents > BigInt(Number.MAX_SAFE_INTEGER)) throw Error('Enter a positive supported amount.');
+    const due = String(input.due_on || ''), date = new Date(due + 'T00:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0,10) !== due) throw Error('Enter a valid due date.');
+    if (!kinds.includes(input.kind)) throw Error('Choose the bill type.');
+    if (!['on','off','unknown'].includes(input.autopay)) throw Error('Choose what you know about autopay.');
+    if (input.confirmed !== true) throw Error('Confirm this is your current unpaid bill.');
+    return {creditor,amount_due_cents:Number(cents),currency:'USD',due_on:due,kind:input.kind,autopay:input.autopay,direction:'payable'};
+  }
+  async function write(input, candidate = null, dismiss = false, editing = null) {
+    if (writing) throw Error('A bill update is already in progress.');
+    const s = scope();
+    if (candidate && (candidate.user_id !== s.user.owner || !candidate.id)) throw Error('Choose your own bill.');
+    if (candidate && (candidate.status !== 'asserted' || candidate.source_type !== 'bank')) throw Error('Only an unconfirmed bank candidate can be confirmed or dismissed here.');
+    if (dismiss && !candidate) throw Error('Choose a possible bill first.');
+    if (editing && (editing.user_id !== s.user.owner || !editing.id || editing.source_type !== 'user' || editing.currency !== 'USD' || editing.direction !== 'payable' || !['asserted','verified','disputed','partially_paid'].includes(editing.status) || !Number.isSafeInteger(editing.revision) || editing.revision < 1 || editing.revision >= 2147483647)) throw Error('Reload your current editable bill before changing it.');
+    const obligation = dismiss ? null : facts(input);
+    const signature = JSON.stringify({owner:s.user.owner,candidate:candidate?.id || null,editing:editing ? {id:editing.id,revision:editing.revision} : null,dismiss,obligation});
+    if (!pending || pending.signature !== signature) pending = {signature,id:uuid()};
+    const body = editing ? {action:'edit',obligation_id:editing.id,expected_revision:editing.revision,request_id:pending.id,confirmed:true,obligation} : dismiss ? {action:'dismiss_candidate',obligation_id:candidate.id} : candidate ?
+      {action:'confirm_candidate',obligation_id:candidate.id,confirmed:true,obligation} :
+      {action:'save',entry_id:pending.id,confirmed:true,obligation};
+    writing = true;
+    try {
+      const result = await request(body,s.user.token);
+      if (!s.current()) return null;
+      owned(result,s.user.owner);
+      const saved = result.obligation;
+      if (!saved || typeof saved.id !== 'string' || !saved.id || saved.user_id !== s.user.owner || candidate && saved.id !== candidate.id || editing && saved.id !== editing.id) throw Error('The service did not return the matching saved bill. Retry unchanged details.');
+      if (editing && result.superseded === true) { pending=null; throw Error('That earlier edit was saved, but this bill has since changed. Reload bills to review the current version.'); }
+      if (editing && (result.superseded !== false || typeof result.replay !== 'boolean' || !Number.isSafeInteger(saved.revision) || saved.revision !== editing.revision+1 || result.current_revision !== saved.revision)) throw Error('The edit receipt does not confirm the current version. Reload bills.');
+      if (dismiss) {
+        if (saved.status !== 'invalid' || saved.source_type !== 'bank' || saved.evidence?.dismissed_by_user !== true) throw Error('The service did not confirm dismissal. Retry this possible bill.');
+      } else {
+        if (saved.status !== 'verified' || saved.source_type !== 'user' || Object.keys(obligation).some(key => saved[key] !== obligation[key]) || !candidate && !editing && saved.source_key !== 'user:' + pending.id) throw Error('Saved bill details differ from your review. Keep your details and reload before changing them.');
+      }
+      pending = null; return result;
+    } finally { writing = false; }
+  }
+  return {read,save:(input,candidate) => write(input,candidate),edit:(input,row)=>write(input,null,false,row),dismiss:candidate => write(null,candidate,true), invalidate(){epoch++;pending=null;},facts};
+};
+
+</script>
+<script>
+/* Conversation tickets are memory-only. They never authorize financial work. */
+globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,request,readThreads,readHistory}) {
+  let epoch = 0;
+  const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const owner = () => identity()?.owner || null;
+  const place = () => { const value=conversation();return {thread:value?.thread || null,mode:value?.mode || null}; };
+  function capture() {
+    const originalOwner=owner(), generation=epoch;
+    let expected=place();
+    const current=() => {const now=place();return generation===epoch && owner()===originalOwner && now.thread===expected.thread && now.mode===expected.mode;};
+    async function run(work) {
+      if (!current()) return {state:'stale'};
+      try { const value=await work();return current() ? {state:'ok',value} : {state:'stale'}; }
+      catch (_) { return current() ? {state:'unavailable'} : {state:'stale'}; }
+    }
+    function adoptThread(id,commit) {
+      if (!current() || !originalOwner || !uuid(id) || expected.thread && id!==expected.thread) return false;
+      const mode=expected.mode;commit(id);expected={thread:id,mode};return current();
+    }
+    function workflow(action) {
+      if (!current() || !originalOwner || action?.type!=='workflow' || !uuid(action.obligation_id) || !uuid(action.task_id)) return null;
+      const link=Object.freeze({type:'workflow',obligation_id:action.obligation_id,task_id:action.task_id});
+      return {link,open(callback){if(!current())return false;callback(link);return true;}};
+    }
+    return {owner:originalOwner,thread:expected.thread,current,run,adoptThread,workflow};
+  }
+  async function ask(text,images,ticket=capture()) {
+    if (!ticket.current()) return {state:'stale'};
+    if (!ticket.owner) return {state:'unavailable'};
+    const token=await ticket.run(() => getToken());
+    if (token.state!=='ok') return token;
+    if (typeof token.value!=='string' || !token.value) return {state:'unavailable'};
+    const result=await ticket.run(() => request({thread_id:ticket.thread,message:text,images:images || undefined},token.value));
+    if (result.state!=='ok') return result;
+    const value=result.value;
+    if (!value || typeof value!=='object' || Array.isArray(value) || typeof value.reply!=='string' || !uuid(value.thread_id) || ticket.thread && value.thread_id!==ticket.thread) return {state:'unavailable'};
+    if (value.action?.type==='workflow') {
+      const bound=ticket.workflow(value.action);
+      if (!bound) return {state:'unavailable'};
+      return {state:'ok',value:{...value,action:bound.link}};
+    }
+    return result;
+  }
+  async function list(ticket=capture()) {
+    if (!ticket.owner) return {state:ticket.current()?'unavailable':'stale'};
+    const result=await ticket.run(() => readThreads(ticket.owner));
+    if (result.state!=='ok') return result;
+    if (!Array.isArray(result.value) || result.value.some(row => !row || row.user_id!==ticket.owner || !uuid(row.id))) return {state:'unavailable'};
+    return result;
+  }
+  async function history(ticket=capture()) {
+    if (!ticket.owner || !uuid(ticket.thread)) return {state:ticket.current()?'unavailable':'stale'};
+    const result=await ticket.run(() => readHistory(ticket.owner,ticket.thread,ticket));
+    if (result.state!=='ok') return result;
+    const value=result.value;
+    if (!value || value.thread?.user_id!==ticket.owner || value.thread?.id!==ticket.thread || !Array.isArray(value.messages) || value.messages.some(row => !row || row.thread_id!==ticket.thread || !['user','assistant'].includes(row.role) || typeof row.content!=='string')) return {state:'unavailable'};
+    return {state:'ok',value:value.messages};
+  }
+  return {capture,ask,list,history,invalidate(){epoch++;}};
+};
+
+</script>
+<script>
   /* Phone frame on larger screens */
   (function () {
     if (new URLSearchParams(location.search).has("noanim")) document.documentElement.classList.add("noanim");
@@ -1941,6 +2223,48 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   const $ = id => document.getElementById(id);
   const data = {};
+  /* Device-local private records are scoped, never assigned by legacy key alone.
+   Unscoped legacy values are preserved but not read as anybody's finances. */
+globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,uuid}) {
+  let generation=0;
+  const marker='upmore-private-guest-workspace';
+  const isPrivate=key => /^(cfo_|claim_|upmore_(tx_|budget_|custom_cats|keep_target|goals|household|holdings|plaid|inv_|nw_|buffer|last_sync|confirmed_dup|rec_dismissed|private_|dob_year|minor_block|negcash|dismissed))/.test(key) || /^upmore-(onboarding-|cancel-|recharged-|dismiss|task-overlay|muted-types|mute-asked|prefs|ref(?:-|$))/.test(key);
+  const owner=()=>identity() || null;
+  function workspace(create=false) {
+    const user=owner();if(user)return 'user:'+user;
+    let guest=workspaceStorage.getItem(marker);
+    if(!guest && create){guest=uuid();workspaceStorage.setItem(marker,guest);}
+    return guest ? 'guest:'+guest : null;
+  }
+  function keyFor(key,create=false){if(!isPrivate(key))return key;const scope=workspace(create);return scope?'upmore-private:'+scope+':'+key:null;}
+  function keys(){const values=[];const scope=workspace(),prefix=scope?'upmore-private:'+scope+':':null;
+    for(let i=0;i<storage.length;i++){const key=storage.key(i);if(!key)continue;if(prefix && key.startsWith(prefix))values.push(key.slice(prefix.length));else if(!key.startsWith('upmore-private:') && !isPrivate(key))values.push(key);}
+    return values;
+  }
+  function capture(){const original=owner(),at=generation;return {owner:original,current:()=>generation===at && owner()===original};}
+  return {isPrivate,capture,keys,key:index=>keys()[index],get length(){return keys().length;},
+    getItem(key){const scoped=keyFor(key);return scoped?storage.getItem(scoped):null;},
+    setItem(key,value){storage.setItem(keyFor(key,true),value);},
+    removeItem(key){const scoped=keyFor(key);if(scoped)storage.removeItem(scoped);},
+    invalidate(rotateGuest=false){generation++;if(rotateGuest)workspaceStorage.removeItem(marker);}
+  };
+};
+
+  const financeStorage=UpmorePrivateFinance({storage:localStorage,workspaceStorage:sessionStorage,
+    identity:()=>{try{return session?.user?.id || null;}catch(_){return null;}},uuid:()=>crypto.randomUUID()});
+  const financeCapture=()=>financeStorage.capture();
+  function resetPrivateFinance() {
+    if(Object.keys(data).length) {try{financeStorage.setItem('upmore_private_onboarding',JSON.stringify(data));}catch(_){}}
+    financeStorage.invalidate(true);
+    trackData=null;prevLiveBatch=null;liveTrackError=null;plaidStatusCache=null;tasksCache=null;tasksCacheOwner=null;homeSubCache=[];dbProfile=null;
+    Object.keys(prog).forEach(key=>delete prog[key]);Object.keys(cancelStates).forEach(key=>delete cancelStates[key]);Object.keys(data).forEach(key=>delete data[key]);
+    for(const id of ['txList','txReviewList','subList','subMonthly','deadlineList','investBody','budgetReportBody','nwBody','cfoBody','tasksGroups','tasksSummary','nwHomeSub','pName','pMail','pLine','homeMoneyList','ledgerList','ledgerTotals','householdList','claimBody','budgetSheetBody','reccalBody','referralBody','subscriptionBody','auditList','queue']){const node=$(id);if(node){node.replaceChildren();node.textContent='';}}
+    for(const id of ['subSheet','connectSheet','payoffSheet','budgetSheet','discBankSheet']){const node=$(id);if(node)node.hidden=true;}
+    const token=$('sfToken');if(token)token.value='';
+    for(const id of ['sfClaimBtn','discBankConfirm']){const node=$(id);if(node)node.disabled=false;}
+    if($('hello'))$('hello').textContent='Your money, clearly.';if($('avatar'))$('avatar').textContent='';
+    if($('pictureCard'))$('pictureCard').hidden=true;
+  }
 
   /* ================= Offers =================
      The Perplexity offer list plugs in here: each offer gets an
@@ -2107,6 +2431,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (id === "save") renderTracker();
     if (id === "profile") renderProfile();
     if (id === "transactions") renderTxScreen();
+    if (id === "financialreview") renderFinancialReview();
+    if (id === "recoveryreview") renderRecoveryReview();
+    if (id === "bills") renderBillWorkflows();
     if (id === "monthview") renderMonthScreen();
     if (id === "budgetReport") renderBudgetReport();
     if (id === "investments") renderInvestments();
@@ -2129,13 +2456,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // unmatched credits, and refunds, with one-tap acknowledge. Never deletes.
   const TX_REVIEWED_LS = "upmore_tx_reviewed_v1";
   const TX_FLAGS_LS = "upmore_tx_flags_v1"; // SPEC 09k: per-tx resolutions {excluded, asIncome}
-  function txReviewedGet() { try { const v = JSON.parse(localStorage.getItem(TX_REVIEWED_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
-  function txFlagsGet() { try { const v = JSON.parse(localStorage.getItem(TX_FLAGS_LS) || "{}"); return (v && typeof v === "object") ? v : {}; } catch (e) { return {}; } }
+  function txReviewedGet() { try { const v = JSON.parse(financeStorage.getItem(TX_REVIEWED_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function txFlagsGet() { try { const v = JSON.parse(financeStorage.getItem(TX_FLAGS_LS) || "{}"); return (v && typeof v === "object") ? v : {}; } catch (e) { return {}; } }
   function txFlagsSet(id, patch) {
     const f = txFlagsGet(); const cur = f[id] || {};
     f[id] = Object.assign({}, cur, patch);
     if (!f[id].excluded && !f[id].asIncome) delete f[id];
-    try { localStorage.setItem(TX_FLAGS_LS, JSON.stringify(f)); } catch (e) {}
+    try { financeStorage.setItem(TX_FLAGS_LS, JSON.stringify(f)); } catch (e) {}
     // Re-apply to the live in-memory set without dropping it (never null it —
     // that would discard live SimpleFIN data and fall back to demo).
     try {
@@ -2186,7 +2513,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }).join("") + `</div>`;
     const markReviewed = id => {
       const v = txReviewedGet(); v.push(id);
-      try { localStorage.setItem(TX_REVIEWED_LS, JSON.stringify(v)); } catch (e) {}
+      try { financeStorage.setItem(TX_REVIEWED_LS, JSON.stringify(v)); } catch (e) {}
       renderTxReview();
     };
     box.querySelectorAll("[data-txok]").forEach(b => b.onclick = () => markReviewed(b.dataset.txok));
@@ -2367,12 +2694,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (!data.minor) {
       try {
         const y = parseInt(dobI.value.replace(/\D/g, "").slice(4), 10);
-        if (y > 1900 && y <= new Date().getFullYear()) localStorage.setItem("upmore_dob_year", String(y));
+        if (y > 1900 && y <= new Date().getFullYear()) financeStorage.setItem("upmore_dob_year", String(y));
       } catch (e) {}
     } else {
       // Durable block: survives reload, so a blocked user can't just open the
       // login screen afterward. A boolean flag — none of their typed answers.
-      try { localStorage.setItem("upmore_minor_block", "1"); } catch (e) {}
+      try { financeStorage.setItem("upmore_minor_block", "1"); } catch (e) {}
     }
     show(data.minor ? "blocked" : "situation");
   };
@@ -2638,14 +2965,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ================= Auth: Google sign-in ================= */
   async function startGoogleLogin(btn, labelHtml) {
     // The OAuth round-trip reloads the page, wiping in-memory onboarding
-    // answers. Stash them nonce-bound (one-time, consumed on return) so the
-    // profile is saved with the user's real answers — and so a different
-    // person's answers can never leak into this profile.
+    // answers. Preserve them in the current private workspace. Anonymous
+    // answers are not automatically assigned to a newly authenticated owner;
+    // an explicit reviewed import is still needed for that transition.
     try {
       const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
       sessionStorage.setItem("upmore-ob-nonce", nonce);
-      localStorage.setItem("upmore-onboarding-" + nonce, JSON.stringify(data));
-      localStorage.setItem("upmore-onboarding", "1"); // returning-user marker only
+      financeStorage.setItem("upmore-onboarding-" + nonce, JSON.stringify(data));
+      financeStorage.setItem("upmore-onboarding", "1"); // returning-user marker only
     } catch (e) {}
     btn.disabled = true;
     btn.innerHTML = "<span>Opening Google…</span>";
@@ -2783,7 +3110,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       }
       await ensureProfile();
       await loadProgress();
-      try { localStorage.setItem("upmore-onboarding", "1"); } catch (e) {}
+      try { financeStorage.setItem("upmore-onboarding", "1"); } catch (e) {}
       if (minorBlocked()) { show("blocked", { replace: true }); return; }
       if (!(await tosAccepted())) { show("tos", { replace: true }); return; }
       show("home", { replace: true });
@@ -2801,7 +3128,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      still holds; only the typo trap is gone. */
   const blockedRetry = $("blockedRetry");
   if (blockedRetry) blockedRetry.onclick = () => {
-    try { localStorage.removeItem("upmore_minor_block"); } catch (e) {}
+    try { financeStorage.removeItem("upmore_minor_block"); } catch (e) {}
     data.minor = false;
     show("about");
   };
@@ -3014,10 +3341,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // deadline countdown.
   function homeTz() {
     try {
-      let tz = localStorage.getItem("upmore_home_tz");
+      let tz = financeStorage.getItem("upmore_home_tz");
       if (!tz) {
         tz = (typeof Intl !== "undefined" && Intl.DateTimeFormat().resolvedOptions().timeZone) || "UTC";
-        localStorage.setItem("upmore_home_tz", tz);
+        financeStorage.setItem("upmore_home_tz", tz);
       }
       return tz;
     } catch (e) { return "UTC"; }
@@ -3082,6 +3409,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function buildQueue() {
+    const financeTicket=financeCapture();
     const cards = [];
     const d = planData();
     const _qtd = (typeof loadTrackData === "function") ? loadTrackData() : { transactions: [], accounts: [] };
@@ -3094,10 +3422,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // "A user in genuine distress being shown a plan to cancel Netflix is being failed."
     const NEGCASH_KEY = "upmore_negcash_streak";
     let negStreak = 0;
-    try { negStreak = parseInt(localStorage.getItem(NEGCASH_KEY) || "0", 10) || 0; } catch (e) {}
+    try { negStreak = parseInt(financeStorage.getItem(NEGCASH_KEY) || "0", 10) || 0; } catch (e) {}
     const freeCashNow = qNoLive ? null : homeFreeCash();
     negStreak = (freeCashNow != null && freeCashNow < 0) ? negStreak + 1 : 0;
-    try { localStorage.setItem(NEGCASH_KEY, String(negStreak)); } catch (e) {}
+    try { financeStorage.setItem(NEGCASH_KEY, String(negStreak)); } catch (e) {}
     const isDistressed = negStreak >= 2;
     if (isDistressed) {
       cards.push({
@@ -3331,9 +3659,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
               cta2: "It's a duplicate", act2: () => {
                 dismissQueueCard(dupId);
                 try {
-                  const cf = JSON.parse(localStorage.getItem("upmore_confirmed_dup") || "[]");
+                  const cf = JSON.parse(financeStorage.getItem("upmore_confirmed_dup") || "[]");
                   cf.push({ merchant: dc.merchant, date: dc.detected_date, amount: dc.dollars, at: new Date().toISOString() });
-                  localStorage.setItem("upmore_confirmed_dup", JSON.stringify(cf));
+                  financeStorage.setItem("upmore_confirmed_dup", JSON.stringify(cf));
                 } catch (e) {}
                 show("chat");
                 chatAsk("I was double charged by " + dc.merchant + " on " + dc.detected_date + " for $" + dc.dollars.toFixed(2) + ". How do I dispute it?");
@@ -3348,10 +3676,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // $Y labelled as a 12-month projection. Built from localStorage cancel
     // records (no sign-in needed); the ledger entry is written by runCancelWatcher.
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (let i = 0; i < financeStorage.length; i++) {
+        const key = financeStorage.key(i);
         if (!key || !key.startsWith("upmore-cancel-")) continue;
-        let rec; try { rec = JSON.parse(localStorage.getItem(key)); } catch (e) { continue; }
+        let rec; try { rec = JSON.parse(financeStorage.getItem(key)); } catch (e) { continue; }
         if (!rec || rec.state !== CancelState.CONFIRMED) continue;
         const monthly = Math.round((Number(rec.amount || 0) * (INT2MO[rec.interval] || 1)) * 100) / 100;
         const proj = Math.round(monthly * 12);
@@ -3365,10 +3693,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     } catch (e) {}
     // 7-017: a charge that reappeared after cancel → "They charged you anyway" card.
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (let i = 0; i < financeStorage.length; i++) {
+        const key = financeStorage.key(i);
         if (!key || !key.startsWith("upmore-recharged-")) continue;
-        let rec; try { rec = JSON.parse(localStorage.getItem(key)); } catch (e) { continue; }
+        let rec; try { rec = JSON.parse(financeStorage.getItem(key)); } catch (e) { continue; }
         if (!rec) continue;
         const per = `$${Number(rec.amount || 0).toFixed(2)} / ${rec.interval || "billing period"}`;
         cards.push({ type: "recharged", id: "recharged-" + key.slice("upmore-recharged-".length),
@@ -3389,18 +3717,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         ? c.waste_score 
         : qScore(c.dollars, c.conf, c.urg, c.eff); 
     });
+    if(!financeTicket.current())return [];
     cards.sort((a, b) => b.score - a.score);
     // 2-015: dismissed cards never re-render.
     try {
-      const dismissed = new Set(JSON.parse(localStorage.getItem("upmore_dismissed") || "[]"));
+      const dismissed = new Set(JSON.parse(financeStorage.getItem("upmore_dismissed") || "[]"));
       return cards.filter(c => !dismissed.has(c.id));
     } catch (e) { return cards; }
   }
 
   async function renderQueue() {
+    const financeTicket=financeCapture();
     const box = $("queue");
     if (!box) return;
-    const cards = await buildQueue();
+    const cards = await buildQueue();if(!financeTicket.current())return;
     if (!cards.length) {
       box.innerHTML = `<p class="psub">Nothing queued yet - search above or track a subscription below.</p>`;
       return;
@@ -3488,15 +3818,16 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // ("upmore_dismissed") and never re-render (filtered in buildQueue).
   function dismissQueueCard(id) {
     try {
-      const d = JSON.parse(localStorage.getItem("upmore_dismissed") || "[]");
+      const d = JSON.parse(financeStorage.getItem("upmore_dismissed") || "[]");
       if (!d.includes(id)) d.push(id);
-      localStorage.setItem("upmore_dismissed", JSON.stringify(d));
+      financeStorage.setItem("upmore_dismissed", JSON.stringify(d));
     } catch (e) {}
     renderQueue();
   }
 
   async function deadlineDone(table, id) {
-    try { await supa.from(table).update({ status: table === "save_claims" ? "claimed" : "done" }).eq("id", id); } catch (e) {}
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
+    await saveUpdate(table,id,{status:table === "save_claims" ? "claimed" : "done"});if(!financeTicket.current())return;
     renderQueue(); renderDeadlines();
   }
 
@@ -3728,8 +4059,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     ];
   }
   async function saveUpdate(table, id, patch) {
-    if (!saveUid()) return false;
-    try { const { error } = await supa.from(table).update(patch).eq("id", id); return !error; }
+    const financeTicket=financeCapture();if(!financeTicket.owner)return false;
+    try { const { error } = await supa.from(table).update(patch).eq("id",id).eq("user_id",financeTicket.owner);return financeTicket.current() && !error; }
     catch (e) { return false; }
   }
   // FIX (6-021): dedupe key (name+date), checked at INSERT and at RENDER.
@@ -3790,13 +4121,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return out;
   }
   async function ingestTrialDeadlines(transactions) {
+    const financeTicket=financeCapture();
     if (!saveUid()) return 0;
     try {
       const tm = (typeof TrackMonitors !== "undefined") ? TrackMonitors : null;
       const findings = (tm && typeof tm.trialConversion === "function") ? (tm.trialConversion(transactions || []) || []) : [];
       if (!findings.length) return 0;
       const rows = trialDeadlineRows(findings, await fetchDeadlineRows());
-      for (const row of rows) await saveInsert("save_claims", row);
+      for (const row of rows) {if(!financeTicket.current())return;await saveInsert("save_claims",row);}
       return rows.length;
     } catch (e) { return 0; }
   }
@@ -3823,11 +4155,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return dd >= -1 && dd <= 3;
   }
   async function reconcileDeadlinesWithCharges(transactions) {
+    const financeTicket=financeCapture();
     if (!saveUid()) return 0;
     try {
       const rows = (await fetchDeadlineRows()).filter(r => r.status === "upcoming" || r.status === "open");
       let n = 0;
       for (const r of rows) {
+        if(!financeTicket.current())return;
         if (!(transactions || []).some(t => chargeMatchesDeadline(t, r))) continue;
         const done = r.t === "save_claims" ? "claimed" : "done";
         if (await saveUpdate(r.t, r.id, { status: done })) n++;
@@ -3842,6 +4176,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // in place (recompute, never append: no duplicate rows are inserted).
   // Also ingests trial deadlines (6-012) and reconciles posted charges (6-022).
   async function recomputeDeadlines(transactions) {
+    const financeTicket=financeCapture();
     if (!saveUid()) return;
     try {
       const txs = transactions || [];
@@ -3851,16 +4186,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         rec.forEach(s => { byMid[normMerch(s.merchant_id)] = s; });
         const rows = (await fetchDeadlineRows())
           .filter(r => r.t === "save_renewals" && r.status === "upcoming");
+        if(!financeTicket.current())return;
         for (const r of rows) {
+          if(!financeTicket.current())return;
           const s = byMid[normMerch((r.raw && r.raw.name) || r.name)];
           if (s && s.next_date && s.next_date !== r.date) {
             await saveUpdate("save_renewals", r.id, { renews_on: s.next_date });
           }
         }
       }
-      await ingestTrialDeadlines(txs);
-      await reconcileDeadlinesWithCharges(txs);
-      renderDeadlines(); renderQueue();
+      if(!financeTicket.current())return;await ingestTrialDeadlines(txs);
+      if(!financeTicket.current())return;await reconcileDeadlinesWithCharges(txs);
+      if(!financeTicket.current())return;renderDeadlines(); renderQueue();
     } catch (e) {}
   }
 
@@ -3926,10 +4263,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   /* ================= Deadlines & claims (Track section) ================= */
   async function renderDeadlines() {
+    const financeTicket=financeCapture();
     const box = $("deadlineList");
     if (!box) return;
     if (!saveUid()) { box.innerHTML = ""; return; }
-    const rows = await fetchDeadlineRows();
+    const rows = await fetchDeadlineRows();if(!financeTicket.current())return;
     // FIX (6-021): dedupe at render on (name+date) — one deadline per bill even
     // if two detectors (or two manual taps) produced rows. Sort date-asc (6-029).
     const seen = new Set();
@@ -4004,8 +4342,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     { id: "credit", title: "Credit factors", hook: "The five factors lenders use \u2014 and your utilization math." },
   ];
 
-  const cfoGet = (k, fb) => { try { const v = localStorage.getItem("cfo_" + k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } };
-  const cfoSet = (k, v) => { try { localStorage.setItem("cfo_" + k, JSON.stringify(v)); } catch (e) {} };
+  const cfoGet = (k, fb) => { try { const v = financeStorage.getItem("cfo_" + k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } };
+  const cfoSet = (k, v) => { try { financeStorage.setItem("cfo_" + k, JSON.stringify(v)); } catch (e) {} };
   const cfo$ = n => "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
   const cfo2$ = n => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -4634,10 +4972,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      the ledger only when the money actually lands. */
   const CLAIM_STATES = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
   const CLAIM_SEARCH_URL = "https://www.missingmoney.com/";
-  const claimGet = () => { try { return JSON.parse(localStorage.getItem("claim_searched") || "[]"); } catch (e) { return []; } };
-  const claimSet = v => { try { localStorage.setItem("claim_searched", JSON.stringify(v)); } catch (e) {} };
-  const addrGet = () => { try { return JSON.parse(localStorage.getItem("claim_addresses") || "[]"); } catch (e) { return []; } };
-  const addrSet = v => { try { localStorage.setItem("claim_addresses", JSON.stringify(v)); } catch (e) {} };
+  const claimGet = () => { try { return JSON.parse(financeStorage.getItem("claim_searched") || "[]"); } catch (e) { return []; } };
+  const claimSet = v => { try { financeStorage.setItem("claim_searched", JSON.stringify(v)); } catch (e) {} };
+  const addrGet = () => { try { return JSON.parse(financeStorage.getItem("claim_addresses") || "[]"); } catch (e) { return []; } };
+  const addrSet = v => { try { financeStorage.setItem("claim_addresses", JSON.stringify(v)); } catch (e) {} };
   function renderClaimAddrs() {
     const box = $("claimAddrList"); if (!box) return;
     const list = addrGet();
@@ -4721,9 +5059,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       // SPEC 09: annual re-search reminder — states receive new property constantly.
       if (!wasSearched) {
         const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-        let rs = {}; try { rs = JSON.parse(localStorage.getItem("claim_research") || "{}"); } catch (e) {}
+        let rs = {}; try { rs = JSON.parse(financeStorage.getItem("claim_research") || "{}"); } catch (e) {}
         rs[s] = d.toISOString().slice(0, 10);
-        try { localStorage.setItem("claim_research", JSON.stringify(rs)); } catch (e) {}
+        try { financeStorage.setItem("claim_research", JSON.stringify(rs)); } catch (e) {}
         toast(`${s} marked searched — we'll nudge you to check again next year.`);
       }
       renderClaim();
@@ -4784,9 +5122,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function renderClaimList() {
+    const financeTicket=financeCapture();
     const box = $("claimList"); if (!box) return;
     let rows = [];
     try { rows = (await saveRows("save_claims", "deadline", true)).filter(r => { const k = r.kind || ""; return k.startsWith("Unclaimed property") || k.startsWith("Heir claim"); }); } catch (e) {}
+    if(!financeTicket.current())return;
     if (!rows.length) { box.innerHTML = `<p class="psub">No claims tracked yet.</p>`; return; }
     box.innerHTML = rows.map(r => {
       const open = r.status === "open";
@@ -4802,8 +5142,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }).join("");
     box.querySelectorAll("[data-landed]").forEach(b => b.onclick = () => claimLanded(b.dataset.landed));
     box.querySelectorAll("[data-packet]").forEach(b => b.onclick = async () => {
+      if(!financeTicket.current())return;
       let rows = []; try { rows = await saveRows("save_claims", "deadline", true); } catch (e) {}
-      const r = rows.find(x => String(x.id) === String(b.dataset.packet)); if (!r) return;
+      if(!financeTicket.current())return;const r = rows.find(x => String(x.id) === String(b.dataset.packet)); if (!r) return;
       const host = $("claimPacketHost");
       if (host) {
         host.innerHTML = claimPacketHtml(r);
@@ -4822,7 +5163,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const filedM = String(r.steps || "").match(/Filed ([^—]+)/);
     const filed = filedM ? filedM[1].trim() : "—";
     let addrs = [];
-    try { addrs = JSON.parse(localStorage.getItem("claim_addrs") || "[]"); } catch (e) {}
+    try { addrs = JSON.parse(financeStorage.getItem("claim_addrs") || "[]"); } catch (e) {}
     const portal = CLAIM_PORTALS[r.merchant] || CLAIM_SEARCH_URL;
     return `<div class="pcard" id="claimPacket" style="margin-top:12px">
       <p class="bsum" style="font-size:15px"><b>Claim packet — ${esc(r.merchant || "")}</b></p>
@@ -4851,17 +5192,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     </div>`;
   }
   async function claimLanded(id) {
+    const financeTicket=financeCapture();
     let rows = []; try { rows = await saveRows("save_claims", "deadline", true); } catch (e) {}
-    const r = rows.find(x => String(x.id) === String(id)); if (!r) return;
+    if(!financeTicket.current())return;const r = rows.find(x => String(x.id) === String(id)); if (!r) return;
     const amt = Number(r.amount || 0);
-    try { await supa.from("save_claims").update({ status: "claimed" }).eq("id", id); } catch (e) {}
+    if(!await saveUpdate("save_claims",id,{status:"claimed"}) || !financeTicket.current())return;
     if (amt > 0) {
       await saveInsert("save_ledger", {
         bucket: "Found", amount: amt, title: "Unclaimed property — " + (r.merchant || "state"),
         detail: r.kind || "", occurred_on: localISODate()
       });
     }
-    renderClaimList(); renderDeadlines(); renderQueue(); renderLedger();
+    if(!financeTicket.current())return;renderClaimList(); renderDeadlines(); renderQueue(); renderLedger();
     toast(amt > 0 ? "Confirmed — logged as Found." : "Marked claimed.");
   }
 
@@ -4926,10 +5268,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   };
   async function renderLedger() {
+    const financeTicket=financeCapture();
     const box = $("ledgerList"), tots = $("ledgerTotals");
     if (!box || !tots) return;
     if (!saveUid()) { tots.innerHTML = ""; box.innerHTML = `<p class="psub" style="padding:16px 18px">Sign in to keep your money log.</p>`; return; }
-    const rows = await saveRows("save_ledger", "occurred_on", false);
+    const rows = await saveRows("save_ledger", "occurred_on", false);if(!financeTicket.current())return;
     const sums = {};
     LEDGER_BUCKETS.forEach(b => sums[b] = 0);
     rows.forEach(r => { if (sums[r.bucket] !== undefined) sums[r.bucket] += Number(r.amount || 0); });
@@ -4969,16 +5312,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const back = $("lgBack"); if (back) back.onclick = () => renderLedger();
   }
   async function ledgerReverse(id, rows) {
+    const financeTicket=financeCapture();
     const r = (rows || []).find(x => String(x.id) === String(id));
-    if (!r || r.reversed) return;
+    if (!r || r.reversed || r.user_id!==financeTicket.owner) return;
     if (needSignIn()) return;
     const ok = await saveInsert("save_ledger", {
       bucket: r.bucket, amount: -Number(r.amount || 0),
       title: "Reversal: " + r.title, detail: r.detail || "",
       occurred_on: localISODate()
     });
+    if(!financeTicket.current())return;
     if (!ok) { toast("Couldn't save - check your connection and try again."); return; }
-    try { await supa.from("save_ledger").update({ reversed: true }).eq("id", r.id); } catch (e) {}
+    await saveUpdate("save_ledger",r.id,{reversed:true});if(!financeTicket.current())return;
     renderLedger(); toast("Reversed");
   }
   wireShare();
@@ -5046,20 +5391,25 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   let disconnectWired = false;
   function bankConnectedLive() { return !!(typeof trackData !== "undefined" && trackData && trackData.isLive); }
   function clearLocalBankData() {
-    trackData = null; prevLiveBatch = null;
-    try { localStorage.removeItem("upmore_last_sync"); } catch (e) {}
+    financeStorage.invalidate();
+    recoveryReset();
+    trackData = null; prevLiveBatch = null;liveTrackError=null;
+    for(const id of ["homeMoneyList","txList","txReviewList","budgetReportBody","reccalBody","nwHomeSub","queue"]){const node=$(id);if(node){node.replaceChildren();node.textContent="";}}
+    if($("pictureCard"))$("pictureCard").hidden=true;if($("payoffSheet"))$("payoffSheet").hidden=true;
+    try { financeStorage.removeItem("upmore_last_sync"); } catch (e) {}
   }
   async function disconnectBank() {
+    clearLocalBankData();const financeTicket=financeCapture();
     const status = $("discBankStatus");
     $("discBankConfirm").disabled = true;
     status.textContent = "Disconnecting…";
     let backendOk = true, backendErr = "";
     let vaultOk = true, vaultErr = "";
     try {
-      const uid = (session && session.user && session.user.id) || null;
+      const uid = financeTicket.owner;
       if (!uid) { backendOk = false; backendErr = "not signed in"; }
       else {
-        const { error } = await supa.from("simplefin_connections").delete().eq("user_id", uid);
+        const { error } = await supa.from("simplefin_connections").delete().eq("user_id",uid);if(!financeTicket.current())return;
         if (error) { backendOk = false; backendErr = error.message || "request failed"; }
         else {
           // FIX (QA-B 2026-09-27): also delete the vaulted Access URL so the
@@ -5067,12 +5417,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           // the secret name from the caller's own JWT — it can only delete
           // this user's secret, never anyone else's.
           try {
-            const { error: verr } = await supa.rpc("simplefin_vault_delete");
+            const { error: verr } = await supa.rpc("simplefin_vault_delete");if(!financeTicket.current())return;
             if (verr) { vaultOk = false; vaultErr = verr.message || "request failed"; }
           } catch (e) { vaultOk = false; vaultErr = String((e && e.message) || e); }
         }
       }
     } catch (e) { backendOk = false; backendErr = String((e && e.message) || e); }
+    if(!financeTicket.current())return;
     clearLocalBankData();
     if (typeof renderHomeConnect === "function") { try { renderHomeConnect(); } catch (e) {} }
     if (backendOk && vaultOk) {
@@ -5097,7 +5448,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     $("discBankConfirm").onclick = disconnectBank;
   }
   async function exportUserData() {
-    if (!saveUid()) { toast("Sign in to export"); return; }
+    const financeTicket=financeCapture();
+    if (!financeTicket.owner) { toast("Sign in to export"); return; }
     // FIX (QA-D 2026-09-27): export covered only 6 tables while the privacy
     // policy promises "export everything". Now covers every user-owned table.
     // FIX (QA-D2 2026-09-27): added the four tables the first pass missed —
@@ -5118,26 +5470,31 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       ["web_agent_jobs", "created_at"], ["agent_usage", "created_at"],
       ["plaid_spend_ledger", "created_at"], ["plaid_holdings_cache", "fetched_at"],
       ["finance_waitlist", "created_at"], ["listings", "created_at"]];
-    const out = { exported_at: new Date().toISOString(), user_id: saveUid() };
-    for (const [t, col] of tables) out[t] = await saveRows(t, col, false);
+    const out = { exported_at: new Date().toISOString(), user_id: financeTicket.owner };
+    for (const [t, col] of tables) {if(!financeTicket.current())return;out[t] = t==='profiles' ? [(await supa.from('profiles').select('*').eq('id',financeTicket.owner).maybeSingle()).data].filter(Boolean) : await saveRows(t,col,false,financeTicket);if(!financeTicket.current())return;}
     // referrals: no user_id column — the user is either the referrer or the referee
     try {
-      const uid = saveUid();
+      const uid = financeTicket.owner;
       const { data: refs } = await supa.from("referrals").select("*")
         .or("referrer_id.eq." + uid + ",referee_id.eq." + uid)
         .order("created_at", { ascending: false });
+      if(!financeTicket.current())return;
       out.referrals = refs || [];
     } catch (e) { out.referrals = out.referrals || []; }
     // agent_threads + agent_messages (messages carry no user_id; export per thread)
     try {
-      const { data: threads } = await supa.from("agent_threads").select("*").eq("user_id", saveUid()).order("created_at", { ascending: false });
+      const { data: threads } = await supa.from("agent_threads").select("*").eq("user_id", financeTicket.owner).order("created_at", { ascending: false });
+      if(!financeTicket.current())return;
       out.agent_threads = threads || [];
       out.agent_messages = [];
       for (const th of (threads || [])) {
+        if(!financeTicket.current() || th.user_id!==financeTicket.owner)return;
         const { data: msgs } = await supa.from("agent_messages").select("*").eq("thread_id", th.id).order("created_at", { ascending: true });
+        if(!financeTicket.current())return;
         (msgs || []).forEach(m => out.agent_messages.push(m));
       }
     } catch (e) { out.agent_threads = out.agent_threads || []; out.agent_messages = out.agent_messages || []; }
+    if(!financeTicket.current())return;
     const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -5228,23 +5585,24 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // Queue money figures: exact cents when fractional, whole dollars otherwise
   // (never a bare rounded "$120" for $119.88).
   const qMoney = v => { const n = Number(v); return "$" + (Math.abs(n - Math.round(n)) < 0.005 ? String(Math.round(n)) : n.toFixed(2)); };
-  async function saveRows(table, orderCol, asc) {
-    if (!saveUid()) return [];
+  async function saveRows(table, orderCol, asc, financeTicket=financeCapture()) {
+    if (!financeTicket.owner || !financeTicket.current())return [];
     // FIX (2026-09-28, agent 6 #4): callers need to tell a fetch failure apart
     // from a genuinely empty list. The flag is set synchronously with the return
     // so a caller can read it right after its own await (no interleave risk).
     saveRows._err = false;
     try {
-      const { data, error } = await supa.from(table).select("*").eq("user_id", saveUid()).order(orderCol, { ascending: !!asc });
-      if (error) { saveRows._err = true; return []; }
+      const { data, error } = await supa.from(table).select("*").eq("user_id", financeTicket.owner).order(orderCol, { ascending: !!asc });
+      if(!financeTicket.current())return [];
+      if (error || !Array.isArray(data) || data.some(row=>row.user_id!==financeTicket.owner)) { saveRows._err = true; return []; }
       return data || [];
     } catch (e) { saveRows._err = true; return []; }
   }
   async function saveInsert(table, row) {
-    if (!saveUid()) return false;
+    const financeTicket=financeCapture();if(!financeTicket.owner)return false;
     try {
-      const { error } = await supa.from(table).insert(Object.assign({ user_id: saveUid() }, row));
-      return !error;
+      const { error } = await supa.from(table).insert(Object.assign({},row,{user_id:financeTicket.owner}));
+      return financeTicket.current() && !error;
     } catch (e) { return false; }
   }
   const INTPER = { monthly: "/mo", yearly: "/yr", weekly: "/wk" };
@@ -5254,10 +5612,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     biweekly: 26 / 12, semimonthly: 24 / 12, quarterly: 4 / 12, daily: 365 / 12 };
   // FIX (pass1-S1): subscriptions work signed-out via local storage. Supabase
   // syncs when signed in; local rows are the fallback, not a dead end.
-  const localSubsGet = () => { try { return JSON.parse(localStorage.getItem("cfo_subs") || "[]"); } catch (e) { return []; } };
-  const localSubsSet = rows => { try { localStorage.setItem("cfo_subs", JSON.stringify(rows)); } catch (e) {} };
+  const localSubsGet = () => { try { return JSON.parse(financeStorage.getItem("cfo_subs") || "[]"); } catch (e) { return []; } };
+  const localSubsSet = rows => { try { financeStorage.setItem("cfo_subs", JSON.stringify(rows)); } catch (e) {} };
   async function renderTracker() {
+    const financeTicket=financeCapture();
     const signed = !!(await getSessionToken());
+    if(!financeTicket.current())return;
     $("saveSignedOut").hidden = signed;
     $("saveSignedIn").hidden = !signed;
     // FIX (pass1-S1): render subscription list even signed-out (local rows).
@@ -5265,11 +5625,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (signed) renderDeadlines();
   }
   async function renderSubs() {
+    const financeTicket=financeCapture();
     const signed = !!(await getSessionToken());
+    if(!financeTicket.current())return;
     // FIX (2026-09-28, agent 6 #3): loading state — no more stale/blank list
     // while the rows are being fetched.
     $("subList").innerHTML = `<div class="item"><div class="grow"><p class="m">Loading your subscriptions…</p></div></div>`;
     const rows = signed ? await saveRows("save_subscriptions", "created_at", false) : localSubsGet();
+    if(!financeTicket.current())return;
     // FIX (2026-09-28, agent 6 #4): a fetch failure must not masquerade as an
     // empty list ("Nothing tracked yet"). Show an honest error with a retry.
     if (signed && saveRows._err && !rows.length) {
@@ -5321,10 +5684,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (typeof wireBudgetReport === "function") wireBudgetReport(); // SPEC 07
     if (typeof wireInvestments === "function") wireInvestments(); // SPEC 08
     $("subAdd").onclick = async () => {
+      const financeTicket=financeCapture();
       const b = $("subAdd"), m = $("subMerchant").value.trim(), amt = parseFloat($("subAmount").value);
       if (!m || !(amt > 0)) return;
       // FIX (pass1-S1): signed-out users get local tracking instead of a sign-in wall.
       const signed = !!(await getSessionToken());
+    if(!financeTicket.current())return;
       b.disabled = true;
       const nb = $("subNextBill").value || null;
       const row = {
@@ -5337,6 +5702,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       let ok;
       if (signed) { ok = await saveInsert("save_subscriptions", row); }
       else { const lr = localSubsGet(); row.id = "local-" + Date.now(); lr.push(row); localSubsSet(lr); ok = true; }
+      if(!financeTicket.current())return;
       b.disabled = false;
       if (ok) { ["subMerchant", "subAmount", "subAnnualPrice"].forEach(id => $(id).value = ""); $("subNextBill").value = ""; renderSubs(); renderQueue(); }
       else toast("Couldn't save - check your connection and try again.");
@@ -5399,8 +5765,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   let homeSubCache = [];
   async function openSubSheet(id, group) {
-    const signed = !!(await getSessionToken());
-    const rows = signed ? await saveRows("save_subscriptions", "created_at", false) : localSubsGet();
+    const financeTicket=financeCapture();
+    const signed = !!(await getSessionToken());if(!financeTicket.current())return;
+    const rows = signed ? await saveRows("save_subscriptions", "created_at", false) : localSubsGet();if(!financeTicket.current())return;
     const s = rows.find(r => String(r.id) === String(id));
     if (!s) return;
     homeSubCache = rows;
@@ -6762,7 +7129,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   let minorSession = false; // set when the user states an under-18 age in chat
   function upmoreDobYear() {
     try {
-      const y = parseInt(localStorage.getItem("upmore_dob_year") || "", 10);
+      const y = parseInt(financeStorage.getItem("upmore_dob_year") || "", 10);
       const nowY = new Date().getFullYear();
       return (y > 1900 && y <= nowY) ? y : null;
     } catch (e) { return null; }
@@ -6793,7 +7160,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return age < 18;
   }
   function minorBlocked() {
-    try { if (localStorage.getItem("upmore_minor_block") === "1") return true; } catch (e) {}
+    try { if (financeStorage.getItem("upmore_minor_block") === "1") return true; } catch (e) {}
     if (data.minor) return true;
     const dob = (dbProfile && dbProfile.dob) || data.dobISO || null;
     return !!(dob && dobIsoIsMinor(dob));
@@ -6833,7 +7200,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (stated && stated.age !== null) {
       // Never write a third person's age into the user's own birth-year store.
       if (!stated.third) {
-        try { localStorage.setItem("upmore_dob_year", String(new Date().getFullYear() - stated.age)); } catch (e) {}
+        try { financeStorage.setItem("upmore_dob_year", String(new Date().getFullYear() - stated.age)); } catch (e) {}
       }
       if (stated.age < 18) { minorSession = true; return minorRefusal(stated.third); }
       if (!stated.third) minorSession = false;
@@ -7380,7 +7747,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         ).slice(-10); // Last 10 fee-like transactions
         const storedGoals = (() => {
           try {
-            return JSON.parse(localStorage.getItem("upmore_goals") || "[]");
+            return JSON.parse(financeStorage.getItem("upmore_goals") || "[]");
           } catch { return []; }
         })();
         // Compute free cash from recent transactions (income minus spending, last 30 days)
@@ -7572,25 +7939,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   const UPMORE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yd25nbnR3bW5hcXJxaHVwdmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMzk1MDksImV4cCI6MjEwNTYxNTUwOX0.BZKqFIUdjLU_eLuTQecxsHdhIQu1GprTbZmkAPO6p88";
   let upmoreThread = null; // active chat thread id (null = new chat)
   let upmoreThreads = [];  // numerous chats: [{id, title, created_at}], newest first
+  let chatThreadListState = 'unknown';
 
-  async function agentAsk(text, images) {
+  const staleChatResult = Object.freeze({stale:true});
+  async function agentAsk(text, images, ticket = chatRequests.capture()) {
     if (!UPMORE_BACKEND_URL || !UPMORE_ANON_KEY) return null;
-    const token = await getSessionToken();
-    if (!token) return null;
-    const wasNew = !upmoreThread;
-    const res = await fetch(UPMORE_BACKEND_URL + "/functions/v1/agent-chat", {
-      method: "POST",
-      headers: { "content-type": "application/json",
-        "apikey": UPMORE_ANON_KEY, "authorization": "Bearer " + token },
-      body: JSON.stringify({ thread_id: upmoreThread, message: text, images: images || undefined }),
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
-    if (j.thread_id) {
-      upmoreThread = j.thread_id;
+    const result = await chatRequests.ask(text, images, ticket);
+    if (result.state === 'stale') return staleChatResult;
+    if (result.state !== 'ok') return null;
+    const j = result.value, wasNew = !ticket.thread;
+    if (!ticket.adoptThread(j.thread_id,id => {upmoreThread=id;})) return staleChatResult;
+    if (wasNew) {
       // A brand-new chat just got its server thread — add it to the list so
       // the user can come back to it from "Chats".
-      if (wasNew) upmoreThreads.unshift({ id: j.thread_id, title: text.slice(0, 60), created_at: new Date().toISOString() });
+      upmoreThreads.unshift({ id: j.thread_id, user_id:ticket.owner, title: text.slice(0, 60), created_at: new Date().toISOString() });
     }
     return j;
   }
@@ -7600,14 +7962,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      (agent_threads). New chat, list, and switch — history loads from
      agent_messages. Signed-in only; the backend needs a user. */
   async function loadChatThreads() {
-    upmoreThreads = [];
-    try {
-      if (!saveUid()) return;
-      const { data } = await supa.from("agent_threads")
-        .select("id,title,created_at").eq("user_id", saveUid())
-        .order("created_at", { ascending: false }).limit(50);
-      upmoreThreads = data || [];
-    } catch (e) { /* list stays empty — sheet shows the empty state */ }
+    const ticket=chatRequests.capture(),result=await chatRequests.list(ticket);
+    if (!ticket.current() || result.state === 'stale') return false;
+    upmoreThreads=result.state === 'ok' ? result.value : [];
+    chatThreadListState=result.state === 'ok' ? 'loaded' : 'unavailable';
+    return result.state === 'ok';
   }
   function renderChatThreadList() {
     const el = $("chatThreadList"); if (!el) return;
@@ -7616,16 +7975,23 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div class="grow"><p class="t">${esc(t.title || "Untitled chat")}</p>
         <p class="m">${esc(timeAgo(t.created_at))}</p></div>
       </div>`).join("")
-      : `<div class="item"><div class="grow"><p class="m">No chats yet — start your first one.</p></div></div>`;
+      : chatThreadListState === 'loaded' ? `<div class="item"><div class="grow"><p class="m">No chats yet — start your first one.</p></div></div>` : '';
+    if(chatThreadListState !== 'loaded') {
+      const message=document.createElement('p');message.className='m';message.setAttribute('role',chatThreadListState==='unavailable'?'alert':'status');
+      message.textContent=chatThreadListState==='unavailable' ? "Couldn't load chats. Your saved history may still exist. Reload to try again." : 'Saved chat history has not been loaded.';
+      const retry=document.createElement('button');retry.type='button';retry.className='ghostbtn';retry.textContent='Reload chats';retry.onclick=()=>openChatsSheet();
+      el.appendChild(message);el.appendChild(retry);
+    }
     el.querySelectorAll("[data-thread]").forEach(d => d.onclick = () => openGuideChat(d.dataset.thread));
   }
   async function openChatsSheet() {
     if (!saveUid()) { toast("Sign in to keep your chats — they live in your account."); return; }
-    await loadChatThreads();
+    const ticket=chatRequests.capture();await loadChatThreads();if(!ticket.current())return;
     renderChatThreadList();
     $("chatsSheet").hidden = false;
   }
   function newGuideChat() {
+    chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     upmoreThread = null;
     chatThread.empty = true; chatThread.lastTs = 0;
     const el = threadEl(chatMode);
@@ -7648,16 +8014,20 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
   }
   async function openGuideChat(id) {
+    if (!upmoreThreads.some(row=>row.id===id && row.user_id===session?.user?.id)) {toast('Choose a chat in your account.');return;}
+    chatRequests.invalidate(); busy=false; agentTaskRunning=false;
     $("chatsSheet").hidden = true;
     upmoreThread = id;
+    const ticket=chatRequests.capture();
     renderChatThreadList();
     const el = threadEl(chatMode);
     chatThread.empty = false; chatThread.lastTs = Date.now();
     el.innerHTML = `<div class="item"><div class="grow"><p class="m">Loading chat…</p></div></div>`;
     try {
-      const { data, error } = await supa.from("agent_messages")
-        .select("role,content").eq("thread_id", id).order("id", { ascending: true }).limit(200);
-      if (error) throw error;
+      const result=await chatRequests.history(ticket);
+      if(!ticket.current() || result.state==='stale')return;
+      if(result.state!=='ok')throw Error('Chat history unavailable');
+      const data=result.value;
       el.innerHTML = "";
       (data || []).forEach(m => histBubble(el, m.role, m.content));
       if (!(data || []).length) {
@@ -7665,6 +8035,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         el.innerHTML = chatEmptyHTML(chatMode); wireSuggButtons(el);
       }
     } catch (e) {
+      if(!ticket.current())return;
       el.innerHTML = `<div class="item"><div class="grow"><p class="m">Couldn't load this chat — check your connection and try again.</p></div></div>`;
     }
     scrollChat();
@@ -7673,6 +8044,490 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ============ Supabase Auth (Google) + profile + progress sync ============ */
   const supa = window.supabase.createClient(UPMORE_BACKEND_URL, UPMORE_ANON_KEY);
   let session = null, dbProfile = null;
+  const chatRequests=UpmoreChatRequests({
+    identity:()=>session?{owner:session.user.id}:null,conversation:()=>({thread:upmoreThread,mode:chatMode}),getToken:()=>getSessionToken(),
+    request:async(body,token)=>{const response=await fetch(UPMORE_BACKEND_URL+'/functions/v1/agent-chat',{method:'POST',headers:{'content-type':'application/json',apikey:UPMORE_ANON_KEY,authorization:'Bearer '+token},body:JSON.stringify(body)});if(!response.ok)throw Error('Chat unavailable');return await response.json();},
+    readThreads:async owner=>{const {data,error}=await supa.from('agent_threads').select('id,user_id,title,created_at').eq('user_id',owner).order('created_at',{ascending:false}).limit(50);if(error)throw error;return data;},
+    readHistory:async(owner,id,ticket)=>{const owned=await supa.from('agent_threads').select('id,user_id').eq('id',id).eq('user_id',owner).single();if(!ticket.current() || owned.error || !owned.data)throw Error('Chat unavailable');const messages=await supa.from('agent_messages').select('thread_id,role,content').eq('thread_id',id).order('id',{ascending:true}).limit(200);if(messages.error)throw messages.error;return {thread:owned.data,messages:messages.data};}
+  });
+  function resetPrivateChat() {
+    chatRequests.invalidate();upmoreThread=null;upmoreThreads=[];chatThreadListState='unknown';busy=false;agentTaskRunning=false;
+    const history=$('chatThreadList');if(history)history.replaceChildren();
+    const body=$('threadMain');if(body)body.replaceChildren();
+    const sheet=$('chatsSheet');if(sheet)sheet.hidden=true;
+    const composer=$('chatInput');if(composer)composer.value='';
+    if(typeof chatImages!=='undefined'){chatImages=[];renderChatImages();}
+    if(typeof chatThread!=='undefined'){chatThread.empty=true;chatThread.lastTs=0;}
+  }
+  async function openBillWorkflow(link,ticket) {
+    if(!ticket.current())return;
+    const result=await billController.read({action:'plan',obligation_id:link.obligation_id});
+    if(!ticket.current() || !result || result.obligation.id!==link.obligation_id)return;
+    show('bills');await billAssess(result.obligation);
+  }
+  let ledgerAuthEpoch = 0;
+  // Injected inside the existing application scope by build-app.py.
+let ledgerViewGeneration = 0, ledgerRows = [], ledgerSelected = null, ledgerOffset = null;
+let ledgerLinkGeneration = 0, ledgerLinks = [], ledgerLinkOffset = null;
+const ledgerLinkedKinds = ['refund','internal_transfer','credit_payment'];
+const ledgerController = UpmoreLedgerReview({
+  identity: () => session ? {owner: session.user.id, token: session.access_token} : null,
+  uuid: () => crypto.randomUUID(),
+  request: async (body, token) => {
+    const abort = new AbortController(), timeout = setTimeout(() => abort.abort(), 20000);
+    try {
+    const response = await fetch(UPMORE_BACKEND_URL + '/functions/v1/agent-workflows', {
+      method: 'POST', signal: abort.signal, headers: {'Content-Type': 'application/json', apikey: UPMORE_ANON_KEY, Authorization: 'Bearer ' + token}, body: JSON.stringify(body)
+    });
+    const result = await response.json();
+    if (!response.ok || result.ok === false) throw new Error(result.error || 'The ledger service is unavailable.');
+    return result;
+    } finally { clearTimeout(timeout); }
+  }
+});
+function ledgerMessage(message, error = false) {
+  const host = document.getElementById('ledgerStatus');
+  host.textContent = message; host.setAttribute('role', error ? 'alert' : 'status');
+}
+function ledgerMoney(value) {
+  if (!Number.isSafeInteger(value)) return 'Unknown';
+  const n = BigInt(value), abs = n < 0n ? -n : n;
+  return (n < 0n ? '−' : '') + '$' + (abs / 100n).toLocaleString('en-US') + '.' + String(abs % 100n).padStart(2, '0');
+}
+function ledgerReset() {
+  ledgerViewGeneration++; ledgerController.invalidate(); ledgerRows = []; ledgerSelected = null; ledgerOffset = null;
+  document.getElementById('ledgerRows').replaceChildren();
+  document.getElementById('ledgerEditor').hidden = true;
+  document.getElementById('ledgerMore').hidden = true;
+  document.getElementById('ledgerTotals').textContent = '';
+  document.getElementById('ledgerStatus').textContent = '';
+  document.getElementById('ledgerChosen').textContent = '';
+  document.getElementById('ledgerKind').value = '';
+  document.getElementById('ledgerCategory').value = '';
+  ledgerClearLinks();
+}
+function ledgerClearLinks() {
+  ledgerLinkGeneration++; ledgerLinks = []; ledgerLinkOffset = null;
+  document.getElementById('ledgerLink').replaceChildren();
+  document.getElementById('ledgerLink').required = false;
+  document.getElementById('ledgerLinkLabel').hidden = true;
+  document.getElementById('ledgerLinkMore').hidden = true;
+  document.getElementById('ledgerLinkNote').textContent = '';
+  document.getElementById('ledgerLinkNote').setAttribute('role','status');
+  document.getElementById('ledgerCategory').disabled = false;
+  document.getElementById('ledgerSave').textContent = 'Save my classification';
+}
+function ledgerRecordLabel(row) {
+  return [row.merchant_raw || 'Merchant not supplied',row.posted_on,ledgerMoney(row.amount_cents),row.institution,
+    row.account_name || 'Account name unavailable','ID …' + row.account_id.slice(-6)].filter(Boolean).join(' · ');
+}
+async function ledgerLoadLinks(append = false) {
+  const generation = ++ledgerLinkGeneration, row = ledgerSelected, kind = document.getElementById('ledgerKind').value;
+  if (!row || !ledgerLinkedKinds.includes(kind)) return;
+  const select = document.getElementById('ledgerLink'), oldChoice = append ? select.value : '';
+  document.getElementById('ledgerLinkMore').hidden = true;
+  document.getElementById('ledgerLinkNote').textContent = 'Loading possible linked records…';
+  try {
+    const page = await ledgerController.read({action:'ledger_link_candidates',offset:append ? ledgerLinkOffset : 0,
+      review:{account_id:row.account_id,transaction_id:row.provider_transaction_id,fact_hash:row.fact_hash,kind}});
+    if (!page || generation !== ledgerLinkGeneration || ledgerSelected !== row || document.getElementById('ledgerKind').value !== kind) return;
+    const next = append ? ledgerLinks.concat(page.rows) : page.rows;
+    if (new Set(next.map(r => JSON.stringify([r.account_id,r.provider_transaction_id]))).size !== next.length) throw new Error('Linked history changed. Reload possible matches.');
+    ledgerLinks = next; ledgerLinkOffset = page.next_offset;
+    select.replaceChildren();
+    const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Choose a record you recognize'; select.append(placeholder);
+    ledgerLinks.forEach((record,index) => {
+      const option = document.createElement('option'); option.value = String(index);
+      option.textContent = ledgerRecordLabel(record) + (kind === 'refund' ? ' · Category ' + (record.latest_review?.category || 'Uncategorized') + ' · Remaining refundable ' + ledgerMoney(record.remaining_refundable_cents) :
+        record.latest_review ? ' · Existing classification: ' + record.latest_review.kind.replaceAll('_',' ') : ' · Not yet classified');
+      select.append(option);
+    });
+    select.value = oldChoice;
+    document.getElementById('ledgerLinkMore').hidden = ledgerLinkOffset === null;
+    document.getElementById('ledgerLinkNote').textContent = (ledgerLinks.length ? page.coverage : 'No eligible record in retained history. Review the original expense or sync missing accounts first.') +
+      (kind === 'refund' ? ' A refund inherits the original expense category.' : ' Saving classifies both selected records together. This does not move money.');
+  } catch (error) {
+    if (generation === ledgerLinkGeneration && ledgerSelected === row) {
+      document.getElementById('ledgerLinkNote').textContent = error.message;
+      document.getElementById('ledgerLinkNote').setAttribute('role','alert');
+    }
+  }
+}
+function ledgerKindChanged() {
+  ledgerClearLinks();
+  const kind = document.getElementById('ledgerKind').value;
+  if (!ledgerLinkedKinds.includes(kind)) return;
+  document.getElementById('ledgerCategory').value = '';
+  document.getElementById('ledgerCategory').disabled = true;
+  document.getElementById('ledgerLinkLabel').hidden = false;
+  document.getElementById('ledgerLink').required = true;
+  document.getElementById('ledgerSave').textContent = kind === 'refund' ? 'Save linked refund' : 'Classify both records';
+  return ledgerLoadLinks();
+}
+function ledgerDrawRows() {
+  const list = document.getElementById('ledgerRows'); list.replaceChildren();
+  for (const row of ledgerRows) {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'ledger-row';
+    const title = document.createElement('strong'); title.textContent = row.merchant_raw || 'Merchant not supplied';
+    const details = document.createElement('span');
+    const accountLabel = [row.institution, row.account_name || 'Account name unavailable', 'ID …' + row.account_id.slice(-6)].filter(Boolean).join(' · ');
+    details.textContent = 'Posted ' + row.posted_on + ' · ' + (row.currency === 'USD' ? ledgerMoney(row.amount_cents) : 'Unsupported currency: ' + row.currency) + ' · ' + accountLabel + ' · Bank fetched ' + (row.fetched_at || 'time unknown');
+    button.append(title, details);
+    button.onclick = () => {
+      ledgerViewGeneration++;
+      ledgerSelected = row;
+      document.getElementById('ledgerChosen').textContent = title.textContent + ' · ' + details.textContent;
+      const prior = row.latest_review, current = prior && prior.fact_hash === row.fact_hash;
+      document.getElementById('ledgerKind').value = current ? prior.kind : '';
+      document.getElementById('ledgerCategory').value = current ? prior.category || '' : '';
+      if (prior) document.getElementById('ledgerChosen').textContent += current ? ' · Current classification: ' + prior.kind.replaceAll('_',' ') : ' · Previous classification is stale; review the changed bank facts.';
+      document.getElementById('ledgerEditor').hidden = false;
+      ledgerKindChanged();
+      document.getElementById('ledgerKind').focus();
+    };
+    list.append(button);
+  }
+}
+async function ledgerLoad(append = false) {
+  const generation = ++ledgerViewGeneration;
+  ledgerController.invalidate(false); ledgerSelected = null; document.getElementById('ledgerEditor').hidden = true;
+  ledgerClearLinks();
+  const from = document.getElementById('ledgerFrom').value, to = document.getElementById('ledgerTo').value;
+  if (!append) { ledgerRows = []; ledgerDrawRows(); document.getElementById('ledgerTotals').textContent = ''; }
+  document.getElementById('ledgerMore').hidden = true;
+  ledgerMessage('Loading retained bank activity…');
+  try {
+    const [page, totals] = await Promise.all([
+      ledgerController.read({action: 'ledger_page', from, to, offset: append ? ledgerOffset : 0}),
+      ledgerController.read({action: 'ledger_report', from, to})
+    ]);
+    if (generation !== ledgerViewGeneration || !page || !totals) return;
+    ledgerRows = append ? ledgerRows.concat(page.rows) : page.rows;
+    ledgerOffset = page.next_offset; ledgerDrawRows();
+    document.getElementById('ledgerMore').hidden = ledgerOffset === null;
+    const report = totals.report;
+    document.getElementById('ledgerTotals').textContent = 'Reviewed income: ' + ledgerMoney(report.income_cents) + ' · Reviewed net spending: ' + ledgerMoney(report.spending_cents) + '. Unclassified records: ' + report.unclassified_records + '. Stale reviews: ' + report.invalidated_reviews + '. Unknown means the reviewed history is incomplete, not zero. Categories are user assertions.';
+    ledgerMessage(page.rows.length ? page.coverage : 'No posted records in this range. This does not prove there was no spending. Refresh connected bank data or choose another range.');
+    return true;
+  } catch (error) { if (generation === ledgerViewGeneration) ledgerMessage(error.message, true); }
+}
+function renderFinancialReview() {
+  const today = new Date(), localDate = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const from = document.getElementById('ledgerFrom'), to = document.getElementById('ledgerTo');
+  if (!from.value) { from.value = localDate(new Date(today.getFullYear(), today.getMonth(), 1)); to.value = localDate(today); }
+  document.getElementById('ledgerRange').onsubmit = e => { e.preventDefault(); ledgerLoad(); };
+  document.getElementById('ledgerMore').onclick = () => ledgerLoad(true);
+  document.getElementById('ledgerKind').onchange = ledgerKindChanged;
+  document.getElementById('ledgerLinkMore').onclick = () => ledgerLoadLinks(true);
+  document.getElementById('ledgerSync').onclick = async () => {
+    const generation = ledgerViewGeneration;
+    ledgerMessage('Refreshing the connected bank. No money will move.');
+    try { const result = await ledgerController.read({action:'sync_finances'}); if (result && generation === ledgerViewGeneration) await ledgerLoad(); }
+    catch (error) { if (generation === ledgerViewGeneration) ledgerMessage(error.message, true); }
+  };
+  document.getElementById('ledgerEditor').onsubmit = async e => {
+    e.preventDefault(); if (!ledgerSelected) return;
+    const button = document.getElementById('ledgerSave'), generation = ledgerViewGeneration;
+    button.disabled = true; ledgerMessage('Saving your classification…');
+    try {
+      const kind = document.getElementById('ledgerKind').value, choice = document.getElementById('ledgerLink').value;
+      const linked = ledgerLinkedKinds.includes(kind) && /^(0|[1-9]\d*)$/.test(choice) ? ledgerLinks[Number(choice)] : null;
+      const result = await ledgerController.save(ledgerSelected, kind, document.getElementById('ledgerCategory').value, linked);
+      if (result && generation === ledgerViewGeneration) {
+        if (await ledgerLoad()) ledgerMessage('Classification saved. Bank facts were preserved. Posted records from retained connected history only; missing accounts and pending activity are not included.');
+      }
+    } catch (error) {
+      if (generation === ledgerViewGeneration) ledgerMessage(error.message + ' If the response was lost, retry the same classification to check the existing request.', true);
+    } finally { button.disabled = false; }
+  };
+  ledgerLoad();
+}
+
+  // Inject inside the existing application scope after session is declared.
+let billGeneration = 0, billRows = [], billOffset = null, billCandidate = null, billEditing = null;
+const billController = UpmoreBillWorkflow({
+  identity: () => session ? {owner:session.user.id,token:session.access_token} : null,
+  uuid: () => crypto.randomUUID(),
+  request: async (body,token) => {
+    const abort = new AbortController(), timeout = setTimeout(() => abort.abort(),20000);
+    try {
+      const response = await fetch(UPMORE_BACKEND_URL + '/functions/v1/agent-workflows',{method:'POST',signal:abort.signal,
+        headers:{'Content-Type':'application/json',apikey:UPMORE_ANON_KEY,Authorization:'Bearer '+token},body:JSON.stringify(body)});
+      const result = await response.json();
+      if (!response.ok || result.ok === false) throw Error(result.error || 'Bills are unavailable. Try again.');
+      return result;
+    } finally { clearTimeout(timeout); }
+  }
+});
+function billMessage(message,error=false) {
+  const node = document.getElementById('billStatus'); node.textContent = message; node.setAttribute('role',error ? 'alert':'status');
+}
+function billMoney(cents,currency='USD') {
+  if (currency !== 'USD') return currency + ' amount; USD entry is supported here';
+  if (!Number.isSafeInteger(cents) || cents < 0) return 'Amount unknown';
+  const value = BigInt(cents); return '$' + (value / 100n).toLocaleString('en-US') + '.' + String(value % 100n).padStart(2,'0');
+}
+function billClearForm() {
+  billCandidate = null; billEditing = null;
+  for (const id of ['billCreditor','billAmount','billDue','billKind']) document.getElementById(id).value = '';
+  document.getElementById('billAutopay').value = 'unknown';
+  document.getElementById('billConfirmed').checked = false;
+  document.getElementById('billSave').textContent = 'Save current bill';
+  document.getElementById('billEditorTitle').textContent = 'Add a current bill';
+  document.getElementById('billDismiss').hidden = true;
+}
+function billReset() {
+  billGeneration++; billController.invalidate(); billRows = []; billOffset = null;
+  document.getElementById('billRows').replaceChildren(); document.getElementById('billAssessment').replaceChildren();
+  document.getElementById('billStatus').textContent = ''; document.getElementById('billMore').hidden = true; billClearForm();
+}
+function billSelectCandidate(row) {
+  billGeneration++; document.getElementById('billAssessment').replaceChildren(); billClearForm(); billCandidate = row;
+  document.getElementById('billCreditor').value = row.creditor || '';
+  document.getElementById('billAmount').value = Number.isSafeInteger(row.amount_due_cents) ? String(BigInt(row.amount_due_cents)/100n)+'.'+String(BigInt(row.amount_due_cents)%100n).padStart(2,'0') : '';
+  document.getElementById('billDue').value = row.due_on || ''; document.getElementById('billKind').value = row.kind || 'other';
+  document.getElementById('billAutopay').value = row.autopay || 'unknown';
+  document.getElementById('billSave').textContent = 'Confirm current unpaid bill'; document.getElementById('billEditorTitle').textContent = 'Review possible bill';
+  document.getElementById('billDismiss').hidden = false; document.getElementById('billCreditor').focus();
+  billMessage('A recurring charge is a possible bill, not proof of an unpaid obligation. Check the current statement before confirming.');
+}
+function billSelectEdit(row) {
+  billSelectCandidate(row); billCandidate=null; billEditing=row;
+  document.getElementById('billSave').textContent='Save reviewed changes';
+  document.getElementById('billEditorTitle').textContent='Edit current bill · version '+row.revision;
+  document.getElementById('billDismiss').hidden=true;
+  billMessage('Review the current unpaid amount and due date. Saving changes invalidates earlier proposals; it does not change a payment already submitted.');
+}
+function billDraw() {
+  const host = document.getElementById('billRows'); host.replaceChildren();
+  for (const row of billRows) {
+    const item = document.createElement('article'); item.className = 'bill-row';
+    const title = document.createElement('h3'); title.textContent = row.creditor || 'Biller not supplied';
+    const details = document.createElement('p'); details.textContent = billMoney(row.amount_due_cents,row.currency) + ' · Due ' + (row.due_on || 'unknown') + ' · ' + String(row.status || 'unknown').replaceAll('_',' ');
+    const provenance = document.createElement('p'); provenance.className = 'bill-note';
+    provenance.textContent = 'Source: ' + (row.source_type === 'user' ? 'your assertion, not provider confirmation' : row.source_type || 'unknown') + ' · Observed ' + (row.observed_at || 'time unknown') + ' · Autopay ' + (row.autopay || 'unknown') + ' · Bill ID …' + row.id.slice(-6);
+    const assess = document.createElement('button'); assess.type = 'button'; assess.className = 'btn'; assess.textContent = 'Check next step'; assess.onclick = () => billAssess(row);
+    item.append(title,details,provenance,assess);
+    if (row.status === 'asserted' && row.source_type === 'bank' && row.currency === 'USD' && row.direction === 'payable') {
+      const review = document.createElement('button'); review.type = 'button'; review.className = 'btn'; review.textContent = 'Review possible bill'; review.onclick = () => billSelectCandidate(row); item.append(review);
+    }
+    if (row.source_type==='user' && row.currency==='USD' && row.direction==='payable' && ['asserted','verified','disputed','partially_paid'].includes(row.status) && Number.isSafeInteger(row.revision) && row.revision>0) {
+      const edit=document.createElement('button'); edit.type='button'; edit.className='btn'; edit.textContent='Edit current bill'; edit.onclick=()=>billSelectEdit(row); item.append(edit);
+    }
+    host.append(item);
+  }
+}
+async function billLoad(append=false) {
+  const generation = ++billGeneration; document.getElementById('billAssessment').replaceChildren();
+  if (!append) { billRows=[]; billDraw(); }
+  document.getElementById('billMore').hidden = true; billMessage('Loading saved bills…');
+  try {
+    const page = await billController.read({action:'list',offset:append ? billOffset : 0});
+    if (!page || generation !== billGeneration) return false;
+    const rows = append ? billRows.concat(page.obligations) : page.obligations;
+    if (new Set(rows.map(row => row.id)).size !== rows.length) throw Error('Bill history changed. Reload the list.');
+    billRows = rows; billOffset = page.next_offset; billDraw(); document.getElementById('billMore').hidden = billOffset === null;
+    billMessage(rows.length ? 'Saved bills only. Missing billers and obligations may not be included. No payment has been submitted.' : 'No saved bills. Add a current statement below; an empty list does not mean nothing is owed.');
+    return true;
+  } catch (error) { if (generation === billGeneration) billMessage(error.message,true); return false; }
+}
+async function billAssess(row) {
+  const generation = ++billGeneration, host = document.getElementById('billAssessment'); host.replaceChildren(); billMessage('Checking bill details and supported connections…');
+  try {
+    const result = await billController.read({action:'plan',obligation_id:row.id});
+    if (!result || generation !== billGeneration) return;
+    const assessment = result.assessment, title = document.createElement('h3'), detail = document.createElement('p'), gate = document.createElement('p');
+    title.textContent = result.obligation.creditor + ': ' + String(assessment.state || 'unknown').replaceAll('_',' ');
+    detail.textContent = assessment.message || 'No verified next step is available.';
+    gate.textContent = assessment.state === 'awaiting_approval' ? 'Payment approval is unavailable here until the complete delivery terms and supported execution are verified. Nothing has been submitted.' : 'This check prepares a next step. It does not pay the bill or confirm that autopay completed.';
+    host.append(title,detail,gate); billMessage('Bill assessment loaded.');
+  } catch (error) { if (generation === billGeneration) billMessage(error.message,true); }
+}
+function renderBillWorkflows() {
+  document.getElementById('billReload').onclick = () => billLoad(); document.getElementById('billMore').onclick = () => billLoad(true);
+  document.getElementById('billNew').onclick = () => { billGeneration++; billClearForm(); document.getElementById('billCreditor').focus(); };
+  document.getElementById('billEditor').onsubmit = async event => {
+    event.preventDefault(); const generation = billGeneration, button = document.getElementById('billSave'); button.disabled=true;
+    try {
+      const input = {creditor:document.getElementById('billCreditor').value,amount:document.getElementById('billAmount').value,
+        due_on:document.getElementById('billDue').value,kind:document.getElementById('billKind').value,autopay:document.getElementById('billAutopay').value,confirmed:document.getElementById('billConfirmed').checked};
+      const wasEditing=!!billEditing;
+      const result = billEditing ? await billController.edit(input,billEditing) : await billController.save(input,billCandidate);
+      if (result && generation === billGeneration) {
+        billClearForm(); const reload = billLoad(), reloadGeneration = billGeneration, loaded = await reload;
+        if (reloadGeneration === billGeneration) billMessage((wasEditing?'Bill changes saved; earlier proposals invalidated. ':'Bill saved as your current unpaid-bill assertion. ')+'ID …' + result.obligation.id.slice(-6) + '. No payment was made.' + (loaded ? '' : ' The saved-bill list could not refresh. Reload bills to check the saved record.'),!loaded);
+      }
+    } catch (error) { if (generation === billGeneration) billMessage(error.message + ' If the response was lost, retry unchanged details to check the same entry.',true); }
+    finally { button.disabled=false; }
+  };
+  document.getElementById('billDismiss').onclick = async () => {
+    const generation=billGeneration, button=document.getElementById('billDismiss'); button.disabled=true;
+    try { const result=await billController.dismiss(billCandidate); if(result && generation===billGeneration){billClearForm();const reload=billLoad(),reloadGeneration=billGeneration,loaded=await reload;if(reloadGeneration===billGeneration)billMessage('Possible bill dismissed (ID …'+result.obligation.id.slice(-6)+'). No debt or contract was cancelled.'+(loaded?'':' The list could not refresh. Reload bills to check its status.'),!loaded);} }
+    catch(error){if(generation===billGeneration)billMessage(error.message,true);} finally{button.disabled=false;}
+  };
+  return billLoad();
+}
+
+  /* Private, memory-only recovery research. No authority to send or certify refunds. */
+globalThis.UpmoreRecoveryReview = function ({identity,request,uuid}) {
+  let epoch=0,pending=new Map(),writing=null;
+  const date=value=>typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value+'T00:00:00Z')) && new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+  const money=value=>Number.isSafeInteger(value);
+  const text=value=>typeof value==='string' && value.length>0;
+  function evidence(row,account) {
+    if(!row || !text(row.account_id) || !text(row.transaction_id) || !money(row.amount_cents) || !date(row.posted_on) || typeof row.label!=='string' || (row.fact_hash!==null && !text(row.fact_hash)) || (account && row.account_id!==account))throw Error('Recovery evidence is incomplete or belongs to a different account. Reload the scan.');
+  }
+  function validate(result,offset,account,owner) {
+    const r=result?.report;
+    if(result?.ok!==true || !r || r.owner_id!==owner || r.currency!=='USD' || !date(r.today) || r.coverage_complete!==false || r.verified_recovered_cents!==0 || r.recovery_verification!=='unavailable_without_trusted_refund_linkage' || !Array.isArray(r.candidates) || r.candidates.length>20 || !Number.isSafeInteger(r.total_candidates) || r.total_candidates<offset+r.candidates.length || !(r.next_offset===null || Number.isSafeInteger(r.next_offset)&&r.next_offset>offset&&r.next_offset<=r.total_candidates) || !r.excluded || !Number.isSafeInteger(r.excluded.unsupported_currency) || r.excluded.unsupported_currency<0 || !Number.isSafeInteger(r.excluded.unavailable) || r.excluded.unavailable<0 || !/^([a-f0-9]{64})$/.test(r.reference_hash || '') || !r.source || r.source.type!=='retained_bank_records' || r.source.reference_hash!==r.reference_hash || r.source.observations_are_not_complete_history!==true || !Array.isArray(r.source.accounts) || !Number.isFinite(Date.parse(r.as_of)))throw Error('Recovery report is incomplete or claims an unsupported outcome. Reload the scan.');
+    if(r.account_id!==undefined && r.account_id!==null && r.account_id!==account)throw Error('Recovery account scope does not match.');
+    const accounts=new Set();for(const row of r.source.accounts){if(!row || !text(row.account_id) || accounts.has(row.account_id) || (account && row.account_id!==account))throw Error('Recovery source accounts are invalid.');accounts.add(row.account_id);}
+    const seen=new Set();
+    for(const c of r.candidates) {
+      if(!c || !text(c.id) || seen.has(c.id) || !['bank_fee','duplicate_charge','stale_hold'].includes(c.kind) || c.status!=='open' || !money(c.amount_cents) || c.amount_cents<=0 || c.remaining_cents!==c.amount_cents || c.recovered_cents!==null || c.reversal!==null || !Array.isArray(c.evidence) || !c.evidence.length || !['not_found','unverified'].includes(c.refund_linkage_status))throw Error('Recovery candidate is incomplete or claims a verified recovery. Reload the scan.');
+      seen.add(c.id);for(const row of c.evidence){evidence(row,account);if(!accounts.has(row.account_id))throw Error('Recovery evidence account is not in the report.');}
+      if(c.possible_refund){if(c.refund_linkage_status!=='unverified')throw Error('A credit lead must remain unverified.');evidence(c.possible_refund,account);if(!accounts.has(c.possible_refund.account_id))throw Error('Credit lead account is not in the report.');if(c.possible_refund.amount_cents<=0)throw Error('Invalid credit lead.');}
+      else if(c.refund_linkage_status!=='not_found')throw Error('Unverified credit lead is missing.');
+      if(c.action!==null && (c.action?.type!=='draft_request' || c.action.sent_by!=='user' || c.action.executes!==false || c.action.requires_user_approval!==true || !text(c.action.text)))throw Error('Recovery scan may only prepare a request you review and send.');
+    }
+    return r;
+  }
+  async function scan({offset=0,account_id=null,reference_hash=null}={}) {
+    const user=identity();if(!user?.owner || !user?.token)throw Error('Sign in to review your recovery candidates.');
+    if(!Number.isSafeInteger(offset)||offset<0 || (account_id!==null && (!text(account_id)||account_id.length>200||account_id!==account_id.trim()||/[\x00-\x1f\x7f]/.test(account_id))))throw Error('Choose a valid recovery account and page.');
+    if((offset>0 && reference_hash===null) || (reference_hash!==null && !/^[a-f0-9]{64}$/.test(reference_hash)))throw Error('Reload the recovery scan before requesting another page.');
+    const at=epoch,owner=user.owner,body={action:'recovery_scan',offset};if(reference_hash!==null)body.reference_hash=reference_hash;if(account_id!==null)body.account_id=account_id;
+    const result=await request(body,user.token);
+    if(at!==epoch || identity()?.owner!==owner)return null;
+    const report=validate(result,offset,account_id,owner);if(reference_hash!==null && report.reference_hash!==reference_hash)throw Error('Bank facts changed between pages. Reload the scan.');return report;
+  }
+  const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const kinds=['bank_fee','duplicate_charge','stale_hold'],statuses=['open','user_reported_submitted','closed_user'];
+  function scope(){const user=identity();if(!user?.owner || !user?.token)throw Error('Sign in to review your recovery cases.');const at=epoch;return {user,current:()=>epoch===at && identity()?.owner===user.owner};}
+  function caseProof(row,owner){
+    if(!row || row.user_id!==owner || !uuidPattern.test(row.id || '') || !kinds.includes(row.kind) || !Number.isSafeInteger(row.version) || row.version<1 || !statuses.includes(row.status) || !Number.isSafeInteger(row.amount_cents) || row.amount_cents<=0 || row.currency!=='USD' || row.recovered_cents!==null || row.recovery_verification!=='unavailable_user_report_only' || (row.due_on!==null && !date(row.due_on)) || !Array.isArray(row.source_snapshot) || !row.source_snapshot.length || row.source_snapshot.length>20 || typeof row.source_stale!=='boolean')throw Error('Recovery case proof is incomplete or belongs to another owner. Reload cases.');
+    for(const fact of row.source_snapshot){if(fact.user_id!==owner || !text(fact.account_id) || !text(fact.provider_transaction_id) || !text(fact.fact_hash) || fact.currency!=='USD' || !money(fact.amount_cents) || !date(fact.posted_on) || typeof fact.is_pending!=='boolean' || fact.presence!=='observed')throw Error('Recovery case source evidence is invalid.');}
+    return row;
+  }
+  async function cases(offset=0){
+    const s=scope();if(!Number.isSafeInteger(offset)||offset<0)throw Error('Choose a valid case page.');
+    const result=await request({action:'recovery_case_list',offset},s.user.token);if(!s.current())return null;
+    if(result?.ok!==true || result.owner_id!==s.user.owner || result.recovery_verification!=='unavailable_user_report_only' || result.verified_recovered_cents!==null || !Array.isArray(result.cases) || result.cases.length>20 || !(result.next_offset===null || Number.isSafeInteger(result.next_offset)&&result.next_offset>offset))throw Error('Recovery case history is unavailable. Reload cases.');
+    const ids=new Set();for(const row of result.cases){caseProof(row,s.user.owner);if(ids.has(row.id))throw Error('Duplicate recovery cases. Reload cases.');ids.add(row.id);}return result;
+  }
+  async function write(body,verify){
+    const s=scope();if(writing)throw Error('A recovery case change is already being saved.');
+    const signature=JSON.stringify([s.user.owner,body]);let id=pending.get(signature);if(!id){id=uuid();if(!uuidPattern.test(id))throw Error('A secure request ID is unavailable.');pending.set(signature,id);}
+    const lock={};writing=lock;
+    try{const result=await request({...body,request_id:id},s.user.token);if(!s.current())return null;if(result?.ok!==true)throw Error('Case change was not confirmed. Retry unchanged details.');if(result.superseded===true)throw Error('This saved request has been superseded by a later case version. Reload cases.');const row=caseProof(result.case,s.user.owner);verify(row);pending.delete(signature);return row;}
+    finally{if(writing===lock)writing=null;}
+  }
+  function openCase(candidate,confirmed=false,due_on=null){
+    if(confirmed!==true)throw Error('Confirm that this saves preparation only; no request is sent.');
+    if(!candidate || !kinds.includes(candidate.kind) || candidate.status!=='open' || !Number.isSafeInteger(candidate.amount_cents) || candidate.amount_cents<=0 || !Array.isArray(candidate.evidence) || !candidate.evidence.length || candidate.evidence.length>20 || (due_on!==null && !date(due_on)))throw Error('Refresh the candidate evidence before saving a case.');
+    const refs=candidate.evidence.map(row=>{if(!text(row.account_id)||!text(row.transaction_id)||!text(row.fact_hash))throw Error('Current bank fact references are required to save a case.');return {account_id:row.account_id,transaction_id:row.transaction_id,fact_hash:row.fact_hash};});
+    const signature=rows=>JSON.stringify(rows.map(row=>[row.account_id,row.transaction_id,row.fact_hash]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+    return write({action:'recovery_case_open',kind:candidate.kind,evidence:refs,due_on,confirmed:true},row=>{
+      const snap=row.source_snapshot;
+      if(row.kind!==candidate.kind || row.status!=='open' || row.amount_cents!==candidate.amount_cents || row.due_on!==due_on || signature(snap.map(fact=>({...fact,transaction_id:fact.provider_transaction_id})))!==signature(refs))throw Error('Saved case does not match the reviewed candidate. Reload cases before changing details.');
+    });
+  }
+  function updateCase(row,status,confirmed=false){
+    caseProof(row,identity()?.owner);if(!statuses.includes(status) || confirmed!==true)throw Error('Review and confirm the exact user-reported case status.');if(status===row.status)throw Error('Choose a changed user-reported status before saving.');if(row.source_stale && status!=='closed_user')throw Error('Source bank facts changed. Close this case or refresh and review a new candidate; no submission is reported.');
+    return write({action:'recovery_case_update',case_id:row.id,expected_version:row.version,status,confirmed:true},saved=>{if(saved.id!==row.id || saved.kind!==row.kind || saved.amount_cents!==row.amount_cents || saved.due_on!==row.due_on || saved.status!==status || saved.version!==row.version+1)throw Error('Case changed or status was not confirmed. Reload cases.');});
+  }
+  return {scan,cases,openCase,updateCase,invalidate(){epoch++;pending=new Map();writing=null;}};
+};
+
+  // Inject inside the application scope after session is declared.
+let recoveryCaseGeneration=0,recoveryCases=[],recoveryCaseOffset=null;
+let recoveryGeneration=0,recoveryRows=[],recoveryOffset=null,recoveryReport=null,recoveryAccount=null;
+const recoveryController=UpmoreRecoveryReview({
+ uuid:()=>crypto.randomUUID(),
+ identity:()=>session?{owner:session.user.id,token:session.access_token}:null,
+ request:async(body,token)=>{
+  const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),20000);
+  try{const response=await fetch(UPMORE_BACKEND_URL+'/functions/v1/agent-workflows',{method:'POST',signal:abort.signal,headers:{'Content-Type':'application/json',apikey:UPMORE_ANON_KEY,Authorization:'Bearer '+token},body:JSON.stringify(body)});
+   const result=await response.json();if(!response.ok || result.ok===false)throw Error(result.error || 'Recovery scan unavailable. Try again.');return result;
+  }finally{clearTimeout(timer);}
+ }
+});
+function recoveryMoney(cents){if(!Number.isSafeInteger(cents))return 'Amount unknown';const n=BigInt(cents),m=n<0n?-n:n;return (n<0n?'-$':'$')+(m/100n).toLocaleString('en-US')+'.'+String(m%100n).padStart(2,'0');}
+function recoveryText(tag,text,className){const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node;}
+function recoveryMessage(message,error=false){const node=document.getElementById('recoveryStatus');node.textContent=message;node.setAttribute('role',error?'alert':'status');}
+function recoveryReset(){recoveryCaseGeneration++;recoveryCases=[];recoveryCaseOffset=null;for(const id of ['recoveryCases','recoveryCaseStatus']){const node=document.getElementById(id);if(node){node.replaceChildren();node.textContent='';}}const more=document.getElementById('recoveryCaseMore');if(more)more.hidden=true;recoveryGeneration++;recoveryController.invalidate();recoveryRows=[];recoveryOffset=null;recoveryReport=null;recoveryAccount=null;for(const id of ['recoveryRows','recoveryCoverage'])document.getElementById(id).replaceChildren();document.getElementById('recoveryStatus').textContent='';document.getElementById('recoveryMore').hidden=true;const account=document.getElementById('recoveryAccount');if(account){const all=recoveryText('option','All retained accounts');all.value='';account.replaceChildren(all);account.value='';}}
+function recoveryDraw(){
+ const generation=recoveryGeneration,owner=session?.user?.id;const host=document.getElementById('recoveryRows');host.replaceChildren();
+ recoveryRows.forEach((row,index)=>{
+  const item=document.createElement('article');item.className='bill-row';
+  const title=row.kind==='bank_fee'?'Possible fee refund':row.kind==='duplicate_charge'?'Possible duplicate charge':'Pending authorization hold';
+  item.append(recoveryText('h3',title),recoveryText('p',recoveryMoney(row.amount_cents)+(row.kind==='stale_hold'?' held; releasing a hold is not recovered money.':' candidate amount; not confirmed money owed or recovered.')),
+   recoveryText('p',row.caveat || 'A fee label does not prove an error or entitlement to a refund. Review the bank terms and charge.','bill-note'));
+  if(row.possible_refund)item.append(recoveryText('p','A possibly related credit of '+recoveryMoney(row.possible_refund.amount_cents)+' appears on '+row.possible_refund.posted_on+'. Linkage is unverified; confirm what it refunded before requesting more.','bill-note'));
+  const evidence=document.createElement('details');evidence.append(recoveryText('summary','Review retained bank evidence'));
+  for(const fact of row.evidence)evidence.append(recoveryText('p',fact.posted_on+' · '+fact.label+' · '+recoveryMoney(fact.amount_cents)+' · Account '+fact.account_id+' · Transaction '+fact.transaction_id+' · '+(fact.fact_hash?'Retained fact reference '+fact.fact_hash:'Fact reference missing'),'bill-note'));
+  if(row.possible_refund){const fact=row.possible_refund;evidence.append(recoveryText('p','Unverified credit lead: '+fact.posted_on+' · '+fact.label+' · '+recoveryMoney(fact.amount_cents)+' · Account '+fact.account_id+' · Transaction '+fact.transaction_id,'bill-note'));}
+  item.append(evidence);
+  if(row.action){
+   const button=recoveryText('button','Review draft request');button.type='button';button.className='btn';const panel=document.createElement('div');panel.hidden=true;
+   const id='recoveryDraft'+index,label=recoveryText('label','Draft to review and copy yourself');label.setAttribute('for',id);const draft=document.createElement('textarea');draft.id=id;draft.value=row.action.text;draft.rows=8;
+   panel.append(label,draft,recoveryText('p',row.action.review_note || 'Check the facts, recipient and amount before sending through your verified bank or merchant channel. Upmore has not sent this request.','bill-note'));
+   button.setAttribute('aria-expanded','false');button.onclick=()=>{panel.hidden=!panel.hidden;button.setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden)draft.focus();};item.append(button,panel);
+  }
+  const confirm=document.createElement('input');confirm.type='checkbox';confirm.id='recoverySaveConfirm'+index;
+  const label=recoveryText('label','');label.setAttribute('for',confirm.id);label.append(confirm,recoveryText('span','Save preparation only. No request will be sent and no refund is confirmed.'));
+  const due=document.createElement('input');due.type='date';due.id='recoveryCaseDue'+index;const dueLabel=recoveryText('label','Optional follow-up date you choose');dueLabel.setAttribute('for',due.id);
+  const save=recoveryText('button','Save recovery case');save.type='button';save.className='btn';
+  save.onclick=async()=>{if(generation!==recoveryGeneration || session?.user?.id!==owner)return;save.disabled=true;
+   try{const saved=await recoveryController.openCase(row,confirm.checked,due.value || null);if(!saved || generation!==recoveryGeneration)return;
+    const loaded=await recoveryCasesLoad();if(generation===recoveryGeneration)recoveryCaseMessage('Case saved · …'+saved.id.slice(-6)+'. Preparation only; no request sent or refund confirmed.'+(loaded?'':' Case history could not refresh; reload to verify the saved case.'),!loaded);
+   }catch(error){if(generation===recoveryGeneration)recoveryCaseMessage(error.message+' If a response was lost, retry unchanged details to check the same request.',true);}finally{save.disabled=false;}
+  };item.append(label,dueLabel,due,save);host.append(item);
+ });
+}
+async function recoveryLoad(append=false){
+ const generation=++recoveryGeneration,account=document.getElementById('recoveryAccount')?.value.trim() || null;
+ if(append && account!==recoveryAccount){recoveryMessage('Account changed. Reload the scan before loading another page.',true);return false;}
+ if(!append){recoveryRows=[];recoveryOffset=null;recoveryReport=null;recoveryAccount=account;recoveryDraw();document.getElementById('recoveryCoverage').replaceChildren();}
+ document.getElementById('recoveryMore').hidden=true;recoveryMessage('Checking retained bank facts for recovery candidates…');
+ try{
+  const report=await recoveryController.scan({offset:append?recoveryOffset:0,account_id:account,reference_hash:append?recoveryReport?.reference_hash:null});if(!report || generation!==recoveryGeneration)return false;
+  if(append && report.reference_hash!==recoveryReport?.reference_hash)throw Error('Bank facts changed between pages. Reload the scan.');
+  const rows=append?recoveryRows.concat(report.candidates):report.candidates;if(new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('Recovery candidates changed. Reload the scan.');
+  recoveryRows=rows;recoveryOffset=report.next_offset;recoveryReport=report;recoveryDraw();
+  if(!append&&!account){const select=document.getElementById('recoveryAccount');select.replaceChildren();const all=recoveryText('option','All retained accounts');all.value='';select.append(all);for(const a of report.source.accounts){const option=recoveryText('option',(a.institution||'Institution unknown')+' · '+(a.name||'Account')+' · …'+a.account_id.slice(-6)+' · '+(a.status||'status unknown'));option.value=a.account_id;select.append(option);}select.value='';}
+  const coverage=document.getElementById('recoveryCoverage');coverage.replaceChildren();coverage.append(recoveryText('p','Incomplete coverage · Scan date '+report.today+' · Source '+'retained bank records'+' · Scan prepared at '+(report.as_of || 'time unavailable')+'; this is not a bank observation time.','bill-note'),
+   recoveryText('p','Verified recovered: $0.00. Credit matches are unverified leads. Candidate amounts are hypotheses, not fraud findings, entitlements or realized savings.'),
+   recoveryText('p','Excluded: '+report.excluded.unsupported_currency+' unsupported-currency records; '+report.excluded.unavailable+' unavailable records. Report reference '+report.reference_hash,'bill-note'));
+  coverage.append(recoveryText('p','Retained records: '+(Number.isSafeInteger(report.record_count)?report.record_count:'count unavailable')+' · History '+(report.history_from || 'start unknown')+' to '+(report.history_to || 'end unknown')+' · Pending records without dates: '+(Number.isSafeInteger(report.excluded.unknown_hold_date)?report.excluded.unknown_hold_date:'unknown'),'bill-note'));
+  for(const account of report.source.accounts)coverage.append(recoveryText('p',(account.institution || 'Institution unknown')+' · '+(account.name || 'Account')+' · Account '+account.account_id+' · '+(account.status || 'status unknown')+' · Balance as of '+(account.balance_as_of || 'unknown')+' · Fetched '+(account.fetched_at || 'unknown'),'bill-note'));
+  document.getElementById('recoveryMore').hidden=recoveryOffset===null;
+  recoveryMessage(rows.length?rows.length+' of '+report.total_candidates+' candidates shown. Review evidence and prepare a request; nothing has been sent.':'No candidates found in the included history. Incomplete coverage does not establish that no money is recoverable.');return true;
+ }catch(error){if(generation===recoveryGeneration){document.getElementById('recoveryMore').hidden=recoveryOffset===null;recoveryMessage(error.message,true);}return false;}
+}
+function recoveryCaseMessage(text,error=false){const node=document.getElementById('recoveryCaseStatus');node.textContent=text;node.setAttribute('role',error?'alert':'status');}
+function recoveryCasesDraw(){
+ const generation=recoveryCaseGeneration,host=document.getElementById('recoveryCases');host.replaceChildren();
+ for(const row of recoveryCases){const item=document.createElement('article');item.className='bill-row';item.append(recoveryText('h3',row.kind.replaceAll('_',' ')+' · '+recoveryMoney(row.amount_cents)),recoveryText('p',row.status==='user_reported_submitted'?'You reported submitting a request. Upmore has no provider confirmation.':row.status==='closed_user'?'Closed by you. Closed does not mean paid or recovered.':'Open preparation. No request sent.'),recoveryText('p','Version '+row.version+' · Follow-up '+(row.due_on || 'not set')+' · '+(row.source_stale?'Source bank facts changed; submit/reopen unavailable.':'Retained source facts match current records.')+' · Recovered amount unverified.','bill-note'));
+  const details=document.createElement('details');details.append(recoveryText('summary','Saved source evidence'));for(const fact of row.source_snapshot)details.append(recoveryText('p',fact.posted_on+' · '+(fact.merchant_raw || fact.merchant_key || 'Bank record')+' · '+recoveryMoney(fact.amount_cents)+' · Account '+fact.account_id+' · Transaction '+fact.provider_transaction_id,'bill-note'));item.append(details);
+  const select=document.createElement('select');select.id='recoveryCaseState'+row.id;select.setAttribute('aria-label','Choose a user-reported status for this case');for(const [value,label] of [['open','Open preparation'],['user_reported_submitted','I sent the request myself'],['closed_user','Close without confirming recovery']]){const option=recoveryText('option',label);option.value=value;option.disabled=row.source_stale && value!=='closed_user';select.append(option);}select.value=row.source_stale?'closed_user':row.status;
+  const confirm=document.createElement('input');confirm.type='checkbox';confirm.id='recoveryCaseConfirm'+row.id;const label=recoveryText('label','');label.setAttribute('for',confirm.id);label.append(confirm,recoveryText('span','This status is my report only. Upmore sends nothing and does not verify a refund.'));
+  const save=recoveryText('button','Save reported status');save.type='button';save.className='btn';save.onclick=async()=>{if(generation!==recoveryCaseGeneration)return;save.disabled=true;
+   try{const saved=await recoveryController.updateCase(row,select.value,confirm.checked);if(!saved || generation!==recoveryCaseGeneration)return;const reload=recoveryCasesLoad(),reloadGeneration=recoveryCaseGeneration,loaded=await reload;if(reloadGeneration===recoveryCaseGeneration)recoveryCaseMessage('User-reported status saved. No external request or verified refund.'+(loaded?'':' History could not refresh; reload cases.'),!loaded);}
+   catch(error){if(generation===recoveryCaseGeneration)recoveryCaseMessage(error.message,true);}finally{save.disabled=false;}
+  };item.append(select,label,save);host.append(item);
+ }
+}
+async function recoveryCasesLoad(append=false){
+ const generation=++recoveryCaseGeneration;if(!append){recoveryCases=[];recoveryCaseOffset=null;recoveryCasesDraw();}document.getElementById('recoveryCaseMore').hidden=true;recoveryCaseMessage('Loading saved recovery preparations…');
+ try{const page=await recoveryController.cases(append?recoveryCaseOffset:0);if(!page || generation!==recoveryCaseGeneration)return false;const rows=append?recoveryCases.concat(page.cases):page.cases;if(new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('Case history changed. Reload cases.');recoveryCases=rows;recoveryCaseOffset=page.next_offset;recoveryCasesDraw();document.getElementById('recoveryCaseMore').hidden=recoveryCaseOffset===null;recoveryCaseMessage(rows.length?'Saved preparations and user-reported status only. No refund is verified.':'No saved recovery cases. This does not establish that no money is recoverable.');return true;}
+ catch(error){if(generation===recoveryCaseGeneration){document.getElementById('recoveryCaseMore').hidden=recoveryCaseOffset===null;recoveryCaseMessage(error.message,true);}return false;}
+}
+function renderRecoveryReview(){document.getElementById('recoveryReload').onclick=()=>Promise.all([recoveryLoad(),recoveryCasesLoad()]);document.getElementById('recoveryMore').onclick=()=>recoveryLoad(true);document.getElementById('recoveryCaseMore').onclick=()=>recoveryCasesLoad(true);const reload=document.getElementById('recoveryCaseReload');if(reload)reload.onclick=()=>recoveryCasesLoad();return Promise.all([recoveryLoad(),recoveryCasesLoad()]);}
+
+  document.getElementById('ledgerOpen').onclick = () => show('financialreview');
+  document.getElementById('billOpen').onclick = () => show('bills');
+  document.getElementById('recoveryOpen').onclick = () => show('recoveryreview');
   /* ============ Terms clickwrap + age enforcement (2026-09-27) ============ */
   const TOS_VERSION = "v1.0"; // bump when terms.html changes materially; users re-accept
   async function tosAccepted() {
@@ -7700,17 +8555,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // Pre-connection consent for SimpleFIN (bank) and Plaid (brokerage).
   // Logged to consent_log per kind+version. Returning users who already
   // consented to the current version skip the sheet (fewer taps, same record).
-  const CONSENT_VERSION = "v1.0"; // bump when copy changes; users re-consent
+  const CONSENT_VERSION = "v1.1"; // retained ledger and correction history disclosure
   const CONSENT_COPY = {
     simplefin: {
       title: "Connect your bank — what you're agreeing to",
       body: `
         <p><b>What we collect:</b> your bank accounts, balances, and transactions. Read-only.</p>
         <p><b>Why:</b> to show your money in one place and power budgets, the Budget Report, and recurring-charge detection.</p>
-        <p><b>Where it's stored:</b> a read-only access credential is kept encrypted in our database vault. Transactions are fetched to display to you — we don't stockpile them.</p>
+        <p><b>Where it's stored:</b> a read-only access credential is kept encrypted in our database vault. Imported account records, transaction facts, revisions, and your classifications are stored to support reports and trace corrections.</p>
         <p><b>Your bank login:</b> you sign in on SimpleFIN's site. Upmore never sees or stores your bank username or password.</p>
-        <p><b>Retention:</b> until you disconnect. Disconnecting deletes the stored credential immediately.</p>
-        <p><b>Read-only:</b> we can never move your money.</p>`,
+        <p><b>Disconnecting:</b> deletes the stored bank credential and stops future reads through it. Retained transaction history is separate from the credential; disconnecting does not erase that history.</p>
+        <p><b>Read-only connection:</b> this bank connection does not grant permission to move your money.</p>`,
     },
     plaid: {
       title: "Connect your brokerage — what you're agreeing to",
@@ -7761,10 +8616,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function refreshSession() {
+    const epoch = ledgerAuthEpoch;
     try {
       const { data: { session: s } } = await supa.auth.getSession();
+      if (epoch !== ledgerAuthEpoch) return session;
+      if (session?.user?.id !== s?.user?.id) { ledgerReset(); billReset(); recoveryReset(); resetPrivateChat(); resetPrivateFinance(); }
       session = s || null;
-    } catch (e) { session = null; }
+    } catch (e) { if (epoch === ledgerAuthEpoch) { ledgerReset(); billReset(); recoveryReset(); resetPrivateChat(); resetPrivateFinance(); session = null; } }
     return session;
   }
   // Session token for backend calls. Null until signed in.
@@ -7774,14 +8632,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function loadProfile() {
-    if (!session) return null;
-    const { data, error } = await supa.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
-    dbProfile = error ? null : data;
+    const financeTicket=financeCapture();if(!financeTicket.owner)return null;
+    const { data, error } = await supa.from("profiles").select("*").eq("id", financeTicket.owner).maybeSingle();
+    if(!financeTicket.current())return null;
+    dbProfile = error || data && data.id!==financeTicket.owner ? null : data;
     return dbProfile;
   }
   // First sign-in only: persist the onboarding answers. Never overwrites an existing profile.
   async function saveProfile() {
-    if (!session) return;
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
     if (data.minor) return; // blocked-screen promise: a minor's answers are never written to a profile
     const meta = session.user.user_metadata || {};
     // Fall back to the email prefix (real account identifier), never a placeholder name.
@@ -7797,6 +8656,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       updated_at: new Date().toISOString(),
     };
     const { error } = await supa.from("profiles").upsert(row, { onConflict: "id" });
+    if(!financeTicket.current())return;
     if (!error) dbProfile = row;
     // Referral: if this is a brand-new profile (first save) and there's a
     // pending ?ref= code, attempt to qualify it. qualify_referral() enforces
@@ -7804,8 +8664,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // referrer must be subscriber, 5/month cap).
     try {
       const refCode = pendingReferralCode();
-      if (refCode && !localStorage.getItem("upmore-ref-done")) {
+      if (refCode && !financeStorage.getItem("upmore-ref-done")) {
         const { data: qdata, error: qerr } = await supa.rpc("qualify_referral", { p_referral_code: refCode });
+        if(!financeTicket.current())return;
         if (!qerr && qdata && qdata.ok) {
           // ANTI-GAMING 2026-09-27: qualify_referral() now records the
           // referral as PENDING — no credit row exists yet. The $10 credit is
@@ -7814,32 +8675,34 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           toast("Referral applied! Your friend gets $10 credit when you start your subscription.");
         }
         // Clear regardless — one attempt per signup.
-        localStorage.setItem("upmore-ref-done", "1");
-        localStorage.removeItem("upmore-ref");
+        financeStorage.setItem("upmore-ref-done", "1");
+        financeStorage.removeItem("upmore-ref");
       }
     } catch (_) {}
   }
   async function ensureProfile() {
     try { homeTz(); } catch (e) {} // FIX (6-005): capture home timezone at onboarding/first run
-    await loadProfile();
+    const financeTicket=financeCapture();await loadProfile();
+    if(!financeTicket.current())return;
     if (!dbProfile) await saveProfile();
   }
 
   async function syncProgress(routeId) {
-    if (!session) return;
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
     const done = (prog[routeId] || []).length;
     const r = routeById(routeId);
     const total = r && r.steps ? r.steps.length : 0;
     const status = total && done >= total ? "done" : done > 0 ? "in_progress" : "not_started";
     await supa.from("playbook_progress").upsert({
-      user_id: session.user.id, route_id: routeId, current_step: done, status,
+      user_id: financeTicket.owner, route_id: routeId, current_step: done, status,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,route_id" });
   }
   async function loadProgress() {
-    if (!session) return;
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
     const { data: rows } = await supa.from("playbook_progress")
-      .select("route_id,current_step").eq("user_id", session.user.id);
+      .select("route_id,current_step").eq("user_id", financeTicket.owner);
+    if(!financeTicket.current())return;
     (rows || []).forEach(p => {
       const r = routeById(p.route_id);
       if (!r || !r.steps || !r.steps.length) return;
@@ -7847,13 +8710,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
   }
 
-  supa.auth.onAuthStateChange((ev) => {
+  supa.auth.onAuthStateChange((ev, nextSession) => {
+    ledgerAuthEpoch++;
+    financeStorage.invalidate();
+    recoveryReset();
+    if (session?.user?.id !== nextSession?.user?.id) { ledgerReset(); billReset(); recoveryReset(); resetPrivateChat(); resetPrivateFinance(); }
+    session = nextSession || null;
     if (ev === "PASSWORD_RECOVERY") { show("resetpw", { replace: true }); return; }
     if (ev === "SIGNED_OUT") {
       try {
-        localStorage.removeItem("upmore-onboarding");
+        financeStorage.removeItem("upmore-onboarding");
         const nonce = sessionStorage.getItem("upmore-ob-nonce");
-        if (nonce) localStorage.removeItem("upmore-onboarding-" + nonce);
+        if (nonce) financeStorage.removeItem("upmore-onboarding-" + nonce);
         sessionStorage.removeItem("upmore-ob-nonce");
       } catch (e) {}
       session = null; dbProfile = null; location.hash = ""; location.reload();
@@ -7862,11 +8730,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   async function guideAsk(text, images) {
     if (busy) return; busy = true;
+    const ticket=chatRequests.capture(), hasImg=images && images.length;
     addMe(text, images);
     try {
       // Photos go straight to the agent backend — the local answer engine
       // can't see images, so answering locally would silently ignore them.
-      const hasImg = images && images.length;
+
       // SPEC 01 Capital wall: pull-only, never recommends securities.
       // "What should I invest in?" gets the fixed refusal, not the agent.
       // FIX (E5): Much broader intent matcher. The old regex missed 60% of natural
@@ -7950,30 +8819,33 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       // Tracked data first: the user's own deadlines/subscriptions/ledger
       // must never be intercepted by the remote agent's generic replies.
       const tr = hasImg ? null : await trackedAnswer(text);
-      if (tr) { addAI(tr.paras, tr.card, { text: "From your tracked subscriptions, renewals, and money log." }); busy = false; return; }
-      const j = await agentAsk(text, images);
+      if(!ticket.current())return;
+      if (tr) { addAI(tr.paras, tr.card, { text: "From your tracked subscriptions, renewals, and money log." }, ticket); busy = false; return; }
+      const j = await agentAsk(text, images, ticket);
+      if(!ticket.current() || j?.stale)return;
       if (j && j.reply) {
         // Real agent reply. Apply walkthrough actions.
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) {
           const r = routeById(j.action.route_id);
-          if (r) { addAI([j.reply], null, null); startWalkthrough(j.action.route_id); busy = false; return; }
+          if (r) { addAI([j.reply], null, null, ticket, j.action); startWalkthrough(j.action.route_id); busy = false; return; }
         }
-        addAI([j.reply], null, null);
+        addAI([j.reply], null, null, ticket, j.action);
       } else {
         const r = guideAnswer(text);
         const imgNote = hasImg ? ["I couldn't look at your photo just now — the analysis service didn't respond. Here's what I can answer from your message:"] : [];
         const paras = imgNote.concat(r.paras);
-        if (r.action === "walkthrough" && r.routeId) { addAI(paras, r.card, null, { text: "General guidance — not from your accounts." }); startWalkthrough(r.routeId); }
-        else addAI(paras, r.card, null, { text: "General guidance — not from your accounts." });
+        if (r.action === "walkthrough" && r.routeId) { addAI(paras, r.card, { text: "General guidance — not from your accounts." }, ticket); startWalkthrough(r.routeId); }
+        else addAI(paras, r.card, { text: "General guidance — not from your accounts." }, ticket);
       }
     } catch (e) {
+      if(!ticket.current())return;
       const r = guideAnswer(text);
       const imgNote = hasImg ? ["I couldn't look at your photo just now — the analysis service didn't respond. Here's what I can answer from your message:"] : [];
       const paras = imgNote.concat(r.paras);
-      if (r.action === "walkthrough" && r.routeId) { addAI(paras, r.card, null, { text: "General guidance — not from your accounts." }); startWalkthrough(r.routeId); }
-      else addAI(paras, r.card, null, { text: "General guidance — not from your accounts." });
+      if (r.action === "walkthrough" && r.routeId) { addAI(paras, r.card, { text: "General guidance — not from your accounts." }, ticket); startWalkthrough(r.routeId); }
+      else addAI(paras, r.card, { text: "General guidance — not from your accounts." }, ticket);
     }
-    busy = false;
+    if(ticket.current())busy = false;
   }
   /* Chat rendering lives in the chat/tasks/feed module at the end of this script. */
 
@@ -8081,10 +8953,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // SPEC 09t: household — members + per-transaction attribution.
   const HH_LS = "upmore_household_v1";
   const HHWHO_LS = "upmore_tx_who_v1";
-  function hhGet() { try { const v = JSON.parse(localStorage.getItem(HH_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
-  function hhSet(m) { try { localStorage.setItem(HH_LS, JSON.stringify(m)); } catch (e) {} }
-  function txWhoGet() { try { return JSON.parse(localStorage.getItem(HHWHO_LS) || "{}"); } catch (e) { return {}; } }
-  function txWhoSet(m) { try { localStorage.setItem(HHWHO_LS, JSON.stringify(m)); } catch (e) {} }
+  function hhGet() { try { const v = JSON.parse(financeStorage.getItem(HH_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function hhSet(m) { try { financeStorage.setItem(HH_LS, JSON.stringify(m)); } catch (e) {} }
+  function txWhoGet() { try { return JSON.parse(financeStorage.getItem(HHWHO_LS) || "{}"); } catch (e) { return {}; } }
+  function txWhoSet(m) { try { financeStorage.setItem(HHWHO_LS, JSON.stringify(m)); } catch (e) {} }
   function txWho(t) { const m = txWhoGet(); const id = t && t.id != null ? String(t.id) : null; return id && m[id] ? m[id] : null; }
   function setTxWho(txId, who) {
     const m = txWhoGet(); const id = String(txId);
@@ -8144,6 +9016,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if ($("bankDisconnectRow")) $("bankDisconnectRow").hidden = !bankConnectedLive();
     $("signOut").hidden = !who;
     $("signOut").onclick = async () => {
+      resetPrivateChat();recoveryReset();resetPrivateFinance();
       try { await supa.auth.signOut(); } catch (e) {}
       session = null; dbProfile = null;
       upmoreThread = null; upmoreThreads = []; // numerous chats: clear on sign-out
@@ -8192,7 +9065,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return !!(session && session.user);
   }
   function referralStats() {
-    try { return JSON.parse(localStorage.getItem("upmore-referrals") || '{"earned":0,"count":0,"month":0}'); }
+    try { return JSON.parse(financeStorage.getItem("upmore-referrals") || '{"earned":0,"count":0,"month":0}'); }
     catch (e) { return { earned: 0, count: 0, month: 0 }; }
   }
   async function renderReferral() {
@@ -8277,11 +9150,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function captureReferralCode() {
     try {
       const m = location.search.match(/[?&]ref=([A-Za-z0-9]+)/);
-      if (m) localStorage.setItem("upmore-ref", m[1].toUpperCase());
+      if (m) financeStorage.setItem("upmore-ref", m[1].toUpperCase());
     } catch (e) {}
   }
   function pendingReferralCode() {
-    try { return localStorage.getItem("upmore-ref") || null; } catch (e) { return null; }
+    try { return financeStorage.getItem("upmore-ref") || null; } catch (e) { return null; }
   }
   /* ================= SUBSCRIPTION ($10/mo via Stripe) ================= */
   // startCheckout: creates a Stripe Checkout session, redirects to Stripe.
@@ -8365,12 +9238,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      profile's prefs when we have one. Restored on boot. */
   function readPrefs() {
     let p = {};
-    try { p = JSON.parse(localStorage.getItem("upmore-prefs") || "{}"); } catch (e) {}
+    try { p = JSON.parse(financeStorage.getItem("upmore-prefs") || "{}"); } catch (e) {}
     if (dbProfile && dbProfile.prefs && typeof dbProfile.prefs === "object") p = Object.assign({}, dbProfile.prefs, p);
     return p;
   }
   async function writePrefs(p) {
-    try { localStorage.setItem("upmore-prefs", JSON.stringify(p)); } catch (e) {}
+    try { financeStorage.setItem("upmore-prefs", JSON.stringify(p)); } catch (e) {}
     if (session) {
       const merged = Object.assign({}, (dbProfile && dbProfile.prefs) || {}, p);
       const { error } = await supa.from("profiles").update({ prefs: merged }).eq("id", session.user.id);
@@ -8444,7 +9317,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       cancelStates[mid] = CancelState.CLAIMED;
       // Store the claimed state with billing date for the confirmation watcher
       try {
-        localStorage.setItem("upmore-cancel-" + mid, JSON.stringify({
+        financeStorage.setItem("upmore-cancel-" + mid, JSON.stringify({
           state: CancelState.CLAIMED,
           next_date: sub.next_date,
           amount: sub.amount,
@@ -8465,10 +9338,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   async function runCancelWatcher() {
     try {
       const { transactions } = loadTrackData();
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (let i = 0; i < financeStorage.length; i++) {
+        const key = financeStorage.key(i);
         if (!key || !key.startsWith("upmore-cancel-")) continue;
-        const rec = JSON.parse(localStorage.getItem(key));
+        const rec = JSON.parse(financeStorage.getItem(key));
         if (rec.state !== CancelState.CLAIMED) continue;
         const billingDate = new Date(rec.next_date);
         const grace = new Date(billingDate); grace.setDate(grace.getDate() + 2);
@@ -8484,7 +9357,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         if (charges.length === 0) {
           // 7-002: Confirmed — write the Avoided entry to the ledger.
           rec.state = CancelState.CONFIRMED;
-          localStorage.setItem(key, JSON.stringify(rec));
+          financeStorage.setItem(key, JSON.stringify(rec));
           await saveInsert("save_ledger", {
             bucket: "Avoided", amount: monthly,
             title: "Avoided: " + rec.merchant,
@@ -8500,8 +9373,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             detail: "Charge reappeared after cancel",
             occurred_on: localISODate()
           });
-          localStorage.removeItem(key);
-          try { localStorage.setItem("upmore-recharged-" + mid, JSON.stringify({
+          financeStorage.removeItem(key);
+          try { financeStorage.setItem("upmore-recharged-" + mid, JSON.stringify({
             merchant: rec.merchant, amount: rec.amount, interval: rec.interval,
             at: new Date().toISOString()
           })); } catch (e) {}
@@ -8706,6 +9579,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // - A failed live sync is surfaced on the connect card, never silently masked.
   let liveTrackError = null;
   function loadTrackData() {
+    if(trackData?.isLive && trackData.owner_id!==financeCapture().owner){trackData=null;prevLiveBatch=null;}
     if (!trackData) {
       trackData = TransactionSource.demo();
       trackData.isDemo = true;
@@ -8726,15 +9600,17 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // use it instead of demo. The demo is a fallback, not the default.
   // This runs async on app load; renderHomeConnect etc. re-render when done.
   async function initLiveTrackData() {
+    const financeTicket=financeCapture();
     try {
       // Only fetch if user is signed in (proxy requires JWT)
       if (!session || !supa) return;
       const { data: { session: s } } = await supa.auth.getSession();
-      if (!s) return;
+      if(!financeTicket.current() || !s || s.user?.id!==financeTicket.owner)return;
       const res = await supa.functions.invoke("simplefin-proxy", {
         body: {},
       });
       const live = res.data;
+      if(!financeTicket.current())return;
       if (!live || !live.accounts || live.accounts.length === 0) return;
       // Map live data to our transaction format
       const mapped = (live.transactions || []).map(t => ({
@@ -8755,6 +9631,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         // FIX (D1-032/1-034): reconcile against previous batch — dedupe on
         // provider_id, match pending->posted settlements, then recompute.
         transactions: prevLiveBatch ? reconcileTransactions(prevLiveBatch, mapped) : mapped,
+        owner_id:financeTicket.owner,
         isLive: true, // flag: this is real user data, not demo
       };
       prevLiveBatch = trackData.transactions;
@@ -8764,9 +9641,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       // not append), trial deadlines ingested (6-012), posted charges
       // reconciled silently (6-022).
       try { await recomputeDeadlines(trackData.transactions); } catch (e) {}
+      if(!financeTicket.current())return;
       // Re-render the track UI with live data
       if (typeof renderHomeConnect === "function") renderHomeConnect();
     } catch (e) {
+      if(!financeTicket.current())return;
       // Live data unavailable — record WHY so the UI can say so honestly.
       // Authenticated users see the connect card with the failure reason,
       // never silent demo numbers.
@@ -8834,10 +9713,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       if (!token.trim()) { setStatus("Paste your SimpleFIN setup token first.", true); return; }
       if (!session) { setStatus("Sign in first, then connect your bank.", true); return; }
       btn.disabled = true;
+      const financeTicket=financeCapture();
       btn.textContent = "Connecting…";
       setStatus("Claiming your token and connecting…");
       try {
-        const res = await supa.functions.invoke("simplefin-claim", { body: { setup_token: token.trim() } });
+        const res = await supa.functions.invoke("simplefin-claim", { body: { setup_token: token.trim() } });if(!financeTicket.current())return;
         if (res.error) throw new Error(res.error.message || "Connection failed");
         const data = res.data || {};
         if (data.error) throw new Error(data.error);
@@ -8845,6 +9725,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         // TRACK G: pull the fresh transactions now (honest syncing state),
         // then the payoff moment — celebration + one button to the picture.
         try { trackData = null; await initLiveTrackData(); } catch (e) {}
+        if(!financeTicket.current())return;
         $("connectSheet").hidden = true;
         renderHome();
         const live = loadTrackData();
@@ -8859,10 +9740,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           toast("Bank connected!");
         }
       } catch (e) {
+        if(!financeTicket.current())return;
         setStatus("Couldn't connect: " + (e.message || "unknown error") + ". Check your token and try again.", true);
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Connect bank";
+        if(financeTicket.current()){btn.disabled = false;btn.textContent = "Connect bank";}
       }
     };
   }
@@ -9260,8 +10141,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     t[cat] = type;
     blsSet(BUDGET_LS.types, t);
   }
-  function blsGet(k, fb) { try { const v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; } }
-  function blsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function blsGet(k, fb) { try { const v = financeStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; } }
+  function blsSet(k, v) { try { financeStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   // Whole-dollar money, with sign: -$1,234 / $1,234
   const bm0 = v => (v < 0 ? "−$" : "$") + Math.abs(Math.round(v)).toLocaleString("en-US");
 
@@ -9453,8 +10334,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // SPEC 09c: savings goals (Monarch/YNAB parity). Local-first; progress
   // bar + projected finish from the user's actual average monthly kept.
   const GOALS_LS = "upmore_goals_v1";
-  function goalsGet() { try { const v = JSON.parse(localStorage.getItem(GOALS_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
-  function goalsSet(g) { try { localStorage.setItem(GOALS_LS, JSON.stringify(g)); } catch (e) {} }
+  function goalsGet() { try { const v = JSON.parse(financeStorage.getItem(GOALS_LS) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function goalsSet(g) { try { financeStorage.setItem(GOALS_LS, JSON.stringify(g)); } catch (e) {} }
   function goalProject(g, avgKept) {
     const remaining = g.target - g.current;
     if (remaining <= 0) return { done: true, weeks: 0 };
@@ -9555,14 +10436,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const ringColor = paceColor(mSpent, mBudget, mProj);
     const left = mBudget - mSpent;
     let bufferAmt = 100;
-    try { const sv = localStorage.getItem("upmore_buffer"); if (sv !== null) bufferAmt = Math.max(0, parseInt(sv, 10) || 0); } catch (e) {}
+    try { const sv = financeStorage.getItem("upmore_buffer"); if (sv !== null) bufferAmt = Math.max(0, parseInt(sv, 10) || 0); } catch (e) {}
     const top = [...rows].sort((a, b) => b.spent - a.spent).slice(0, 7);
     const topSum = top.reduce((s, r) => s + r.spent, 0);
     const rest = mSpent - topSum;
     const segs = top.map(r => ({ value: r.spent, color: catHue(r.cat), label: r.cat }));
     if (rest > 0.005) segs.push({ value: rest, color: "rgba(255,255,255,.18)", label: "Other" });
     const legend = top.map(r => catchipHtml(r.cat)).join("");
-    const ringCenter = `<div><div class="num" style="font-size:22px;font-weight:800;background:linear-gradient(180deg,#FFFFFF,var(--silver));-webkit-background-clip:text;background-clip:text;color:transparent">${bm0(Math.max(0, left))}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">left</div></div>`;
+    const ringCenter = `<div><div class="num" style="font-size:22px;font-weight:800;color:var(--text)">${bm0(Math.max(0, left))}</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">left</div></div>`;
     return `
       <div class="chart-card">
         <p class="micro">${isCurMonth ? "This month" : "That month"} budget</p>
@@ -9672,7 +10553,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // TRACK G: net-worth mini-trend (reads existing monthly snapshots only).
     let nwMiniHtml = "";
     try {
-      const snaps = JSON.parse(localStorage.getItem("upmore_nw_snaps_v1") || "{}") || {};
+      const snaps = JSON.parse(financeStorage.getItem("upmore_nw_snaps_v1") || "{}") || {};
       const keys = Object.keys(snaps).sort();
       if (keys.length) {
         const lastK = keys[keys.length - 1];
@@ -9821,11 +10702,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (brbe) brbe.onclick = (e) => {
       if (e) e.stopPropagation();
       let cur = 100;
-      try { const sv = localStorage.getItem("upmore_buffer"); if (sv !== null) cur = Math.max(0, parseInt(sv, 10) || 0); } catch (e2) {}
+      try { const sv = financeStorage.getItem("upmore_buffer"); if (sv !== null) cur = Math.max(0, parseInt(sv, 10) || 0); } catch (e2) {}
       const v = prompt("Set your safety buffer amount:", String(cur));
       if (v !== null) {
         const n = Math.max(0, parseInt(String(v).replace(/[^0-9]/g, ""), 10) || 0);
-        try { localStorage.setItem("upmore_buffer", String(n)); } catch (e2) {}
+        try { financeStorage.setItem("upmore_buffer", String(n)); } catch (e2) {}
         renderBudgetReport();
       }
     };
@@ -9996,8 +10877,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   const HOLD_LS = { manual: "upmore_holdings_manual_v1", plaid: "upmore_plaid_holdings_v1" };
   const INV_TARGETS_LS = "upmore_inv_targets_v1";
-  function getInvTargets() { try { return JSON.parse(localStorage.getItem(INV_TARGETS_LS) || "{}") || {}; } catch (e) { return {}; } }
-  function setInvTargets(t) { try { localStorage.setItem(INV_TARGETS_LS, JSON.stringify(t || {})); } catch (e) {} }
+  function getInvTargets() { try { return JSON.parse(financeStorage.getItem(INV_TARGETS_LS) || "{}") || {}; } catch (e) { return {}; } }
+  function setInvTargets(t) { try { financeStorage.setItem(INV_TARGETS_LS, JSON.stringify(t || {})); } catch (e) {} }
   // GICS sectors for the sector breakdown (user-assigned; funds usually span sectors).
   const SECTORS = ["—", "Technology", "Healthcare", "Financials", "Consumer Discretionary", "Consumer Staples", "Energy", "Industrials", "Materials", "Utilities", "Real Estate", "Communication Services"];
   // S&P 500 reference context, facts only (not a target). Trailing dividend
@@ -10071,12 +10952,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // holding id; always labeled as the user's own notes, never broker data.
   // The synced position itself stays read-only.
   const INV_META_LS = "upmore_inv_meta_v1";
-  function getInvMeta() { try { return JSON.parse(localStorage.getItem(INV_META_LS) || "{}") || {}; } catch (e) { return {}; } }
+  function getInvMeta() { try { return JSON.parse(financeStorage.getItem(INV_META_LS) || "{}") || {}; } catch (e) { return {}; } }
   function setInvMeta(id, meta) {
     try {
       const m = getInvMeta();
       if (meta && Object.keys(meta).length) m[id] = meta; else delete m[id];
-      localStorage.setItem(INV_META_LS, JSON.stringify(m));
+      financeStorage.setItem(INV_META_LS, JSON.stringify(m));
     } catch (e) {}
   }
   function allHoldings() {
@@ -10213,44 +11094,50 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
   }
   async function plaidConnectFlow() {
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
     try {
-      const lt = await plaidInvoke({ action: "link_token" });
+      const lt = await plaidInvoke({ action: "link_token" });if(!financeTicket.current())return;
       if (!lt || !lt.link_token) { toast("Couldn't start the connection. Try again."); return; }
-      await loadPlaidLinkSdk();
+      await loadPlaidLinkSdk();if(!financeTicket.current())return;
       const handler = window.Plaid.create({
         token: lt.link_token,
         onSuccess: async (public_token) => {
+          if(!financeTicket.current())return;
           try {
-            await plaidInvoke({ action: "exchange", public_token });
-            await refreshPlaidHoldings();
+            await plaidInvoke({ action: "exchange", public_token });if(!financeTicket.current())return;
+            await refreshPlaidHoldings();if(!financeTicket.current())return;
             renderInvestments();
             // TRACK G: brokerage payoff moment — one button to the X-ray.
             showPayoffSheet("Investments connected",
               "Your holdings are in — see what you own, what it costs, and where it's concentrated.",
               "See the X-ray", () => show("investments"));
-          } catch (e) { toast("Connection saved, but holdings didn't load. Try refresh."); renderInvestments(); }
+          } catch (e) { if(financeTicket.current()){toast("Connection saved, but holdings didn't load. Try refresh."); renderInvestments();} }
         },
         onExit: () => {},
       });
       handler.open();
-    } catch (e) { toast("Couldn't start the connection. Try again."); }
+    } catch (e) { if(financeTicket.current())toast("Couldn't start the connection. Try again."); }
   }
   async function refreshPlaidHoldings() {
+    const financeTicket=financeCapture();if(!financeTicket.owner)return;
     // Manual refresh = server "refresh" action (on-demand Plaid refresh,
     // max 1 per 24h, $3.00/month cap). Cost-guard failures are explained by
     // re-reading status (always HTTP 200) rather than parsing error bodies.
     try {
       const data = await plaidInvoke({ action: "refresh" });
+      if(!financeTicket.current())return;
       if (data && data.retry) { toast("Holdings are still being prepared — try again in a minute."); return; }
       const holdings = normalizePlaidHoldings(data || {});
       blsSet(HOLD_LS.plaid, { as_of: new Date().toISOString().slice(0, 10), holdings });
-      try { plaidStatusCache = await plaidInvoke({ action: "status" }); } catch (_) {}
+      try { const status=await plaidInvoke({action:"status"});if(!financeTicket.current())return;plaidStatusCache=status; } catch (_) {}
       toast(data && data.refreshed
         ? "Refresh requested — latest prices land shortly."
         : `Loaded ${holdings.length} positions.`);
     } catch (e) {
+      if(!financeTicket.current())return;
       try {
         const st = await plaidInvoke({ action: "status" });
+        if(!financeTicket.current())return;
         plaidStatusCache = st;
         if (st && st.capped) {
           toast(`Refresh paused until ${nextMonthLabel()} — cost guard. Showing last synced positions.`);
@@ -10259,9 +11146,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         } else {
           toast("Couldn't refresh holdings. Try again.");
         }
-      } catch (_) { toast("Couldn't refresh holdings. Try again."); }
+      } catch (_) { if(financeTicket.current())toast("Couldn't refresh holdings. Try again."); }
     }
-    renderInvestments();
+    if(financeTicket.current())renderInvestments();
   }
 
   // ---- Render ----
@@ -10307,13 +11194,15 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function renderInvestments() {
+    const financeTicket=financeCapture();
     const body = $("investBody");
     const signedIn = (typeof session !== "undefined" && !!session) && typeof supa !== "undefined" && supa;
     let status = plaidStatusCache;
     if (signedIn && !status) {
-      try { status = await plaidInvoke({ action: "status" }); plaidStatusCache = status; }
+      try { status = await plaidInvoke({ action: "status" });if(!financeTicket.current())return;plaidStatusCache = status; }
       catch (e) { status = { plaid_configured: false, connected: false, error: true }; }
     }
+    if(!financeTicket.current())return;
     const manual = getManualHoldings();
     const cache = getPlaidCache();
     const holdings = allHoldings();
@@ -10858,11 +11747,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   // successful sync is older than 72h. Track strip + Guide must withhold
   // free_cash/balance as current when stale and prompt a reconnect.
   function getLastSync() {
-    try { const v = localStorage.getItem("upmore_last_sync"); return v ? parseInt(v, 10) : 0; }
+    try { const v = financeStorage.getItem("upmore_last_sync"); return v ? parseInt(v, 10) : 0; }
     catch (e) { return 0; }
   }
   function markSynced() {
-    try { localStorage.setItem("upmore_last_sync", String(Date.now())); } catch (e) {}
+    try { financeStorage.setItem("upmore_last_sync", String(Date.now())); } catch (e) {}
   }
   function isDataStale() {
     const last = getLastSync();
@@ -10893,14 +11782,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       await new Promise(r => setTimeout(r, 100));
     }
     if (session) {
-      // One-time restore: answers stashed before the OAuth redirect come back
-      // into memory so saveProfile() writes the user's real answers.
+      // Restore only this authenticated owner's nonce-bound answers. Guest
+      // and unscoped legacy answers remain quarantined until explicit review.
       try {
         const nonce = sessionStorage.getItem("upmore-ob-nonce");
         if (nonce) {
-          const raw = localStorage.getItem("upmore-onboarding-" + nonce);
+          const raw = financeStorage.getItem("upmore-onboarding-" + nonce);
           if (raw) Object.assign(data, JSON.parse(raw));
-          localStorage.removeItem("upmore-onboarding-" + nonce);
+          financeStorage.removeItem("upmore-onboarding-" + nonce);
           sessionStorage.removeItem("upmore-ob-nonce");
         }
       } catch (e) {}
@@ -10921,7 +11810,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     // No session: returning users (onboarding answers saved) go straight to
     // the Login screen instead of redoing onboarding; brand-new users get splash.
     let hasOnboarding = false;
-    try { hasOnboarding = !!localStorage.getItem("upmore-onboarding"); } catch (e) {}
+    try { hasOnboarding = !!financeStorage.getItem("upmore-onboarding"); } catch (e) {}
     const hh1 = LEGACY_TABS[h] || h;
     if ($(hh1) && hh1 !== "splash") { show(hh1, { replace: true }); bootDone = true; }
     else if (hasOnboarding) { show("login", { replace: true }); bootDone = true; }
@@ -11017,6 +11906,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   async function subDefenseCards() {
+    const financeTicket=financeCapture();
     const cards = [];
     try {
       const _td0 = loadTrackData();
@@ -11028,6 +11918,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const signed = (typeof getSessionToken === "function") ? !!(await getSessionToken()) : false;
       const rows = signed && typeof saveRows === "function"
         ? await saveRows("save_subscriptions", "created_at", false) : localSubsGet();
+      if(!financeTicket.current())return [];
       const act = (rows || []).filter(r => r.status !== "cancelled");
       const nowMs = Date.now();
       // (a) Trial conversion warnings ≤ 7 days out. Rocket Money paywalls
@@ -11053,7 +11944,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       try { recs = txNoLive ? [] : (detectRecurrence(transactions || []) || []).filter(r => !r.dormant); } catch (e) {}
       const trackedMids = new Set(act.map(s => normalizeMerchant(s.merchant || "")));
       let dismissed = new Set();
-      try { dismissed = new Set(JSON.parse(localStorage.getItem("upmore_rec_dismissed") || "[]")); } catch (e) {}
+      try { dismissed = new Set(JSON.parse(financeStorage.getItem("upmore_rec_dismissed") || "[]")); } catch (e) {}
       const fresh = recs.filter(r => !trackedMids.has(r.merchant_id) && !dismissed.has(r.merchant_id));
       if (fresh.length) {
         cards.push({
@@ -11088,13 +11979,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           sub: `You're paying ${money$(neg.amount)}/mo. A 5-minute call with this exact script often cuts 10–30%.`,
           dollars: Math.round(Number(neg.amount) * 12 * 0.2), conf: 0.5, urg: 2, eff: 6,
           cta: "Get the script", act: () => openNegotiateSheet(neg),
-          cta2: "Not interested", act2: () => { dismissed.add("neg-" + neg.id); try { localStorage.setItem("upmore_rec_dismissed", JSON.stringify([...dismissed])); } catch (e) {} renderQueue(); },
+          cta2: "Not interested", act2: () => { dismissed.add("neg-" + neg.id); try { financeStorage.setItem("upmore_rec_dismissed", JSON.stringify([...dismissed])); } catch (e) {} renderQueue(); },
           why: "Utility/telecom bills are negotiable — script included, no fee."
         });
       }
       // (e) Annual re-search reminders for already-searched states.
       let rs = {};
-      try { rs = JSON.parse(localStorage.getItem("claim_research") || "{}"); } catch (e) {}
+      try { rs = JSON.parse(financeStorage.getItem("claim_research") || "{}"); } catch (e) {}
       const todayIso = new Date().toISOString().slice(0, 10);
       Object.entries(rs).forEach(([st, due]) => {
         if (due <= todayIso) {
@@ -11108,7 +11999,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
               window.open(typeof CLAIM_SEARCH_URL !== "undefined" ? CLAIM_SEARCH_URL : "https://www.missingmoney.com/", "_blank", "noopener");
               const d = new Date(); d.setFullYear(d.getFullYear() + 1);
               rs[st] = d.toISOString().slice(0, 10);
-              try { localStorage.setItem("claim_research", JSON.stringify(rs)); } catch (e) {}
+              try { financeStorage.setItem("claim_research", JSON.stringify(rs)); } catch (e) {}
               renderQueue();
             },
             why: "Annual re-search reminder for a state you already checked."
@@ -11139,9 +12030,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
     body.querySelectorAll("[data-nosub]").forEach(b => b.onclick = () => {
       let d = new Set();
-      try { d = new Set(JSON.parse(localStorage.getItem("upmore_rec_dismissed") || "[]")); } catch (e) {}
+      try { d = new Set(JSON.parse(financeStorage.getItem("upmore_rec_dismissed") || "[]")); } catch (e) {}
       d.add(b.dataset.nosub);
-      try { localStorage.setItem("upmore_rec_dismissed", JSON.stringify([...d])); } catch (e) {}
+      try { financeStorage.setItem("upmore_rec_dismissed", JSON.stringify([...d])); } catch (e) {}
       b.closest(".mrow").remove();
       renderQueue();
     });
@@ -11495,8 +12386,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   // ---- Transactions: merchant rules + bulk recategorize (Monarch/YNAB parity) ----
   const TXRULE_LS = "upmore_tx_rules_v1";
-  function txRulesGet() { try { return JSON.parse(localStorage.getItem(TXRULE_LS) || "{}"); } catch (e) { return {}; } }
-  function txRulesSet(r) { try { localStorage.setItem(TXRULE_LS, JSON.stringify(r)); } catch (e) {} }
+  function txRulesGet() { try { return JSON.parse(financeStorage.getItem(TXRULE_LS) || "{}"); } catch (e) { return {}; } }
+  function txRulesSet(r) { try { financeStorage.setItem(TXRULE_LS, JSON.stringify(r)); } catch (e) {} }
   function txRuleFor(t) {
     if (!t) return null;
     const rules = txRulesGet();
@@ -11585,8 +12476,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   // ---- Net worth: accounts + manual assets − liabilities, monthly snapshots ----
   const NW_LS = { assets: "upmore_nw_assets_v1", liabs: "upmore_nw_liabs_v1", snaps: "upmore_nw_snaps_v1" };
-  function nwListGet(k) { try { const v = JSON.parse(localStorage.getItem(k) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
-  function nwListSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function nwListGet(k) { try { const v = JSON.parse(financeStorage.getItem(k) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function nwListSet(k, v) { try { financeStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function netWorthCalc() {
     const { accounts, isLive } = loadTrackData();
     const _si = (typeof session !== "undefined" && !!session);
@@ -11596,7 +12487,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const assets = nwListGet(NW_LS.assets).reduce((s, a) => s + Number(a.value || 0), 0);
     const liabs = nwListGet(NW_LS.liabs).reduce((s, a) => s + Number(a.value || 0), 0);
     let debts = 0;
-    try { debts = (JSON.parse(localStorage.getItem("cfo_debt_debts") || "[]") || []).reduce((s, x) => s + Number(x.balance || 0), 0); } catch (e) {}
+    try { debts = (JSON.parse(financeStorage.getItem("cfo_debt_debts") || "[]") || []).reduce((s, x) => s + Number(x.balance || 0), 0); } catch (e) {}
     return { bank, assets, liabs, debts, total: bank + assets - liabs - debts };
   }
   function nwSnapNorm(v) {
@@ -11607,9 +12498,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function nwSnapshot(nw) {
     const ym = new Date().toISOString().slice(0, 7);
     let snaps = {};
-    try { snaps = JSON.parse(localStorage.getItem(NW_LS.snaps) || "{}"); } catch (e) {}
+    try { snaps = JSON.parse(financeStorage.getItem(NW_LS.snaps) || "{}"); } catch (e) {}
     snaps[ym] = { total: Math.round(nw.total), bank: Math.round(nw.bank), assets: Math.round(nw.assets), liabs: Math.round(nw.liabs), debts: Math.round(nw.debts) };
-    try { localStorage.setItem(NW_LS.snaps, JSON.stringify(snaps)); } catch (e) {}
+    try { financeStorage.setItem(NW_LS.snaps, JSON.stringify(snaps)); } catch (e) {}
     return snaps;
   }
   // SPEC 09b: explain the month-over-month change by component (Monarch parity).
@@ -11896,6 +12787,7 @@ function threadEl(m) { return $("threadMain"); }
 function scrollChat() { const f = chatFeedEl(); if (f) f.scrollTop = f.scrollHeight; }
 
 function setChatMode(m) {
+  if(m!==chatMode){chatRequests.invalidate();busy=false;agentTaskRunning=false;}
   const feed = chatFeedEl(); if (!feed) return;
   chatThread.scroll = feed.scrollTop;
   chatMode = m;
@@ -12005,12 +12897,15 @@ const md = (s) => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
   .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
   .replace(/\n/g, "<br>");
-function addAI(paras, card, prov) {
+function addAI(paras, card, prov, requestTicket, workflowAction) {
+  const ticket=requestTicket && typeof requestTicket.current==='function' ? requestTicket : chatRequests.capture();
+  if(!ticket.current())return;
   chatNoteEmpty(); maybeTs();
   const m = document.createElement("div"); m.className = "amsg";
   m.innerHTML = '<div class="ctyping"><i></i><i></i><i></i></div>';
   chat.appendChild(m); scrollChat();
   setTimeout(() => {
+    if(!ticket.current()){m.remove();return;}
     const tp = m.querySelector(".ctyping"); if (tp) tp.remove();
     let html = paras.map(p => `<p>${md(p)}</p>`).join("");
     if (prov && prov.text && HAS_NUM_RE.test(paras.join(" "))) {
@@ -12020,14 +12915,18 @@ function addAI(paras, card, prov) {
       html += `<div class="mini"><span>${esc(card.tag || "")}</span><b>${esc(card.title || "")}</b><span>${esc(card.meta || "")}</span>${card.aff ? `<span class="abadge">Affiliate</span>` : ""}<button data-open>Open move</button></div>`;
     }
     m.insertAdjacentHTML("beforeend", html);
+    const workflow=ticket.workflow(workflowAction);
+    if(workflow){const review=document.createElement('button');review.type='button';review.className='ghostbtn';review.textContent='Review bill next step';review.onclick=()=>workflow.open(link=>{openBillWorkflow(link,ticket).catch(()=>{if(ticket.current())toast('Bill details are unavailable. Reload bills to try again.');});});m.appendChild(review);}
     const b = m.querySelector("[data-open]");
     if (b && card) b.onclick = () => {
+      if(!ticket.current())return;
       const r = card.id ? routeById(card.id) : null;
       if (r && r.steps && r.steps.length) { startWalkthrough(r.id); return; }
       show("explore");
       const q = $("xq");
       if (q && r) { q.value = r.provider || ""; q.dispatchEvent(new Event("input", { bubbles: true })); }
       if (card.id) setTimeout(() => {
+        if(!ticket.current())return;
         const elx = document.querySelector(`[data-xcard="${card.id}"]`);
         if (elx) { const dd = elx.querySelector(".xdetail"); if (dd) dd.hidden = false; elx.scrollIntoView({ block: "center" }); }
       }, 600);
@@ -12114,10 +13013,13 @@ function wireChat() {
     if (!f.type.startsWith("image/")) { toast("Photos only, please."); return; }
     if (chatImages.length >= 3) { toast("Up to 3 photos per message."); return; }
     // FileReader (not object URLs): decodes everywhere, no URL lifecycle.
+    const photoTicket=chatRequests.capture();
     const rd = new FileReader();
     rd.onload = () => {
+      if(!photoTicket.current())return;
       const img = new Image();
       img.onload = () => {
+        if(!photoTicket.current())return;
         const MAX = 1024, sc = Math.min(1, MAX / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
         c.width = Math.max(1, Math.round(img.width * sc));
@@ -12127,10 +13029,10 @@ function wireChat() {
         chatImages.push({ data: url.split(",")[1], media_type: "image/jpeg" });
         renderChatImages();
       };
-      img.onerror = () => toast("Couldn't read that photo.");
+      img.onerror = () => {if(photoTicket.current())toast("Couldn't read that photo.");};
       img.src = rd.result;
     };
-    rd.onerror = () => toast("Couldn't read that photo.");
+    rd.onerror = () => {if(photoTicket.current())toast("Couldn't read that photo.");};
     rd.readAsDataURL(f);
   };
   $("chatAttach").onclick = () => chatFileInput.click();
@@ -12192,6 +13094,7 @@ function updateAgentDot() {
    ============================================================ */
 async function agentChat(text, images) {
   setChatMode("agent");
+  const ticket=chatRequests.capture();
   addMe(text, images);
   agentTaskRunning = true; updateAgentDot();
   const run = document.createElement("div"); run.className = "taskrun";
@@ -12207,7 +13110,7 @@ async function agentChat(text, images) {
   };
   const okStep = (el) => { el.dataset.st = "done"; el.querySelector(".sc").textContent = "✓"; };
 
-  let paras = null, card = null, prov = null, walkthrough = null, src = "local";
+  let paras = null, card = null, prov = null, walkthrough = null, workflow = null, src = "local";
   const s1 = mkStep("Understanding the request");
   try {
     // Real work: the same intent pipeline Ask mode uses. With attached photos
@@ -12215,13 +13118,15 @@ async function agentChat(text, images) {
     // can't see images, so answering locally would silently ignore them.
     const hasImg = images && images.length;
     const tr = hasImg ? null : await trackedAnswer(text);
+    if(!ticket.current()){run.remove();return;}
     if (tr) {
       paras = tr.paras; card = tr.card;
       prov = { text: "From your tracked subscriptions, renewals, and money log." }; src = "tracked";
     } else {
-      const j = await agentAsk(text, images);
+      const j = await agentAsk(text, images, ticket);
+      if(!ticket.current() || j?.stale){run.remove();return;}
       if (j && j.reply) {
-        paras = [j.reply]; prov = null; src = "agent";
+        paras = [j.reply]; prov = null; src = "agent"; workflow = j.action;
         if (j.action && j.action.type === "start_walkthrough" && j.action.route_id) walkthrough = j.action.route_id;
       } else {
         const r = guideAnswer(text);
@@ -12230,6 +13135,7 @@ async function agentChat(text, images) {
       }
     }
   } catch (e) {
+    if(!ticket.current()){run.remove();return;}
     const r = guideAnswer(text);
     paras = ((images && images.length)
       ? ["I couldn't look at your photo just now — the analysis service didn't respond. Here's what I can answer from your message:"]
@@ -12246,13 +13152,15 @@ async function agentChat(text, images) {
     if (td && td.isDemo !== true) liveN = (td.accounts || []).length;
     openN = (await getTasks()).filter(t => t.state === "open").length;
   } catch (e) {}
+  if(!ticket.current()){run.remove();return;}
   if (liveN > 0 && prov) prov = { text: (prov.text || "") + ` Checked ${liveN} connected account${liveN === 1 ? "" : "s"}.` };
   okStep(s2);
   run.remove();
 
-  addAI(paras && paras.length ? paras : ["I couldn't find an answer for that yet — try asking about your budget, bills, or subscriptions."], card, prov);
+  addAI(paras && paras.length ? paras : ["I couldn't find an answer for that yet — try asking about your budget, bills, or subscriptions."], card, prov, ticket, workflow);
   if (walkthrough) { const r = routeById(walkthrough); if (r) startWalkthrough(walkthrough); }
   try { await writeLedger({ action: "agent_chat", outcome: "done", evidence: { title: text, source: src, liveAccounts: liveN, openTasks: openN } }); } catch (e) {}
+  if(!ticket.current())return;
   agentTaskRunning = false; updateAgentDot(); scrollChat();
   // addAI clears `busy` after its render delay.
 }
@@ -12502,7 +13410,7 @@ async function writeLedger(entry) {
 /* ============================================================
    TASKS TAB
    ============================================================ */
-let tasksCache = null;
+let tasksCache = null, tasksCacheOwner=null;
 
 function userTz() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (e) { return "UTC"; }
@@ -12510,21 +13418,24 @@ function userTz() {
 /* Honest tasks: only real rows from the user's reminders table are ever shown.
    No demo seeds, no fabricated bills — an empty list renders the empty state. */
 function taskOverlay() {
-  try { return JSON.parse(localStorage.getItem("upmore-task-overlay") || "{}"); } catch (e) { return {}; }
+  try { return JSON.parse(financeStorage.getItem("upmore-task-overlay") || "{}"); } catch (e) { return {}; }
 }
 function saveTaskOverlay(o) {
-  try { localStorage.setItem("upmore-task-overlay", JSON.stringify(o)); } catch (e) {}
+  try { financeStorage.setItem("upmore-task-overlay", JSON.stringify(o)); } catch (e) {}
 }
 function mutedTypes() {
-  try { return JSON.parse(localStorage.getItem("upmore-muted-types") || "[]"); } catch (e) { return []; }
+  try { return JSON.parse(financeStorage.getItem("upmore-muted-types") || "[]"); } catch (e) { return []; }
 }
 async function getTasks() {
-  if (tasksCache) return tasksCache;
+  const financeTicket=financeCapture();
+  if (tasksCache && tasksCacheOwner===financeTicket.owner) return tasksCache;
   let items = [];
   if (supa && session && session.user) {
     try {
       const { data } = await supa.from("reminders").select("*")
-        .eq("user_id", session.user.id).order("due_at", { ascending: true });
+        .eq("user_id", financeTicket.owner).order("due_at", { ascending: true });
+      if(!financeTicket.current())return [];
+      if(data?.some(row=>row.user_id!==financeTicket.owner))return [];
       if (data && data.length) items = data.map(r => ({ ...r, demo: false }));
     } catch (e) {}
   }
@@ -12535,19 +13446,20 @@ async function getTasks() {
   items = items
     .map(t => (ov[t.id] ? { ...t, ...ov[t.id] } : t))
     .filter(t => !mt.includes(t.type));
-  tasksCache = items;
+  if(!financeTicket.current())return [];
+  tasksCache = items;tasksCacheOwner=financeTicket.owner;
   return items;
 }
 async function mutateTask(id, patch) {
-  const items = await getTasks();
+  const financeTicket=financeCapture(),items = await getTasks();if(!financeTicket.current())return;
   const t = items.find(x => x.id === id); if (!t) return;
   Object.assign(t, patch);
   if (!t.demo && supa && session && session.user) {
-    try { await supa.from("reminders").update(patch).eq("id", id); } catch (e) {}
+    try { await supa.from("reminders").update(patch).eq("id",id).eq("user_id",financeTicket.owner);if(!financeTicket.current())return; } catch (e) {}
   } else {
     const ov = taskOverlay(); ov[id] = { ...(ov[id] || {}), ...patch }; saveTaskOverlay(ov);
   }
-  tasksCache = items;
+  if(!financeTicket.current())return;tasksCache = items;tasksCacheOwner=financeTicket.owner;
   updateTasksBadge();
 }
 function evidenceText(t) {
@@ -12606,8 +13518,9 @@ function taskRowHTML(t) {
     ${working}</div>`;
 }
 async function renderTasks() {
+  const financeTicket=financeCapture();
   const g = $("tasksGroups"); if (!g) return;
-  const items = (await getTasks()).filter(t => evidenceText(t));
+  const items = (await getTasks()).filter(t => evidenceText(t));if(!financeTicket.current())return;
   const now = Date.now();
   const open = items.filter(t => t.state === "open" || t.state === "agent_working");
   const done = items
@@ -12658,27 +13571,27 @@ async function renderTasks() {
   updateTasksBadge();
 }
 async function doThisForMe(id) {
-  const items = await getTasks();
+  const financeTicket=financeCapture();const items = await getTasks();if(!financeTicket.current())return;
   const t = items.find(x => x.id === id); if (!t) return;
   show("chat");
   startAgentTask({ title: t.title, reminderId: id, script: taskScript(t), demo: t.demo !== false });
 }
 async function dismissTask(id) {
-  const items = await getTasks();
+  const financeTicket=financeCapture();const items = await getTasks();if(!financeTicket.current())return;
   const t = items.find(x => x.id === id); if (!t) return;
-  await mutateTask(id, { state: "dismissed", dismissed_at: new Date().toISOString() });
+  await mutateTask(id, { state: "dismissed", dismissed_at: new Date().toISOString() });if(!financeTicket.current())return;
   try {
     const k = "upmore-dismiss-counts";
-    const c = JSON.parse(localStorage.getItem(k) || "{}");
+    const c = JSON.parse(financeStorage.getItem(k) || "{}");
     c[t.type] = (c[t.type] || 0) + 1;
-    localStorage.setItem(k, JSON.stringify(c));
-    const asked = JSON.parse(localStorage.getItem("upmore-mute-asked") || "{}");
+    financeStorage.setItem(k, JSON.stringify(c));
+    const asked = JSON.parse(financeStorage.getItem("upmore-mute-asked") || "{}");
     if (c[t.type] >= 3 && !asked[t.type]) {
-      asked[t.type] = 1; localStorage.setItem("upmore-mute-asked", JSON.stringify(asked));
+      asked[t.type] = 1; financeStorage.setItem("upmore-mute-asked", JSON.stringify(asked));
       setTimeout(() => {
-        if (confirm("You've dismissed this kind of task 3 times. Stop showing it?")) {
+        if (financeTicket.current() && confirm("You've dismissed this kind of task 3 times. Stop showing it?")) {
           const m = mutedTypes(); m.push(t.type);
-          try { localStorage.setItem("upmore-muted-types", JSON.stringify(m)); } catch (e) {}
+          try { financeStorage.setItem("upmore-muted-types", JSON.stringify(m)); } catch (e) {}
           tasksCache = null;
           renderTasks();
         }
@@ -12696,8 +13609,9 @@ async function snoozeTask(id) {
   renderTasks();
 }
 async function updateTasksBadge() {
+  const financeTicket=financeCapture();
   try {
-    const items = await getTasks();
+    const items = await getTasks();if(!financeTicket.current())return;
     const n = items.filter(t => t.state === "open").length;
     // Every open-task badge in the app (Guide tab, Guide header button, You screen).
     document.querySelectorAll(".taskbadge").forEach(b => {
@@ -12722,11 +13636,11 @@ async function renderFeed(force) {
     if (!r.ok) throw new Error("bad status");
     const data = await r.json();
     feedCache = { at: Date.now(), data };
-    try { localStorage.setItem("upmore-feed", JSON.stringify(feedCache)); } catch (e) {}
+    try { financeStorage.setItem("upmore-feed", JSON.stringify(feedCache)); } catch (e) {}
     paintFeed(data);
   } catch (e) {
     let stale = null;
-    try { stale = JSON.parse(localStorage.getItem("upmore-feed") || "null"); } catch (e2) {}
+    try { stale = JSON.parse(financeStorage.getItem("upmore-feed") || "null"); } catch (e2) {}
     if (stale && stale.data) { feedCache = stale; paintFeed(stale.data); return; }
     list.innerHTML = '<div class="nerr">Couldn\'t load the feed. Check your connection and try again.</div>';
     $("feedMarkets").innerHTML = ""; $("feedFoot").textContent = "";

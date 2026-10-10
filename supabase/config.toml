@@ -1,0 +1,20 @@
+# Explicit gateway modes for the new authenticated workflow and worker units.
+# https://supabase.com/docs/guides/functions/function-configuration
+# Webhooks/workers authenticate in their handlers; no endpoint is public data.
+[functions.agent-workflows]
+verify_jwt = true
+
+[functions.agent-chat]
+verify_jwt = true
+
+[functions.agent-message-inbound]
+verify_jwt = false
+
+[functions.agent-message-turn]
+verify_jwt = false
+
+[functions.agent-message-worker]
+verify_jwt = false
+
+[functions.agent-payments]
+verify_jwt = false

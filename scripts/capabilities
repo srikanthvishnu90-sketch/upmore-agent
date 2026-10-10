@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// Capability inventory CLI (Instinct spec doc 02).
+//   scripts/capabilities --status            inventory by domain and status
+//   scripts/capabilities --domain BILL       entries in one domain
+//   scripts/capabilities --ask BILL-003      the honest status answer for one id
+//   scripts/capabilities --check             validate only; exit 1 on any error
+const fs = require("node:fs");
+const path = require("node:path");
+const root = path.resolve(__dirname, "..");
+const Registry = require(path.join(root, "packages/capabilities/registry.js"));
+const registry = JSON.parse(fs.readFileSync(path.join(root, "packages/capabilities/registry.json"), "utf8"));
+const exists = rel => fs.existsSync(path.join(root, rel));
+const args = process.argv.slice(2);
+const flag = name => { const i = args.indexOf(name); return i >= 0 ? (args[i + 1] || true) : null; };
+
+const errors = Registry.validate(registry, exists);
+if (errors.length) { console.error("Capability registry invalid:\n" + errors.join("\n")); process.exit(1); }
+const reg = Registry.load(registry, exists);
+if (flag("--check")) { console.log(`Capability registry valid: ${reg.size} capabilities, ${reg.proven().length} proven`); process.exit(0); }
+if (flag("--ask")) { console.log(reg.answer(String(flag("--ask"))).text); process.exit(0); }
+if (flag("--domain")) {
+  for (const c of reg.list(c => c.domain_code === String(flag("--domain")).toUpperCase()))
+    console.log(`${c.id}  ${c.status.padEnd(9)} ${c.tier}  ${c.name}${c.note ? "  — " + c.note : ""}`);
+  process.exit(0);
+}
+const summary = reg.summary();
+const statuses = Registry.STATUSES;
+console.log("domain".padEnd(8) + "total".padStart(6) + statuses.map(s => s.padStart(10)).join(""));
+for (const [code, d] of Object.entries(summary))
+  console.log(code.padEnd(8) + String(d.total).padStart(6) + statuses.map(s => String(d[s] || 0).padStart(10)).join(""));
+const total = Object.values(summary).reduce((n, d) => n + d.total, 0);
+console.log("all".padEnd(8) + String(total).padStart(6) + statuses.map(s => String(reg.list(c => c.status === s).length).padStart(10)).join(""));
+if (registry.corrections && registry.corrections.length) console.log("\nspec corrections: " + registry.corrections.join("; "));

@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-30 outcomes, 100% accounted, 30% performed.
+30 outcomes, 100% accounted, 36.7% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -11,7 +11,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | WF-003 Account alerts | ALRT-010 | TESTED | Configurable account alerts map to user-defined watches across the ALRT family. |
 | WF-004 Eligible account opening | non-parity: regulated-origination | n/a | Opening a new bank account is regulated KYC onboarding Upmore never performs; it only finds signup bonuses (EARN-001). |
 | WF-005 Zelle sending and receiving | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| WF-006 Internal transfers | PAY-009 | CLAIMED |  |
+| WF-006 Internal transfers | PAY-009 | TESTED |  |
 | WF-007 Eligible external transfers | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | WF-008 Bill payments | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | WF-009 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
@@ -33,6 +33,6 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | WF-X02 Add eligible cards to digital wallets (Apple Pay, Google Pay, Samsung Pay, Paze, PayPal) and use cardless ATM access. | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | WF-X03 Send domestic or international digital wires. | PAY-011 | GATED | wires need the same partner rail and stay T5 always |
 | WF-X04 Send international remittances via ExpressSend to 12 countries. | PAY-016 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| WF-X05 Grant view-only Guest User access to accounts via Account Access Manager. | SOC-006 | CLAIMED |  |
+| WF-X05 Grant view-only Guest User access to accounts via Account Access Manager. | SOC-006 | TESTED |  |
 | WF-X06 Sync accounts with Quicken financial software. | TXN-012 | TESTED | Quicken sync is delivered as transaction export. |
 | WF-X07 Find ATMs/branches and book an appointment with a banker. | non-parity: hardware-bound | n/a | ATM and branch lookup and banker appointments are physical-location services the agent does not replicate. |

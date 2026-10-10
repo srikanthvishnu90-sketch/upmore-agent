@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-41 outcomes, 100% accounted, 31.7% performed.
+41 outcomes, 100% accounted, 46.3% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -30,20 +30,20 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | VE-022 Separate-consent cashback conversion | non-parity: investment-platform | n/a | Auto-converting cashback into crypto is a recurring crypto purchase inside a P2P app; investment-platform surface (doc 09). |
 | VE-023 Crypto risks and taxes | TAX-007 | CLAIMED |  |
 | VE-024 Complaint and support routes | PAY-024 | TESTED | Complaint and support routes map to the payment reversal or mitigation path. |
-| VE-025 Schedule a payment with explicit timing and cancellation boundaries | PAY-007 | CLAIMED |  |
+| VE-025 Schedule a payment with explicit timing and cancellation boundaries | PAY-007 | TESTED |  |
 | VE-026 Split group expenses with recipient and privacy controls | PAY-004 | TESTED |  |
 | VE-027 Access an issuer-provided virtual card without fabricating credentials | CARD-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| VE-X01 Request money from another user. | PAY-003 | CLAIMED |  |
+| VE-X01 Request money from another user. | PAY-003 | TESTED |  |
 | VE-X02 Split a past purchase by sending charge requests. | PAY-004 | TESTED |  |
-| VE-X03 Track shared group expenses and settle up. | SOC-002 | CLAIMED |  |
-| VE-X04 Set default and per-payment privacy (Public/Friends/Private). | SOC-010 | CLAIMED |  |
+| VE-X03 Track shared group expenses and settle up. | SOC-002 | TESTED |  |
+| VE-X04 Set default and per-payment privacy (Public/Friends/Private). | SOC-010 | TESTED |  |
 | VE-X05 Standard free bank cashout via ACH. | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | VE-X06 Instant cashout to eligible bank or debit card with fee preview. | PAY-010 | GATED | no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs |
 | VE-X07 Enforce bank transfer and add-money limits by verification state. | PAY-020 | TESTED |  |
-| VE-X08 Create a business profile to accept payments. | PAY-003 | CLAIMED | Doc 03 marks business profiles out of scope for v1; the closest capability is requesting money. |
+| VE-X08 Create a business profile to accept payments. | PAY-003 | TESTED | Doc 03 marks business profiles out of scope for v1; the closest capability is requesting money. |
 | VE-X09 Accept in-person contactless payments with Tap to Pay on iPhone/Android. | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | VE-X10 Mark personal payments as goods & services with a 2.99% seller fee. | PAY-024 | TESTED | Goods-and-services marking buys purchase protection; Upmore delivers the dispute/mitigation path, not the seller-fee toggle. |
 | VE-X11 Cash a check into Venmo with fee. | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | VE-X12 Teen accounts with parent-managed debit card lock and limits. | SOC-007 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| VE-X13 Charity profiles accept donations at 1.9% + $0.10. | SOC-008 | CLAIMED | Doc 03: charity profiles map to gifting. |
+| VE-X13 Charity profiles accept donations at 1.9% + $0.10. | SOC-008 | TESTED | Doc 03: charity profiles map to gifting. |
 | VE-X14 Show payment status including Pending with estimated completion. | PAY-022 | TESTED |  |

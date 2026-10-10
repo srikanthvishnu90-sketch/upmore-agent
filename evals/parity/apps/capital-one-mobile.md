@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-31 outcomes, 100% accounted, 58.1% performed.
+31 outcomes, 100% accounted, 61.3% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -35,5 +35,5 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CO-027 Missing new-account help | ACCT-005 | TESTED | Missing new account help maps to per-connector account health status. |
 | CO-X01 Sign in with a passkey | SEC-012 | TESTED | Passkey sign-in is the bank's authenticator; Upmore's equivalent is verification of sensitive commands. |
 | CO-X02 Manage migrated Discover credit cards in the Capital One app | CARD-001 | TESTED | Migrated Discover cards are managed through card inventory once linked. |
-| CO-X03 Choose an overdraft handling option on checking | SAVE-006 | CLAIMED | Choosing overdraft handling is replaced by proactive overdraft prevention moves. |
+| CO-X03 Choose an overdraft handling option on checking | SAVE-006 | TESTED | Choosing overdraft handling is replaced by proactive overdraft prevention moves. |
 | CO-X04 Verify identity by tapping an AirKey-enabled card to the phone | non-parity: hardware-bound | n/a | AirKey identity verification taps an NFC card to the phone; hardware-bound. |

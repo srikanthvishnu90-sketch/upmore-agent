@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-25 outcomes, 100% accounted, 56% performed.
+25 outcomes, 100% accounted, 60% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | BA-004 Zelle payments | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | BA-005 Wire transfers | PAY-011 | GATED | wires need the same partner rail and stay T5 always |
 | BA-006 Bill Pay | BILL-008 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| BA-007 Internal and external transfers | PAY-009 | CLAIMED |  |
+| BA-007 Internal and external transfers | PAY-009 | TESTED |  |
 | BA-008 Check deposit | non-parity: hardware-bound | n/a | Mobile check capture needs the phone camera inside a bank partner flow; v1 tells the user to deposit in the bank app and confirms when it posts (doc 03 App 5). |
 | BA-009 Account alerts | ALRT-010 | TESTED | Configurable account alerts map to user-defined watches across the ALRT family. |
 | BA-010 Digital-wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |

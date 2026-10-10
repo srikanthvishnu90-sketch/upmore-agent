@@ -464,13 +464,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -551,13 +551,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Cash App's free overdraft coverage is replaced by Upmore's overdraft-prevention move rather than replicated as credit.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -749,13 +749,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -778,13 +778,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-025",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -952,13 +952,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-023",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Support escalation for a failed or wrong payment is failed-payment triage with honest no-reversal-promise framing.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1695,13 +1695,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4399,13 +4399,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4747,13 +4747,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-005",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5259,13 +5259,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6399,13 +6399,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6896,13 +6896,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7215,13 +7215,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Choosing overdraft handling is replaced by proactive overdraft prevention moves.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7292,13 +7292,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Paycheck split to savings is a payday-sweep autosave rule; the stock and bitcoin legs are investment-platform and excluded.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7403,13 +7403,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SAVE-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T4",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8055,13 +8055,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: charity giving maps to gifting; receipts log to TAX-005.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8200,13 +8200,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8258,13 +8258,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8287,13 +8287,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8403,13 +8403,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "PAY-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "low",
     "note": "Doc 03 marks business profiles out of scope for v1; the closest capability is requesting money.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8538,13 +8538,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: charity profiles map to gifting.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8707,13 +8707,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SOC-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "06",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8778,8 +8778,8 @@
    "non_parity": 6,
    "accounted": 38,
    "accounted_pct": 100,
-   "performed": 14,
-   "performed_pct": 36.8,
+   "performed": 20,
+   "performed_pct": 52.6,
    "gated": 7
   },
   "GW": {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 14,
-   "performed_pct": 41.2,
+   "performed": 16,
+   "performed_pct": 47.1,
    "gated": 5
   },
   "VE": {
@@ -8811,8 +8811,8 @@
    "non_parity": 10,
    "accounted": 41,
    "accounted_pct": 100,
-   "performed": 13,
-   "performed_pct": 31.7,
+   "performed": 19,
+   "performed_pct": 46.3,
    "gated": 6
   },
   "CO": {
@@ -8822,8 +8822,8 @@
    "non_parity": 5,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 18,
-   "performed_pct": 58.1,
+   "performed": 19,
+   "performed_pct": 61.3,
    "gated": 6
   },
   "PR": {
@@ -8844,8 +8844,8 @@
    "non_parity": 3,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 16,
-   "performed_pct": 51.6,
+   "performed": 19,
+   "performed_pct": 61.3,
    "gated": 3
   },
   "BA": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 14,
-   "performed_pct": 56,
+   "performed": 15,
+   "performed_pct": 60,
    "gated": 3
   },
   "FC": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 9,
-   "performed_pct": 30,
+   "performed": 11,
+   "performed_pct": 36.7,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 135,
-  "performed_pct": 43.7,
+  "performed": 156,
+  "performed_pct": 50.5,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

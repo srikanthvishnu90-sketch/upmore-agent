@@ -1181,5 +1181,117 @@
       "packages/domain/59-agent-alerts.js"
     ],
     "note": "Quiet hours: everything but safety is held until the window ends, with the time it will be delivered."
+  },
+  "PAY-003": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "requestMoney: staged on the person's own request rail (the user taps Request), refused for anyone not in the list; settled when the matching credit lands."
+  },
+  "PAY-007": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "schedulePayment: date after today, saved recipient, rail-aware cutoff (business day before for ACH); the due request goes through the loop with a confirmation and one idempotency key per schedule."
+  },
+  "PAY-008": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "cancelScheduled: cancels until the cutoff; after it, says the payment is in flight and offers the recall or return request."
+  },
+  "PAY-009": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "ownTransfer: both accounts named in the confirm fields, never overdraws the source (available balance checked), runs inside a PAY-009 envelope with a receipt."
+  },
+  "PAY-023": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "triageFailed: the bank's reason classifies the cause (insufficient funds, closed account, wrong details, limit, rail down, declined, unknown); only a fixable cause gets a retry, as a new key naming the original, confirmed like any send; never a blind resend."
+  },
+  "PAY-025": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "allowance: saved person, fixed amount, weekly/biweekly/monthly on a day, optional monthly cap; first-time recipients ask; one request per period under its own key, cadence_requested for the budget."
+  },
+  "SAVE-001": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "autosave: round-ups on card spend since the last run, a payday sweep (percent or fixed) on the day the paycheck lands, a threshold sweep above a line; every move keeps the source above its floor and carries the rows that justify it."
+  },
+  "SAVE-006": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "overdraftPrevention: from the forecast's first day under the buffer, the smallest move from savings that keeps checking above it, due the day before, urgent when the low point is negative; says when savings cannot cover it."
+  },
+  "SOC-002": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Group expenses: per-expense exact splits (MoneyMath), net balances per member, settle-up with the fewest transfers (AgentMoney.settleGroup)."
+  },
+  "SOC-005": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Shared goal: target, by-date, contributions, what is left per member per month; a contribution is a SOC-005 loop request."
+  },
+  "SOC-006": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Household roles (owner, partner, viewer, teen with a limit): what each member sees and may act on, applied to accounts and requests."
+  },
+  "SOC-008": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "gift: saved person, occasion required and carried in the memo, today or a later date confirmed that morning."
+  },
+  "SOC-009": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Request reminders in the tone asked for (friendly, plain, firm) on a cadence that respects it; settled requests stop."
+  },
+  "SOC-010": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Settled-debts feed: off unless the preference is explicitly true; nothing shared otherwise."
   }
 }

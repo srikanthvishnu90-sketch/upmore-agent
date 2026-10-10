@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-27 outcomes, 100% accounted, 18.5% performed.
+27 outcomes, 100% accounted, 22.2% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | GW-019 Supported digital car keys | non-parity: hardware-bound | n/a | Digital car keys use NFC/UWB from the device and cannot be delivered through conversation. |
 | GW-020 Saved items online and across Google | CARD-001 | TESTED | Saved payment methods across Google surfaces map to the agent's card inventory; no cross-Google sync exists. |
 | GW-021 Cross-product privacy controls | SEC-008 | CLAIMED | Cross-product privacy controls map to the agent's own session, device and data-access audit. |
-| GW-022 Lost-device security | SEC-010 | CLAIMED | Lost-device response is the kill switch plus issuer card locks. |
+| GW-022 Lost-device security | SEC-010 | TESTED | Lost-device response is the kill switch plus issuer card locks. |
 | GW-X01 Parent-managed tap to pay for supervised children with parent email on successful payments. | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | GW-X02 US child prepaid balance with KYC'd family manager, PIN, add money, daily spending limit, lock, restricted merchants. | SOC-007 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | GW-X03 Create a pass from any photo/barcode (library, gym, parking) or downloaded pass file. | INS-010 | CLAIMED | A pass created from a photo or barcode is a stored document; Upmore cannot present it at a scanner. |

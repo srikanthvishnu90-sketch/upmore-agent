@@ -2,12 +2,12 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-28 outcomes, 100% accounted, 35.7% performed.
+28 outcomes, 100% accounted, 46.4% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
-| FC-001 Signup | CORE-003 | CLAIMED | Earn-app signup is the app's own onboarding; Upmore's nearest capability is its onboarding interview. |
-| FC-002 Social sign-in | CORE-003 | CLAIMED | Social sign-in is the app's own auth; no registry capability covers third-party login. |
+| FC-001 Signup | CORE-003 | TESTED | Earn-app signup is the app's own onboarding; Upmore's nearest capability is its onboarding interview. |
+| FC-002 Social sign-in | CORE-003 | TESTED | Social sign-in is the app's own auth; no registry capability covers third-party login. |
 | FC-003 Earning offer discovery | EARN-013 | CLAIMED |  |
 | FC-004 Surveys | EARN-013 | CLAIMED | Paid surveys are a side-income surface (doc 03 Propel row). |
 | FC-005 App testing | EARN-013 | CLAIMED | App testing offers are a side-income surface. |
@@ -29,7 +29,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | FC-X01 Before first withdrawal, user completes identity verification with Veriff (government ID photo + selfie); no alternative method. | SEC-012 | TESTED | Veriff ID verification is the app's KYC; Upmore's nearest capability is verification of sensitive commands. |
 | FC-X02 User enables email-code two-factor authentication; risk-based codes for new devices/IPs. | SEC-012 | TESTED | Email-code two-factor maps to verification challenges on sensitive commands. |
 | FC-X03 User earns shopping cashback via tracked partner-shop links; cashback Pending until shop confirms. | EARN-009 | CLAIMED |  |
-| FC-X04 User deletes their account in Settings; separate GDPR data-deletion request processed within 30 days. | CORE-014 | CLAIMED |  |
+| FC-X04 User deletes their account in Settings; separate GDPR data-deletion request processed within 30 days. | CORE-014 | TESTED |  |
 | FC-X05 New user receives a $10 welcome bonus tied to signup/first offer. | EARN-001 | CLAIMED | A welcome bonus is surfaced by the signup bonus finder. |
 | FC-X06 Gamified engagement features: weekly leagues, weekly lottery tickets, streaks, daily bonus ladder, open-case rewards, reward multipliers. | non-parity: gamification | n/a | Leagues, lotteries, streaks and bonus ladders farm attention; doc 03 and doc 11 say Upmore deliberately does not gamify and only tracks the money. |
 | FC-X07 Referral/affiliate program and bonus codes. | EARN-003 | TESTED |  |

@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-38 outcomes, 100% accounted, 28.9% performed.
+38 outcomes, 100% accounted, 31.6% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -33,7 +33,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-025 Guardian visibility and controls | SOC-006 | CLAIMED |  |
 | CA-026 Automatic allowance | PAY-025 | CLAIMED |  |
 | CA-027 Card lock and unlock | CARD-011 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
-| CA-028 Account security lock | SEC-010 | CLAIMED | Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011). |
+| CA-028 Account security lock | SEC-010 | TESTED | Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011). |
 | CA-029 Identity verification | SEC-012 | TESTED | KYC identity verification is the partner app's own onboarding; Upmore's nearest capability is verification of sensitive chat commands. |
 | CA-030 Fraud alerts | SEC-001 | CLAIMED |  |
 | CA-031 Erroneous payment refund request | PAY-024 | TESTED |  |

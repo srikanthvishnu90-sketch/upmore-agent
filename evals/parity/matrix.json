@@ -836,13 +836,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Account-level lock maps to the agent kill switch plus issuer card lock (CARD-011).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1555,13 +1555,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Lost-device response is the kill switch plus issuer card locks.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5394,13 +5394,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "SEC-007",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "14",
     "gate_reason": null,
     "confidence": "low",
     "note": "A security meter maps to credential rotation reminders; no security-score capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5684,13 +5684,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CORE-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Earn-app signup is the app's own onboarding; Upmore's nearest capability is its onboarding interview.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5713,13 +5713,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CORE-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Social sign-in is the app's own auth; no registry capability covers third-party login.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6785,13 +6785,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CORE-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Language preference is captured at onboarding; no localization capability exists in the registry.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7693,13 +7693,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CORE-014",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T3",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8142,13 +8142,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CORE-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "01",
     "gate_reason": null,
     "confidence": "low",
     "note": "Language preference is captured at onboarding; no localization capability exists in the registry.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8778,8 +8778,8 @@
    "non_parity": 6,
    "accounted": 38,
    "accounted_pct": 100,
-   "performed": 11,
-   "performed_pct": 28.9,
+   "performed": 12,
+   "performed_pct": 31.6,
    "gated": 7
   },
   "GW": {
@@ -8789,8 +8789,8 @@
    "non_parity": 8,
    "accounted": 27,
    "accounted_pct": 100,
-   "performed": 5,
-   "performed_pct": 18.5,
+   "performed": 6,
+   "performed_pct": 22.2,
    "gated": 1
   },
   "CH": {
@@ -8833,8 +8833,8 @@
    "non_parity": 0,
    "accounted": 23,
    "accounted_pct": 100,
-   "performed": 11,
-   "performed_pct": 47.8,
+   "performed": 12,
+   "performed_pct": 52.2,
    "gated": 3
   },
   "PP": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 12,
-   "performed_pct": 48,
+   "performed": 13,
+   "performed_pct": 52,
    "gated": 3
   },
   "FC": {
@@ -8866,8 +8866,8 @@
    "non_parity": 2,
    "accounted": 28,
    "accounted_pct": 100,
-   "performed": 10,
-   "performed_pct": 35.7,
+   "performed": 13,
+   "performed_pct": 46.4,
    "gated": 2
   },
   "WF": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 7,
-   "performed_pct": 23.3,
+   "performed": 8,
+   "performed_pct": 26.7,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 116,
-  "performed_pct": 37.5,
+  "performed": 124,
+  "performed_pct": 40.1,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

@@ -5498,12 +5498,14 @@
    "domain": "security and identity",
    "tier": "T1",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Credit freeze status per bureau recorded by the user (never a PIN), all-frozen check.",
    "description": "credit freeze status tracking"
   },
   {
@@ -5513,12 +5515,14 @@
    "domain": "security and identity",
    "tier": "T1",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Credential rotation reminders from connector rotation dates and intervals; the agent never sees the credential.",
    "description": "credential rotation reminders"
   },
   {
@@ -5561,12 +5565,15 @@
    "domain": "security and identity",
    "tier": "T3",
    "owner_doc": "14",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js",
+    "packages/domain/43-agent-loop.js"
+   ],
+   "note": "Kill switch: pause with a reason and optional end; the loop's gate blocks every tier above T1 while paused, standing instructions do not fire, envelopes are empty; resume restores.",
    "description": "kill switch (pause all agent actions)"
   },
   {
@@ -5643,12 +5650,14 @@
    "domain": "agent core",
    "tier": "T2",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Onboarding interview: five questions (accounts, goals, people, quiet hours, autonomy) one at a time, validated, never asked twice; answers become preferences.",
    "description": "onboarding interview (accounts, goals, people)"
   },
   {
@@ -5658,12 +5667,14 @@
    "domain": "agent core",
    "tier": "T2",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Standing instructions: created with a cadence or trigger, restated in plain words with limit and expiry; due() fires once per period with an idempotency key; pause, resume, revoke; never widens authority and fires nothing while paused.",
    "description": "standing instruction management"
   },
   {
@@ -5673,12 +5684,15 @@
    "domain": "agent core",
    "tier": "T2",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js",
+    "packages/domain/43-agent-loop.js"
+   ],
+   "note": "Autonomy envelopes: granted in the user's own words with per-action and per-week limits, recipient and expiry; usage from outcomes; forLoop() cuts the per-action limit to what is left this week and is empty while paused; revoke and revoke all.",
    "description": "autonomy envelope management"
   },
   {
@@ -5688,12 +5702,14 @@
    "domain": "agent core",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Corrections stored verbatim with the action corrected; field-level fixes applied to later requests so the same wrong value is never proposed twice.",
    "description": "correction capture and application"
   },
   {
@@ -5770,12 +5786,14 @@
    "domain": "agent core",
    "tier": "T1",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Undo and mitigation contracts per capability family (subscriptions, own transfers, scheduled payments, P2P, ACH, wire, orders, card freeze, disputes); undoPlan says whether the window is still open and the step.",
    "description": "undo and mitigation contracts"
   },
   {
@@ -5803,12 +5821,14 @@
    "domain": "agent core",
    "tier": "T0",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Export bundle: control state, memory, event log, accounts, transactions as CSV, people, with a manifest; every key that looks like a credential or identity number is removed and counted.",
    "description": "user data export"
   },
   {
@@ -5818,12 +5838,14 @@
    "domain": "agent core",
    "tier": "T3",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Deletion plan with ordered steps (revoke connectors, cancel instructions and envelopes, delete stores, what a partner rail keeps by law), a confirmation phrase and a 7-day window; confirming revokes everything at once.",
    "description": "account deletion and data purge"
   },
   {
@@ -5853,12 +5875,14 @@
    "domain": "agent core",
    "tier": "T0",
    "owner_doc": "01",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/control.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/58-agent-control.js"
+   ],
+   "note": "Version and changelog awareness from CHANGELOG.md: current version, what changed, what is new since a version.",
    "description": "version and changelog awareness"
   }
  ]

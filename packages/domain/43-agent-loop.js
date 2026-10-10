@@ -86,7 +86,8 @@
       const clock = o.clock || (() => Date.now());
       const log = Array.isArray(o.log) ? o.log : [];
       const memory = createMemory(o.memory);
-      const envelopes = Array.isArray(o.envelopes) ? o.envelopes : [];
+      // Envelopes may be a function of time (the control plane cuts them by weekly usage and empties them while paused).
+      const envelopesAt = now => typeof o.envelopes === "function" ? (o.envelopes(now) || []) : Array.isArray(o.envelopes) ? o.envelopes : [];
       const sent = Array.isArray(o.sent) ? o.sent.slice() : [];
       let state = log.length ? log[log.length - 1].to : "IDLE";
       let pending = null; // the confirmation we are waiting on
@@ -137,21 +138,21 @@
         const prior = memory.outcomes.filter(x => x.idempotency_key === key && x.result === "confirmed").pop();
         if (prior) return idle({ idempotency_key: key }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${prior.reference ? ` (ref ${prior.reference})` : ""}. I did not do it again.` });
         if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === key)) return reconcile(item, cap, key);
-        transition("ACTING", { capability_id: cap.id, idempotency_key: key, params: item.params || null });
+        transition("ACTING", { capability_id: cap.id, idempotency_key: key, params: item.params || null, envelope_id: g && g.envelope || null });
         let result;
         try { result = await connectors.write(cap.id, item.params || {}, key); }
         catch (err) {
           // Write failure: stop, do not retry blind. The outcome is unknown until reconciled.
           return unknown(item, cap, key, String(err && err.message || err));
         }
-        return verify(item, cap, key, result);
+        return verify(item, cap, key, result, g && g.envelope || null);
       }
-      async function verify(item, cap, key, result) {
+      async function verify(item, cap, key, result, envelopeId) {
         transition("VERIFYING", { idempotency_key: key, reference: result && result.reference || null });
         let v = null;
         try { v = await connectors.verify(cap.id, key, result && result.reference); } catch (_) { v = null; }
         const confirmed = v && v.confirmed === true;
-        const outcome = remember(memory, "outcomes", { capability_id: cap.id, idempotency_key: key, reference: result && result.reference || v && v.reference || null,
+        const outcome = remember(memory, "outcomes", { capability_id: cap.id, idempotency_key: key, reference: result && result.reference || v && v.reference || null, envelope_id: envelopeId || (log.filter(e => e.to === "ACTING" && e.input && e.input.idempotency_key === key).pop() || { input: {} }).input.envelope_id || null, amount_cents: item.params && Number.isInteger(item.params.amount_cents) ? item.params.amount_cents : null,
           result: confirmed ? "confirmed" : v && v.confirmed === false ? "failed" : "unknown", source: v && v.source || null }, clock());
         if (confirmed) return idle({ idempotency_key: key }, { outcome: "confirmed", message: compose("receipt", { action: item.describe || cap.name, reference: result && result.reference, verified: true, source: v.source || "the connector" }), outcome_record: outcome });
         if (v && v.confirmed === false) return idle({ idempotency_key: key }, { outcome: "failed", message: `${item.describe || cap.name} did not go through (${v.reason || "the rail rejected it"}), per ${v.source || "the rail"}. Nothing posted on their side.` });
@@ -195,7 +196,9 @@
         // A duplicate instruction ("send $50" twice, a webhook delivered twice) carries the same idempotency key as a write already in the log: reconcile it, never confirm or write again.
         // A request that reuses a completed key is told so plainly; one whose write is in flight or unresolved reconciles. Neither is gated or confirmed again.
         if (cap) { const dupKey = keyFor(item, cap); const done = memory.outcomes.filter(x => x.idempotency_key === dupKey && x.result === "confirmed").pop(); if (done) return idle({ capability_id: cap.id, idempotency_key: dupKey }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${done.reference ? ` (ref ${done.reference})` : ""}. I did not do it again. Ask again with new details if you want a second one.` }); if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
-        const g = gate(cap, item, envelopes, now);
+        // Kill switch (SEC-010): while paused, nothing above a read runs, whatever the request says.
+        if (o.control && typeof o.control.gate === "function") { const pg = o.control.gate(cap, now); if (pg && pg.allowed === false) return idle({ capability_id: cap.id }, { outcome: "blocked", reason: pg.reason || "paused", message: pg.message || "I'm paused, so I did not do that." }); }
+        const g = gate(cap, item, envelopesAt(now), now);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
         // Compliance gate (doc 14): one call site, before anything can act. A regulated capability with no live partner fails closed with a specific message, whatever the prompt says.
         if (o.compliance && typeof o.compliance.gate === "function" && cap.tier !== "T0" && cap.tier !== "T1") { const cg = o.compliance.gate(cap, o.partners || {}, { executes: true, kyc: o.kyc || null }); if (cg && cg.allowed === false) return idle({ capability_id: cap.id }, { outcome: "blocked", reason: "compliance:" + (cg.reason || cg.requirement), message: compose("blocked", { text: cg.message || `${cap.name} needs a licensed partner that is not in place.` }) }); }

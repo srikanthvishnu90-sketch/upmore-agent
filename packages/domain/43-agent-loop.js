@@ -185,6 +185,8 @@
         if (d.decision === "ask") return idle(null, { outcome: "ask", message: d.item.ask, why: d.why });
         // act: resolve the capability and gate it.
         const item = d.item, cap = registry.get(item.capability_id);
+        // A duplicate instruction ("send $50" twice, a webhook delivered twice) carries the same idempotency key as a write already in the log: reconcile it, never confirm or write again.
+        if (cap) { const dupKey = item.idempotency_key || `${cap.id}:${item.key || JSON.stringify(item.params || {})}`; if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
         const g = gate(cap, item, envelopes, now);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
         if (cap.tier === "T0" || cap.tier === "T1") {

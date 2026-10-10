@@ -127,10 +127,9 @@ test('a crashed send is recovered from the event log without a second execution'
   const rec=await second.wake({kind:'follow_up'});
   assert.equal(rec.outcome,'confirmed');assert.equal(c.calls.write.length,1,'no double execution');
   assert.equal(c.calls.verify[c.calls.verify.length-1][1],'PAY-001:marcus-40');assert.equal(second.state,'IDLE');
-  // A duplicate delivery of the same request after recovery is also not re-executed.
+  // A duplicate delivery of the same request after recovery reconciles outright: it is neither confirmed again nor re-executed (doc 06: "send $50" twice means once).
   const again=await second.wake({kind:'message',request:send});
-  const yes=await second.wake({kind:'confirmation',confirmation_id:again.confirmation_id,approved:true});
-  assert.equal(yes.outcome,'confirmed');assert.equal(c.calls.write.length,1,'same idempotency key never writes twice');
+  assert.equal(again.outcome,'confirmed');assert.equal(c.calls.write.length,1,'same idempotency key never writes twice');
 });
 
 test('a write failure stops without a blind retry and reports the outcome as unknown',async()=>{

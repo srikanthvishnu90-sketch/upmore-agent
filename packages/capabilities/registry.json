@@ -2114,12 +2114,15 @@
    "domain": "payments and transfers",
    "tier": "T3",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js",
+    "packages/domain/48-money-math.js"
+   ],
+   "note": "Equal and itemized shares on exact cents with shared costs by weight; IOUs created; requests are T3 messages the user reviews.",
    "description": "split an expense"
   },
   {
@@ -2129,11 +2132,13 @@
    "domain": "payments and transfers",
    "tier": "T4",
    "owner_doc": "06",
-   "status": "CLAIMED",
+   "status": "GATED",
    "test_ref": null,
-   "gate_reason": null,
+   "gate_reason": "the rent cycle (amount check, two business days early, urgent on failure) is built and tested, but paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern; no partner is signed",
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
    "note": null,
    "description": "pay rent recurring"
   },
@@ -2207,11 +2212,14 @@
    "domain": "payments and transfers",
    "tier": "T3",
    "owner_doc": "06",
-   "status": "CLAIMED",
+   "status": "GATED",
    "test_ref": null,
-   "gate_reason": null,
+   "gate_reason": "no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs",
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/54-agent-money.js",
+    "packages/domain/43-agent-loop.js"
+   ],
    "note": null,
    "description": "ACH push/pull"
   },
@@ -2222,11 +2230,13 @@
    "domain": "payments and transfers",
    "tier": "T5",
    "owner_doc": "06",
-   "status": "CLAIMED",
+   "status": "GATED",
    "test_ref": null,
-   "gate_reason": null,
+   "gate_reason": "wires need the same partner rail and stay T5 always",
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
    "note": null,
    "description": "wire transfer"
   },
@@ -2312,12 +2322,14 @@
    "domain": "payments and transfers",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Running balances per person from explicit IOUs, splits and settled entries.",
    "description": "IOU tracking (who owes who)"
   },
   {
@@ -2342,12 +2354,14 @@
    "domain": "payments and transfers",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Settle-up prompts per person and the minimal transfer set for a group.",
    "description": "settle-up suggestion"
   },
   {
@@ -2357,12 +2371,14 @@
    "domain": "payments and transfers",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Daily and weekly velocity limits from the user's envelope; a message cannot raise them.",
    "description": "payment limits and velocity checks"
   },
   {
@@ -2372,12 +2388,14 @@
    "domain": "payments and transfers",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "A first send is T5 with the recipient read back; a large first send adds a verification question; ambiguous names ask.",
    "description": "recipient verification before first send"
   },
   {
@@ -2387,12 +2405,14 @@
    "domain": "payments and transfers",
    "tier": "T0",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "A receipt needs a rail confirmation id or a posting record and carries the rail's reversal contract.",
    "description": "payment receipt with rail confirmation"
   },
   {
@@ -2417,12 +2437,14 @@
    "domain": "payments and transfers",
    "tier": "T3",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Per-rail reversal contracts and mitigation paths as data; every receipt ends with 'reply wrong' and the real path.",
    "description": "payment reversal or mitigation path"
   },
   {
@@ -4580,12 +4602,14 @@
    "domain": "housing",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Rent as a T2 commitment with amount, due day, method, late fee and grace; the cycle checks the lease amount and pays two business days early once the standing instruction is approved.",
    "description": "rent amount and due date tracking"
   },
   {
@@ -5152,12 +5176,14 @@
    "domain": "social money",
    "tier": "T1",
    "owner_doc": "06",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/54-agent-money.js"
+   ],
+   "note": "Shares PAY-017's ledger.",
    "description": "running balances per person"
   },
   {

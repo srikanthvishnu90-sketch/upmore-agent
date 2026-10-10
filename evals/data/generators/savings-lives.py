@@ -98,7 +98,7 @@ def life(i, r):
         monthly = round(excess * (425 - 1) / 10000 / 12)
         opps.append({"play": "P4_rate", "key": "idle_cash:chk_to_hysa", "expected_monthly_cents": int(monthly), "confidence": "high", "note": f"Excess {excess} cents above a two-month buffer at 0.01 percent vs 4.25 percent; arithmetic, not a guess."})
     # Debts (P7)
-    if "P7" in plays or band != "high":
+    if "P7" in plays:  # debts only where the play is planted, so a detector that reports ordering is never a false positive by label
         debts.append({"id": "cc1", "balance_cents": 520000, "apr_bps": 2499, "min_payment_cents": 15000})
         debts.append({"id": "cc2", "balance_cents": 310000, "apr_bps": 1899, "min_payment_cents": 9000})
         accounts.append({"id": "cc2", "kind": "credit_card", "balance_cents": 0, "apy_bps": 0, "apr_bps": 1899})
@@ -116,7 +116,7 @@ def life(i, r):
 def build():
     r = random.Random(7)
     lives = [life(i, r) for i in range(40)]
-    return {"schema_version": 1, "generated_by": "evals/data/generators/savings-lives.py", "today": TODAY,
+    return {"schema_version": 1, "generated_by": "evals/data/generators/savings-lives.py", "today": TODAY, "detector_inputs": {"extra_payment_cents": 20000, "reference_apy_bps": 425},
             "source": "synthetic lives from archetypes (income band x family shape x city tier); planted plays with known value plus control rows; no real user data",
             "plays": {"P1_subscription": "doc 07 P1", "P2_negotiation": "doc 07 P2", "P3_fee": "doc 07 P3", "P4_rate": "doc 07 P4", "P7_debt": "doc 07 P7", "P8_structural": "doc 07 P8", "control": "looks like a play, is not"},
             "lives": lives}

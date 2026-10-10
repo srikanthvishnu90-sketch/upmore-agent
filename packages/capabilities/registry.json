@@ -740,12 +740,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Run-rate is the sum of the subscription inventory's monthly cost, in cents.",
    "description": "subscription total run-rate"
   },
   {
@@ -1328,12 +1330,15 @@
    "domain": "bills and subscriptions",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js",
+    "packages/domain/33-agent-monitors.js"
+   ],
+   "note": "Inventory from repeating charges across accounts; rent, loans, utilities, telecom and bank fees are listed as recurring bills, not subscriptions. Twelve-subscription household and 40 synthetic lives; no usage signal, so unused detection (BILL-013) is not claimed.",
    "description": "subscription inventory from transactions"
   },
   {
@@ -1343,12 +1348,14 @@
    "domain": "bills and subscriptions",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Three or more charges, earlier price steady, latest at least 5 percent and $0.50 higher within 45 days; the delta is surfaced, the saving depends on the user's choice.",
    "description": "subscription price increase detection"
   },
   {
@@ -1482,12 +1489,14 @@
    "domain": "bills and subscriptions",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Yearly repeating charges surfaced 14 days before the next date.",
    "description": "annual subscription surfacing before renewal"
   },
   {
@@ -1497,12 +1506,14 @@
    "domain": "bills and subscriptions",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Two services doing one job (music, cloud storage, meal kits, password managers, VPN); video needs three or more (monitors' overlap rule). The cheaper service is the number surfaced; the user picks.",
    "description": "duplicate service detection (two music services)"
   },
   {
@@ -1861,12 +1872,14 @@
    "domain": "savings",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Checking cash above two months of payroll income, rate gap to the user's own high-yield account or a stated reference rate; T0 arithmetic, the transfer is a separate confirmed action (PAY-009).",
    "description": "HYSA rate comparison and routing suggestion"
   },
   {
@@ -1940,12 +1953,14 @@
    "domain": "savings",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "A negotiation books only when the next bill is lower; the delta is what posts, never the script's promise.",
    "description": "bill negotiation (see BILL-005) savings booking"
   },
   {
@@ -2060,12 +2075,14 @@
    "domain": "savings",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Avalanche vs snowball as a first-month interest number for a stated extra payment; a plan, never a lecture, never auto-executed.",
    "description": "debt interest optimization (avalanche plan)"
   },
   {
@@ -2090,12 +2107,14 @@
    "domain": "savings",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Consolidation savings are the duplicate-service play (BILL-012) quantified at the cheaper service's monthly cost.",
    "description": "subscription consolidation savings"
   },
   {
@@ -2990,12 +3009,14 @@
    "domain": "credit and debt",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/save.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/49-agent-save.js"
+   ],
+   "note": "Detects an unenrolled autopay discount on a loan and quantifies it; enrollment is a confirmed action on the servicer, verified when the rate drops.",
    "description": "autopay discount capture"
   },
   {

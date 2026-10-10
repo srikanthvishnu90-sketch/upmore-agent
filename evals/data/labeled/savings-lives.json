@@ -2,6 +2,10 @@
  "schema_version": 1,
  "generated_by": "evals/data/generators/savings-lives.py",
  "today": "2026-10-10",
+ "detector_inputs": {
+  "extra_payment_cents": 20000,
+  "reference_apy_bps": 425
+ },
  "source": "synthetic lives from archetypes (income band x family shape x city tier); planted plays with known value plus control rows; no real user data",
  "plays": {
   "P1_subscription": "doc 07 P1",
@@ -37,13 +41,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -591,20 +588,7 @@
      "market_cents": 7000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -668,13 +652,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -1249,20 +1226,7 @@
      "market_cents": 7000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -2032,13 +1996,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -2669,18 +2626,6 @@
    ],
    "debts": [
     {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    },
-    {
      "id": "loan1",
      "balance_cents": 2400000,
      "apr_bps": 650,
@@ -2771,13 +2716,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -3316,20 +3254,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -4691,13 +4616,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -5327,18 +5245,6 @@
     }
    ],
    "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    },
     {
      "id": "loan1",
      "balance_cents": 2400000,
@@ -6085,13 +5991,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -6630,20 +6529,7 @@
      "market_cents": 7000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -6713,13 +6599,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -7322,18 +7201,6 @@
     }
    ],
    "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    },
     {
      "id": "loan1",
      "balance_cents": 2400000,
@@ -8199,13 +8066,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -8717,20 +8577,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -8786,13 +8633,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -9421,20 +9261,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -10883,13 +10710,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -11464,20 +11284,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -12222,13 +12029,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -12830,20 +12630,7 @@
      "market_cents": 7000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -14291,13 +14078,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -14899,20 +14679,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -16455,13 +16222,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -17000,20 +16760,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -20375,13 +20122,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -20957,18 +20697,6 @@
     }
    ],
    "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    },
     {
      "id": "loan1",
      "balance_cents": 2400000,
@@ -23008,13 +22736,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -23616,20 +23337,7 @@
      "market_cents": 12000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",
@@ -24463,13 +24171,6 @@
      "balance_cents": 0,
      "apy_bps": 0,
      "apr_bps": 2499
-    },
-    {
-     "id": "cc2",
-     "kind": "credit_card",
-     "balance_cents": 0,
-     "apy_bps": 0,
-     "apr_bps": 1899
     }
    ],
    "transactions": [
@@ -25017,20 +24718,7 @@
      "market_cents": 7000
     }
    ],
-   "debts": [
-    {
-     "id": "cc1",
-     "balance_cents": 520000,
-     "apr_bps": 2499,
-     "min_payment_cents": 15000
-    },
-    {
-     "id": "cc2",
-     "balance_cents": 310000,
-     "apr_bps": 1899,
-     "min_payment_cents": 9000
-    }
-   ],
+   "debts": [],
    "opportunities": [
     {
      "play": "control",

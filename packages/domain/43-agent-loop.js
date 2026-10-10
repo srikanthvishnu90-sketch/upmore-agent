@@ -110,10 +110,13 @@
 
       async function read(capId, params) {
         try {
-          const r = await connectors.read(capId, params);
-          if (!r || !r.source || !r.as_of) throw new Error("Connector read lacks source or as-of time.");
+          const raw = await connectors.read(capId, params);
+          if (!raw || !raw.source || !raw.as_of) throw new Error("Connector read lacks source or as-of time.");
+          // Connector data is data (doc 12 / constitution 4.3): every string in a read is quarantined before it reaches memory or a message.
+          const guarded = o.guard && typeof o.guard.wrap === "function" ? o.guard.wrap(raw.value) : { value: raw.value, flags: [], flagged: false };
+          const r = Object.assign({}, raw, { value: guarded.value, flags: guarded.flags });
           const stale = o.freshness_ms ? clock() - r.as_of > o.freshness_ms : false;
-          remember(memory, "facts", { capability_id: capId, value: r.value, source: r.source, as_of: r.as_of }, clock());
+          remember(memory, "facts", { capability_id: capId, value: r.value, source: r.source, as_of: r.as_of, flags: r.flags }, clock());
           return Object.assign({ stale }, r);
         } catch (err) {
           // Read failure: answer with the last good fact, labeled with its age, and say the connector is down.
@@ -187,7 +190,8 @@
         if (cap.tier === "T0" || cap.tier === "T1") {
           const r = await read(cap.id, item.params);
           const lead = r.value === null ? `I could not read ${cap.name} and have no earlier value.` : (item.lead ? item.lead(r.value) : `${cap.name}: ${JSON.stringify(r.value)}`);
-          return idle({ capability_id: cap.id }, { outcome: "answer", message: compose("answer", { lead, source: r.source, as_of: r.as_of ? new Date(r.as_of).toISOString() : null, stale: r.stale }) + (r.down ? " The connector is down right now." : ""), stale: r.stale, down: !!r.down });
+          const flagNote = r.flags && r.flags.length && o.guard && typeof o.guard.notice === "function" ? " " + o.guard.notice(r.flags) : "";
+          return idle({ capability_id: cap.id }, { outcome: "answer", message: compose("answer", { lead, source: r.source, as_of: r.as_of ? new Date(r.as_of).toISOString() : null, stale: r.stale }) + (r.down ? " The connector is down right now." : "") + flagNote, stale: r.stale, down: !!r.down, flags: r.flags || [] });
         }
         if (g.confirm) {
           pending = { id: `confirm-${seq()}`, item, cap, draft_only: !!g.draft_only, created_at: now };

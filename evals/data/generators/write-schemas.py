@@ -58,6 +58,19 @@ S["traces"] = {"file": "traces/traces.json", "count_path": "traces", "min_count"
         "calls": {"type": "array", "minItems": 2, "items": {"type": "object", "required": ["step", "call", "input", "output"], "properties": {
             "step": {"type": "integer", "minimum": 1}, "call": {"type": "string"}, "input": {"type": "object"}, "output": {"type": "object"}}}},
         "verification_step": {"type": "integer", "minimum": 1}}}}}}}
+S["gold"] = {"file": "gold/drafts.json", "count_path": "conversations", "min_count": 1500, "unique_key": "id",
+    "schema": {"type": "object", "required": ["schema_version", "generated_by", "review_policy", "conversations"], "properties": {
+        "conversations": {"type": "array", "items": {"type": "object",
+            "required": ["id", "capability_id", "persona", "scenario", "assumes_status", "review", "principles", "turns"], "properties": {
+            "id": {"type": "string"}, "capability_id": {"type": "string", "pattern": r"^[A-Z]{3,4}-\d{3}$"},
+            "persona": {"type": "string", "enum": ["terse low-effort texter", "anxious first-timer", "detail-checker", "angry user mid-problem", "power user"]},
+            "scenario": {"type": "string", "enum": ["happy path", "missing data", "ambiguous input", "stale connector", "declined confirmation", "correction mid-flow", "gated capability", "not yet built", "watch fired", "outside envelope"]},
+            "assumes_status": {"type": "string", "enum": ["CLAIMED", "BUILT", "TESTED", "VERIFIED", "GATED", "NOT_WIRED"]},
+            "review": {"type": "string", "enum": ["reviewed", "unreviewed"]},
+            "principles": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+            "turns": {"type": "array", "minItems": 1, "items": {"type": "object"}}}}}}}}
+S["savings-lives"]["schema"]["properties"]["lives"]["items"]["properties"]["debts"]["items"]["properties"] = {
+    "id": {"type": "string"}, "balance_cents": {"type": "integer", "minimum": 0}, "apr_bps": {"type": "integer", "minimum": 0}, "min_payment_cents": {"type": "integer", "minimum": 0}}
 for name, schema in S.items():
     (out / f"{name}.json").write_text(json.dumps(schema, indent=1) + "\n")
 print("schemas written:", ", ".join(sorted(S)))

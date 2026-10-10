@@ -32,7 +32,7 @@ test('status is honest by default: only overlay entries with existing tests rise
   assert.equal(reg.list(c=>c.status==='VERIFIED').length,0,'nothing has run against a live account yet');
   const gated=reg.list(c=>c.status==='GATED');
   assert.ok(gated.length>=15);for(const c of gated)assert.ok(c.gate_reason,c.id);
-  assert.equal(reg.get('PAY-012').status,'GATED');assert.equal(reg.get('ACCT-001').status,'CLAIMED');
+  assert.equal(reg.get('PAY-012').status,'GATED');assert.equal(reg.get('ACCT-009').status,'CLAIMED','refresh on demand needs a connector call: still claimed');
 });
 
 test('validation rejects malformed, duplicate, unproven and unexplained entries',()=>{
@@ -55,7 +55,7 @@ test('answers about capabilities come from recorded status, and unknown ids are 
   assert.match(reg.answer('BILL-003').text,/passes its acceptance test locally; it has not run against a live account/);
   assert.match(reg.answer('BILL-003').text,/verified:false/);
   assert.match(reg.answer('PAY-012').text,/blocked until a licensed partner/);
-  assert.match(reg.answer('ACCT-001').text,/planned but not built yet/);
+  assert.match(reg.answer('ACCT-009').text,/planned but not built yet/);assert.match(reg.answer('ACCT-001').text,/passes its acceptance test locally; it has not run against a live account/);
   assert.equal(reg.answer('XYZ-999').known,false);assert.match(reg.answer('XYZ-999').text,/does not claim it/);
   assert.equal(reg.answer('TXN-009').tier,'T1');
 });

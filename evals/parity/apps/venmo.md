@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-41 outcomes, 100% accounted, 24.4% performed.
+41 outcomes, 100% accounted, 31.7% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -10,12 +10,12 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | VE-002 Pay supported businesses | PAY-013 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | VE-003 Eligible Venmo checkout | PAY-013 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | VE-004 Balance-purchase identity verification | SEC-012 | TESTED | Balance-purchase identity verification is Venmo's KYC; the closest capability is verification of sensitive commands. |
-| VE-005 Debit payments | CARD-001 | CLAIMED | Venmo debit card is inventoried and recommended per purchase (CARD-002). |
+| VE-005 Debit payments | CARD-001 | TESTED | Venmo debit card is inventoried and recommended per purchase (CARD-002). |
 | VE-006 Stash offers | EARN-010 | CLAIMED |  |
 | VE-007 Reward tiers and caps | EARN-011 | TESTED | Reward tiers and caps are tracked in cross-program points valuation. |
 | VE-008 Credit application and hard inquiry | CRDT-007 | CLAIMED | Upmore alerts on and explains the hard inquiry; the credit application itself is the issuer's. |
-| VE-009 Credit spending management | CARD-004 | CLAIMED |  |
-| VE-010 Credit payments and rewards | CARD-006 | CLAIMED | Credit card payments are tracked by due date; rewards are EARN-011. |
+| VE-009 Credit spending management | CARD-004 | TESTED |  |
+| VE-010 Credit payments and rewards | CARD-006 | TESTED | Credit card payments are tracked by due date; rewards are EARN-011. |
 | VE-011 Cashback accrual and settlement | EARN-011 | TESTED | Cashback accrual is tracked as rewards across programs. |
 | VE-012 Cashback redemption | EARN-012 | TESTED | Cashback redemption is delivered as redemption optimization; Venmo executes. |
 | VE-013 Wallet provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |

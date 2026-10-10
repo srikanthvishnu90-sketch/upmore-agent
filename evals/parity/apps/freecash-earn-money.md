@@ -2,7 +2,7 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-28 outcomes, 100% accounted, 32.1% performed.
+28 outcomes, 100% accounted, 35.7% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | FC-015 Crypto cashout | non-parity: investment-platform | n/a | Crypto-denominated payout puts earnings into a crypto custody surface; investment-platform feature excluded per doc 09. |
 | FC-016 Gift-card redemption | EARN-011 | TESTED | Gift-card redemption is valued against other cash-out rails; no gift-card redemption capability exists. |
 | FC-017 Payout eligibility | EARN-002 | TESTED | Payout eligibility is requirement tracking toward the cash-out threshold. |
-| FC-018 Pending versus payable earnings | TXN-011 | CLAIMED | Pending vs payable earnings is the pending vs posted explanation. |
+| FC-018 Pending versus payable earnings | TXN-011 | TESTED | Pending vs payable earnings is the pending vs posted explanation. |
 | FC-019 Attribution disputes | EARN-017 | CLAIMED | Attribution disputes are drafted like service complaint credits; no earn-app dispute capability exists. |
 | FC-020 Non-guaranteed side-income expectations | EARN-013 | CLAIMED | Doc 03 agent edge: Upmore computes the effective hourly rate and frames income as non-guaranteed. |
 | FC-X01 Before first withdrawal, user completes identity verification with Veriff (government ID photo + selfie); no alternative method. | SEC-012 | TESTED | Veriff ID verification is the app's KYC; Upmore's nearest capability is verification of sensitive commands. |

@@ -1161,12 +1161,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "balance(account): balance with the connector as source and its as-of stamp; stale flag passed through.",
    "description": "read balance"
   },
   {
@@ -1176,12 +1178,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Available vs current with the held or pending difference explained in one sentence.",
    "description": "read available vs current balance"
   },
   {
@@ -1191,12 +1195,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "listAccounts: every visible account grouped by institution; hidden ids reported as excluded.",
    "description": "list accounts across institutions"
   },
   {
@@ -1206,12 +1212,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "netWorth: assets by group minus liabilities, hidden accounts out, duplicates counted once after dedupe.",
    "description": "net worth calculation"
   },
   {
@@ -1318,12 +1326,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Foreign balances convert only with a dated rate; without one the account is listed as unconverted, never guessed.",
    "description": "multi-currency balances with FX conversion"
   },
   {
@@ -1348,12 +1358,14 @@
    "domain": "accounts",
    "tier": "T3",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Hidden accounts leave every total and list unless include_hidden is asked for.",
    "description": "hidden accounts (exclude from totals)"
   },
   {
@@ -1363,12 +1375,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Owner filter: the partner's view holds only accounts they own (joint), totals follow.",
    "description": "joint vs individual views"
   },
   {
@@ -1378,12 +1392,14 @@
    "domain": "accounts",
    "tier": "T1",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "closedCandidates: connector-closed, or zero balance with no activity in 90 days; action is confirm-and-hide.",
    "description": "closed account detection"
   },
   {
@@ -1393,12 +1409,14 @@
    "domain": "accounts",
    "tier": "T1",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "duplicates/dedupe: same institution, kind and last digits across connectors count once.",
    "description": "duplicate account dedup"
   },
   {
@@ -1408,12 +1426,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "balanceHistory from dated snapshots with a 30-day trend (delta and direction).",
    "description": "balance history and trend"
   },
   {
@@ -1423,12 +1443,14 @@
    "domain": "accounts",
    "tier": "T0",
    "owner_doc": "05",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "cashPosition: liquid USD accounts only, balance and available, ids listed.",
    "description": "cash position across all liquid accounts"
   },
   {
@@ -1438,12 +1460,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "list: account, date window, category, min/max cents, pending, merchant filters over enriched rows.",
    "description": "list transactions with filters"
   },
   {
@@ -1453,12 +1477,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "search: merchant, exact amount, month or day, note and category in one query; dates never read as amounts.",
    "description": "search by merchant, amount, date, note"
   },
   {
@@ -1468,12 +1494,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "categorize: per-transaction override, then the user's rules, then defaults; the reason is returned with the category.",
    "description": "categorize with user-overridable rules"
   },
   {
@@ -1483,12 +1511,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "normalizeMerchant: AMZN MKTP to Amazon via a display map over the monitors' merchant key; title-case fallback.",
    "description": "merchant normalization (AMZN MKTP to Amazon)"
   },
   {
@@ -1498,12 +1528,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "recurring: debits and credits, cadence weekly to yearly incl. semimonthly pay, next expected date, overdue flag; coffee and groceries excluded by the three-occurrence rule.",
    "description": "recurring transaction detection"
   },
   {
@@ -1590,12 +1622,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "pendingVsPosted: what pending means for the available balance and why the amount can still change.",
    "description": "pending vs posted explanation"
   },
   {
@@ -1605,12 +1639,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "csv: RFC 4180 quoting, dollars with two decimals from integer cents.",
    "description": "CSV export"
   },
   {
@@ -1682,12 +1718,14 @@
    "domain": "transactions",
    "tier": "T1",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "transfers: opposite amounts across two own accounts within three days, paired once; excluded from spending.",
    "description": "transfer detection between own accounts"
   },
   {
@@ -1729,12 +1767,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "explainLarge: the charge against the merchant's own history and the category's typical amount; pending noted.",
    "description": "large transaction explanation on request"
   },
   {
@@ -1744,12 +1784,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "monthOverMonth: totals and per-category deltas against the prior month.",
    "description": "month-over-month comparison"
   },
   {
@@ -1759,12 +1801,14 @@
    "domain": "transactions",
    "tier": "T0",
    "owner_doc": "04",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "merchantHistory: count, total, first and last date, average, rows.",
    "description": "merchant history (all time with one merchant)"
   },
   {
@@ -1774,12 +1818,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "spendingByCategory over any window with shares in basis points; transfers and debt payments are not spending.",
    "description": "spending by category over any window"
   },
   {
@@ -1789,12 +1835,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "incomeVsSpend per month with the savings rate.",
    "description": "income vs spend"
   },
   {
@@ -1804,12 +1852,14 @@
    "domain": "budgets and analytics",
    "tier": "T2",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "budgets per category from the user's numbers; spent, fixed, variable and remaining.",
    "description": "budget creation per category"
   },
   {
@@ -1819,12 +1869,14 @@
    "domain": "budgets and analytics",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Pacing: fixed recurring bills count once plus the ones still expected this month; only variable spend scales with the days elapsed; alert above 115 percent pace and over budget.",
    "description": "budget pacing alerts"
   },
   {
@@ -1834,12 +1886,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "safeToSpend: available cash minus recurring debits due before the next expected income minus card statements due minus a buffer, every component in the sentence.",
    "description": "safe-to-spend today number"
   },
   {
@@ -1849,12 +1903,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "cashflowForecast 30/60/90: recurring income and debits on their cadence plus trailing discretionary per day; low point and negative warning; assumptions stated.",
    "description": "cashflow forecast 30/60/90 days"
   },
   {
@@ -1864,12 +1920,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "recurringCalendar: dated expected debits and credits over the horizon.",
    "description": "recurring expenses calendar"
   },
   {
@@ -1896,12 +1954,14 @@
    "domain": "budgets and analytics",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "categoryTrends: this month vs the trailing three-month average; flag at 30 percent.",
    "description": "category trend detection (dining up 30 percent)"
   },
   {
@@ -1911,12 +1971,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "paycheckAllocation: per paycheck, bills, transfers to savings, discretionary and what was left.",
    "description": "paycheck allocation analysis"
   },
   {
@@ -1926,12 +1988,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "savingsRate per month and the average.",
    "description": "savings rate over time"
   },
   {
@@ -1941,12 +2005,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "annualReport: income, spend, saved, rate, categories, top merchants, months covered.",
    "description": "annual spending report"
   },
   {
@@ -1956,12 +2022,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "merchantLeaderboard over a window.",
    "description": "merchant leaderboard (where money goes)"
   },
   {
@@ -1971,12 +2039,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "anomalyExplain: how far above the trailing average, which categories explain it, the largest charges.",
    "description": "anomaly explanation (why was this month high)"
   },
   {
@@ -2001,12 +2071,14 @@
    "domain": "budgets and analytics",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "goals: progress from the funding account, needed per month, pace from inbound transfers, ETA, on-track.",
    "description": "goal tracking (vacation fund, emergency fund)"
   },
   {
@@ -2016,12 +2088,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "netWorthHistory from snapshots with liabilities signed.",
    "description": "net worth history chart"
   },
   {
@@ -2031,12 +2105,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "debtPayoffProjection: amortized avalanche schedule with months, interest and payoff month per debt.",
    "description": "debt payoff projection"
   },
   {
@@ -2046,12 +2122,14 @@
    "domain": "budgets and analytics",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "whatIf: a category cut capped at its three-month average, yearly saving and goal acceleration; arithmetic, not advice.",
    "description": "what-if scenarios (cut X, save Y)"
   },
   {
@@ -2780,12 +2858,14 @@
    "domain": "cards",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "cards: inventory with network, issuer, mask, limits, APR, fee, statement and due dates.",
    "description": "card inventory with networks and types"
   },
   {
@@ -2825,12 +2905,14 @@
    "domain": "cards",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "Per-card and total utilization in basis points.",
    "description": "card balance and utilization"
   },
   {
@@ -2840,12 +2922,14 @@
    "domain": "cards",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "utilizationAlerts above 30 percent naming the statement close date and the exact pay-down.",
    "description": "utilization alert before score impact"
   },
   {
@@ -2855,12 +2939,14 @@
    "domain": "cards",
    "tier": "T1",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "dueDates within a window with statement balance, minimum and autopay state.",
    "description": "payment due date tracking"
   },
   {
@@ -2870,12 +2956,14 @@
    "domain": "cards",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "minVsFull: this month's interest at the APR, months and total interest paying only the minimum, the minimum-does-not-cover-interest trap.",
    "description": "minimum vs full payment guidance"
   },
   {
@@ -2885,12 +2973,14 @@
    "domain": "cards",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "annualFeeAudit: fee vs rewards and benefits used, verdict and the retention or downgrade path.",
    "description": "annual fee vs value audit"
   },
   {
@@ -4144,12 +4234,14 @@
    "domain": "credit and debt",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "debtInventory across cards and loans with minimums and monthly interest.",
    "description": "debt inventory across all loans"
   },
   {
@@ -4159,12 +4251,14 @@
    "domain": "credit and debt",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "payoffPlans: avalanche vs snowball amortized month by month, minimums rolling forward, interest difference stated.",
    "description": "payoff ordering plans (avalanche, snowball)"
   },
   {
@@ -4174,12 +4268,14 @@
    "domain": "credit and debt",
    "tier": "T0",
    "owner_doc": "07",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/ledger.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/57-agent-ledger.js"
+   ],
+   "note": "extraPaymentImpact: months and interest saved by an extra monthly amount.",
    "description": "extra payment impact calculator"
   },
   {

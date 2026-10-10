@@ -184,13 +184,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -300,13 +300,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Physical card ordering is the issuer's; Upmore inventories and manages the card once it exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -329,13 +329,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Card spending itself happens at the terminal; Upmore delivers the outcome as transaction visibility and CARD-002 card choice.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -435,13 +435,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-018",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03 anchors savings balance to ACCT-018; goal tracking is ANL-016.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -662,13 +662,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-009",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: Upmore surfaces cheaper alternatives to Borrow via payoff planning and never originates loans itself.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -691,13 +691,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: BNPL plans are tracked as debt with stacking warnings; Upmore never initiates BNPL.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -981,13 +981,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Adding a card to the agent is card inventory; wallet provisioning itself is hardware-bound.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1111,13 +1111,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1169,13 +1169,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-002",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "low",
     "note": "Organized purchase detail is delivered as searchable, receipt-attached transactions; no dedicated purchase-organizer capability exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1497,13 +1497,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Saved payment methods across Google surfaces map to the agent's card inventory; no cross-Google sync exists.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1584,13 +1584,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1613,13 +1613,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1835,13 +1835,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Pay Over Time plans are tracked as debt; Upmore never initiates BNPL (doc 03).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -1864,13 +1864,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-018",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Plan fees and schedule are delivered as a debt payoff projection on the tracked plan.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2009,13 +2009,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2038,13 +2038,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2144,13 +2144,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2458,13 +2458,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Venmo debit card is inventoried and recommended per purchase (CARD-002).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2574,13 +2574,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-004",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2603,13 +2603,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Credit card payments are tracked by due date; rewards are EARN-011.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -2998,13 +2998,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3027,13 +3027,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3230,13 +3230,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3317,13 +3317,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-020",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: Eno charge explanations are TXN-020.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3433,13 +3433,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "low",
     "note": "A home-screen widget is a surface; the outcome (balance at a glance) is read balance on ask.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3790,13 +3790,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3819,13 +3819,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3848,13 +3848,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3877,13 +3877,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3906,13 +3906,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-004",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Merchant and online purchase details are merchant normalization on EBT transactions.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -3935,13 +3935,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Estimated benefit deposit dates feed the cashflow forecast; arrival is ALRT-007.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4486,13 +4486,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Linking cards to a wallet is card inventory.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4515,13 +4515,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: PayPal balance is ACCT-001.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4544,13 +4544,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4573,13 +4573,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4776,13 +4776,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "PayPal debit card is inventoried and recommended per purchase (CARD-002).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4858,13 +4858,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Doc 03: Pay in 4 is tracked as debt with stacking warnings; Upmore never initiates BNPL.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4887,13 +4887,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": "Pay Monthly loans are tracked as debt; Upmore never initiates BNPL.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4940,13 +4940,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-010",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "low",
     "note": "Credit and repayment disclosures are explained via the extra payment impact calculator on tracked debt.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -4969,13 +4969,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-018",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Total financing cost is a debt payoff projection on the tracked plan.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5085,13 +5085,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Bank monitoring is the cross-institution account list with alerts (ALRT family).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5114,13 +5114,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Combined banking and Merrill view is listing accounts across institutions; holdings detail is INV-001.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5481,13 +5481,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-016",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5510,13 +5510,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -5539,13 +5539,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-003",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T2",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6172,13 +6172,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-011",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Pending vs payable earnings is the pending vs posted explanation.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6259,13 +6259,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6288,13 +6288,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -6626,13 +6626,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CRDT-008",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Debt-to-income comparison is computed from the debt inventory and income vs spend (ANL-002).",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7041,13 +7041,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ANL-006",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7070,13 +7070,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "ACCT-004",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "05",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Aggregated combined view with net worth is net worth calculation over ACCT-003.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7186,13 +7186,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "CARD-001",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "07",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Migrated Discover cards are managed through card inventory once linked.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -7548,13 +7548,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-012",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "high",
     "note": null,
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8736,13 +8736,13 @@
    "upmore": {
     "kind": "mapped",
     "registry_id": "TXN-012",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
     "owner_doc": "04",
     "gate_reason": null,
     "confidence": "medium",
     "note": "Quicken sync is delivered as transaction export.",
-    "performed": false
+    "performed": true
    }
   },
   {
@@ -8778,8 +8778,8 @@
    "non_parity": 6,
    "accounted": 38,
    "accounted_pct": 100,
-   "performed": 5,
-   "performed_pct": 13.2,
+   "performed": 11,
+   "performed_pct": 28.9,
    "gated": 7
   },
   "GW": {
@@ -8789,8 +8789,8 @@
    "non_parity": 8,
    "accounted": 27,
    "accounted_pct": 100,
-   "performed": 1,
-   "performed_pct": 3.7,
+   "performed": 5,
+   "performed_pct": 18.5,
    "gated": 1
   },
   "CH": {
@@ -8800,8 +8800,8 @@
    "non_parity": 5,
    "accounted": 34,
    "accounted_pct": 100,
-   "performed": 5,
-   "performed_pct": 14.7,
+   "performed": 13,
+   "performed_pct": 38.2,
    "gated": 5
   },
   "VE": {
@@ -8811,8 +8811,8 @@
    "non_parity": 10,
    "accounted": 41,
    "accounted_pct": 100,
-   "performed": 10,
-   "performed_pct": 24.4,
+   "performed": 13,
+   "performed_pct": 31.7,
    "gated": 6
   },
   "CO": {
@@ -8822,8 +8822,8 @@
    "non_parity": 5,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 11,
-   "performed_pct": 35.5,
+   "performed": 17,
+   "performed_pct": 54.8,
    "gated": 6
   },
   "PR": {
@@ -8833,8 +8833,8 @@
    "non_parity": 0,
    "accounted": 23,
    "accounted_pct": 100,
-   "performed": 5,
-   "performed_pct": 21.7,
+   "performed": 11,
+   "performed_pct": 47.8,
    "gated": 3
   },
   "PP": {
@@ -8844,8 +8844,8 @@
    "non_parity": 3,
    "accounted": 31,
    "accounted_pct": 100,
-   "performed": 7,
-   "performed_pct": 22.6,
+   "performed": 16,
+   "performed_pct": 51.6,
    "gated": 3
   },
   "BA": {
@@ -8855,8 +8855,8 @@
    "non_parity": 2,
    "accounted": 25,
    "accounted_pct": 100,
-   "performed": 6,
-   "performed_pct": 24,
+   "performed": 12,
+   "performed_pct": 48,
    "gated": 3
   },
   "FC": {
@@ -8866,8 +8866,8 @@
    "non_parity": 2,
    "accounted": 28,
    "accounted_pct": 100,
-   "performed": 9,
-   "performed_pct": 32.1,
+   "performed": 10,
+   "performed_pct": 35.7,
    "gated": 2
   },
   "WF": {
@@ -8877,8 +8877,8 @@
    "non_parity": 7,
    "accounted": 30,
    "accounted_pct": 100,
-   "performed": 3,
-   "performed_pct": 10,
+   "performed": 7,
+   "performed_pct": 23.3,
    "gated": 7
   }
  },
@@ -8886,8 +8886,8 @@
   "outcomes": 309,
   "accounted": 309,
   "accounted_pct": 100,
-  "performed": 62,
-  "performed_pct": 20.1,
+  "performed": 116,
+  "performed_pct": 37.5,
   "non_parity": 48,
   "non_parity_kinds": {
    "hardware-bound": 28,

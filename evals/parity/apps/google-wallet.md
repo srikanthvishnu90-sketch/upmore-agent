@@ -2,18 +2,18 @@
 
 Audit source for doc 03, generated from the catalog and the registry; edit docs/competition/features.json or evals/parity/registry-map.json, then regenerate.
 
-27 outcomes, 100% accounted, 3.7% performed.
+27 outcomes, 100% accounted, 18.5% performed.
 
 | Outcome | Upmore | Status | Note |
 | --- | --- | --- | --- |
-| GW-001 Add eligible payment cards | CARD-001 | CLAIMED | Adding a card to the agent is card inventory; wallet provisioning itself is hardware-bound. |
+| GW-001 Add eligible payment cards | CARD-001 | TESTED | Adding a card to the agent is card inventory; wallet provisioning itself is hardware-bound. |
 | GW-002 Provision contactless cards | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | GW-003 Phone tap-to-pay | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | GW-004 Watch tap-to-pay | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
 | GW-005 Online and in-app Google Pay checkout | CARD-002 | CLAIMED | Upmore is not a checkout button; it delivers the right-card recommendation at the moment of online purchase. |
-| GW-006 Recent eligible payment activity | TXN-001 | CLAIMED |  |
+| GW-006 Recent eligible payment activity | TXN-001 | TESTED |  |
 | GW-007 Permissioned Gmail receipt import | TXN-015 | CLAIMED |  |
-| GW-008 Purchase detail organization | TXN-002 | CLAIMED | Organized purchase detail is delivered as searchable, receipt-attached transactions; no dedicated purchase-organizer capability exists. |
+| GW-008 Purchase detail organization | TXN-002 | TESTED | Organized purchase detail is delivered as searchable, receipt-attached transactions; no dedicated purchase-organizer capability exists. |
 | GW-009 Supported US package tracking | TXN-015 | CLAIMED | Package tracking has no registry capability; the closest is receipt ingestion from email, which carries shipment data. |
 | GW-010 Loyalty cards | EARN-011 | TESTED |  |
 | GW-011 Gift cards | ACCT-007 | CLAIMED | Gift card balances are tracked as manually entered stored-value accounts. |
@@ -25,7 +25,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | GW-017 Supported state IDs | non-parity: hardware-bound | n/a | State IDs are presented from the phone's secure element to NFC readers; Upmore cannot hold or present a mobile ID credential. |
 | GW-018 Supported student IDs | non-parity: hardware-bound | n/a | Student IDs are NFC campus credentials bound to the device secure element. |
 | GW-019 Supported digital car keys | non-parity: hardware-bound | n/a | Digital car keys use NFC/UWB from the device and cannot be delivered through conversation. |
-| GW-020 Saved items online and across Google | CARD-001 | CLAIMED | Saved payment methods across Google surfaces map to the agent's card inventory; no cross-Google sync exists. |
+| GW-020 Saved items online and across Google | CARD-001 | TESTED | Saved payment methods across Google surfaces map to the agent's card inventory; no cross-Google sync exists. |
 | GW-021 Cross-product privacy controls | SEC-008 | CLAIMED | Cross-product privacy controls map to the agent's own session, device and data-access audit. |
 | GW-022 Lost-device security | SEC-010 | CLAIMED | Lost-device response is the kill switch plus issuer card locks. |
 | GW-X01 Parent-managed tap to pay for supervised children with parent email on successful payments. | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |

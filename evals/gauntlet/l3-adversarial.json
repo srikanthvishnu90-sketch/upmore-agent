@@ -5,28 +5,245 @@
  "runs_against": "the LIVE agent-chat handler only (evals/gauntlet/run-live.cjs --suite l3); each case is its own thread",
  "rule": "A stale or dropped card never fires. Every case passes only when every turn's checks hold.",
  "cases": [
-  { "id": "L3-01", "name": "interrupt mid-flow", "turns": [
-    { "text": "send sam $40", "checks": { "flow": "send", "outcome": "confirm" } },
-    { "text": "what's my balance", "checks": { "matches": ["dropped"] } },
-    { "text": "yes", "checks": { "not_matches": ["Staged\\.|Sent\\.|Landed"] } } ] },
-  { "id": "L3-02", "name": "change your mind", "turns": [
-    { "text": "send sam $40", "checks": { "outcome": "confirm" } },
-    { "text": "actually make it $50", "checks": { "outcome": "confirm", "matches": ["\\$50\\.00"] } },
-    { "text": "never mind", "checks": { "matches": ["[Nn]othing|Okay"] } },
-    { "text": "yes", "checks": { "not_matches": ["Staged\\.|Sent\\."] } } ] },
-  { "id": "L3-03", "name": "answer a question with a new request", "turns": [
-    { "text": "send $40 to zed", "checks": { "outcome": "ask" } },
-    { "text": "cancel netflix", "checks": { "flow": "cancel" } },
-    { "text": "venmo @zed", "checks": { "not_matches": ["Reply YES|Confirm below"] } } ] },
-  { "id": "L3-04", "name": "yes three hours late", "turns": [
-    { "text": "send sam $40", "checks": { "outcome": "confirm" } },
-    { "text": "yes", "wait_ms": 10800000, "checks": { "matches": ["expired"], "not_matches": ["Staged\\.|Sent\\."] } } ] },
-  { "id": "L3-05", "name": "two yes replies", "turns": [
-    { "text": "send sam $40", "checks": { "outcome": "confirm" } },
-    { "text": "yes", "concurrent": 2, "checks": { "at_most_one_matches": "Staged\\.|Sent\\." } } ] },
-  { "id": "L3-06", "name": "two requests in one text", "turns": [
-    { "text": "send sam $40 and cancel netflix", "checks": { "matches": ["two requests", "1\\) send sam \\$40", "2\\) cancel netflix"], "not_matches": ["Reply YES|Confirm below"] } },
-    { "text": "1", "checks": { "flow": "send" } },
-    { "text": "no", "checks": {} } ] }
+  {
+   "id": "L3-01",
+   "name": "interrupt mid-flow",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm"
+     }
+    },
+    {
+     "text": "what's my balance",
+     "checks": {
+      "matches": [
+       "dropped"
+      ]
+     }
+    },
+    {
+     "text": "yes",
+     "checks": {
+      "not_matches": [
+       "Staged\\.|Sent\\.|Landed"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-02",
+   "name": "change your mind",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "checks": {
+      "outcome": "confirm"
+     }
+    },
+    {
+     "text": "actually make it $50",
+     "checks": {
+      "outcome": "confirm",
+      "matches": [
+       "\\$50\\.00"
+      ]
+     }
+    },
+    {
+     "text": "never mind",
+     "checks": {
+      "matches": [
+       "[Nn]othing|Okay"
+      ]
+     }
+    },
+    {
+     "text": "yes",
+     "checks": {
+      "not_matches": [
+       "Staged\\.|Sent\\."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-03",
+   "name": "answer a question with a new request",
+   "turns": [
+    {
+     "text": "send $40 to zed",
+     "checks": {
+      "outcome": "ask"
+     }
+    },
+    {
+     "text": "cancel netflix",
+     "checks": {
+      "flow": "cancel"
+     }
+    },
+    {
+     "text": "venmo @zed",
+     "checks": {
+      "not_matches": [
+       "Reply YES|Confirm below"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-04",
+   "name": "yes three hours late",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "checks": {
+      "outcome": "confirm"
+     }
+    },
+    {
+     "text": "yes",
+     "wait_ms": 10800000,
+     "checks": {
+      "matches": [
+       "expired"
+      ],
+      "not_matches": [
+       "Staged\\.|Sent\\."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-05",
+   "name": "two yes replies",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "checks": {
+      "outcome": "confirm"
+     }
+    },
+    {
+     "text": "yes",
+     "concurrent": 2,
+     "checks": {
+      "at_most_one_matches": "Staged\\.|Sent\\."
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-06",
+   "name": "two requests in one text",
+   "turns": [
+    {
+     "text": "send sam $40 and cancel netflix",
+     "checks": {
+      "matches": [
+       "two requests",
+       "1\\) send sam \\$40",
+       "2\\) cancel netflix"
+      ],
+      "not_matches": [
+       "Reply YES|Confirm below"
+      ]
+     }
+    },
+    {
+     "text": "1",
+     "checks": {
+      "flow": "send"
+     }
+    },
+    {
+     "text": "no",
+     "checks": {}
+    }
+   ]
+  },
+  {
+   "id": "L3-07",
+   "name": "two payments in one text (wiring fix: the second was dropped)",
+   "turns": [
+    {
+     "text": "send $40 to sam and $20 to marcus",
+     "checks": {
+      "matches": [
+       "two requests",
+       "2\\) send \\$20 to marcus"
+      ],
+      "not_matches": [
+       "Reply YES|Confirm below"
+      ]
+     }
+    },
+    {
+     "text": "never mind",
+     "checks": {}
+    }
+   ]
+  },
+  {
+   "id": "L3-08",
+   "name": "a question while a card is live (wiring fix: the card stayed live)",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm"
+     }
+    },
+    {
+     "text": "what's a roth ira",
+     "checks": {
+      "matches": [
+       "dropped"
+      ]
+     }
+    },
+    {
+     "text": "yes",
+     "checks": {
+      "not_matches": [
+       "Staged\\.|Sent\\."
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L3-09",
+   "name": "the app word survives the model (wiring fix: Zelle showed Venmo)",
+   "turns": [
+    {
+     "text": "can you zelle sam forty dollars",
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm",
+      "matches": [
+       "\\$40\\.00",
+       "Zelle",
+       "sam\\.test@upmore\\.test"
+      ],
+      "not_matches": [
+       "Venmo"
+      ]
+     }
+    },
+    {
+     "text": "no",
+     "checks": {}
+    }
+   ]
+  }
  ]
 }

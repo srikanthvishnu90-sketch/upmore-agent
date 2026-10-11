@@ -12,7 +12,10 @@
 //   --no-wait        report waiting turns as NOT RUN instead of sleeping
 const fs = require("node:fs"), path = require("node:path");
 const root = path.resolve(__dirname, "../..");
-const corpus = JSON.parse(fs.readFileSync(path.join(__dirname, "sloppy-20.json"), "utf8"));
+// The corpora are files next to this script, or embedded when this runs as the single-file build
+// (evals/gauntlet/standalone/run-gauntlet.cjs, made by scripts/build-standalone-gauntlet.py).
+const loadCorpus = name => (globalThis.__UPMORE_GAUNTLET_EMBED__ && globalThis.__UPMORE_GAUNTLET_EMBED__[name]) || JSON.parse(fs.readFileSync(path.join(__dirname, name), "utf8"));
+const corpus = loadCorpus("sloppy-20.json");
 const args = process.argv.slice(2), label = (args[args.indexOf("--label") + 1] || `live-${new Date().toISOString().slice(0, 10)}`).replace(/[^\w.-]/g, "_");
 const url = process.env.UPMORE_CHAT_URL, jwt = process.env.UPMORE_TEST_JWT;
 // SMS segment count, the same rule as packages/domain/67-agent-cards.js (copied, not imported, so this file stays live-only).
@@ -75,7 +78,7 @@ function check(c, res) {
   return reasons;
 }
 async function runSpec16() {
-  const sc = JSON.parse(fs.readFileSync(path.join(__dirname, "spec16-20.json"), "utf8"));
+  const sc = loadCorpus("spec16-20.json");
   const rows = []; let thread = null;
   for (const item of sc.items) {
     if (item.needs_media) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [`needs ${item.needs_media}; this runner sends text only`] }); console.log(`NOT RUN ${item.id} (needs media)`); continue; }
@@ -92,7 +95,7 @@ async function runSpec16() {
   return { suite: "spec16", total: rows.length, ran: ran.length, passed, not_run: rows.length - ran.length, rows };
 }
 async function runL3(pendingIn) {
-  const sc = JSON.parse(fs.readFileSync(path.join(__dirname, "l3-adversarial.json"), "utf8"));
+  const sc = loadCorpus("l3-adversarial.json");
   const out = [], pending = [];
   for (const cs of sc.cases) {
     const resumeAt = pendingIn ? pendingIn.find(p => p.id === cs.id) : null;

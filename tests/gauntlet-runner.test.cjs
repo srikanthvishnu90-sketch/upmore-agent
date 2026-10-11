@@ -46,7 +46,7 @@ const spawnRun=(argv,port)=>new Promise(res=>{const p=spawn(process.execPath,[pa
 test('spec16 and L3 suites: media and waits are reported NOT RUN, a long wait is saved and resumed, a double yes stages at most once',async()=>{
   const spec=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/spec16-20.json'),'utf8'));const l3=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/l3-adversarial.json'),'utf8'));
   assert.equal(spec.items.length,20);assert.deepEqual(spec.items.map(i=>i.text).slice(0,3),["what's my balance",'how much did i spend on food last month','cancel netflix']);assert.equal(spec.items.filter(i=>i.needs_media).length,3);
-  assert.deepEqual(l3.cases.map(c=>c.name),['interrupt mid-flow','change your mind','answer a question with a new request','yes three hours late','two yes replies','two requests in one text']);
+  assert.deepEqual(l3.cases.map(c=>c.id),['L3-01','L3-02','L3-03','L3-04','L3-05','L3-06','L3-07','L3-08','L3-09']);
   let staged=0,n=0;
   const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{const m=JSON.parse(b);const t=m.thread_id||('t'+(++n));let reply='Okay. Nothing happened.',route={flow:null,outcome:null};
     if(m.message==="what's my balance")reply='$1,234.56 in checking, as of 9:41.';
@@ -66,4 +66,15 @@ test('spec16 and L3 suites: media and waits are reported NOT RUN, a long wait is
   const c=await spawnRun(['--resume','grader-l3'],port);const r2=JSON.parse(fs.readFileSync(f,'utf8'));
   assert.equal(r2.pending.length,0);assert.ok(r2.cases.find(x=>x.id==='L3-04'),'resumed and graded');assert.equal(b.code,1);assert.equal(c.code,1);
   }finally{if(server.closeAllConnections)server.closeAllConnections();server.close();for(const x of ['grader-spec16.spec16.json','grader-l3.l3.json']){const q=path.join(root,'evals/gauntlet/results',x);if(fs.existsSync(q))fs.unlinkSync(q);}}
+});
+
+test('the single-file gauntlet is current with run-live.cjs and its corpora, and runs from any directory',async()=>{
+  const {execFileSync}=require('node:child_process');const os=require('node:os');
+  assert.match(execFileSync('python3',[path.join(root,'scripts/build-standalone-gauntlet.py'),'--check']).toString(),/standalone gauntlet verified/);
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gauntlet-standalone-'));fs.copyFileSync(path.join(root,'evals/gauntlet/standalone/run-gauntlet.cjs'),path.join(dir,'run-gauntlet.cjs'));
+  const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{res.setHeader('content-type','application/json');res.end(JSON.stringify({thread_id:'t1',reply:'Okay.',route:{}}));});});
+  await new Promise(r=>server.listen(0,r));
+  try{const out=await new Promise(r=>{const p=spawn(process.execPath,[path.join(dir,'run-gauntlet.cjs'),'--suite','spec16','--label','standalone-selftest','--no-wait'],{cwd:dir,env:Object.assign({},process.env,{UPMORE_CHAT_URL:`http://127.0.0.1:${server.address().port}/agent-chat`,UPMORE_TEST_JWT:'test'})});let o='';p.stdout.on('data',d=>o+=d);p.on('close',code=>r({code,o}));});
+    const res=JSON.parse(fs.readFileSync(path.join(dir,'results','standalone-selftest.spec16.json'),'utf8'));assert.equal(res.total,20);assert.equal(res.not_run,4);assert.doesNotMatch(out.o,/test/.source==='x'?/x/:/Bearer/,'the token is never printed');}
+  finally{if(server.closeAllConnections)server.closeAllConnections();server.close();fs.rmSync(dir,{recursive:true,force:true});}
 });

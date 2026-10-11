@@ -10,6 +10,9 @@ select t.ok((select morning_brief from public.agent_proactive_settings),'the own
 select t.must_fail($$insert into public.agent_proactive_settings(user_id) values('00000000-0000-0000-0000-0000000000a2')$$,'row-level security','a user cannot write another person''s settings');
 select t.must_fail($$update public.agent_proactive_settings set watches='[{"note":"ssn 123456789"}]'$$,'check constraint','an identity number is refused by the table itself');
 select t.must_fail($$update public.agent_proactive_settings set weekly_recap_dow=7$$,'check constraint','a weekday is 0 to 6');
+update public.agent_proactive_settings set pending_offer='{"kind":"cancel_trial","merchant":"Paramount+","ends_on":"2026-10-13"}' where user_id='00000000-0000-0000-0000-0000000000a1';
+select t.ok((select pending_offer->>'merchant'='Paramount+' from public.agent_proactive_settings),'an offer waits on the person''s own row');
+select t.must_fail($$update public.agent_proactive_settings set pending_offer='[1]'$$,'check constraint','an offer is an object');
 select t.must_fail($$update public.agent_proactive_settings set time_zone='x; drop table'$$,'check constraint','a time zone is a zone name');
 select t.must_fail($$insert into public.agent_proactive_log(user_id,key,kind) values('00000000-0000-0000-0000-0000000000a1','x','finding')$$,'permission denied','a person cannot write their own delivery log');
 reset role;

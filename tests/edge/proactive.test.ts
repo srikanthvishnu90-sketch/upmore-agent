@@ -166,3 +166,41 @@ Deno.test("plan: a trial the person tracks in the app (save_subscriptions) warns
   assertEquals(two.messages.filter(m => m.kind === "finding").length, 2, "2 days out it is a deadline: exempt, and the ordinary note still goes");
   assert(!plan(Object.assign(input(), { subscriptions: [Object.assign({}, trial, { status: "cancelled" })] }), NOW).messages.some(m => /trial/.test(m.key)), "a cancelled trial is never warned about");
 });
+
+// Owner, 2026-10-11: "before someone's free trial ends, message them: your free trial is about to end, should I cancel
+// this for you?" Nothing is cancelled without that person's yes; the cancel flow's own card is the one approval.
+import { offerMessage } from "../../supabase/functions/_shared/proactive.ts";
+const TRIAL = { id: "sub-9", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active", cancel_url: "https://www.paramountplus.com/account/", cancel_steps: null };
+Deno.test("trial offer: the message asks first, in one line, and carries the offer for that thread", () => {
+  const m = plan(Object.assign(input(), { subscriptions: [TRIAL] }), NOW).messages.find(x => x.offer);
+  assert(m && /^Paramount\+ trial ends in 2 days\. The first charge of \$11\.99 lands 2026-10-13 unless it is cancelled first\. Should I cancel it for you\? Reply YES or NO\./.test(m.text), m ? m.text : "no offer");
+  assertEquals(m!.offer, { kind: "cancel_trial", merchant: "Paramount+", subscription_id: "sub-9", ends_on: "2026-10-13", amount_cents: 1199, cancel_url: "https://www.paramountplus.com/account/", cancel_steps: null });
+});
+function offerDeps(o: { live?: boolean; flow?: any; threadId?: string } = {}) {
+  const calls = { cleared: 0, flows: [] as string[], watched: [] as string[] };
+  const offer = { kind: "cancel_trial", merchant: "Paramount+", subscription_id: "sub-9", ends_on: "2026-10-13", amount_cents: 1199, cancel_url: "https://www.paramountplus.com/account/", cancel_steps: null, thread_id: "th-updates" };
+  return { calls, deps: { offer, threadId: o.threadId || "th-updates", liveCard: async () => !!o.live, runFlow: async (t: string) => { calls.flows.push(t); return o.flow || null; }, clear: async () => { calls.cleared++; return true; }, watch: async (m: string) => { calls.watched.push(m); return true; } } };
+}
+Deno.test("trial offer: NO keeps it and says when it bills; anything else is not an answer", async () => {
+  const { calls, deps } = offerDeps();
+  assertEquals((await offerMessage("no", deps, NOW))!.reply, "Okay, I'll leave Paramount+ alone. The first charge of $11.99 lands Oct 13.");
+  assertEquals(calls.flows, [], "no means nothing runs"); assertEquals(calls.cleared, 1);
+  assertEquals(await offerMessage("what's my balance", offerDeps().deps, NOW), null);
+  assertEquals(await offerMessage("yes", offerDeps({ threadId: "another-thread" }).deps, NOW), null, "an offer is answered in its own thread only");
+});
+Deno.test("trial offer: YES starts the real cancel flow; a trial that never charged gets the steps, a plain 'nothing was cancelled', and a watch", async () => {
+  const { calls, deps } = offerDeps();
+  const r = await offerMessage("yes", deps, NOW);
+  assertEquals(calls.flows, ["cancel Paramount+"], "the cancel flow is tried first, never skipped");
+  assertEquals(r!.reply, "Paramount+ hasn't charged you yet, so there's nothing on your cards for me to cancel from here, and nothing was cancelled. To stop it before Oct 13: open https://www.paramountplus.com/account/. I'll tell you if Paramount+ charges you anyway.");
+  assertEquals(calls.watched, ["Paramount+"]);
+});
+Deno.test("trial offer: when the cancel flow can act, its card is the approval; a live card's own yes wins; a yes after the trial ended fires nothing", async () => {
+  const card = { reply: "Cancel Paramount+ ($11.99/mo) on card ••8830? Reply YES or NO.", route: { flow: "cancel", outcome: "confirm" } };
+  const a = await offerMessage("yes", offerDeps({ flow: card }).deps, NOW);
+  assertEquals(a!.reply, "Okay, cancelling Paramount+. Cancel Paramount+ ($11.99/mo) on card ••8830? Reply YES or NO.");
+  assertEquals(a!.route.outcome, "confirm", "a card, not a cancellation: the person still says yes to the card");
+  assertEquals(await offerMessage("yes", offerDeps({ live: true }).deps, NOW), null, "a live card in the thread answers its own yes");
+  const late = await offerMessage("yes", offerDeps().deps, Date.UTC(2026, 9, 15, 12));
+  assertEquals(late!.reply, 'That offer has expired: the Paramount+ trial ended Oct 13, so nothing was cancelled. If you still want it gone, say "cancel Paramount+".');
+});

@@ -54,6 +54,15 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 | Schedule | go-live deploys agent-proactive (--no-verify-jwt, own secret) and runs `scripts/launch/schedule-proactive.sql` (pg_cron minute 7 hourly, pg_net, secret in Vault). **Not executed here: pg_cron, pg_net and Vault exist only on Supabase.** | `node --test tests/go-live.test.cjs` (dry run) |
 | Moved | Capability list: section 2 from 3 to 12 reachable; section 1 from 4 to 7 as a side effect (unusual spending, trials, safe to spend in the brief); 34 of 149 in all. | `node scripts/capability-list.cjs --check` |
 
+### Owner decisions, 2026-10-11 night (in writing, in the build chat) — recorded as given, the strict reading applied
+
+| Decision | Owner's words | Applied as |
+| --- | --- | --- |
+| Automatic and recurring investing, copying portfolios, "etc." | "we can toggle automatic investing, copying portfolios etc. However every individual needs to approve it." | Per-person toggles: each person turns one on themselves after it is restated in exact terms, and one message turns it off. **Strict reading kept until the owner says otherwise:** every run still asks that person for a one-line yes, and every order stays under the $5 cap. If "approve it" meant approving the rule once, that is one setting to change. Engines not built yet. |
+| Automatic cancels | "before someone's free trial ends, we need to be able to message them saying (hey ur free trial is about to end, should i cancel this for you)" | Built: the proactive trial message asks; YES starts the cancel flow (its card is the one approval) or gives the steps when the trial never charged; NO keeps it; a late yes fires nothing. One approval per cancellation stands. |
+| Phone calls | not addressed | Still pending; no phone calls. |
+| $5 per-order cap | not raised | Unchanged. The owner's $200 live test envelope (10 x $5 recurring, $50 copy, $25 manual + dividends, $25 payments, $50 buffer) is recorded; no live test has run (no keys here; live tests are owner-triggered). |
+
 ## Claimed files
 
 - 2026-10-11, per the owner: Codex is off this project. Claude owns the whole repository, including supabase/functions/**, supabase/migrations/** and the chat handler. The lists below are kept as history; open Requests addressed to Codex are now Claude's.

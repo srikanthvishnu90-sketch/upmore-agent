@@ -28,7 +28,8 @@ export interface ProactiveSettings {
 // "today", "Sunday" and quiet hours mean, never a number.
 export const DEFAULT_SETTINGS: ProactiveSettings = { alerts: true, morning_brief: false, weekly_recap_dow: 0, monthly_close: true, quiet_start: 22, quiet_end: 7, time_zone: "America/New_York", buffer_cents: null, large_threshold_cents: null, watches: [], control: null };
 
-export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null }
+export interface ProactiveOffer { kind: "cancel_trial"; merchant: string; subscription_id: string; ends_on: string; amount_cents: number | null; cancel_url: string | null; cancel_steps: string | null }
+export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
 export interface ProactiveInput { accounts: any[]; transactions: any[]; settings: Partial<ProactiveSettings> | null; sent: SentRow[]; subscriptions?: any[] }
 
@@ -85,7 +86,7 @@ export function plan(input: ProactiveInput, now: number) {
   const budgetTimes = (input.sent || []).filter(x => !x.cadence).map(x => x.sent_at);
   const prov: any = (AgentLedger as any).provenance(accounts, transactions, today);
   const cite = ` (${prov.source}, as of ${asOfText(prov.as_of, tz)})`;
-  const push = (m: Omit<ProactiveMessage, "source" | "as_of">) => {
+  const push = (m: Omit<ProactiveMessage, "source" | "as_of" | "offer"> & { offer?: ProactiveOffer }) => {
     if (sentKeys.has(m.key)) return false;
     sentKeys.add(m.key); out.messages.push(Object.assign({}, m, { text: m.text.trim() + cite, source: prov.source, as_of: prov.as_of }));
     return true;
@@ -108,7 +109,10 @@ export function plan(input: ProactiveInput, now: number) {
       if (!b.allowed) { out.suppressed.push({ key: p.key, reason: b.reason }); continue; }
       // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
       const exempt = b.reason !== "budget";
-      if (push({ key, kind: "finding", text: p.text, capability_id: p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt }) && !exempt) budgetTimes.push(now);
+      const offer = trialOffer(p, input.subscriptions || []);
+      // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
+      const text = offer ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
+      if (push({ key, kind: "finding", text, capability_id: offer ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
     }
   }
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
@@ -157,6 +161,37 @@ const copy = (x: any) => x == null ? x : JSON.parse(JSON.stringify(x));
 const whenText = (i: any) => i.cadence === "daily" ? "every day" : i.cadence === "monthly" ? "every month" : i.day != null ? `every ${DOW[i.day]}` : "every week";
 function weekKey(ymd: string) { const d = new Date(Date.parse(ymd + "T00:00:00Z")); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = d.getUTCFullYear(), w1 = new Date(Date.UTC(y, 0, 4)); return `${y}-W${String(1 + Math.round(((d.getTime() - w1.getTime()) / DAY - 3 + ((w1.getUTCDay() + 6) % 7)) / 7)).padStart(2, "0")}`; }
 function monthName(ym: string) { return new Date(Date.parse(ym + "-01T00:00:00Z")).toLocaleString("en-US", { month: "long", timeZone: "UTC" }); }
+
+function trialOffer(p: any, subs: any[]): ProactiveOffer | null {
+  const m = /^trial_converting:([^:]+):(\d{4}-\d{2}-\d{2})$/.exec(String(p.key || "")); if (!m) return null;
+  const sub = subs.find(x => String(x.id) === m[1]); if (!sub) return null;
+  const amt = Number(sub.amount);
+  return { kind: "cancel_trial", merchant: String(sub.merchant), subscription_id: String(sub.id), ends_on: m[2], amount_cents: Number.isFinite(amt) && amt > 0 ? Math.round(amt * 100) : null, cancel_url: sub.cancel_url || null, cancel_steps: sub.cancel_steps || null };
+}
+
+// ---- The answer to an offer: "yes" starts the cancellation (its own card is the one explicit approval), "no" keeps
+// it, and a yes after the trial has ended fires nothing. A live card in the thread always wins: its own yes is its own.
+const OFFER_YES = /^\s*(?:y|yes|yeah|yep|yup|ya|sure|ok|okay|do it|please do|cancel it|yes,? cancel(?: it)?|go ahead)\s*[.!]*\s*$/i;
+const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now)\s*[.!]*\s*$/i;
+export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
+export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
+  const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || d.offer.kind !== "cancel_trial") return null;
+  if (await d.liveCard()) return null;
+  const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
+  await d.clear();
+  if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
+  if (no) return { reply: `Okay, I'll leave ${name} alone. ${amt === "the first charge" ? "The first charge" : `The first charge of ${amt}`} lands ${when}.` };
+  // Yes: the real cancel flow first. A trial that has never charged is not on any card yet, so there is nothing for the
+  // flow to act on; then the honest path is the steps to cancel, and a watch for the first charge.
+  const flow = await d.runFlow(`cancel ${name}`);
+  const actionable = flow && flow.route && ["confirm", "needs_terms", "guided", "stop", "blocked"].includes(flow.route.outcome);
+  if (actionable) return { reply: `Okay, cancelling ${name}. ${flow!.reply}`, route: flow!.route };
+  const watched = await d.watch(name);
+  const how = o.cancel_url ? `open ${o.cancel_url}` : `open your ${name} account settings and find Cancel`;
+  return { reply: `${name} hasn't charged you yet, so there's nothing on your cards for me to cancel from here, and nothing was cancelled. To stop it before ${when}: ${how}${o.cancel_steps ? ` (${String(o.cancel_steps).slice(0, 200)})` : ""}.${watched ? ` I'll tell you if ${name} charges you anyway.` : ""}` };
+}
+const fmtDay = (ymd: string) => new Date(Date.parse(ymd + "T12:00:00Z")).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----
 // Each command is answered by restating exactly what will happen; nothing is guessed from words it does not know.
@@ -265,7 +300,7 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
         admin.from("agent_financial_transactions").select("account_id,provider_transaction_id,currency,amount_cents,posted_on,merchant_raw,is_pending,is_transfer,presence").eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(5000),
         admin.from("agent_proactive_settings").select("*").eq("user_id", userId).maybeSingle(),
         admin.from("agent_proactive_log").select("key,sent_at,cadence").eq("user_id", userId).gte("sent_at", new Date(Date.now() - 40 * DAY).toISOString()).limit(2000),
-        admin.from("save_subscriptions").select("id,merchant,amount,billing_interval,next_billing_date,status").eq("user_id", userId).limit(500),
+        admin.from("save_subscriptions").select("id,merchant,amount,billing_interval,next_billing_date,status,cancel_url,cancel_steps").eq("user_id", userId).limit(500),
       ]);
       for (const r of [acc, tx, st, log]) if (r.error) throw new Error("proactive data unavailable");
       // Tracked subscriptions only add trial and renewal alerts; when they can't be read the rest still runs (logged).
@@ -283,6 +318,8 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
         const msg = await admin.from("agent_messages").insert({ thread_id: threadId, role: "assistant", content: m.text, meta: { proactive: true, key: m.key, kind: m.kind, capability_id: m.capability_id, source: m.source, as_of: m.as_of } }).select("id").single();
         if (msg.error) { await admin.from("agent_proactive_log").delete().eq("user_id", userId).eq("key", m.key); throw new Error("message delivery failed"); }
         await admin.from("agent_proactive_log").update({ thread_id: threadId, message_id: msg.data.id }).eq("user_id", userId).eq("key", m.key);
+        // An offer waits for the person's yes or no in this thread; the newest offer replaces an older one.
+        if (m.offer) await admin.from("agent_proactive_settings").upsert({ user_id: userId, pending_offer: Object.assign({}, m.offer, { thread_id: threadId, message_key: m.key }), updated_at: new Date().toISOString() }, { onConflict: "user_id" });
         delivered.push(m.key);
       }
       // A standing report fired this period is remembered on the instruction itself, so a fresh state never re-fires it.
@@ -341,5 +378,27 @@ export function supabaseSettingsDb(supabase: any, userId: string): SettingsDb {
   return {
     async read() { const r = await supabase.from("agent_proactive_settings").select("*").eq("user_id", userId).maybeSingle(); return r.error ? { ok: false, settings: null } : { ok: true, settings: r.data || null }; },
     async save(change) { const r = await supabase.from("agent_proactive_settings").upsert(Object.assign({ user_id: userId }, change, { updated_at: new Date().toISOString() }), { onConflict: "user_id" }); return !r.error; },
+  };
+}
+
+// The real deps for offerMessage: the pending offer is read only when the message could answer one.
+export const mayAnswerOffer = (message: string) => OFFER_YES.test(message) || OFFER_NO.test(message);
+export async function readOffer(supabase: any, userId: string): Promise<any | null> {
+  const r = await supabase.from("agent_proactive_settings").select("pending_offer").eq("user_id", userId).maybeSingle();
+  return r.error || !r.data ? null : r.data.pending_offer || null;
+}
+export function supabaseOfferDeps(supabase: any, userId: string, threadId: string, offer: any, x: { liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null> }): OfferDeps {
+  return {
+    offer, threadId, liveCard: x.liveCard, runFlow: x.runFlow,
+    async clear() { const r = await supabase.from("agent_proactive_settings").update({ pending_offer: null, updated_at: new Date().toISOString() }).eq("user_id", userId); return !r.error; },
+    async watch(merchant: string) {
+      const r = await supabase.from("agent_proactive_settings").select("watches").eq("user_id", userId).maybeSingle();
+      if (r.error) return false;
+      const w: any = (AgentAlerts as any).parseWatch(`tell me when ${merchant} charges me`, Date.now());
+      if (!w.ok) return false;
+      const watches = ((r.data && r.data.watches) || []).concat([Object.assign({}, w.watch, { id: `w-trial-${Date.now()}` })]).slice(-20);
+      const u = await supabase.from("agent_proactive_settings").upsert({ user_id: userId, watches, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+      return !u.error;
+    },
   };
 }

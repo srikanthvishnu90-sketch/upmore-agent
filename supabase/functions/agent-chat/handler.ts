@@ -28,12 +28,12 @@ import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
 import { reserveModelCall, recordModelUsage } from "../_shared/model_calls.ts";
 import { modelConfig, chatReply, plannerModel, newMeter, adminHealthSink, type TurnMeter, type HealthSink } from "../_shared/model_gateway.ts";
-import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource } from "../_shared/flow_router.ts";
+import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource, hasLiveCard } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { settingsMessage, supabaseSettingsDb } from "../_shared/proactive.ts";
+import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -214,6 +214,27 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         { thread_id: tid, role: "assistant", content: earlyGuard, meta: { capability: true, guard: true } },
       ]);
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
+    }
+
+    // An answer to the agent's own offer ("your trial ends Thursday; should I cancel it?"): yes starts the cancellation,
+    // whose card is the one explicit approval; no keeps it; a live card in this thread answers its own yes first.
+    if (mayAnswerOffer(message)) {
+      const offer = await readOffer(supabase, user.id);
+      if (offer) {
+        const flowDb = supabaseFlowDb(supabase, user.id, tid);
+        const o = await offerMessage(message, supabaseOfferDeps(supabase, user.id, tid, offer, {
+          liveCard: async () => { try { return hasLiveCard(await flowDb.loadState()); } catch { return true; } },
+          runFlow: async (text) => { const f: any = await routeFlows(text, { db: flowDb, extract: null, channel: "in-app" }); return f && !f.fallthrough ? f : null; },
+        }), Date.now());
+        if (o) {
+          const saved = await supabase.from("agent_messages").insert([
+            { thread_id: tid, role: "user", content: userContent },
+            { thread_id: tid, role: "assistant", content: o.reply, meta: { capability: true, proactive_offer: offer.kind, flow_route: o.route || null } },
+          ]);
+          if (saved.error) throw saved.error;
+          return json(cors, { thread_id: tid, reply: o.reply, action: null, route: o.route });
+        }
+      }
     }
 
     // The agent speaks first (capability list section 2): what the person asks it to say on its own, and when, is

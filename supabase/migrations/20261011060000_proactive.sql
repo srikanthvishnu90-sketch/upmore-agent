@@ -20,6 +20,8 @@ create table if not exists public.agent_proactive_settings (
   large_threshold_cents bigint check (large_threshold_cents is null or large_threshold_cents between 100 and 100000000),
   watches jsonb not null default '[]'::jsonb check (jsonb_typeof(watches) = 'array' and jsonb_array_length(watches) <= 20),
   control jsonb check (control is null or (jsonb_typeof(control) = 'object' and length(control::text) <= 20000)),
+  -- One pending offer ("your trial ends Thursday; should I cancel it?") waiting for a yes or no in its thread.
+  pending_offer jsonb check (pending_offer is null or (jsonb_typeof(pending_offer) = 'object' and length(pending_offer::text) <= 4000)),
   updated_at timestamptz not null default now(),
   -- Never a secret or an identity number in a setting (owner rule): long digit runs are refused outright.
   check (watches::text !~ '\d{9,}' and coalesce(control::text, '') !~ '\d{13,}')

@@ -54,8 +54,10 @@ const REACHABLE = {
   "CORE-004": "chat: \"every Friday tell me my food spend\" saves a standing report; the scheduler sends it",
 };
 const NO_PHONE = "No phone calls (owner rule)";
-const FRESH = "Trades need a fresh approval per order and the $5 cap (owner rule): a standing [Rule] would need the owner to change that in writing";
-const ONE_CANCEL = "One explicit approval per cancellation (owner rule): a [Rule] that cancels on its own runs into it";
+// Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
+// otherwise in writing, each run still asks for a one-line yes, and every order stays under the $5 cap.
+const FRESH = "Allowed as a per-person toggle (owner, 2026-10-11); each run still asks that person for a yes and each order stays under the $5 cap, so it is not automatic yet. Not built";
+const ONE_CANCEL = "One explicit approval per cancellation (owner rule): the agent asks first (\"should I cancel this for you?\") and cancels only on a yes, never on its own";
 const NO_ADVICE = "No securities advice (owner rule): choosing positions for the person is advice unless it copies a named public source exactly";
 const CAP_COPY = "The $5 per-order live cap (owner rule) makes a whole-portfolio copy impossible until the owner raises it in writing; every order also needs approval (one card can list them all)";
 const NO_DIGITS = "Never store identity digits (owner rule): bureau freezes need SSN and identity answers, so the person does that step themselves";
@@ -181,7 +183,7 @@ const MAP = [
   [105, "CARD-002", "full", "module only", null],
   // 5. subscriptions
   [106, "BILL-003 BILL-017", "part", "cancel flow reachable; proof requires the merchant's record; most merchants stop at a guided handoff (1 verified playbook)", null],
-  [107, "BILL-010 BILL-003", "part", "free-trial alerts not built", ONE_CANCEL],
+  [107, "BILL-010 BILL-003", "part", "wired as an ask: before a tracked trial bills, the proactive message asks \"should I cancel it for you?\"; YES starts the cancel flow (its card is the approval) or gives the steps when the trial never charged; never automatic", ONE_CANCEL],
   [108, "BILL-013", "full", "no usage data; the chat asks which ones", null],
   [109, "BILL-012", "full", "module only", null],
   [110, "BILL-004", "full", "not built; the chat says so", null],

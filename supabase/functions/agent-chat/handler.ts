@@ -207,7 +207,7 @@ export async function handleChat(req: Request): Promise<Response> {
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
-        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract });
+        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app" });
       } catch (e) {
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);

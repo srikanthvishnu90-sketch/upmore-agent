@@ -1,17 +1,19 @@
-// Live wiring of the message router and the three proven flows (buy from a text INV-011, cancel BILL-003, pay a person
-// back PAY-001) into the agent-chat handler. Phase 1, docs/instinct-spec-series/BUILD-STATUS.md.
+// Live wiring of the message router and the flows (buy from a text INV-011, cancel BILL-003, pay a person PAY-001/PAY-002,
+// split an expense PAY-004) into the agent-chat handler. Phase 1 and Rail 1, docs/instinct-spec-series/BUILD-STATUS.md.
 //
 // What this module does, per message:
 //   1. Restore the thread's flow state (agent_flow_state) and decide whether the message could be a flow at all.
-//   2. Load the user's real data the flows need (transactions, brokerage accounts) through the caller's RLS-scoped client.
+//   2. Load the user's real data the flows need (transactions, brokerage accounts, saved recipients) through the caller's
+//      RLS-scoped client. Pay and split share one recipient book (Rail 1): the same resolution, the same stranger path.
 //   3. Build the three sessions with connectors that report every rail that is not live as NOT_WIRED. Nothing here fakes
 //      a fill, a cancellation or a send: there is no broker-dealer adapter, no account-page reader and no partner rail,
 //      so the flows say so in their own words. A Venmo or Zelle handoff is staged for the person to send, which needs no
 //      rail, and is said plainly.
 //   4. Call AgentRouter.handle with a model extractor (forced tool call, inside the model budget). The model only
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
-//   5. Save the state before the reply goes out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+//   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
+//      out, and return route metadata for the gauntlet.
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
@@ -37,12 +39,17 @@ export interface FlowData {
   people: any[];
   instruments: any[];
   directory: Record<string, any>;
+  // Rows of public.saved_recipients. recipients_ok false means the table could not be read: person-to-person flows say
+  // so instead of treating everyone as a stranger.
+  recipients?: any[];
+  recipients_ok?: boolean;
 }
 
 export interface FlowDb {
   loadState(): Promise<any | null>;
   saveState(state: any): Promise<void>;
   loadData(): Promise<FlowData>;
+  saveRecipients?(rows: any[]): Promise<void>;
 }
 
 export interface RouteMeta {
@@ -83,30 +90,40 @@ export function liveConnectors(data: FlowData, now: () => number) {
       write: notWired("money movement: no partner rail"),
       verify: notWired("payment read-back: no partner rail"),
     },
+    split: {
+      read: async (kind: string) => { throw new NotWired(`${kind}: no payment-rail read`); },
+      write: notWired("money requests: staged for the person to tap Request; no rail is written"),
+      verify: notWired("request read-back: no partner rail"),
+    },
   };
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number) {
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
+  // One recipient book for every person-to-person flow in this message.
+  const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
   return {
     trade: AgentTrade.create({ registry, connectors: c.trade, clock: now, instruments: data.instruments, partners: LIVE_PARTNERS, compliance: Compliance, state: s.trade }),
     cancel: AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel }),
-    send: AgentSend.create({ registry, connectors: c.send, clock: now, people: data.people, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
+    send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
+    split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
+    recipients,
   };
 }
 
-const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) => AgentSend.parse(t), cancel: (t: string) => AgentCancel.parse(t) };
+const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) => AgentSend.parse(t), cancel: (t: string) => AgentCancel.parse(t), split: (t: string) => AgentSplit.parse(t) };
 
 export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
   if (saved.trade && saved.trade.pending) return true;
-  if (saved.send && saved.send.pending) return true;
+  if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer)) return true;
+  if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
   return false;
 }
 
 // One routed message. Returns null when the message is not a flow, so the existing handler answers it unchanged.
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number }): Promise<FlowReply | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null }): Promise<FlowReply | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
@@ -115,22 +132,36 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,
       route: { route: "unavailable", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "unavailable", canonical: null, ask_reason: null, problems: [data.missing || "data unavailable"] } };
   }
-  const sessions = buildSessions(data, saved, now);
+  const built = buildSessions(data, saved, now, deps.channel ?? null);
+  const { recipients, ...sessions } = built;
+  // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
+  // a split request whose credit posted is paid. Said once, ahead of the reply.
+  const notes = [...sessions.send.landed(data.transactions).map((x: any) => x.text), ...sessions.split.paid(data.transactions).map((x: any) => x.text)];
   const out = await AgentRouter.handle(message, { extract: deps.extract || undefined, sessions, parsers: PARSERS, timeout_ms: deps.timeoutMs ?? 8000 });
-  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot() };
+  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot() };
+  // Recipients saved on evidence (a completed send, or a handle typed back and SAVE) are written before the reply.
+  const rows = recipients.drain();
+  let saveError = false;
+  if (rows.length) {
+    try { if (!deps.db.saveRecipients) throw new Error("no recipient store"); await deps.db.saveRecipients(rows); } catch { saveError = true; }
+  }
   if (out.route === "fallthrough") {
     // A dropped card is still a state change; keep it, then let the existing handler answer.
-    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send })) await deps.db.saveState(state);
+    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split })) await deps.db.saveState(state);
     return null;
   }
   // Saved before the reply leaves, so a crash never leaves a card the person can see without the state that makes it safe.
   await deps.db.saveState(state);
   const r = out.result || {};
-  const reply = typeof r.text === "string" && r.text.trim() ? r.text : r.outcome === "nothing_pending" ? "There's nothing waiting on you." : "Okay.";
+  let reply = typeof r.text === "string" && r.text.trim() ? r.text : r.outcome === "nothing_pending" ? "There's nothing waiting on you." : "Okay.";
+  // Never claim a save that did not reach the database.
+  if (saveError && r.outcome === "saved") reply = "I couldn't save that right now, so nothing was saved. Reply SAVE again in a moment.";
+  if (notes.length) reply = `${notes.join(" ")} ${reply}`;
+  const problems = [...(out.problems ?? []), ...(saveError ? ["recipient save failed"] : [])];
   return {
     reply,
     withhold_user_text: !!out.withhold_text,
-    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems: out.problems ?? [] },
+    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: saveError && r.outcome === "saved" ? "not_saved" : r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems },
   };
 }
 
@@ -172,29 +203,47 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
     },
     async loadData(): Promise<FlowData> {
       const since = new Date(now() - 400 * 86400000).toISOString().slice(0, 10);
-      const [tx, accts, snaps] = await Promise.all([
+      const [tx, accts, snaps, recs] = await Promise.all([
         supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
           .eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000),
         supabase.from("brokerage_accounts").select("id,provider,label,paper,status").eq("user_id", userId),
         supabase.from("portfolio_snapshots").select("brokerage_account_id,cash,snapshot_at").eq("user_id", userId).order("snapshot_at", { ascending: false }).limit(50),
+        supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500),
       ]);
       const empty = { transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} };
       if (tx.error) return { ok: false, missing: "transactions", ...empty };
       if (accts.error || snaps.error) return { ok: false, missing: "brokerage accounts", ...empty };
-      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || []) };
+      // An unreadable recipient table (or one not yet migrated) blocks only person-to-person flows, and they say so.
+      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || [], recs.error ? null : recs.data || []) };
+    },
+    async saveRecipients(rows: any[]) {
+      for (const row of rows) {
+        const at = row.last_used_at ?? new Date(now()).toISOString();
+        if (row.op === "insert") {
+          const ins = await supabase.from("saved_recipients").insert({ user_id: userId, handle: row.handle, display_name: row.display_name, channel: row.channel, source: row.source, rail: row.rail, evidence_ref: row.evidence_ref, last_used_at: at });
+          if (!ins.error) continue;
+          if (ins.error.code !== "23505") throw new Error("Recipient could not be saved.");
+        }
+        // Already saved (or saved by a concurrent message): touch it, and a completed send upgrades a confirmed save.
+        let q = supabase.from("saved_recipients").update(row.source === "completed_send" ? { last_used_at: at, source: "completed_send" } : { last_used_at: at }).eq("user_id", userId);
+        q = row.handle ? q.ilike("handle", String(row.handle).replace(/[\\%_]/g, (c: string) => "\\" + c)) : q.eq("display_name", row.display_name);
+        if (row.rail) q = q.eq("rail", row.rail);
+        const up = await q;
+        if (up.error) throw new Error("Recipient could not be updated.");
+      }
     },
   };
 }
 
 // Pure mapping from database rows to what the flows read. Paper accounts are labeled as paper, never presented as live.
-export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[]) {
+export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = []) {
   const transactions = txRows.filter(t => t.posted_on && !t.is_pending).map(t => ({ id: t.provider_transaction_id, account_id: t.account_id, posted_at: t.posted_on, amount: Number(t.amount_cents) / 100, merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer }));
   const cashOf = (id: string) => { const s = snapRows.find(r => r.brokerage_account_id === id); return s && s.cash !== null && s.cash !== undefined ? Math.round(Number(s.cash) * 100) : undefined; };
   const brokerageAccounts = acctRows.filter(a => a.status !== "revoked").map(a => ({ id: a.id, name: `${a.provider} ${a.label}${a.paper ? " (paper)" : ""}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
-  // No saved-recipient table exists yet, so the send flow knows no one: every person is a first-time recipient and is
-  // confirmed in full. No instrument list exists yet; orders stop at the compliance gate before needing one.
+  // People come only from public.saved_recipients (rows saved on evidence); anyone else is a stranger and is confirmed in
+  // full. No instrument list exists yet; orders stop at the compliance gate before needing one.
   const people: any[] = [], instruments: any[] = [];
-  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory() };
+  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory(), recipients: recipientRows || [], recipients_ok: recipientRows !== null };
 }
 
 // Where each known merchant's own cancellation page is, from the researched catalog. Used only to point the person at
@@ -211,7 +260,7 @@ export function merchantDirectory(): Record<string, any> {
 // When the flow layer itself fails (state or data unreadable), a message that could be a flow, or a short reply that
 // could answer a card, gets one honest line; anything else falls through to the existing handler.
 export function flowErrorReply(message: string): FlowReply | null {
-  const short = /^\s*(1|2|3|y|yes|n|no|ok|okay|sure|confirm|details?|never ?mind|\d{4,8})\s*[.!?]*\s*$/i.test(message);
+  const short = /^\s*(1|2|3|y|yes|n|no|ok|okay|sure|confirm|details?|never ?mind|save|new|\d{4,8})\s*[.!?]*\s*$/i.test(message) || /^\s*[@$][\w.-]{1,40}\s*$/.test(message);
   if (!short && !AgentRouter.maybeFlow(message)) return null;
   return { reply: "Something went wrong reading this conversation's pending card or your accounts, so I did nothing. Nothing was changed. Try again in a moment.", withhold_user_text: /^\s*\d{4,8}\s*$/.test(message),
     route: { route: "error", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "error", canonical: null, ask_reason: null, problems: ["flow layer error"] } };

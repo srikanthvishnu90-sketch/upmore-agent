@@ -8,7 +8,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const ctx=vm.createContext({});
-vm.runInContext(['48-money-math.js','43-agent-loop.js','47-data-guard.js','54-agent-money.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.M=AgentMoney;this.Loop=AgentLoop;this.Guard=DataGuard;',ctx);
+vm.runInContext(['48-money-math.js','42-agent-recipients.js','43-agent-loop.js','47-data-guard.js','54-agent-money.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.M=AgentMoney;this.Loop=AgentLoop;this.Guard=DataGuard;',ctx);
 const M=ctx.M,Loop=ctx.Loop,Guard=ctx.Guard;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);
 const people=[{id:'p1',name:'Sarah M',handle:'@sarah-m',rails:['venmo','zelle'],history:[{amount_cents:8500,on:'2026-09-01'}]},{id:'p2',name:'Marcus L',handle:'@marcus',rails:['venmo'],history:[]},{id:'p3',name:'Marcus T',rails:['cash_app'],history:[]},{id:'p4',name:'Landlord LLC',bank_account:true,rails:[],history:[{amount_cents:180000,on:'2026-09-02'}]}];
@@ -26,7 +26,7 @@ test('rail selection quotes the free rail first, instant when asked, handoff rai
 
 test('the send workflow fills gaps by asking, confirms exactly, treats a new recipient as T5, stops on scam patterns and velocity limits',()=>{
   assert.equal(M.prepareSend({amount_cents:0,recipient:'Sarah'},{people}).ask,'How much?');
-  assert.match(M.prepareSend({amount_cents:8500,recipient:'Marcus'},{people}).ask,/Which Marcus: Marcus L \(@marcus\) or Marcus T\?/);
+  assert.match(M.prepareSend({amount_cents:8500,recipient:'Marcus'},{people}).ask,/^Which Marcus: Marcus L or Marcus T\?$/);
   const nr=M.prepareSend({amount_cents:8500,recipient:'Priya'},{people});assert.equal(nr.new_recipient,true);assert.match(nr.ask,/confirmed in full, every time/);
   const s=M.prepareSend({amount_cents:8500,recipient:'Sarah',memo:'airbnb'},{people,today:TODAY});
   assert.equal(s.tier,'T3');assert.equal(s.rail.id,'venmo');assert.equal(s.first_time,false);

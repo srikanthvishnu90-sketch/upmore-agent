@@ -8,7 +8,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const ctx=vm.createContext({});
-vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','36-agent-workflows.js','41-agent-recovery.js','43-agent-loop.js','46-voice.js','48-money-math.js','54-agent-money.js','57-agent-ledger.js','60-agent-money-plans.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.MP=AgentMoneyPlans;this.Loop=AgentLoop;this.L=AgentLedger;',ctx);
+vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','36-agent-workflows.js','41-agent-recovery.js','42-agent-recipients.js','43-agent-loop.js','46-voice.js','48-money-math.js','54-agent-money.js','57-agent-ledger.js','60-agent-money-plans.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.MP=AgentMoneyPlans;this.Loop=AgentLoop;this.L=AgentLedger;',ctx);
 const MP=ctx.MP,Loop=ctx.Loop,L=ctx.L;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);
 const TODAY='2026-10-10';const NOW=Date.UTC(2026,9,10,14,0,0);

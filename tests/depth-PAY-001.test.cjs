@@ -10,7 +10,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const domainDir=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
 const ctx=vm.createContext({});
-vm.runInContext(['35-agent-intents.js','43-agent-loop.js','46-voice.js','47-data-guard.js','48-money-math.js','54-agent-money.js','64-agent-send.js','67-agent-cards.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.S=AgentSend;this.M=AgentMoney;',ctx);
+vm.runInContext(['35-agent-intents.js','42-agent-recipients.js','43-agent-loop.js','46-voice.js','47-data-guard.js','48-money-math.js','54-agent-money.js','64-agent-send.js','67-agent-cards.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.S=AgentSend;this.M=AgentMoney;',ctx);
 const S=ctx.S,M=ctx.M;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
@@ -35,7 +35,7 @@ test('[S02] amounts parse to exact cents in every common form; words, zero and n
 test('[S03] a saved recipient resolves by full name, first name or handle; two matches ask which and stage nothing',async()=>{
   const {s,r}=session();
   for(const t of ['send $40 to Sarah M','send $40 to Sarah','send $40 to @sarah-m']){const a=await s.start(t);assert.equal(a.outcome,'confirm',t);assert.equal(a.send.recipient.id,'p1',t);await s.reply('no');}
-  const amb=await s.start('send $40 to Marcus');assert.equal(amb.outcome,'ask');assert.equal(amb.text,'Which Marcus: Marcus L (@marcus) or Marcus T (@mtee)?');assert.equal(s.pending,null);assert.equal(r.writes.length,0);
+  const amb=await s.start('send $40 to Marcus');assert.equal(amb.outcome,'ask');assert.equal(amb.text,'Which Marcus: Marcus L or Marcus T?');assert.equal(s.pending,null);assert.equal(r.writes.length,0);
   const one=await s.start('send $40 to Marcus T');assert.equal(one.outcome,'confirm');assert.equal(one.send.recipient.id,'p3');
 });
 
@@ -43,7 +43,7 @@ test('[S04] a stranger never passes as saved, and a handle within two edits of a
   const {s,r}=session();
   const stranger=await s.start('send $40 to Dave');assert.equal(stranger.outcome,'ask');assert.equal(stranger.new_recipient,true);assert.match(stranger.text,/^I don't have Dave on file\. .*New recipients are confirmed in full, every time\.$/);assert.equal(s.pending,null);
   const first=await s.start('send $40 to Priya K');assert.equal(first.outcome,'ask');assert.equal(first.new_recipient,true);assert.match(first.text,/^Priya K has never received money from you\. First sends go through the new-recipient path and are confirmed in full\./);
-  const la=await s.start('send $1,200 to @sarah_m');assert.equal(la.outcome,'ask');assert.equal(la.reason,'lookalike');assert.equal(la.text,'@sarah_m is not on file, but it is one character away from Sarah M (@sarah-m). Did you mean Sarah M? If this is someone new, say so and I\'ll confirm them in full.');assert.equal(s.pending,null);assert.equal(r.writes.length,0);
+  const la=await s.start('send $1,200 to @sarah_m');assert.equal(la.outcome,'ask');assert.equal(la.reason,'lookalike');assert.equal(la.text,'@sarah_m is not on file, but it is one character away from Sarah M (@sarah-m). Did you mean Sarah M? If this is someone new, say NEW and I\'ll confirm them in full.');assert.equal(s.pending,null);assert.equal(r.writes.length,0);
   assert.equal(S.lookalike('@sarahm',people).suspect.id,'p1');assert.equal(S.lookalike('@sarah-m',people).exact.id,'p1');assert.equal(S.lookalike('@zzzzzz',people),null);
 });
 

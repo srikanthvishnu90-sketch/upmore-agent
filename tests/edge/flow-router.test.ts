@@ -15,12 +15,13 @@ function txRows() {
   out.push({ account_id: "visa", provider_transaction_id: "p1", amount_cents: -5000, posted_on: null, merchant_raw: "PENDING THING", is_pending: true, is_transfer: false });
   return out;
 }
-function memDb(opts: { fail?: string; people?: any[] } = {}) {
-  const store: { state: any; saves: number } = { state: null, saves: 0 };
+function memDb(opts: { fail?: string; people?: any[]; recipients?: any[]; tx?: any[]; failSave?: boolean } = {}) {
+  const store: { state: any; saves: number; recipients: any[]; recipientWrites: any[] } = { state: null, saves: 0, recipients: (opts.recipients || []).slice(), recipientWrites: [] };
   const db: FlowDb = {
     async loadState() { if (opts.fail === "state") throw new Error("Flow state unavailable."); return store.state ? JSON.parse(JSON.stringify(store.state)) : null; },
     async saveState(s: any) { store.saves++; store.state = JSON.parse(JSON.stringify(s)); },
-    async loadData() { if (opts.fail === "data") return { ok: false, missing: "transactions", transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} }; const d = mapFlowData(txRows(), [{ id: "acct-1", provider: "alpaca", label: "main", paper: true, status: "active" }], [{ brokerage_account_id: "acct-1", cash: 2500, snapshot_at: "2026-10-12T13:00:00Z" }]); if (opts.people) d.people = opts.people; return { ok: true, ...d }; },
+    async loadData() { if (opts.fail === "data") return { ok: false, missing: "transactions", transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} }; const d = mapFlowData(txRows().concat(opts.tx || []), [{ id: "acct-1", provider: "alpaca", label: "main", paper: true, status: "active" }], [{ brokerage_account_id: "acct-1", cash: 2500, snapshot_at: "2026-10-12T13:00:00Z" }], opts.fail === "recipients" ? null : JSON.parse(JSON.stringify(store.recipients))); if (opts.people) d.people = opts.people; return { ok: true, ...d }; },
+    async saveRecipients(rows: any[]) { if (opts.failSave) throw new Error("recipient store down"); for (const r of rows) { store.recipientWrites.push(r); if (r.op === "insert") store.recipients.push({ id: "rec-" + store.recipients.length, handle: r.handle, display_name: r.display_name, channel: r.channel, source: r.source, rail: r.rail, last_used_at: r.last_used_at }); } },
   };
   return { db, store };
 }
@@ -36,7 +37,8 @@ const stubModel = async (m: string) => STUB[m] ?? { intent: "other" };
 Deno.test("data mapping: pending rows are excluded, cents are exact, paper accounts say paper, and no partner is live", () => {
   const d = mapFlowData(txRows(), [{ id: "a", provider: "alpaca", label: "main", paper: true, status: "active" }, { id: "b", provider: "alpaca", label: "old", paper: false, status: "revoked" }], [{ brokerage_account_id: "a", cash: 12.34 }]);
   eq(d.transactions.length, 4); eq(d.transactions[0].amount, -17.99); eq(d.brokerageAccounts.length, 1); eq(d.brokerageAccounts[0].name, "alpaca main (paper)"); eq(d.brokerageAccounts[0].cash_cents, 1234);
-  eq(d.people, [], "no saved-recipient table exists, so nobody is presented as saved");
+  eq(d.people, [], "people come only from saved_recipients rows"); eq(d.recipients, []); eq(d.recipients_ok, true);
+  eq(mapFlowData([], [], [], null).recipients_ok, false, "an unreadable recipient table is reported, never treated as empty");
   eq(Object.keys(LIVE_PARTNERS).length, 0, "no rail is live; nothing can be configured to look live");
   assert(Object.keys(merchantDirectory()).length > 0, "the researched cancellation pages are available as guidance");
 });
@@ -122,4 +124,41 @@ Deno.test("with the model down, the regex net still routes the corpus to the rig
     assert(seg <= 2, `${item.id} reply is ${seg} segments: ${r.reply}`);
   }
   eq(misses, [], "regex-net routing misses");
+});
+
+Deno.test("Rail 1 live wiring: pay and split share saved_recipients; a stranger is confirmed in full, saved only when the debit posts, then goes straight to the card", async () => {
+  const sarah = { id: "r1", handle: "@sarah_m", display_name: "Sarah M", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: "2026-10-01T00:00:00Z" };
+  const { db, store } = memDb({ recipients: [sarah] }); let now = T0; let calls = 0;
+  const model: Record<string, any> = {
+    "venmo dana 25 for tickets": { intent: "send_money", amount_span: "25", amount_cents: 2500, recipient_span: "dana", memo_span: "tickets" },
+    "split $60 with sarah and dana": { intent: "split_expense", amount_span: "$60", amount_cents: 6000, recipient_span: "sarah and dana" },
+  };
+  const extract = async (m: string) => { calls++; return model[m] ?? { intent: "other" }; };
+  const go = (m: string) => routeFlows(m, { db, extract, now: () => now, channel: "sms" });
+  const a = await go("venmo dana 25 for tickets");
+  eq(a!.route.flow, "send"); eq(a!.route.outcome, "ask"); eq(a!.route.ask_reason, "new_recipient"); assert(/^I don't have Dana on file\. Reply with Dana's Venmo handle\./.test(a!.reply), a!.reply);
+  const b = await go("@dana-k"); assert(/^New recipient: Dana, Venmo @dana-k\./.test(b!.reply), b!.reply); eq(calls, 1, "the handle never reaches the model");
+  const c = await go("@dana-k"); eq(c!.route.outcome, "confirm"); assert(/^New recipient, first send: set up \$25\.00 to Dana \(@dana-k\) in Venmo/.test(c!.reply), c!.reply); assert(AgentCards.segments(c!.reply).segments <= 2);
+  const y = await go("yes"); eq(y!.route.outcome, "staged"); eq(store.recipientWrites.length, 0, "staged is not sent: nobody saved");
+  // The debit posts; the next routed message announces it and the recipient is saved with the transaction as evidence.
+  const { db: db2, store: store2 } = memDb({ recipients: [sarah], tx: [{ account_id: "chk", provider_transaction_id: "v-555", amount_cents: -2500, posted_on: "2026-10-12", merchant_raw: "VENMO *DANA K", is_pending: false, is_transfer: false }] });
+  store2.state = store.state; now += 3600000;
+  const go2 = (m: string) => routeFlows(m, { db: db2, extract, now: () => now, channel: "sms" });
+  const s = await go2("split $60 with sarah and dana");
+  assert(/^Landed\. \$25\.00 to Dana/.test(s!.reply), s!.reply);
+  eq(store2.recipientWrites.length, 1); eq(store2.recipientWrites[0].source, "completed_send"); eq(store2.recipientWrites[0].evidence_ref, "txn:v-555"); eq(store2.recipientWrites[0].channel, "sms");
+  eq(s!.route.flow, "split"); eq(s!.route.outcome, "confirm", "Dana, saved from the pay flow, resolves by name in the split flow");
+  assert(/Request \$20\.00 each from Sarah M \(@sarah_m\) and Dana \(@dana-k\) in Venmo: \$60\.00 split 3 ways, yours \$20\.00/.test(s!.reply), s!.reply);
+});
+
+Deno.test("Rail 1 live wiring: unreadable recipients are said plainly; a SAVE that cannot be written is never claimed", async () => {
+  const { db } = memDb({ fail: "recipients" });
+  const r = await routeFlows("venmo sam 40 for pizza", { db, extract: stubModel, now: () => T0 });
+  eq(r!.route.outcome, "unavailable"); eq(r!.reply, "I can't read your saved recipients right now, so I can't pay or request from anyone yet. Nothing was changed.");
+  const { db: d2, store } = memDb({ failSave: true }); let now = T0;
+  const model = async (m: string) => m === "venmo dana 25" ? { intent: "send_money", amount_span: "25", amount_cents: 2500, recipient_span: "dana" } : { intent: "other" };
+  for (const m of ["venmo dana 25", "@dana-k", "@dana-k", "yes"]) await routeFlows(m, { db: d2, extract: model, now: () => now });
+  const s = await routeFlows("SAVE", { db: d2, extract: model, now: () => now });
+  eq(s!.route.outcome, "not_saved"); eq(s!.reply, "I couldn't save that right now, so nothing was saved. Reply SAVE again in a moment."); assert(s!.route.problems.includes("recipient save failed"));
+  eq(store.recipients.length, 0);
 });

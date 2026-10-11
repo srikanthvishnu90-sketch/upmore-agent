@@ -1,0 +1,237 @@
+{
+ "capability": "RAIL-1",
+ "run_at": "2026-10-11T03:51:10.817Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 16,
+ "proven": 16,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Exact handle first, and a handle is only a handle",
+   "defect": "the handle step runs for every query, so a first name that equals someone's handle resolves silently",
+   "test": "@marcus resolves by handle; a bare \"marcus\" shared by two people asks",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S04",
+    "S13",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Full name second",
+   "defect": "the full-name step is skipped, so a first-name match wins",
+   "test": "\"sam\" picks the saved Sam, not Sam K",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S15",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "First name third",
+   "defect": "the first-name step is skipped, so every first name is a stranger",
+   "test": "a unique first name goes straight to the card",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S04",
+    "S11",
+    "S13",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "Two matches ask and stage nothing",
+   "defect": "an ambiguous first name takes the first match",
+   "test": "\"Which Marcus: Marcus L or Marcus T?\" with no card and no loop confirmation",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S13",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "A handle look-alike is named",
+   "defect": "the look-alike window is zero edits, so a near handle is a stranger with no warning",
+   "test": "@sarah-m next to a saved @sarah_m is named, never resolved",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S13"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "A name look-alike is asked about",
+   "defect": "names are never compared for near misses",
+   "test": "\"sarha\" asks \"Did you mean Sarah M?\"",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "Saved goes straight to the card",
+   "defect": "only payment history counts, so every saved row with no history is sent down the new-recipient path",
+   "test": "a saved row with no history gets the PAY-001 card",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S11",
+    "S15"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "A stranger is asked who, and nothing is staged",
+   "defect": "an unknown name is staged directly with a guessed handle",
+   "test": "an unknown name asks for the app and handle; no card exists",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "The handle is typed back exactly",
+   "defect": "any reply counts as the read-back",
+   "test": "@dana_k for @dana-k does not match; two misses stop",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "The stranger's card is the full first-send card",
+   "defect": "a confirmed stranger is sent under the saved-recipient capability",
+   "test": "the loop sees PAY-002 (T5) for a confirmed stranger",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "Saved only after a completed send",
+   "defect": "a staged handoff is saved as a completed send",
+   "test": "staging saves nobody; the posted debit saves with the transaction as evidence",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S10",
+    "S12"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Or an explicit SAVE, never a mention",
+   "defect": "any approval counts as a confirmed save, read-back or not",
+   "test": "a save without the read-back is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Split resolves through the same layer",
+   "defect": "split takes the first candidate when a name is ambiguous",
+   "test": "split asks the same \"Which Marcus\" question as pay",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "Unreadable recipients are said, not guessed",
+   "defect": "an unreadable table is treated as an empty one",
+   "test": "pay and split say the recipients cannot be read",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "A handle per app, and the card shows the right one",
+   "defect": "the card keeps the most recent row's handle whatever app the money goes by",
+   "test": "with no app named, the card shows the handle on the app the money goes by",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Follow-up replies never reach the model",
+   "defect": "follow-up replies are not routed, so they go to the model and are lost",
+   "test": "a handle, YES, SAVE and \"marcus t\" go to the asking flow with zero model calls",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

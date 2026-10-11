@@ -1679,5 +1679,16 @@
    "packages/domain/51-connectors.js"
   ],
   "note": "The manual CSV adapter: accounts and transactions typed or uploaded by the user, synced and normalized like any connector, ranked below aggregators as a source."
+ },
+ "PAY-002": {
+  "status": "TESTED",
+  "test_ref": "tests/depth-RAIL-1.test.cjs",
+  "implementation": [
+   "packages/domain/42-agent-recipients.js",
+   "packages/domain/64-agent-send.js",
+   "packages/domain/54-agent-money.js",
+   "supabase/migrations/20261011020000_saved_recipients.sql"
+  ],
+  "note": "Rail 1 (docs/depth/RAIL-1.md): a stranger is never staged until the person names the app and handle, types the handle back exactly, and approves the full first-send card (T5, every time). Handoff only: staged for the person to send; no partner rail is live. Saved to public.saved_recipients only when the debit posts or on an explicit SAVE after the read-back."
  }
 }

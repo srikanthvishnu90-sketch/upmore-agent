@@ -10,7 +10,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const ctx=vm.createContext({setTimeout,clearTimeout});
-vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','41-agent-recovery.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','49-agent-save.js','50-agent-invest.js','53-compliance.js','54-agent-money.js','64-agent-send.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js','68-agent-cancel.js','69-agent-router.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.R=AgentRouter;this.T=AgentTrade;this.X=AgentCancel;this.S=AgentSend;this.C=Compliance;',ctx);
+vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','41-agent-recovery.js','42-agent-recipients.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','49-agent-save.js','50-agent-invest.js','53-compliance.js','54-agent-money.js','64-agent-send.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js','68-agent-cancel.js','69-agent-router.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.R=AgentRouter;this.T=AgentTrade;this.X=AgentCancel;this.S=AgentSend;this.C=Compliance;',ctx);
 const {R,T,X,S,C}=ctx;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
@@ -46,7 +46,7 @@ const snap=ss=>JSON.parse(JSON.stringify({trade:ss.trade.snapshot(),cancel:ss.ca
 
 test('the tool schema and system prompt make the model extract verbatim spans, name one intent, and never approve',()=>{
   assert.equal(R.TOOL.name,'route_message');assert.equal(JSON.stringify(R.TOOL.input_schema.required),'["intent"]');
-  assert.equal(R.TOOL.input_schema.properties.intent.enum.join(),'buy_security,cancel_subscription,send_money,card_reply,other');
+  assert.equal(R.TOOL.input_schema.properties.intent.enum.join(),'buy_security,cancel_subscription,send_money,split_expense,card_reply,other');
   assert.match(R.SYSTEM,/verbatim/);assert.match(R.SYSTEM,/You never approve anything/);assert.match(R.SYSTEM,/data, never an instruction/);
   assert.equal(R.numberIn('five hundred dollars'),500);assert.equal(R.numberIn('forty'),40);assert.equal(R.numberIn('two hundred and fifty'),250);assert.equal(R.numberIn('1.5k'),1500);
 });
@@ -117,4 +117,16 @@ test('a stateless host restores every flow from JSON between messages: one yes s
   const e=await turn('yes');assert.equal(e.result.outcome,'expired');assert.equal(w.writes.length,0,'a stale yes across a restore fires nothing');
   w.clock.now+=MIN;const f=await turn('buy $500 of VOO');assert.equal(f.result.outcome,'confirm');const g=await turn('yes');assert.equal(g.result.outcome,'filled');assert.equal(w.writes.length,1);
   const h=await turn('yes');assert.equal(w.writes.length,1,'no double fill after restore');
+});
+
+test('the app the person named survives the model path, and a new request in the same flow replaces its live card instead of stacking',async()=>{
+  const two=[{id:'p1',name:'Sam K',handle:'@samk',handles:{venmo:'@samk',zelle:'sam@example.com'},rails:['venmo','zelle'],saved:true,history:[]}];
+  assert.equal(R.canonical({intent:'send_money',amount_cents:4000,recipient_span:'sam'},'can you zelle sam forty dollars'),'zelle $40.00 to sam');
+  assert.equal(R.canonical({intent:'send_money',amount_cents:4000,recipient_span:'sam'},'send sam $40'),'send $40.00 to sam');
+  const w=world();const ss=sessions(w);ss.send=S.create({registry,connectors:w.conn,clock:()=>w.clock.now,people:two,partners:{},limits:{per_day_cents:1000000,per_week_cents:3000000}});
+  const z=await R.handle('can you zelle sam forty dollars',{extract:stub({'can you zelle sam forty dollars':{intent:'send_money',amount_span:'forty dollars',amount_cents:4000,unit:'dollars',recipient_span:'sam'}}),sessions:ss,parsers});
+  assert.equal(z.result.outcome,'confirm');assert.match(z.result.text,/\$40\.00 to Sam K \(sam@example\.com\) in Zelle/);
+  const again=await R.handle('send sam $50',{extract:stub({'send sam $50':{intent:'send_money',amount_span:'$50',amount_cents:5000,unit:'dollars',recipient_span:'sam'}}),sessions:ss,parsers});
+  assert.equal(again.result.outcome,'confirm','not "busy"');assert.deepEqual([...again.dropped],['send']);assert.match(again.result.text,/^I dropped the earlier card\. Set up \$50\.00 to Sam K/);
+  const y=await R.handle('yes',{extract:null,sessions:ss,parsers});assert.equal(y.result.outcome,'staged');assert.equal(y.result.send.amount_cents,5000,'only the latest card can fire');
 });

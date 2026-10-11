@@ -10,7 +10,8 @@
     const FLOWS = {
       buy_security: { flow: "trade", capability: "INV-011" },
       cancel_subscription: { flow: "cancel", capability: "BILL-003" },
-      send_money: { flow: "send", capability: "PAY-001" }
+      send_money: { flow: "send", capability: "PAY-001" },
+      split_expense: { flow: "split", capability: "PAY-004" }
     };
     const INTENTS = Object.keys(FLOWS).concat(["card_reply", "other"]);
     const SPANS = ["amount_span", "instrument_span", "merchant_span", "recipient_span", "account_span", "memo_span"];
@@ -22,14 +23,14 @@
       input_schema: {
         type: "object", additionalProperties: false, required: ["intent"],
         properties: {
-          intent: { type: "string", enum: INTENTS, description: "buy_security: buy a stock, ETF or fund. cancel_subscription: stop a recurring charge or membership. send_money: pay or send money to a person. card_reply: the message only answers a pending confirmation (yes, no, details, never mind, a correction). other: anything else, including questions about how something works and requests to sell, which are other flows." },
+          intent: { type: "string", enum: INTENTS, description: "buy_security: buy a stock, ETF or fund. cancel_subscription: stop a recurring charge or membership. send_money: pay or send money to a person. split_expense: split a bill or expense the person paid with other people (they owe their shares). card_reply: the message only answers a pending confirmation (yes, no, details, never mind, a correction). other: anything else, including questions about how something works and requests to sell, which are other flows." },
           amount_span: { type: ["string", "null"], description: "The exact words that state the amount, copied verbatim (\"500 bucks\", \"five hundred dollars\", \"2 shares\", \"$40\"). Null if no amount was written." },
           amount_cents: { type: ["integer", "null"], description: "The amount in cents when the span is money; null for shares or when unclear." },
           quantity: { type: ["number", "null"], description: "The share count when the span is shares; null otherwise." },
           unit: { type: ["string", "null"], enum: ["dollars", "shares", null], description: "Whether the amount is money or a share count. Null when the person did not say (\"buy 500 VOO\")." },
           instrument_span: { type: ["string", "null"], description: "The words naming what to buy, verbatim (\"voo\", \"the vanguard s&p fund\"). Never a ticker the person did not write." },
           merchant_span: { type: ["string", "null"], description: "The words naming the subscription or merchant, verbatim, typos included (\"netflx\")." },
-          recipient_span: { type: ["string", "null"], description: "The words naming the person to pay, verbatim (\"sam\", \"@sarah-m\")." },
+          recipient_span: { type: ["string", "null"], description: "The words naming the person to pay, or the people to split with, verbatim (\"sam\", \"@sarah-m\", \"marcus and sarah\")." },
           account_span: { type: ["string", "null"], description: "The words naming the account to use, verbatim (\"my roth\", \"savings\")." },
           memo_span: { type: ["string", "null"], description: "What the payment is for, verbatim (\"pizza\")." }
         }
@@ -82,12 +83,17 @@
 
     const money = c => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     // The normalized text each flow's own parser reads. The flow still parses, resolves, asks and confirms.
-    function canonical(e) {
+    // The app the person named stays in the text the flow reads ("zelle sam forty" must card Zelle, not the cheapest app).
+    const RAIL_WORD = /\b(venmo|zelle|cash ?app|paypal)\b/i;
+    function canonical(e, raw) {
+      const rw = RAIL_WORD.exec(String(raw || "")), on = rw ? ` on ${rw[1].toLowerCase()}` : "";
       if (e.intent === "buy_security") {
         const size = e.unit === "shares" && e.quantity ? `${e.quantity} shares` : e.amount_cents ? money(e.amount_cents) : e.ambiguous_number ? String(e.ambiguous_number) : "";
         return `buy ${size ? size + " " : ""}${e.instrument_span ? "of " + e.instrument_span : ""}${e.account_span ? " in " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
       }
       if (e.intent === "cancel_subscription") return `cancel ${e.merchant_span || ""}`.trim();
+      if (e.intent === "split_expense") return `split ${e.amount_cents ? money(e.amount_cents) + " " : ""}with ${e.recipient_span || ""}${on}${e.memo_span ? " for " + e.memo_span : ""}`.replace(/\s+/g, " ").trim();
+      if (e.intent === "send_money" && rw) return `${rw[1].toLowerCase()} ${e.amount_cents ? money(e.amount_cents) + " " : ""}to ${e.recipient_span || ""}${e.memo_span ? " for " + e.memo_span : ""}${e.account_span ? " from " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
       if (e.intent === "send_money") return `send ${e.amount_cents ? money(e.amount_cents) + " " : ""}to ${e.recipient_span || ""}${e.memo_span ? " for " + e.memo_span : ""}${e.account_span ? " from " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
       return null;
     }
@@ -98,6 +104,7 @@
       const r = p(raw) || {};
       if (flow === "trade") return { amount_cents: r.notional_cents || null, quantity: r.quantity || null, name: r.query || null };
       if (flow === "send") return { amount_cents: r.amount_cents || null, name: r.recipient || null };
+      if (flow === "split") return { amount_cents: r.amount_cents || null, name: (r.names || []).join(" and ") || null };
       if (flow === "cancel") return { name: r.merchant || null };
       return null;
     }
@@ -107,14 +114,14 @@
       const out = [];
       if (n.amount_cents && e.amount_cents && n.amount_cents !== e.amount_cents) out.push({ field: "amount", model: money(e.amount_cents), net: money(n.amount_cents) });
       if (n.quantity && e.quantity && n.quantity !== e.quantity) out.push({ field: "quantity", model: String(e.quantity), net: String(n.quantity) });
-      const name = flow === "trade" ? e.instrument_span : flow === "send" ? e.recipient_span : e.merchant_span;
-      if (n.name && name && !sameName(n.name, name)) out.push({ field: flow === "trade" ? "what to buy" : flow === "send" ? "who to pay" : "what to cancel", model: name, net: n.name });
+      const name = flow === "trade" ? e.instrument_span : flow === "send" || flow === "split" ? e.recipient_span : e.merchant_span;
+      if (n.name && name && !sameName(n.name, name)) out.push({ field: flow === "trade" ? "what to buy" : flow === "send" ? "who to pay" : flow === "split" ? "who to split with" : "what to cancel", model: name, net: n.name });
       return out;
     }
 
     function complete(flow, e, n) {
-      if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity) && n.name) : flow === "send" ? !!(n.amount_cents && n.name) : !!n.name;
-      return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
+      if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
+      return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
     const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
@@ -128,6 +135,15 @@
       if (/^\s*\d{4,8}\s*$/.test(text) && sessions.cancel && sessions.cancel.awaiting_code) {
         const result = await sessions.cancel.otp(text.trim());
         return { route: "otp", source: "deterministic", flow: "cancel", result, understood: true, understood_first: true, withhold_text: true };
+      }
+      // A reply to a flow's own follow-up (the handle it asked for, NEW, the answer to "Which Marcus", SAVE) goes to that
+      // flow and never to the model. The most recent asker wins when two could take it.
+      for (const k of Object.keys(sessions).reverse()) {
+        const sx = sessions[k];
+        if (sx && sx.awaiting_input && typeof sx.accepts === "function" && sx.accepts(text)) {
+          const result = await sx.reply(text);
+          return { route: "card_reply", source: "deterministic", flow: k, result, understood: true, understood_first: true, note: "follow-up" };
+        }
       }
       // A reply to a live card never goes through the model: the flow's own deterministic classifier decides.
       if (live.length && (YES_NO.test(text) || CORRECTION.test(text) || /^\s*\d{4,8}\s*$/.test(text))) {
@@ -144,7 +160,7 @@
       if (!e) {
         // Safety net: the regex parsers route alone, and the result says so.
         source = "regex_net";
-        const guess = /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) ? "send_money" : "other";
+        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) ? "send_money" : "other";
         e = { intent: guess };
       }
       if (e.intent === "card_reply") {
@@ -159,23 +175,24 @@
       if (dis.length) return { route: "ask", source, flow: f.flow, disagreements: dis, problems: v.problems || [], understood: false, understood_first: false, result: { outcome: "ask", reason: "disagreement", text: dis.map(d => `Did you mean ${d.model} or ${d.net} for ${d.field}?`).join(" ") } };
       // Two cards never stack: a new flow drops the other flow's live card and says so.
       const dropped = [];
-      for (const k of live) if (k !== f.flow) { await sessions[k].reply("never mind"); dropped.push(k); }
-      const can = source === "model" ? canonical(e) : text;
+      for (const k of live) { await sessions[k].reply("never mind"); dropped.push(k); }
+      for (const k of Object.keys(sessions)) if (k !== f.flow && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+      const can = source === "model" ? canonical(e, text) : text;
       const result = await sessions[f.flow].start(can);
       // Understood means the flow and every detail it needs were read from the message (and agreed with the net).
       // Understood on the first message also means the flow did not have to ask about the person's words. A flow that
       // understood but cannot act (no partner, an unreadable account page) is understood, and its outcome says why.
       const understood = complete(f.flow, e, source === "model" ? null : n);
       // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding.
-      const DATA_GAP = ["new_recipient", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap"];
+      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap"];
       const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
       return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped };
     }
     // Cheap pre-filter so ordinary chat does not pay for an extra model call: a message is sent to the extractor only when
-    // it could be one of the three flows (or answers a live card, which the host checks from saved state). Broad on
+    // it could be one of the flows (or answers a live card, which the host checks from saved state). Broad on
     // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
-    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire)\b/i;
+    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split)\b/i;
     const maybeFlow = text => MAYBE.test(String(text || ""));
     return { handle, validate, canonical, disagreements, numberIn, maybeFlow, TOOL, SYSTEM, INTENTS, FLOWS };
   })();

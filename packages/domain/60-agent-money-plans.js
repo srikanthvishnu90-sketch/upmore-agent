@@ -18,14 +18,18 @@
     const monthOf = s => ymd(s).slice(0, 7);
     const addMonths = (s, n) => { const d = new Date(dayMs(s)); const day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n); d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate())); return d.toISOString().slice(0, 10); };
     const businessDaysBefore = (s, n) => { let d = ymd(s), left = n; while (left > 0) { d = addDays(d, -1); const w = new Date(dayMs(d)).getUTCDay(); if (w !== 0 && w !== 6) left--; } return d; };
-    const person = (people, who) => (people || []).find(p => p.id === who || (p.name && p.name.toLowerCase() === String(who || "").toLowerCase()) || (p.handle && p.handle.toLowerCase() === String(who || "").toLowerCase())) || null;
+    // People resolve through the one recipient layer (42-agent-recipients.js): exact handle, then full name, then first
+    // name; an ambiguous or look-alike name is asked about, never picked. A stored id is looked up directly.
+    const Rec = () => { if (typeof AgentRecipients === "undefined") throw new Error("AgentMoneyPlans needs AgentRecipients loaded: every person-to-person flow resolves recipients through one layer."); return AgentRecipients; };
+    const person = (people, who) => (people || []).find(p => p.id && p.id === who) || (() => { const r = Rec().resolve(who, people); return r.status === "saved" ? r.person : null; })();
+    const askFor = (people, who, fallback) => { const r = Rec().resolve(who, people); return ["ambiguous", "lookalike", "unavailable"].includes(r.status) ? r.ask : fallback; };
     const request = (capability_id, key, params, describe, confirm, extra) => Object.assign({ capability_id, key, idempotency_key: key, params, describe, confirm }, extra || {});
     const acct = (accounts, id) => (accounts || []).find(a => a.id === id || a.nickname === id || a.kind === id) || null;
 
     // PAY-003: a request for money. Staged on the rail the person uses (the user taps send on the request), reminders in the tone asked for, settled when the matching credit lands.
     const TONES = { friendly: ["Hey {name}, when you get a sec: {amount} for {what}. No rush!", "Gentle nudge on the {amount} for {what} whenever works."], plain: ["Reminder: {amount} for {what} is still open.", "Second reminder: {amount} for {what}."], firm: ["{name}, the {amount} for {what} is now {days} days old. Can you send it today?", "Final reminder: {amount} for {what}, {days} days outstanding."] };
     function requestMoney(spec, ctx) {
-      const c = ctx || {}, p = person(c.people, spec.from); if (!p) return { ask: `Who is ${spec.from}? I only request money from people in your list, so a wrong name never gets a bill.` };
+      const c = ctx || {}, p = person(c.people, spec.from); if (!p) return { ask: askFor(c.people, spec.from, `Who is ${spec.from}? I only request money from people in your list, so a wrong name never gets a bill.`) };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
       const rail = (p.rails || []).find(r => ["venmo", "cash_app", "paypal", "zelle"].includes(r)) || null;
       const r = { id: `req-${c.today}-${p.id}-${spec.amount_cents}`, from: p.id, name: p.name, amount_cents: spec.amount_cents, what: spec.what || "what you owe", rail, status: "open", created_on: c.today, tone: spec.tone || "friendly", reminders_sent: 0, handoff: rail ? `${rail === "zelle" ? "Zelle" : rail === "cash_app" ? "Cash App" : rail.charAt(0).toUpperCase() + rail.slice(1)} request to ${p.name}${p.handle ? ` (${p.handle})` : ""} for ${money(spec.amount_cents)}, note "${spec.what || "what you owe"}": staged, you tap Request.` : `${p.name} has no request rail on file; I'll draft the message and you pick how to collect.` };
@@ -49,7 +53,7 @@
       const c = ctx || {};
       if (!spec.on || dayMs(spec.on) <= dayMs(c.today)) return { ask: "Which date? It has to be after today." };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
-      const p = person(c.people, spec.to); if (!p) return { ask: `Who is ${spec.to}? Add them first so a scheduled payment never goes to a stranger.` };
+      const p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}? Add them first so a scheduled payment never goes to a stranger.`) };
       const rail = spec.rail || (p.bank_account ? "ach" : (p.rails || [])[0] || null), cutoff = rail === "ach" ? businessDaysBefore(spec.on, 1) : addDays(spec.on, -1);
       const s = { id: `sched-${spec.on}-${p.id}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, on: spec.on, rail, cutoff_on: cutoff, memo: spec.memo || null, status: "scheduled", created_on: c.today, capability_id: "PAY-007", tier: "T3" };
       s.text = `Scheduled: ${money(s.amount_cents)} to ${p.name} on ${s.on} by ${rail ? rail.toUpperCase() : "a rail you choose"}. You can cancel until ${cutoff}; after that it is in flight. I confirm with you the day before it goes.`;
@@ -130,7 +134,7 @@
 
     // PAY-025: allowance or recurring family send. A saved person, a fixed amount, a cadence, a cap; one request per period under its own key.
     function allowance(spec, ctx) {
-      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: `Who is ${spec.to}? Allowances only go to people in your list.` };
+      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}? Allowances only go to people in your list.`) };
       if (!(p.history && p.history.length) && !spec.first_send_confirmed) return { ask: `${p.name} has never received money from you. The first send is confirmed in full; after that the allowance runs on its cadence.`, new_recipient: true };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much each time?" };
       if (!["weekly", "biweekly", "monthly"].includes(spec.cadence)) return { ask: "Weekly, every two weeks, or monthly?" };
@@ -177,7 +181,7 @@
     }
     function contribute(g, who, amount_cents, on, ctx) { g.goal.contributions.push({ who, amount_cents, on }); return request("SOC-005", `goal:${g.id}:${who}:${on}:${amount_cents}`, { amount_cents, recipient: g.goal.account || g.name, from: ctx && ctx.from || null }, `${who}: ${money(amount_cents)} to ${g.goal.name}`, { action: "Move", amount: money(amount_cents), recipient: g.goal.name, timing: "today", fee_cents: 0 }, { amount_cents, recipient: g.goal.account || g.name }); }
     function gift(spec, ctx) {
-      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: `Who is ${spec.to}?` };
+      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}?`) };
       if (!spec.occasion) return { ask: "What is the occasion? It goes in the note." };
       const on = spec.on || c.today, note = `${spec.occasion}${spec.message ? ": " + spec.message : ""}`;
       const r = request("SOC-008", `gift:${p.id}:${on}:${spec.amount_cents}`, { amount_cents: spec.amount_cents, recipient: p.name, memo: note, rail: (p.rails || [])[0] || null }, `Gift ${money(spec.amount_cents)} to ${p.name} for ${spec.occasion}`, { action: "Send", amount: money(spec.amount_cents), recipient: p.name, timing: on === c.today ? "today" : `on ${on}`, fee_cents: 0 }, { amount_cents: spec.amount_cents, recipient: p.name, send_on: on, occasion: spec.occasion });

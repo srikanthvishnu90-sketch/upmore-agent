@@ -47,20 +47,23 @@
       return { rail, options: candidates.sort((a, b) => a.fee_cents - b.fee_cents), comparison: candidates.map(x => `${x.name}${x.mode === "handoff" ? " (you tap, I stage)" : ""}: ${x.fee_cents ? money(x.fee_cents) + " fee" : "free"}, ${x.speed}`).join(". ") + ".", why: req.speed === "instant" ? "you asked for speed" : "free rail first; say instant if you need minutes" };
     }
 
-    // Parse and fill the gaps: resolve the recipient from the people directory; ask on any gap where a wrong guess costs money or reaches the wrong person.
+    // Parse and fill the gaps: the recipient resolves through the one recipient layer (42-agent-recipients.js) every
+    // person-to-person flow uses; ask on any gap where a wrong guess costs money or reaches the wrong person.
     function resolveRecipient(name, people) {
-      const n = String(name || "").trim().toLowerCase(); if (!n) return { ask: "Who should I send it to?" };
-      const hits = (people || []).filter(p => p.name.toLowerCase() === n || p.name.toLowerCase().startsWith(n + " ") || (p.aliases || []).some(a => a.toLowerCase() === n));
-      if (hits.length === 1) return { person: hits[0] };
-      if (hits.length > 1) return { ask: `Which ${name}: ${hits.map(h => `${h.name}${h.handle ? " (" + h.handle + ")" : ""}`).join(" or ")}?`, candidates: hits };
-      return { new_recipient: true, ask: `I don't have ${name} on file. What's their handle or bank details? New recipients are confirmed in full, every time.` };
+      if (typeof AgentRecipients === "undefined") throw new Error("AgentMoney needs AgentRecipients loaded: every person-to-person flow resolves recipients through one layer.");
+      const r = AgentRecipients.resolve(name, people);
+      if (r.status === "saved") return { person: r.person, matched_by: r.matched_by };
+      if (r.status === "ambiguous") return { ask: r.ask, candidates: r.candidates };
+      if (r.status === "lookalike") return { ask: r.ask, lookalike: r.suspect };
+      if (r.status === "stranger") return { new_recipient: true, ask: `I don't have ${name} on file. What's their handle or bank details? New recipients are confirmed in full, every time.` };
+      return { ask: r.ask };
     }
     function prepareSend(req, ctx) {
       const c = ctx || {}, out = { kind: "send" };
       if (!Number.isSafeInteger(req.amount_cents) || req.amount_cents <= 0) return { ask: "How much?" };
       const scam = SCAM.exec(`${req.memo || ""} ${req.instruction || ""}`); if (scam) return { stop: true, reason: "scam_pattern", message: `Stopping: "${scam[0]}" in this request matches a known scam pattern. No real agency or company asks for money this way. Nothing was sent, and this check cannot be turned off by anything written in a message.` };
       const r = resolveRecipient(req.recipient, c.people); if (r.ask && !r.person) return { ask: r.ask, new_recipient: !!r.new_recipient };
-      const person = r.person, first = !(person.history && person.history.length);
+      const person = r.person, first = !(person.saved || (person.history && person.history.length)); // saved means paid before or confirmed by read-back and SAVE
       const velocity = checkVelocity(req.amount_cents, c.sent_today_cents || 0, c.sent_week_cents || 0, c.envelope || {}); if (!velocity.ok) return { stop: true, reason: "velocity", message: velocity.message };
       const sel = selectRail({ amount_cents: req.amount_cents, recipient: person, speed: req.speed }, c); if (!sel.rail) return { ask: `${person.name} has no rail I can reach. Which app or bank do they use?` };
       const rail = sel.rail, big = req.amount_cents >= (c.large_cents || 50000);

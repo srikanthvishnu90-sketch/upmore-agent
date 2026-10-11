@@ -38,10 +38,10 @@ Put them in the vault / `lane-b` directly — never paste cards or passwords int
 |---|---|---|
 | `ANTHROPIC_API_KEY` | ROTATED 2026-10-11 (3rd key installed as Supabase secret). **Cannot be validated from this VM**: the network filter strips real-looking API keys from outbound headers (proven 2026-10-11 — dummy keys reach Anthropic and return "invalid key"; real keys arrive with the header stripped). The keys are well-formed and very likely fine | **Owner:** verify from your own Mac: `curl https://api.anthropic.com/v1/models -H "x-api-key: YOUR_KEY" -H "anthropic-version: 2023-06-01"` → HTTP 200 means good |
 | Test JWT | GENERATED 2026-10-11 (below) | Use as `Authorization: Bearer <jwt>` against agent-chat |
-| `ALPACA_BROKER_KEY_ID` | MISSING | **You:** Alpaca partner/broker API keys — these operate each user's own sub-account, NOT a shared trading account → Supabase secret |
-| `ALPACA_BROKER_SECRET` | MISSING | **You:** same as above |
-| Per-user account IDs | Not a secret — live in `brokerage_accounts` per user | Created at connect time (Alpaca sub-account) or linked via the user's own broker OAuth |
-| `ALPACA_PAPER_USER_ID` | Not needed — owner ordered live-first | — |
+| `ALPACA_OAUTH_CLIENT_ID` | MISSING — owner decision 2026-10-11: users connect their OWN brokerage via OAuth (no shared account). Implementation prompt: `docs/upmore-brokerage-connect-prompt.md` | **You:** app.alpaca.markets → Connect → register app (e-sign OAuth agreement, add redirect URIs, scopes `account:write trading`) → client ID as Supabase secret. Live trading needs Alpaca Compliance approval; paper works immediately |
+| `ALPACA_OAUTH_CLIENT_SECRET` | MISSING | **You:** same as above → Supabase secret |
+| `ALPACA_BROKER_KEY_ID` / `ALPACA_BROKER_SECRET` | Fallback path only (partner API for users without a linkable broker) | Only if you pursue the partner route; not needed for OAuth connect |
+| Per-user account IDs + tokens | Not secrets — live in `brokerage_accounts` per user; tokens in vault via `vault_key_ref`, never raw in DB | Created at connect time when each user links their broker |
 
 ### Not keys, not blockers for you
 

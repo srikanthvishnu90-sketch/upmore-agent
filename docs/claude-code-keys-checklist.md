@@ -15,7 +15,6 @@ name it `lane-b` → add each secret below.
 | Key | Status 2026-10-11 | Fastest way to get the value |
 |---|---|---|
 | `OPENAI_API_KEY` (+ `LLM_PROVIDER=openai`) | Ring runs on the OpenAI key (sporve123@gmail.com account, ~$24.98 credit, in Vercel). Value not retrievable by me | platform.openai.com → API keys (account sporve123@gmail.com) → copy existing or create new. `LLM_PROVIDER` is not a secret — just set it to `openai` |
-| `BROWSERBASE_API_KEY` + `BROWSERBASE_PROJECT_ID` | Same Browserbase account whose keys are already in Upmore's Supabase secrets (installed 2026-09-28). Values not retrievable from Supabase | Browserbase dashboard → API keys → copy both |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_PLACES_API_KEY` | Required by code. The Cloud project lives under **srikanthvishnu90@gmail.com** (vishnusrikanth8@gmail.com has zero Cloud projects — don't create new ones there) | Google Cloud Console (srikanthvishnu90@gmail.com) → APIs & Services → Credentials → copy. WARNING: Ring Google OAuth refresh credential leaked 2026-09-30 — rotation still open, rotate before launch |
 | `LINK_TOKEN_KEY` | Set NOWHERE (not in Vercel, not in env file, code throws without it). Safe to generate fresh — nothing depends on a previous value | Run `openssl rand -hex 32`, paste the output |
 | Ring Supabase URL | `https://kjwvqwkuprfhftmfflnu.supabase.co` — verified live | Copy the URL as-is |

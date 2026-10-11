@@ -3,8 +3,8 @@
 //   connect/<provider>.html    the page behind https://<app>/connect/<provider>. iMessage reads its og:title
 //                              ("Connect Alpaca to Upmore") and og:image and draws the preview card itself (title and domain
 //                              in the grey strip); a person who opens it is sent on to the app, which starts that connection.
-//   img/connect/<provider>.png 1200x630: dark grey/silver, the company's real logo in the middle, the Upmore wordmark bottom
-//                              right in Upmore green, in Tinos (a Times New Roman-compatible serif).
+//   img/connect/<provider>.png 1200x630: dark grey, the company's real logo in the middle and the Upmore wordmark centered
+//                              right below it, in Upmore green, in Tinos (a Times New Roman-compatible serif).
 //                              The app's chat draws the same card from the same image.
 // Providers and their real logos come from packages/domain/76-connect-cards.js and img/brands/ (SOURCES.md).
 //   node scripts/build-connect-cards.cjs            write the pages, and the images (needs Playwright + Chromium)
@@ -40,7 +40,7 @@ function page(p) {
 <style>
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0B0B0D; font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   a { display: block; width: min(320px, 86vw); border-radius: 18px; overflow: hidden; background: #2C2C2E; color: #F2F2F7; text-decoration: none; }
-  img { display: block; width: 100%; height: auto; background: #3A3C40; }
+  img { display: block; width: 100%; height: auto; background: #1E1F22; }
   b { display: block; padding: 10px 14px 0; font-weight: 600; }
   span { display: block; padding: 2px 14px 11px; color: #A1A1A6; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
@@ -63,10 +63,11 @@ function imageHtml(p) {
   const font = "file://" + path.join(root, "fonts/tinos-regular.woff2");
   return `<!doctype html><html><head><style>
   @font-face { font-family: "Tinos"; font-weight: 400; src: url("${font}") format("woff2"); }
-  html, body { margin: 0; width: 1200px; height: 630px; background: linear-gradient(160deg, #4A4D52 0%, #2E3034 100%); overflow: hidden; }
-  .logo { position: absolute; left: 50%; top: 47%; width: 172px; height: 172px; transform: translate(-50%, -50%); }
+  html, body { margin: 0; width: 1200px; height: 630px; background: linear-gradient(160deg, #26282B 0%, #161719 100%); overflow: hidden; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
+  .logo { width: 172px; height: 172px; }
   .logo svg { width: 100%; height: 100%; display: block; }
-  .word { position: absolute; right: 48px; bottom: 30px; font: 400 84px/1 "Tinos", "Times New Roman", serif; letter-spacing: -0.5px; color: #2E9E6B; }
+  .word { font: 400 84px/1 "Tinos", "Times New Roman", serif; letter-spacing: -0.5px; color: #2E9E6B; }
   </style></head><body><div class="logo">${svg}</div><div class="word">Upmore</div></body></html>`;
 }
 

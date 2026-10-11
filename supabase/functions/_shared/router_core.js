@@ -5905,8 +5905,8 @@
   if (typeof module !== "undefined" && module.exports) module.exports = MerchantTerms;
 
   /* Connect cards (owner, 2026-10-11): every "connect X" moment looks like the owner's reference screenshot. One short
-     line, then the link alone on its own line. In iMessage the link becomes a preview card: dark grey/silver, the company's real
-     logo in the middle, the Upmore wordmark bottom right in green serif, and under it "Connect X to Upmore" with the domain. The card is
+     line, then the link alone on its own line. In iMessage the link becomes a preview card: dark grey, the company's real logo in
+     the middle with the Upmore wordmark centered below it in green serif, and under it "Connect X to Upmore" with the domain. The card is
      drawn by the page behind the link (connect/<provider>.html: its og:title and og:image, img/connect/<provider>.png),
      and the app's chat draws the same card from the same image when a reply line is exactly that link.
      Real company icons only: a provider is listed here only with its real logo in img/brands/ (SOURCES.md says where each

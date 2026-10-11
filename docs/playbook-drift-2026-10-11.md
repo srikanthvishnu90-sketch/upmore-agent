@@ -206,3 +206,5 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   domain stays on one line with an ellipsis, as Messages shows it.
 - **Card restyled again (owner):** the background is dark grey/silver (a gradient from #4A4D52 to #2E3034) and the Upmore
   wordmark is Upmore green (#2E9E6B, the app's --accent), still in Tinos.
+- **Card restyled a third time (owner):** a darker grey (#26282B to #161719), and the green Upmore wordmark centered
+  right below the logo instead of bottom right.

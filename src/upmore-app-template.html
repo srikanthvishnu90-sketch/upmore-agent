@@ -971,7 +971,7 @@
   .amsg a { color: #6EA8FF; }
   /* Connect card: the iMessage link preview, copied (owner, 2026-10-11). */
   .amsg a.ccard { display: block; width: min(300px, 100%); margin: 6px 0 2px; border-radius: 18px; overflow: hidden; background: #2C2C2E; text-decoration: none; -webkit-tap-highlight-color: transparent; }
-  .ccard-img { display: block; background: #3A3C40; }
+  .ccard-img { display: block; background: #1E1F22; }
   .ccard-img img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; }
   .ccard-foot { display: block; padding: 9px 13px 10px; }
   .ccard-foot b { display: block; font-weight: 600; font-size: 15px; line-height: 1.25; color: #F2F2F7; }
@@ -12260,7 +12260,7 @@ const mdLine = (s) => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
   .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 /* Connect card (owner, 2026-10-11): a reply line that is exactly a connect link is drawn the way iMessage draws it, from the
-   same image: dark grey/silver, the company's real logo, the Upmore wordmark in green serif, and a dark grey strip with "Connect X to
+   same image: dark grey, the company's real logo with the Upmore wordmark in green serif centered below it, and a grey strip with "Connect X to
    Upmore" and the domain. Tapping it starts that connection here (no page hop). Providers and logos: packages/domain/76-connect-cards.js. */
 function connectCardHTML(link, p) {
   const c = ConnectCards.PROVIDERS[p];

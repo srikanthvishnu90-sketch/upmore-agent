@@ -229,4 +229,21 @@ const MAP = [
   [148, "EARN-017", "part", "complaint credit drafts module; order refunds not requested", null],
   [149, "", "none", "returns not built", null],
 ];
-module.exports = { REACHABLE, MAP };
+// Alinea parity (owner's v4 roadmap, 2026-10-11): the ten features of the investing app the owner named, tracked as
+// not started / built / wired, plus whether each one executes trades behind a per-order yes ("approval-gated"). Status is
+// derived in scripts/capability-list.cjs from the registry and REACHABLE, like every item above. A feature that executes
+// trades also needs the person's own brokerage connected (BROKER-CONNECT: built, not deployed, 0 live connections).
+const PARITY = [
+  ["Questionnaire / investor profile", [], false, "the app's onboarding asks about time and situation for earning plans, not an investing profile; a risk profile must stay descriptive (no securities advice)"],
+  ["Playlists (curated lists of stocks)", [], false, "nothing built; a curated buy list reads as a recommendation, so it waits on the owner's call on securities advice"],
+  ["Themed investing / Discover", ["NEWS-011"], false, "theme tracking per holding is only claimed in the registry; themed baskets clash with no securities advice as written"],
+  ["Automated recurring investing", ["INV-013"], true, "recurring-buy engine only claimed; the loop already asks for a fresh yes on every run inside an envelope (owner rule), $5 cap; $50 of the live budget is set aside for it"],
+  ["Fractional shares", ["INV-011"], true, "a dollar amount buys a fraction in the chat trade flow (notional market order), live in the person's own Alpaca account, a yes per order, $5 cap; 0 live orders so far"],
+  ["AI copilot (chat about your money and holdings)", ["CORE-009", "INV-001"], false, "chat answers from the person's own rows and live portfolio, every money action through a card and a yes; explains, never advises"],
+  ["Daily briefs and recaps", ["ANL-005", "ANL-020", "NEWS-004"], false, "money briefs are wired (morning brief opt-in, weekly recap, monthly close); a market brief on the person's holdings is a tested module (NEWS-004) the scheduler does not call yet"],
+  ["Lessons and quizzes", [], false, "nothing built"],
+  ["Growth projection", ["ANL-019"], false, "what-if math is a tested module (ANL-019) not reachable in chat; an investment projection must be labeled an illustration with its assumed return"],
+  ["Copy investing (mirror a portfolio)", [], true, "nothing built; would copy only into the person's own account, each order a yes under the $5 cap; $50 of the live budget is set aside for it"],
+];
+
+module.exports = { REACHABLE, MAP, PARITY };

@@ -43,6 +43,24 @@ By tag: [Read] 66 (in product 19, not built 9); [Ask] 56 (in product 10, not bui
 - **119.** Rotate streaming services: subscribe for one show, cancel after. — One explicit approval per cancellation (owner rule): the agent asks first ("should I cancel this for you?") and cancels only on a yes, never on its own.
 - **122.** Negotiate internet, phone and cable bills down. — No phone calls (owner rule).
 
+## Alinea parity (owner's v4 roadmap)
+
+Status is derived: **not started** (no capability, or one only claimed), **built** (a module passes offline tests, nothing calls it), **wired** (reachable in chat or the scheduler on this branch, not proven live). **Approval-gated** means it places orders, each behind that person's fresh yes and the $5 cap.
+
+| Feature | Status | Approval-gated | Capabilities | Note |
+| --- | --- | --- | --- | --- |
+| Questionnaire / investor profile | not started | no | none | the app's onboarding asks about time and situation for earning plans, not an investing profile; a risk profile must stay descriptive (no securities advice) |
+| Playlists (curated lists of stocks) | not started | no | none | nothing built; a curated buy list reads as a recommendation, so it waits on the owner's call on securities advice |
+| Themed investing / Discover | not started | no | NEWS-011 (CLAIMED) | theme tracking per holding is only claimed in the registry; themed baskets clash with no securities advice as written |
+| Automated recurring investing | not started | yes | INV-013 (CLAIMED) | recurring-buy engine only claimed; the loop already asks for a fresh yes on every run inside an envelope (owner rule), $5 cap; $50 of the live budget is set aside for it |
+| Fractional shares | wired | yes | INV-011 (TESTED, reachable) | a dollar amount buys a fraction in the chat trade flow (notional market order), live in the person's own Alpaca account, a yes per order, $5 cap; 0 live orders so far |
+| AI copilot (chat about your money and holdings) | wired | no | CORE-009 (TESTED, reachable), INV-001 (TESTED, reachable) | chat answers from the person's own rows and live portfolio, every money action through a card and a yes; explains, never advises |
+| Daily briefs and recaps | wired | no | ANL-005 (TESTED, reachable), ANL-020 (TESTED, reachable), NEWS-004 (TESTED) | money briefs are wired (morning brief opt-in, weekly recap, monthly close); a market brief on the person's holdings is a tested module (NEWS-004) the scheduler does not call yet |
+| Lessons and quizzes | not started | no | none | nothing built |
+| Growth projection | built | no | ANL-019 (TESTED) | what-if math is a tested module (ANL-019) not reachable in chat; an investment projection must be labeled an illustration with its assumed return |
+| Copy investing (mirror a portfolio) | not started | yes | none | nothing built; would copy only into the person's own account, each order a yes under the $5 cap; $50 of the live budget is set aside for it |
+| **all** | wired 3, built 1, not started 6 | 3 | | |
+
 ## Every item
 
 | # | Item | Tags | Status | Coverage | Capabilities | Note |

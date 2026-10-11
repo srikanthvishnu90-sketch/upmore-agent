@@ -12,3 +12,14 @@ test("capability list: status is derived, weakest claim wins, and PROVEN needs e
   const { REACHABLE } = require("../docs/capability-list/map.cjs"), reg = require("../packages/capabilities/registry.json");
   for (const id of Object.keys(REACHABLE)) assert.notEqual(reg.capabilities.find(c => c.id === id).status, "CLAIMED", `${id} is reachable but only claimed`);
 });
+
+test('Alinea parity: the owner\'s ten features, status derived from the registry and the reachable list', () => {
+  const { parity } = require('../scripts/capability-list.cjs');
+  const p = parity();
+  assert.equal(p.length, 10);
+  for (const f of p) assert.ok(['not started', 'built', 'wired'].includes(f.status), f.feature);
+  // Anything that places orders is approval-gated: recurring, fractional, copy.
+  assert.deepEqual(p.filter(f => f.gated).map(f => f.feature.split(' ')[0]), ['Automated', 'Fractional', 'Copy']);
+  // Claimed-only capabilities never read as built.
+  assert.equal(p.find(f => f.feature.startsWith('Automated')).status, 'not started');
+});

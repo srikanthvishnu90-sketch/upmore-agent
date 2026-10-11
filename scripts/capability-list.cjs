@@ -7,7 +7,7 @@
 const fs = require("node:fs"), path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const DOC = path.join(root, "docs/capability-list/full-agent-capability-list-2026-10-11.md");
-const { REACHABLE, MAP } = require(path.join(root, "docs/capability-list/map.cjs"));
+const { REACHABLE, MAP, PARITY } = require(path.join(root, "docs/capability-list/map.cjs"));
 const registry = JSON.parse(fs.readFileSync(path.join(root, "packages/capabilities/registry.json"), "utf8"));
 const caps = Object.fromEntries(registry.capabilities.map(c => [c.id, c]));
 
@@ -67,18 +67,33 @@ function render(rows) {
     "By tag: " + ["Read", "Ask", "Rule", "Built in", "Flag"].map(t => { const l = rows.filter(r => r.tags.includes(t)); return `[${t}] ${l.length} (in product ${by(l, "IN_PRODUCT")}, not built ${by(l, "NOT_BUILT")})`; }).join("; ") + ".", "",
     "## Items that clash with a standing owner rule as written", "",
     ...rows.filter(r => r.conflict).map(r => `- **${r.n}.** ${esc(r.text)} — ${r.conflict}.`), "",
+    "## Alinea parity (owner's v4 roadmap)", "",
+    "Status is derived: **not started** (no capability, or one only claimed), **built** (a module passes offline tests, nothing calls it), **wired** (reachable in chat or the scheduler on this branch, not proven live). **Approval-gated** means it places orders, each behind that person's fresh yes and the $5 cap.", "",
+    "| Feature | Status | Approval-gated | Capabilities | Note |", "| --- | --- | --- | --- | --- |",
+    ...parity().map(p => `| ${p.feature} | ${p.status} | ${p.gated ? "yes" : "no"} | ${p.ids.map(id => `${id} (${caps[id].status}${REACHABLE[id] ? ", reachable" : ""})`).join(", ") || "none"} | ${esc(p.note)} |`),
+    `| **all** | ${["wired", "built", "not started"].map(st => `${st} ${parity().filter(p => p.status === st).length}`).join(", ")} | ${parity().filter(p => p.gated).length} | | |`, "",
     "## Every item", "", "| # | Item | Tags | Status | Coverage | Capabilities | Note |", "| --- | --- | --- | --- | --- | --- | --- |",
     ...rows.map(r => `| ${r.n} | ${esc(r.text)} | ${r.tags.join(", ")} | ${r.status} | ${r.coverage} | ${r.ids.map(id => `${id} (${caps[id].status}${REACHABLE[id] ? ", reachable" : ""})`).join(", ")} | ${esc(r.note)}${r.conflict ? `; **rule:** ${esc(r.conflict)}` : ""} |`), ""];
   return L.join("\n");
 }
-const { rows, problems } = build();
-if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
-const out = render(rows), target = path.join(root, "docs/capability-list/README.md");
-if (process.argv.includes("--check")) {
-  if (!fs.existsSync(target) || fs.readFileSync(target, "utf8") !== out) { console.error("docs/capability-list/README.md is stale: run node scripts/capability-list.cjs"); process.exit(1); }
-  console.log(`capability list verified: ${rows.length} items`);
-} else {
-  fs.writeFileSync(target, out);
-  console.log(`capability list: ${rows.length} items; ` + ORDER.map(st => `${st} ${rows.filter(r => r.status === st).length}`).join(", ") + `; rule clashes ${rows.filter(r => r.conflict).length}`);
+function parity() {
+  return PARITY.map(([feature, ids, gated, note]) => {
+    for (const id of ids) if (!caps[id]) throw new Error(`parity: unknown capability ${id}`);
+    const built = ids.filter(id => !["CLAIMED", "NOT_BUILT", "NOT_WIRED"].includes(caps[id].status));
+    const status = !built.length ? "not started" : ids.some(id => REACHABLE[id]) ? "wired" : "built";
+    return { feature, ids, gated, note, status };
+  });
 }
-module.exports = { parse, status };
+if (require.main === module) {
+  const { rows, problems } = build();
+  if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
+  const out = render(rows), target = path.join(root, "docs/capability-list/README.md");
+  if (process.argv.includes("--check")) {
+    if (!fs.existsSync(target) || fs.readFileSync(target, "utf8") !== out) { console.error("docs/capability-list/README.md is stale: run node scripts/capability-list.cjs"); process.exit(1); }
+    console.log(`capability list verified: ${rows.length} items; parity ${parity().map(p => p.status).join(", ")}`);
+  } else {
+    fs.writeFileSync(target, out);
+    console.log(`capability list: ${rows.length} items; ` + ORDER.map(st => `${st} ${rows.filter(r => r.status === st).length}`).join(", ") + `; rule clashes ${rows.filter(r => r.conflict).length}`);
+  }
+}
+module.exports = { parse, status, parity };

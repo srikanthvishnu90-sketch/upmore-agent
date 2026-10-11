@@ -208,3 +208,6 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   wordmark is Upmore green (#2E9E6B, the app's --accent), still in Tinos.
 - **Card restyled a third time (owner):** a darker grey (#26282B to #161719), and the green Upmore wordmark centered
   right below the logo instead of bottom right.
+- **Wordmark font changed (owner, "a little different, more finance oriented"):** Libre Baskerville replaces Tinos
+  (Baskerville is the classic banknote and financial-print face; SIL OFL, `fonts/libre-baskerville-regular.woff2` +
+  `fonts/libre-baskerville-OFL.txt`). Tinos was removed from the repo.

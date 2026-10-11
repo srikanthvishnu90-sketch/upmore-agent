@@ -104,14 +104,14 @@ test('real company icons only: every logo on file is a real mark with its source
   assert.ok(read('index.html').includes('const BRAND_ICONS = [{"slug":"1password"'), 'the manifest is inlined in the built app');
 });
 
-test('the card is dark grey with the Upmore wordmark in Upmore green Tinos (a Times New Roman-style serif) centered below the logo, on the projects domain', () => {
+test('the card is dark grey with the Upmore wordmark in Upmore green Libre Baskerville (a finance-style serif) centered below the logo, on the projects domain', () => {
   const { imageHtml } = require('../scripts/build-connect-cards.cjs');
   const html = imageHtml('alpaca');
   assert.match(html, /html, body \{[^}]*background: linear-gradient\(160deg, #26282B 0%, #161719 100%\);/);
   assert.match(html, /body \{ display: flex; flex-direction: column; align-items: center; justify-content: center;/);
   assert.ok(html.indexOf('<div class="logo">') < html.indexOf('<div class="word">Upmore</div>'), 'the wordmark sits under the logo');
-  assert.match(html, /\.word \{[^}]*font: 400 84px\/1 "Tinos", "Times New Roman", serif;[^}]*color: #2E9E6B;/);
-  assert.ok(fs.existsSync(path.join(root, 'fonts/tinos-regular.woff2')) && /SIL Open Font License/.test(read('fonts/tinos-OFL.txt')), 'the font and its license are in the repo');
+  assert.match(html, /\.word \{[^}]*font: 400 72px\/1 "Libre Baskerville", Baskerville, Georgia, serif;[^}]*color: #2E9E6B;/);
+  assert.ok(fs.existsSync(path.join(root, 'fonts/libre-baskerville-regular.woff2')) && /SIL Open Font License/.test(read('fonts/libre-baskerville-OFL.txt')), 'the font and its license are in the repo');
   const tpl = read('src/upmore-app-template.html');
   assert.ok(tpl.includes('.ccard-img { display: block; background: #1E1F22; }') && /\.amsg a\.ccard \{[^}]*background: #2C2C2E;/.test(tpl), 'the app draws the dark grey card with the dark grey strip');
   // Until a domain is bought, everything points at the projects deployment (owner, 2026-10-11).

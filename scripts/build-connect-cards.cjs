@@ -4,7 +4,8 @@
 //                              ("Connect Alpaca to Upmore") and og:image and draws the preview card itself (title and domain
 //                              in the grey strip); a person who opens it is sent on to the app, which starts that connection.
 //   img/connect/<provider>.png 1200x630: dark grey, the company's real logo in the middle and the Upmore wordmark centered
-//                              right below it, in Upmore green, in Tinos (a Times New Roman-compatible serif).
+//                              right below it, in Upmore green, in Libre Baskerville (a Baskerville serif, the banknote and
+//                              financial-print face).
 //                              The app's chat draws the same card from the same image.
 // Providers and their real logos come from packages/domain/76-connect-cards.js and img/brands/ (SOURCES.md).
 //   node scripts/build-connect-cards.cjs            write the pages, and the images (needs Playwright + Chromium)
@@ -56,18 +57,17 @@ function page(p) {
 // The image, drawn in Chromium from the real logo file and Upmore's own typeface.
 function imageHtml(p) {
   const svg = fs.readFileSync(path.join(root, CC.PROVIDERS[p].icon), "utf8");
-  // Owner, 2026-10-11 (third pass): a dark grey/silver card, the wordmark in Upmore green (#2E9E6B, the app's --accent)
-  // in a Times New Roman-style serif. Tinos is metric-
-  // compatible with Times New Roman (fonts/tinos-regular.woff2, SIL OFL 1.1, fonts/tinos-OFL.txt), bundled so the image
-  // renders the same on every machine.
-  const font = "file://" + path.join(root, "fonts/tinos-regular.woff2");
+  // Owner, 2026-10-11: a dark grey card, the wordmark in Upmore green (#2E9E6B, the app's --accent) in a serif with a
+  // finance feel: Libre Baskerville (fonts/libre-baskerville-regular.woff2, SIL OFL 1.1, fonts/libre-baskerville-OFL.txt),
+  // bundled so the image renders the same on every machine.
+  const font = "file://" + path.join(root, "fonts/libre-baskerville-regular.woff2");
   return `<!doctype html><html><head><style>
-  @font-face { font-family: "Tinos"; font-weight: 400; src: url("${font}") format("woff2"); }
+  @font-face { font-family: "Libre Baskerville"; font-weight: 400; src: url("${font}") format("woff2"); }
   html, body { margin: 0; width: 1200px; height: 630px; background: linear-gradient(160deg, #26282B 0%, #161719 100%); overflow: hidden; }
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
   .logo { width: 172px; height: 172px; }
   .logo svg { width: 100%; height: 100%; display: block; }
-  .word { font: 400 84px/1 "Tinos", "Times New Roman", serif; letter-spacing: -0.5px; color: #2E9E6B; }
+  .word { font: 400 72px/1 "Libre Baskerville", Baskerville, Georgia, serif; letter-spacing: 0.5px; color: #2E9E6B; }
   </style></head><body><div class="logo">${svg}</div><div class="word">Upmore</div></body></html>`;
 }
 

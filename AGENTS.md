@@ -15,6 +15,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Parity matrix (doc 03): `node evals/parity/build-matrix.cjs` (regenerate + coverage per app; `--check` fails on a stale matrix, an unaccounted outcome, or a coverage decrease)
 - Eval harness (doc 13): `node evals/runner.cjs` (release verdict, results under `evals/results/`), `node evals/runner.cjs --mutations` (the 10 planted defects must all be caught)
 - Depth protocol (one capability at a time): `node --test tests/depth-<ID>.test.cjs && node evals/depth/run.cjs <ID>` (15 sub-capabilities, each test proven to fail under its planted defect; results into `docs/depth/<ID>.md`)
+- Real-world 206 audit (docs/realworld): `node --test tests/realworld.test.cjs && node scripts/realworld-audit.cjs --check` (regenerate the report: `node scripts/realworld-audit.cjs`)
 - Record a check: `python3 scripts/capture-checks.py` writes `docs/testing/evidence-ledger.json`
 
 ## Rules

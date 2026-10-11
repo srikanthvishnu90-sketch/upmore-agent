@@ -20,14 +20,17 @@ Trading capability dossier: `docs/trading-capabilities.md`.
 
 ## Your job
 
-Build the three rails that make the gauntlet's card score real, then run the
-gauntlet live against the function URL above. Work in this order: Rail 1,
-Rail 2, Rail 3, then the gauntlet. Report per rail as a table: what it does,
-its tests, what you broke on purpose to prove them.
+Build the three rails as GENERAL platform layers — not one-off features.
+Each rail serves every capability in its class, proven on one case first
+but built to cover all. Work in this order: Rail 1, Rail 2, Rail 3, then the
+gauntlet. Report per rail as a table: what it does, its tests, what you
+broke on purpose to prove them.
 
-### RAIL 1 — Saved-recipient table (pay-a-person)
+### RAIL 1 — Recipient memory + resolution (ALL person-to-person money flows)
 
-Build the table, the save path, and the resolution layer.
+This is not a pay-a-person feature. It is the general layer every
+capability that moves money to a person calls: pay, send, request, split
+bills, rent, repay. Build once, use everywhere.
 
 Table `saved_recipients`: `id uuid pk`, `user_id uuid not null`,
 `handle text` (e.g. @marcus), `display_name text`, `channel text`
@@ -35,7 +38,7 @@ Table `saved_recipients`: `id uuid pk`, `user_id uuid not null`,
 'confirmed'), `created_at`, `last_used_at`. RLS: owner-only
 (`user_id = auth.uid()`), service_role bypass for the bridge.
 
-Rules:
+Rules (apply to every flow that names a person):
 - A recipient saves ONLY after a completed send or an explicitly confirmed
   save. Never from a single mention in conversation.
 - Resolution order: exact handle, then full name, then first name.
@@ -47,60 +50,65 @@ Rules:
 - Look-alikes (one edit away, e.g. @sarah_m vs @sarah-m): named as
   look-alikes in the prompt, never silently resolved.
 
-Deliver: migration file, RLS policy, resolve/save functions, tests for save,
-resolve, ambiguity, stranger, and look-alike paths. Apply the migration with
-`sb.py` if you have Supabase access; otherwise hand back the SQL file and
-say so.
+Deliver: migration file, RLS policy, `resolve()`/`save()` functions wired
+into the money-flow path (not a standalone demo), tests proving at least two
+different flows (e.g. pay AND split) resolve through the same layer. If you
+lack Supabase access to apply the migration, hand back the SQL and say so.
 
-### RAIL 2 — Alpaca paper adapter (buy)
+### RAIL 2 — Alpaca paper adapter (ALL order types)
 
-Build the adapter against Alpaca's paper Broker API. Reference
-`~/workspace/skills/alpaca/SKILL.md` if present; otherwise: base URL
-`https://broker-api.sandbox.alpaca.markets`, HTTP Basic auth with
+Not buy-only. This is the general execution adapter behind every trading
+capability: market, limit, stop, and trailing-stop orders, buys AND sells,
+fractional shares, modify/cancel. Every capability in
+`docs/trading-capabilities.md` and `docs/upmore-200-capabilities.md` that
+trades goes through this adapter.
+
+Base `https://broker-api.sandbox.alpaca.markets`, HTTP Basic auth with
 base64(`API_KEY_ID`:`API_SECRET_KEY`), orders at
 `POST /v1/trading/accounts/{account_id}/orders`, all numbers as strings,
-every write is async (accepted → filled/canceled — poll and reconcile).
+every write async (accepted → filled/canceled — poll and reconcile, never
+assume). Reference `~/workspace/skills/alpaca/SKILL.md` if present.
 
-Keys come from env (`ALPACA_BROKER_KEY_ID`, `ALPACA_BROKER_SECRET`), never
-hardcoded. If the keys are not in env, build everything against a mock
-Alpaca server and say plainly which tests ran on mock vs live paper.
+Keys from env (`ALPACA_BROKER_KEY_ID`, `ALPACA_BROKER_SECRET`), never
+hardcoded. If keys aren't in env yet, build against a mock Alpaca server
+and say plainly which tests ran on mock vs live paper. Label PAPER
+everywhere a user can see it: the card, the receipt, the portfolio answer,
+every log line.
 
-Label PAPER everywhere a user can see it: the card, the receipt, the
-portfolio answer, every log line.
-
-Requirements:
+Requirements (apply to every order type, both sides):
 - Real quote fetch with source and as-of time on every card.
-- Stale quote (over 15 minutes old): ask before pricing, never silently use.
-- Buying power read before staging; insufficient funds = no card, plain
-  explanation.
-- Order placed only after a fresh yes (10-minute card expiry, single-use,
-  context-bound — see spec 16).
+- Stale quote (over 15 min) asks before pricing, never silently used.
+- Buying power (or position size for sells) read before staging;
+  insufficient funds/shares = no card, plain explanation.
+- Order placed only after a fresh yes (10-min card expiry, single-use,
+  context-bound per spec 16).
 - Fill read back from the broker record; partial fills reported as partial
   with filled qty.
-- Receipt carries: order id, fill price, shares, time, total.
+- Receipt carries: order id, side, fill price, shares, time, total.
 - Market closed: order queued, and the receipt never says "filled" until the
   broker says filled.
-- A thrown write is never retried blind: reconcile by client order id and
+- A thrown write is never retried blind: reconcile by client order id,
   report "unknown" until reconciled.
 - Keep every existing approval-card and stop-on-change check in the path.
 
-Tests: unit tests on the adapter, integration tests on a mock Alpaca
-server, and the full 15-sub-capability buy packet re-run against the
-adapter. Never present a mock result as a live result.
+Tests: unit on the adapter, integration on a mock Alpaca server, and the
+full order-type matrix (buy/sell × market/limit/stop) re-run against the
+adapter — not just the buy packet. Never present a mock result as live.
 
-### RAIL 3 — Terms reader (one merchant: Netflix)
+### RAIL 3 — Merchant-terms reader (ANY merchant; Netflix proves it)
 
-Build the reader that loads Netflix's current cancellation terms at card
-time, snapshots them into the card (raw text + hash + timestamp, stored with
-the confirmation record so a later merchant change cannot silently change
-what the user approved), and re-reads them at execution for stop-on-change.
+General interface, not a Netflix feature: `read_terms(merchant)` returns
+`{text, hash, fetched_at}`; the card snapshots all three into the
+confirmation record (so a later merchant change cannot silently change what
+was approved); execution re-reads and a hash mismatch STOPS the flow with a
+re-card. Unreadable page: say so plainly, link the merchant's own page,
+never fabricate terms.
 
-- If the terms hash differs between card and execution: STOP, do not
-  execute, re-card with the new terms.
-- If the page cannot be read: say so plainly and point to Netflix's own
-  cancellation page. Never fake a read, never invent terms.
-- Tests must include a planted terms-change between card and execution that
-  provably stops the flow.
+Merchant config is data, not code: name, terms URL, parse hints per
+merchant. Netflix is the first proving ground, but tests must also cover a
+second merchant with a different page structure (to prove the reader is
+general) plus a planted terms-change between card and execution that
+provably stops the flow.
 
 ### THEN — the gauntlet
 

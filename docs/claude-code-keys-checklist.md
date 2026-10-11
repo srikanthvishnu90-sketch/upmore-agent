@@ -36,7 +36,7 @@ Put them in the vault / `lane-b` directly — never paste cards or passwords int
 
 | Key | Status 2026-10-11 | Action |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ROTATED 2026-10-11: new key installed as Supabase secret and confirmed present — BUT it returns **401 Unauthorized** on a live API probe (checked twice, 45s apart). The installed value does not authenticate | **Owner:** check console.anthropic.com — confirm the key exists, isn't revoked, and has API access; if it's bad, generate a replacement and say the word — I'll install it the same way |
+| `ANTHROPIC_API_KEY` | ROTATED 2026-10-11 (3rd key installed as Supabase secret). **Cannot be validated from this VM**: the network filter strips real-looking API keys from outbound headers (proven 2026-10-11 — dummy keys reach Anthropic and return "invalid key"; real keys arrive with the header stripped). The keys are well-formed and very likely fine | **Owner:** verify from your own Mac: `curl https://api.anthropic.com/v1/models -H "x-api-key: YOUR_KEY" -H "anthropic-version: 2023-06-01"` → HTTP 200 means good |
 | Test JWT | GENERATED 2026-10-11 (below) | Use as `Authorization: Bearer <jwt>` against agent-chat |
 | `ALPACA_BROKER_KEY_ID` | MISSING | **You:** Alpaca partner/broker API keys — these operate each user's own sub-account, NOT a shared trading account → Supabase secret |
 | `ALPACA_BROKER_SECRET` | MISSING | **You:** same as above |

@@ -32,7 +32,8 @@
    "title": "Stranger, no history",
    "status": "DIVERGES",
    "failed": [
-    "\"@dannyfix\": card (expected a confirmation card, got outcome ask)"
+    "\"@dannyfix\": card (expected a confirmation card, got outcome ask)",
+    "\"yes\": answer (expected an answer, got a question: \"That doesn't match @dannyfix. Type the handle exactly as it \")"
    ],
    "triage": "A first send to a new handle asks the person to type the handle back (PAY-002, confirmed in full) before the card; the corpus shows the card at once with a can't-verify line. Kept deliberately: it is the stronger check on a first, irreversible send to a stranger. Owner can overrule.",
    "mock_orders": 0,
@@ -189,7 +190,7 @@
    "turns": [
     {
      "user": "pay the guy from yesterday 60",
-     "reply": "I don't have the guy from yesterday saved. What's their Venmo, Cash App, PayPal or Zelle handle, or phone number?",
+     "reply": "Paying a stranger from a listing is a common scam, and person-to-person apps rarely protect purchases; a card or the marketplace's own checkout does. I don't have the guy saved. What's their Venmo, Cash App, PayPal or Zelle handle, or phone number?",
      "outcome": "ask"
     },
     {
@@ -469,22 +470,9 @@
    "id": "2.07",
    "file": 2,
    "title": "Someone owes the user",
-   "status": "PASS",
+   "status": "NEEDS_MODEL",
    "failed": [],
-   "triage": null,
-   "mock_orders": 0,
-   "variants": {
-    "total": 2,
-    "pass": 2,
-    "failed": []
-   },
-   "turns": [
-    {
-     "user": "did anyone pay me back",
-     "reply": "How much?",
-     "outcome": "ask"
-    }
-   ]
+   "variants": null
   },
   {
    "id": "2.08",
@@ -911,8 +899,8 @@
    "turns": [
     {
      "user": "invest 5000 in spacex",
-     "reply": "How much of SPACEX: dollars or shares?",
-     "outcome": "ask"
+     "reply": "SpaceX isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.",
+     "outcome": "refuse"
     }
    ]
   },
@@ -1076,8 +1064,8 @@
    "turns": [
     {
      "user": "is the planet fitness cancel easy",
-     "reply": "I don't see a easy charge on your linked cards (I see Hulu, Netflix, Spotify USA). Which card is it on, or is it billed through Apple or Google?",
-     "outcome": "ask"
+     "reply": "I can't read Planet Fitness's account page from here yet, so I can't show you the cancellation terms or cancel it for you. Nothing was changed. Tell me when you've cancelled and I'll watch the 2026-10-17 charge.",
+     "outcome": "needs_terms"
     }
    ]
   },

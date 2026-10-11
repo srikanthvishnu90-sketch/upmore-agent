@@ -27,7 +27,9 @@ test('[S01] a send without an amount asks "How much?" and stages nothing',async(
 test('[S02] amounts parse to exact cents in every common form; words, zero and negatives ask; a number in the memo is never the amount',async()=>{
   const cases=[['send $40 to Sarah',4000],['send 40 to Sarah',4000],['send 40.50 to Sarah',4050],['send 1,800 to Sarah',180000],['send $1.8k to Sarah',180000],['pay Sarah $12.5',1250]];
   for(const [t,c] of cases)assert.equal(S.parse(t).amount_cents,c,t);
-  for(const t of ['send forty to Sarah','send $0 to Sarah','send -5 to Sarah'])assert.equal(S.parse(t).amount_cents,null,t);
+  for(const t of ['send $0 to Sarah','send -5 to Sarah'])assert.equal(S.parse(t).amount_cents,null,t);
+  // Whole-dollar words are read and shown as numerals on the card (owner's megadoc A12, over this packet's earlier "words ask").
+  for(const [t,c] of [['send forty to Sarah',4000],['send sarah forty bucks',4000],['pay sarah two hundred fifty',25000],['send sarah a hundred',10000]])assert.equal(S.parse(t).amount_cents,c,t);
   const p=S.parse('send $40 to Sarah for the 2 tickets, order 8841');assert.equal(p.amount_cents,4000);assert.equal(p.recipient,'Sarah');assert.equal(p.memo,'the 2 tickets, order 8841');
   const {s}=session();const a=await s.start('send $40 to Sarah for 500 reasons');assert.equal(a.outcome,'confirm');assert.equal(a.send.amount_cents,4000);
 });
@@ -58,7 +60,7 @@ test('[S05] the free rail the recipient can receive on comes first, every rail s
 test('[S06] the confirmation restates action, exact amount, recipient with handle, funding account, fee and timing, and the rail has seen zero writes',async()=>{
   const {s,r}=session();
   const a=await s.start('send $85 to Sarah for airbnb');assert.equal(a.outcome,'confirm');
-  assert.equal(a.text,"Set up $85.00 to Sarah M (@sarah-m) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.");assert.ok(a.text.length<=306,'two SMS segments at most');
+  assert.equal(a.text,"Set up $85.00 to Sarah M (@sarah-m) in Venmo from checking, memo \"airbnb\", for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.");assert.ok(a.text.length<=306,'two SMS segments at most');
   assert.equal(a.details,'Stage $85.00 to Sarah M on Venmo $85.00 to Sarah M (@sarah-m) from checking? No fee, lands in minutes (Venmo balance), 1-3 days to a bank. Irreversible once received; instant cash-out to a bank costs the recipient a fee. Reply yes or no.');
   const det=await s.reply('details');assert.equal(det.outcome,'details');assert.equal(det.text,a.details);assert.ok(s.pending,'DETAILS does not consume the card');
   assert.equal(r.writes.length,0);assert.ok(s.pending&&s.pending.amount_cents===8500);
@@ -162,6 +164,7 @@ test('[ADV] the adversarial log in docs/depth/PAY-001.md, every row',async()=>{
   await s.start('send 40 to Sarah');assert.equal((await s.reply('yes')).outcome,'staged');assert.equal((await s.start('send 40 to Sarah')).outcome,'already_done');
   const {s:lim}=session({limits:{per_day_cents:100000,per_week_cents:300000}});assert.equal((await lim.start('send $1,800 to Sarah')).reason,'velocity');
   await s.start('send $60 to Sarah');const q=await s.reply('yes but make it $65');assert.equal(q.send.amount_cents,6500);assert.equal(r.writes.length,0);await s.reply('no');
-  for(const bad of ['send $0 to Sarah','send -5 to Sarah','send forty to Sarah'])assert.equal((await s.start(bad)).text,'How much?',bad);
+  for(const bad of ['send $0 to Sarah','send -5 to Sarah'])assert.equal((await s.start(bad)).text,'How much?',bad);
+  {const {s:f,r:fr}=session();const w=await f.start('send forty to Sarah');assert.equal(w.outcome,'confirm');assert.match(w.text,/\$40\.00 to Sarah M/);await f.reply('no');assert.equal(fr.writes.length,0);}
   assert.equal(r.writes.length,0,'nothing in the adversarial log ever reached a rail');
 });

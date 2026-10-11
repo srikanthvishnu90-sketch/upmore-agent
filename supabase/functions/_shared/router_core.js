@@ -2546,17 +2546,56 @@
     // A schedule ("every friday", "weekly", "on the 1st") is not part of a name; recurring sends are not built.
     const SCHEDULE = /\b(?:every\s+(?:day|week|other week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|night)|each\s+(?:week|month|friday|monday)|weekly|monthly|biweekly|recurring|on the \d{1,2}(?:st|nd|rd|th)?)\b/i;
     const AMOUNT_CHANGE = new RegExp(String.raw`^\s*(?:no[,.]?\s+|actually[,.]?\s+|wait[,.]?\s+|sorry[,.]?\s+)*(?:(?:make (?:it|that)|change (?:it|that)? ?to|switch (?:it|that)? ?to|(?:it|that) should be|should be|i meant|meant to say|actually)\s+${AMT}|\$\s?[\d,]+(?:\.\d{1,2})?|${AMT}\s+instead)\s*(?:instead|please|then)?\s*[.!]*\s*$`, "i");
+    // Amounts typed as words ("forty bucks", "two hundred fifty"): whole dollars only (megadoc A12).
+    const UNITS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+    const TENS = { twenty: 20, thirty: 30, forty: 40, fourty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+    function wordsAmount(text) {
+      const toks = String(text || "").toLowerCase().replace(/-/g, " ").split(/[^a-z]+/).filter(Boolean);
+      let best = null;
+      for (let i = 0; i < toks.length; i++) {
+        let total = 0, cur = 0, used = 0, j = i;
+        for (; j < toks.length; j++) {
+          const w = toks[j];
+          if (w in UNITS) cur += UNITS[w]; else if (w in TENS) cur += TENS[w];
+          else if (w === "hundred") cur = (cur || 1) * 100; else if (w === "thousand") { total += (cur || 1) * 1000; cur = 0; }
+          else if ((w === "a" || w === "and") && used) { continue; } else if (w === "a" && /^(hundred|thousand)$/.test(toks[j + 1] || "")) continue;
+          else break;
+          used++;
+        }
+        if (used && !(used === 1 && toks[i] === "one" && !/^(dollars?|bucks)$/.test(toks[j] || ""))) { const v = total + cur; if (v > 0 && (!best || used > best.used)) best = { used, cents: v * 100 }; }
+      }
+      return best ? best.cents : null;
+    }
+    const FX = /(?:€|£|¥|₹)|\b(euros?|eur|pounds?|gbp|quid|pesos?|mxn|yen|jpy|rupees?|inr|cad|canadian dollars?|aud|francs?|yuan|rmb)\b/i;
+    // A send for later or on a condition is not built: never staged as a send for now (megadoc A08, A15).
+    const LATER = /\b(tomorrow|tonight at|next (?:week|month|monday|tuesday|wednesday|thursday|friday)|on (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|in \d+ (?:days?|weeks?|hours?)|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|later today|this (?:weekend|friday|evening))\b/i;
+    const CONDITION = /\b(?:only if|but only|if my|when my|once my|after my|as soon as|when it lands|when (?:the|my) (?:paycheck|deposit|refund))\b/i;
+    const MARKET = /\b(craigslist|marketplace|offerup|letgo|ebay seller|facebook seller|the seller|a seller|the guy from|the girl from|someone online|a stranger)\b/i;
+    const NEW_PAYEE = /\bnew (?:landlord|account|payee|bank|routing)\b|\blandlord (?:changed|has a new)\b/i;
+    const PHONE = /(?:^|\s)((?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]?\d{4}|\d{10})(?!\d)/;
     function parse(text) {
       const t = String(text || "").trim(), lower = t.toLowerCase();
       const forIdx = lower.search(/\bfor\b/), head = forIdx >= 0 ? t.slice(0, forIdx) : t, memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "") || null : null;
-      const amount_cents = parseAmount(head);
+      // A phone number is the recipient, never the amount ("send 40 to this number 312-555-0147", megadoc B13).
+      const phoneM = PHONE.exec(head), phone = phoneM ? phoneM[1].trim() : null, head2 = phone ? head.replace(phoneM[1], " ") : head;
+      const amount_cents = parseAmount(head2) || wordsAmount(head2);
+      // "40.555" and "4 0" are never rounded or joined silently (megadoc A13, B08).
+      const extraDigits = /(?:^|[\s$])(\d+)\.(\d{3,})\b/.exec(head2), spaced = /(?:^|\s)\$?(\d)\s(\d)(?:\s|$)/.exec(head2);
       let recipient = null, recipient_raw = null;
-      const bare = head.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
+      const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
       else { const verb = /(?:^|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
-      if (recipient_raw) {
-        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|please|instantly|asap|rn|pls|back)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+      if (phone) recipient_raw = recipient = phone;
+      else if (recipient_raw) {
+        // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",
+        // "maya from savings", "my roommate unevenly" (megadoc A05, A08, A11, A15, B07, C11).
+        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|tomorrow|please|instantly|asap|rn|pls|back|and|but|if|from|at|on|by|when|then|also|unevenly|evenly|only|every|each|via|using|with)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+        // An amount in words is not part of the name ("send maya forty bucks").
+        const numWord = w => w.toLowerCase() in UNITS || w.toLowerCase() in TENS || /^(hundred|thousand|bucks|dollars?|a|and)$/i.test(w);
+        const kept = recipient_raw.split(/\s+/); while (kept.length > 1 && numWord(kept[kept.length - 1])) kept.pop();
+        const cut = kept.findIndex((w, i) => i > 0 && numWord(w) && w.toLowerCase() !== "a"); if (cut > 0) kept.length = cut;
+        recipient_raw = kept.join(" ");
         recipient = recipient_raw.split(/\s+/).slice(0, 2).join(" ").replace(/\b(my|the|some|another)\b\s*/gi, "").trim() || null;
       }
       const speed = /\b(instant|instantly|right now|asap|now)\b/i.test(t) ? "instant" : null;
@@ -2564,7 +2603,12 @@
       const railM = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head), rail = railM ? (/cash/i.test(railM[1]) ? "cash_app" : railM[1].toLowerCase()) : null;
       // "4.5" could be $4.50, $45 or $4,500: one question, never a guess (response-style corpus 1.14).
       const one_decimal = /(?:^|[\s$])\d+\.\d(?!\d)/.test(head);
-      return { amount_cents, recipient, recipient_raw, memo, speed, funding, rail, text: t, one_decimal, recurring: SCHEDULE.test(t) };
+      // A memo can also be added ("pay jake 25 and add \"pizza\"", megadoc A05).
+      const added = /\band (?:add|put|write)\s+(?:a\s+)?(?:memo|note)?\s*(?:of|saying|that says)?\s*["“]?([^"”]{1,60})["”]?\s*$/i.exec(t);
+      return { amount_cents, recipient, recipient_raw, memo: memo || (added ? added[1].trim() : null), speed, funding, rail, text: t, one_decimal, recurring: SCHEDULE.test(t),
+        scheduled: !SCHEDULE.test(t) && LATER.test(t), conditional: CONDITION.test(t),
+        fx: FX.test(t), extra_digits: extraDigits ? { whole: Number(extraDigits[1]), frac: extraDigits[2] } : null, spaced: spaced ? [Number(spaced[1]), Number(spaced[2])] : null,
+        everything: /\b(everything|all (?:of )?my (?:money|cash|checking)|all of it|the whole (?:balance|account))\b/i.test(t) };
     }
     // A description of a person, not a name: "the guy from yesterday", "my landlord's cousin", "a guy i just met at the bar".
     // It never becomes a recipient's name; the person is asked who it is (response-style corpus 1.02, 1.08).
@@ -2599,11 +2643,13 @@
       // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
       // The card a person answers: two SMS segments at most. Who gets paid, the exact amount, the rail, the fee and total,
       // and that it can't be undone once received. Funding account, timing and the full reversal terms are DETAILS.
+      // The memo rides on the card, quoted as text (megadoc A01, A05); a memo with instruction-like text is never shown as one.
+      const memoOn = send => send.memo && !send.memo_flagged && String(send.memo).length <= 40 ? `, memo "${String(send.memo).replace(/"/g, "'")}"` : "";
       const cardText = (send, channel) => {
         const who = send.confirm.recipient, amt = money(send.amount_cents), rail = send.rail.name, irr = /irreversible|can'?t be undone|cannot be undone/i.test(String(send.rail.reversible || "")) && !/^friends-and-family/i.test(String(send.rail.reversible || ""));
         const nu = send.recipient.readback_id ? `${send.recipient.name}${send.recipient.handle && send.recipient.handle !== send.recipient.name ? ` (${send.recipient.handle})` : ""}` : null;
         const heads = nu ? [`New recipient, first send: set up ${amt} to ${nu} in ${rail} from ${send.confirm.from}, for you to send`, `New recipient, first send: set up ${amt} to ${nu} in ${rail}`]
-          : [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
+          : [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}${memoOn(send)}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}${memoOn(send)}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
         const fee = send.rail.fee_cents || 0;
         for (const head of heads) {
           const f = { head, fee_cents: fee, total_cents: send.amount_cents + fee, irreversible: irr || /friends-and-family/i.test(String(send.rail.reversible || "")), irreversible_text: /friends-and-family/i.test(String(send.rail.reversible || "")) ? "Friends-and-family sends can't be undone." : "Can't be undone once received.", expiry_ms: o.confirm_ttl_ms || 10 * 60000, when: send.memo_flagged ? "Your memo had instruction-like text; I kept it as text" : send.verify_question && nu ? "Only if they asked you for this themselves, in person or on a call you placed" : null };
@@ -2624,7 +2670,14 @@
         // A scam pattern stops the request before any question about who or how much (response-style corpus 5.06).
         const scam = Money.SCAM.exec(String(parsed.text || ""));
         if (scam && !pick) return { outcome: "stop", reason: "scam_pattern", text: `That's a scam pattern ("${scam[0]}"): no real agency or company asks for money this way. I won't send this, and nothing was sent. If someone called you, hang up.` };
-        const beat = GRIEF.test(String(parsed.text || "")) && !pick ? "I'm so sorry. " : "";
+        // Warnings that ride along with the question, never a refusal (megadoc B12, N10).
+        const warn = pick ? "" : MARKET.test(String(parsed.text || "")) ? "Paying a stranger from a listing is a common scam, and person-to-person apps rarely protect purchases; a card or the marketplace's own checkout does. " : NEW_PAYEE.test(String(parsed.text || "")) ? "A new payee for a big payment is the most common rent scam. Check it with your landlord on a number you already have. " : "";
+        const grief = GRIEF.test(String(parsed.text || "")) && !pick ? "I'm so sorry. " : "", beat = grief + warn;
+        if (!pick && (parsed.scheduled || parsed.conditional)) { const rr = parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? book.resolve(parsed.recipient) : null, nm = rr && rr.status === "saved" ? rr.person.name : null; return { outcome: "not_built", reason: parsed.conditional ? "conditional" : "scheduled", text: `${parsed.conditional ? "Payments that wait on a condition" : "Scheduled payments"} aren't built yet, so nothing was set up.${parsed.amount_cents && nm ? ` I can set up ${money(parsed.amount_cents)} to ${nm} now instead. Want that?` : ""}` }; }
+        if (!pick && parsed.fx) return { outcome: "refuse", reason: "fx_unsupported", text: "Upmore sends US dollars only, so I can't send another currency, and nothing was set up. If you want to send a dollar amount, tell me how much." };
+        if (!pick && parsed.extra_digits) { const lo = parsed.extra_digits.whole * 100 + Number(parsed.extra_digits.frac.slice(0, 2)); return { outcome: "ask", reason: "amount_format", text: `Dollars and cents only. Did you mean ${money(lo)} or ${money(lo + 1)}?` }; }
+        if (!pick && parsed.spaced) { const [a1, b1] = parsed.spaced; return { outcome: "ask", reason: "amount_format", text: `Did you mean ${money((a1 * 10 + b1) * 100)} or ${money(a1 * 100)}?` }; }
+        if (!pick && parsed.everything && !parsed.amount_cents) return { outcome: "ask", reason: "amount_all", text: `${beat}Sending everything would leave $0.00 in checking and could overdraft bills that are due, so I won't guess the amount. How much exactly?` };
         if (parsed.recurring && !pick) { const rr = parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? book.resolve(parsed.recipient) : null, nm = rr && rr.status === "saved" ? rr.person.name : null; return { outcome: "not_built", reason: "recurring", text: `Recurring payments aren't built yet, so I can't set that up and nothing was scheduled.${parsed.amount_cents && nm ? ` I can do a one-time ${money(parsed.amount_cents)} to ${nm} now. Want that?` : ""}` }; }
         if (parsed.one_decimal && parsed.amount_cents && !parsed.amount_checked && !pick) { pendingAmountCheck = parsed; return { outcome: "ask", reason: "amount_format", text: `Do you mean ${money(parsed.amount_cents)}? Checking since it could also be ${money(parsed.amount_cents * 10)} or ${money(parsed.amount_cents * 1000)}.` }; }
         if (!parsed.amount_cents) return { outcome: "ask", text: `${beat}How much?` };
@@ -2642,7 +2695,7 @@
           if (r.status === "ambiguous") return follow({ candidates: r.candidates, ask: r.ask }, parsed, "ambiguous", { candidates: r.candidates.map(c => c.name) });
           if (r.status === "lookalike") return follow({ suspect: r.suspect, handle: r.handle, rail: parsed.rail, name: r.handle ? null : r.query, ask: r.ask, lead: r.ask }, parsed, "lookalike");
           // A description is never turned into a name: ask who it is (corpus 1.02, 1.08, 5.05, 5.10).
-          if (r.status === "stranger" && DESCRIBED.test(parsed.recipient_raw || "")) return follow({ name: null, handle: null, rail: parsed.rail, brief: true, lead: beat ? "I'm so sorry. I can help with the payment when you're ready." : `I don't have ${String(parsed.recipient_raw).replace(/^my\b/i, "your")} saved.` }, Object.assign({}, parsed, { recipient: null }), "new_recipient", { new_recipient: true });
+          if (r.status === "stranger" && DESCRIBED.test(parsed.recipient_raw || "")) return follow({ name: null, handle: null, rail: parsed.rail, brief: true, lead: grief ? "I'm so sorry. I can help with the payment when you're ready." : `${warn}I don't have ${String(parsed.recipient_raw).replace(/^my\b/i, "your")} saved.` }, Object.assign({}, parsed, { recipient: null }), "new_recipient", { new_recipient: true });
           if (r.status === "stranger") return follow({ name: r.name, handle: r.handle, rail: parsed.rail, lead: `${beat}I don't have ${r.name || parsed.recipient} on file.` }, parsed, "new_recipient", { new_recipient: true });
           person = r.person;
         }
@@ -2811,8 +2864,12 @@
     // 100% of the cash before anything else (response-style corpus 3.09). Other vague sizes still ask.
     const ALL_IN = /\b(everything|all my cash|all in|all of my cash|max(?:imum)?|as much as (?:i can|possible))\b/i;
     const VAGUE = /\b(a bunch|some|a little|a lot|whatever)\b/i;
+    // "10k of VOO" is $10,000.00; "invest 5000 in X" and "put 300 into X" name dollars (megadoc E14, I03).
+    const THOUSANDS = /(?:^|[\s$])(\d+(?:\.\d+)?)\s?k\b/i, INVEST = /\b(?:invest|put)\s+\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s+(?:in|into)\b/i;
     function parseAmount(text) {
       const t = String(text || "");
+      const k = THOUSANDS.exec(t); if (k) { const c = Math.round(Number(k[1]) * 100000); return c > 0 ? { notional_cents: c } : { zero: true }; }
+      const inv = INVEST.exec(t); if (inv) { const c = Number(inv[1].replace(/,/g, "")) * 100 + Number(((inv[2] || "") + "00").slice(0, 2)); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const d = DOLLARS.exec(t), s = SHARES.exec(t);
       if (d) { const whole = Number((d[1] || d[3]).replace(/,/g, "")), frac = Number(((d[2] || d[4] || "") + "00").slice(0, 2)); const cents = whole * 100 + frac; return cents > 0 ? { notional_cents: cents } : { zero: true }; }
       if (s) { const q = Number(s[1]); return q > 0 ? { quantity: q } : { zero: true }; }
@@ -2858,7 +2915,7 @@
       const t = String(text || "").trim();
       const protect = /\b(?:put|set|place|add)\s+(?:a\s+)?(?:trailing\s+)?stop\b/i.test(t) && /\bmy\b/i.test(t) && !/\bbuy\b/i.test(t);
       const side = (/\bsell\b/i.test(t) && !/\bbuy\b/i.test(t)) || protect ? "sell" : "buy";
-      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto)\b/i.test(t) ? "crypto" : "equity";
+      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
       const action = /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
         : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
@@ -2871,12 +2928,16 @@
       let fraction = null;
       if (side === "sell") { const f = /\b(half|all|everything|entire|whole position|a third|one third|a quarter|one quarter)\b|\b(\d{1,3})\s*%\s*of\b/i.exec(rest); if (f) fraction = f[2] ? Number(f[2]) / 100 : { half: 0.5, all: 1, everything: 1, entire: 1, "whole position": 1, "a third": 1 / 3, "one third": 1 / 3, "a quarter": 0.25, "one quarter": 0.25 }[f[1].toLowerCase()]; if (protect && !fraction && !amount.quantity && !amount.notional_cents && !amount.ambiguous) fraction = 1; }
       let query = null;
-      const of = /\b(?:of|in(?:to)?)\s+(?!my\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?]|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
+      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
       if (of) query = of[1].trim();
       else if (amount.symbol_hint) query = amount.symbol_hint;
-      else { const up = /\b([A-Z]{1,5})\b(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      else { const up = /\b([A-Z]{1,5}(?:\.[A-Z])?)(?![\w.])(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      // A lowercase ticker right after the verb ("buy nvda"): the broker's asset list decides whether it is one.
+      if (!query) { const w = /\b(?:buy|sell|get|purchase)\s+(?:some\s+|more\s+)?([a-z]{1,5}(?:\.[a-z])?)(?![\w.])/i.exec(rest); if (w && !/^(it|that|this|them|all|half|my|the|some|more|stock|a|an|now|back|off|out|in|up|with|while|when|during|after|before|at|on|for|and|if|to|from|into|low|high|me|us|you|what|which|any|one|cheap)$/i.test(w[1])) query = w[1]; }
       if (!query) { const my = /\bmy\s+(?!(?:roth|ira|brokerage|account|schwab|fidelity|vanguard account|401k|taxable|order|limit|stop|cash)\b)([A-Za-z][\w.&'-]*)/i.exec(rest); if (my) query = my[1]; }
       if (query) query = query.replace(/\s+(ETF|stock|shares?|order)$/i, "").trim() || null;
+      // "I" and "A" are words before they are tickers; money words are not instruments ("with 300 in cash", megadoc F02, H12).
+      if (query && (/^(I|A)$/.test(query) && !/(?:\$|\bof\s+)(?:I|A)\b/.test(rest)) || query && /^(cash|savings|checking|my account|the market|stocks?)$/i.test(query)) query = null;
       const acct = /\b(?:in|from|using)\s+(?:my\s+)?((?:schwab|fidelity|vanguard|robinhood|public|roth|ira|brokerage|taxable|401k)[\w -]{0,24}?)(?=\s+account\b|\s*[,.!?]|$)/i.exec(t);
       // A number next to a symbol with a price attached ("buy 10 NVDA at $105") is a share count: notional orders are market only.
       // A bare number on a market buy is dollars ("buy 100 of nvda" is $100.00 of NVDA; owner's response-style corpus 3.01,
@@ -2925,7 +2986,8 @@
       const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
 
       // S15: nothing leaves without the advice-guard response lint; a message that fails is reported, never sent as advice.
-      const say = (outcome, text, extra) => { const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
+      // A reply starts with a capital even when it opens with an account name ("your Alpaca account ...").
+      const say = (outcome, text0, extra) => { const text = typeof text0 === "string" ? text0.charAt(0).toUpperCase() + text0.slice(1) : text0; const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
       const ask = (reason, text, extra) => say("ask", text, Object.assign({ reason }, extra));
 
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
@@ -3016,12 +3078,26 @@
       async function stageOnce(parsed) {
         suggestion = null;
         // Copying someone's portfolio is not built: said plainly, with why a copy would be stale (corpus 3.08, scenario H02).
-        if (/\bcopy\b|\bmirror\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        if (/\b(copy|copied|copying|mirror|mirrored)\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        // An investment pitch with a promised return is a scam pattern; nothing is staged (megadoc N01).
+        if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
+        // Stops across every holding at once are not built (megadoc E13): one holding at a time.
+        if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "portfolio") return portfolio();
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
         if (parsed.asset === "crypto") return say("refuse", "Upmore can't trade crypto yet, so nothing was placed. Want to name a stock-listed fund instead? I'll put up a card for it.", { reason: "crypto_venue" });
+        // Products Upmore does not offer, said plainly before any question (megadoc E20, E21, E25, I01-I08, M10).
+        const tx = parsed.text || "";
+        if (/\b(options?|calls|puts|call options?|put options?|contracts)\b/i.test(tx) && /\b(buy|sell|trade|yolo|copy)\b/i.test(tx)) return say("refuse", "Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own account.", { reason: "options_unsupported" });
+        if (/\b(on margin|margin|shorting|short sell|sell short|go short|leverage[d]?)\b/i.test(tx)) return say("refuse", "Upmore only places cash orders, with no margin or short selling, so nothing was placed.", { reason: "margin_unsupported" });
+        // Money into savings or checking is a transfer between the person's own accounts, not an order (megadoc M09).
+        if (/\b(?:in|into|to)\s+(?:my\s+)?(savings|checking|emergency fund|bank)\b/i.test(tx)) return say("not_built", "Moving money between your own accounts isn't built yet, so nothing was moved or placed.", { reason: "transfer_not_built" });
+        { const priv = /\b(spacex|stripe|openai|anthropic|databricks|chime|discord|epic games|shein|klarna)\b/i.exec(tx);
+          if (priv) return say("refuse", `${priv[1].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Spacex$/, "SpaceX").replace(/^Openai$/, "OpenAI")} isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.`, { reason: "private_unsupported" });
+          if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
+        if (/\b(a|per|each|every)\s+(week|month|day|paycheck|quarter)\b|\b(weekly|monthly|recurring|auto[- ]?invest|automatically|dca|dollar[- ]cost)\b/i.test(tx)) return say("not_built", "Recurring investments aren't built yet, so nothing was scheduled or placed. I can put up a card for a one-time order if you name the amount.", { reason: "recurring_not_built" });
         const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY, type = parsed.type || "market";
         // S03: decision words are refused before anything is read or staged. The guard catches the advice shapes; the local
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
@@ -3043,7 +3119,7 @@
         if (parsed.ambiguous_number) return ask("size_ambiguous", `Is ${parsed.ambiguous_number} dollars or shares of ${(parsed.query || "that").toUpperCase()}?`);
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");
         if (parsed.vague) return ask("size", `How much exactly: a dollar amount or a share count? I don't size orders myself.`);
-        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? parsed.query.toUpperCase() : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
+        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
         if (parsed.notional_cents && type !== "market") return ask("size", `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
         const res = await instrument(parsed.query);
@@ -3565,7 +3641,11 @@
       const batch = /\b(the ones|all the ones|everything|anything)\b.*\b(don'?t use|unused|not using|never use)\b/i.test(t) || /\bcancel (all|everything)\b/i.test(t);
       const that = /\b(cancel|stop|end|kill)\s+(that|it|this)\b/i.test(t) && !/\b(cancel|stop|end|kill)\s+(that|it|this)\s+[a-z]{3,}/i.test(t.replace(/\b(thing|one|subscription|sub)\b/gi, ""));
       const m = /\b(?:cancel|stop paying( for)?|end|kill|get rid of|unsubscribe( from)?)\s+(?:my\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{0,40}?)(?=\s+(?:subscription|sub|plan|membership|account|please|now|today)\b|\s*[,.!?]|$)/i.exec(t);
-      const merchant = that ? null : m ? m[m.length - 1].trim() : null;
+      // "is the planet fitness cancel easy", "how hard is it to cancel hulu": the merchant named around the word cancel
+      // in a question about its terms (corpus 4.14).
+      const q = /^\s*(?:is|how|what|can i|could i|will)\b.*?\b(?:the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{1,40}?)\s+(?:cancel(?:lation|ing)?|to cancel)\b/i.exec(t);
+      const after = m ? m[m.length - 1].trim() : null, adjective = after && /^(easy|hard|simple|possible|free|difficult|easy or hard)$/i.test(after);
+      const merchant = that ? null : after && !adjective ? after : q && !/^(it|that|this|hard|easy)$/i.test(q[1].trim()) ? q[1].trim() : null;
       return { text: t, merchant: merchant && !/^(that|it|this|the ones)$/i.test(merchant) ? merchant : null, that, batch, undo: /^\s*(undo|resubscribe|put it back|reactivate)\b/i.test(t), status: /\b(did (it|that) work|is it (cancelled|canceled|done)|did you cancel|status of)\b/i.test(t), savings: /\b(how much (have|did) you sav|what (have|did) you sav|savings so far)/i.test(t) };
     }
     function create(opts) {
@@ -3693,11 +3773,25 @@
         if (p.status) return status();
         if (p.savings) return savings();
         if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
+        // Things that are not subscriptions are said plainly, never searched for as a charge (megadoc A09, C14, H11, M11).
+        const raw = String(text || "");
+        if (/\b(transfers?|payments? to|money i sent|the \$?\d+ (?:to|i sent))\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("stop", "Upmore doesn't send transfers itself, so there's nothing here to cancel. A payment you sent in Venmo, Zelle, Cash App or PayPal can only be stopped in that app, if it hasn't gone through yet. Nothing was changed.", { reason: "not_a_subscription" });
+        if (/\brequests?\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("not_built", "Canceling payment requests isn't built yet: cancel them in the app you sent them from. Nothing was changed.", { reason: "requests_not_built" });
+        if (/\b(copying|copy trad\w*)\b/i.test(raw)) return say("not_built", "Copy trading isn't built, so there's no copy running to stop. Nothing was changed.", { reason: "copy_not_built" });
+        if (/\b(savings plan|auto[- ]?sav\w*|round[- ]?ups?|savings goal)\b/i.test(raw)) return say("not_built", "Savings automation isn't built, so there's no plan here to cancel. Nothing was changed.", { reason: "savings_not_built" });
+        // A charge named by its amount ("the thing that charged 9.99", megadoc J12).
+        const amt = /\$?\b(\d{1,4})\.(\d{2})\b/.exec(raw);
+        if (amt && !p.that) {
+          const want = Number(amt[1]) * 100 + Number(amt[2]), inv = inventory(), hit = inv.filter(x => x.amount_cents === want);
+          if (hit.length === 1) return stage(hit[0], ctx);
+          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant) });
+          return say("ask", `Which one: ${hit.map(x => nameOf(x)).join(" or ")}? Both charge ${money(want)}.`, { candidates: hit.map(x => x.merchant) });
+        }
         let query = p.merchant; if (p.that) { if (!last_mentioned) return say("ask", "Cancel which one? Nothing has been mentioned yet."); query = last_mentioned; }
         if (!query) return say("ask", "Cancel what? Name the subscription.");
         const r = resolve(query);
         if (r.many) return say("ask", `Which one: ${r.many.map(s => `${nameOf(s)} (${money(s.amount_cents)}/${s.interval === "monthly" ? "mo" : s.interval})`).join(" or ")}?`, { candidates: r.many.map(s => s.merchant) });
-        if (r.none) return say("ask", `I don't see a ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
+        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
         return stage(r.one, ctx);
       }
 
@@ -3984,20 +4078,35 @@
     // or silently dropped: the person picks which goes first, and nothing is staged until they do. A second part with no
     // verb of its own borrows the first part's verb. Parts that are not requests ("and drinks", "and sarah") stay put.
     const VERB = /^\s*(buy|sell|send|pay|venmo|zelle|cash ?app|paypal|cancel|split|transfer)\b/i;
+    const MONEY_VERB = /^\s*(send|pay|venmo|zelle|cash ?app|paypal|transfer)\b/i;
     function splitRequests(text) {
       const t = String(text || "").trim();
       if (!MAYBE.test(t)) return null;
-      const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*/i).map(x => x.trim()).filter(Boolean);
+      const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*|,\s*(?=(?:and\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|cancel|buy|sell|split|transfer|request)\b|@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:,|$|and\b))/i).map(x => x.trim()).filter(Boolean);
       if (parts.length < 2) return null;
-      const reqs = [];
+      const reqs = [], v0 = VERB.exec(parts[0]), verb = v0 ? v0[1] : null;
       for (let i = 0; i < parts.length; i++) {
-        const p = parts[i], isReq = MAYBE.test(p) || (i > 0 && /^\$\s?\d/.test(p));
-        if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += ` and ${p}`; else reqs.push(p); continue; }
-        reqs.push(i > 0 && !MAYBE.test(p) && VERB.test(parts[0]) ? `${VERB.exec(parts[0])[1]} ${p}` : p);
+        const p = parts[i];
+        // A part with no verb of its own borrows the first part's verb when it names its own amount ("$20 to marcus",
+        // "25 to jake", "500 of AMD"), a payee and an amount ("jake 25"), or, after "cancel", another subscription
+        // ("cancel NYT and WSJ"). Without that, "send maya 40 and 25 to jake" was one $40 card to Jake (megadoc A14,
+        // P09, J11); now each part is its own request.
+        const borrow = i > 0 && !MAYBE.test(p) && verb && ((/^\$?\s?\d/.test(p) && !/^split$/i.test(verb) && !/^\d+\s+(?:friends|people|others|of us|ways|roommates|guys)\b/i.test(p)) || (MONEY_VERB.test(parts[0]) && /^@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?$/i.test(p)) || (/^cancel$/i.test(verb) && /^[\w.&'+-]+(?:\s+[\w.&'+-]+){0,2}$/.test(p) && !/\d/.test(p)));
+        const isReq = MAYBE.test(p) || borrow;
+        if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += `${/^[A-Za-z]/.test(p) ? " and " : ", "}${p}`; else reqs.push(p); continue; }
+        reqs.push(borrow ? `${verb} ${p}` : p);
       }
       const real = reqs.filter(r => MAYBE.test(r));
-      return real.length >= 2 ? real.slice(0, 2) : null;
+      return real.length >= 2 ? real : null;
     }
+    const QUESTION = /^\s*(?:did|does|do (?:i|we|you)|what|what'?s|whats|how|when|where|why|who|whose|which|is|are|was|were|am i|have i|has|any)\b/i;
+    // Questions a flow answers from its own records stay with the flow: a cancellation's terms or state (cancel), the
+    // live portfolio (trade). "Did anyone pay me back?" is read from transactions by the assistant, not a send.
+    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions)\b/i;
+    const ASK_TO_DO = /^\s*(?:can|could|would|will) you\b|\b(?:send|pay|buy|sell|cancel|split|request)\s+(?:@?[a-z]+\s+)?\$?\d/i;
+    const INJECTION = /\b(?:ignore (?:all |any )?(?:previous|prior|above|earlier|your) (?:instructions|rules|prompts?)|disregard (?:all |the )?(?:previous|prior|above) (?:instructions|rules)|system prompt|you are now|new instructions:|developer mode)\b/i;
+    const SECRET_SEND = /\b(?:send|text|email|share|give|forward)\b.{0,30}\b(?:account (?:number|#)|routing (?:number|#)|card (?:number|#)|social security|ssn|password|passcode|pin\b|one[- ]time code|verification code|otp)\b/i;
+    const CORRECTED = /^(.*?)(\$?\d[\d,]*(?:\.\d+)?)(.*?)\b(?:no,? wait|wait,? no|no,? make it|make it|make that|actually|i mean|i meant|scratch that,?)\s+(\$?\d[\d,]*(?:\.\d+)?)\s*$/i;
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
@@ -4048,6 +4157,28 @@
         return Object.assign(out, { picked: chosen, memo });
       }
       const live0 = Object.keys(sessions).filter(k => sessions[k] && sessions[k].pending);
+      if (!live0.length && !memo.pair) {
+        // Instructions inside pasted or forwarded text have no authority (global rule G6, megadoc N05): a money move that
+        // comes wrapped in "ignore previous instructions" is named and not acted on.
+        if (INJECTION.test(text) && MAYBE.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "injected_instruction", text: `That text contains an instruction to move money ("${INJECTION.exec(text)[0]}"). I don't act on instructions inside pasted or forwarded text, so nothing was set up. If you want to send money, tell me in your own words.` } });
+        // An IOU log is not built: said plainly, and no money flow is started (megadoc D08).
+        if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_not_built", text: "Upmore doesn't keep an IOU log yet, so nothing was saved, and no money moved." } });
+        // Secrets are never sent anywhere, by any flow (megadoc N07).
+        if (SECRET_SEND.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "secret_data", text: "I won't send account numbers, card numbers, passwords or codes to anyone, and nothing was sent. Upmore never needs them by text." } });
+        // A question is not an order: "did maya pay me back?", "what do I owe people", "did my buy fill?" go to the
+        // assistant that reads the records, never to a money flow's "How much?" (megadoc C08, D09, E18, G11).
+        if (QUESTION.test(text) && !ASK_TO_DO.test(text) && !FLOW_QUESTION.test(text)) return done({ route: "fallthrough", source: "deterministic", reason: "question", problems: [] });
+        // "send me a reminder / report / summary" asks for a message, not money (megadoc G12).
+        if (/^\s*(?:can you |could you |please )?send me\b/i.test(text) && !/\$|\d/.test(text.replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, ""))) return done({ route: "fallthrough", source: "deterministic", reason: "message_to_self", problems: [] });
+        // A number changed in the same text ("buy 5 AAPL no wait 10", "send maya 50 and make it 5"): the last number wins
+        // and the card shows it; nothing runs without a yes on that card (megadoc B07, E19).
+        const fix = CORRECTED.exec(text);
+        if (fix) {
+          const out = await handle(`${fix[1]}${fix[4]}${fix[3].replace(/[\s,;]*(?:and|but|,)?\s*$/i, "")}`.replace(/\s+/g, " ").trim(), Object.assign({}, c, { memo }));
+          if (out && out.result && typeof out.result.text === "string") out.result = Object.assign({}, out.result, { text: `Using ${fix[4]}, your last number. ${out.result.text}` });
+          return out;
+        }
+      }
       if (!live0.length && !(memo.pair && YES_NO.test(text))) {
         const two = splitRequests(text);
         if (two) {
@@ -4056,12 +4187,14 @@
           const first = await handle(two[0], Object.assign({}, c, { memo }));
           // The first ask was not read as a flow on its own: never drop both. Name both and let the person pick.
           if (!first || first.route === "fallthrough" || !first.result) {
-            memo.pair = { parts: two, at: now };
+            if (two.length <= 2) memo.pair = { parts: two, at: now };
+            if (two.length > 2) return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's ${two.length} requests: ${two.map((x, i) => `${i + 1}) ${x}`).join(", ")}. Send me the first one on its own and I'll start there.` } });
             return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's two requests: 1) ${two[0]}, 2) ${two[1]}. Which first? Reply 1 or 2.` } });
           }
-          memo.queue = { text: two[1], at: now };
+          const rest = two.slice(1);
+          memo.queue = { text: rest.join("; "), at: now };
           const fr = Object.assign({}, first.result || {});
-          fr.text = `Two things, one at a time. First: ${fr.text || ""} Then I'll do: ${two[1]}.`;
+          fr.text = `${rest.length === 1 ? "Two" : rest.length === 2 ? "Three" : "Several"} things, one at a time. First: ${fr.text || ""} Then I'll do: ${rest.join(", then ")}.`;
           return Object.assign(first, { result: fr, memo, two_requests: two });
         }
       }
@@ -4189,6 +4322,10 @@
       const m = AMOUNT.exec(head);
       if (m) { const c = Number(m[1].replace(/,/g, "")) * 100 + (m[2] ? Number((m[2] + "0").slice(0, 2)) : 0); if (Number.isSafeInteger(c) && c > 0) out.amount_cents = c; }
       const rm = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head); if (rm) out.rail = /cash/i.test(rm[1]) ? "cash_app" : rm[1].toLowerCase();
+      // Splits by percentage or by item are not built (megadoc C06, C11): flagged here, said plainly in stage().
+      out.uneven = /\b\d{1,2}\s*\/\s*\d{1,2}\b|\bunevenly\b|\d{1,2}\s*%|\bpercent\b/i.test(t);
+      out.itemized = /\b(?:only|just) had\b|\bitemi[sz]e|\bby item\b/i.test(t);
+      head = head.replace(/,?\s*\b(?:tip|tax) included\b|,?\s*\bincluding (?:the )?(?:tip|tax)\b|,?\s*\bplus (?:the )?tip\b/gi, " ").replace(/\bunevenly\b|\b\d{1,2}\s*\/\s*\d{1,2}\b/gi, " ");
       const withM = /\b(?:with|between|among|w\/)\s+(.+)$/i.exec(head);
       if (withM) {
         out.names = withM[1].replace(/\b(evenly|equally|even|on (venmo|zelle|cash ?app|paypal)|in (venmo|zelle|cash ?app|paypal)|please|pls)\b/gi, " ")
@@ -4241,6 +4378,8 @@
       const details = sp => `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""} ${sp.asks.length + 1} ways, equal shares on exact cents (any odd cent is yours): you ${money(sp.mine_cents)}, ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay. I mark each one paid when the money lands. Reply YES or NO.`;
 
       async function stage(parsed, resolvedSoFar) {
+        if (parsed.uneven && !resolvedSoFar) return { outcome: "not_built", reason: "uneven_not_built", text: "Splits by percentage aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
+        if (parsed.itemized && !resolvedSoFar) return { outcome: "not_built", reason: "itemized_not_built", text: "Itemized splits aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
         if (!parsed.amount_cents) return { outcome: "ask", text: "How much was it?" };
         if (!parsed.names.length) {
           // The question keeps the split, so the answer ("dave priya and sam", "just alex") continues it.
@@ -4299,7 +4438,13 @@
         return { outcome: r.outcome, text: r.message || null };
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { waitingNames = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; return stage(parse(text)); }
+      async function start(text) { waitingNames = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; const p = parse(text); return stage(Object.assign(p, { names: expandNames(p.names) })); }
+      // "maya jake and sam": a chunk that is not one saved person but whose every word is one becomes one name per word
+      // (corpus 2.01, megadoc C01).
+      function expandNames(names) {
+        const known = w => ["saved", "ambiguous"].includes(book.resolve(w).status);
+        return names.flatMap(n => n.includes(" ") && !known(n) && n.split(/\s+/).every(known) ? n.split(/\s+/) : [n]).filter(n => !/^(me|myself|i)$/i.test(n));
+      }
 
       // Stop-on-change: every saved person is looked up again right before staging; a handle that changed or a person who
       // is no longer on file stages nothing and puts up a fresh card.
@@ -4319,9 +4464,7 @@
           const was = waitingNames; waitingNames = null;
           if (/^\s*(no|nope|never ?mind|nvm|cancel|forget it)\b/i.test(text)) return { outcome: "declined", text: "Okay. Nothing was staged." };
           // "dave priya and sam": a chunk that is not one saved person but whose every word is one becomes one name per word.
-          const known = w => ["saved", "ambiguous"].includes(book.resolve(w).status);
-          const names = String(text).replace(/^\s*(?:just|only|with|me and)\s+/i, "").split(/\s*(?:,|\band\b|&|\+)\s*/i).map(n => n.replace(/[.!]+$/, "").trim()).filter(Boolean)
-            .flatMap(n => n.includes(" ") && !known(n) && n.split(/\s+/).every(known) ? n.split(/\s+/) : [n]).filter(n => !/^(me|myself|i)$/i.test(n));
+          const names = expandNames(String(text).replace(/^\s*(?:just|only|with|me and)\s+/i, "").split(/\s*(?:,|\band\b|&|\+)\s*/i).map(n => n.replace(/[.!]+$/, "").trim()).filter(Boolean));
           return stage(Object.assign({}, was, { names, ways: was.others ? names.length + 1 : was.ways }));
         }
         if (identity) {

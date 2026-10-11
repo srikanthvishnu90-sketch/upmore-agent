@@ -14,7 +14,7 @@ export const PEOPLE = [
   person("r13", "Alex Cho", "@alexcho"), person("r14", "Jake Wu", "@jakewu"),
 ];
 export const HANDLES = PEOPLE.map(p => p.handle.toLowerCase());
-function txs(extra: any[] = []) {
+export function txs(extra: any[] = []) {
   const out: any[] = []; let n = 0;
   const add = (acct: string, cents: number, d: string, m: string) => out.push({ account_id: acct, provider_transaction_id: "t" + (++n), amount_cents: -cents, posted_on: d, merchant_raw: m, is_pending: false, is_transfer: false });
   for (const d of ["2026-07-24", "2026-08-24", "2026-09-24"]) { add("card-8830", 1549, d, "NETFLIX.COM"); add("card-8830", 1799, d.replace("-24", "-19"), "HULU 877-8244858"); add("card-8830", 1099, d.replace("-24", "-14"), "SPOTIFY USA"); }
@@ -22,13 +22,14 @@ function txs(extra: any[] = []) {
 }
 // Per-example world changes the corpus implies (4.04: Netflix on a second card).
 const EXTRA_TX: Record<string, any[]> = {
+  "4.14": ["2026-07-17", "2026-08-17", "2026-09-17"].map((d, i) => ({ account_id: "card-8830", provider_transaction_id: "pf" + i, amount_cents: -2499, posted_on: d, merchant_raw: "PLANET FITNESS", is_pending: false, is_transfer: false })),
   "4.04": ["2026-07-11", "2026-08-11", "2026-09-11"].map((d, i) => ({ account_id: "card-2201", provider_transaction_id: "x" + i, amount_cents: -699, posted_on: d, merchant_raw: "NETFLIX.COM", is_pending: false, is_transfer: false })),
 };
 // Setup a context line describes: the earlier card the person is answering.
 const SETUP: Record<string, string[]> = { "2.09": ["send ana 30"], "2.12": ["cancel hulu"] };
 const QUOTES: Record<string, [string, number]> = { NVDA: ["NVIDIA Corp", 182.4], TSLA: ["Tesla Inc", 251.2], AMD: ["Advanced Micro Devices", 152.3], PLTR: ["Palantir Technologies", 41.1], AAPL: ["Apple Inc", 229.5], MSFT: ["Microsoft Corp", 418.2], GME: ["GameStop Corp", 24.6], VT: ["Vanguard Total World Stock ETF", 120.5], VOO: ["Vanguard S&P 500 ETF", 512.1] };
 // MOCK Alpaca Trading API v2 (eval only): cash $1,340.22, 18.5 PLTR held; market open unless the example says closed.
-function mockAlpaca(now: () => number, open: boolean) {
+export function mockAlpaca(now: () => number, open: boolean) {
   const orders: any[] = [];
   const f = async (input: any, init: any = {}) => {
     const u = new URL(String(input)), method = init.method || "GET", body = init.body ? JSON.parse(init.body) : null;
@@ -45,7 +46,7 @@ function mockAlpaca(now: () => number, open: boolean) {
   };
   return { f: f as unknown as typeof fetch, orders };
 }
-const EXECUTED = new Set(["sent", "filled", "executed", "cancelled", "confirmed", "accepted", "placed", "partially_filled"]);
+export const EXECUTED = new Set(["sent", "filled", "executed", "cancelled", "confirmed", "accepted", "placed", "partially_filled"]);
 
 export async function replay(example: any) {
   let now = T0, state: any = null;

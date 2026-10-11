@@ -142,20 +142,35 @@
     // or silently dropped: the person picks which goes first, and nothing is staged until they do. A second part with no
     // verb of its own borrows the first part's verb. Parts that are not requests ("and drinks", "and sarah") stay put.
     const VERB = /^\s*(buy|sell|send|pay|venmo|zelle|cash ?app|paypal|cancel|split|transfer)\b/i;
+    const MONEY_VERB = /^\s*(send|pay|venmo|zelle|cash ?app|paypal|transfer)\b/i;
     function splitRequests(text) {
       const t = String(text || "").trim();
       if (!MAYBE.test(t)) return null;
-      const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*/i).map(x => x.trim()).filter(Boolean);
+      const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*|,\s*(?=(?:and\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|cancel|buy|sell|split|transfer|request)\b|@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:,|$|and\b))/i).map(x => x.trim()).filter(Boolean);
       if (parts.length < 2) return null;
-      const reqs = [];
+      const reqs = [], v0 = VERB.exec(parts[0]), verb = v0 ? v0[1] : null;
       for (let i = 0; i < parts.length; i++) {
-        const p = parts[i], isReq = MAYBE.test(p) || (i > 0 && /^\$\s?\d/.test(p));
-        if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += ` and ${p}`; else reqs.push(p); continue; }
-        reqs.push(i > 0 && !MAYBE.test(p) && VERB.test(parts[0]) ? `${VERB.exec(parts[0])[1]} ${p}` : p);
+        const p = parts[i];
+        // A part with no verb of its own borrows the first part's verb when it names its own amount ("$20 to marcus",
+        // "25 to jake", "500 of AMD"), a payee and an amount ("jake 25"), or, after "cancel", another subscription
+        // ("cancel NYT and WSJ"). Without that, "send maya 40 and 25 to jake" was one $40 card to Jake (megadoc A14,
+        // P09, J11); now each part is its own request.
+        const borrow = i > 0 && !MAYBE.test(p) && verb && ((/^\$?\s?\d/.test(p) && !/^split$/i.test(verb) && !/^\d+\s+(?:friends|people|others|of us|ways|roommates|guys)\b/i.test(p)) || (MONEY_VERB.test(parts[0]) && /^@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?$/i.test(p)) || (/^cancel$/i.test(verb) && /^[\w.&'+-]+(?:\s+[\w.&'+-]+){0,2}$/.test(p) && !/\d/.test(p)));
+        const isReq = MAYBE.test(p) || borrow;
+        if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += `${/^[A-Za-z]/.test(p) ? " and " : ", "}${p}`; else reqs.push(p); continue; }
+        reqs.push(borrow ? `${verb} ${p}` : p);
       }
       const real = reqs.filter(r => MAYBE.test(r));
-      return real.length >= 2 ? real.slice(0, 2) : null;
+      return real.length >= 2 ? real : null;
     }
+    const QUESTION = /^\s*(?:did|does|do (?:i|we|you)|what|what'?s|whats|how|when|where|why|who|whose|which|is|are|was|were|am i|have i|has|any)\b/i;
+    // Questions a flow answers from its own records stay with the flow: a cancellation's terms or state (cancel), the
+    // live portfolio (trade). "Did anyone pay me back?" is read from transactions by the assistant, not a send.
+    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions)\b/i;
+    const ASK_TO_DO = /^\s*(?:can|could|would|will) you\b|\b(?:send|pay|buy|sell|cancel|split|request)\s+(?:@?[a-z]+\s+)?\$?\d/i;
+    const INJECTION = /\b(?:ignore (?:all |any )?(?:previous|prior|above|earlier|your) (?:instructions|rules|prompts?)|disregard (?:all |the )?(?:previous|prior|above) (?:instructions|rules)|system prompt|you are now|new instructions:|developer mode)\b/i;
+    const SECRET_SEND = /\b(?:send|text|email|share|give|forward)\b.{0,30}\b(?:account (?:number|#)|routing (?:number|#)|card (?:number|#)|social security|ssn|password|passcode|pin\b|one[- ]time code|verification code|otp)\b/i;
+    const CORRECTED = /^(.*?)(\$?\d[\d,]*(?:\.\d+)?)(.*?)\b(?:no,? wait|wait,? no|no,? make it|make it|make that|actually|i mean|i meant|scratch that,?)\s+(\$?\d[\d,]*(?:\.\d+)?)\s*$/i;
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
@@ -206,6 +221,28 @@
         return Object.assign(out, { picked: chosen, memo });
       }
       const live0 = Object.keys(sessions).filter(k => sessions[k] && sessions[k].pending);
+      if (!live0.length && !memo.pair) {
+        // Instructions inside pasted or forwarded text have no authority (global rule G6, megadoc N05): a money move that
+        // comes wrapped in "ignore previous instructions" is named and not acted on.
+        if (INJECTION.test(text) && MAYBE.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "injected_instruction", text: `That text contains an instruction to move money ("${INJECTION.exec(text)[0]}"). I don't act on instructions inside pasted or forwarded text, so nothing was set up. If you want to send money, tell me in your own words.` } });
+        // An IOU log is not built: said plainly, and no money flow is started (megadoc D08).
+        if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_not_built", text: "Upmore doesn't keep an IOU log yet, so nothing was saved, and no money moved." } });
+        // Secrets are never sent anywhere, by any flow (megadoc N07).
+        if (SECRET_SEND.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "secret_data", text: "I won't send account numbers, card numbers, passwords or codes to anyone, and nothing was sent. Upmore never needs them by text." } });
+        // A question is not an order: "did maya pay me back?", "what do I owe people", "did my buy fill?" go to the
+        // assistant that reads the records, never to a money flow's "How much?" (megadoc C08, D09, E18, G11).
+        if (QUESTION.test(text) && !ASK_TO_DO.test(text) && !FLOW_QUESTION.test(text)) return done({ route: "fallthrough", source: "deterministic", reason: "question", problems: [] });
+        // "send me a reminder / report / summary" asks for a message, not money (megadoc G12).
+        if (/^\s*(?:can you |could you |please )?send me\b/i.test(text) && !/\$|\d/.test(text.replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, ""))) return done({ route: "fallthrough", source: "deterministic", reason: "message_to_self", problems: [] });
+        // A number changed in the same text ("buy 5 AAPL no wait 10", "send maya 50 and make it 5"): the last number wins
+        // and the card shows it; nothing runs without a yes on that card (megadoc B07, E19).
+        const fix = CORRECTED.exec(text);
+        if (fix) {
+          const out = await handle(`${fix[1]}${fix[4]}${fix[3].replace(/[\s,;]*(?:and|but|,)?\s*$/i, "")}`.replace(/\s+/g, " ").trim(), Object.assign({}, c, { memo }));
+          if (out && out.result && typeof out.result.text === "string") out.result = Object.assign({}, out.result, { text: `Using ${fix[4]}, your last number. ${out.result.text}` });
+          return out;
+        }
+      }
       if (!live0.length && !(memo.pair && YES_NO.test(text))) {
         const two = splitRequests(text);
         if (two) {
@@ -214,12 +251,14 @@
           const first = await handle(two[0], Object.assign({}, c, { memo }));
           // The first ask was not read as a flow on its own: never drop both. Name both and let the person pick.
           if (!first || first.route === "fallthrough" || !first.result) {
-            memo.pair = { parts: two, at: now };
+            if (two.length <= 2) memo.pair = { parts: two, at: now };
+            if (two.length > 2) return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's ${two.length} requests: ${two.map((x, i) => `${i + 1}) ${x}`).join(", ")}. Send me the first one on its own and I'll start there.` } });
             return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's two requests: 1) ${two[0]}, 2) ${two[1]}. Which first? Reply 1 or 2.` } });
           }
-          memo.queue = { text: two[1], at: now };
+          const rest = two.slice(1);
+          memo.queue = { text: rest.join("; "), at: now };
           const fr = Object.assign({}, first.result || {});
-          fr.text = `Two things, one at a time. First: ${fr.text || ""} Then I'll do: ${two[1]}.`;
+          fr.text = `${rest.length === 1 ? "Two" : rest.length === 2 ? "Three" : "Several"} things, one at a time. First: ${fr.text || ""} Then I'll do: ${rest.join(", then ")}.`;
           return Object.assign(first, { result: fr, memo, two_requests: two });
         }
       }

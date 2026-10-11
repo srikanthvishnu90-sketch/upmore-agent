@@ -25,6 +25,10 @@
       const m = AMOUNT.exec(head);
       if (m) { const c = Number(m[1].replace(/,/g, "")) * 100 + (m[2] ? Number((m[2] + "0").slice(0, 2)) : 0); if (Number.isSafeInteger(c) && c > 0) out.amount_cents = c; }
       const rm = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head); if (rm) out.rail = /cash/i.test(rm[1]) ? "cash_app" : rm[1].toLowerCase();
+      // Splits by percentage or by item are not built (megadoc C06, C11): flagged here, said plainly in stage().
+      out.uneven = /\b\d{1,2}\s*\/\s*\d{1,2}\b|\bunevenly\b|\d{1,2}\s*%|\bpercent\b/i.test(t);
+      out.itemized = /\b(?:only|just) had\b|\bitemi[sz]e|\bby item\b/i.test(t);
+      head = head.replace(/,?\s*\b(?:tip|tax) included\b|,?\s*\bincluding (?:the )?(?:tip|tax)\b|,?\s*\bplus (?:the )?tip\b/gi, " ").replace(/\bunevenly\b|\b\d{1,2}\s*\/\s*\d{1,2}\b/gi, " ");
       const withM = /\b(?:with|between|among|w\/)\s+(.+)$/i.exec(head);
       if (withM) {
         out.names = withM[1].replace(/\b(evenly|equally|even|on (venmo|zelle|cash ?app|paypal)|in (venmo|zelle|cash ?app|paypal)|please|pls)\b/gi, " ")
@@ -77,6 +81,8 @@
       const details = sp => `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""} ${sp.asks.length + 1} ways, equal shares on exact cents (any odd cent is yours): you ${money(sp.mine_cents)}, ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay. I mark each one paid when the money lands. Reply YES or NO.`;
 
       async function stage(parsed, resolvedSoFar) {
+        if (parsed.uneven && !resolvedSoFar) return { outcome: "not_built", reason: "uneven_not_built", text: "Splits by percentage aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
+        if (parsed.itemized && !resolvedSoFar) return { outcome: "not_built", reason: "itemized_not_built", text: "Itemized splits aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
         if (!parsed.amount_cents) return { outcome: "ask", text: "How much was it?" };
         if (!parsed.names.length) {
           // The question keeps the split, so the answer ("dave priya and sam", "just alex") continues it.
@@ -135,7 +141,13 @@
         return { outcome: r.outcome, text: r.message || null };
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { waitingNames = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; return stage(parse(text)); }
+      async function start(text) { waitingNames = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; const p = parse(text); return stage(Object.assign(p, { names: expandNames(p.names) })); }
+      // "maya jake and sam": a chunk that is not one saved person but whose every word is one becomes one name per word
+      // (corpus 2.01, megadoc C01).
+      function expandNames(names) {
+        const known = w => ["saved", "ambiguous"].includes(book.resolve(w).status);
+        return names.flatMap(n => n.includes(" ") && !known(n) && n.split(/\s+/).every(known) ? n.split(/\s+/) : [n]).filter(n => !/^(me|myself|i)$/i.test(n));
+      }
 
       // Stop-on-change: every saved person is looked up again right before staging; a handle that changed or a person who
       // is no longer on file stages nothing and puts up a fresh card.
@@ -155,9 +167,7 @@
           const was = waitingNames; waitingNames = null;
           if (/^\s*(no|nope|never ?mind|nvm|cancel|forget it)\b/i.test(text)) return { outcome: "declined", text: "Okay. Nothing was staged." };
           // "dave priya and sam": a chunk that is not one saved person but whose every word is one becomes one name per word.
-          const known = w => ["saved", "ambiguous"].includes(book.resolve(w).status);
-          const names = String(text).replace(/^\s*(?:just|only|with|me and)\s+/i, "").split(/\s*(?:,|\band\b|&|\+)\s*/i).map(n => n.replace(/[.!]+$/, "").trim()).filter(Boolean)
-            .flatMap(n => n.includes(" ") && !known(n) && n.split(/\s+/).every(known) ? n.split(/\s+/) : [n]).filter(n => !/^(me|myself|i)$/i.test(n));
+          const names = expandNames(String(text).replace(/^\s*(?:just|only|with|me and)\s+/i, "").split(/\s*(?:,|\band\b|&|\+)\s*/i).map(n => n.replace(/[.!]+$/, "").trim()).filter(Boolean));
           return stage(Object.assign({}, was, { names, ways: was.others ? names.length + 1 : was.ways }));
         }
         if (identity) {

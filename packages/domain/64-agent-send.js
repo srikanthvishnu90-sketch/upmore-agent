@@ -28,17 +28,56 @@
     // A schedule ("every friday", "weekly", "on the 1st") is not part of a name; recurring sends are not built.
     const SCHEDULE = /\b(?:every\s+(?:day|week|other week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|night)|each\s+(?:week|month|friday|monday)|weekly|monthly|biweekly|recurring|on the \d{1,2}(?:st|nd|rd|th)?)\b/i;
     const AMOUNT_CHANGE = new RegExp(String.raw`^\s*(?:no[,.]?\s+|actually[,.]?\s+|wait[,.]?\s+|sorry[,.]?\s+)*(?:(?:make (?:it|that)|change (?:it|that)? ?to|switch (?:it|that)? ?to|(?:it|that) should be|should be|i meant|meant to say|actually)\s+${AMT}|\$\s?[\d,]+(?:\.\d{1,2})?|${AMT}\s+instead)\s*(?:instead|please|then)?\s*[.!]*\s*$`, "i");
+    // Amounts typed as words ("forty bucks", "two hundred fifty"): whole dollars only (megadoc A12).
+    const UNITS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+    const TENS = { twenty: 20, thirty: 30, forty: 40, fourty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+    function wordsAmount(text) {
+      const toks = String(text || "").toLowerCase().replace(/-/g, " ").split(/[^a-z]+/).filter(Boolean);
+      let best = null;
+      for (let i = 0; i < toks.length; i++) {
+        let total = 0, cur = 0, used = 0, j = i;
+        for (; j < toks.length; j++) {
+          const w = toks[j];
+          if (w in UNITS) cur += UNITS[w]; else if (w in TENS) cur += TENS[w];
+          else if (w === "hundred") cur = (cur || 1) * 100; else if (w === "thousand") { total += (cur || 1) * 1000; cur = 0; }
+          else if ((w === "a" || w === "and") && used) { continue; } else if (w === "a" && /^(hundred|thousand)$/.test(toks[j + 1] || "")) continue;
+          else break;
+          used++;
+        }
+        if (used && !(used === 1 && toks[i] === "one" && !/^(dollars?|bucks)$/.test(toks[j] || ""))) { const v = total + cur; if (v > 0 && (!best || used > best.used)) best = { used, cents: v * 100 }; }
+      }
+      return best ? best.cents : null;
+    }
+    const FX = /(?:€|£|¥|₹)|\b(euros?|eur|pounds?|gbp|quid|pesos?|mxn|yen|jpy|rupees?|inr|cad|canadian dollars?|aud|francs?|yuan|rmb)\b/i;
+    // A send for later or on a condition is not built: never staged as a send for now (megadoc A08, A15).
+    const LATER = /\b(tomorrow|tonight at|next (?:week|month|monday|tuesday|wednesday|thursday|friday)|on (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|in \d+ (?:days?|weeks?|hours?)|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?\b|later today|this (?:weekend|friday|evening))\b/i;
+    const CONDITION = /\b(?:only if|but only|if my|when my|once my|after my|as soon as|when it lands|when (?:the|my) (?:paycheck|deposit|refund))\b/i;
+    const MARKET = /\b(craigslist|marketplace|offerup|letgo|ebay seller|facebook seller|the seller|a seller|the guy from|the girl from|someone online|a stranger)\b/i;
+    const NEW_PAYEE = /\bnew (?:landlord|account|payee|bank|routing)\b|\blandlord (?:changed|has a new)\b/i;
+    const PHONE = /(?:^|\s)((?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]?\d{4}|\d{10})(?!\d)/;
     function parse(text) {
       const t = String(text || "").trim(), lower = t.toLowerCase();
       const forIdx = lower.search(/\bfor\b/), head = forIdx >= 0 ? t.slice(0, forIdx) : t, memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "") || null : null;
-      const amount_cents = parseAmount(head);
+      // A phone number is the recipient, never the amount ("send 40 to this number 312-555-0147", megadoc B13).
+      const phoneM = PHONE.exec(head), phone = phoneM ? phoneM[1].trim() : null, head2 = phone ? head.replace(phoneM[1], " ") : head;
+      const amount_cents = parseAmount(head2) || wordsAmount(head2);
+      // "40.555" and "4 0" are never rounded or joined silently (megadoc A13, B08).
+      const extraDigits = /(?:^|[\s$])(\d+)\.(\d{3,})\b/.exec(head2), spaced = /(?:^|\s)\$?(\d)\s(\d)(?:\s|$)/.exec(head2);
       let recipient = null, recipient_raw = null;
-      const bare = head.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
+      const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
       else { const verb = /(?:^|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
-      if (recipient_raw) {
-        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|please|instantly|asap|rn|pls|back)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+      if (phone) recipient_raw = recipient = phone;
+      else if (recipient_raw) {
+        // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",
+        // "maya from savings", "my roommate unevenly" (megadoc A05, A08, A11, A15, B07, C11).
+        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|tomorrow|please|instantly|asap|rn|pls|back|and|but|if|from|at|on|by|when|then|also|unevenly|evenly|only|every|each|via|using|with)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+        // An amount in words is not part of the name ("send maya forty bucks").
+        const numWord = w => w.toLowerCase() in UNITS || w.toLowerCase() in TENS || /^(hundred|thousand|bucks|dollars?|a|and)$/i.test(w);
+        const kept = recipient_raw.split(/\s+/); while (kept.length > 1 && numWord(kept[kept.length - 1])) kept.pop();
+        const cut = kept.findIndex((w, i) => i > 0 && numWord(w) && w.toLowerCase() !== "a"); if (cut > 0) kept.length = cut;
+        recipient_raw = kept.join(" ");
         recipient = recipient_raw.split(/\s+/).slice(0, 2).join(" ").replace(/\b(my|the|some|another)\b\s*/gi, "").trim() || null;
       }
       const speed = /\b(instant|instantly|right now|asap|now)\b/i.test(t) ? "instant" : null;
@@ -46,7 +85,12 @@
       const railM = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head), rail = railM ? (/cash/i.test(railM[1]) ? "cash_app" : railM[1].toLowerCase()) : null;
       // "4.5" could be $4.50, $45 or $4,500: one question, never a guess (response-style corpus 1.14).
       const one_decimal = /(?:^|[\s$])\d+\.\d(?!\d)/.test(head);
-      return { amount_cents, recipient, recipient_raw, memo, speed, funding, rail, text: t, one_decimal, recurring: SCHEDULE.test(t) };
+      // A memo can also be added ("pay jake 25 and add \"pizza\"", megadoc A05).
+      const added = /\band (?:add|put|write)\s+(?:a\s+)?(?:memo|note)?\s*(?:of|saying|that says)?\s*["“]?([^"”]{1,60})["”]?\s*$/i.exec(t);
+      return { amount_cents, recipient, recipient_raw, memo: memo || (added ? added[1].trim() : null), speed, funding, rail, text: t, one_decimal, recurring: SCHEDULE.test(t),
+        scheduled: !SCHEDULE.test(t) && LATER.test(t), conditional: CONDITION.test(t),
+        fx: FX.test(t), extra_digits: extraDigits ? { whole: Number(extraDigits[1]), frac: extraDigits[2] } : null, spaced: spaced ? [Number(spaced[1]), Number(spaced[2])] : null,
+        everything: /\b(everything|all (?:of )?my (?:money|cash|checking)|all of it|the whole (?:balance|account))\b/i.test(t) };
     }
     // A description of a person, not a name: "the guy from yesterday", "my landlord's cousin", "a guy i just met at the bar".
     // It never becomes a recipient's name; the person is asked who it is (response-style corpus 1.02, 1.08).
@@ -81,11 +125,13 @@
       // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
       // The card a person answers: two SMS segments at most. Who gets paid, the exact amount, the rail, the fee and total,
       // and that it can't be undone once received. Funding account, timing and the full reversal terms are DETAILS.
+      // The memo rides on the card, quoted as text (megadoc A01, A05); a memo with instruction-like text is never shown as one.
+      const memoOn = send => send.memo && !send.memo_flagged && String(send.memo).length <= 40 ? `, memo "${String(send.memo).replace(/"/g, "'")}"` : "";
       const cardText = (send, channel) => {
         const who = send.confirm.recipient, amt = money(send.amount_cents), rail = send.rail.name, irr = /irreversible|can'?t be undone|cannot be undone/i.test(String(send.rail.reversible || "")) && !/^friends-and-family/i.test(String(send.rail.reversible || ""));
         const nu = send.recipient.readback_id ? `${send.recipient.name}${send.recipient.handle && send.recipient.handle !== send.recipient.name ? ` (${send.recipient.handle})` : ""}` : null;
         const heads = nu ? [`New recipient, first send: set up ${amt} to ${nu} in ${rail} from ${send.confirm.from}, for you to send`, `New recipient, first send: set up ${amt} to ${nu} in ${rail}`]
-          : [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
+          : [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}${memoOn(send)}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}${memoOn(send)}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
         const fee = send.rail.fee_cents || 0;
         for (const head of heads) {
           const f = { head, fee_cents: fee, total_cents: send.amount_cents + fee, irreversible: irr || /friends-and-family/i.test(String(send.rail.reversible || "")), irreversible_text: /friends-and-family/i.test(String(send.rail.reversible || "")) ? "Friends-and-family sends can't be undone." : "Can't be undone once received.", expiry_ms: o.confirm_ttl_ms || 10 * 60000, when: send.memo_flagged ? "Your memo had instruction-like text; I kept it as text" : send.verify_question && nu ? "Only if they asked you for this themselves, in person or on a call you placed" : null };
@@ -106,7 +152,14 @@
         // A scam pattern stops the request before any question about who or how much (response-style corpus 5.06).
         const scam = Money.SCAM.exec(String(parsed.text || ""));
         if (scam && !pick) return { outcome: "stop", reason: "scam_pattern", text: `That's a scam pattern ("${scam[0]}"): no real agency or company asks for money this way. I won't send this, and nothing was sent. If someone called you, hang up.` };
-        const beat = GRIEF.test(String(parsed.text || "")) && !pick ? "I'm so sorry. " : "";
+        // Warnings that ride along with the question, never a refusal (megadoc B12, N10).
+        const warn = pick ? "" : MARKET.test(String(parsed.text || "")) ? "Paying a stranger from a listing is a common scam, and person-to-person apps rarely protect purchases; a card or the marketplace's own checkout does. " : NEW_PAYEE.test(String(parsed.text || "")) ? "A new payee for a big payment is the most common rent scam. Check it with your landlord on a number you already have. " : "";
+        const grief = GRIEF.test(String(parsed.text || "")) && !pick ? "I'm so sorry. " : "", beat = grief + warn;
+        if (!pick && (parsed.scheduled || parsed.conditional)) { const rr = parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? book.resolve(parsed.recipient) : null, nm = rr && rr.status === "saved" ? rr.person.name : null; return { outcome: "not_built", reason: parsed.conditional ? "conditional" : "scheduled", text: `${parsed.conditional ? "Payments that wait on a condition" : "Scheduled payments"} aren't built yet, so nothing was set up.${parsed.amount_cents && nm ? ` I can set up ${money(parsed.amount_cents)} to ${nm} now instead. Want that?` : ""}` }; }
+        if (!pick && parsed.fx) return { outcome: "refuse", reason: "fx_unsupported", text: "Upmore sends US dollars only, so I can't send another currency, and nothing was set up. If you want to send a dollar amount, tell me how much." };
+        if (!pick && parsed.extra_digits) { const lo = parsed.extra_digits.whole * 100 + Number(parsed.extra_digits.frac.slice(0, 2)); return { outcome: "ask", reason: "amount_format", text: `Dollars and cents only. Did you mean ${money(lo)} or ${money(lo + 1)}?` }; }
+        if (!pick && parsed.spaced) { const [a1, b1] = parsed.spaced; return { outcome: "ask", reason: "amount_format", text: `Did you mean ${money((a1 * 10 + b1) * 100)} or ${money(a1 * 100)}?` }; }
+        if (!pick && parsed.everything && !parsed.amount_cents) return { outcome: "ask", reason: "amount_all", text: `${beat}Sending everything would leave $0.00 in checking and could overdraft bills that are due, so I won't guess the amount. How much exactly?` };
         if (parsed.recurring && !pick) { const rr = parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? book.resolve(parsed.recipient) : null, nm = rr && rr.status === "saved" ? rr.person.name : null; return { outcome: "not_built", reason: "recurring", text: `Recurring payments aren't built yet, so I can't set that up and nothing was scheduled.${parsed.amount_cents && nm ? ` I can do a one-time ${money(parsed.amount_cents)} to ${nm} now. Want that?` : ""}` }; }
         if (parsed.one_decimal && parsed.amount_cents && !parsed.amount_checked && !pick) { pendingAmountCheck = parsed; return { outcome: "ask", reason: "amount_format", text: `Do you mean ${money(parsed.amount_cents)}? Checking since it could also be ${money(parsed.amount_cents * 10)} or ${money(parsed.amount_cents * 1000)}.` }; }
         if (!parsed.amount_cents) return { outcome: "ask", text: `${beat}How much?` };
@@ -124,7 +177,7 @@
           if (r.status === "ambiguous") return follow({ candidates: r.candidates, ask: r.ask }, parsed, "ambiguous", { candidates: r.candidates.map(c => c.name) });
           if (r.status === "lookalike") return follow({ suspect: r.suspect, handle: r.handle, rail: parsed.rail, name: r.handle ? null : r.query, ask: r.ask, lead: r.ask }, parsed, "lookalike");
           // A description is never turned into a name: ask who it is (corpus 1.02, 1.08, 5.05, 5.10).
-          if (r.status === "stranger" && DESCRIBED.test(parsed.recipient_raw || "")) return follow({ name: null, handle: null, rail: parsed.rail, brief: true, lead: beat ? "I'm so sorry. I can help with the payment when you're ready." : `I don't have ${String(parsed.recipient_raw).replace(/^my\b/i, "your")} saved.` }, Object.assign({}, parsed, { recipient: null }), "new_recipient", { new_recipient: true });
+          if (r.status === "stranger" && DESCRIBED.test(parsed.recipient_raw || "")) return follow({ name: null, handle: null, rail: parsed.rail, brief: true, lead: grief ? "I'm so sorry. I can help with the payment when you're ready." : `${warn}I don't have ${String(parsed.recipient_raw).replace(/^my\b/i, "your")} saved.` }, Object.assign({}, parsed, { recipient: null }), "new_recipient", { new_recipient: true });
           if (r.status === "stranger") return follow({ name: r.name, handle: r.handle, rail: parsed.rail, lead: `${beat}I don't have ${r.name || parsed.recipient} on file.` }, parsed, "new_recipient", { new_recipient: true });
           person = r.person;
         }

@@ -21,8 +21,12 @@
     // 100% of the cash before anything else (response-style corpus 3.09). Other vague sizes still ask.
     const ALL_IN = /\b(everything|all my cash|all in|all of my cash|max(?:imum)?|as much as (?:i can|possible))\b/i;
     const VAGUE = /\b(a bunch|some|a little|a lot|whatever)\b/i;
+    // "10k of VOO" is $10,000.00; "invest 5000 in X" and "put 300 into X" name dollars (megadoc E14, I03).
+    const THOUSANDS = /(?:^|[\s$])(\d+(?:\.\d+)?)\s?k\b/i, INVEST = /\b(?:invest|put)\s+\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s+(?:in|into)\b/i;
     function parseAmount(text) {
       const t = String(text || "");
+      const k = THOUSANDS.exec(t); if (k) { const c = Math.round(Number(k[1]) * 100000); return c > 0 ? { notional_cents: c } : { zero: true }; }
+      const inv = INVEST.exec(t); if (inv) { const c = Number(inv[1].replace(/,/g, "")) * 100 + Number(((inv[2] || "") + "00").slice(0, 2)); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const d = DOLLARS.exec(t), s = SHARES.exec(t);
       if (d) { const whole = Number((d[1] || d[3]).replace(/,/g, "")), frac = Number(((d[2] || d[4] || "") + "00").slice(0, 2)); const cents = whole * 100 + frac; return cents > 0 ? { notional_cents: cents } : { zero: true }; }
       if (s) { const q = Number(s[1]); return q > 0 ? { quantity: q } : { zero: true }; }
@@ -68,7 +72,7 @@
       const t = String(text || "").trim();
       const protect = /\b(?:put|set|place|add)\s+(?:a\s+)?(?:trailing\s+)?stop\b/i.test(t) && /\bmy\b/i.test(t) && !/\bbuy\b/i.test(t);
       const side = (/\bsell\b/i.test(t) && !/\bbuy\b/i.test(t)) || protect ? "sell" : "buy";
-      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto)\b/i.test(t) ? "crypto" : "equity";
+      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
       const action = /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
         : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
@@ -81,12 +85,16 @@
       let fraction = null;
       if (side === "sell") { const f = /\b(half|all|everything|entire|whole position|a third|one third|a quarter|one quarter)\b|\b(\d{1,3})\s*%\s*of\b/i.exec(rest); if (f) fraction = f[2] ? Number(f[2]) / 100 : { half: 0.5, all: 1, everything: 1, entire: 1, "whole position": 1, "a third": 1 / 3, "one third": 1 / 3, "a quarter": 0.25, "one quarter": 0.25 }[f[1].toLowerCase()]; if (protect && !fraction && !amount.quantity && !amount.notional_cents && !amount.ambiguous) fraction = 1; }
       let query = null;
-      const of = /\b(?:of|in(?:to)?)\s+(?!my\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?]|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
+      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
       if (of) query = of[1].trim();
       else if (amount.symbol_hint) query = amount.symbol_hint;
-      else { const up = /\b([A-Z]{1,5})\b(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      else { const up = /\b([A-Z]{1,5}(?:\.[A-Z])?)(?![\w.])(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      // A lowercase ticker right after the verb ("buy nvda"): the broker's asset list decides whether it is one.
+      if (!query) { const w = /\b(?:buy|sell|get|purchase)\s+(?:some\s+|more\s+)?([a-z]{1,5}(?:\.[a-z])?)(?![\w.])/i.exec(rest); if (w && !/^(it|that|this|them|all|half|my|the|some|more|stock|a|an|now|back|off|out|in|up|with|while|when|during|after|before|at|on|for|and|if|to|from|into|low|high|me|us|you|what|which|any|one|cheap)$/i.test(w[1])) query = w[1]; }
       if (!query) { const my = /\bmy\s+(?!(?:roth|ira|brokerage|account|schwab|fidelity|vanguard account|401k|taxable|order|limit|stop|cash)\b)([A-Za-z][\w.&'-]*)/i.exec(rest); if (my) query = my[1]; }
       if (query) query = query.replace(/\s+(ETF|stock|shares?|order)$/i, "").trim() || null;
+      // "I" and "A" are words before they are tickers; money words are not instruments ("with 300 in cash", megadoc F02, H12).
+      if (query && (/^(I|A)$/.test(query) && !/(?:\$|\bof\s+)(?:I|A)\b/.test(rest)) || query && /^(cash|savings|checking|my account|the market|stocks?)$/i.test(query)) query = null;
       const acct = /\b(?:in|from|using)\s+(?:my\s+)?((?:schwab|fidelity|vanguard|robinhood|public|roth|ira|brokerage|taxable|401k)[\w -]{0,24}?)(?=\s+account\b|\s*[,.!?]|$)/i.exec(t);
       // A number next to a symbol with a price attached ("buy 10 NVDA at $105") is a share count: notional orders are market only.
       // A bare number on a market buy is dollars ("buy 100 of nvda" is $100.00 of NVDA; owner's response-style corpus 3.01,
@@ -135,7 +143,8 @@
       const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
 
       // S15: nothing leaves without the advice-guard response lint; a message that fails is reported, never sent as advice.
-      const say = (outcome, text, extra) => { const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
+      // A reply starts with a capital even when it opens with an account name ("your Alpaca account ...").
+      const say = (outcome, text0, extra) => { const text = typeof text0 === "string" ? text0.charAt(0).toUpperCase() + text0.slice(1) : text0; const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
       const ask = (reason, text, extra) => say("ask", text, Object.assign({ reason }, extra));
 
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
@@ -226,12 +235,26 @@
       async function stageOnce(parsed) {
         suggestion = null;
         // Copying someone's portfolio is not built: said plainly, with why a copy would be stale (corpus 3.08, scenario H02).
-        if (/\bcopy\b|\bmirror\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        if (/\b(copy|copied|copying|mirror|mirrored)\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        // An investment pitch with a promised return is a scam pattern; nothing is staged (megadoc N01).
+        if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
+        // Stops across every holding at once are not built (megadoc E13): one holding at a time.
+        if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "portfolio") return portfolio();
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
         if (parsed.asset === "crypto") return say("refuse", "Upmore can't trade crypto yet, so nothing was placed. Want to name a stock-listed fund instead? I'll put up a card for it.", { reason: "crypto_venue" });
+        // Products Upmore does not offer, said plainly before any question (megadoc E20, E21, E25, I01-I08, M10).
+        const tx = parsed.text || "";
+        if (/\b(options?|calls|puts|call options?|put options?|contracts)\b/i.test(tx) && /\b(buy|sell|trade|yolo|copy)\b/i.test(tx)) return say("refuse", "Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own account.", { reason: "options_unsupported" });
+        if (/\b(on margin|margin|shorting|short sell|sell short|go short|leverage[d]?)\b/i.test(tx)) return say("refuse", "Upmore only places cash orders, with no margin or short selling, so nothing was placed.", { reason: "margin_unsupported" });
+        // Money into savings or checking is a transfer between the person's own accounts, not an order (megadoc M09).
+        if (/\b(?:in|into|to)\s+(?:my\s+)?(savings|checking|emergency fund|bank)\b/i.test(tx)) return say("not_built", "Moving money between your own accounts isn't built yet, so nothing was moved or placed.", { reason: "transfer_not_built" });
+        { const priv = /\b(spacex|stripe|openai|anthropic|databricks|chime|discord|epic games|shein|klarna)\b/i.exec(tx);
+          if (priv) return say("refuse", `${priv[1].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Spacex$/, "SpaceX").replace(/^Openai$/, "OpenAI")} isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.`, { reason: "private_unsupported" });
+          if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
+        if (/\b(a|per|each|every)\s+(week|month|day|paycheck|quarter)\b|\b(weekly|monthly|recurring|auto[- ]?invest|automatically|dca|dollar[- ]cost)\b/i.test(tx)) return say("not_built", "Recurring investments aren't built yet, so nothing was scheduled or placed. I can put up a card for a one-time order if you name the amount.", { reason: "recurring_not_built" });
         const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY, type = parsed.type || "market";
         // S03: decision words are refused before anything is read or staged. The guard catches the advice shapes; the local
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
@@ -253,7 +276,7 @@
         if (parsed.ambiguous_number) return ask("size_ambiguous", `Is ${parsed.ambiguous_number} dollars or shares of ${(parsed.query || "that").toUpperCase()}?`);
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");
         if (parsed.vague) return ask("size", `How much exactly: a dollar amount or a share count? I don't size orders myself.`);
-        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? parsed.query.toUpperCase() : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
+        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
         if (parsed.notional_cents && type !== "market") return ask("size", `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
         const res = await instrument(parsed.query);

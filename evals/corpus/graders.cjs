@@ -12,6 +12,7 @@
 //   amounts     every dollar amount the person typed in this example that the expected reply repeats appears exactly ($40.00)
 //   handles     every @handle the expected reply shows for a person in the fixture world appears in the reply
 //   question    the expected reply is a single clarifying question with no card -> the reply asks one and shows no card
+//   answer      the expected reply is a statement (no card, no question) -> the reply is not a clarifying question
 //   short       not a card -> at most 3 sentences; a card -> at most 2 SMS segments' worth (320 characters)
 //   nothing_moved the expected reply says nothing moved (cancelled, not sent, nothing changed) -> nothing executed and the
 //               reply says nothing moved
@@ -59,6 +60,9 @@ function grade(example, actual, world) {
       if (wantH.length) add("handles", !missH.length, `missing ${missH.join(", ")}`);
     }
     if (isQuestion(exp) && !/\[CARD\]/.test(exp)) add("question", (/\?/.test(reply) && a.outcome !== "confirm") || honestStop, "expected one clarifying question and no card");
+    // The example answers (a statement, no card, no question): a clarifying question back is a miss, not a pass
+    // ("did anyone pay me back" answered with "How much?" used to grade PASS).
+    if (!/\[CARD\]/.test(exp) && !/\?/.test(exp) && a.outcome === "ask") add("answer", false, `expected an answer, got a question: "${reply.slice(0, 60)}"`);
     if (NOTHING.test(exp) && !/\[CARD\]/.test(exp)) add("nothing_moved", !a.executed && NOTHING.test(reply), "expected a plain 'nothing moved'");
     // Each message is short; a reply in two messages (a blank line between) is graded per message.
     for (const part of reply.split(/\n\s*\n/).map(x => x.replace(/^Next:\s*/, ""))) {

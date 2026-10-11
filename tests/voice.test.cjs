@@ -103,6 +103,8 @@ test('classification maps every inbound message to one response type',()=>{
   assert.equal(c('why the hell did chase charge me 35 again'),'venting');
   assert.equal(c('thanks!'),'smalltalk');assert.equal(c(''),'smalltalk');
   same(V.classify('yes',{pending_confirmation:true}),{type:'confirmation',approved:true});
+  // "ok" approves a live card today (megadoc P13 prefers an explicit yes only: labeled DIVERGES in docs/scenarios).
+  same(V.classify('ok',{pending_confirmation:true}),{type:'confirmation',approved:true});
   same(V.classify('actually no',{pending_confirmation:true}),{type:'confirmation',approved:false});
   same(V.classify('yes, but use the other account',{pending_confirmation:true}),{type:'correction',qualified_approval:true},'a qualified yes corrects the proposal instead of approving it');
   same(V.classify('ok but make it $40',{pending_confirmation:true}),{type:'correction',qualified_approval:true});

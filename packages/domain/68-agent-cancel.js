@@ -26,7 +26,11 @@
       const batch = /\b(the ones|all the ones|everything|anything)\b.*\b(don'?t use|unused|not using|never use)\b/i.test(t) || /\bcancel (all|everything)\b/i.test(t);
       const that = /\b(cancel|stop|end|kill)\s+(that|it|this)\b/i.test(t) && !/\b(cancel|stop|end|kill)\s+(that|it|this)\s+[a-z]{3,}/i.test(t.replace(/\b(thing|one|subscription|sub)\b/gi, ""));
       const m = /\b(?:cancel|stop paying( for)?|end|kill|get rid of|unsubscribe( from)?)\s+(?:my\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{0,40}?)(?=\s+(?:subscription|sub|plan|membership|account|please|now|today)\b|\s*[,.!?]|$)/i.exec(t);
-      const merchant = that ? null : m ? m[m.length - 1].trim() : null;
+      // "is the planet fitness cancel easy", "how hard is it to cancel hulu": the merchant named around the word cancel
+      // in a question about its terms (corpus 4.14).
+      const q = /^\s*(?:is|how|what|can i|could i|will)\b.*?\b(?:the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{1,40}?)\s+(?:cancel(?:lation|ing)?|to cancel)\b/i.exec(t);
+      const after = m ? m[m.length - 1].trim() : null, adjective = after && /^(easy|hard|simple|possible|free|difficult|easy or hard)$/i.test(after);
+      const merchant = that ? null : after && !adjective ? after : q && !/^(it|that|this|hard|easy)$/i.test(q[1].trim()) ? q[1].trim() : null;
       return { text: t, merchant: merchant && !/^(that|it|this|the ones)$/i.test(merchant) ? merchant : null, that, batch, undo: /^\s*(undo|resubscribe|put it back|reactivate)\b/i.test(t), status: /\b(did (it|that) work|is it (cancelled|canceled|done)|did you cancel|status of)\b/i.test(t), savings: /\b(how much (have|did) you sav|what (have|did) you sav|savings so far)/i.test(t) };
     }
     function create(opts) {
@@ -154,11 +158,25 @@
         if (p.status) return status();
         if (p.savings) return savings();
         if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
+        // Things that are not subscriptions are said plainly, never searched for as a charge (megadoc A09, C14, H11, M11).
+        const raw = String(text || "");
+        if (/\b(transfers?|payments? to|money i sent|the \$?\d+ (?:to|i sent))\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("stop", "Upmore doesn't send transfers itself, so there's nothing here to cancel. A payment you sent in Venmo, Zelle, Cash App or PayPal can only be stopped in that app, if it hasn't gone through yet. Nothing was changed.", { reason: "not_a_subscription" });
+        if (/\brequests?\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("not_built", "Canceling payment requests isn't built yet: cancel them in the app you sent them from. Nothing was changed.", { reason: "requests_not_built" });
+        if (/\b(copying|copy trad\w*)\b/i.test(raw)) return say("not_built", "Copy trading isn't built, so there's no copy running to stop. Nothing was changed.", { reason: "copy_not_built" });
+        if (/\b(savings plan|auto[- ]?sav\w*|round[- ]?ups?|savings goal)\b/i.test(raw)) return say("not_built", "Savings automation isn't built, so there's no plan here to cancel. Nothing was changed.", { reason: "savings_not_built" });
+        // A charge named by its amount ("the thing that charged 9.99", megadoc J12).
+        const amt = /\$?\b(\d{1,4})\.(\d{2})\b/.exec(raw);
+        if (amt && !p.that) {
+          const want = Number(amt[1]) * 100 + Number(amt[2]), inv = inventory(), hit = inv.filter(x => x.amount_cents === want);
+          if (hit.length === 1) return stage(hit[0], ctx);
+          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant) });
+          return say("ask", `Which one: ${hit.map(x => nameOf(x)).join(" or ")}? Both charge ${money(want)}.`, { candidates: hit.map(x => x.merchant) });
+        }
         let query = p.merchant; if (p.that) { if (!last_mentioned) return say("ask", "Cancel which one? Nothing has been mentioned yet."); query = last_mentioned; }
         if (!query) return say("ask", "Cancel what? Name the subscription.");
         const r = resolve(query);
         if (r.many) return say("ask", `Which one: ${r.many.map(s => `${nameOf(s)} (${money(s.amount_cents)}/${s.interval === "monthly" ? "mo" : s.interval})`).join(" or ")}?`, { candidates: r.many.map(s => s.merchant) });
-        if (r.none) return say("ask", `I don't see a ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
+        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
         return stage(r.one, ctx);
       }
 

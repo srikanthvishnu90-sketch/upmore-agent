@@ -12,7 +12,8 @@ import triage from "../../evals/corpus/triage.json" with { type: "json" };
 import judge from "../../evals/corpus/judge.cjs";
 import corpus from "../../corpus/corpus.json" with { type: "json" };
 
-const BASELINE = { pass_or_limited: 45, variants_pass: 86 };
+// 44: 2.07 ("did anyone pay me back" answered "How much?") was a false pass until the grader's answer rule; it is now NEEDS_MODEL.
+const BASELINE = { pass_or_limited: 44, variants_pass: 86 };
 const fresh = await offline();
 const brief = (rs: any[]) => rs.map(r => ({ id: r.id, status: r.status, failed: r.failed, variants: r.variants && { pass: r.variants.pass, total: r.variants.total } }));
 

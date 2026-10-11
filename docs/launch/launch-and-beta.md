@@ -1,11 +1,13 @@
-# Upmore: what stands between today and launch (2026-10-11, evening)
+# Upmore: what stands between today and launch (2026-10-11, night)
 
 The path is three gates in order: **beta-ready → beta → launch-ready**. Each gate is a list of checks with the command or
 the place that proves it. Nothing here is "done" until its proof exists; built-but-not-run-live counts as not done.
 
 Where things stand tonight, in one line: **the code for the model switch, the health check, cost tracking and the live
-fixes is built and tested on branch `claude/upmore-16-spec-instinct-0qyuqj`, but none of it is deployed, and no model call
-has succeeded live yet.** The first live run scored 3/17 because the Anthropic key was rejected.
+fixes, the response-style corpus and the megadoc fixes is built and tested on branch `claude/upmore-16-spec-instinct-0qyuqj`
+(CI green), but none of it is deployed, and no model call has succeeded live yet.** The first live run scored 3/17 because
+the Anthropic key was rejected. Megadoc: **0 of 240 scenarios proven with a provider record**; 61 built, 22 limited by a
+standing rule, 12 diverge, 59 model-only, 86 not built (`docs/scenarios/README.md`).
 
 ---
 
@@ -73,6 +75,9 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 | sloppy-20 | understood >= 95% on the first message | not run live yet |
 | L3 adversarial (stale yes, double yes, interrupts) | 100% | not run live yet; the 3-hours-late case finishes with `--resume <label>` |
 
+- [ ] The style corpus live: `UPMORE_CHAT_URL=... UPMORE_TEST_JWT=... OPENAI_API_KEY=... deno run -A evals/corpus/run.ts --live`
+      (the 79 examples against the deployed handler, rule graders + the LLM judge, 1-5, fail under 4; approvals are
+      never sent live). Bar: no rule FAIL; judge >= 4 on every example; raw log under `evals/corpus/results/`.
 - [ ] Every live failure is either fixed (red test before, green after) or triaged in writing in
       `evals/gauntlet/replays/live-failures.json`; `deno test -A --no-check tests/edge/live-replays.test.ts` is green.
 - [ ] **Merge to main only after this passes on the exact commit** (PR #1). Vercel deploys main, so main is what beta users
@@ -140,6 +145,11 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 - [ ] The full gauntlet (spec16, sloppy, L3) passes on the release commit; every live failure fixed or triaged; replays
       green; CI green on main.
 - [ ] Every tester completed the week-1 script; every row has its proof or is labeled **not built**. Nothing in between.
+- [ ] Megadoc: every BUILT and LIMITED scenario that a tester can reach has been run live once with its provider record
+      (fill, bank debit, merchant's cancelled state) and moved to PROVEN in `evals/scenarios/verdicts.cjs`; the rest stay
+      labeled. The style corpus `--live` run passes on the release commit.
+- [ ] The weekly corpus export ran each beta week (`node scripts/corpus-weekly-export.cjs --live`), its drafts were
+      reviewed by hand and merged, so every beta failure is now a corpus example and an eval.
 - [ ] Cost per active person per day measured for 14 days and inside the price (the $10/month plan).
 - [ ] Repo private; no secret in any tracked file (`node --test tests/no-secrets.test.cjs`); keys rotated.
 - [ ] Privacy policy and terms read by a lawyer; 18+ gate and consent records verified on a fresh signup.
@@ -160,7 +170,9 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 | Permission tiers, action ledger feed, stop everything | Tables live; not deployed end to end |
 | SMS / WhatsApp | Not built (in-app chat and a test-only iMessage bridge) |
 | Real-world capability set | 0 of 206 done with live evidence (`docs/realworld/README.md`) |
-| The "268-scenario megadoc" and "style corpus" named in the latest prompt | Not in this repository (they appear to be Ring's). If an Upmore version exists, add it to `docs/` and it becomes the bar. |
+| Megadoc (240 scenarios, the owner's bar) | **0 proven.** 61 built, 22 limited, 12 diverge, 59 answered by the model only, 86 not built. Every one labeled with its reason: `docs/scenarios/README.md` |
+| Not built, said plainly when asked | scheduled or conditional sends; sends in other currencies; saved nicknames ("mom", "my brother"); percentage or itemized splits; group lists; an IOU log; budgets and alerts; recurring investments; stops on every holding; copy trading; IPO and private shares; options, margin, crypto; performance, cost basis, tax estimates, dividends; disputes and card controls; savings goals and transfers between accounts |
+| Response-style corpus (79 examples) | Offline through the real flows: PASS 37, LIMITED 7, NOT_BUILT 3, DIVERGES 1, FAIL 0; 31 need the model and run only live (`docs/corpus/README.md`). The few-shot selector is in the chat and planner prompts. |
 
 ## Commands (all run in CI on every push: `.github/workflows/ci.yml`)
 
@@ -170,4 +182,6 @@ deno test -A --no-check tests/edge/           # edge functions incl. model gatew
 bash tests/db/run.sh                          # migrations, RLS, Vault cleanup, migration ledger (Postgres 16)
 (cd tests/agent100 && node harness/runner.js --mode dry --all)   # must stay 103/103
 node evals/runner.cjs && node evals/runner.cjs --mutations        # release verdict, 11 planted defects caught
+deno run -A evals/corpus/run.ts               # style corpus offline (CI checks it via tests/edge/corpus-evals.test.ts)
+deno run -A evals/scenarios/sim.ts && node evals/scenarios/report.cjs   # megadoc evidence + report
 ```

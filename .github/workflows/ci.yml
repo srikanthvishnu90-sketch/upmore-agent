@@ -38,7 +38,7 @@ jobs:
       - name: Edge function tests (typed), including the live-failure replays
         run: deno test -A tests/edge/
       - name: Type-check the functions this branch deploys
-        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts
+        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/agent-proactive/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts
   database:
     runs-on: ubuntu-24.04
     steps:

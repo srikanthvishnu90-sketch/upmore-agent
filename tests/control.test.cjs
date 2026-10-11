@@ -103,3 +103,10 @@ test('export carries no secret and lists every file; deletion needs the phrase, 
   const f=C.create();assert.throws(()=>f.freezes.record('Equifax','frozen',NOW,'PIN 123456'),/Never store a freeze PIN/);f.freezes.record('Equifax','frozen',NOW,'password manager');f.freezes.record('Experian','frozen',NOW);const st=f.freezes.status();assert.equal(st.all_frozen,false);assert.equal(st.text,'Equifax: frozen, Experian: frozen, TransUnion: unknown.');
   f.credentials.record('simplefin-1','password',NOW-200*DAY,180);f.credentials.record('plaid-1','password',NOW-10*DAY,180);const due=f.credentials.due(NOW);assert.equal(due.length,1);assert.match(due[0].text,/^simplefin-1 password: last rotated 200 days ago; your interval is 180 days\. I never see or store the new one\.$/);
 });
+
+test('a weekly standing instruction on Sunday (day 0) keeps its day: it fires on Sundays only and is restated "on Sunday"',()=>{
+  const c=C.create();const SUN=Date.UTC(2026,9,11,15,0,0),MON=SUN+DAY;
+  const si=c.instructions.create({capability_id:'ANL-001',text:'Tell me my food spend',cadence:'weekly',day:0},SUN);
+  assert.equal(si.day,0,'Sunday is day 0, not "no day"');assert.match(si.restated,/every week on Sunday/);
+  assert.equal(c.instructions.due(MON).length,0,'not on a Monday');assert.equal(c.instructions.due(SUN).length,1,'on the Sunday');
+});

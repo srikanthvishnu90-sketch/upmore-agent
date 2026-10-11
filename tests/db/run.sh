@@ -85,6 +85,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011030000_brokerage_accounts_per_user.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011040000_model_health_and_turn_costs.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011050000_broker_vault_cascade.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011060000_proactive.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

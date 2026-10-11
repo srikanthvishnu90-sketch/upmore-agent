@@ -128,6 +128,28 @@ Bugs this rail's own tests caught before commit: the quoted needs-terms reply ra
 
 What stays true: cancel still cannot card live, because no account-page reader is connected; this rail is in the card path and runs the moment one is, and today it improves the honest "I can't" reply with the merchant's own published terms.
 
+### The gauntlet (after the rails) — **NOT RUN against the live handler; no live score exists**
+
+| What | State |
+| --- | --- |
+| Live run | **NOT RUN.** Three independent blockers, all outside this repository: (1) this environment's network policy denies `mrwngntwmnaqrqhupvlt.supabase.co` (the proxy answers 403 to CONNECT, checked 2026-10-11 04:24 UTC); (2) the deployed agent-chat is v203, which has none of the Phase 1 or rail code (no `route` in its responses, so nothing can be graded); (3) the test JWT the owner gave expired at 2026-10-11 04:24:44 UTC. The JWT was used only as an environment variable and never written to any file. |
+| Spec 16's actual 20-text gauntlet | Now a corpus: `evals/gauntlet/spec16-20.json`, the 20 texts verbatim and in order, one thread, with mechanical checks per item. It is not the same list as `sloppy-20.json` (that is 20 variants of buy, cancel and send); both run. Items 11, 12 and 17 need an image and are reported NOT RUN by the text-only runner, never as passes. Item 4 waits a real 11 minutes. |
+| L3 state-machine cases | `evals/gauntlet/l3-adversarial.json`: interrupt mid-flow, change your mind, answer a question with a new request, "yes" three hours late (saved and finished with `--resume <label>` once due; never faked), two "yes" replies sent concurrently, two requests in one text. Spec 16 needs 100%. |
+| Runner | `node evals/gauntlet/run-live.cjs --suite sloppy|spec16|l3 --label <label>` (`--resume <label>` for the late yes; `--no-wait` reports waiting turns NOT RUN). Writes every reply verbatim to `evals/gauntlet/results/` as the raw log. Grader self-test against a canned server: `node --test tests/gauntlet-runner.test.cjs` (3). |
+| L3 in SIMULATION (the real wiring, an in-memory store, a stub model, a test clock; not the gauntlet) | 5 of 5 cases behave as specified: interrupt, three-hours-late yes, double yes, two requests, a new request answering a question (`tests/edge/flow-router.test.ts`, "L3 ..."). Change-your-mind is proven by CORE-009 S08/S09. |
+
+Failures found while preparing the gauntlet, each named by stage and fixed before any live run:
+
+| Case | Stage | What was wrong | Fix |
+| --- | --- | --- | --- |
+| two requests in one text | routing | "send sam 40 and cancel netflix" routed one intent and silently dropped the other; "send $40 to sam and $20 to marcus" sent only to Sam | The router splits requests before the model: "That's two requests: 1) ..., 2) .... Reply 1 or 2", nothing staged; a verbless second part borrows the verb; "1" or "2" starts that one |
+| interrupt mid-flow | routing / card | A question while a card was live fell through to the old handler and left the card live, so a later unrelated "yes" could fire it | The card is dropped and the reply starts with "(I dropped the $40.00 to Sam K since you moved on; nothing was sent. ...)" |
+| sloppy-20 G20 "can you zelle sam forty dollars" | extraction | The model path's canonical text dropped the app word, so the card would have said Venmo | The app word is kept (Rail 1) |
+| a second request in the same flow while its card is live | card | answered with an empty "busy" | the earlier card is replaced and the reply says so (Rail 1) |
+| "cancel my NVDA order" | routing | routed to subscription cancel | `manage_order` intent and regex net (Rail 2) |
+
+Expected live outcome once the blockers are cleared, stated before any score so it cannot be misread: sloppy-20 carded stays low until the account-page reader (cancel) and the paper broker keys (buy) are in place; sends to Sam card only once Sam's rows exist in `saved_recipients`. Owner steps for a live run: allow the function host in this environment's network settings; apply 20261011010000_flow_state.sql and 20261011020000_saved_recipients.sql; seed Sam (Venmo and Zelle rows, source completed_send) for the test user; set the Alpaca paper secrets if the buy items should card; deploy agent-chat; issue a fresh test JWT; then `UPMORE_CHAT_URL=... UPMORE_TEST_JWT=... node evals/gauntlet/run-live.cjs --suite sloppy --label live-<date>` and the same with `--suite spec16` and `--suite l3`.
+
 ## Requests between agents
 
 - Phase 1 gaps that keep every live card at zero (Claude, 2026-10-11; (1) is built as Rail 1, migration not applied live): (1) a saved-recipient table (people, handles, rails, history) so pay-a-person can card a known person; (2) a broker-dealer adapter (Alpaca paper first, labeled paper everywhere) with quotes, buying power and order read-back, so buy can card and a paper fill can be read back; (3) an account-page terms reader for at least one merchant through the existing agent-exec runner, so cancel can show its card. Each is a rail; none is faked meanwhile.

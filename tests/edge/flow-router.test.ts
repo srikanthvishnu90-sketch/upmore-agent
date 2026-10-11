@@ -1,12 +1,14 @@
 // Phase 1 wiring of the chat handler (supabase/functions/_shared/flow_router.ts). These run the real wiring code in Deno
 // with an in-memory database and a STUB model. They prove the wiring, not the spec 16 score: the score comes only from
 // evals/gauntlet/run-live.cjs against the deployed handler with the real model.
-import { routeFlows, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, paperBroker, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+import { routeFlows as routeFlowsTyped, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, paperBroker, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }
 import corpusJson from "../../evals/gauntlet/sloppy-20.json" with { type: "json" };
 const corpus: any = corpusJson;
+// The tests read reply and route from flow replies and note from fallthrough notes; one loose type for both.
+const routeFlows = (m: string, d: any): Promise<any> => routeFlowsTyped(m, d);
 // The published-terms reader (Rail 3) fetches with the global fetch. These tests never touch the network: Netflix's terms
 // URL is served from the SYNTHETIC fixture, everything else answers 403.
 // A minimal SYNTHETIC page with the same structure as tests/fixtures/terms/netflix.html (inline, so the recorder's
@@ -220,4 +222,66 @@ Deno.test("Rail 2 wiring: with the paper broker bound, a buy cards with PAPER an
   assert(posts[0].url.startsWith("https://broker-api.sandbox.alpaca.markets/v1/trading/accounts/acct-1/orders"), posts[0].url);
   eq(posts[0].auth, "Basic " + btoa("PKSTUB:stub-secret"));
   assert(lines.length > 4); for (const l of lines) { assert(l.startsWith("[PAPER (Alpaca sandbox)]"), l); assert(!l.includes("stub-secret") && !l.includes("PKSTUB"), "no key in any log line"); }
+});
+
+// L3, state-machine adversarial (spec 16), in SIMULATION: the real wiring, an in-memory store, a stub model and a test clock.
+// This proves the wiring's behavior per case; it is not the live gauntlet and is never reported as one.
+const L3_MODEL: Record<string, any> = {
+  "send sam $40": { intent: "send_money", amount_span: "$40", amount_cents: 4000, recipient_span: "sam" },
+  "what's my balance": { intent: "other" },
+  "cancel netflix": { intent: "cancel_subscription", merchant_span: "netflix" },
+  "send $40 to marcus": { intent: "send_money", amount_span: "$40", amount_cents: 4000, recipient_span: "marcus" },
+};
+const l3Model = async (m: string) => L3_MODEL[m] ?? { intent: "other" };
+const SAM = [{ id: "r1", handle: "@samk", display_name: "Sam K", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: "2026-10-01T00:00:00Z" }];
+const MARCUSES = SAM.concat([{ id: "r2", handle: "@marcusl", display_name: "Marcus L", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: null }, { id: "r3", handle: "@mtee", display_name: "Marcus T", channel: "sms", source: "confirmed", rail: "venmo", last_used_at: null }] as any);
+
+Deno.test("L3 interrupt mid-flow: a question while a card is live drops the card and says so; a later yes fires nothing", async () => {
+  const { db, store } = memDb({ recipients: SAM }); let now = T0;
+  const a = await routeFlows("send sam $40", { db, extract: l3Model, now: () => now }); eq(a.route.outcome, "confirm");
+  const b = await routeFlows("what's my balance", { db, extract: l3Model, now: () => now });
+  eq(b.fallthrough, true, "the question goes to the normal handler"); eq(b.note, "(I dropped the $40.00 to Sam K since you moved on; nothing was sent. Say it again when you want it.)");
+  assert(!hasLiveCard(store.state), "no card is left live");
+  const y = await routeFlows("yes", { db, extract: l3Model, now: () => now });
+  assert(y === null || y.route.outcome === "nothing_pending", "a yes after the drop fires nothing");
+});
+
+Deno.test("L3 a yes three hours late fires nothing and says it expired", async () => {
+  const { db } = memDb({ recipients: SAM }); let now = T0;
+  await routeFlows("send sam $40", { db, extract: l3Model, now: () => now });
+  now += 3 * 3600000;
+  const y = await routeFlows("yes", { db, extract: l3Model, now: () => now });
+  eq(y.route.outcome, "expired"); assert(/expired/i.test(y.reply), y.reply);
+  const again = await routeFlows("yes", { db, extract: l3Model, now: () => now }); assert(again === null || again.route.outcome !== "staged");
+});
+
+Deno.test("L3 two yes replies: one staging, the second fires nothing", async () => {
+  const { db } = memDb({ recipients: SAM }); const now = T0;
+  await routeFlows("send sam $40", { db, extract: l3Model, now: () => now });
+  const y1 = await routeFlows("yes", { db, extract: l3Model, now: () => now + 1000 });
+  const y2 = await routeFlows("yes", { db, extract: l3Model, now: () => now + 2000 });
+  eq(y1.route.outcome, "staged"); assert(y2 === null || y2.route.outcome !== "staged", "the second yes stages nothing");
+});
+
+Deno.test("L3 two requests in one text: both named, nothing staged, the person picks one, the other is not lost", async () => {
+  const { db, store } = memDb({ recipients: SAM }); const now = T0; let calls = 0;
+  const counted = async (m: string) => { calls++; return l3Model(m); };
+  const a = await routeFlows("send sam $40 and cancel netflix", { db, extract: counted, now: () => now });
+  eq(a.route.outcome, "ask"); eq(a.route.ask_reason, "two_requests"); eq(a.route.understood, true);
+  eq(a.reply, "That's two requests: 1) send sam $40, 2) cancel netflix. I do one at a time so nothing gets mixed up. Reply 1 or 2 to start, then send me the other when it's done.");
+  eq(calls, 0, "no model call for a split"); assert(!store.state.send.pending && !store.state.cancel.pending_index, "nothing staged");
+  const b = await routeFlows("1", { db, extract: counted, now: () => now + 1000 });
+  eq(b.route.flow, "send"); eq(b.route.outcome, "confirm"); assert(/\$40\.00 to Sam K/.test(b.reply), b.reply);
+  const two = await routeFlows("send $40 to sam and $20 to marcus", { db: memDb({ recipients: SAM }).db, extract: counted, now: () => now });
+  assert(/2\) send \$20 to marcus/.test(two.reply), two.reply);
+});
+
+Deno.test("L3 answering a question with a new request: the question is dropped and the new request is handled", async () => {
+  const { db } = memDb({ recipients: MARCUSES }); const now = T0;
+  const q = await routeFlows("send $40 to marcus", { db, extract: l3Model, now: () => now });
+  eq(q.reply, "Which Marcus: Marcus L or Marcus T?");
+  const c = await routeFlows("cancel netflix", { db, extract: l3Model, now: () => now + 1000 });
+  eq(c.route.flow, "cancel"); assert(c.route.outcome !== "confirm" || /Cancel Netflix/.test(c.reply), c.reply);
+  const late = await routeFlows("marcus t", { db, extract: l3Model, now: () => now + 2000 });
+  assert(late === null || late.route.flow !== "send" || late.route.outcome !== "confirm", "the dropped question does not come back as a card");
 });

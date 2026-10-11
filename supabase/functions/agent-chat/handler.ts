@@ -75,7 +75,22 @@ function isGenericProviderWord(w: string): boolean {
 // Warm-isolate catalog cache (see the fetch site for the TTL rationale).
 let catalogCache: { at: number; routes: any[] } | null = null;
 
+// A note from the flow layer (a live card was dropped because the person moved on) goes in front of whatever reply the
+// rest of the handler produces, so the person always learns the card is gone.
 export async function handleChat(req: Request): Promise<Response> {
+  const ctx: { note: string | null } = { note: null };
+  const res = await handleChatInner(req, ctx);
+  if (!ctx.note || res.status !== 200) return res;
+  try {
+    const body = await res.clone().json();
+    if (!body || typeof body.reply !== "string") return res;
+    body.reply = `${ctx.note} ${body.reply}`;
+    const headers = new Headers(res.headers); headers.delete("content-length");
+    return new Response(JSON.stringify(body), { status: 200, headers });
+  } catch { return res; }
+}
+
+async function handleChatInner(req: Request, flowCtx: { note: string | null }): Promise<Response> {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -203,7 +218,7 @@ export async function handleChat(req: Request): Promise<Response> {
     // one question, approvals never come from the model, and a model failure falls back to the regex net and says so.
     // Rails that are not live answer NOT_WIRED in the flow's own words. Messages that are not a flow fall through.
     {
-      let flow: Awaited<ReturnType<typeof routeFlows>> = null;
+      let flow: any = null;
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
@@ -212,6 +227,7 @@ export async function handleChat(req: Request): Promise<Response> {
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);
       }
+      if (flow && flow.fallthrough) { flowCtx.note = flow.note; flow = null; }
       if (flow) {
         const saved = await supabase.from("agent_messages").insert([
           // A one-time code is used once by the run and never stored.

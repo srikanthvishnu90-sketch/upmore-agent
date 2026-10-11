@@ -65,6 +65,9 @@ export interface RouteMeta {
 }
 
 export interface FlowReply { reply: string; route: RouteMeta; withhold_user_text: boolean }
+// The message was not a flow, but a live card was dropped because of it: the host answers the message as usual and puts
+// this note in front of its reply, so the card never stays pending silently and a later "yes" cannot fire it.
+export interface FlowFallthrough { fallthrough: true; note: string }
 
 // Rail 2: the Alpaca PAPER sandbox, bound only when all keys are in the function's environment AND the caller is the one
 // user the single sandbox account belongs to (ALPACA_PAPER_USER_ID). There is no per-user Alpaca account id column yet,
@@ -136,6 +139,7 @@ const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) =
 
 export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
+  if (saved.router && saved.router.pair) return true;
   if (saved.trade && (saved.trade.pending || saved.trade.suggestion)) return true;
   if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer)) return true;
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
@@ -144,7 +148,17 @@ export function hasLiveCard(saved: any): boolean {
 }
 
 // One routed message. Returns null when the message is not a flow, so the existing handler answers it unchanged.
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | null> {
+// What a live card is, in a few words, for the note that says it was dropped.
+function liveCardWords(sessions: any): string[] {
+  const out: string[] = [], m = (c: number) => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  if (sessions.send && sessions.send.pending) out.push(`the ${m(sessions.send.pending.amount_cents)} to ${sessions.send.pending.recipient}`);
+  if (sessions.split && sessions.split.pending) out.push(`the ${m(sessions.split.pending.amount_cents)} split request`);
+  if (sessions.trade && sessions.trade.pending) out.push(`the ${sessions.trade.pending.symbol} order`);
+  if (sessions.cancel && sessions.cancel.pending) out.push("the cancellation");
+  return out;
+}
+
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
@@ -158,8 +172,18 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.
   const notes = [...sessions.send.landed(data.transactions).map((x: any) => x.text), ...sessions.split.paid(data.transactions).map((x: any) => x.text)];
-  const out = await AgentRouter.handle(message, { extract: deps.extract || undefined, sessions, parsers: PARSERS, timeout_ms: deps.timeoutMs ?? 8000 });
-  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot() };
+  const memo = JSON.parse(JSON.stringify((saved && saved.router) || {}));
+  const out = await AgentRouter.handle(message, { extract: deps.extract || undefined, sessions, parsers: PARSERS, timeout_ms: deps.timeoutMs ?? 8000, memo, now });
+  // A message that is not a flow, sent while a card is live, drops the card (CORE-009 S10): nothing stays pending silently.
+  let dropNote: string | null = null;
+  if (out.route === "fallthrough") {
+    const words = liveCardWords(sessions);
+    if (words.length) {
+      for (const k of Object.keys(sessions)) if ((sessions as any)[k] && (sessions as any)[k].pending) await (sessions as any)[k].reply("never mind");
+      dropNote = `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
+    }
+  }
+  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), router: out.memo || memo };
   // Recipients saved on evidence (a completed send, or a handle typed back and SAVE) are written before the reply.
   const rows = recipients.drain();
   let saveError = false;
@@ -168,8 +192,8 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   }
   if (out.route === "fallthrough") {
     // A dropped card is still a state change; keep it, then let the existing handler answer.
-    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split })) await deps.db.saveState(state);
-    return null;
+    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, router: saved?.router ?? state.router })) await deps.db.saveState(state);
+    return dropNote ? { fallthrough: true, note: dropNote } : null;
   }
   // Saved before the reply leaves, so a crash never leaves a card the person can see without the state that makes it safe.
   await deps.db.saveState(state);

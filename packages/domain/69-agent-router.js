@@ -134,10 +134,48 @@
     const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
 
+    // Two requests in one text ("send sam 40 and cancel netflix", "send $40 to sam and $20 to marcus") are never half-done
+    // or silently dropped: the person picks which goes first, and nothing is staged until they do. A second part with no
+    // verb of its own borrows the first part's verb. Parts that are not requests ("and drinks", "and sarah") stay put.
+    const VERB = /^\s*(buy|sell|send|pay|venmo|zelle|cash ?app|paypal|cancel|split|transfer)\b/i;
+    function splitRequests(text) {
+      const t = String(text || "").trim();
+      if (!MAYBE.test(t)) return null;
+      const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*/i).map(x => x.trim()).filter(Boolean);
+      if (parts.length < 2) return null;
+      const reqs = [];
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i], isReq = MAYBE.test(p) || (i > 0 && /^\$\s?\d/.test(p));
+        if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += ` and ${p}`; else reqs.push(p); continue; }
+        reqs.push(i > 0 && !MAYBE.test(p) && VERB.test(parts[0]) ? `${VERB.exec(parts[0])[1]} ${p}` : p);
+      }
+      const real = reqs.filter(r => MAYBE.test(r));
+      return real.length >= 2 ? real.slice(0, 2) : null;
+    }
+    const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
+
     // One message in, one outcome out. ctx: { extract: async (raw) => toolInput | null, sessions: { trade, cancel, send },
     // parsers: { trade, cancel, send } (the regex net), timeout_ms }. Returns { route, source, flow, canonical, result, understood_first, ... }.
     async function handle(raw, ctx) {
-      const c = ctx || {}, sessions = c.sessions || {}, text = String(raw || "");
+      const c = ctx || {}, sessions = c.sessions || {}, text = String(raw || ""), memo = c.memo || {}, now = typeof c.now === "function" ? c.now() : Date.now();
+      const done = out => Object.assign(out, { memo });
+      // "1" or "2" answering "which first?" starts that request as if it had been sent alone.
+      if (memo.pair && PICK.test(text)) {
+        const pair = memo.pair; memo.pair = null;
+        if (now - pair.at > 10 * 60000) return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "expired", text: "That expired. Send the one you want first and I'll start it." } });
+        const chosen = /2|two|second/i.test(text) ? pair.parts[1] : pair.parts[0];
+        const out = await handle(chosen, Object.assign({}, c, { memo }));
+        return Object.assign(out, { picked: chosen, memo });
+      }
+      const live0 = Object.keys(sessions).filter(k => sessions[k] && sessions[k].pending);
+      if (!live0.length && !(memo.pair && YES_NO.test(text))) {
+        const two = splitRequests(text);
+        if (two) {
+          memo.pair = { parts: two, at: now };
+          return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's two requests: 1) ${two[0]}, 2) ${two[1]}. I do one at a time so nothing gets mixed up. Reply 1 or 2 to start, then send me the other when it's done.` } });
+        }
+      }
+      if (memo.pair && !PICK.test(text)) memo.pair = null;
       const live = Object.keys(sessions).filter(k => sessions[k] && sessions[k].pending);
       // A bare one-time code goes straight to the cancellation waiting for it, never to the model, never into a log.
       if (/^\s*\d{4,8}\s*$/.test(text) && sessions.cancel && sessions.cancel.awaiting_code) {
@@ -202,6 +240,7 @@
     // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
     const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|(?:limit|stop|trailing) order|my \w+ order)\b/i;
     const maybeFlow = text => MAYBE.test(String(text || ""));
-    return { handle, validate, canonical, disagreements, numberIn, maybeFlow, TOOL, SYSTEM, INTENTS, FLOWS };
+    async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(raw, c); out.memo = c.memo; return out; }
+    return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, TOOL, SYSTEM, INTENTS, FLOWS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentRouter;

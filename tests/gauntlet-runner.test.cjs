@@ -39,3 +39,31 @@ test('the grader passes only a right-flow, first-message card with the right fac
   assert.match(f('G04').reasons.join(),/card lacks "\$500\.00"/);assert.match(f('G05').reasons.join(),/SMS segments/);assert.match(f('G06').reasons.join(),/no route metadata/);
   assert.equal(nos.length,20,'every card is answered no, so nothing executes');
 });
+
+// The spec16 and L3 suites' grader, against a canned server: media and long waits are NOT RUN (never passes), a 3-hour
+// wait is saved and resumed, two concurrent yes replies may stage at most once. Tests the grader only.
+const spawnRun=(argv,port)=>new Promise(res=>{const p=spawn(process.execPath,[path.join(root,'evals/gauntlet/run-live.cjs')].concat(argv),{env:Object.assign({},process.env,{UPMORE_CHAT_URL:`http://127.0.0.1:${port}/agent-chat`,UPMORE_TEST_JWT:'test'})});let o='';p.stdout.on('data',d=>o+=d);p.stderr.on('data',d=>o+=d);p.on('close',code=>res({code,out:o}));});
+test('spec16 and L3 suites: media and waits are reported NOT RUN, a long wait is saved and resumed, a double yes stages at most once',async()=>{
+  const spec=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/spec16-20.json'),'utf8'));const l3=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/l3-adversarial.json'),'utf8'));
+  assert.equal(spec.items.length,20);assert.deepEqual(spec.items.map(i=>i.text).slice(0,3),["what's my balance",'how much did i spend on food last month','cancel netflix']);assert.equal(spec.items.filter(i=>i.needs_media).length,3);
+  assert.deepEqual(l3.cases.map(c=>c.name),['interrupt mid-flow','change your mind','answer a question with a new request','yes three hours late','two yes replies','two requests in one text']);
+  let staged=0,n=0;
+  const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{const m=JSON.parse(b);const t=m.thread_id||('t'+(++n));let reply='Okay. Nothing happened.',route={flow:null,outcome:null};
+    if(m.message==="what's my balance")reply='$1,234.56 in checking, as of 9:41.';
+    if(m.message==='send sam $40')reply='Set up $40.00 to Sam K in Venmo. No fee. Reply YES or NO within 10 min, or DETAILS.',route={flow:'send',outcome:'confirm'};
+    if(m.message==='yes'){staged++;reply='Staged. In Venmo: ...';}
+    res.setHeader('content-type','application/json');res.end(JSON.stringify({thread_id:t,reply,route}));});});
+  await new Promise(r=>server.listen(0,r));const port=server.address().port;
+  try{
+  const a=await spawnRun(['--suite','spec16','--label','grader-spec16','--no-wait'],port);
+  const s=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/results/grader-spec16.spec16.json'),'utf8'));fs.unlinkSync(path.join(root,'evals/gauntlet/results/grader-spec16.spec16.json'));
+  assert.equal(s.not_run,4,'three media items and the 11-minute wait');assert.equal(s.rows.find(r=>r.id==='S16-01').status,'PASS');assert.equal(s.rows.find(r=>r.id==='S16-03').status,'FAIL');assert.equal(a.code,1);
+  staged=0;const b=await spawnRun(['--suite','l3','--label','grader-l3','--max-wait-min','1'],port);
+  const f=path.join(root,'evals/gauntlet/results/grader-l3.l3.json');const r=JSON.parse(fs.readFileSync(f,'utf8'));
+  assert.equal(r.pending.length,1,'the 3-hour case is saved, not faked');assert.equal(r.pending[0].id,'L3-04');assert.ok(r.pending[0].due_at>Date.now()+2*3600000);
+  assert.equal(r.cases.find(c=>c.id==='L3-05').status,'FAIL','the canned server staged twice on a double yes');
+  r.pending[0].due_at=Date.now()-1;fs.writeFileSync(f,JSON.stringify(r));
+  const c=await spawnRun(['--resume','grader-l3'],port);const r2=JSON.parse(fs.readFileSync(f,'utf8'));
+  assert.equal(r2.pending.length,0);assert.ok(r2.cases.find(x=>x.id==='L3-04'),'resumed and graded');assert.equal(b.code,1);assert.equal(c.code,1);
+  }finally{if(server.closeAllConnections)server.closeAllConnections();server.close();for(const x of ['grader-spec16.spec16.json','grader-l3.l3.json']){const q=path.join(root,'evals/gauntlet/results',x);if(fs.existsSync(q))fs.unlinkSync(q);}}
+});

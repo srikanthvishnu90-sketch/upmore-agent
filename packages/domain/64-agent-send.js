@@ -23,6 +23,9 @@
       let cents = whole * 100 + frac; if (m[3]) cents *= 1000;
       return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
     }
+    // The new amount sits right next to the change words, so "no, wait 5 minutes" is never read as $5.
+    const AMT = String.raw`\$?\s?[\d,]+(?:\.\d{1,2})?(?:\s*(?:dollars|bucks))?`;
+    const AMOUNT_CHANGE = new RegExp(String.raw`^\s*(?:no[,.]?\s+|actually[,.]?\s+|wait[,.]?\s+|sorry[,.]?\s+)*(?:(?:make (?:it|that)|change (?:it|that)? ?to|switch (?:it|that)? ?to|(?:it|that) should be|should be|i meant|meant to say|actually)\s+${AMT}|\$\s?[\d,]+(?:\.\d{1,2})?|${AMT}\s+instead)\s*(?:instead|please|then)?\s*[.!]*\s*$`, "i");
     function parse(text) {
       const t = String(text || "").trim(), lower = t.toLowerCase();
       const forIdx = lower.search(/\bfor\b/), head = forIdx >= 0 ? t.slice(0, forIdx) : t, memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "") || null : null;
@@ -183,10 +186,14 @@
         }
         const p = pending;
         if (!p) return { outcome: "nothing_pending", text: "There is no send waiting on you." };
-        const cls = Voice ? Voice.classify(text, { pending_confirmation: true }) : { type: /^y/i.test(text) ? "confirmation" : "question", approved: /^y/i.test(text) };
+        let cls = Voice ? Voice.classify(text, { pending_confirmation: true }) : { type: /^y/i.test(text) ? "confirmation" : "question", approved: /^y/i.test(text) };
+        // A new amount without a yes ("actually make it $50", "no, make it 50", "$50 instead") corrects the card; it is never
+        // read as a decline or answered with the old card. Found live 2026-10-11 (spec16 item 6).
+        const asked = parseAmount(String(text || ""));
+        if (cls.type !== "correction" && asked && asked !== p.send.amount_cents && (AMOUNT_CHANGE.test(String(text)) || /^\s*\$?\s?[\d,]+(\.\d{1,2})?\s*[.!]*\s*$/.test(String(text)))) cls = { type: "correction", amount_only: true };
         // S07: "yes, but" corrects. The old proposal is dropped and the corrected one is staged afresh; nothing is written in between.
         if (cls.type === "correction") {
-          const fix = parse(text), merged = { amount_cents: fix.amount_cents || p.send.amount_cents, recipient: fix.recipient || p.send.recipient.name, memo: p.send.memo, speed: fix.speed || null, funding: fix.funding || p.send.confirm.from, text };
+          const fix = parse(text), merged = { amount_cents: fix.amount_cents || p.send.amount_cents, recipient: (!cls.amount_only && fix.recipient) || p.send.recipient.name, memo: p.send.memo, speed: fix.speed || null, funding: fix.funding || p.send.confirm.from, text };
           await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
           const again = await stage(merged);
           return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});

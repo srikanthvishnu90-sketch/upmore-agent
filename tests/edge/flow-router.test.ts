@@ -294,6 +294,15 @@ Deno.test("L3 interrupt mid-flow: a question while a card is live drops the card
   assert(y === null || y.route.outcome === "nothing_pending", "a yes after the drop fires nothing");
 });
 
+Deno.test("spec16 item 6 (found live 2026-10-11): \"actually make it $50\" after a $40 card puts up a $50 card, the $40 one is dead, a yes stages $50 once", async () => {
+  const { db } = memDb({ recipients: SAM }); const now = T0;
+  const a = await routeFlows("send sam $40", { db, extract: l3Model, now: () => now }); eq(a.route.outcome, "confirm");
+  const b = await routeFlows("actually make it $50", { db, extract: l3Model, now: () => now + 1000 });
+  eq(b.route.outcome, "confirm"); assert(/^Got it\. Set up \$50\.00 to Sam K/.test(b.reply), b.reply); assert(!/Yes or no\?/.test(b.reply), b.reply);
+  const y = await routeFlows("yes", { db, extract: l3Model, now: () => now + 2000 });
+  eq(y.route.outcome, "staged"); assert(/\$50\.00/.test(y.reply) && !/\$40\.00/.test(y.reply), y.reply);
+});
+
 Deno.test("L3 a yes three hours late fires nothing and says it expired", async () => {
   const { db } = memDb({ recipients: SAM }); let now = T0;
   await routeFlows("send sam $40", { db, extract: l3Model, now: () => now });

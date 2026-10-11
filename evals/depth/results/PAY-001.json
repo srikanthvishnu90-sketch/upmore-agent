@@ -1,9 +1,9 @@
 {
  "capability": "PAY-001",
- "run_at": "2026-10-11T18:23:57.521Z",
+ "run_at": "2026-10-11T19:28:25.492Z",
  "baseline_all_green": true,
  "sub_capabilities": 16,
- "proven": 16,
+ "proven": 17,
  "problems": [],
  "rows": [
   {
@@ -93,6 +93,17 @@
    "title": "Plain yes approves, qualified yes corrects",
    "defect": "\"yes, but ...\" is classified as a plain approval",
    "test": "\"yes\" executes exactly; \"yes but $45\" re-confirms the corrected send with no write",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D17",
+   "title": "A new amount without a yes corrects",
+   "defect": "an amount change that is not a qualified yes falls through to \"Yes or no?\" with the old card (found live 2026-10-11)",
+   "test": "\"actually make it $50\" replaces the $40 card with a $50 one; no write",
    "bites": true,
    "applied": true,
    "collateral": [],

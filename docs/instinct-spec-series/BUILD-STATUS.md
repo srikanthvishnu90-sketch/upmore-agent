@@ -45,7 +45,7 @@ One capability at a time. Before code: 15 user-observable sub-capabilities enume
 
 | Capability | Doc | Sub-capabilities | Proven | Check |
 | --- | --- | --- | --- | --- |
-| PAY-001 send to a saved recipient | docs/depth/PAY-001.md | 16 | 16/16 (2026-10-11; S16 stop-on-change added) | `node --test tests/depth-PAY-001.test.cjs && node evals/depth/run.cjs PAY-001` |
+| PAY-001 send to a saved recipient | docs/depth/PAY-001.md | 16 | 17/17 defects (2026-10-11; S16 stop-on-change added; D17 on S07: "actually make it $50" after a $40 card corrects instead of re-asking, found live in spec16 item 6) | `node --test tests/depth-PAY-001.test.cjs && node evals/depth/run.cjs PAY-001` |
 | CORE-005 autonomy envelopes | docs/depth/CORE-005.md | 15 | 15/15 (2026-10-11) | `node --test tests/depth-CORE-005.test.cjs && node evals/depth/run.cjs CORE-005` |
 | INV-011 buy a stock or ETF from a text (real-world C46) | docs/depth/INV-011.md | 16 | 16/16 (2026-10-11; S16 stop-on-change added) | `node --test tests/depth-INV-011.test.cjs && node evals/depth/run.cjs INV-011` |
 | CORE-009 the confirmation card over text (spec 16) | docs/depth/CORE-009.md | 16 | 16/16 (2026-10-11; S16 two SMS segments added) | `node --test tests/depth-CORE-009.test.cjs && node evals/depth/run.cjs CORE-009` |

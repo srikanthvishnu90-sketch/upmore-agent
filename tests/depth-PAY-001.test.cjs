@@ -70,6 +70,19 @@ test('[S07] a plain yes executes exactly the pending action; a qualified yes is 
   await s.start('send $1,800 to Landlord LLC');const q=await s.reply('yes but make it $1,750');assert.equal(q.corrected,true);assert.equal(q.outcome,'confirm');assert.equal(q.send.amount_cents,175000);assert.match(q.text,/^Got it\. Send \$1,750\.00 to Landlord LLC by ACH from checking\. No fee\./);assert.equal(r.writes.length,0);
   const y=await s.reply('yes');assert.equal(y.outcome,'sent');assert.equal(r.writes.length,1);assert.equal(r.writes[0].params.amount_cents,175000);assert.equal(r.writes[0].params.recipient,'p4');
   const {s:s2,r:r2}=session();await s2.start('send $40 to Sarah');const w=await s2.reply('yes, actually send it to Marcus L');assert.equal(w.corrected,true);assert.equal(w.send.recipient.id,'p2');assert.equal(r2.writes.length,0);
+  // Live finding 2026-10-11 (spec16 item 6): "actually make it $50" was answered "Yes or no? ... $40.00". A change of amount
+  // without a yes is a correction too: the $40 card dies, a $50 card replaces it, nothing is written.
+  for(const change of ['actually make it $50','make it $50','change it to $50','$50 instead','no, make it 50']){
+    const {s:c,r:cr}=session();const first=await c.start('send $40 to Sarah');const v=await c.reply(change);
+    assert.equal(v.corrected,true,change);assert.equal(v.outcome,'confirm',change);assert.equal(v.send.amount_cents,5000,change);assert.match(v.text,/^Got it\. Set up \$50\.00 to Sarah M/,change);
+    assert.notEqual(v.confirmation_id,first.confirmation_id,'a new card');assert.equal(cr.writes.length,0);
+    assert.equal((await c.loop.wake({kind:'confirmation',confirmation_id:first.confirmation_id,approved:true})).outcome!=='executed',true,'the $40 card is dead');assert.equal(cr.writes.length,0);
+  }
+  // A number that is not a new amount is never read as one: no $5 or $2 card appears, nothing is written.
+  for(const other of ['no, wait 5 minutes','actually I will do it in 5 minutes','send it in 2 days']){
+    const {s:c,r:cr}=session();await c.start('send $40 to Sarah');const v=await c.reply(other);
+    assert.notEqual(v.corrected,true,other);assert.ok(!(v.send&&v.send.amount_cents!==4000),other);assert.equal(cr.writes.length,0,other);
+  }
   const {s:s3}=session();await s3.start('send $40 to Sarah');const h=await s3.reply('what does irreversible mean?');assert.equal(h.outcome,'ask');assert.match(h.text,/^Yes or no\? Set up \$40\.00 to Sarah M/);assert.ok(s3.pending,'still pending after a question');
 });
 

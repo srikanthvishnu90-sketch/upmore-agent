@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 68,
-  "total": 68
+  "pass": 70,
+  "total": 70
  },
  "results": [
   {
@@ -223,6 +223,18 @@
    "family": "design",
    "id": "D-05",
    "title": "chat is the primary surface: a thread list, a feed, a composer and a send button exist",
+   "status": "PASS"
+  },
+  {
+   "family": "design",
+   "id": "D-07",
+   "title": "connect prompts: one line, then the link alone, drawn as the card with the company's real logo (4 prompts)",
+   "status": "PASS"
+  },
+  {
+   "family": "design",
+   "id": "D-08",
+   "title": "real company icons only: 99 real logos on file, no letter tiles or stand-ins",
    "status": "PASS"
   },
   {
@@ -470,7 +482,7 @@
   {
    "family": "response",
    "id": "R-06",
-   "title": "offline latency: p95 of 28 conversations under 2,000 ms",
+   "title": "offline latency: p95 of 29 conversations under 2,000 ms",
    "status": "PASS"
   }
  ]

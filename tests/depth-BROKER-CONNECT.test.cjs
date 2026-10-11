@@ -17,7 +17,7 @@ const root=path.resolve(__dirname,'..');
 const domainDir=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
 const Mock=require('./fixtures/alpaca-mock.cjs');
 const ctx=vm.createContext({fetch,AbortController,setTimeout,clearTimeout,URL,URLSearchParams,btoa,atob,Buffer,TextEncoder,TextDecoder,crypto:globalThis.crypto});
-vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca.js','73-broker-accounts.js','74-broker-connect.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaTrading;this.C=Compliance;this.B=BrokerAccounts;this.K=BrokerConnect;',ctx);
+vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca.js','76-connect-cards.js','73-broker-accounts.js','74-broker-connect.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaTrading;this.C=Compliance;this.B=BrokerAccounts;this.K=BrokerConnect;',ctx);
 const {T,A,C,B,K}=ctx;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
@@ -172,7 +172,7 @@ test('[S10] no secret, code or token ever reaches a log line, a redirect or a me
 test('[S11] no brokerage connected: an order, a portfolio question and a cancel get the honest connect prompt, and nothing is read or staged',async()=>{
   const db=memDb();const m=await market();const t=await trader(db,UA,m);
   assert.equal(t.r.wired,false);assert.equal(t.r.code,'connect');
-  const PROMPT='No brokerage is connected, so nothing was placed. Connect your own Alpaca account in Settings > Brokerage: you approve it on Alpaca\'s site and Upmore never sees your password.';
+  const PROMPT='No brokerage is connected yet, so nothing was placed - here\'s the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca';
   const a=await t.s.start('buy $5 of VOO');assert.equal(a.outcome,'blocked');assert.equal(a.reason,'broker_connect');assert.equal(a.text,PROMPT);
   assert.equal((await t.s.start('what do I own')).text,PROMPT);
   assert.equal(t.s.pending,null);assert.equal(m.state.requests.length,0);
@@ -180,22 +180,22 @@ test('[S11] no brokerage connected: an order, a portfolio question and a cancel 
 
 test('[S12] a broker with no public trading API is said plainly, in Connect and in a trade, with Alpaca as the way in',async()=>{
   const s=await K.start({user_id:UA,provider:'robinhood',env:ENV,db:memDb(),now:T0});
-  assert.equal(s.code,'unsupported');assert.equal(s.message,'Robinhood doesn\'t offer a way for apps to place trades for you, so Upmore can\'t connect it. To trade from Upmore, open an Alpaca account and connect it in Settings > Brokerage.');
+  assert.equal(s.code,'unsupported');assert.equal(s.message,'Robinhood doesn\'t let apps place trades, so Upmore can\'t connect it and nothing was placed. Alpaca does - here\'s the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');
   const db=memDb();await connect(db,UA,'code-A');const m=await market();const t=await trader(db,UA,m,{cap:100000});
   const r=await t.s.start('buy $5 of VOO in my Fidelity account');assert.equal(r.outcome,'refuse');assert.equal(r.reason,'broker_no_public_api');
-  assert.match(r.text,/^Fidelity doesn't offer a way for apps to place trades for you, so Upmore can't connect it\. .* Nothing was placed\.$/);assert.equal(landed(m,'acct-A').length,0);
+  assert.match(r.text,/^Fidelity doesn't let apps place trades, so Upmore can't connect it and nothing was placed\. Alpaca does - here's the link\.\n\nhttps:\/\/\S+\/connect\/alpaca$/);assert.equal(landed(m,'acct-A').length,0);
 });
 
 test('[S13] a revoked or expired token: Reconnect is said, the row is marked for Reconnect once, nothing is placed and no fill is ever claimed',async()=>{
   const db=memDb();await connect(db,UA,'code-A');const m=await market();const marks=[];
   const t=await trader(db,UA,m,{cap:100000,onAuth:q=>marks.push(q)});
   m.state.tokens={};
-  const r=await t.s.start('buy $5 of VOO');assert.equal(r.outcome,'blocked');assert.equal(r.reason,'broker_reconnect');assert.equal(r.text,'Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.');
+  const r=await t.s.start('buy $5 of VOO');assert.equal(r.outcome,'blocked');assert.equal(r.reason,'broker_reconnect');assert.equal(r.text,'Your brokerage connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');
   assert.deepEqual(JSON.parse(JSON.stringify(marks)),[{user_id:UA,account:db.rows[0].id}],'marked once for this person and row');
   // Revoked between the card and the yes: the write is refused, said as Reconnect, nothing filled.
   const db2=memDb();await connect(db2,UA,'code-A');const m2=await market();const t2=await trader(db2,UA,m2,{cap:100000,onAuth:()=>{}});
   assert.equal((await t2.s.start('buy $5 of VOO')).outcome,'confirm');m2.state.tokens={};
-  const y=await t2.s.reply('yes');assert.equal(y.outcome,'blocked');assert.equal(y.reason,'broker_reconnect');assert.equal(y.text,'Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.');assert.doesNotMatch(y.text,/Done|filled|bought/);
+  const y=await t2.s.reply('yes');assert.equal(y.outcome,'blocked');assert.equal(y.reason,'broker_reconnect');assert.equal(y.text,'Your brokerage connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');assert.doesNotMatch(y.text,/Done|filled|bought/);
   // Revoked after the re-check passed, at the write itself: the broker's 401 is a definite refusal, said as Reconnect.
   const db3=memDb();await connect(db3,UA,'code-A');const m3=await market();let revoke=false;const t3=await trader(db3,UA,m3,{cap:100000,onAuth:()=>{}});
   assert.equal((await t3.s.start('buy $5 of VOO')).outcome,'confirm');

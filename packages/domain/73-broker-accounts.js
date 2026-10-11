@@ -32,18 +32,22 @@
     });
     const NO_PUBLIC_API = Object.freeze({ fidelity: "Fidelity", vanguard: "Vanguard", robinhood: "Robinhood", sofi: "SoFi" });
     const vaultName = (userId, rowId) => `broker_token_${userId}_${rowId}`;
+    // Connecting is one link in the thread, drawn as the owner's connect card (76-connect-cards.js); Settings stays the
+    // fallback only if that module is missing.
+    const Cards = typeof ConnectCards !== "undefined" ? ConnectCards : typeof require === "function" ? require("./76-connect-cards.js") : null;
+    const card = (lead, fallback) => Cards ? Cards.message("alpaca", { lead }) : fallback;
     const MESSAGES = {
-      connect: `No brokerage is connected, so nothing was placed. Connect your own Alpaca account in ${WHERE}: you approve it on Alpaca's site and Upmore never sees your password.`,
-      reconnect: name => `Your ${name} connection was revoked or has expired, so nothing was placed. Reconnect it in ${WHERE}.`,
+      connect: card("No brokerage is connected yet, so nothing was placed - here's the link.", `No brokerage is connected, so nothing was placed. Connect your own Alpaca account in ${WHERE}: you approve it on Alpaca's site and Upmore never sees your password.`),
+      reconnect: name => card(`Your ${name} connection was revoked or has expired, so nothing was placed - here's the link to reconnect.`, `Your ${name} connection was revoked or has expired, so nothing was placed. Reconnect it in ${WHERE}.`),
       unavailable: "I can't read your brokerage connection right now, so nothing was placed. Try again in a minute.",
-      not_wired: name => `Connecting ${name} isn't available yet, so nothing was placed. Alpaca is the broker you can connect today, in ${WHERE}.`,
+      not_wired: name => card(`Connecting ${name} isn't available yet, so nothing was placed. Alpaca is the broker you can connect today - here's the link.`, `Connecting ${name} isn't available yet, so nothing was placed. Alpaca is the broker you can connect today, in ${WHERE}.`),
       isolation: "Something is wrong with how your brokerage connection was read, so I stopped and nothing was placed.",
     };
     // A broker the person names that has no public trading API: the honest answer, not a promise.
     function unsupported(word) {
       const k = String(word || "").toLowerCase().replace(/[^a-z]/g, "");
       const name = NO_PUBLIC_API[k] || null;
-      return name ? `${name} doesn't offer a way for apps to place trades for you, so Upmore can't connect it. To trade from Upmore, open an Alpaca account and connect it in ${WHERE}.` : null;
+      return name ? card(`${name} doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.`, `${name} doesn't offer a way for apps to place trades for you, so Upmore can't connect it and nothing was placed. To trade from Upmore, open an Alpaca account and connect it in ${WHERE}.`) : null;
     }
     // The per-order cap the owner sets (UPMORE_LIVE_ORDER_CAP_CENTS); anything missing or malformed is the $5.00 default.
     function capFrom(value) { const n = Number(value); return value !== undefined && value !== null && value !== "" && Number.isSafeInteger(n) && n > 0 ? n : (Alpaca ? Alpaca.DEFAULT_CAP_CENTS : 500); }

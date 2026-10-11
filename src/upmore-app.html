@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-jyc+YNyuQMeGdEQCE3z2rbjmQ9wRKIIAcxd4KAWt5Nw=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-FI+1GUzLUOkWkb3Hb0Y8KrE4FoQVeTRTJjgvuPLCDQE=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -970,6 +970,13 @@
   .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
   .amsg b { font-weight: 600; }
   .amsg a { color: #6EA8FF; }
+  /* Connect card: the iMessage link preview, copied (owner, 2026-10-11). */
+  .amsg a.ccard { display: block; width: min(300px, 100%); margin: 6px 0 2px; border-radius: 18px; overflow: hidden; background: #E9E9EB; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .ccard-img { display: block; background: #fff; }
+  .ccard-img img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; }
+  .ccard-foot { display: block; padding: 9px 13px 10px; }
+  .ccard-foot b { display: block; font-weight: 600; font-size: 15px; line-height: 1.25; color: #000; }
+  .ccard-foot span { display: block; margin-top: 1px; font-size: 13px; line-height: 1.25; color: #86868B; }
   .asrc { font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 6px; }
   .tstamp { align-self: center; font-size: 11px; line-height: 1.3; font-weight: 500;
     letter-spacing: 0.01em; color: var(--nsil3); margin: 6px 0 -6px; }
@@ -1875,7 +1882,7 @@
 
     <div class="sheet" id="subSheet" hidden>
       <div class="sheetcard">
-        <div class="sheeticon" id="subSheetIcon">N</div>
+        <div class="sheeticon" id="subSheetIcon"></div>
         <div style="text-align:center"><b id="subSheetName" style="font-size:18px">Netflix</b>
         <p class="psub" id="subSheetMeta" style="margin:4px 0 14px">$15.99/mo</p></div>
         <div id="subDupCompare" style="margin-bottom:12px" hidden></div>
@@ -1938,7 +1945,7 @@
     </div>
     <div class="sheet" id="promoSheet" hidden>
       <div class="sheetcard">
-        <div class="sheeticon" id="promoSheetIcon">S</div>
+        <div class="sheeticon" id="promoSheetIcon"></div>
         <div style="text-align:center"><b id="promoSheetName" style="font-size:18px">SoFi</b>
         <p class="psub" id="promoSheetMeta" style="margin:4px 0 6px; overflow-wrap:anywhere">$300 bonus</p>
         <p class="psub" id="promoSheetCatches" style="margin:0 0 14px; font-size:13px; overflow-wrap:anywhere"></p></div>
@@ -2208,6 +2215,41 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
 
 </script>
 <script>
+  /* Connect cards (owner, 2026-10-11): every "connect X" moment looks like the owner's reference screenshot. One short
+     line, then the link alone on its own line. In iMessage the link becomes a preview card: white, the company's real logo
+     in the middle, the Upmore wordmark bottom right, and under it "Connect X to Upmore" with the domain. The card is
+     drawn by the page behind the link (connect/<provider>.html: its og:title and og:image, img/connect/<provider>.png),
+     and the app's chat draws the same card from the same image when a reply line is exactly that link.
+     Real company icons only: a provider is listed here only with its real logo in img/brands/ (SOURCES.md says where each
+     came from). A provider without one gets plain words, never a stand-in icon. Only providers a person can actually
+     connect today are listed: a card that leads nowhere would be a faked connector. */
+  const ConnectCards = (() => {
+    // The production app (the same default as supabase/functions/_shared/broker_connect.ts DEFAULT_APP_URL).
+    const DEFAULT_BASE = "https://upmore-topaz.vercel.app";
+    const PROVIDERS = Object.freeze({
+      alpaca: Object.freeze({ name: "Alpaca", icon: "img/brands/alpaca.svg", card: "img/connect/alpaca.png" }),
+      gmail: Object.freeze({ name: "Gmail", icon: "img/brands/gmail.svg", card: "img/connect/gmail.png" }),
+    });
+    const LEAD = "Not connected yet - here's the link.";
+    const url = (provider, base) => `${String(base || DEFAULT_BASE).replace(/\/+$/, "")}/connect/${provider}`;
+    const title = provider => `Connect ${PROVIDERS[provider].name} to Upmore`;
+    // The reply is two bubbles, as in the reference: one short line (what did not happen, said plainly, then "here's the
+    // link"), and the link alone, which iMessage and the app draw as the card.
+    function message(provider, opts) {
+      const o = opts || {};
+      if (!PROVIDERS[provider]) throw new Error(`No connect card for ${provider}: add its real logo to img/brands first.`);
+      return `${o.lead || LEAD}\n\n${url(provider, o.base)}`;
+    }
+    // A line that is exactly a connect link (any host, so a preview or staging app works too) names its provider.
+    function parse(line) {
+      const m = /^\s*https:\/\/[a-z0-9.-]+(?::\d+)?\/connect\/([a-z0-9-]+)\/?\s*$/i.exec(String(line || ""));
+      return m && PROVIDERS[m[1].toLowerCase()] ? m[1].toLowerCase() : null;
+    }
+    const host = link => { try { return new URL(link).host; } catch (_) { return ""; } };
+    return { DEFAULT_BASE, PROVIDERS, LEAD, url, title, message, parse, host };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = ConnectCards;
+
   /* Phone frame on larger screens */
   (function () {
     if (new URLSearchParams(location.search).has("noanim")) document.documentElement.classList.add("noanim");
@@ -5747,10 +5789,16 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     for (const k of Object.keys(APP_ICONS)) if (n.includes(k)) return APP_ICONS[k];
     return null;
   }
-  function iconHue(name) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-    return h;
+  /* Real company logos (owner, must rule, 2026-10-11): the vendored app icons above first, then the companies' real marks
+     in img/brands/ (brands.json; sources and licenses in SOURCES.md). A company with neither is shown by name only: never
+     a letter tile, a generic glyph or a look-alike. Longest match first, on word boundaries ("uber eats" before "uber"). */
+  const BRAND_ICONS = [{"slug":"1password","name":"1Password","match":["1password"],"file":"img/brands/1password.svg"},{"slug":"adobe","name":"Adobe","match":["adobe"],"file":"img/brands/adobe.svg"},{"slug":"afterpay","name":"Afterpay","match":["afterpay"],"file":"img/brands/afterpay.svg"},{"slug":"airbnb","name":"Airbnb","match":["airbnb"],"file":"img/brands/airbnb.svg"},{"slug":"alpaca","name":"Alpaca","match":["alpaca"],"file":"img/brands/alpaca.svg"},{"slug":"americanairlines","name":"American Airlines","match":["american airlines"],"file":"img/brands/americanairlines.svg"},{"slug":"americanexpress","name":"American Express","match":["american express","amex"],"file":"img/brands/americanexpress.svg"},{"slug":"apple","name":"Apple","match":["apple"],"file":"img/brands/apple.svg"},{"slug":"applemusic","name":"Apple Music","match":["apple music"],"file":"img/brands/applemusic.svg"},{"slug":"appletv","name":"Apple TV+","match":["apple tv"],"file":"img/brands/appletv.svg"},{"slug":"att","name":"AT&T","match":["at&t","at & t"],"file":"img/brands/att.svg"},{"slug":"audible","name":"Audible","match":["audible"],"file":"img/brands/audible.svg"},{"slug":"bankofamerica","name":"Bank of America","match":["bank of america"],"file":"img/brands/bankofamerica.svg"},{"slug":"bitwarden","name":"Bitwarden","match":["bitwarden"],"file":"img/brands/bitwarden.svg"},{"slug":"canva","name":"Canva","match":["canva"],"file":"img/brands/canva.svg"},{"slug":"capitalone","name":"Capital One","match":["capital one"],"file":"img/brands/capitalone.svg"},{"slug":"cashapp","name":"Cash App","match":["cash app","cashapp"],"file":"img/brands/cashapp.svg"},{"slug":"chase","name":"Chase","match":["chase"],"file":"img/brands/chase.svg"},{"slug":"citi","name":"Citi","match":["citibank","citi"],"file":"img/brands/citi.svg"},{"slug":"coinbase","name":"Coinbase","match":["coinbase"],"file":"img/brands/coinbase.svg"},{"slug":"costco","name":"Costco","match":["costco"],"file":"img/brands/costco.svg"},{"slug":"coursera","name":"Coursera","match":["coursera"],"file":"img/brands/coursera.svg"},{"slug":"crunchyroll","name":"Crunchyroll","match":["crunchyroll"],"file":"img/brands/crunchyroll.svg"},{"slug":"dashlane","name":"Dashlane","match":["dashlane"],"file":"img/brands/dashlane.svg"},{"slug":"delta","name":"Delta","match":["delta air"],"file":"img/brands/delta.svg"},{"slug":"discord","name":"Discord","match":["discord"],"file":"img/brands/discord.svg"},{"slug":"discover","name":"Discover","match":["discover"],"file":"img/brands/discover.svg"},{"slug":"doordash","name":"DoorDash","match":["doordash"],"file":"img/brands/doordash.svg"},{"slug":"dropbox","name":"Dropbox","match":["dropbox"],"file":"img/brands/dropbox.svg"},{"slug":"duolingo","name":"Duolingo","match":["duolingo"],"file":"img/brands/duolingo.svg"},{"slug":"ebay","name":"eBay","match":["ebay"],"file":"img/brands/ebay.svg"},{"slug":"espn","name":"ESPN","match":["espn"],"file":"img/brands/espn.svg"},{"slug":"etsy","name":"Etsy","match":["etsy"],"file":"img/brands/etsy.svg"},{"slug":"evernote","name":"Evernote","match":["evernote"],"file":"img/brands/evernote.svg"},{"slug":"expedia","name":"Expedia","match":["expedia"],"file":"img/brands/expedia.svg"},{"slug":"expressvpn","name":"ExpressVPN","match":["expressvpn"],"file":"img/brands/expressvpn.svg"},{"slug":"github","name":"GitHub","match":["github"],"file":"img/brands/github.svg"},{"slug":"gmail","name":"Gmail","match":["gmail"],"file":"img/brands/gmail.svg"},{"slug":"goldmansachs","name":"Goldman Sachs","match":["goldman sachs"],"file":"img/brands/goldmansachs.svg"},{"slug":"google","name":"Google","match":["google"],"file":"img/brands/google.svg"},{"slug":"googleone","name":"Google One","match":["google one"],"file":"img/brands/googleone.svg"},{"slug":"grammarly","name":"Grammarly","match":["grammarly"],"file":"img/brands/grammarly.svg"},{"slug":"hbo","name":"HBO","match":["hbo"],"file":"img/brands/hbo.svg"},{"slug":"hbomax","name":"HBO Max","match":["hbo max"],"file":"img/brands/hbomax.svg"},{"slug":"headspace","name":"Headspace","match":["headspace"],"file":"img/brands/headspace.svg"},{"slug":"hilton","name":"Hilton","match":["hilton"],"file":"img/brands/hilton.svg"},{"slug":"icloud","name":"iCloud","match":["icloud"],"file":"img/brands/icloud.svg"},{"slug":"instacart","name":"Instacart","match":["instacart"],"file":"img/brands/instacart.svg"},{"slug":"jetblue","name":"JetBlue","match":["jetblue"],"file":"img/brands/jetblue.svg"},{"slug":"klarna","name":"Klarna","match":["klarna"],"file":"img/brands/klarna.svg"},{"slug":"lastpass","name":"LastPass","match":["lastpass"],"file":"img/brands/lastpass.svg"},{"slug":"linkedin","name":"LinkedIn","match":["linkedin"],"file":"img/brands/linkedin.svg"},{"slug":"lyft","name":"Lyft","match":["lyft"],"file":"img/brands/lyft.svg"},{"slug":"marriott","name":"Marriott","match":["marriott"],"file":"img/brands/marriott.svg"},{"slug":"medium","name":"Medium","match":["medium.com","medium membership"],"file":"img/brands/medium.svg"},{"slug":"microsoft","name":"Microsoft","match":["microsoft"],"file":"img/brands/microsoft.svg"},{"slug":"nordvpn","name":"NordVPN","match":["nordvpn"],"file":"img/brands/nordvpn.svg"},{"slug":"notion","name":"Notion","match":["notion"],"file":"img/brands/notion.svg"},{"slug":"nytimes","name":"The New York Times","match":["new york times","nytimes","nyt"],"file":"img/brands/nytimes.svg"},{"slug":"openai","name":"OpenAI","match":["openai","chatgpt"],"file":"img/brands/openai.svg"},{"slug":"pandora","name":"Pandora","match":["pandora"],"file":"img/brands/pandora.svg"},{"slug":"paramountplus","name":"Paramount+","match":["paramount"],"file":"img/brands/paramountplus.svg"},{"slug":"patreon","name":"Patreon","match":["patreon"],"file":"img/brands/patreon.svg"},{"slug":"paypal","name":"PayPal","match":["paypal"],"file":"img/brands/paypal.svg"},{"slug":"peacock","name":"Peacock","match":["peacock"],"file":"img/brands/peacock.svg"},{"slug":"peloton","name":"Peloton","match":["peloton"],"file":"img/brands/peloton.svg"},{"slug":"playstation","name":"PlayStation","match":["playstation"],"file":"img/brands/playstation.svg"},{"slug":"postmates","name":"Postmates","match":["postmates"],"file":"img/brands/postmates.svg"},{"slug":"primevideo","name":"Prime Video","match":["prime video"],"file":"img/brands/primevideo.svg"},{"slug":"quickbooks","name":"QuickBooks","match":["quickbooks"],"file":"img/brands/quickbooks.svg"},{"slug":"robinhood","name":"Robinhood","match":["robinhood"],"file":"img/brands/robinhood.svg"},{"slug":"schwab","name":"Charles Schwab","match":["schwab"],"file":"img/brands/schwab.svg"},{"slug":"shopify","name":"Shopify","match":["shopify"],"file":"img/brands/shopify.svg"},{"slug":"skillshare","name":"Skillshare","match":["skillshare"],"file":"img/brands/skillshare.svg"},{"slug":"slack","name":"Slack","match":["slack"],"file":"img/brands/slack.svg"},{"slug":"southwest","name":"Southwest Airlines","match":["southwest air"],"file":"img/brands/southwest.svg"},{"slug":"square","name":"Square","match":["square inc","squareup"],"file":"img/brands/square.svg"},{"slug":"starbucks","name":"Starbucks","match":["starbucks"],"file":"img/brands/starbucks.svg"},{"slug":"strava","name":"Strava","match":["strava"],"file":"img/brands/strava.svg"},{"slug":"stripe","name":"Stripe","match":["stripe"],"file":"img/brands/stripe.svg"},{"slug":"substack","name":"Substack","match":["substack"],"file":"img/brands/substack.svg"},{"slug":"surfshark","name":"Surfshark","match":["surfshark"],"file":"img/brands/surfshark.svg"},{"slug":"target","name":"Target","match":["target"],"file":"img/brands/target.svg"},{"slug":"tesla","name":"Tesla","match":["tesla"],"file":"img/brands/tesla.svg"},{"slug":"tidal","name":"Tidal","match":["tidal"],"file":"img/brands/tidal.svg"},{"slug":"tmobile","name":"T-Mobile","match":["t-mobile","tmobile"],"file":"img/brands/tmobile.svg"},{"slug":"twitch","name":"Twitch","match":["twitch"],"file":"img/brands/twitch.svg"},{"slug":"uber","name":"Uber","match":["uber"],"file":"img/brands/uber.svg"},{"slug":"ubereats","name":"Uber Eats","match":["uber eats"],"file":"img/brands/ubereats.svg"},{"slug":"udemy","name":"Udemy","match":["udemy"],"file":"img/brands/udemy.svg"},{"slug":"vanguard","name":"Vanguard","match":["vanguard"],"file":"img/brands/vanguard.svg"},{"slug":"venmo","name":"Venmo","match":["venmo"],"file":"img/brands/venmo.svg"},{"slug":"verizon","name":"Verizon","match":["verizon"],"file":"img/brands/verizon.svg"},{"slug":"walmart","name":"Walmart","match":["walmart"],"file":"img/brands/walmart.svg"},{"slug":"wellsfargo","name":"Wells Fargo","match":["wells fargo"],"file":"img/brands/wellsfargo.svg"},{"slug":"xbox","name":"Xbox","match":["xbox"],"file":"img/brands/xbox.svg"},{"slug":"youtube","name":"YouTube","match":["youtube"],"file":"img/brands/youtube.svg"},{"slug":"zelle","name":"Zelle","match":["zelle"],"file":"img/brands/zelle.svg"},{"slug":"zoom","name":"Zoom","match":["zoom"],"file":"img/brands/zoom.svg"}];
+  const BRAND_MATCH = BRAND_ICONS.flatMap(b => b.match.map(m => [m, b])).sort((x, y) => y[0].length - x[0].length)
+    .map(([m, b]) => [new RegExp("(^|[^a-z0-9])" + m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)"), b]);
+  function brandIcon(name) {
+    const n = String(name || "").toLowerCase();
+    for (const [re, b] of BRAND_MATCH) if (re.test(n)) return b;
+    return null;
   }
   const ICON_PX = { lg: [64, 16, 28], dock: [60, 15, 0], "": [44, 11, 20] };
   function appIcon(name, size) {
@@ -5758,9 +5806,9 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     const px = `width:${a[0]}px;height:${a[0]}px;border-radius:${a[1]}px;`;
     const slug = appIconSlug(name);
     if (slug) return `<img class="appicon" src="icons/${slug}.jpg" alt="${esc(name || "")}" loading="lazy" style="${px}object-fit:cover;">`;
-    const h = iconHue(name || "?");
-    const letter = (name || "?").trim().charAt(0).toUpperCase();
-    return `<span class="appicon" style="${px}font-size:${a[2]}px;background:linear-gradient(135deg,hsl(${h},65%,55%),hsl(${(h + 40) % 360},65%,42%))">${esc(letter)}</span>`;
+    const b = brandIcon(name);
+    if (b) return `<span class="appicon" style="${px}background:#fff;padding:${Math.round(a[0] * 0.18)}px;box-sizing:border-box;"><img src="${esc(b.file)}" alt="${esc(b.name)} logo" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;"></span>`;
+    return `<span class="appicon" style="display:none" aria-hidden="true"></span>`; // no real logo on file: the name says it
   }
 
   let homeSubCache = [];
@@ -11763,6 +11811,11 @@ function renderRecoveryReview(){document.getElementById('recoveryReload').onclic
   /* ================= Boot ================= */
   (async function boot() {
     let h = location.hash.slice(1);
+    // Connect link (/?connect=alpaca, from a connect card in a text): remembered through sign-in, started once signed in.
+    try {
+      const want = new URLSearchParams(location.search).get("connect");
+      if (want && ConnectCards.PROVIDERS[want]) { sessionStorage.setItem("upmore-pending-connect", want); history.replaceState(null, "", location.pathname + location.hash); }
+    } catch (e) {}
     // Gmail OAuth return (2026-09-28): the gmail-oauth callback redirects to
     // #you?gmail=connected|error. Strip the param, keep the screen, toast.
     const gm = /[?&]gmail=(connected|error)/.exec(h);
@@ -11831,6 +11884,9 @@ function renderRecoveryReview(){document.getElementById('recoveryReload').onclic
       const FUNNEL = ["splash", "welcome", "time", "about", "situation", "plan", "phone", "login", "blocked", "tos"];
       const dest = $(hh0) && !FUNNEL.includes(hh0) ? hh0 : "home";
       show(dest, { replace: true });
+      let pendingConnect = null;
+      try { pendingConnect = sessionStorage.getItem("upmore-pending-connect"); sessionStorage.removeItem("upmore-pending-connect"); } catch (e) {}
+      if (pendingConnect && ConnectCards.PROVIDERS[pendingConnect]) startConnect(pendingConnect);
       return;
     }
     // No session: returning users (onboarding answers saved) go straight to
@@ -12919,10 +12975,47 @@ function addMe(text, images) {
   d.appendChild(t);
   chat.appendChild(d); scrollChat();
 }
-const md = (s) => esc(s)
+const mdLine = (s) => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-  .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-  .replace(/\n/g, "<br>");
+  .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+/* Connect card (owner, 2026-10-11): a reply line that is exactly a connect link is drawn the way iMessage draws it, from the
+   same image: white, the company's real logo, the Upmore wordmark, and a grey strip with "Connect X to Upmore" and the
+   domain. Tapping it starts that connection here (no page hop). Providers and logos: packages/domain/76-connect-cards.js. */
+function connectCardHTML(link, p) {
+  const c = ConnectCards.PROVIDERS[p];
+  return `<a class="ccard" href="${esc(link)}" data-connect="${esc(p)}"><span class="ccard-img"><img src="${esc(c.card)}" alt="${esc(c.name)} logo" width="1200" height="630"></span><span class="ccard-foot"><b>${esc(ConnectCards.title(p))}</b><span>${esc(ConnectCards.host(link))}</span></span></a>`;
+}
+const md = (s) => {
+  // Text lines join with <br> as before; a connect link line becomes the card, a block of its own.
+  let out = "", lastText = false;
+  for (const line of String(s == null ? "" : s).split("\n")) {
+    const p = ConnectCards.parse(line);
+    if (p) { out = out.replace(/(<br>)+$/, "") + connectCardHTML(line.trim(), p); lastText = false; continue; }
+    if (!lastText && out && !line.trim()) continue; // a blank line right after a card
+    out += (lastText ? "<br>" : "") + mdLine(line); lastText = true;
+  }
+  return out.replace(/(<br>)+$/, "");
+};
+// Start a connection from a card or a connect link: the same calls the Settings buttons make.
+async function startConnect(p) {
+  if (!ConnectCards.PROVIDERS[p]) return;
+  const name = ConnectCards.PROVIDERS[p].name;
+  if (!supa || !session || !session.user) { try { sessionStorage.setItem("upmore-pending-connect", p); } catch (e) {} toast(`Sign in, then ${name} connects from here.`); show("login"); return; }
+  try {
+    const { data, error } = p === "alpaca"
+      ? await supa.functions.invoke("broker-oauth-start", { body: { provider: "alpaca" } })
+      : await supa.functions.invoke("gmail-oauth", { body: { action: "start" } });
+    if (data && data.url) { location.href = data.url; return; } // the company's own approval page, then back here
+    const msg = (data && (data.message || data.error)) || (error && error.context && typeof error.context.json === "function" ? ((await error.context.json().catch(() => ({}))).message) : null);
+    toast(msg || `Couldn't start connecting ${name}. Nothing was connected; try again.`);
+  } catch (e) { toast(`Couldn't start connecting ${name}. Nothing was connected; try again.`); }
+}
+document.addEventListener("click", (e) => {
+  const a = e.target && e.target.closest ? e.target.closest("a.ccard[data-connect]") : null;
+  if (!a) return;
+  e.preventDefault();
+  startConnect(a.dataset.connect);
+});
 function addAI(paras, card, prov, requestTicket, workflowAction) {
   const ticket=requestTicket && typeof requestTicket.current==='function' ? requestTicket : chatRequests.capture();
   if(!ticket.current())return;

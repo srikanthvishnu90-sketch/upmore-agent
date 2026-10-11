@@ -185,3 +185,14 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   path needs the steady rent, charged on its usual day.
 - **Design gap, not gated:** in the desktop preview at 1280x800 the login intro ("...right where you left them.") is
   cut mid-line by its 303px scroll area; on a phone it reads in full. Found by `node evals/agent/visual.cjs`.
+
+## Connect cards (2026-10-11 night): the owner's reference design and the real-icon rule
+
+- **docs/depth/BROKER-CONNECT.md S11/S12 quoted the old prompts** ("Connect your own Alpaca account in Settings >
+  Brokerage", "doesn't offer a way for apps to place trades for you"). The trade flow now answers with one line and the
+  Alpaca connect link, drawn as the card (packages/domain/76-connect-cards.js); the doc quotes the new text.
+- **"... Nothing was placed." was appended after the unsupported-broker sentence** in 66-agent-trade.js, which would
+  have pushed text after the link and broken the card; the sentence now says it and ends on the link.
+- **Two production app URLs are in the code:** `upmore-topaz.vercel.app` (broker_connect.ts, now also the connect
+  cards) and `upmore-srikanthvishnu90-sketchs-projects.vercel.app` (gmail-oauth APP_URL). Not changed here; the owner
+  should say which is production, and gmail-oauth should follow it.

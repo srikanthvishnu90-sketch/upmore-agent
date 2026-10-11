@@ -2,6 +2,8 @@
 //   1. Pixel regression: each screen on a phone (iPhone, 390x844) and on desktop (1280x800, the framed preview) is compared with its committed baseline
 //      in evals/agent/visual-baseline/; more than 0.5% of pixels changed is a FAIL. --update rewrites the baselines.
 //   2. Layout: no line of copy is cut off by its box or covered by a button or field.
+//   4. The connect card (owner's reference design): drawn in chat by the app's renderer with the real logo image, and a
+//      tap while signed out remembers the connection and opens Log in.
 //   3. Dead controls: every visible button, link and role=button on each screen must have a click handler on itself or an
 //      ancestor below <body> (read through the DevTools protocol, so handlers added in JS count), an inline onclick, a
 //      real href, or a form to submit. A control with none of these does nothing when tapped.
@@ -21,6 +23,16 @@ const SCREENS = ["splash", "login", "welcome", "time", "about", "situation", "pl
 const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 const VIEWPORTS = { phone: { viewport: { width: 390, height: 844 }, userAgent: IPHONE_UA, isMobile: true, hasTouch: true }, desktop: { viewport: { width: 1280, height: 800 } } };
 const UPDATE = process.argv.includes("--update"), TOLERANCE = 0.005;
+// Runs in the page: the share of pixels that differ between two PNG data URLs (1 when the sizes differ).
+const diffPixels = async ([a, b]) => {
+  const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const [x, y] = await Promise.all([load(a), load(b)]);
+  if (x.width !== y.width || x.height !== y.height) return 1;
+  const px = img => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
+  const p = px(x), q = px(y); let n = 0;
+  for (let i = 0; i < p.length; i += 4) if (Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]) > 24) n++;
+  return n / (p.length / 4);
+};
 
 (async () => {
   // Playwright finds the browser through PLAYWRIGHT_BROWSERS_PATH where one is installed.
@@ -62,15 +74,7 @@ const UPDATE = process.argv.includes("--update"), TOLERANCE = 0.005;
       const file = path.join(BASE, `${vp}-${id}.png`);
       if (UPDATE || !fs.existsSync(file)) { fs.writeFileSync(file, shot); results.push({ id: `${vp}:${id}`, status: "BASELINE", why: "written" }); }
       else {
-        const diff = await page.evaluate(async ([a, b]) => {
-          const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
-          const [x, y] = await Promise.all([load(a), load(b)]);
-          if (x.width !== y.width || x.height !== y.height) return 1;
-          const px = img => { const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const g = c.getContext("2d"); g.drawImage(img, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
-          const p = px(x), q = px(y); let n = 0;
-          for (let i = 0; i < p.length; i += 4) if (Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]) > 24) n++;
-          return n / (p.length / 4);
-        }, ["data:image/png;base64," + fs.readFileSync(file).toString("base64"), "data:image/png;base64," + shot.toString("base64")]);
+        const diff = await page.evaluate(diffPixels, ["data:image/png;base64," + fs.readFileSync(file).toString("base64"), "data:image/png;base64," + shot.toString("base64")]);
         results.push({ id: `${vp}:${id}`, status: diff <= TOLERANCE ? "PASS" : "FAIL", why: `${(diff * 100).toFixed(2)}% of pixels changed` });
       }
       if (vp !== "phone") continue;
@@ -88,6 +92,31 @@ const UPDATE = process.argv.includes("--update"), TOLERANCE = 0.005;
         }
         if (!alive) results.push({ id: `dead:${id}:${i}`, status: "FAIL", why: `"${info.label}" has no handler, href or form` });
       }
+    }
+    if (vp === "phone") {
+      // The connect card in chat (owner's reference design): drawn by the app's own renderer, its real logo image loaded,
+      // and a tap while signed out remembers the connection and opens Log in.
+      await page.goto("file://" + path.join(ROOT, "index.html") + "?noanim#login");
+      await page.waitForTimeout(300);
+      const card = await page.evaluate(() => {
+        const host = document.createElement("div");
+        host.id = "ccardProbe"; host.style.cssText = "position:fixed;inset:0;background:#0B0B0D;padding:20px;z-index:99999";
+        host.innerHTML = `<div class="amsg"><p>${md(ConnectCards.message("alpaca", { lead: "No brokerage is connected yet, so nothing was placed - here's the link." }))}</p></div>`;
+        document.body.appendChild(host);
+        const a = host.querySelector("a.ccard");
+        return a ? { title: a.querySelector("b").textContent, domain: a.querySelector(".ccard-foot span").textContent } : null;
+      });
+      await page.waitForFunction(() => { const i = document.querySelector("#ccardProbe img"); return i && i.complete; }, null, { timeout: 3000 }).catch(() => {});
+      const loaded = await page.evaluate(() => { const i = document.querySelector("#ccardProbe img"); return i ? i.naturalWidth : 0; });
+      const ok = card && card.title === "Connect Alpaca to Upmore" && card.domain === "upmore-topaz.vercel.app" && loaded === 1200;
+      results.push({ id: "card:connect", status: ok ? "PASS" : "FAIL", why: ok ? "drawn" : `card ${JSON.stringify(card)}, image width ${loaded}` });
+      const shot = await page.screenshot({ clip: { x: 0, y: 0, width: 390, height: 330 } }), file = path.join(BASE, "phone-connect-card.png");
+      if (UPDATE || !fs.existsSync(file)) { fs.writeFileSync(file, shot); results.push({ id: "phone:connect-card", status: "BASELINE", why: "written" }); }
+      else { const d = await page.evaluate(diffPixels, ["data:image/png;base64," + fs.readFileSync(file).toString("base64"), "data:image/png;base64," + shot.toString("base64")]); results.push({ id: "phone:connect-card", status: d <= TOLERANCE ? "PASS" : "FAIL", why: `${(d * 100).toFixed(2)}% of pixels changed` }); }
+      await page.click("#ccardProbe a.ccard");
+      await page.waitForTimeout(300);
+      const after = await page.evaluate(() => ({ pending: sessionStorage.getItem("upmore-pending-connect"), login: document.getElementById("login").classList.contains("on") }));
+      results.push({ id: "card:tap", status: after.pending === "alpaca" && after.login ? "PASS" : "FAIL", why: JSON.stringify(after) });
     }
     await page.close();
   }

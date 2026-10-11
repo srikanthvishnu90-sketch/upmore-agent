@@ -5,7 +5,7 @@
 //   deno run -A evals/agent/mutations.ts
 const repo = new URL("../../", import.meta.url);
 const tmp = await Deno.makeTempDir({ prefix: "upmore-mutations-" });
-for (const part of ["evals", "supabase", "packages", "docs", "tests", "scripts", "corpus", "src", "index.html"]) {
+for (const part of ["evals", "supabase", "packages", "docs", "tests", "scripts", "corpus", "src", "img", "connect", "index.html"]) {
   const r = new Deno.Command("cp", { args: ["-R", decodeURIComponent(new URL(part, repo).pathname), tmp + "/"] }).outputSync();
   if (r.code !== 0) { console.error(`could not copy ${part}: ${new TextDecoder().decode(r.stderr)}`); Deno.exit(2); }
 }
@@ -21,6 +21,8 @@ const DEFECTS: { id: string; check: string; what: string; file: string; find: st
   { id: "M07", check: "O-15", what: "the model's false money claims are not corrected", file: "supabase/functions/_shared/claim_guard.ts", find: "if (!CLAIM.test(text) || text.includes(CORRECTION))", replace: "if (true)" },
   { id: "M08", check: "O-20", what: "identity digits are stored and sent to the model", file: "supabase/functions/agent-chat/_shared/chat_input.ts", find: "const text = red.text;", replace: 'const text = typeof message === "string" ? message.trim() : "";' },
   { id: "M09", check: "O-17", what: "the trial message no longer asks before cancelling", file: "supabase/functions/_shared/proactive.ts", find: "const text = offer ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;", replace: "const text = p.text;" },
+  { id: "M11", check: "D-07", what: "the connect link is run into the sentence, so no card is drawn", file: RC, find: "return `${o.lead || LEAD}\\n\\n${url(provider, o.base)}`;", replace: "return `${o.lead || LEAD} ${url(provider, o.base)}`;" },
+  { id: "M12", check: "D-08", what: "a company with no logo gets a letter tile again", file: "src/upmore-app-template.html", find: 'return `<span class="appicon" style="display:none" aria-hidden="true"></span>`;', replace: 'return `<span class="appicon">${esc((name || "?").trim().charAt(0).toUpperCase())}</span>`;' },
   { id: "M10", check: "L-00", what: "the live guard lets a $10 order through", file: "evals/agent/live_guard.ts", find: "o.cents > ORDER_CAP_CENTS)", replace: "o.cents > ORDER_CAP_CENTS * 2)" },
 ];
 let caught = 0;

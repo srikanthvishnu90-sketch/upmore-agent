@@ -27,6 +27,7 @@ import { FINANCIAL_TOOLS } from "../../supabase/functions/_shared/financial_tool
 import { guardPlan, ENVELOPE_CENTS, ORDER_CAP_CENTS } from "./live_guard.ts";
 import { guardMoneyClaim } from "../../supabase/functions/_shared/claim_guard.ts";
 import { chatInput } from "../../supabase/functions/agent-chat/_shared/chat_input.ts";
+import { ConnectCards, BrokerAccounts } from "../../supabase/functions/_shared/router_core.js";
 
 type Status = "PASS" | "FAIL" | "CRITICAL" | "GAP" | "NOT_RUN";
 interface Result { family: string; id: string; title: string; status: Status; expected?: string; actual?: string; path?: string }
@@ -187,6 +188,25 @@ async function design() {
   rec(F, "D-04", "every button has a visible label or an aria-label", !unlabeled.length, { expected: "0 unlabeled", actual: unlabeled.map(m => m[0].slice(0, 80)).join(" | "), path: "src/upmore-app-template.html" });
   const full = read("index.html");
   rec(F, "D-05", "chat is the primary surface: a thread list, a feed, a composer and a send button exist", ["chatThreadList", "chatFeed", "chatInput", "chatSend"].every(id => full.includes(`id="${id}"`)), { expected: "#chatThreadList #chatFeed #chatInput #chatSend", actual: "missing one", path: "src/upmore-app-template.html" });
+  // D-07: every "connect X" is the owner's reference design: one line, then the link alone (iMessage and the app draw it
+  // as the card), for a provider with its real logo, its preview page and its 1200x630 card image.
+  const flowReply = (await talk(["buy $5 of VOO in my fidelity account"])).actual[0].reply || "";
+  const prompts = [flowReply, (BrokerAccounts as any).MESSAGES.connect, (BrokerAccounts as any).MESSAGES.reconnect("Alpaca"), (BrokerAccounts as any).MESSAGES.not_wired("Charles Schwab")];
+  const off: string[] = [];
+  for (const t of prompts) {
+    const parts = String(t).split("\n\n"), provider = (ConnectCards as any).parse(parts[parts.length - 1]);
+    if (parts.length !== 2 || !provider || /\n/.test(parts[0])) { off.push(`not one line + the link alone: ${String(t).slice(0, 90)}`); continue; }
+    const c = (ConnectCards as any).PROVIDERS[provider];
+    for (const f of [c.icon, c.card, `connect/${provider}.html`]) { try { Deno.statSync(new URL(f, root)); } catch { off.push(`${provider}: ${f} missing`); } }
+    if (!read("img/brands/SOURCES.md").includes(`| ${c.icon.split("/").pop()} |`)) off.push(`${provider}: logo has no source row`);
+  }
+  rec(F, "D-07", `connect prompts: one line, then the link alone, drawn as the card with the company's real logo (${prompts.length} prompts)`, !off.length, { expected: "line + link; real logo, page and card image for the provider", actual: off.join(" | "), path: "packages/domain/76-connect-cards.js, img/brands" });
+  // D-08: real company icons only (owner must rule): no letter tile anywhere a company is shown; every logo on file exists.
+  const tpl = read("src/upmore-app-template.html"), iconFn = tpl.slice(tpl.indexOf("function appIcon(name, size)"), tpl.indexOf("let homeSubCache"));
+  const brands = JSON.parse(read("img/brands/brands.json")) as any[];
+  const missing = brands.filter(b => { try { Deno.statSync(new URL(b.file, root)); return false; } catch { return true; } }).map(b => b.file);
+  const tiles = /charAt\(0\)|hsl\(/.test(iconFn) || /id="(sub|promo)SheetIcon">[A-Z]</.test(tpl);
+  rec(F, "D-08", `real company icons only: ${brands.length} real logos on file, no letter tiles or stand-ins`, !tiles && !missing.length, { critical: true, expected: "a real logo or no icon", actual: `letter tiles ${tiles}; missing ${missing.join(", ")}`, path: "src/upmore-app-template.html appIcon, img/brands" });
   results.push({ family: F, id: "D-06", title: "pixel regression of the signed-out screens", status: "NOT_RUN", actual: "on demand: node evals/agent/visual.cjs (real Chromium, phone and desktop: pixel regression against evals/agent/visual-baseline, clipped or covered copy, dead controls read through DevTools). Fonts differ across machines, so it does not gate CI. Signed-in screens need a live login." });
 }
 

@@ -226,7 +226,8 @@
       // A read that failed because the broker refused the person's token (401) is a Reconnect, never "try again later".
       const READ_FAILS = ["broker_unreachable", "accounts_unreadable", "no_quote", "position_unreadable", "cash_unknown", "holdings_unreadable", "symbol_unknown"];
       const gone = () => typeof conn.auth_failed === "function" && conn.auth_failed() === true;
-      const RECONNECT = "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
+      const BAx = typeof BrokerAccounts !== "undefined" ? BrokerAccounts : typeof require === "function" ? require("./73-broker-accounts.js") : null;
+      const RECONNECT = BAx ? BAx.MESSAGES.reconnect("brokerage") : "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
       async function stage(parsed) {
         const r = await stageOnce(parsed);
         if (r && gone() && READ_FAILS.includes(r.reason)) { pending = null; return say("blocked", RECONNECT, { reason: "broker_reconnect" }); }
@@ -262,7 +263,7 @@
         if (Guard) { const g = Guard.request(parsed.text); if (g.decision === "block" || DECIDE.test(parsed.text)) return say("refuse", g.decision === "block" ? "I can't tell you what to buy or sell. If you decide, name the ticker and the amount and I'll put up a card. Want to see your current holdings?" : "That leaves the choice to me, and I don't make it. Name the ticker and the amount and I'll put up a card for exactly that. Want to see your current holdings?", { reason: "advice", rules: g.decision === "block" ? g.reasons : ["decision_left_to_agent"] }); }
         // A broker with no public trading API, named by the person: the honest answer, nothing staged.
         const nope = noApi(parsed.account) || noApi((/\b(fidelity|vanguard|robinhood|sofi)\b/i.exec(parsed.text || "") || [])[1]);
-        if (nope) return say("refuse", `${nope} Nothing was placed.`, { reason: "broker_no_public_api" });
+        if (nope) return say("refuse", nope, { reason: "broker_no_public_api" }); // it says nothing was placed and ends on the connect link
         // Nothing connected (or a connection to fix): said before any question about size or symbol and before any read.
         { const c = connectStop(); if (c) return c; }
         // No partner, no order, said first: before any question about size or symbol and before any read, the person

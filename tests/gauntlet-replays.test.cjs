@@ -28,3 +28,13 @@ test('a repeat is counted, not duplicated; new reasons make a triage stale; the 
   const committed=JSON.parse(fs.readFileSync(R.FILE,'utf8')).fixtures;
   for(const x of R.failures(live))assert.ok(committed.some(c=>c.id===x.id&&c.suite===x.suite),`${x.id} is in the committed replay file`);
 });
+
+test('every triage in the committed replay file is complete: a verdict, a written reason, and any test it names exists',()=>{
+  for(const f of JSON.parse(fs.readFileSync(R.FILE,'utf8')).fixtures){
+    if(!f.triage)continue;
+    assert.ok(['fixed','precondition','not_built','grader'].includes(f.triage.verdict),f.id);
+    assert.ok(String(f.triage.note||'').length>=20,`${f.id}: the reason is written down`);
+    if(f.triage.test_ref)assert.ok(fs.existsSync(path.join(root,f.triage.test_ref.split(' ')[0])),`${f.id}: ${f.triage.test_ref} exists`);
+    if(f.triage.verdict==='fixed')assert.ok(f.triage.test_ref,`${f.id}: a fixed verdict names its test`);
+  }
+});

@@ -7,14 +7,14 @@
 //   other            needs a person: triage verdict fixed (with a test_ref that exists), precondition, not_built or grader
 // A flow or other fixture that still fails and is not triaged FAILS here: a live failure stays red until it is fixed
 // or a person writes down why it is not the code's. Simulation only: this never claims a live pass.
-import { createRequire } from "node:module";
 import { routeFlows, mapFlowData, userBroker, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 import { chatReply, plannerModel, OUTAGE_REPLY } from "../../supabase/functions/_shared/model_gateway.ts";
 import { runFinancialPlanner } from "../../supabase/functions/_shared/financial_planner.ts";
 import { fixture, user } from "./lib/financial_fixture.ts";
-const require = createRequire(import.meta.url);
-const { check } = require("../../evals/gauntlet/run-live.cjs");
-const DB = JSON.parse(Deno.readTextFileSync(new URL("../../evals/gauntlet/replays/live-failures.json", import.meta.url)));
+// Static imports only, so this runs with no permissions (the evidence recorder runs deno test without -A).
+import checks from "../../evals/gauntlet/checks.cjs";
+import DB from "../../evals/gauntlet/replays/live-failures.json" with { type: "json" };
+const { check } = checks as any;
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 const T0 = Date.UTC(2026, 9, 11, 19, 1, 0);
 const DEAD_KEY = "sk-proj-TESTKEY-should-never-appear-anywhere-0000";
@@ -48,10 +48,11 @@ async function replayFlow(f: any) {
   return r && !r.fallthrough ? { reply: r.reply, route: r.route } : { reply: null, route: null, fallthrough: true };
 }
 
-assert(Array.isArray(DB.fixtures), "the replay file holds fixtures");
-for (const f of DB.fixtures) {
+assert(Array.isArray((DB as any).fixtures), "the replay file holds fixtures");
+for (const f of (DB as any).fixtures as any[]) {
   Deno.test(`live ${f.last_label} ${f.suite} ${f.id} [${f.kind}] ${JSON.stringify(f.text)}`, async () => {
-    if (f.triage && f.triage.verdict === "fixed") assert(f.triage.test_ref && await Deno.stat(new URL(`../../${f.triage.test_ref.split(" ")[0]}`, import.meta.url)).then(() => true, () => false), `${f.id}: a fixed verdict names a test that exists`);
+    // A fixed verdict's test_ref must exist: checked in tests/gauntlet-replays.test.cjs (it needs the file system).
+    if (f.triage && f.triage.verdict === "fixed") assert(f.triage.test_ref, `${f.id}: a fixed verdict names its test`);
     if (f.kind === "provider_outage") {
       const c = await chatReply(dead, { messages: [{ role: "user", content: f.text }] }, { request: refuse });
       assert(!c.ok && (c as any).reply === OUTAGE_REPLY, `${f.id}: a dead provider is the outage sentence, never silence`);

@@ -22,6 +22,7 @@ content = ("#!/usr/bin/env node\n"
            "// Results (every reply verbatim) are written to ./results/ next to this file. The JWT is read from the environment\n"
            "// only; it is never written to a file or printed.\n"
            "globalThis.__UPMORE_GAUNTLET_EMBED__ = " + json.dumps(embed, separators=(",", ":"), ensure_ascii=False) + ";\n"
+           + "globalThis.__UPMORE_GAUNTLET_CHECKS__ = (function () { const module = { exports: {} };\n" + (g / "checks.cjs").read_text() + "return module.exports; })();\n"
            + runner)
 target = g / "standalone/run-gauntlet.cjs"
 ap = argparse.ArgumentParser(); ap.add_argument("--check", action="store_true"); args = ap.parse_args()

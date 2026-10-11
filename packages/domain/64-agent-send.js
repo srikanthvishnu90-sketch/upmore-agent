@@ -49,13 +49,29 @@
       const o = opts || {}, clock = o.clock || (() => Date.now());
       const Money = typeof AgentMoney !== "undefined" ? AgentMoney : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
       if (!Money || !Loop) throw new Error("AgentSend needs AgentMoney and AgentLoop loaded.");
-      const log = Array.isArray(o.log) ? o.log : [], memoryInit = o.memory || null;
-      const loop = Loop.create({ registry: o.registry, connectors: o.connectors, clock, log, memory: memoryInit, control: o.control || null, envelopes: o.envelopes || [], confirm_ttl_ms: o.confirm_ttl_ms, guard: Guard, compliance: o.compliance || null, partners: o.partners || {}, kyc: o.kyc || null });
-      const sends = Array.isArray(o.sends) ? o.sends : []; // staged handoff sends awaiting their debit
-      let pending = null; // { send, confirmation_id }
+      // A stateless host restores the session from snapshot(): the loop (log, memory, pending confirmation), the staged sends and the live card.
+      const st = o.state || {}, ls = st.loop || {};
+      const log = Array.isArray(o.log) ? o.log : Array.isArray(ls.log) ? ls.log : [], memoryInit = o.memory || ls.memory || null;
+      const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
+      const loop = Loop.create({ registry: o.registry, connectors: o.connectors, clock, log, memory: memoryInit, sent: ls.sent, pending: ls.pending || null, control: o.control || null, envelopes: o.envelopes || [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, guard: Guard, compliance: o.compliance || null, partners: o.partners || {}, kyc: o.kyc || null });
+      const sends = Array.isArray(o.sends) ? o.sends : Array.isArray(st.sends) ? st.sends : []; // staged handoff sends awaiting their debit
+      let pending = st.pending || null; // { send, confirmation_id, request, prep }
       const sentWithin = ms => loop.memory.outcomes.filter(x => x.capability_id === CAPABILITY && x.result === "confirmed" && clock() - (x.recorded_at || 0) < ms).reduce((s, x) => s + (x.amount_cents || 0), 0) + sends.filter(s => s.staged_at && !s.cancelled && clock() - s.staged_at < ms).reduce((s, x) => s + x.amount_cents, 0);
 
       // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
+      // The card a person answers: two SMS segments at most. Who gets paid, the exact amount, the rail, the fee and total,
+      // and that it can't be undone once received. Funding account, timing and the full reversal terms are DETAILS.
+      const cardText = (send, channel) => {
+        const who = send.confirm.recipient, amt = money(send.amount_cents), rail = send.rail.name, irr = /irreversible|can'?t be undone|cannot be undone/i.test(String(send.rail.reversible || "")) && !/^friends-and-family/i.test(String(send.rail.reversible || ""));
+        const heads = [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
+        const fee = send.rail.fee_cents || 0;
+        for (const head of heads) {
+          const f = { head, fee_cents: fee, total_cents: send.amount_cents + fee, irreversible: irr || /friends-and-family/i.test(String(send.rail.reversible || "")), irreversible_text: /friends-and-family/i.test(String(send.rail.reversible || "")) ? "Friends-and-family sends can't be undone." : "Can't be undone once received.", expiry_ms: o.confirm_ttl_ms || 10 * 60000, when: send.memo_flagged ? "Your memo had instruction-like text; I kept it as text" : null };
+          const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${fee ? `Fee ${money(fee)}, total ${money(send.amount_cents + fee)}.` : "No fee."} Reply YES or NO, or DETAILS.`, segments: { segments: 1 } };
+          if (r.segments.segments <= 2) return r.text;
+        }
+        return `Send ${amt} to ${who}. Reply YES, NO or DETAILS.`;
+      };
       const confirmText = send => `${send.confirm.action} ${send.confirm.amount} to ${send.confirm.recipient} from ${send.confirm.from}? ${send.confirm.fee ? "Fee " + send.confirm.fee : "No fee"}, ${send.confirm.when}. ${send.rail.reversible.charAt(0).toUpperCase() + send.rail.reversible.slice(1)}.${send.memo_flagged ? " The memo contained instruction-like text; I kept it as plain text and ignored it." : ""} Reply yes or no.`;
 
       async function stage(parsed) {
@@ -79,7 +95,7 @@
         const staged = sends.find(x => x.request_key === request.key && !x.cancelled);
         if (staged) return { outcome: "already_done", text: `${send.confirm.action} was already staged today${staged.landed ? ` and landed on ${staged.landed}` : ""}. I did not stage it again. If it never went through, say so and I'll restage it.` };
         const r = await loop.wake({ kind: "message", request });
-        if (r.outcome === "awaiting_confirmation") { pending = { send, confirmation_id: r.confirmation_id, request }; return { outcome: "confirm", confirmation_id: r.confirmation_id, text: confirmText(send), send }; }
+        if (r.outcome === "awaiting_confirmation") { pending = { send, confirmation_id: r.confirmation_id, request, prep: { parsed } }; return { outcome: "confirm", confirmation_id: r.confirmation_id, text: cardText(send), details: confirmText(send), send }; }
         if (r.outcome === "already_done") { pending = null; return { outcome: "already_done", text: r.message }; }
         if (r.outcome === "blocked") { pending = null; return { outcome: "blocked", reason: r.reason, text: r.message }; }
         return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
@@ -96,6 +112,17 @@
         if (r.outcome === "declined") return { outcome: "declined", text: r.message };
         return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
       }
+      function recheck(p) {
+        const was = p.send, parsed = (p.prep && p.prep.parsed) || {};
+        const prep = Money.prepareSend({ amount_cents: was.amount_cents, recipient: was.recipient.name, memo: was.memo || null, speed: parsed.speed || null, funding: was.confirm.from, instruction: parsed.text || "" }, { people: o.people || [], partners: o.partners || {}, today: ymd(clock()), sent_today_cents: sentWithin(DAY), sent_week_cents: sentWithin(WEEK), envelope: o.limits || {}, large_cents: o.large_cents, default_funding: o.default_funding || "checking", include_gated: false });
+        if (prep.stop || prep.ask) return [`it no longer clears: ${prep.message || prep.ask}`];
+        const moved = [];
+        if (prep.rail.id !== was.rail.id) moved.push(`the rail changed from ${was.rail.name} to ${prep.rail.name}`);
+        if ((prep.rail.fee_cents || 0) !== (was.rail.fee_cents || 0)) moved.push(`the fee changed from ${money(was.rail.fee_cents || 0)} to ${money(prep.rail.fee_cents || 0)}`);
+        if (prep.amount_cents !== was.amount_cents) moved.push(`the amount changed from ${money(was.amount_cents)} to ${money(prep.amount_cents)}`);
+        if ((prep.recipient.id || prep.recipient.name) !== (was.recipient.id || was.recipient.name) || prep.recipient.handle !== was.recipient.handle) moved.push(`the recipient's details changed`);
+        return moved;
+      }
       async function reply(text) {
         const p = pending;
         if (!p) return { outcome: "nothing_pending", text: "There is no send waiting on you." };
@@ -108,8 +135,19 @@
           return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
         }
         if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return settle(r, p.send); }
-        if (cls.type === "confirmation" && cls.approved === true) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.send); }
-        return { outcome: "ask", text: `Yes or no? ${confirmText(p.send)}` };
+        if (cls.type === "confirmation" && cls.approved === true) {
+          // Stop-on-change: the send is prepared again from the same words right before it goes out. If the rail, the fee, the
+          // amount or the recipient came out different, or a limit now stops it, nothing is sent and a fresh card says what moved.
+          const moved = recheck(p);
+          if (moved.length) {
+            await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+            const again = await stage(p.prep.parsed);
+            return Object.assign({}, again, { outcome: "changed", moved, next: again, text: `Stopped before sending: ${moved.join("; ")}. Nothing was sent.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}` });
+          }
+          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.send);
+        }
+        if (/^\s*(3|details?|more|terms|full terms)\s*[.!?]*\s*$/i.test(String(text))) return { outcome: "details", text: confirmText(p.send), details: true };
+        return { outcome: "ask", text: `Yes or no? ${cardText(p.send)}` };
       }
       async function followUp() { const r = await loop.wake({ kind: "follow_up" }); const key = (log.filter(e => e.to === "ACTING").pop() || { input: {} }).input.idempotency_key; const send = sends.find(s => s.request && s.request.key === key) || (pending && pending.send) || lastSend(key); return settle(r, send || { rail: { mode: "partner", reversible: "" }, confirm: { from: "your account" }, amount_cents: 0, recipient: { name: "?" } }); }
       const lastSend = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const person = (o.people || []).find(x => (x.id || x.name) === p.recipient) || { name: p.recipient_name || p.recipient }; const rail = Money.RAILS[p.rail] ? Object.assign({ id: p.rail }, Money.RAILS[p.rail]) : { id: p.rail, mode: "partner", name: p.rail, speed: "", reversible: "", mitigation: "" }; return { amount_cents: p.amount_cents, recipient: person, rail, confirm: { from: p.funding || "checking", action: `Send ${money(p.amount_cents)} to ${person.name}` }, memo: p.memo || null }; };
@@ -120,7 +158,8 @@
         return out;
       }
       function overdue(now) { return sends.filter(s => !s.landed && !s.cancelled && s.watch && now - s.staged_at > s.watch.deadline_days * DAY).map(s => ({ send: s, text: `I staged ${money(s.amount_cents)} to ${s.recipient.name} on ${s.rail.name} ${Math.floor((now - s.staged_at) / DAY)} day(s) ago and have not seen it post. Did you send it? If not, nothing left your account.` })); }
-      return { start, reply, followUp, landed, overdue, parse, loop, sends, get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; } };
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending }));
+      return { start, reply, followUp, landed, overdue, parse, loop, sends, snapshot, cardText, get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; } };
     }
     return { create, parse, parseAmount, lookalike, editDistance, CAPABILITY };
   })();

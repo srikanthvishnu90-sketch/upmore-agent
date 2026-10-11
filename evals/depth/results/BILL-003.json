@@ -1,9 +1,9 @@
 {
  "capability": "BILL-003",
- "run_at": "2026-10-11T01:30:02.481Z",
+ "run_at": "2026-10-11T02:12:21.028Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -173,6 +173,17 @@
    "collateral": [
     "S12"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Stop-on-change",
+   "defect": "the re-verification result is ignored, so a new cancellation fee still runs",
+   "test": "a changed fee or access date between yes and run stops it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

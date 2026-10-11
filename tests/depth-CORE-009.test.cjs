@@ -16,11 +16,13 @@ const T0=Date.UTC(2026,9,12,14,0,0);
 const MIN=60000;
 const spec=extra=>Object.assign({action:'Send $40.00 to Sarah M',amount_cents:4000,counterparty:'Sarah M (@sarah-m)',source:'checking',fee_cents:0,total_cents:4000,timing:'Lands in minutes',undo:'Venmo sends cannot be undone once accepted; ask Sarah to send it back if it is wrong.',undo_window_ms:null},extra||{});
 function store(now){const t={now:now||T0};const k=K.create({clock:()=>t.now});return {k,t};}
-const FIELDS=['$40.00','Sarah M (@sarah-m)','from checking','No fee, total $40.00','Lands in minutes','cannot be undone','expires in 10 minutes'];
+// What the person answers (two SMS segments at most) and what DETAILS adds.
+const FIELDS=['$40.00','Sarah M (@sarah-m)','No fee',"Can't be undone",'within 10 min'];
+const FULL=['$40.00','Sarah M (@sarah-m)','from checking','No fee, total $40.00','Lands in minutes','cannot be undone','expires in 10 minutes'];
 
 test('[S01] one card, fixed anatomy: a money card missing any load-bearing field, or whose total is not amount plus fee, is refused before it is shown',()=>{
   const {k}=store();
-  const ok=k.issue(spec());assert.equal(ok.ok,true);for(const f of FIELDS)assert.ok(ok.text.includes(f),`${f} in: ${ok.text}`);
+  const ok=k.issue(spec());assert.equal(ok.ok,true);for(const f of FIELDS)assert.ok(ok.text.includes(f),`${f} in: ${ok.text}`);for(const f of FULL)assert.ok(ok.details.includes(f),`${f} in details: ${ok.details}`);
   for(const f of K.LOAD_BEARING){const bad=Object.assign({},spec());delete bad[f];const r=k.issue(bad);assert.equal(r.ok,false,f);assert.ok(r.errors.some(e=>e.startsWith(`${f} is missing`)),f);assert.equal(r.text,null);}
   const sum=k.issue(spec({fee_cents:25,total_cents:4000}));assert.equal(sum.ok,false);assert.match(sum.errors[0],/total \$40\.00 is not amount \$40\.00 plus fee \$0\.25/);
   assert.equal(k.live().length,1,'the refused cards were never issued; the one good card is live');
@@ -29,11 +31,11 @@ test('[S01] one card, fixed anatomy: a money card missing any load-bearing field
 
 test('[S02] time-bounded: the card says when it expires; a yes after 10 minutes gets the re-offer and fires nothing, on any channel',()=>{
   const {k,t}=store();
-  const c=k.issue(spec(),{channel:'sms'});assert.match(c.text,/This card expires in 10 minutes/);assert.equal(c.expires_at,T0+10*MIN);
+  const c=k.issue(spec(),{channel:'sms'});assert.match(c.text,/within 10 min/);assert.equal(c.expires_at,T0+10*MIN);
   t.now=T0+11*MIN;
   const late=k.reply('yes',{channel:'in_app'});assert.equal(late.outcome,'expired');assert.equal(late.text,'That card expired after 10 minutes. Want me to set it up again?');assert.equal(late.token,undefined);
   assert.equal(k.get(c.card_id).state,'expired');assert.equal(k.live().length,0);
-  const again=k.issue(spec({expiry_ms:3*MIN}));assert.match(again.text,/expires in 3 minutes/);t.now+=3*MIN;assert.equal(k.reply('1',{card_id:again.card_id}).outcome,'expired');
+  const again=k.issue(spec({expiry_ms:3*MIN}));assert.match(again.text,/within 3 min/);t.now+=3*MIN;assert.equal(k.reply('1',{card_id:again.card_id}).outcome,'expired');
   const short=k.issue(spec({expiry_ms:0}));assert.equal(short.ok,false);
 });
 
@@ -50,7 +52,7 @@ test('[S03] single-use: a card fires once; a second yes answers already done; a 
 test('[S04] context-bound: a yes binds only to the live card; a yes naming another card is a mismatch; a new card supersedes the old one and says so',()=>{
   const {k}=store();
   const a=k.issue(spec());const b=k.issue(spec({amount_cents:5000,total_cents:5000,action:'Send $50.00 to Sarah M'}));
-  assert.match(b.text,/^This replaces the \$40\.00 card, which is now dead\. Send \$50\.00 to Sarah M: \$50\.00 to Sarah M/);assert.equal(JSON.stringify(b.replaced),JSON.stringify([a.card_id]));
+  assert.match(b.text,/^Replaces the \$40\.00 card\. Send \$50\.00 to Sarah M \(@sarah-m\)\./);assert.match(b.details,/^This replaces the \$40\.00 card, which is now dead\./);assert.equal(JSON.stringify(b.replaced),JSON.stringify([a.card_id]));
   assert.equal(k.get(a.card_id).state,'superseded');assert.equal(k.live().length,1);
   const wrong=k.reply('yes',{card_id:a.card_id});assert.equal(wrong.outcome,'mismatch');assert.equal(wrong.token,undefined);assert.match(wrong.text,/belongs to an earlier card \(card-1\), not the one that is live\. Nothing was done\./);
   assert.equal(k.get(b.card_id).state,'live','the mismatch did not consume the live card');
@@ -62,16 +64,19 @@ test('[S05] read-back in the user\'s terms: counterparty, amount and total are i
   const {k}=store();
   const c=k.issue(spec());assert.equal(K.readsBack(c.text,k.get(c.card_id)),true);
   assert.equal(K.readsBack('Send money to Sarah?',{amount_cents:4000,total_cents:4000,counterparty:'Sarah M'}),false);
-  const env=k.issue(spec({envelope:'up to $50.00 to savings, $120.00 a week, until 2027-01-09'}));assert.match(env.text,/No question will be asked for this: it is inside your envelope \(up to \$50\.00 to savings, \$120\.00 a week, until 2027-01-09\)\./);assert.ok(!/Reply 1|yes or no/.test(env.text));
+  const env=k.issue(spec({envelope:'up to $50.00 to savings, $120.00 a week, until 2027-01-09'}));assert.match(env.text,/Inside your envelope \(up to \$50\.00 to savings, \$120\.00 a week, until 2027-01-09\); no question asked\.$/);assert.ok(!/Reply|yes or no/i.test(env.text));
   const r=K.render(k.get(c.card_id),'in_app');assert.ok(r.text.includes('$40.00')&&r.text.toLowerCase().includes('sarah m (@sarah-m)'));
 });
 
-test('[S06] plain-text degradation: SMS gets every field and "Reply 1 or yes to confirm, 2 or no to cancel"; in-app and RCS get buttons; the text alone completes the task',()=>{
+test('[S06] plain-text degradation in two SMS segments at most: action, exact amount, who gets paid, fee; "Reply YES or NO" on SMS, buttons where the channel has them, DETAILS on request; a card over two segments is refused',()=>{
   const {k}=store();
-  const c=k.issue(spec(),{channel:'sms'});assert.equal(c.buttons.length,0);assert.match(c.text,/Reply 1 or yes to confirm, 2 or no to cancel\.$/);for(const f of FIELDS)assert.ok(c.text.includes(f),f);
-  const app=k.render(c.card_id,'in_app');assert.equal(app.buttons.map(b=>b.reply).join(),'1,2');assert.match(app.text,/Confirm or cancel below, or reply yes or no\.$/);for(const f of FIELDS)assert.ok(app.text.includes(f),f);
-  const rcs=k.render(c.card_id,'rcs');assert.equal(rcs.buttons.length,2);const im=k.render(c.card_id,'imessage');assert.equal(im.buttons.length,0);assert.match(im.text,/Reply 1 or yes/);
-  const wa=k.render(c.card_id,'whatsapp');assert.equal(wa.buttons.length,2);
+  const c=k.issue(spec(),{channel:'sms'});assert.equal(c.buttons.length,0);assert.equal(c.text,"Send $40.00 to Sarah M (@sarah-m). No fee. Can't be undone. Reply YES or NO within 10 min, or DETAILS.");assert.ok(c.segments.segments<=2);for(const f of FIELDS)assert.ok(c.text.includes(f),f);
+  const det=k.reply('details',{channel:'sms'});assert.equal(det.outcome,'details');for(const f of FULL)assert.ok(det.text.includes(f),f);assert.equal(k.get(c.card_id).state,'live','DETAILS answers, it does not consume or kill the card');
+  const long=k.issue(spec({action:'Send $40.00 to Sarah M',counterparty:'Sarah M ('+'x'.repeat(300)+')'}));assert.equal(long.ok,false);assert.match(long.errors[0],/SMS segments; the limit is 2/);
+  const fee=k.issue(spec({fee_cents:150,total_cents:4150}),{channel:'sms'});assert.match(fee.text,/Fee \$1\.50, total \$41\.50\./);assert.equal(K.segments('é'.repeat(160)).segments,1);assert.equal(K.segments('x'.repeat(161)).segments,2);assert.equal(K.segments('👍'+'x'.repeat(69)).segments,2);
+  const app=k.render(c.card_id,'in_app');assert.equal(app.buttons.map(b=>b.reply).join(),'1,2,details');assert.match(app.text,/Confirm below within 10 min, or reply DETAILS\.$/);for(const f of FIELDS)assert.ok(app.text.includes(f),f);
+  const rcs=k.render(c.card_id,'rcs');assert.equal(rcs.buttons.length,3);const im=k.render(c.card_id,'imessage');assert.equal(im.buttons.length,0);assert.match(im.text,/Reply YES or NO/);
+  const wa=k.render(c.card_id,'whatsapp');assert.equal(wa.buttons.length,3);
   assert.equal(k.reply('1',{channel:'sms'}).outcome,'fire','the SMS text completes the task with a bare 1');
   assert.equal(K.CHANNELS.sms.buttons,false);assert.equal(K.CHANNELS.in_app.buttons,true);
 });
@@ -97,7 +102,7 @@ test('[S09] a correction mid-card makes exactly one new card that says it replac
   const {k}=store();
   const a=k.issue(spec());const fix=k.reply('actually make it $50');assert.equal(fix.outcome,'correction');assert.equal(fix.killed,a.card_id);assert.equal(fix.token,undefined);
   assert.equal(k.get(a.card_id).state,'superseded');assert.equal(k.live().length,0,'the old card is dead before the new one exists');
-  const b=k.issue(spec({amount_cents:5000,total_cents:5000,action:'Send $50.00 to Sarah M'}));assert.match(b.text,/^This replaces the \$40\.00 card, which is now dead\./);
+  const b=k.issue(spec({amount_cents:5000,total_cents:5000,action:'Send $50.00 to Sarah M'}));assert.match(b.text,/^Replaces the \$40\.00 card\./);
   assert.equal(k.live().length,1);assert.equal(k.cards.length,2);
   const fire=k.reply('yes');assert.equal(fire.card.amount_cents,5000);assert.equal(k.cards.filter(x=>x.state==='consumed').length,1);
   assert.equal(k.transcript.filter(e=>e.event==='corrected').length,1);
@@ -114,8 +119,8 @@ test('[S10] a new request mid-card is not stacked: the card is dropped and the u
 
 test('[S11] undo terms before firing: the card states the reversal path or that it cannot be undone; a money card with no undo statement is refused',()=>{
   const {k}=store();
-  const c=k.issue(spec());assert.match(c.text,/Venmo sends cannot be undone once accepted/);
-  const ach=k.issue(spec({undo:'You can cancel this free until 4pm CT today; after that ACH cannot be recalled.'}));assert.match(ach.text,/cancel this free until 4pm CT today/);
+  const c=k.issue(spec());assert.match(c.details,/Venmo sends cannot be undone once accepted/);assert.match(c.text,/Can't be undone\./,'irreversibility is said before the yes, in the short card');
+  const ach=k.issue(spec({undo:'You can cancel this free until 4pm CT today; after that ACH cannot be recalled.'}));assert.match(ach.details,/cancel this free until 4pm CT today/);assert.ok(!/Can't be undone/.test(ach.text),'a reversible window is not called irreversible');
   const vague=k.issue(spec({undo:'Should be fine.'}));assert.equal(vague.ok,false);assert.match(vague.errors[0],/undo must state the reversal path or that it cannot be undone/);
   const none=Object.assign({},spec());delete none.undo;assert.equal(k.issue(none).ok,false);
 });
@@ -138,7 +143,7 @@ test('[S13] a card follows the user across channels: issued on SMS, confirmed in
   const c=k.issue(spec(),{channel:'sms'});assert.equal(k.get(c.card_id).channel_issued,'sms');
   const app=k.reply('1',{channel:'in_app',card_id:c.card_id});assert.equal(app.outcome,'fire');assert.equal(app.channels.join(),'sms,in_app');assert.equal(k.get(c.card_id).channel_consumed,'in_app');
   const again=k.reply('yes',{channel:'sms'});assert.equal(again.outcome,'already_done');
-  const two=store();const d=two.k.issue(spec(),{channel:'imessage'});const r=two.k.render(d.card_id,'sms');assert.ok(r.text.includes('$40.00')&&/Reply 1 or yes/.test(r.text),'the same card renders for the other channel');
+  const two=store();const d=two.k.issue(spec(),{channel:'imessage'});const r=two.k.render(d.card_id,'sms');assert.ok(r.text.includes('$40.00')&&/Reply YES or NO/.test(r.text),'the same card renders for the other channel');
   const e=two.k.transcript.find(x=>x.event==='issued');assert.equal(e.channel,'imessage');
 });
 
@@ -166,6 +171,16 @@ test('[S15] the transcript tells the truth: every card event is logged with time
   assert.equal(k.reply('what did you just ask me').outcome,'nothing_pending');
 });
 
+test('[S16] two SMS segments at most on every channel: action, exact amount, who gets paid, fee; DETAILS returns the full terms and keeps the card live; a card that would need a third segment is never shown',()=>{
+  const {k}=store();
+  for(const ch of ['sms','imessage','in_app','rcs','whatsapp']){const c=k.issue(spec(),{channel:ch});assert.ok(c.ok,ch);assert.ok(c.segments.segments<=2,`${ch}: ${c.segments.segments}`);assert.ok(K.readsBack(c.text,k.get(c.card_id)),ch);}
+  const fee=k.issue(spec({fee_cents:2500,total_cents:6500,amount_cents:4000}),{channel:'sms'});assert.equal(fee.text,"Replaces the $40.00 card. Send $40.00 to Sarah M (@sarah-m). Fee $25.00, total $65.00. Can't be undone. Reply YES or NO within 10 min, or DETAILS.");
+  const d=k.reply('details',{channel:'sms'});assert.equal(d.outcome,'details');assert.match(d.text,/Lands in minutes/);assert.match(d.text,/ask Sarah to send it back if it is wrong/);assert.equal(k.live().length,1);
+  const long=k.issue(spec({action:'Send $40.00 to '+'Sarah M '.repeat(30).trim(),counterparty:'Sarah M '.repeat(30).trim()}),{channel:'sms'});assert.equal(long.ok,false);assert.match(long.errors[0],/SMS segments; the limit is 2/);
+  const emoji=k.issue(spec({action:'Send $40.00 to Sarah M 🎉'}),{channel:'sms'});if(emoji.ok)assert.ok(emoji.segments.segments<=2);
+  assert.equal(K.MAX_SEGMENTS,2);
+});
+
 test('[ADV] adversarial log: late yes, double yes, correction, never mind, wrong card id, same-millisecond webhooks, missing total, no read-back, SMS degradation, per-channel yes forms, channel switch, undo after settlement, memo injection, restate',()=>{
   const {k,t}=store();
   k.issue(spec());t.now+=11*MIN;assert.equal(k.reply('yes').outcome,'expired');
@@ -176,7 +191,7 @@ test('[ADV] adversarial log: late yes, double yes, correction, never mind, wrong
   assert.equal(k.reply('yes').outcome,'fire');assert.equal(k.reply('yes').outcome,'already_done');
   assert.equal(k.issue(spec({total_cents:undefined})).ok,false);
   assert.equal(K.readsBack('Confirm?',k.get(a.card_id)),false);
-  const sms=k.issue(spec(),{channel:'sms'});assert.equal(sms.buttons.length,0);assert.match(sms.text,/Reply 1 or yes to confirm/);for(const f of FIELDS)assert.ok(sms.text.includes(f));
+  const sms=k.issue(spec(),{channel:'sms'});assert.equal(sms.buttons.length,0);assert.match(sms.text,/Reply YES or NO within 10 min/);for(const f of FIELDS)assert.ok(sms.text.includes(f));
   assert.equal(k.reply('1',{channel:'in_app'}).outcome,'fire');const im=k.issue(spec(),{channel:'imessage'});assert.equal(k.reply('👍',{channel:'imessage'}).outcome,'fire');const s2=k.issue(spec(),{channel:'sms'});assert.equal(k.reply('yes',{channel:'sms'}).outcome,'fire');
   const sw=k.issue(spec(),{channel:'sms'});const f=k.reply('yes',{channel:'in_app',card_id:sw.card_id});assert.equal(f.outcome,'fire');assert.equal(f.channels.join(),'sms,in_app');
   const ach=k.issue(spec({action:'Pay $900.00 to Comcast',amount_cents:90000,total_cents:90000,counterparty:'Comcast',undo:'You can cancel this free until 4pm CT today; after that ACH cannot be recalled.',undo_window_ms:3*60*MIN,after_window:'I can file a reversal request with the bank, which takes up to 10 business days.'}));k.reply('yes');k.receipt(ach.card_id,{reference:'ACH-7'});t.now+=2*24*60*MIN;const u=k.reply('undo');assert.equal(u.outcome,'past_window');assert.match(u.text,/file a reversal request/);

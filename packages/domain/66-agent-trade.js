@@ -70,11 +70,14 @@
       const Invest = typeof AgentInvest !== "undefined" ? AgentInvest : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Comp = o.compliance !== undefined ? o.compliance : (typeof Compliance !== "undefined" ? Compliance : null);
       if (!Invest || !Loop) throw new Error("AgentTrade needs AgentInvest and AgentLoop loaded.");
       const conn = o.connectors; if (!conn || typeof conn.read !== "function") throw new Error("AgentTrade needs connectors with read, write and verify.");
-      const log = Array.isArray(o.log) ? o.log : [];
-      const loop = Loop.create({ registry: o.registry, connectors: conn, clock, log, memory: o.memory || null, control: o.control || null, envelopes: [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, compliance: Comp, partners: o.partners || {}, kyc: o.kyc || null });
+      // A stateless host restores the session from snapshot(): the loop (log, memory, pending confirmation), the orders and the live card.
+      const st = o.state || {}, ls = st.loop || {};
+      const log = Array.isArray(o.log) ? o.log : Array.isArray(ls.log) ? ls.log : [];
+      const loop = Loop.create({ registry: o.registry, connectors: conn, clock, log, memory: o.memory || ls.memory || null, sent: ls.sent, pending: ls.pending || null, control: o.control || null, envelopes: [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, compliance: Comp, partners: o.partners || {}, kyc: o.kyc || null });
       const freshness = o.quote_freshness_ms || 15 * 60000, holidays = o.holidays || [];
-      const orders = []; // every order this session staged, with its key and read-backs
-      let pending = null; // { order, confirmation_id }
+      const orders = Array.isArray(st.orders) ? st.orders : []; // every order this session staged, with its key and read-backs
+      let pending = st.pending || null; // { order, confirmation_id }
+      const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
 
       // S15: nothing leaves without the advice-guard response lint; a message that fails is reported, never sent as advice.
       const say = (outcome, text, extra) => { const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
@@ -83,6 +86,22 @@
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
 
       // S07: the confirmation restates the exact order: side, size, symbol with name, estimate at the quote with source and as-of, account, type, timing.
+      // The card a person answers: two SMS segments at most. Action with the exact amount, where the money goes, the fee
+      // and total, that it queues when the market is closed, and that a filled order can't be undone. The rest is DETAILS.
+      function cardText(ord, channel) {
+        // The amount on the card is the amount that will be spent. A whole-share account turns "$1,200 of VOO" into 2 shares
+        // for about $1,024.20; the card says 2 shares and the real figure, never the $1,200 that was asked for.
+        const dollars = ord.notional_cents && !ord.leftover_cents;
+        const size = dollars ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
+        const est = dollars ? "" : `, about ${money(ord.estimated_cents)}${ord.leftover_cents ? ` (whole shares only; ${money(ord.leftover_cents)} stays in cash)` : ""},`;
+        const heads = [`Buy ${size} ${ord.symbol} (${ord.name})${est} in ${ord.account.name}`, `Buy ${size} ${ord.symbol}${est} in ${ord.account.name}`];
+        for (const head of heads) {
+          const f = { head, fee_cents: ord.fee_cents || 0, total_cents: ord.estimated_cents + (ord.fee_cents || 0), when: ord.market_open ? null : `Queued until ${ord.when}`, irreversible: true, irreversible_text: "Can't be undone once filled.", expiry_ms: o.confirm_ttl_ms || 10 * 60000 };
+          const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee."}${f.when ? " " + f.when + "." : ""} Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil(head.length / 153) } };
+          if (r.segments.segments <= 2) return r.text;
+        }
+        return `Buy ${ord.symbol}: ${money(ord.estimated_cents)}. Reply YES, NO or DETAILS.`;
+      }
       function confirmText(ord) {
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = ord.notional_cents ? `about ${qty(ord.quantity)} shares at ${money(ord.price_cents)}` : `about ${money(ord.estimated_cents)} at ${money(ord.price_cents)}`;
@@ -131,11 +150,11 @@
           else { quantity = Math.floor(parsed.notional_cents / price); if (quantity < 1) return ask("whole_shares", `${money(parsed.notional_cents)} buys 0 whole shares of ${inst.symbol} at ${money(price)}, and ${account.name} trades whole shares only.`); estimated = quantity * price; leftover = parsed.notional_cents - estimated; }
         } else { quantity = parsed.quantity; if (account.fractional === false && !Number.isInteger(quantity)) return ask("whole_shares", `${account.name} trades whole shares only; ${qty(quantity)} is not a whole number.`); estimated = Math.round(quantity * price); }
         // S06: buying power, read, before asking for a yes.
-        const cash = Number.isSafeInteger(account.cash_cents) ? account.cash_cents : null;
+        const cash = Number.isSafeInteger(account.cash_cents) ? account.cash_cents : null, fee = Number.isSafeInteger(account.fee_cents) ? account.fee_cents : 0;
         if (cash === null) return ask("cash_unknown", `I can't read settled cash in ${account.name}, so I won't stage an order that might bounce.`);
-        if (cash < estimated) return say("stop", `${money(cash)} settled in ${account.name} (${accts.source}, as of ${new Date(accts.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC); ${money(estimated)} needs ${money(estimated - cash)} more. Nothing was placed.`, { reason: "insufficient_cash", shortfall_cents: estimated - cash });
+        if (cash < estimated + fee) return say("stop", `${money(cash)} settled in ${account.name} (${accts.source}, as of ${new Date(accts.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC); ${money(estimated + fee)} needs ${money(estimated + fee - cash)} more. Nothing was placed.`, { reason: "insufficient_cash", shortfall_cents: estimated + fee - cash });
         const open = marketOpen(now, holidays), when = open ? "now" : nextOpen(now, holidays);
-        const order = { symbol: inst.symbol, name: inst.name, account, quantity, notional_cents: parsed.notional_cents || null, price_cents: price, estimated_cents: estimated, leftover_cents: leftover, quote_source: q.source, quote_as_of: q.as_of, market_open: open, when, staged_at: now };
+        const order = { symbol: inst.symbol, name: inst.name, account, quantity, notional_cents: parsed.notional_cents || null, price_cents: price, estimated_cents: estimated, fee_cents: fee, leftover_cents: leftover, quote_source: q.source, quote_as_of: q.as_of, market_open: open, when, staged_at: now };
         // S13: the same order on the same day carries the same key; "another" asks for a new one on purpose.
         const base = `${CAPABILITY}:${account.id}:${inst.symbol}:buy:${parsed.notional_cents ? "n" + parsed.notional_cents : "q" + qty(quantity)}:${ymd(now)}`;
         const prior = orders.filter(x => x.key === base || x.key.startsWith(base + ":")).length;
@@ -143,7 +162,7 @@
         const request = { capability_id: CAPABILITY, key, idempotency_key: key, params: { symbol: inst.symbol, side: "buy", quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type: "market" }, describe: `Buy ${order.notional_cents ? money(order.notional_cents) + " of" : qty(quantity) + " shares of"} ${inst.symbol} in ${account.name}`, confirm: { action: `Buy ${order.notional_cents ? money(order.notional_cents) + " of" : qty(quantity) + " shares of"} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
         order.key = key; order.request = request;
         const r = await loop.wake({ kind: "message", request });
-        if (r.outcome === "awaiting_confirmation") { pending = { order, confirmation_id: r.confirmation_id }; return say("confirm", confirmText(order), { confirmation_id: r.confirmation_id, order }); }
+        if (r.outcome === "awaiting_confirmation") { pending = { order, confirmation_id: r.confirmation_id }; return say("confirm", cardText(order), { confirmation_id: r.confirmation_id, order, details: confirmText(order) }); }
         if (r.outcome === "already_done") { pending = null; const done = orders.find(x => x.key === key); return say("already_done", `${request.describe} was already placed today${done && done.order_id ? ` (order ${done.order_id})` : ""}. I did not place it again; say "another" if you want a second order.`); }
         if (r.outcome === "blocked") { pending = null; return say("blocked", r.message, { reason: r.reason }); }
         pending = null; return say(r.outcome, r.message || null, r);
@@ -183,6 +202,21 @@
       // The real-world proof (C46) is built from the same read-back, never from this module's own words.
       function evidence(order) { const s = order.readback || {}; return Object.assign({ order_id: order.order_id, status: s.status, market_open: order.market_open }, s.status === "filled" ? { fill_price_cents: s.fill_price_cents, quantity: s.quantity, filled_at: s.filled_at, position: order.position ? { symbol: order.symbol, quantity: order.position.quantity } : undefined } : {}); }
 
+      async function recheck(ord) {
+        const moved = [], now = clock();
+        const q = await readOr("quote", { symbol: ord.symbol });
+        if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents) || now - q.as_of > freshness) moved.push(`I could not re-verify the ${ord.symbol} price`);
+        else if (q.value.price_cents !== ord.price_cents) moved.push(`${ord.symbol} moved from ${money(ord.price_cents)} to ${money(q.value.price_cents)} (${q.source}, as of ${new Date(q.as_of).toISOString().slice(11, 16)} UTC)`);
+        const accts = await readOr("brokerage_accounts"), acct = accts && (accts.value || []).find(a => a.id === ord.account.id);
+        if (!acct) moved.push(`I could not re-read ${ord.account.name}`);
+        else {
+          const fee = Number.isSafeInteger(acct.fee_cents) ? acct.fee_cents : 0;
+          if (fee !== (ord.fee_cents || 0)) moved.push(`the fee changed from ${money(ord.fee_cents || 0)} to ${money(fee)}`);
+          if (!Number.isSafeInteger(acct.cash_cents) || acct.cash_cents < ord.estimated_cents + fee) moved.push(`settled cash in ${ord.account.name} is now ${Number.isSafeInteger(acct.cash_cents) ? money(acct.cash_cents) : "unreadable"}`);
+        }
+        if (marketOpen(now, holidays) !== ord.market_open) moved.push(ord.market_open ? "the market closed, so it would queue instead of filling now" : "the market opened, so it would fill now instead of queuing");
+        return moved;
+      }
       async function reply(text) {
         const p = pending;
         if (!p) return say("nothing_pending", "There is no order waiting on you.");
@@ -195,8 +229,19 @@
           return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
         }
         if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return settle(r, p.order); }
-        if (cls.type === "confirmation" && cls.approved === true) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.order); }
-        return ask("yes_or_no", `Yes or no? ${confirmText(p.order)}`);
+        if (cls.type === "confirmation" && cls.approved === true) {
+          // Stop-on-change: what the person said yes to is re-verified right before the order goes out. If the price, the
+          // fee, the buying power or the market session moved, nothing is placed and a fresh card says what moved.
+          const moved = await recheck(p.order);
+          if (moved.length) {
+            await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+            const again = await stage(Object.assign(parse(`buy ${p.order.notional_cents ? money(p.order.notional_cents) : qty(p.order.quantity) + " shares"} of ${p.order.symbol} in ${p.order.account.name}`), { text: p.order.request.describe }));
+            return say("changed", `Stopped before placing it: ${moved.join("; ")}. Nothing was placed.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}`, { moved, next: again, confirmation_id: again.confirmation_id || null, order: again.order || null });
+          }
+          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.order);
+        }
+        if (/^\s*(3|details?|more|terms|full terms)\s*[.!?]*\s*$/i.test(String(text))) return say("details", confirmText(p.order), { details: true });
+        return ask("yes_or_no", `Yes or no? ${cardText(p.order)}`);
       }
       // The follow-up: an unresolved write reconciles through the loop (read back by id, never re-sent); an accepted order that
       // was queued, partial or unread is re-read from the broker's record.
@@ -209,7 +254,8 @@
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, when: "the next open", key, request: { describe: `Buy ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
       function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => f.capability_id === CAPABILITY && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}`).join("; ") + "."); }
-      return { start, reply, followUp, today, parse, loop, orders, confirmText, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending }));
+      return { start, reply, followUp, today, parse, loop, orders, confirmText, cardText, snapshot, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
     }
     return { create, parse, parseAmount, resolve, marketOpen, nextOpen, etParts, CAPABILITY };
   })();

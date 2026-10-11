@@ -31,13 +31,52 @@
     }
     const minutes = ms => `${Math.max(1, Math.round(ms / 60000))} minute${Math.round(ms / 60000) === 1 ? "" : "s"}`;
 
-    // S06: one card, rendered per channel. The text alone completes the task; buttons only where the channel has them.
+    // SMS segments. GSM-7 text fits 160 characters in one segment and 153 per segment once split (extension characters
+    // count twice); anything outside GSM-7 (an emoji, a curly quote) turns the whole message into UCS-2: 70, then 67.
+    const GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+    const GSM_EXT = "^{}\\[~]|€";
+    function segments(text) {
+      const s = String(text || ""); let units = 0, gsm = true;
+      for (const ch of s) { if (GSM.includes(ch)) units += 1; else if (GSM_EXT.includes(ch)) units += 2; else { gsm = false; break; } }
+      if (gsm) return { encoding: "GSM-7", units, segments: units <= 160 ? 1 : Math.ceil(units / 153) };
+      const n = [...s].reduce((k, ch) => k + (ch.codePointAt(0) > 0xffff ? 2 : 1), 0);
+      return { encoding: "UCS-2", units: n, segments: n <= 70 ? 1 : Math.ceil(n / 67) };
+    }
+    const MAX_SEGMENTS = 2;
+    const IRREVERSIBLE = /\b(can'?t be undone|cannot be undone|irreversible|cannot be recalled|can'?t be recalled|final once)\b/i;
+    // The card a person sees: action, exact amount, who gets paid, fee (and the total when there is a fee), the one line
+    // that cannot wait until after (it cannot be undone; it queues), and how to answer. Everything else is DETAILS.
+    function compactText(f, channel) {
+      const ch = CHANNELS[channel] || CHANNELS.sms, parts = [];
+      if (f.supersedes_cents !== undefined && f.supersedes_cents !== null) parts.push(`Replaces the ${money(f.supersedes_cents)} card.`);
+      parts.push(String(f.head).replace(/[.\s]+$/, "") + ".");
+      parts.push(f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee.");
+      if (f.when) parts.push(String(f.when).replace(/[.\s]+$/, "") + ".");
+      if (f.irreversible) parts.push(f.irreversible_text || "Can't be undone.");
+      const m = Math.max(1, Math.round((f.expiry_ms || DEFAULT_EXPIRY_MS) / 60000));
+      parts.push(f.envelope ? `Inside your envelope (${f.envelope}); no question asked.` : ch.buttons ? `Confirm below within ${m} min, or reply DETAILS.` : `Reply YES or NO within ${m} min, or DETAILS.`);
+      const text = parts.join(" ").replace(/\s+/g, " ").trim();
+      return { text, segments: segments(text) };
+    }
+    function compact(card, channel) {
+      // The head says the action once: "Send $40.00 to Sarah M (@sarah-m)", never "Send $40.00 to Sarah M: $40.00 to Sarah M".
+      const c = card, base = String(c.counterparty).replace(/\s*\(.*\)\s*$/, "");
+      const head = c.short || (c.amount_cents > 0 && String(c.action).includes(money(c.amount_cents)) && String(c.action).includes(base) ? String(c.action).replace(base, c.counterparty) : c.amount_cents > 0 ? `${c.action}: ${money(c.amount_cents)} ${c.direction === "from" ? "from" : "to"} ${c.counterparty}` : String(c.action).includes(base) ? c.action : `${c.action} (${c.counterparty})`);
+      // Irreversible only when the terms say so and offer no window: "you can cancel this free until 4pm" is reversible until then.
+      const undo = String(c.undo || ""), irr = c.irreversible !== undefined ? !!c.irreversible : IRREVERSIBLE.test(undo) && !/\b(you can|can be|reply "?undo"?|reverse this within|cancel (this|it) free)\b/i.test(undo);
+      return compactText({ head, fee_cents: c.fee_cents, total_cents: c.total_cents, when: c.when_short || null, irreversible: irr, irreversible_text: c.irreversible_text || null, expiry_ms: c.expiry_ms, envelope: c.envelope || null, supersedes_cents: c.supersedes_cents }, channel);
+    }
     function render(card, channel) {
+      const ch = CHANNELS[channel] || CHANNELS.sms, r = compact(card, channel);
+      return { channel, text: r.text, segments: r.segments, buttons: ch.buttons && !card.envelope ? [{ label: "Confirm", reply: "1" }, { label: "Cancel", reply: "2" }, { label: "Details", reply: "details" }] : [], card_id: card.id };
+    }
+    // S06 in full: the long form, sent only when the person asks for DETAILS (and on "what did you just ask me").
+    function renderFull(card, channel) {
       const ch = CHANNELS[channel] || CHANNELS.sms, c = card;
       const head = c.superseded_text ? `${c.superseded_text} ` : "";
       const lines = [
-        `${head}${c.action}: ${money(c.amount_cents)} ${c.direction === "from" ? "from" : "to"} ${c.counterparty}${c.source ? ` from ${c.source}` : ""}.`,
-        `${c.fee_cents ? `Fee ${money(c.fee_cents)}, total ${money(c.total_cents)}.` : `No fee, total ${money(c.total_cents)}.`} ${c.timing}.`,
+        `${head}${c.action}${c.amount_cents > 0 ? `: ${money(c.amount_cents)} ${c.direction === "from" ? "from" : "to"} ${c.counterparty}` : ""}${c.source ? ` from ${c.source}` : ""}.`,
+        `${c.fee_cents ? `Fee ${money(c.fee_cents)}, total ${money(c.total_cents)}.` : c.amount_cents > 0 ? `No fee, total ${money(c.total_cents)}.` : "No fee."} ${c.timing}.`,
         `${c.undo}`,
         ...(c.lines || []),
         c.envelope ? `No question will be asked for this: it is inside your envelope (${c.envelope}).` : `This card expires in ${minutes(c.expiry_ms)}.`
@@ -46,7 +85,14 @@
       const text = lines.concat(ask ? [ask] : []).join(" ").replace(/\s+/g, " ").trim();
       return { channel, text, buttons: ch.buttons && !c.envelope ? [{ label: "Confirm", reply: "1" }, { label: "Cancel", reply: "2" }] : [], card_id: c.id };
     }
-    function readsBack(text, card) { const t = String(text); return t.includes(money(card.amount_cents)) && t.includes(money(card.total_cents)) && t.toLowerCase().includes(String(card.counterparty).toLowerCase()); }
+    // S05: what is paid, to whom, and the fee are always in the text the person answers.
+    function readsBack(text, card) {
+      const t = String(text), low = t.toLowerCase(), who = String(card.short_counterparty || card.counterparty).toLowerCase();
+      if (!low.includes(who)) return false;
+      if (card.amount_cents > 0 && !t.includes(money(card.amount_cents))) return false;
+      if (card.fee_cents > 0) return t.includes(money(card.fee_cents)) && t.includes(money(card.total_cents));
+      return /\bno fee\b/i.test(t);
+    }
 
     // S07: what a reply means. Channel numerics ("1", "2"), words, and the thumbs up count; anything else asks.
     const YES = /^\s*(1|y|yes|yep|yeah|yup|ok|okay|sure|confirm|confirmed|do it|go ahead|go|send it|approve|approved|👍|✅)\s*[.!]*\s*$/i;
@@ -55,11 +101,13 @@
     const CORRECTION = /^\s*(actually|wait|no,?|make it|change it|instead|rather|yes,? but|ok,? but)\b/i;
     const RESTATE = /\b(what did you (just )?ask|what('s| is) pending|what are you waiting (on|for)|say that again|repeat that)\b/i;
     const UNDO = /^\s*(undo|reverse|take it back|cancel that (send|transfer|order|payment))\b/i;
+    const DETAILS = /^\s*(3|details?|more|more info|terms|full terms|show (me )?(the )?(details|terms))\s*[.!?]*\s*$/i;
     function classify(text) {
       const t = String(text || "").trim();
       if (!t) return { kind: "empty" };
       if (NEVER_MIND.test(t)) return { kind: "never_mind" };
       if (UNDO.test(t)) return { kind: "undo" };
+      if (DETAILS.test(t)) return { kind: "details" };
       if (YES.test(t)) return { kind: "yes" };
       if (NO.test(t)) return { kind: "no" };
       if (RESTATE.test(t)) return { kind: "restate" };
@@ -71,8 +119,11 @@
 
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now());
-      const cards = [], transcript = Array.isArray(o.transcript) ? o.transcript : [], corrections = {};
-      let seq = 0;
+      // Restorable from snapshot() so a stateless host keeps the live card, its expiry and its single use across messages.
+      const st = o.state || {};
+      const cards = Array.isArray(st.cards) ? JSON.parse(JSON.stringify(st.cards)) : [], transcript = Array.isArray(o.transcript) ? o.transcript : [], corrections = {};
+      if (st.corrections) for (const [conv, id] of Object.entries(st.corrections)) { const c = cards.find(x => x.id === id); if (c) corrections[conv] = c; }
+      let seq = Number.isSafeInteger(st.seq) ? st.seq : cards.length;
       const log = (event, card, extra) => { const e = Object.assign({ at: clock(), event, card_id: card ? card.id : null, conversation: card ? card.conversation : (extra && extra.conversation) || null }, extra || {}); transcript.push(e); return e; };
       const live = conversation => cards.filter(c => c.conversation === conversation && c.state === "live");
       // S02: a card past its expiry is dead the moment anyone looks at it, whatever the channel.
@@ -90,11 +141,12 @@
         const card = Object.assign({}, spec, { id: `card-${++seq}`, conversation, channel_issued: channel, state: "live", issued_at: now, expiry_ms: spec.expiry_ms || DEFAULT_EXPIRY_MS, expires_at: now + (spec.expiry_ms || DEFAULT_EXPIRY_MS), uses: 0, reference: null, superseded_text: null, replaces: prior.map(p => p.id).concat(corrected ? [corrected.id] : []) });
         for (const p of prior) { p.state = "superseded"; p.ended_at = now; p.superseded_by = card.id; log("superseded", p, { by: card.id }); }
         const replaced = prior.length ? prior[prior.length - 1] : corrected;
-        if (replaced) card.superseded_text = `This replaces the ${money(replaced.amount_cents)} card, which is now dead.`;
+        if (replaced) { card.superseded_text = `This replaces the ${money(replaced.amount_cents || replaced.total_cents)} card, which is now dead.`; card.supersedes_cents = replaced.amount_cents || replaced.total_cents; }
         const r = render(card, channel);
+        if (r.segments.segments > MAX_SEGMENTS) { log("refused", null, { conversation, errors: [`the card is ${r.segments.segments} SMS segments; the limit is ${MAX_SEGMENTS}`] }); return { ok: false, errors: [`the card is ${r.segments.segments} SMS segments; the limit is ${MAX_SEGMENTS}`], text: null }; }
         if (!card.envelope && !readsBack(r.text, card)) { log("refused", null, { conversation, errors: ["the card text does not read back the counterparty, the amount and the total"] }); return { ok: false, errors: ["the card text does not read back the counterparty, the amount and the total"], text: null }; }
         cards.push(card); log("issued", card, { channel, text: r.text, expires_at: card.expires_at });
-        return Object.assign({ ok: true, card_id: card.id, expires_at: card.expires_at, replaced: card.replaces }, r);
+        return Object.assign({ ok: true, card_id: card.id, expires_at: card.expires_at, replaced: card.replaces, details: renderFull(card, channel).text }, r);
       }
 
       // The reply. ctx: { conversation, channel, card_id (optional: a button carries it), now }. A fire returns a one-time
@@ -106,7 +158,8 @@
         const current = live(conversation)[0] || null;
         const named = c.card_id ? cards.find(x => x.id === c.card_id) : null;
         const say = (outcome, t, extra) => { log("reply", current || named, Object.assign({ channel, text: String(text), outcome }, extra || {})); return Object.assign({ outcome, text: t, card_id: (current || named || {}).id || null }, extra || {}); };
-        if (kind === "restate") return current ? say("restate", `${render(current, channel).text} ${minutes(current.expires_at - now)} left.`) : say("nothing_pending", "Nothing is waiting on you.");
+        if (kind === "restate") return current ? say("restate", `${renderFull(current, channel).text} ${minutes(current.expires_at - now)} left.`) : say("nothing_pending", "Nothing is waiting on you.");
+        if (kind === "details") return current ? say("details", `${renderFull(current, channel).text} ${minutes(current.expires_at - now)} left.`) : say("nothing_pending", "Nothing is waiting on you.");
         if (kind === "undo") return undo(now, conversation, channel);
         if (kind === "never_mind") { if (current) { current.state = "dropped"; current.ended_at = now; log("dropped", current, { reason: "never mind" }); } return say("never_mind", "Okay. Nothing happened.", { killed: current ? current.id : null }); }
         if (c.card_id && named && current && named.id !== current.id) return say("mismatch", `That reply belongs to an earlier card (${named.id}), not the one that is live. Nothing was done. ${render(current, channel).text}`);
@@ -154,8 +207,9 @@
         return say("undo_card", inverse.text, { inverse_card_id: inverse.card_id });
       }
       const get = id => cards.find(x => x.id === id) || null;
-      return { issue, reply, receipt, render: (id, channel) => render(get(id), channel), live: conv => live(conv || "default").map(c => c.id), get, transcript, cards };
+      const snapshot = () => JSON.parse(JSON.stringify({ cards, seq, corrections: Object.fromEntries(Object.entries(corrections).map(([k, v]) => [k, v.id])) }));
+      return { snapshot, issue, reply, receipt, render: (id, channel) => render(get(id), channel), details: (id, channel) => renderFull(get(id), channel), live: conv => live(conv || "default").map(c => c.id), get, transcript, cards };
     }
-    return { create, validate, render, classify, readsBack, CHANNELS, LOAD_BEARING, DEFAULT_EXPIRY_MS, money };
+    return { create, validate, render, renderFull, compact, compactText, segments, classify, readsBack, CHANNELS, LOAD_BEARING, DEFAULT_EXPIRY_MS, MAX_SEGMENTS, IRREVERSIBLE, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentCards;

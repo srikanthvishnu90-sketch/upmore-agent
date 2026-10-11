@@ -29,6 +29,7 @@ Check: `node --test tests/depth-CORE-009.test.cjs && node evals/depth/run.cjs CO
 | S13 | A card follows the user across channels | A card issued on SMS is confirmed in-app with the same token; state lives in the store, not the channel; the reply binds to the same single card. |
 | S14 | Duplicate delivery fires once | Two yes replies in the same second (a webhook delivered twice) fire once; the second answers "already done". |
 | S15 | The transcript tells the truth | Every card event (issued, superseded, expired, consumed, declined, dropped) is logged with time and channel as a replayable fixture; "what did you just ask me" restates the live card; a yes that did not fire has its reason in the log. |
+| S16 | Two SMS segments at most | Every card the person answers carries action, exact amount, who gets paid and fee (and total when there is a fee) in two SMS segments at most on every channel; DETAILS returns the full terms and keeps the card live; a card that would need a third segment is never shown. Added 2026-10-11. |
 
 ## The three worst failures with real money or trust, and what guards each
 
@@ -63,9 +64,9 @@ Check: `node --test tests/depth-CORE-009.test.cjs && node evals/depth/run.cjs CO
 | S01 | One card, fixed anatomy | a card missing any load-bearing field is refused | `S01` in tests/depth-CORE-009.test.cjs | the load-bearing field check is skipped | proven (also fails S11) |
 | S02 | Time-bounded | a yes after 10 minutes is refused | `S02` in tests/depth-CORE-009.test.cjs | expired cards are never swept, so a late yes fires | proven (also fails S15) |
 | S03 | Single-use | a card fires once and is marked consumed | `S03` in tests/depth-CORE-009.test.cjs | a fired card stays live | proven (also fails S09, S12, S14, S15) |
-| S04 | Context-bound | a new card supersedes the live one | `S04` in tests/depth-CORE-009.test.cjs | an older card is left live when a new one is issued, so a yes binds to the older one | proven |
+| S04 | Context-bound | a new card supersedes the live one | `S04` in tests/depth-CORE-009.test.cjs | an older card is left live when a new one is issued, so a yes binds to the older one | proven (also fails S16) |
 | S05 | Read-back in the user's terms | a text without the amount, total and counterparty does not read back | `S05` in tests/depth-CORE-009.test.cjs | the read-back check always passes | proven |
-| S06 | Plain-text degradation | SMS gets the numeric reply instruction | `S06` in tests/depth-CORE-009.test.cjs | every channel gets the button wording, so SMS has no way to confirm | proven (also fails S13) |
+| S06 | Plain-text degradation | SMS gets a reply instruction it can complete in plain text | `S06` in tests/depth-CORE-009.test.cjs | every channel gets the button wording, so SMS has no way to confirm | proven (also fails S13, S16) |
 | S07 | The reply is understood per channel | "1" confirms | `S07` in tests/depth-CORE-009.test.cjs | the numeric reply is not understood as yes | proven (also fails S06, S13, S14) |
 | S08 | "Never mind" stops everything | after never mind a yes fires nothing | `S08` in tests/depth-CORE-009.test.cjs | never mind replies but leaves the card live | proven (also fails S15) |
 | S09 | A correction mid-card makes exactly one new card | the old card is dead before the new one exists | `S09` in tests/depth-CORE-009.test.cjs | a correction leaves the old card live | proven |
@@ -75,4 +76,5 @@ Check: `node --test tests/depth-CORE-009.test.cjs && node evals/depth/run.cjs CO
 | S13 | A card follows the user across channels | a card issued on SMS is confirmed in-app | `S13` in tests/depth-CORE-009.test.cjs | the store looks the live card up by channel, so a reply from another channel finds nothing | proven (also fails S14) |
 | S14 | Duplicate delivery fires once | two yes replies consume the card once | `S14` in tests/depth-CORE-009.test.cjs | a yes with no live card re-fires the last consumed card | proven (also fails S03, S13) |
 | S15 | The transcript tells the truth | a yes that did not fire has its reason in the log | `S15` in tests/depth-CORE-009.test.cjs | replies are not logged | proven |
+| S16 | Two SMS segments at most | a card that would need a third segment is never shown | `S16` in tests/depth-CORE-009.test.cjs | the two-segment cap is not enforced | proven (also fails S06) |
 <!-- results:end -->

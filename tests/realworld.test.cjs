@@ -197,6 +197,21 @@ test('status is computed from the registry, the overlay, the catalog and the dep
   assert.ok(!map.items.some(it=>E.status(it.id,facts).rail==='LIVE'),'no adapter is live; a LIVE row would be a lie');
 });
 
+test('done means the world changed and was read back: only live evidence passing the item\'s proof counts; sandbox, failing read-backs and say-so never do',()=>{
+  const facts={depth,overlay};
+  assert.equal(map.items.filter(it=>E.status(it.id,facts).done).length,0,'nothing is done today');
+  const T=Date.UTC(2026,9,11,13,0,0);const ok={order_id:'o1',status:'filled',fill_price_cents:51210,quantity:1,filled_at:T,position:{symbol:'VOO',quantity:1}};
+  const at=(item,e)=>E.status(item,Object.assign({},facts,{evidence:{[item]:[Object.assign({item,counterparty:'Schwab',observed_at:'2026-10-11T13:00:00Z'},e)]}}));
+  assert.equal(at('C46',{provider_mode:'live',readback:ok}).done,true,'a live fill read back is done');
+  assert.equal(at('C46',{provider_mode:'sandbox',readback:ok}).done,false,'a sandbox fill is not done');
+  assert.equal(at('C46',{provider_mode:'live',readback:{order_id:'o1',status:'queued',market_open:false}}).done,false,'queued is in flight, not done');
+  assert.equal(at('C46',{provider_mode:'live',readback:'task completed'}).done,false,'a report is not evidence');
+  assert.equal(at('C46',{provider_mode:'live',counterparty:'',readback:ok}).done,false,'no counterparty, no proof');
+  assert.equal(at('C73',{provider_mode:'live',readback:{expected_state:'cancelled',record:{state:'active'}}}).done,false,'a record that still reads active is not done');
+  assert.equal(at('C73',{provider_mode:'live',readback:{expected_state:'cancelled',record:{state:'cancelled'},next_charge_at:null}}).done,true);
+  const md=fs.readFileSync(path.join(root,'docs/realworld/README.md'),'utf8');assert.match(md,/\*\*Done: 0 of 206\.\*\*/);assert.match(md,/SANDBOX is never done; LOGIC_PROVEN is never done/);
+});
+
 test('the audit report is current',()=>{
   const r=spawnSync('node',[path.join(root,'scripts/realworld-audit.cjs'),'--check'],{cwd:root,encoding:'utf8'});
   assert.equal(r.status,0,r.stdout+r.stderr);

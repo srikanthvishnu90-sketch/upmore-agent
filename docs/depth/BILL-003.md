@@ -29,6 +29,7 @@ Check: `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BI
 | S13 | Failure in one message, no blind retry | Login failed, page changed, human-only: what happened, the state (still active, nothing changed), the next step; the same merchant failing twice is not retried a third time without a change. |
 | S14 | Undo and reactivation | "undo" inside the access period issues the resubscribe card with the terms; a charge after cancellation is flagged with the dispute path. |
 | S15 | Savings honesty | Verified savings appear only after a billing window with no charge; a projection is labeled; "how much have you saved me" cites verified and projected separately with as-of. |
+| S16 | Stop-on-change | Between the yes and the run, the provider's terms are read again; a changed fee, plan, access date, next charge, refund policy or remaining contract runs nothing and puts up a fresh card. Added 2026-10-11 with the two-segment card. |
 
 ## The three worst failures with real money or trust, and what guards each
 
@@ -75,4 +76,5 @@ Check: `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BI
 | S13 | Failure in one message, no blind retry | the second failure at the same merchant stops retries | `S13` in tests/depth-BILL-003.test.cjs | the failure memory never accumulates | proven |
 | S14 | Undo and reactivation | undo after the reinstatement window is refused honestly | `S14` in tests/depth-BILL-003.test.cjs | the reinstatement window is not checked | proven |
 | S15 | Savings honesty | savings the day after are projected, not verified | `S15` in tests/depth-BILL-003.test.cjs | projected savings are counted as verified | proven (also fails S12) |
+| S16 | Stop-on-change | a changed fee or access date between yes and run stops it | `S16` in tests/depth-BILL-003.test.cjs | the re-verification result is ignored, so a new cancellation fee still runs | proven |
 <!-- results:end -->

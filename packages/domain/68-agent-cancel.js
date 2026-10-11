@@ -34,16 +34,20 @@
       const Save = typeof AgentSave !== "undefined" ? AgentSave : null, Mon = typeof AgentMonitors !== "undefined" ? AgentMonitors : null, Cards = typeof AgentCards !== "undefined" ? AgentCards : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
       if (!Save || !Mon || !Cards || !Loop) throw new Error("AgentCancel needs AgentSave, AgentMonitors, AgentCards and AgentLoop loaded.");
       const conn = o.connectors; if (!conn || typeof conn.read !== "function") throw new Error("AgentCancel needs connectors with read, write, verify and resume.");
-      const log = Array.isArray(o.log) ? o.log : [];
+      // A stateless host restores the session from snapshot(): loop, live card, cases, queue, failure memory and run results.
+      const st = o.state || {}, ls = st.loop || {};
+      const log = Array.isArray(o.log) ? o.log : Array.isArray(ls.log) ? ls.log : [];
       // The run result is kept per idempotency key so the outcome rules can read it; the loop only keeps the reference.
-      const runs = {};
+      const runs = st.runs || {};
       const wrapped = { read: (k, p) => conn.read(k, p), write: async (id, p, key) => { const r = await conn.write(id, p, key); runs[key] = r; return r; }, verify: (id, key, ref) => conn.verify(id, key, ref) };
-      const loop = Loop.create({ registry: o.registry, connectors: wrapped, clock, log, memory: o.memory || null, control: o.control || null, envelopes: [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, guard: Guard, compliance: o.compliance || null, partners: o.partners || {} });
-      const cards = Cards.create({ clock, transcript: o.transcript });
+      const loop = Loop.create({ registry: o.registry, connectors: wrapped, clock, log, memory: o.memory || ls.memory || null, sent: ls.sent, pending: ls.pending || null, control: o.control || null, envelopes: [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, guard: Guard, compliance: o.compliance || null, partners: o.partners || {} });
+      const cards = Cards.create({ clock, transcript: o.transcript, state: st.cards });
       const directory = o.directory || {}; // merchant key -> { kind: "portal" | "store" | "guided", verified, human_only, steps, url }
-      const cases = []; // one per cancellation: { merchant, key, route, terms, card_id, request, run, claim, state, otp }
-      const lessons = {}; // merchant key -> failures
-      let pending = null, queue = [], last_mentioned = o.last_mentioned || null;
+      const cases = Array.isArray(st.cases) ? st.cases : []; // one per cancellation: { merchant, name, key, route, terms, card_id, request, run, claim, state, otp }
+      const lessons = st.lessons || {}; // merchant key -> failures
+      let pending = Number.isInteger(st.pending_index) ? cases[st.pending_index] || null : null, queue = Array.isArray(st.queue) ? st.queue : [], last_mentioned = st.last_mentioned || o.last_mentioned || null;
+      // The name a person uses, never the bank descriptor: "Netflix", not "NETFLIX.COM".
+      const nameOf = sub => { const d = directory[keyOf(sub.merchant)]; if (d && d.display_name) return d.display_name; /* exact match only: "Netflix Games" must not read as "Netflix" */ return String(sub.merchant).replace(/^(sq \*|tst\* ?|pp\*|paypal \*)/i, "").replace(/\.(com|net|tv|io|co)\b.*$/i, "").trim().split(/\s+/).map(w => w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" "); };
       const say = (outcome, text, extra) => Object.assign({ outcome, text }, extra || {});
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
 
@@ -70,6 +74,10 @@
         const hits = inv.filter(s => { const k = keyOf(s.merchant); return k === q || k.includes(q) || q.includes(k) || k.split(" ")[0] === q.split(" ")[0]; });
         if (hits.length === 1) return { one: hits[0], inventory: inv };
         if (hits.length > 1) return { many: hits, inventory: inv };
+        // A typo ("netflx", "spotfy") resolves when exactly one subscription is one or two edits away; the card restates the name.
+        const ed = (a, b) => { const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i].concat(Array(n).fill(0))); for (let j = 1; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; };
+        const q0 = q.split(" ")[0], near = q0.length >= 4 ? inv.filter(s => { const k0 = keyOf(s.merchant).split(" ")[0]; return ed(q0, k0) <= (k0.length >= 6 ? 2 : 1); }) : [];
+        if (near.length === 1) return { one: near[0], inventory: inv, fuzzy: true };
         return { none: true, inventory: inv };
       }
       // S02: route by channel first, then by what the directory knows about the merchant.
@@ -95,12 +103,13 @@
 
       async function stage(sub, ctx) {
         const r = route(sub), t = await terms(sub);
-        if (t.missing.length) return say("needs_terms", `I need ${t.missing.join(", ")} from ${sub.merchant}'s account page before I ask you to confirm; I won't guess the terms.`, { missing: t.missing });
+        if (t.missing.length) return say("needs_terms", `I need ${t.missing.join(", ")} from ${nameOf(sub)}'s account page before I ask you to confirm; I won't guess the terms.`, { missing: t.missing });
         const f = t.facts, cyc = { monthly: "mo", quarterly: "qtr", yearly: "yr" }[sub.interval] || sub.interval;
-        const spec = { action: `Cancel ${sub.merchant} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, amount_cents: f.fee_cents, counterparty: sub.merchant, direction: "to", fee_cents: 0, total_cents: f.fee_cents, timing: `Last charge ${sub.last}. You keep access until ${f.access_until}; the ${sub.next} charge will not happen`, undo: undoText(f), lines: [`${f.fee_cents ? `Cancellation fee ${money(f.fee_cents)}. ` : ""}${f.remaining_contract_cents ? `Remaining contract ${money(f.remaining_contract_cents)}. ` : ""}Refunds: ${f.refund_policy}.`, r.human_only ? `This one is ${r.text}; I'll walk you through it and watch the ${sub.next} charge.` : `I will cancel ${r.text} and text you the confirmation.`, `Terms per ${t.source} as of ${new Date(t.as_of).toISOString().slice(0, 10)}.`] };
+        const name = nameOf(sub);
+        const spec = { action: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, short: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, amount_cents: 0, counterparty: name, direction: "to", fee_cents: f.fee_cents, total_cents: f.fee_cents, when_short: `Access until ${f.access_until}${r.human_only ? `; I'll guide you through the last step` : ""}`, timing: `Last charge ${sub.last}. You keep access until ${f.access_until}; the ${sub.next} charge will not happen`, undo: undoText(f), lines: [`${f.fee_cents ? `Cancellation fee ${money(f.fee_cents)}. ` : ""}${f.remaining_contract_cents ? `Remaining contract ${money(f.remaining_contract_cents)}. ` : ""}Refunds: ${f.refund_policy}.`, r.human_only ? `This one is ${r.text}; I'll walk you through it and watch the ${sub.next} charge.` : `I will cancel ${r.text} and text you the confirmation.`, `Terms per ${t.source} as of ${new Date(t.as_of).toISOString().slice(0, 10)}.`] };
         const base = `${CAPABILITY}:${keyOf(sub.merchant)}:${sub.next}`;
         const done = cases.find(c => c.key.startsWith(base) && ["cancelled", "accepted", "running", "verified"].includes(c.state));
-        if (done) return say("already_done", `${sub.merchant} was already cancelled${done.reference ? ` (confirmation ${done.reference})` : ""}; the ${sub.next} charge is being watched. I did not do it again.`);
+        if (done) return say("already_done", `${nameOf(sub)} was already cancelled${done.reference ? ` (confirmation ${done.reference})` : ""}; the ${sub.next} charge is being watched. I did not do it again.`);
         // A retry after a failed run is a new attempt under its own key; the loop never re-sends a key it has already written.
         const attempts = cases.filter(c => c.key.startsWith(base) && ["failed", "unknown", "tripwire", "not_confirmed", "otp_expired"].includes(c.state)).length;
         const key = attempts ? `${base}:a${attempts + 1}` : base;
@@ -111,9 +120,10 @@
         if (w.outcome !== "awaiting_confirmation") return say(w.outcome, w.message || null);
         const card = cards.issue(spec, { conversation: (ctx && ctx.conversation) || "default", channel: (ctx && ctx.channel) || "in_app" });
         if (!card.ok) { await loop.wake({ kind: "confirmation", confirmation_id: w.confirmation_id, approved: false }); return say("refused", `I could not put up the card: ${card.errors.join("; ")}.`); }
-        const kase = { merchant: sub.merchant, key, sub, route: r, terms: f, terms_source: t.source, terms_as_of: t.as_of, card_id: card.card_id, confirmation_id: w.confirmation_id, request, state: "card", created_at: clock(), reference: null, run: null, claim: null, refund: null };
+        // The terms the person saw are a copy, never a live reference: stop-on-change compares the provider's next read against them.
+        const kase = { merchant: sub.merchant, name, key, sub, route: r, terms: JSON.parse(JSON.stringify(f)), terms_source: t.source, terms_as_of: t.as_of, card_id: card.card_id, confirmation_id: w.confirmation_id, request, state: "card", created_at: clock(), reference: null, run: null, claim: null, refund: null };
         cases.push(kase); pending = kase; last_mentioned = sub.merchant;
-        return say("confirm", card.text, { card_id: card.card_id, merchant: sub.merchant, route: r.kind, fee_cents: f.fee_cents });
+        return say("confirm", card.text, { card_id: card.card_id, merchant: sub.merchant, name, route: r.kind, fee_cents: f.fee_cents, details: card.details });
       }
 
       async function start(text, ctx) {
@@ -121,15 +131,23 @@
         if (p.undo) return undo(ctx);
         if (p.status) return status();
         if (p.savings) return savings();
-        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => s.merchant), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
+        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
         let query = p.merchant; if (p.that) { if (!last_mentioned) return say("ask", "Cancel which one? Nothing has been mentioned yet."); query = last_mentioned; }
         if (!query) return say("ask", "Cancel what? Name the subscription.");
         const r = resolve(query);
-        if (r.many) return say("ask", `Which one: ${r.many.map(s => `${s.merchant} (${money(s.amount_cents)}/${s.interval === "monthly" ? "mo" : s.interval})`).join(" or ")}?`, { candidates: r.many.map(s => s.merchant) });
-        if (r.none) return say("ask", `I don't see a ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => s.merchant).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
+        if (r.many) return say("ask", `Which one: ${r.many.map(s => `${nameOf(s)} (${money(s.amount_cents)}/${s.interval === "monthly" ? "mo" : s.interval})`).join(" or ")}?`, { candidates: r.many.map(s => s.merchant) });
+        if (r.none) return say("ask", `I don't see a ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
         return stage(r.one, ctx);
       }
 
+      async function recheck(kase) {
+        const t2 = await terms(kase.sub), was = kase.terms, name = kase.name || nameOf(kase.sub);
+        if (t2.missing.length) return [`I could not re-read ${name}'s terms (${t2.missing.join(", ")})`];
+        const now = t2.facts, moved = [];
+        for (const k of ["fee_cents", "remaining_contract_cents"]) if (now[k] !== was[k]) moved.push(`${k === "fee_cents" ? "the cancellation fee" : "the remaining contract"} changed from ${money(was[k])} to ${money(now[k])}`);
+        for (const [k, label] of [["plan", "the plan"], ["access_until", "access-until"], ["next_charge_on", "the next charge date"], ["refund_policy", "the refund policy"]]) if (String(now[k]) !== String(was[k])) moved.push(`${label} changed from ${was[k]} to ${now[k]}`);
+        return moved;
+      }
       // S04/S05/S06: the reply goes to the card layer; a fire becomes the loop's confirmation, and only then the run.
       async function reply(text, ctx) {
         const c = ctx || {}, r = cards.reply(text, { conversation: c.conversation || "default", channel: c.channel || "in_app", card_id: c.card_id });
@@ -137,6 +155,14 @@
         if (r.outcome === "fire") {
           if (!kase) return say("nothing_pending", "There is no cancellation waiting on you.");
           pending = null;
+          // Stop-on-change: the provider's terms are read again right before the run. A different fee, plan, access date,
+          // next charge, refund policy or remaining contract means nothing runs and a fresh card says what moved.
+          const moved = await recheck(kase);
+          if (moved.length) {
+            await loop.wake({ kind: "confirmation", confirmation_id: kase.confirmation_id, approved: false }); kase.state = "changed";
+            const again = await stage(kase.sub, c);
+            return say("changed", `Stopped before cancelling: ${moved.join("; ")}. Nothing was changed.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}`, { moved, next: again });
+          }
           const w = await loop.wake({ kind: "confirmation", confirmation_id: kase.confirmation_id, approved: true });
           const out = await settle(w, kase, c);
           if (queue.length && ["cancelled", "accepted", "guided", "not_confirmed", "tripwire", "failed", "unknown", "otp"].includes(out.outcome) && out.outcome !== "otp") { const nxt = queue.shift(); const n = await stage(nxt, c); return Object.assign(out, { next: n, text: `${out.text} Next: ${n.text}` }); }
@@ -149,12 +175,12 @@
 
       // S07/S08/S09/S13: what the run means. The receipt says cancelled only when the merchant's record does.
       async function settle(w, kase, ctx) {
-        if (w.outcome === "draft_approved") { kase.state = "guided"; kase.claim = claimFor(kase); return say("guided", `${kase.merchant} is ${kase.route.text}. ${kase.route.steps && kase.route.steps.length ? "Steps: " + kase.route.steps.map((s, i) => `${i + 1}. ${s}`).join(" ") + " " : ""}Tell me when it's done; either way I'm watching the ${kase.sub.next} charge and will confirm on ${addDays(kase.sub.next, GRACE_DAYS + 1)}.`, { claim: kase.claim, steps: kase.route.steps || [] }); }
+        if (w.outcome === "draft_approved") { kase.state = "guided"; kase.claim = claimFor(kase); return say("guided", `${kase.name || kase.merchant} is ${kase.route.text}. ${kase.route.steps && kase.route.steps.length ? "Steps: " + kase.route.steps.map((s, i) => `${i + 1}. ${s}`).join(" ") + " " : ""}Tell me when it's done; either way I'm watching the ${kase.sub.next} charge and will confirm on ${addDays(kase.sub.next, GRACE_DAYS + 1)}.`, { claim: kase.claim, steps: kase.route.steps || [] }); }
         if (w.outcome === "declined") { kase.state = "declined"; return say("declined", "Okay, not cancelling. Nothing was changed."); }
         if (w.outcome === "expired") { kase.state = "expired"; return say("expired", w.message); }
         const run = kase.run || lastRun(kase);
         if (run && run.status === "otp_required" && !(kase.otp && kase.otp.used_at)) return otpAsk(kase, run);
-        if (w.outcome === "unknown") { kase.state = "unknown"; return say("unknown", `${w.message} ${kase.merchant} may still be active; I'll read the account back before anything else.`); }
+        if (w.outcome === "unknown") { kase.state = "unknown"; return say("unknown", `${w.message} ${kase.name || kase.merchant} may still be active; I'll read the account back before anything else.`); }
         if (w.outcome === "failed" && !run) return failure(kase, { category: "rail", error: w.message });
         if (w.outcome !== "confirmed" && w.outcome !== "already_done" && w.outcome !== "failed") return say(w.outcome, w.message || null);
         return readBack(kase, ctx);
@@ -170,23 +196,23 @@
         const hasEvidence = !!(run && run.reference) || !!(evidenceText && /cancell?ed|won'?t be charged|no longer be billed|ends on/i.test(evidenceText));
         if (state !== "cancelled" || !hasEvidence) {
           kase.state = "not_confirmed"; kase.claim = claimFor(kase);
-          return say("not_confirmed", `I ran the cancellation at ${kase.merchant} but ${state === "cancelled" ? "could not capture a confirmation" : `the account still reads ${state || "unreadable"}`}, so I am not calling it cancelled. I'll keep the ${kase.sub.next} charge under watch and tell you on ${addDays(kase.sub.next, GRACE_DAYS + 1)} either way; if you see a confirmation email, forward it.`, { claim: kase.claim, record_state: state });
+          return say("not_confirmed", `I ran the cancellation at ${kase.name || kase.merchant} but ${state === "cancelled" ? "could not capture a confirmation" : `the account still reads ${state || "unreadable"}`}, so I am not calling it cancelled. I'll keep the ${kase.sub.next} charge under watch and tell you on ${addDays(kase.sub.next, GRACE_DAYS + 1)} either way; if you see a confirmation email, forward it.`, { claim: kase.claim, record_state: state });
         }
-        if (rec.value.next_charge_on) { kase.state = "accepted"; kase.reference = run.reference || null; kase.claim = claimFor(kase); return say("accepted", `${kase.merchant} accepted the cancellation${kase.reference ? ` (confirmation ${kase.reference})` : ""}, but its record still shows a charge on ${rec.value.next_charge_on}. I'll watch that date and confirm after it.`, { reference: kase.reference, claim: kase.claim }); }
+        if (rec.value.next_charge_on) { kase.state = "accepted"; kase.reference = run.reference || null; kase.claim = claimFor(kase); return say("accepted", `${kase.name || kase.merchant} accepted the cancellation${kase.reference ? ` (confirmation ${kase.reference})` : ""}, but its record still shows a charge on ${rec.value.next_charge_on}. I'll watch that date and confirm after it.`, { reference: kase.reference, claim: kase.claim }); }
         kase.state = "cancelled"; kase.reference = run.reference || null; kase.claim = claimFor(kase); kase.cancelled_at = clock();
         const refund = await maybeRefund(kase);
-        return say("cancelled", `${kase.merchant} cancelled${kase.reference ? `, confirmation ${kase.reference}` : ""} (${rec.source}, as of ${new Date(rec.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC). You keep access until ${kase.terms.access_until}; the ${kase.sub.next} charge is gone from their record. ${refund ? refund.text + " " : ""}${undoText(kase.terms)} I'll confirm from your statement on ${addDays(kase.sub.next, GRACE_DAYS + 1)}.`, { reference: kase.reference, claim: kase.claim, refund: refund ? refund.request : null, access_until: kase.terms.access_until });
+        return say("cancelled", `${kase.name || kase.merchant} cancelled${kase.reference ? `, confirmation ${kase.reference}` : ""} (${rec.source}, as of ${new Date(rec.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC). You keep access until ${kase.terms.access_until}; the ${kase.sub.next} charge is gone from their record. ${refund ? refund.text + " " : ""}${undoText(kase.terms)} I'll confirm from your statement on ${addDays(kase.sub.next, GRACE_DAYS + 1)}.`, { reference: kase.reference, claim: kase.claim, refund: refund ? refund.request : null, access_until: kase.terms.access_until });
       }
       const lastRun = kase => runs[kase.key] || null;
       const claimFor = kase => ({ merchant: kase.merchant, merchant_key: keyOf(kase.merchant), amount_cents: kase.sub.amount_cents, billing_interval: kase.sub.interval, expected_billing_date: kase.sub.next, grace_days: GRACE_DAYS, status: "open", created_at: ymd(clock()), reference: kase.reference || null, route: kase.route.kind });
       const quoted = s => { const v = Guard ? String(Guard.wrap(String(s)).value) : String(s); return v.replace(/^["\u201c]+|["\u201d]+$/g, ""); };
-      function tripwire(kase, run) { kase.state = "tripwire"; return say("tripwire", `I stopped before changing anything: ${kase.merchant} offered "${quoted(run.offer || run.stopped_at_tripwire)}" instead of cancelling, and I don't accept plan changes for you. ${kase.merchant} is still active and nothing changed. Do you want that offer, or should I go on to cancel?`, { offer: run.offer || null, tripwire: run.stopped_at_tripwire }); }
-      function otpAsk(kase, run) { kase.state = "otp"; kase.otp = { run_id: run.run_id, expires_at: clock() + OTP_TTL_MS, asked_at: clock() }; pending = null; return say("otp", `${kase.merchant} sent a one-time code to ${run.hint || "you"}. Reply with just the code; I use it once for this run and never keep it. It is good for 30 minutes.`, { run_id: run.run_id }); }
+      function tripwire(kase, run) { kase.state = "tripwire"; return say("tripwire", `I stopped before changing anything: ${kase.name || kase.merchant} offered "${quoted(run.offer || run.stopped_at_tripwire)}" instead of cancelling, and I don't accept plan changes for you. ${kase.name || kase.merchant} is still active and nothing changed. Do you want that offer, or should I go on to cancel?`, { offer: run.offer || null, tripwire: run.stopped_at_tripwire }); }
+      function otpAsk(kase, run) { kase.state = "otp"; kase.otp = { run_id: run.run_id, expires_at: clock() + OTP_TTL_MS, asked_at: clock() }; pending = null; return say("otp", `${kase.name || kase.merchant} sent a one-time code to ${run.hint || "you"}. Reply with just the code; I use it once for this run and never keep it. It is good for 30 minutes.`, { run_id: run.run_id }); }
       // S09: the code is a bounded continuation of the approved run. It is never logged, stored or echoed.
       async function otp(code, ctx) {
         const kase = cases.filter(c => c.state === "otp").pop(); if (!kase) return say("nothing_pending", "No code is needed right now.");
         const c = String(code || "").trim(); if (!/^\d{4,8}$/.test(c)) return say("ask", "That doesn't look like the code; reply with just the digits.");
-        if (clock() > kase.otp.expires_at) { kase.state = "otp_expired"; return say("otp_expired", `That code window closed after 30 minutes. Say "cancel ${kase.merchant}" again and I'll start a fresh run; nothing changed.`); }
+        if (clock() > kase.otp.expires_at) { kase.state = "otp_expired"; return say("otp_expired", `That code window closed after 30 minutes. Say "cancel ${kase.name || kase.merchant}" again and I'll start a fresh run; nothing changed.`); }
         if (typeof conn.resume !== "function") return failure(kase, { category: "no_resume", error: "the run cannot be resumed here" });
         let run; try { run = await conn.resume(kase.otp.run_id, c); } catch (e) { return failure(kase, { category: "resume_failed", error: String(e && e.message || e) }); }
         kase.run = run; runs[kase.key] = run; kase.otp = Object.assign({}, kase.otp, { used_at: clock() });
@@ -197,8 +223,8 @@
       function failure(kase, run) {
         const cat = run.category || "unknown", k = keyOf(kase.merchant); lessons[k] = (lessons[k] || 0) + 1; kase.state = "failed";
         const what = { login_failed: "the login did not work", page_changed: "the merchant's cancellation page has changed and the steps no longer match", human_only: "this one can only be done by the account holder", rail: run.error || "the run did not complete", no_resume: run.error, resume_failed: run.error }[cat] || run.error || "the run did not complete";
-        const next = lessons[k] >= 2 ? `I've now failed twice at ${kase.merchant}, so I won't retry blindly; here are the steps to do it yourself, and I'll watch the ${kase.sub.next} charge.` : cat === "login_failed" ? "Check the saved login or sign in once in your browser; then say \"cancel again\" and I'll retry." : "Say \"cancel again\" to retry, or I can give you the steps.";
-        return say("failed", `I could not cancel ${kase.merchant}: ${what}. ${kase.merchant} is still active and nothing changed. ${next}`, { category: cat, attempts: lessons[k], retry_allowed: lessons[k] < 2 });
+        const next = lessons[k] >= 2 ? `I've now failed twice at ${kase.name || kase.merchant}, so I won't retry blindly; here are the steps to do it yourself, and I'll watch the ${kase.sub.next} charge.` : cat === "login_failed" ? "Check the saved login or sign in once in your browser; then say \"cancel again\" and I'll retry." : "Say \"cancel again\" to retry, or I can give you the steps.";
+        return say("failed", `I could not cancel ${kase.name || kase.merchant}: ${what}. ${kase.name || kase.merchant} is still active and nothing changed. ${next}`, { category: cat, attempts: lessons[k], retry_allowed: lessons[k] < 2 });
       }
       // S12: refund where the policy allows and a charge just posted. Its credit is tracked, never counted as savings.
       async function maybeRefund(kase) {
@@ -217,31 +243,32 @@
         for (const kase of cases) {
           if (!kase.claim || kase.claim.status === "verified" || kase.claim.status === "zombie") continue;
           const v = Mon.cancelClaimVerdict(kase.claim, transactions || [], today || ymd(clock()), dataThrough || today || ymd(clock()));
-          if (v.status === "charged") { kase.claim.status = "zombie"; kase.state = "charged_after"; out.push({ merchant: kase.merchant, status: "zombie", text: `${v.reason} That cancellation did not hold: I've reversed the avoided-charge entry${kase.reference ? ` and have confirmation ${kase.reference} to dispute it with` : ""}. Want me to open the dispute?`, charge: v.charges[0] }); }
-          else if (v.status === "confirmed" || v.status === "verified") { kase.claim.status = "verified"; kase.claim.verified_on = today; kase.state = "verified"; out.push({ merchant: kase.merchant, status: "verified", text: `${kase.merchant} is confirmed cancelled: no charge on ${kase.claim.expected_billing_date} through ${dataThrough || today} (your statement, as of ${dataThrough || today}). ${money(kase.sub.amount_cents)} per ${kase.sub.interval === "monthly" ? "month" : kase.sub.interval} now counts as saved.` }); }
-          else out.push({ merchant: kase.merchant, status: v.status, text: v.reason });
-          if (kase.refund && kase.refund.status !== "posted") { const credit = (transactions || []).find(t => t.posted_at >= ymd(kase.refund.requested_at) && Math.round(Number(t.amount || 0) * 100) === kase.refund.amount_cents && keyOf(t.merchant_raw || t.merchant).includes(keyOf(kase.merchant).split(" ")[0])); if (credit) { kase.refund.status = "posted"; kase.refund.posted_on = credit.posted_at; out.push({ merchant: kase.merchant, status: "refund_posted", text: `The ${money(kase.refund.amount_cents)} refund from ${kase.merchant} posted on ${credit.posted_at}.` }); } }
+          if (v.status === "charged") { kase.claim.status = "zombie"; kase.state = "charged_after"; out.push({ merchant: kase.merchant, status: "zombie", text: `${String(v.reason).split(kase.merchant).join(kase.name || kase.merchant)} That cancellation did not hold: I've reversed the avoided-charge entry${kase.reference ? ` and have confirmation ${kase.reference} to dispute it with` : ""}. Want me to open the dispute?`, charge: v.charges[0] }); }
+          else if (v.status === "confirmed" || v.status === "verified") { kase.claim.status = "verified"; kase.claim.verified_on = today; kase.state = "verified"; out.push({ merchant: kase.merchant, status: "verified", text: `${kase.name || kase.merchant} is confirmed cancelled: no charge on ${kase.claim.expected_billing_date} through ${dataThrough || today} (your statement, as of ${dataThrough || today}). ${money(kase.sub.amount_cents)} per ${kase.sub.interval === "monthly" ? "month" : kase.sub.interval} now counts as saved.` }); }
+          else out.push({ merchant: kase.merchant, status: v.status, text: String(v.reason).split(kase.merchant).join(kase.name || kase.merchant) });
+          if (kase.refund && kase.refund.status !== "posted") { const credit = (transactions || []).find(t => t.posted_at >= ymd(kase.refund.requested_at) && Math.round(Number(t.amount || 0) * 100) === kase.refund.amount_cents && keyOf(t.merchant_raw || t.merchant).includes(keyOf(kase.merchant).split(" ")[0])); if (credit) { kase.refund.status = "posted"; kase.refund.posted_on = credit.posted_at; out.push({ merchant: kase.merchant, status: "refund_posted", text: `The ${money(kase.refund.amount_cents)} refund from ${kase.name || kase.merchant} posted on ${credit.posted_at}.` }); } }
         }
         return out;
       }
-      function status() { const kase = cases.filter(c => c.claim).pop(); if (!kase) return say("answer", "I haven't cancelled anything yet."); const cl = kase.claim; const line = cl.status === "verified" ? `${kase.merchant}: confirmed cancelled, no charge through ${cl.verified_on} (your statement).` : cl.status === "zombie" ? `${kase.merchant}: it charged you after the cancellation; the claim is reopened.` : kase.state === "cancelled" ? `${kase.merchant}: cancelled per their record${kase.reference ? ` (confirmation ${kase.reference})` : ""}; I'm watching the ${cl.expected_billing_date} charge and will confirm on ${addDays(cl.expected_billing_date, GRACE_DAYS + 1)}.` : `${kase.merchant}: ${kase.state.replace(/_/g, " ")}; the ${cl.expected_billing_date} charge is under watch.`; return say("answer", line, { state: kase.state, claim: cl }); }
+      function status() { const kase = cases.filter(c => c.claim).pop(); if (!kase) return say("answer", "I haven't cancelled anything yet."); const cl = kase.claim; const line = cl.status === "verified" ? `${kase.name || kase.merchant}: confirmed cancelled, no charge through ${cl.verified_on} (your statement).` : cl.status === "zombie" ? `${kase.name || kase.merchant}: it charged you after the cancellation; the claim is reopened.` : kase.state === "cancelled" ? `${kase.name || kase.merchant}: cancelled per their record${kase.reference ? ` (confirmation ${kase.reference})` : ""}; I'm watching the ${cl.expected_billing_date} charge and will confirm on ${addDays(cl.expected_billing_date, GRACE_DAYS + 1)}.` : `${kase.name || kase.merchant}: ${kase.state.replace(/_/g, " ")}; the ${cl.expected_billing_date} charge is under watch.`; return say("answer", line, { state: kase.state, claim: cl }); }
       // S15: verified savings are charges that did not happen after the date passed; everything else is a projection, labeled.
       function savings() {
         const verified = cases.filter(c => c.claim && c.claim.status === "verified"), live = cases.filter(c => c.claim && ["open"].includes(c.claim.status) && ["cancelled", "accepted"].includes(c.state));
         const vsum = verified.reduce((s, c) => s + c.sub.amount_cents, 0), proj = live.reduce((s, c) => s + c.sub.monthly_cents, 0), refunds = cases.filter(c => c.refund && c.refund.status === "posted").reduce((s, c) => s + c.refund.amount_cents, 0);
-        return say("answer", `Verified: ${money(vsum)}${verified.length ? ` (${verified.map(c => `${c.merchant} ${money(c.sub.amount_cents)} on ${c.claim.expected_billing_date}, your statement as of ${c.claim.verified_on}`).join("; ")})` : " so far"}. Projected, not yet verified: ${money(proj)} a month${live.length ? ` (${live.map(c => c.merchant).join(", ")}; confirmed only after each billing date passes)` : ""}.${refunds ? ` Refunds received: ${money(refunds)}, counted separately from savings.` : ""}`, { verified_cents: vsum, projected_monthly_cents: proj, refunds_cents: refunds });
+        return say("answer", `Verified: ${money(vsum)}${verified.length ? ` (${verified.map(c => `${c.name || c.merchant} ${money(c.sub.amount_cents)} on ${c.claim.expected_billing_date}, your statement as of ${c.claim.verified_on}`).join("; ")})` : " so far"}. Projected, not yet verified: ${money(proj)} a month${live.length ? ` (${live.map(c => c.name || c.merchant).join(", ")}; confirmed only after each billing date passes)` : ""}.${refunds ? ` Refunds received: ${money(refunds)}, counted separately from savings.` : ""}`, { verified_cents: vsum, projected_monthly_cents: proj, refunds_cents: refunds });
       }
       // S14: undo inside the access period is a resubscribe card; after it, honesty.
       async function undo(ctx) {
         const kase = cases.filter(c => c.state === "cancelled" || c.state === "verified").pop(); if (!kase) return say("nothing_to_undo", "Nothing recent to undo.");
         const until = kase.terms.resubscribe_until; const today = ymd(clock());
-        if (!until) return say("cannot_undo", `${kase.merchant} can't be reinstated from here; a new signup would be at the current price.`);
-        if (today > until) return say("past_window", `${kase.merchant}'s reinstatement window ended ${until}; a new signup would be at the current price.`);
-        const card = cards.issue({ action: `Resubscribe to ${kase.merchant} (${kase.terms.plan})`, amount_cents: kase.sub.amount_cents, counterparty: kase.merchant, direction: "to", fee_cents: 0, total_cents: kase.sub.amount_cents, timing: `Same ${money(kase.sub.amount_cents)}/${kase.sub.interval === "monthly" ? "mo" : kase.sub.interval} rate, billing resumes ${kase.sub.next}`, undo: `You can cancel again any time; the same terms apply.` }, { conversation: (ctx && ctx.conversation) || "default", channel: (ctx && ctx.channel) || "in_app" });
-        return say("undo_card", card.text, { card_id: card.card_id });
+        if (!until) return say("cannot_undo", `${kase.name || kase.merchant} can't be reinstated from here; a new signup would be at the current price.`);
+        if (today > until) return say("past_window", `${kase.name || kase.merchant}'s reinstatement window ended ${until}; a new signup would be at the current price.`);
+        const card = cards.issue({ action: `Resubscribe to ${kase.name || kase.merchant} (${kase.terms.plan})`, amount_cents: kase.sub.amount_cents, counterparty: kase.name || kase.merchant, direction: "to", fee_cents: 0, total_cents: kase.sub.amount_cents, timing: `Same ${money(kase.sub.amount_cents)}/${kase.sub.interval === "monthly" ? "mo" : kase.sub.interval} rate, billing resumes ${kase.sub.next}`, undo: `You can cancel again any time; the same terms apply.` }, { conversation: (ctx && ctx.conversation) || "default", channel: (ctx && ctx.channel) || "in_app" });
+        return say("undo_card", card.text, { card_id: card.card_id, details: card.details });
       }
       async function recordRun(key, run) { const kase = cases.find(c => c.key === key); if (kase) kase.run = run; }
-      return { start, reply, otp, check, status, savings, undo, parse, resolve, route, inventory, recordRun, cases, loop, cards, get pending() { return pending ? { merchant: pending.merchant, card_id: pending.card_id } : null; } };
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), cards: cards.snapshot(), cases, pending_index: pending ? cases.indexOf(pending) : null, queue, lessons, runs, last_mentioned }));
+      return { snapshot, start, reply, otp, check, status, savings, undo, parse, resolve, route, inventory, recordRun, cases, loop, cards, get pending() { return pending ? { merchant: pending.merchant, card_id: pending.card_id } : null; } };
     }
     return { create, parse, channelOf, keyOf, CAPABILITY, OTP_TTL_MS, GRACE_DAYS };
   })();

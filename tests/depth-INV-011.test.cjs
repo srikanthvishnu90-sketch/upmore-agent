@@ -10,7 +10,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const domainDir=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
 const ctx=vm.createContext({});
-vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','65-agent-realworld.js','66-agent-trade.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.C=Compliance;this.RW=RealWorld;this.G=AdviceGuard;',ctx);
+vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.C=Compliance;this.RW=RealWorld;this.G=AdviceGuard;',ctx);
 const T=ctx.T,C=ctx.C,RW=ctx.RW,G=ctx.G;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
@@ -96,7 +96,7 @@ test('[S04] a fresh quote with source and as-of prices the estimate exactly; a s
   const none=session({},{no_quote:true});const d=keep(await none.s.start('buy $500 of VOO'));assert.equal(d.outcome,'ask');assert.equal(d.reason,'no_quote');assert.ok(!/\$\d/.test(d.text));
   const whole=session({},{accounts:[{id:'fid-roth',name:'Fidelity Roth',fractional:false,cash_cents:1000000}]});
   const e=keep(await whole.s.start('buy $500 of VOO'));assert.equal(e.outcome,'ask');assert.equal(e.reason,'whole_shares');assert.match(e.text,/\$500\.00 buys 0 whole shares of VOO at \$512\.10/);
-  const f=keep(await whole.s.start('buy $1200 of VOO'));assert.equal(f.outcome,'confirm');assert.equal(f.order.quantity,2);assert.equal(f.order.estimated_cents,102420);assert.equal(f.order.leftover_cents,17580);assert.match(f.text,/\$175\.80 stays in cash because Fidelity Roth trades whole shares only/);
+  const f=keep(await whole.s.start('buy $1200 of VOO'));assert.equal(f.outcome,'confirm');assert.equal(f.order.quantity,2);assert.equal(f.order.estimated_cents,102420);assert.equal(f.order.leftover_cents,17580);assert.equal(f.text,"Buy 2 shares of VOO (Vanguard S&P 500 ETF), about $1,024.20 (whole shares only; $175.80 stays in cash), in Fidelity Roth. No fee. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.");assert.ok(!/\$1,200/.test(f.text),'the card never shows an amount that will not be spent');assert.match(f.details,/\$175\.80 stays in cash because Fidelity Roth trades whole shares only/);
 });
 
 test('[S05] the account is chosen, never assumed: one linked account is used and named; several ask; a named one is matched; an unlinked or view-only one is refused',async()=>{
@@ -120,11 +120,13 @@ test('[S06] settled cash is read with its as-of before any yes is asked; a short
 test('[S07] the confirmation restates the exact order: side, size, symbol with name, estimate at the quote with source and as-of, account, order type, timing, yes or no',async()=>{
   const {s}=session();
   const a=keep(await s.start('buy $500 of VOO'));
-  assert.equal(a.text,'Buy $500.00 of VOO (Vanguard S&P 500 ETF) in Schwab brokerage: about 0.9764 shares at $512.10 (Example Quotes, as of 13:59 UTC), market order, executes now. Reply yes or no.');
+  assert.equal(a.text,"Buy $500.00 of VOO (Vanguard S&P 500 ETF) in Schwab brokerage. No fee. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.");assert.ok(a.text.length<=306,'two SMS segments at most');
+  assert.equal(a.details,'Buy $500.00 of VOO (Vanguard S&P 500 ETF) in Schwab brokerage: about 0.9764 shares at $512.10 (Example Quotes, as of 13:59 UTC), market order, executes now. Reply yes or no.');
+  const det=keep(await s.reply('details'));assert.equal(det.outcome,'details');assert.equal(det.text,a.details);assert.ok(s.pending,'DETAILS does not consume the card');
   const c=a.order.request.confirm;assert.equal(c.amount,'about $500.00');assert.equal(c.recipient,'VOO (Vanguard S&P 500 ETF)');assert.equal(c.from,'Schwab brokerage');assert.equal(c.when,'executes now');assert.equal(a.order.request.params.amount_cents,50000);
   const last=s.loop.log.filter(e=>e.to==='AWAITING_CONFIRMATION').pop();assert.ok(last,'the loop holds the confirmation');
   await s.reply('no');
-  const b=keep(await s.start('buy 2 shares of VOO'));assert.equal(b.text,'Buy 2 shares of VOO (Vanguard S&P 500 ETF) in Schwab brokerage: about $1,024.20 at $512.10 (Example Quotes, as of 13:59 UTC), market order, executes now. Reply yes or no.');
+  const b=keep(await s.start('buy 2 shares of VOO'));assert.equal(b.text,"Buy 2 shares of VOO (Vanguard S&P 500 ETF), about $1,024.20, in Schwab brokerage. No fee. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.");assert.equal(b.details,'Buy 2 shares of VOO (Vanguard S&P 500 ETF) in Schwab brokerage: about $1,024.20 at $512.10 (Example Quotes, as of 13:59 UTC), market order, executes now. Reply yes or no.');
   // The loop itself refuses a money confirmation that does not restate amount and recipient.
   const bare=await s.loop.wake({kind:'message',request:{capability_id:'INV-011',key:'bare',params:{amount_cents:50000,symbol:'VOO'},describe:'Buy VOO',confirm:{action:'Buy VOO'}}});
   assert.equal(bare.outcome,'busy');await s.reply('no');
@@ -161,12 +163,12 @@ test('[S10] "yes but" corrects: the old proposal is dropped, the corrected order
 
 test('[S11] market closed means queued: the confirmation says so, the receipt says queued with the order id and never filled, and the follow-up reads the fill',async()=>{
   const {s,r,t}=session({now:CLOSED});
-  const a=keep(await s.start('buy $500 of VOO'));assert.equal(a.outcome,'confirm');assert.equal(a.order.market_open,false);assert.match(a.text,/market order, queued until the 9:30 ET open on Mon Oct 12\. Reply yes or no\.$/);
+  const a=keep(await s.start('buy $500 of VOO'));assert.equal(a.outcome,'confirm');assert.equal(a.order.market_open,false);assert.match(a.text,/Queued until the 9:30 ET open on Mon Oct 12\. Can't be undone once filled\./);assert.match(a.details,/market order, queued until the 9:30 ET open on Mon Oct 12\. Reply yes or no\.$/);
   const q=keep(await s.reply('yes'));assert.equal(q.outcome,'queued');assert.equal(q.order_id,'ord-1');assert.match(q.text,/^Queued: buy \$500\.00 of VOO in Schwab brokerage, order ord-1, until the 9:30 ET open on Mon Oct 12\. Not filled yet/);assert.ok(!/Done|filled at/.test(q.text));
   const p=E.proof('C46',q.proof);assert.equal(p.done,true);assert.equal(p.pending,true);
   // Monday open: the broker fills; the follow-up reads it back.
   t.now=OPEN;r.fill('ord-1');const f=keep(await s.followUp());assert.equal(f.outcome,'filled');assert.match(f.text,/^Done: bought 0\.9764 VOO/);assert.equal(r.writes.length,1);
-  const early=session({now:Date.UTC(2026,9,12,12,0,0)});const b=keep(await early.s.start('buy $500 of VOO'));assert.match(b.text,/queued until today's 9:30 ET open/);
+  const early=session({now:Date.UTC(2026,9,12,12,0,0)});const b=keep(await early.s.start('buy $500 of VOO'));assert.match(b.text,/Queued until today's 9:30 ET open\./);
 });
 
 test('[S12] a fill is read back, not assumed: price, shares, time, total and the position from the broker record; a partial fill is reported as partial; the real-world proof reads done from the same record',async()=>{
@@ -210,6 +212,19 @@ test('[S15] the receipt and the memory tell the truth: order id, total, source a
   assert.equal(keep(session().s.today(OPEN)).text,'Nothing bought today.');
   for(const x of all)if(x&&x.text)assert.equal(x.lint_ok,true,`lint: ${x.text} ${JSON.stringify(x.lint)}`);
   assert.ok(all.length>40);
+});
+
+test('[S16] stop-on-change: price, fee, buying power and market session are re-verified between the yes and the order; anything that moved stops it, says what moved, and puts up a fresh card',async()=>{
+  const {s,r,t}=session();
+  keep(await s.start('buy $500 of VOO'));r.cfg.price_cents=51340;
+  const a=keep(await s.reply('yes'));assert.equal(a.outcome,'changed');assert.equal(r.writes.length,0,'nothing was placed');
+  assert.match(a.text,/^Stopped before placing it: VOO moved from \$512\.10 to \$513\.40 \(Example Quotes, as of 13:59 UTC\)\. Nothing was placed\. New card: Buy \$500\.00 of VOO/);
+  assert.equal(a.next.order.price_cents,51340);const b=keep(await s.reply('yes'));assert.equal(b.outcome,'filled');assert.equal(r.writes.length,1);assert.equal(b.fill.fill_price_cents,51340);
+  const fee=session();keep(await fee.s.start('buy $500 of VOO'));fee.r.cfg.accounts[0].fee_cents=495;const f=keep(await fee.s.reply('yes'));assert.equal(f.outcome,'changed');assert.match(f.text,/the fee changed from \$0\.00 to \$4\.95/);assert.match(f.text,/Fee \$4\.95, total \$504\.95\./);assert.equal(fee.r.writes.length,0);
+  const cash=session();keep(await cash.s.start('buy $500 of VOO'));cash.r.cfg.accounts[0].cash_cents=10000;const c=keep(await cash.s.reply('yes'));assert.equal(c.outcome,'changed');assert.match(c.text,/settled cash in Schwab brokerage is now \$100\.00/);assert.equal(cash.r.writes.length,0);
+  const late=session({now:Date.UTC(2026,9,12,19,55,0)});keep(await late.s.start('buy $500 of VOO'));late.t.now+=6*60000;const d=keep(await late.s.reply('yes'));assert.equal(d.outcome,'changed');assert.match(d.text,/the market closed, so it would queue instead of filling now/);assert.equal(late.r.writes.length,0);
+  const down=session();keep(await down.s.start('buy $500 of VOO'));down.r.cfg.no_quote=true;const e=keep(await down.s.reply('yes'));assert.equal(e.outcome,'changed');assert.match(e.text,/I could not re-verify the VOO price/);assert.equal(down.r.writes.length,0);
+  const same=session();keep(await same.s.start('buy $500 of VOO'));assert.equal(keep(await same.s.reply('yes')).outcome,'filled','nothing moved, the order goes');
 });
 
 test('[ADV] adversarial log: stale quote, size ambiguity, look-alike symbol, decision words, duplicate text, stale yes, cross-order yes, timeout after send, rejection, no partner, sell, crypto, limit, injection',async()=>{

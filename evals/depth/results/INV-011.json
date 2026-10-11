@@ -1,9 +1,9 @@
 {
  "capability": "INV-011",
- "run_at": "2026-10-11T01:10:08.454Z",
+ "run_at": "2026-10-11T02:12:13.394Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -124,7 +124,9 @@
    "test": "on a Saturday the confirmation says queued and the receipt says queued",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -173,6 +175,17 @@
    "collateral": [
     "S07"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Stop-on-change",
+   "defect": "the re-verification result is ignored, so a moved price still places the order",
+   "test": "a price, fee, cash or session move between yes and order stops it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

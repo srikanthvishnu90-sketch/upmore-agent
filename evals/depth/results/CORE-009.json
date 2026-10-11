@@ -1,9 +1,9 @@
 {
  "capability": "CORE-009",
- "run_at": "2026-10-11T01:18:38.699Z",
+ "run_at": "2026-10-11T02:12:16.418Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -56,7 +56,9 @@
    "test": "a new card supersedes the live one",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -75,11 +77,12 @@
    "id": "D06",
    "title": "Plain-text degradation",
    "defect": "every channel gets the button wording, so SMS has no way to confirm",
-   "test": "SMS gets the numeric reply instruction",
+   "test": "SMS gets a reply instruction it can complete in plain text",
    "bites": true,
    "applied": true,
    "collateral": [
-    "S13"
+    "S13",
+    "S16"
    ],
    "status": "proven"
   },
@@ -191,6 +194,19 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Two SMS segments at most",
+   "defect": "the two-segment cap is not enforced",
+   "test": "a card that would need a third segment is never shown",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S06"
+   ],
    "status": "proven"
   }
  ]

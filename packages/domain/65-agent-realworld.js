@@ -202,7 +202,14 @@
         const wired = it.connectors.some(p => { const row = providers.get(p); return row && /live/.test(row.adapter_state || ""); });
         const rail = wired ? "LIVE" : it.sandbox ? "SANDBOX" : NOT_WIRED;
         const gaps = it.connectors.filter(p => p.startsWith("gap:")).map(p => p.slice(4));
-        return { id, logic, rail, tested, of: st.length, proven, gaps, registry: st };
+        // DONE is the only status that means the world changed. It needs a recorded live run (provider_mode "live", a real
+        // counterparty, a time) whose read-back passes this item's own proof check as done and not pending. Tests, depth
+        // packets, sandboxes and the user's say-so never make an item done.
+        const evid = (f.evidence && f.evidence[id]) || [];
+        const live = evid.filter(e => e && e.provider_mode === "live" && typeof e.counterparty === "string" && e.counterparty && typeof e.observed_at === "string" && Number.isFinite(Date.parse(e.observed_at)));
+        const passing = live.filter(e => { const r = proof(id, e.readback); return r.done === true && !r.pending; });
+        const done = passing.length > 0;
+        return { id, done, done_evidence: passing.map(e => e.file || null), evidence_rejected: evid.length - passing.length, logic, rail, tested, of: st.length, proven, gaps, registry: st };
       }
 
       return { describe, plan, proof, failure, statement, status, ids: () => [...items.keys()], item: get };

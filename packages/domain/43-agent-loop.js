@@ -92,7 +92,10 @@
       const envelopesAt = now => typeof o.envelopes === "function" ? (o.envelopes(now) || []) : Array.isArray(o.envelopes) ? o.envelopes : [];
       const sent = Array.isArray(o.sent) ? o.sent.slice() : [];
       let state = log.length ? log[log.length - 1].to : "IDLE";
-      let pending = null; // the confirmation we are waiting on
+      // The confirmation we are waiting on. A stateless host (an edge function per message) restores it from snapshot();
+      // the capability is re-read from the registry, never trusted from storage.
+      let pending = null;
+      if (o.pending && o.pending.id) { const cap = registry.get(o.pending.capability_id); if (cap) pending = { id: o.pending.id, item: o.pending.item, cap, draft_only: !!o.pending.draft_only, created_at: o.pending.created_at, expires_at: o.pending.expires_at }; }
       const seq = () => log.length + 1;
       function transition(to, input, output) {
         if (!STATES.includes(to)) throw new Error("Unknown state " + to);
@@ -234,7 +237,10 @@
         if (p.draft_only) { remember(memory, "outcomes", { capability_id: p.cap.id, result: "draft_approved", draft: p.item.params || null }, clock()); return idle({ confirmation_id: p.id }, { outcome: "draft_approved", message: `Approved draft recorded for ${p.item.describe || p.cap.name}. Sending is a separate, confirmed step.` }); }
         return act(p.item, p.cap, { confirm: false });
       }
-      return { wake, get state() { return state; }, log, memory, remember: (s, r) => remember(memory, s, r, clock()), pendingConfirmation: () => pending && { id: pending.id, capability_id: pending.cap.id } };
+      // Everything a host must persist between messages, as plain JSON: the log (state is derived from it), memory,
+      // the proactive send times and the pending confirmation. Restore with create({ ...opts, ...snapshot }).
+      const snapshot = () => JSON.parse(JSON.stringify({ log, memory, sent, pending: pending ? { id: pending.id, capability_id: pending.cap.id, item: pending.item, draft_only: pending.draft_only, created_at: pending.created_at, expires_at: pending.expires_at } : null }));
+      return { wake, get state() { return state; }, log, memory, snapshot, remember: (s, r) => remember(memory, s, r, clock()), pendingConfirmation: () => pending && { id: pending.id, capability_id: pending.cap.id } };
     }
     return { create, gate, decide, budgetAllows, createMemory, remember, STATES, TIERS, BUDGET };
   })();

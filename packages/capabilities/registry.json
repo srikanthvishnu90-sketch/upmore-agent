@@ -5832,14 +5832,14 @@
    "tier": "T2",
    "owner_doc": "01",
    "status": "TESTED",
-   "test_ref": "tests/control.test.cjs",
+   "test_ref": "tests/depth-CORE-005.test.cjs",
    "gate_reason": null,
    "connectors": [],
    "implementation": [
     "packages/domain/58-agent-control.js",
     "packages/domain/43-agent-loop.js"
    ],
-   "note": "Autonomy envelopes: granted in the user's own words with per-action and per-week limits, recipient and expiry; usage from outcomes; forLoop() cuts the per-action limit to what is left this week and is empty while paused; revoke and revoke all.",
+   "note": "Depth protocol (docs/depth/CORE-005.md): 15 user-observable sub-capabilities, each with a test proven to fail under a planted defect (evals/depth/run.cjs CORE-005, 15/15). Grants need the user's words and every limit and are restated; offered only after the trust ladder's three clean confirmations; T4 only; inside: no question and a receipt that says so; limits against the written params; weekly cap; recipient-bound; first-time never; expiry resets the ladder; revoke by text; paused means none; instructions cannot widen; audit of what ran alone; a surprise suspends; the thread always knows.",
    "description": "autonomy envelope management"
   },
   {

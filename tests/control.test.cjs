@@ -13,6 +13,7 @@ vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','36-agent-workflow
 const C=ctx.C,Loop=ctx.Loop;
 const same=(a,b,msg)=>assert.equal(JSON.stringify(a),JSON.stringify(b),msg);
 const NOW=Date.UTC(2026,9,10,14,0,0);const DAY=86400000;
+const earn=(c,cap)=>{for(let i=0;i<3;i++)c.envelopes.clean(cap);};
 const registry={get:id=>({'SAVE-001':{id:'SAVE-001',name:'autosave sweep',tier:'T4'},'PAY-001':{id:'PAY-001',name:'send to saved recipient',tier:'T3'},'ACCT-001':{id:'ACCT-001',name:'read balance',tier:'T0'},'PAY-009':{id:'PAY-009',name:'transfer between own accounts',tier:'T4'}}[id]||null),answer:()=>({text:''})};
 const connectors=()=>{const calls={write:[],read:[]};return {calls,read:async(...a)=>{calls.read.push(a);return {value:421208,source:'simplefin',as_of:NOW};},write:async(...a)=>{calls.write.push(a);return {reference:'ref-'+calls.write.length};},verify:async()=>({confirmed:true,source:'simplefin'})};};
 
@@ -34,8 +35,8 @@ test('standing instructions: restated in plain words, fire once per period with 
 
 test('envelopes: granted in the user\'s words with per-action and weekly limits, usage cuts what the loop may do, revoked or paused envelopes vanish, the loop acts inside and asks outside',async()=>{
   const c=C.create();
-  assert.throws(()=>c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000},NOW),/user's own words/);
-  const e=c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000,max_per_week_cents:12000,describe:'move money to savings',granted_by_text:'you can move up to $50 to savings whenever, max $120 a week',expires_at:NOW+30*DAY},NOW);
+  assert.throws(()=>c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000},NOW),/user's own words/);assert.throws(()=>c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000,granted_by_text:'ok'},NOW),/Only a T4 capability/);assert.throws(()=>c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,granted_by_text:'ok'},NOW),/offered after three clean confirmations of SAVE-001; 0 so far/);
+  earn(c,'SAVE-001');const e=c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,max_per_week_cents:12000,describe:'move money to savings',granted_by_text:'you can move up to $50 to savings whenever, max $120 a week',expires_at:NOW+30*DAY},NOW);
   assert.equal(e.restated,'Without asking each time, I may move money to savings up to $50.00 per action and $120.00 per week, until 2026-11-09. You get a receipt after each one. First-time recipients still ask. Say "stop" or "revoke" to end it.');
   const conn=connectors();const memory={outcomes:[]};
   const loop=Loop.create({registry,connectors:conn,clock:()=>NOW,memory,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
@@ -52,7 +53,7 @@ test('envelopes: granted in the user\'s words with per-action and weekly limits,
 
 test('kill switch: paused blocks every tier above a read in the loop, reads still answer, standing instructions and envelopes are empty, resume restores',async()=>{
   const c=C.create();const conn=connectors();
-  c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000,granted_by_text:'ok up to $50'},NOW);
+  earn(c,'SAVE-001');c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,granted_by_text:'ok up to $50'},NOW);
   const loop=Loop.create({registry,connectors:conn,clock:()=>NOW,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
   c.pause.set('user said stop',NOW);assert.equal(c.pause.status(NOW).paused,true);assert.match(c.pause.status(NOW).text,/^Paused since 2026-10-10 14:00: I answer questions but take no action/);
   const blocked=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',key:'s1',params:{amount_cents:1000,recipient:'savings'},describe:'move $10'}});assert.equal(blocked.outcome,'blocked');assert.equal(blocked.reason,'paused');assert.match(blocked.message,/I'm paused \(user said stop\), so I did not do that\. Say resume/);assert.equal(conn.calls.write.length,0);assert.equal(loop.state,'IDLE');
@@ -82,7 +83,7 @@ test('corrections are verbatim with the action they corrected and the same wrong
 
 test('export carries no secret and lists every file; deletion needs the phrase, revokes everything and keeps a 7-day window; onboarding asks each question once; the changelog answers version questions',()=>{
   const c=C.create();
-  c.envelopes.grant({capability_id:'SAVE-001',max_cents:5000,granted_by_text:'ok'},NOW);c.instructions.create({capability_id:'SAVE-001',text:'sweep',cadence:'daily'},NOW);
+  earn(c,'SAVE-001');c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,granted_by_text:'ok'},NOW);c.instructions.create({capability_id:'SAVE-001',text:'sweep',cadence:'daily'},NOW);
   const data={memory:{facts:[{key:'balance',value:1,source:'simplefin',as_of:NOW}],outcomes:[]},log:[{seq:1,to:'IDLE'}],accounts:[{id:'chk',balance_cents:1000,access_token:'tok_123',routing_number:'021000021'}],transactions:[{id:'t1',account_id:'chk',posted_at:'2026-09-01',amount:-12.5,merchant_raw:'CAFE'}],people:[{name:'Marcus',venmo:'@mlee',ssn_last4:'1234'}],connectors:[{id:'simplefin-1',vault_handle:'vh_9'}]};
   const x=c.exportBundle(data,NOW);
   same(Object.keys(x.files).sort(),['accounts.json','control.json','event-log.json','manifest.json','memory.json','people.json','transactions.csv']);

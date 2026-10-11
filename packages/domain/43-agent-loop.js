@@ -108,7 +108,7 @@
         const f = fields || {};
         if (kind === "answer") return `${f.lead}${f.source ? ` (${f.source}, as of ${f.as_of}${f.stale ? ", which is stale" : ""})` : ""}`;
         if (kind === "confirm") return `Confirm: ${f.action} ${f.amount || ""}${f.recipient ? ` to ${f.recipient}` : ""}${f.from ? ` from ${f.from}` : ""}${f.fee ? `, fee ${f.fee}` : ", no fee"}${f.when ? `, ${f.when}` : ""}. Reply yes to proceed.`.replace(/\s+/g, " ");
-        if (kind === "receipt") return `Done: ${f.action}${f.reference ? ` (ref ${f.reference})` : ""}. ${f.verified ? "Confirmed by " + f.source + "." : "Not yet confirmed by the rail; I will follow up."}`;
+        if (kind === "receipt") return `Done: ${f.action}${f.reference ? ` (ref ${f.reference})` : ""}. ${f.verified ? "Confirmed by " + f.source + "." : "Not yet confirmed by the rail; I will follow up."}${f.envelope ? ` No question asked because of your envelope ${f.envelope}; say stop to end it.` : ""}`;
         if (kind === "unknown") return `I could not confirm whether ${f.action} went through. I have not retried, and I will not until the record is reconciled. Nothing else was changed.`;
         if (kind === "blocked") return f.text;
         return text(f.text, 500);
@@ -156,7 +156,7 @@
         const confirmed = v && v.confirmed === true;
         const outcome = remember(memory, "outcomes", { capability_id: cap.id, idempotency_key: key, reference: result && result.reference || v && v.reference || null, envelope_id: envelopeId || (log.filter(e => e.to === "ACTING" && e.input && e.input.idempotency_key === key).pop() || { input: {} }).input.envelope_id || null, amount_cents: item.params && Number.isInteger(item.params.amount_cents) ? item.params.amount_cents : null,
           result: confirmed ? "confirmed" : v && v.confirmed === false ? "failed" : "unknown", source: v && v.source || null }, clock());
-        if (confirmed) return idle({ idempotency_key: key }, { outcome: "confirmed", message: compose("receipt", { action: item.describe || cap.name, reference: result && result.reference, verified: true, source: v.source || "the connector" }), outcome_record: outcome });
+        if (confirmed) return idle({ idempotency_key: key }, { outcome: "confirmed", message: compose("receipt", { action: item.describe || cap.name, reference: result && result.reference, verified: true, source: v.source || "the connector", envelope: outcome.envelope_id || null }), outcome_record: outcome, envelope_id: outcome.envelope_id || null });
         if (v && v.confirmed === false) return idle({ idempotency_key: key }, { outcome: "failed", message: `${item.describe || cap.name} did not go through (${v.reason || "the rail rejected it"}), per ${v.source || "the rail"}. Nothing posted on their side.` });
         transition("FOLLOW_UP_SCHEDULED", { idempotency_key: key }, { follow_up_at: clock() + (o.follow_up_ms || 15 * 60000) });
         return { outcome: "unknown", state, message: compose("unknown", { action: item.describe || cap.name }), idempotency_key: key };

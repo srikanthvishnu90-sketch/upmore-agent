@@ -40,7 +40,7 @@
             if (i.status !== "active" || (i.expires_at && i.expires_at <= now) || !i.cadence) continue;
             const period = periodKey(i, now); if (!period || i.last_fired_period === period) continue;
             if (i.day && !dayMatches(i, now)) continue;
-            out.push({ instruction_id: i.id, period, request: Object.assign({ capability_id: i.capability_id, key: `${i.id}:${period}`, idempotency_key: `${i.id}:${period}`, params: Object.assign({}, i.params), describe: i.text, cadence_requested: true, standing_instruction: i.id }, i.max_cents != null && i.params.amount_cents > i.max_cents ? { blocked: `over the instruction's ${money(i.max_cents)} limit` } : {}) });
+            out.push({ instruction_id: i.id, period, request: Object.assign({ capability_id: i.capability_id, key: `${i.id}:${period}`, idempotency_key: `${i.id}:${period}`, params: Object.assign({}, i.params), describe: i.text, cadence_requested: true, standing_instruction: i.id, amount_cents: i.params.amount_cents, recipient: i.params.recipient }, Number.isInteger(i.params.amount_cents) ? { confirm: { action: i.text, amount: money(i.params.amount_cents), recipient: String(i.params.recipient || "") } } : {}, i.max_cents != null && i.params.amount_cents > i.max_cents ? { blocked: `over the instruction's ${money(i.max_cents)} limit` } : {}) });
           }
           return out;
         },
@@ -52,21 +52,49 @@
       function restate(i) { const when = i.cadence === "daily" ? "every day" : i.cadence === "weekly" ? `every week${i.day != null ? ` on ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][i.day]}` : ""}` : i.cadence === "monthly" ? `every month${i.day ? ` on the ${i.day}${["st", "nd", "rd"][i.day - 1] || "th"}` : ""}` : `when ${i.trigger}`; return `${i.text}, ${when}${i.max_cents != null ? `, never more than ${money(i.max_cents)} at a time` : ""}${i.expires_at ? `, until ${iso(i.expires_at).slice(0, 10)}` : ""}. Anything that needs your approval still asks; this does not raise your limits.`; }
 
       // CORE-005: autonomy envelopes. Explicit, user-set, bounded per action and per week, revocable; every action inside one still gets a receipt.
+      // The trust ladder (doc 11): three clean confirmations of one capability and shape earn the offer; a correction or a surprise resets it.
+      s.ladder = s.ladder || {};
+      const ladder = typeof AgentVoice !== "undefined" && AgentVoice.ladder ? AgentVoice.ladder(s.ladder) : localLadder(s.ladder);
       const envelopes = {
+        clean(capability_id, shape) { return ladder.record(capability_id, shape || "*", "clean_confirmation"); },
+        correction(capability_id, shape) { return ladder.record(capability_id, shape || "*", "correction"); },
+        offer(capability_id, shape, limit_cents) { return ladder.offerText(capability_id, shape || "*", limit_cents); },
         grant(spec, now) {
           if (!spec.capability_id || !Number.isInteger(spec.max_cents) || spec.max_cents <= 0) throw new Error("An envelope needs a capability and a positive per-action limit in cents.");
           if (!spec.granted_by_text) throw new Error("An envelope is granted in the user's own words; record them.");
-          const e = { id: id("env"), capability_id: spec.capability_id, max_cents: spec.max_cents, max_per_week_cents: Number.isInteger(spec.max_per_week_cents) ? spec.max_per_week_cents : null, recipient: spec.recipient || null, expires_at: spec.expires_at || now + 90 * DAY, active: true, granted_at: now, granted_by_text: String(spec.granted_by_text).trim(), restated: null };
-          e.restated = `Without asking each time, I may ${spec.describe || spec.capability_id}${e.recipient ? ` to ${e.recipient}` : ""} up to ${money(e.max_cents)} per action${e.max_per_week_cents ? ` and ${money(e.max_per_week_cents)} per week` : ""}, until ${iso(e.expires_at).slice(0, 10)}. You get a receipt after each one. First-time recipients still ask. Say "stop" or "revoke" to end it.`;
+          // S11: only a T4 capability can run under an envelope. Sends to people (T3) and first-time recipients (T5) are confirmed every time.
+          if (spec.tier !== "T4") throw new Error(`Only a T4 capability can run under an envelope; ${spec.capability_id} is ${spec.tier || "of unknown tier"}: sends to people and first-time recipients are confirmed every time.`);
+          // S02: offered only after the ladder earns it.
+          const lad = s.ladder[`${spec.capability_id}|${spec.shape || "*"}`];
+          if (!lad || !lad.offer) throw new Error(`An envelope is offered after three clean confirmations of ${spec.capability_id}; ${lad ? lad.clean : 0} so far.`);
+          const e = { id: id("env"), capability_id: spec.capability_id, shape: spec.shape || "*", max_cents: spec.max_cents, max_per_week_cents: Number.isInteger(spec.max_per_week_cents) ? spec.max_per_week_cents : null, recipient: spec.recipient || null, expires_at: spec.expires_at || now + 90 * DAY, active: true, granted_at: now, granted_by_text: String(spec.granted_by_text).trim(), describe: spec.describe || spec.capability_id, restated: null };
+          e.restated = `Without asking each time, I may ${e.describe}${e.recipient ? ` to ${e.recipient}` : ""} up to ${money(e.max_cents)} per action${e.max_per_week_cents ? ` and ${money(e.max_per_week_cents)} per week` : ""}, until ${iso(e.expires_at).slice(0, 10)}. You get a receipt after each one. First-time recipients still ask. Say "stop" or "revoke" to end it.`;
+          ladder.record(spec.capability_id, e.shape, "envelope_granted");
           s.envelopes.push(e); return e;
+        },
+        // S14: the user flinched at an envelope action. The envelope is suspended and the ladder resets; it resumes only in the user's words.
+        surprise(eid, now, text) { const e = s.envelopes.find(x => x.id === eid); if (!e) return null; e.active = false; e.suspended_at = now; e.suspended_reason = String(text || "you questioned an action"); ladder.record(e.capability_id, e.shape, "surprise"); return { envelope: e, text: `I've paused the "${e.describe}" envelope: nothing runs under it until you say so. The ${money(e.max_cents)} limit is still on record; say "resume the envelope" to restore it, or "revoke" to end it.` }; },
+        resume(eid, now, text) { const e = s.envelopes.find(x => x.id === eid); if (!e || !e.suspended_at) return null; if (!text) throw new Error("An envelope resumes in the user's own words."); e.active = true; e.resumed_at = now; e.resumed_by_text = String(text).trim(); delete e.suspended_at; const k = `${e.capability_id}|${e.shape}`; s.ladder[k] = Object.assign(s.ladder[k] || { clean: 0, demotions: 0 }, { granted: true, offer: false }); return e; },
+        // S09: revoke by text. "stop", "revoke", "end the envelope" end the live one(s) before the next action; "revoke all" ends every envelope.
+        command(text, now) {
+          const t = String(text || "").trim().toLowerCase(), live = s.envelopes.filter(e => e.active);
+          if (/\b(revoke|stop|end|cancel)\b.*\b(all|every|everything)\b|\b(all|every)\b.*\b(envelopes?)\b/.test(t)) { const n = envelopes.revokeAll(now); for (const e of live) ladder.record(e.capability_id, e.shape, "envelope_revoked"); return { revoked: live.map(e => e.id), text: n ? `Ended ${n} envelope${n === 1 ? "" : "s"}: ${live.map(e => e.describe).join("; ")}. I ask before every action again.` : "No envelope was active." }; }
+          if (/^(stop|revoke|end|cancel)\b|\b(stop|revoke|end|cancel)\b.*\benvelope\b/.test(t)) { const named = live.find(e => t.includes(String(e.describe).toLowerCase())) || (live.length === 1 ? live[0] : null); if (!named) return live.length ? { revoked: [], text: `Which one: ${live.map(e => e.describe).join(" or ")}? Say "revoke all" to end every envelope.` } : { revoked: [], text: "No envelope was active." }; envelopes.revoke(named.id, now); ladder.record(named.capability_id, named.shape, "envelope_revoked"); return { revoked: [named.id], text: `Ended the "${named.describe}" envelope. I ask before every one of those again.` }; }
+          return null;
+        },
+        // S13/S15: the audit of what ran alone, and what may run alone now.
+        report(outcomes, now) {
+          const rows = s.envelopes.map(e => { const acts = (outcomes || []).filter(o => o.envelope_id === e.id && (now - (o.recorded_at || 0)) < WEEK).map(o => ({ at: iso(o.recorded_at || 0).slice(0, 10), amount_cents: o.amount_cents || 0, reference: o.reference || null, result: o.result })); const u = envelopes.usage(e.id, outcomes, now); return { envelope_id: e.id, describe: e.describe, active: e.active, suspended: !!e.suspended_at, max_cents: e.max_cents, max_per_week_cents: e.max_per_week_cents, remaining_this_week_cents: u.remaining_this_week_cents, actions: acts }; });
+          const live = rows.filter(r => r.active), acted = rows.filter(r => r.actions.length);
+          return { envelopes: rows, text: (acted.length ? `On my own this week: ${acted.map(r => r.actions.map(a => `${a.at} ${money(a.amount_cents)}${a.reference ? ` (ref ${a.reference})` : ""}`).join(", ") + ` under "${r.describe}"`).join("; ")}.` : "Nothing ran on its own this week.") + (live.length ? ` Live envelopes: ${live.map(r => `${r.describe} up to ${money(r.max_cents)} per action${r.remaining_this_week_cents != null ? `, ${money(r.remaining_this_week_cents)} left this week` : ""}`).join("; ")}. Say stop to end one.` : " No envelope is live; I ask before every action.") };
         },
         list() { return s.envelopes.slice(); },
         revoke(eid, now) { const e = s.envelopes.find(x => x.id === eid); if (!e) return null; e.active = false; e.revoked_at = now; return e; },
-        revokeAll(now) { for (const e of s.envelopes) if (e.active) { e.active = false; e.revoked_at = now; } return s.envelopes.filter(e => e.revoked_at === now).length; },
+        revokeAll(now) { let n = 0; for (const e of s.envelopes) if (e.active) { e.active = false; e.revoked_at = now; n++; } return n; },
         // Usage against outcomes: what was written under this envelope this week.
         usage(eid, outcomes, now) { const e = s.envelopes.find(x => x.id === eid); if (!e) return null; const rows = (outcomes || []).filter(o => o.envelope_id === e.id && o.result === "confirmed" && (now - (o.recorded_at || 0)) < WEEK); const used = rows.reduce((t, o) => t + (o.amount_cents || 0), 0); return { envelope_id: e.id, used_this_week_cents: used, actions_this_week: rows.length, remaining_this_week_cents: e.max_per_week_cents != null ? Math.max(0, e.max_per_week_cents - used) : null }; },
         // What the loop checks: active, unexpired envelopes with the per-action limit cut to what is left this week. The kill switch makes this empty.
-        forLoop(outcomes, now) { if (pause.paused(now)) return []; return s.envelopes.filter(e => e.active && e.expires_at > now).map(e => { const u = envelopes.usage(e.id, outcomes, now); const cap = u.remaining_this_week_cents != null ? Math.min(e.max_cents, u.remaining_this_week_cents) : e.max_cents; return { id: e.id, capability_id: e.capability_id, max_cents: cap, recipient: e.recipient, active: cap > 0, expires_at: e.expires_at }; }); }
+        forLoop(outcomes, now) { for (const e of s.envelopes) if (e.active && e.expires_at <= now) { e.active = false; e.expired_at = now; ladder.record(e.capability_id, e.shape, "envelope_revoked"); } if (pause.paused(now)) return []; return s.envelopes.filter(e => e.active && e.expires_at > now).map(e => { const u = envelopes.usage(e.id, outcomes, now); const cap = u.remaining_this_week_cents != null ? Math.min(e.max_cents, u.remaining_this_week_cents) : e.max_cents; return { id: e.id, capability_id: e.capability_id, max_cents: cap, recipient: e.recipient, active: cap > 0, expires_at: e.expires_at }; }); }
       };
 
       // CORE-006: corrections, verbatim, with the action they corrected; a field-level fix is applied to later requests.
@@ -148,6 +176,11 @@
       return { instructions, envelopes, corrections, pause, freezes, credentials, onboarding, exportBundle, deletionPlan, deletionConfirm, snapshot, state: s };
     }
 
+    // The trust ladder when the voice layer is not loaded: identical semantics (doc 11).
+    function localLadder(state) {
+      const key = (cap, shape) => `${cap}|${shape || "*"}`;
+      return { state, record(cap, shape, event) { const k = key(cap, shape), e = state[k] || (state[k] = { clean: 0, offer: false, granted: false, demotions: 0 }); if (event === "clean_confirmation") { e.clean++; if (e.clean >= 3 && !e.granted) e.offer = true; } else if (event === "correction" || event === "surprise") { e.clean = 0; e.offer = false; e.granted = false; e.demotions++; } else if (event === "envelope_granted") { if (!e.offer) throw new Error("An envelope is granted only after it was offered."); e.granted = true; e.offer = false; } else if (event === "envelope_revoked") { e.granted = false; e.offer = false; e.clean = 0; } else throw new Error("Unknown ladder event " + event); return Object.assign({}, e); }, offerText(cap, shape, limitCents) { const e = state[key(cap, shape)]; return e && e.offer ? `I can just do this under ${money(limitCents)} from now on, with a receipt each time. Want that?` : null; }, autonomous(cap, shape) { const e = state[key(cap, shape)]; return !!(e && e.granted); } };
+    }
     // CORE-011: undo and mitigation contracts per capability family. A confirmation can say what can be taken back and for how long.
     const CONTRACTS = [
       { match: /^BILL-003$|^BILL-004$/, undo: { possible: true, window_days: 30, how: "resubscribe or unpause; most merchants restore the same plan within the billing period" }, mitigation: "if the price changed, the old rate is usually gone; I will say so before you confirm" },

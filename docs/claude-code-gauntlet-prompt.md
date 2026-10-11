@@ -55,25 +55,31 @@ into the money-flow path (not a standalone demo), tests proving at least two
 different flows (e.g. pay AND split) resolve through the same layer. If you
 lack Supabase access to apply the migration, hand back the SQL and say so.
 
-### RAIL 2 — Alpaca paper adapter (ALL order types)
+### RAIL 2 — Alpaca LIVE adapter (ALL order types)
 
-Not buy-only. This is the general execution adapter behind every trading
-capability: market, limit, stop, and trailing-stop orders, buys AND sells,
-fractional shares, modify/cancel. Every capability in
-`docs/trading-capabilities.md` and `docs/upmore-200-capabilities.md` that
-trades goes through this adapter.
+LIVE trading, real money — owner's explicit decision. This is the general
+execution adapter behind every trading capability: market, limit, stop, and
+trailing-stop orders, buys AND sells, fractional shares, modify/cancel.
+Every capability in `docs/trading-capabilities.md` and
+`docs/upmore-200-capabilities.md` that trades goes through this adapter.
 
-Base `https://broker-api.sandbox.alpaca.markets`, HTTP Basic auth with
+Base `https://broker-api.alpaca.markets`, HTTP Basic auth with
 base64(`API_KEY_ID`:`API_SECRET_KEY`), orders at
 `POST /v1/trading/accounts/{account_id}/orders`, all numbers as strings,
 every write async (accepted → filled/canceled — poll and reconcile, never
 assume). Reference `~/workspace/skills/alpaca/SKILL.md` if present.
 
-Keys from env (`ALPACA_BROKER_KEY_ID`, `ALPACA_BROKER_SECRET`), never
-hardcoded. If keys aren't in env yet, build against a mock Alpaca server
-and say plainly which tests ran on mock vs live paper. Label PAPER
-everywhere a user can see it: the card, the receipt, the portfolio answer,
-every log line.
+Keys from env (`ALPACA_BROKER_KEY_ID`, `ALPACA_BROKER_SECRET` — LIVE keys),
+never hardcoded. Label LIVE everywhere a user can see it: the card, the
+receipt, the portfolio answer, every log line.
+
+Safety rules (non-negotiable — real dollars):
+- Test trades capped at $5 per order until the owner raises the cap in
+  writing. No exceptions during the build/test phase.
+- Every order approval-gated: fresh yes, 10-min card expiry, single-use,
+  context-bound per spec 16. Stale yes never fires.
+- Idempotency key on every order; a thrown write is never retried blind —
+  reconcile by client order id, report "unknown" until reconciled.
 
 Requirements (apply to every order type, both sides):
 - Real quote fetch with source and as-of time on every card.
@@ -91,9 +97,10 @@ Requirements (apply to every order type, both sides):
   report "unknown" until reconciled.
 - Keep every existing approval-card and stop-on-change check in the path.
 
-Tests: unit on the adapter, integration on a mock Alpaca server, and the
-full order-type matrix (buy/sell × market/limit/stop) re-run against the
-adapter — not just the buy packet. Never present a mock result as live.
+Tests: unit on the adapter, integration on a mock Alpaca server for
+shape/safety logic, then the full order-type matrix (buy/sell ×
+market/limit/stop) re-run against LIVE with the $5 test cap — not paper.
+Never present a mock result as live.
 
 ### RAIL 3 — Merchant-terms reader (ANY merchant; Netflix proves it)
 
@@ -125,7 +132,8 @@ at spec 16's 95% bar.
 
 ## Rules for the whole build
 
-- Honest status only. Paper is labeled paper everywhere.
+- Honest status only. LIVE is labeled live everywhere — no one mistakes a
+  real-money result for a test.
 - Never present a mock as live.
 - Every money action keeps the approval card; stale yes never fires;
   stop-on-change on every rail.

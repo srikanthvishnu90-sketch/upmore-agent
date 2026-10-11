@@ -39,10 +39,10 @@ Put them in the vault / `lane-b` directly — never paste cards or passwords int
 |---|---|---|
 | `ANTHROPIC_API_KEY` | CONFIRMED SET (via secrets-list; values aren't retrievable via API) | None — already there |
 | Test JWT | GENERATED 2026-10-11 (below) | Use as `Authorization: Bearer <jwt>` against agent-chat |
-| `ALPACA_BROKER_KEY_ID` | MISSING | **You:** alpaca.markets → paper account → generate PAPER keys → add as Supabase secret |
+| `ALPACA_BROKER_KEY_ID` | MISSING | **You:** alpaca.markets → complete identity verification + bank link → generate LIVE keys → add as Supabase secret |
 | `ALPACA_BROKER_SECRET` | MISSING | **You:** same as above |
-| Alpaca paper account ID | MISSING | **You:** from the Alpaca paper dashboard |
-| `ALPACA_PAPER_USER_ID` | MISSING — optional for launch, paper only | You provide when ready |
+| Alpaca live account ID | MISSING | **You:** from the Alpaca dashboard (account must be funded for live orders) |
+| `ALPACA_PAPER_USER_ID` | Not needed — owner ordered live-first | — |
 
 ### Not keys, not blockers for you
 

@@ -1,0 +1,213 @@
+// The owner's "Full Agent Capability List" (2026-10-11), bullet by bullet, against the code. Read by
+// scripts/capability-list.cjs, which derives each bullet's status from the registry (packages/capabilities/registry.json)
+// and the REACHABLE list below, writes docs/capability-list/README.md, and fails (--check) on drift.
+//
+// Per bullet: [n, registry ids, coverage, note, conflict]
+//   n         the bullet's position in the doc (1..149, in order; the parser checks the text prefix too)
+//   ids       registry capabilities that implement it ("" when nothing does)
+//   coverage  how much of the bullet those capabilities cover once built: "full", "part" (the note says which piece),
+//             "none" when no capability is registered for it
+//   conflict  a standing owner rule the bullet runs into as written (CLAUDE.md), or null
+//
+// REACHABLE: capabilities a person can reach in the product on this branch today, through the chat's flow router
+// (send, split, trade, cancel), the financial planner's read tools (financial_tools.ts) or a deployed function. Kept
+// conservative: a module that only passes offline tests is not here. Nothing on this list is proven live yet.
+const REACHABLE = {
+  "PAY-001": "chat: send flow (staged handoff in the person's app)",
+  "PAY-002": "chat: send flow, new recipient read-back",
+  "PAY-004": "chat: split flow (requests staged in the person's app)",
+  "PAY-020": "chat: daily and weekly send limits",
+  "PAY-021": "chat: first send to a new handle confirmed in full",
+  "INV-001": "chat: trade flow reads the live portfolio",
+  "INV-011": "chat: trade flow, live, $5 cap",
+  "INV-012": "chat: trade flow, live, $5 cap",
+  "INV-024": "chat: advice guard on every trade message",
+  "BILL-003": "chat: cancel flow (stops honestly where the merchant's terms can't be read)",
+  "ACCT-006": "app: SimpleFIN and Plaid linking functions",
+  "ACCT-018": "chat: planner tool get_cash_position",
+  "TXN-001": "chat: planner tool search_transactions",
+  "TXN-002": "chat: planner tool search_transactions",
+  "TXN-011": "chat: planner tool get_pending_transactions",
+  "ANL-002": "chat: planner tool get_spending_income_report",
+  "ANL-013": "chat: planner tool get_posted_flow_report (top merchants)",
+  "TXN-009": "chat: planner tool get_recovery_report (duplicate charges)",
+  "SAVE-004": "chat: planner tool get_recovery_report (fees)",
+  "CORE-002": "chat: honest capability answers",
+  "CORE-009": "chat: confirmation cards",
+  "CORE-014": "app: delete-account function",
+};
+const NO_PHONE = "No phone calls (owner rule)";
+const FRESH = "Trades need a fresh approval per order and the $5 cap (owner rule): a standing [Rule] would need the owner to change that in writing";
+const ONE_CANCEL = "One explicit approval per cancellation (owner rule): a [Rule] that cancels on its own runs into it";
+const NO_ADVICE = "No securities advice (owner rule): choosing positions for the person is advice unless it copies a named public source exactly";
+const CAP_COPY = "The $5 per-order live cap (owner rule) makes a whole-portfolio copy impossible until the owner raises it in writing; every order also needs approval (one card can list them all)";
+const NO_DIGITS = "Never store identity digits (owner rule): bureau freezes need SSN and identity answers, so the person does that step themselves";
+const MAP = [
+  // 1. See everything: accounts
+  [1, "ACCT-006 ACCT-003", "part", "bank and card linking through SimpleFIN/Plaid; retirement, loans, BNPL, payroll and crypto aggregation not built", null],
+  [2, "TXN-015", "part", "receipt attachment from email is a tested module; Gmail OAuth function exists, no reading pipeline in the chat", null],
+  [3, "TXN-016 PAY-006", "part", "photos reach the chat model (spec 16, S16-11/12); no structured bill/statement/lease/pay-stub reader", null],
+  [4, "ACCT-003 ACCT-016", "part", "list across linked institutions; finding forgotten accounts in email is not built", null],
+  [5, "ACCT-005", "part", "connector health is a module; the chat says when it can't read accounts; reconnect is for brokerage only", null],
+  // spending
+  [6, "ANL-013 ANL-001 TXN-022", "part", "by merchant reachable (planner); by person/place not built", null],
+  [7, "ANL-002 ANL-001", "full", "planner spending report over a date range", null],
+  [8, "TXN-003 CORE-006", "part", "category override rules are a module; not wired to chat", null],
+  [9, "ALRT-003 TXN-010", "part", "module only", null],
+  [10, "TXN-005 BILL-001 BILL-011 BILL-010", "part", "recurring detection is a module; free-trial detection not built", null],
+  [11, "TXN-006", "full", "", null],
+  [12, "TXN-021 ANL-009", "part", "module only; the planner can compare two ranges on request", null],
+  [13, "CARD-001 ANL-001", "part", "module only", null],
+  // the numbers
+  [14, "ANL-005", "full", "module only", null],
+  [15, "ACCT-004 ANL-017", "full", "module only", null],
+  [16, "ANL-006", "full", "module only", null],
+  [17, "ACCT-018 ANL-006", "part", "cash position reachable; runway in days is not computed", null],
+  [18, "ANL-007 BILL-007 HOUS-001", "part", "module only; paydays not on the calendar", null],
+  [19, "ANL-019 ANL-005", "part", "module only; 'when' is not projected", null],
+  [20, "ANL-019", "part", "cut/save what-ifs only; moves and job changes not modelled", null],
+  [21, "CORE-010", "part", "money statements cite source and as-of (rule); a 'show the math' expansion is not built", null],
+  // 2. reports
+  [22, "NEWS-005 INV-001", "part", "breaking alerts on held names are a module; no daily close report with movers and reasons", null],
+  [23, "NEWS-004 ANL-005", "part", "morning brief is a news module; balance, safe-to-spend and overnight actions are not combined; no scheduler sends it", null],
+  [24, "ANL-020", "full", "module only; nothing sends it on a schedule", null],
+  [25, "ANL-002 ANL-012", "part", "module only", null],
+  [26, "ANL-012 SAVE-007 EARN-004", "part", "annual report module; 'confirmed dollars saved' needs live outcomes, which are 0", null],
+  [27, "ALRT-010 CORE-007", "part", "user-defined watch and scheduled wakes are modules; no delivery schedule in production", null],
+  // alerts
+  [28, "BILL-007 ALRT-001", "part", "module only", null],
+  [29, "ALRT-001 SAVE-006", "full", "module only", null],
+  [30, "ALRT-007 ANL-010", "part", "deposit received is a module; late or different-amount paycheck is not", null],
+  [31, "ALRT-004 BILL-002", "full", "module only", null],
+  [32, "BILL-010", "full", "", null],
+  [33, "TXN-009 TXN-010", "part", "duplicate charges reachable through the planner's recovery report; new-merchant alert is a module", null],
+  [34, "ALRT-002", "full", "module only", null],
+  [35, "INV-009 INV-010", "part", "price alerts are a module; earnings-date alerts not built", null],
+  [36, "INV-006 EARN-018", "full", "", null],
+  [37, "CRDT-001 CRDT-006 CRDT-007", "part", "modules over a credit feed that is not connected", null],
+  [38, "TXN-013 EARN-015", "part", "refund matching is a module; promised-window tracking not built", null],
+  [39, "TAX-010 INS-009 EARN-008 SAVE-020", "part", "tax and enrollment calendars are modules; FSA reminder not built", null],
+  [40, "SAVE-002 SAVE-008 CRDT-011", "part", "HYSA comparison and refinance watch are modules; insurance rebid not built", null],
+  [41, "EARN-008 EARN-015", "part", "settlement and recall matching are modules", null],
+  [42, "CORE-010 CORE-011 PAY-022", "full", "receipts and undo contracts in the flows; no action has a live receipt yet", null],
+  [43, "CORE-010", "full", "every flow states failures plainly (tested); live failures replay as tests", null],
+  [44, "CORE-010 SAVE-007", "full", "counted only on the provider's record (rule, tested)", null],
+  // 3. investing: copy
+  [45, "", "none", "copy trading is not built; the chat says so with the disclosure lag", CAP_COPY],
+  [46, "", "none", "not built", CAP_COPY],
+  [47, "", "none", "not built", FRESH],
+  [48, "", "none", "not built (the stale-data warning exists in the refusal text)", null],
+  [49, "", "none", "not built", CAP_COPY],
+  [50, "", "none", "not built; theme baskets choose positions for the person", NO_ADVICE],
+  [51, "INV-005", "part", "benchmark comparison not built", null],
+  // buy, sell, manage
+  [52, "INV-011 INV-012", "full", "live in the person's own Alpaca account, fresh approval, $5 cap; 0 live orders so far", null],
+  [53, "INV-013", "full", "not built; the chat says so", FRESH],
+  [54, "SAVE-001", "part", "round-up rules are a module for savings, not investing", FRESH],
+  [55, "SAVE-022 INV-013", "part", "not built", FRESH],
+  [56, "INV-014", "full", "module only (rebalance on approval); not wired to chat", null],
+  [57, "INV-006", "part", "dividend tracking is claimed, not built; reinvesting is not built", FRESH],
+  [58, "INV-011 INV-012", "full", "limit, stop and trailing orders in the trade flow (Rail 2); '10%' stops need a holding", null],
+  [59, "EARN-018", "part", "idle-cash audit claimed, not built; sweeping is not built", null],
+  [60, "INV-015 INV-016", "part", "candidates and wash-sale checks are modules; selling is the normal trade flow", null],
+  [61, "", "none", "ACATS transfers not built", null],
+  [62, "", "none", "crypto refused plainly today; no licensed crypto partner", null],
+  // understand
+  [63, "NEWS-005 INV-001", "part", "holdings read reachable; a one-paragraph 'why it moved' is not built", null],
+  [64, "INV-005 INV-017", "part", "cost basis report is a module; benchmark and fees not built", null],
+  [65, "INV-003", "full", "module only", null],
+  [66, "NEWS-002 NEWS-003 NEWS-007", "part", "holding-linked news ranking is a module (news-feed function); earnings previews not built", null],
+  [67, "INV-004", "part", "index overlap module; fund-vs-fund fees not built", null],
+  [68, "INV-008 INV-009", "part", "price alerts module; watchlists not built", null],
+  [69, "INV-017", "part", "gains report module; pre-trade tax preview not in the trade card", null],
+  // retirement
+  [70, "", "none", "IRA opening and funding not built", null],
+  [71, "SAVE-019 EARN-005", "full", "module only", null],
+  [72, "INV-019", "part", "rollover status module; finding old plans and executing a rollover not built", null],
+  [73, "INV-018 TAX-009", "part", "contribution tracking module", null],
+  // 4. bills and rent
+  [74, "PAY-005 HOUS-002", "full", "rent payment execution is not built (C110); 'pay rent' reaches the bill review, which pays nothing", null],
+  [75, "PAY-006 BILL-008", "full", "bill pay is gated: the planner can preview a payment for a recorded bill, nothing is sent", null],
+  [76, "PAY-006", "part", "not built", null],
+  [77, "SAVE-006 PAY-009", "part", "overdraft-prevention move is a module; moving money is not built", null],
+  [78, "PAY-006", "part", "not built (photos are read, no payment)", null],
+  [79, "PAY-007", "part", "scheduled payments are a module; the chat says scheduling is not built", null],
+  [80, "", "none", "not built", null],
+  [81, "SAVE-005", "part", "fee refund request drafts are a module; late-fee waiver asks are not sent", null],
+  [82, "HOUS-003", "full", "gated on a reporting partner", null],
+  [83, "BILL-009", "part", "autopay audit claimed, not built", null],
+  // BNPL
+  [84, "", "none", "BNPL payments not built", null],
+  [85, "", "none", "BNPL accounts not aggregated", null],
+  [86, "", "none", "not built", null],
+  [87, "ANL-006", "part", "cash-flow forecast exists; BNPL plans are not in it", null],
+  [88, "", "none", "not built", null],
+  // credit cards and debt
+  [89, "CARD-006 CARD-007", "part", "due dates and guidance are modules; paying cards is not built", null],
+  [90, "CARD-005 CRDT-005", "part", "utilization alert and plan are modules; paying early is not built", null],
+  [91, "CRDT-009 SAVE-015 ANL-018", "full", "module only", null],
+  [92, "CRDT-010", "part", "impact calculator module; sending extra money is not built", null],
+  [93, "SAVE-016", "part", "not built", null],
+  [94, "CARD-015", "part", "APR reduction draft claimed; not built", NO_PHONE + " (a written message is allowed)"],
+  [95, "CRDT-016", "part", "debt-collector response drafts are a module; nothing is sent", null],
+  [96, "PAY-001 PAY-002", "full", "staged in Venmo/Zelle/Cash App for the person to send; proof is the bank debit", null],
+  // student loans
+  [97, "CRDT-012", "part", "program eligibility check module; paying loans not built", null],
+  [98, "", "none", "forms not built", null],
+  [99, "", "none", "not built", null],
+  [100, "CRDT-011", "part", "refinance rate watch module; no offers fetched", null],
+  // credit health
+  [101, "CRDT-001 CRDT-003", "part", "modules; no credit bureau connector", null],
+  [102, "CRDT-004", "part", "dispute module drafts; nothing filed", null],
+  [103, "CRDT-014 SEC-006", "part", "guidance, links and freeze-status tracking; Upmore does not freeze for the person", NO_DIGITS],
+  [104, "CARD-016", "part", "drafts claimed, not built", null],
+  [105, "CARD-002", "full", "module only", null],
+  // 5. subscriptions
+  [106, "BILL-003 BILL-017", "part", "cancel flow reachable; proof requires the merchant's record; most merchants stop at a guided handoff (1 verified playbook)", null],
+  [107, "BILL-010 BILL-003", "part", "free-trial alerts not built", ONE_CANCEL],
+  [108, "BILL-013", "full", "no usage data; the chat asks which ones", null],
+  [109, "BILL-012", "full", "module only", null],
+  [110, "BILL-004", "full", "not built; the chat says so", null],
+  [111, "BILL-006", "full", "not built", null],
+  [112, "BILL-015 SAVE-005", "part", "refund request drafts for fees; renewal refunds not built", null],
+  [113, "BILL-003", "part", "cancel flow; gym letters not built", null],
+  [114, "BILL-003", "part", "web and chat paths only", NO_PHONE],
+  [115, "", "none", "sign-ups not built", null],
+  [116, "", "none", "not built", null],
+  [117, "", "none", "not built", null],
+  [118, "BILL-006", "part", "not built", null],
+  [119, "", "none", "not built", ONE_CANCEL],
+  [120, "", "none", "not built", null],
+  [121, "BILL-018", "part", "reactivation watch only", null],
+  [122, "BILL-005 BILL-014", "full", "negotiation claimed, not built", NO_PHONE],
+  [123, "", "none", "not built (retention offers are noted, not requested)", null],
+  [124, "BILL-016 PAY-004", "part", "one-off split requests reachable; monthly collection not built", null],
+  [125, "", "none", "not built", null],
+  [126, "", "none", "not built", null],
+  // 6. splitting
+  [127, "TXN-016 PAY-004", "part", "even splits reachable; itemized from a photo not built (the chat says so)", null],
+  [128, "PAY-004", "part", "even, and a fixed share of your own; percent, income and by-item not built (the chat says so)", null],
+  [129, "PAY-004 SOC-002", "part", "requests staged and marked paid when the credit lands; group tracking is a module", null],
+  [130, "SOC-009 PAY-018", "part", "tone-controlled reminder drafts are a module; nothing is sent to other people", null],
+  [131, "PAY-004", "part", "monthly roommate splits not built", null],
+  [132, "PAY-019 SOC-002", "part", "settle-up suggestion module", null],
+  [133, "PAY-004", "part", "split by amount reachable; picking 'last night's dinner' from the feed is not", null],
+  [134, "PAY-017 SOC-003", "part", "IOU and running-balance modules; the chat says the IOU log is not built", null],
+  [135, "PAY-001", "part", "a send to the requester is reachable; reading incoming requests is not", null],
+  [136, "SOC-005 ANL-016", "part", "modules", null],
+  [137, "SOC-006 ACCT-014", "part", "household view module", null],
+  [138, "SOC-008", "part", "gifting module; pools not built", null],
+  [139, "", "none", "not built", null],
+  [140, "PAY-016", "full", "gated; the chat refuses other currencies", null],
+  [141, "PAY-025 SOC-007", "part", "recurring family send module; dependent accounts gated", null],
+  // 7. claims
+  [142, "EARN-008", "full", "module only (matching); no live settlements source", null],
+  [143, "", "none", "filing not built", null],
+  [144, "EARN-004", "part", "payout tracking module", null],
+  [145, "EARN-008", "part", "module only", null],
+  [146, "SEC-003", "full", "breach monitoring claimed, not built", null],
+  [147, "", "none", "not built", null],
+  [148, "EARN-017", "part", "complaint credit drafts module; order refunds not requested", null],
+  [149, "", "none", "returns not built", null],
+];
+module.exports = { REACHABLE, MAP };

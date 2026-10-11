@@ -117,6 +117,10 @@
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
         const DECIDE = /\b(whatever|whichever|best|good one|the dip|dipped|just dropped|hot|winner|winning|pick|choose|recommend|should i|would you|what (do|would) you|pelosi|buffett|congress)\b/i;
         if (Guard) { const g = Guard.request(parsed.text); if (g.decision === "block" || DECIDE.test(parsed.text)) return say("refuse", g.decision === "block" ? g.redirect : "That leaves the choice to me, and I don't make it: name the ticker and the amount and I'll place exactly that. I can show the data behind any name you're weighing.", { reason: "advice", rules: g.decision === "block" ? g.reasons : ["decision_left_to_agent"] }); }
+        // No partner, no order, said first: before any question about size or symbol and before any read, the person
+        // learns that orders cannot be placed here yet. The loop's own compliance gate still stands behind this.
+        const capRow = o.registry && typeof o.registry.get === "function" ? o.registry.get(CAPABILITY) : null;
+        if (Comp && capRow) { const cg = Comp.gate(capRow, o.partners || {}, { executes: true, kyc: o.kyc || null }); if (cg && cg.allowed === false) return say("blocked", cg.message || "I can't place orders yet.", { reason: "compliance:" + (cg.reason || cg.requirement), early: true }); }
         // S01: size.
         if (parsed.ambiguous_number) return ask("size_ambiguous", `Is ${parsed.ambiguous_number} dollars or shares of ${(parsed.query || "that").toUpperCase()}?`);
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");

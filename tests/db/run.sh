@@ -49,7 +49,8 @@ for m in 20260923_000001_agent_rate_limits.sql 20260923_000006_rate_limiter_hard
          20261010160000_applied_payment_reconciliation.sql \
          20261010170000_payment_queue_fairness.sql \
          20261010180000_recovery_snapshot.sql \
-         20261010190000_recovery_cases.sql; do
+         20261010190000_recovery_cases.sql \
+         20261011010000_flow_state.sql; do
   "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
 done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010120000_chat_lesson_ownership.sql"
@@ -75,6 +76,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010170000_payment_queue_fairness.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010180000_recovery_snapshot.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010190000_recovery_cases.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011010000_flow_state.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

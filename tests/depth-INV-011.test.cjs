@@ -136,6 +136,7 @@ test('[S07] the confirmation restates the exact order: side, size, symbol with n
 test('[S08] no broker-dealer partner, no order: the compliance gate blocks with the plain message and nothing is staged or written; with the partner live the same text confirms',async()=>{
   const none=session({partners:{}});
   const a=keep(await none.s.start('buy $500 of VOO'));assert.equal(a.outcome,'blocked');assert.equal(a.reason,'compliance:no_live_partner');assert.match(a.text,/^I can't place orders yet: that needs a broker-dealer partner\./);assert.equal(none.s.pending,null);assert.equal(none.r.writes.length,0);
+  const first=keep(await none.s.start('buy 500 VOO'));assert.equal(first.outcome,'blocked','no partner is said before any question about size');assert.equal(first.early,true);
   const dead=session({partners:{broker_dealer:{live:false,name:'Signed, not live'}}});const b=keep(await dead.s.start('buy $500 of VOO'));assert.equal(b.outcome,'blocked');assert.equal(dead.r.writes.length,0);
   const live=session();const c=keep(await live.s.start('buy $500 of VOO'));assert.equal(c.outcome,'confirm');
   assert.equal(registry.get('INV-011').tier,'T3');

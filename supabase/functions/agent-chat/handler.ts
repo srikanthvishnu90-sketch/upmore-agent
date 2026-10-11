@@ -27,6 +27,7 @@ import { AgentIntents } from "./agent_core.js";
 import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
 import { reserveModelCall, recordModelUsage, anthropicPlannerModel } from "../_shared/model_calls.ts";
+import { routeFlows, supabaseFlowDb, anthropicRouteExtractor, flowErrorReply } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
@@ -195,6 +196,31 @@ export async function handleChat(req: Request): Promise<Response> {
         { thread_id: tid, role: "assistant", content: earlyGuard, meta: { capability: true, guard: true } },
       ]);
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
+    }
+
+    // Phase 1 wiring (2026-10-11): buy from a text, cancel, pay a person back. The model only extracts intent and spans
+    // (forced tool call, inside the model budget); code grounds every amount and name in the message, a disagreement asks
+    // one question, approvals never come from the model, and a model failure falls back to the regex net and says so.
+    // Rails that are not live answer NOT_WIRED in the flow's own words. Messages that are not a flow fall through.
+    {
+      let flow: Awaited<ReturnType<typeof routeFlows>> = null;
+      try {
+        const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
+        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract });
+      } catch (e) {
+        console.error("flow router failed:", e instanceof Error ? e.message : String(e));
+        flow = flowErrorReply(message);
+      }
+      if (flow) {
+        const saved = await supabase.from("agent_messages").insert([
+          // A one-time code is used once by the run and never stored.
+          { thread_id: tid, role: "user", content: flow.withhold_user_text ? "[one-time code withheld]" : userContent },
+          { thread_id: tid, role: "assistant", content: flow.reply, meta: { capability: true, flow_route: flow.route } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: flow.reply, action: null, route: flow.route });
+      }
     }
 
     // Same authenticated workflow layer as the app. A conversational request

@@ -103,6 +103,7 @@
 
       async function stage(sub, ctx) {
         const r = route(sub), t = await terms(sub);
+        if (t.missing.length === 1 && t.missing[0] === "account read") { const d = directory[keyOf(sub.merchant)] || directory[keyOf(sub.merchant).split(" ")[0]]; return say("needs_terms", `I can't read ${nameOf(sub)}'s account page from here yet, so I can't show you the cancellation terms or cancel it for you. Nothing was changed.${d && d.url ? ` You can cancel at ${d.url}; tell me when it's done and I'll watch the ${sub.next} charge.` : ` Tell me when you've cancelled and I'll watch the ${sub.next} charge.`}`, { missing: t.missing, not_wired: true }); }
         if (t.missing.length) return say("needs_terms", `I need ${t.missing.join(", ")} from ${nameOf(sub)}'s account page before I ask you to confirm; I won't guess the terms.`, { missing: t.missing });
         const f = t.facts, cyc = { monthly: "mo", quarterly: "qtr", yearly: "yr" }[sub.interval] || sub.interval;
         const name = nameOf(sub);
@@ -268,7 +269,7 @@
       }
       async function recordRun(key, run) { const kase = cases.find(c => c.key === key); if (kase) kase.run = run; }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), cards: cards.snapshot(), cases, pending_index: pending ? cases.indexOf(pending) : null, queue, lessons, runs, last_mentioned }));
-      return { snapshot, start, reply, otp, check, status, savings, undo, parse, resolve, route, inventory, recordRun, cases, loop, cards, get pending() { return pending ? { merchant: pending.merchant, card_id: pending.card_id } : null; } };
+      return { get awaiting_code() { return cases.some(c => c.state === "otp"); }, snapshot, start, reply, otp, check, status, savings, undo, parse, resolve, route, inventory, recordRun, cases, loop, cards, get pending() { return pending ? { merchant: pending.merchant, card_id: pending.card_id } : null; } };
     }
     return { create, parse, channelOf, keyOf, CAPABILITY, OTP_TTL_MS, GRACE_DAYS };
   })();

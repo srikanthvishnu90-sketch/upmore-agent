@@ -87,7 +87,7 @@ test('[S03] terms are read from the provider before the card: access until, refu
   const gym=await s.start('cancel planet fitness');assert.equal(gym.fee_cents,5800);assert.match(gym.text,/^Cancel Planet Fitness \(Black Card, \$24\.99\/mo\)\. Fee \$58\.00, total \$58\.00\./);assert.match(gym.details,/Cancellation fee \$58\.00\./);await s.reply('no');
   const missing=session();delete missing.r.terms.netflix.access_until;const m=await missing.s.start('cancel netflix');assert.equal(m.outcome,'needs_terms');assert.equal(m.text,"I need access_until from Netflix's account page before I ask you to confirm; I won't guess the terms.");assert.equal(missing.s.pending,null);assert.equal(missing.s.cards.live().length,0);
   const stale=session({},{terms_age_ms:3*24*3600000});const st=await stale.s.start('cancel netflix');assert.equal(st.outcome,'needs_terms');assert.match(st.text,/fresh read/);
-  const unread=session({},{no_terms:true});assert.equal((await unread.s.start('cancel netflix')).outcome,'needs_terms');
+  const unread=session({},{no_terms:true});const un=await unread.s.start('cancel netflix');assert.equal(un.outcome,'needs_terms');assert.equal(un.not_wired,true);assert.equal(un.text,"I can't read Netflix's account page from here yet, so I can't show you the cancellation terms or cancel it for you. Nothing was changed. You can cancel at netflix.com/cancelplan; tell me when it's done and I'll watch the 2026-11-03 charge.");
 });
 
 test('[S04] one card with the terms through the card layer: fee, access until, route, confirmation promise, undo terms, 10-minute expiry; a late yes fires nothing',async()=>{

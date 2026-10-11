@@ -31,6 +31,11 @@ test('blocked capabilities produce the specific message; a live partner unblocks
   const repair=C.gate(registry.get('CRDT-004'),{});assert.equal(repair.allowed,true);assert.equal(repair.user_files,true);
   const neg=C.gate(registry.get('BILL-005'),{});assert.equal(neg.allowed,true);assert.equal(neg.disclosure,'negotiation');
   const lend=C.gate({id:'SOC-007',name:'teen or dependent sub-accounts'},{});assert.equal(lend.allowed,false);
+  // Staging a handoff (executes:false) needs no partner: the person sends it from their own app. Executing still does,
+  // and a call that does not say which is treated as execution.
+  const stage=C.gate(registry.get('PAY-001'),{},{executes:false});assert.equal(stage.allowed,true);assert.equal(stage.user_acts,true);
+  assert.equal(C.gate(registry.get('PAY-001'),{},{executes:true}).allowed,false);assert.equal(C.gate(registry.get('PAY-001'),{}).allowed,false,'unspecified fails closed');
+  assert.equal(C.gate(registry.get('INV-024'),{},{executes:false}).allowed,true);assert.equal(C.gate({id:'SOC-007',name:'x'},{},{executes:false}).allowed,true,'staging a hold is a draft too; holding money still needs the partner');
 });
 
 test('a seeded attempt to execute a gated rail through the loop fails closed with the specific message, whatever the request says',async()=>{

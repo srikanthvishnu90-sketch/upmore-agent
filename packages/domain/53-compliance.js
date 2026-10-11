@@ -48,6 +48,10 @@
       const req = REQUIREMENTS[reqKey];
       if (req.never) return { allowed: INFORMATION_ONLY.has(cap.id), regulated: true, requirement: reqKey, reason: INFORMATION_ONLY.has(cap.id) ? null : "never", message: INFORMATION_ONLY.has(cap.id) ? null : `${cap.name || cap.id} is something Upmore does not do: ${req.requirement}.` };
       if (INFORMATION_ONLY.has(cap.id) && !c.executes) return { allowed: true, regulated: true, requirement: reqKey, user_files: !!req.user_files, disclosure: req.disclosure || null };
+      // Staging, not executing: the agent prepares the exact steps and the person sends it from their own bank or app
+      // (the handoff pattern, said plainly). Nothing moves through Upmore, so no partner is needed. Executing still needs one.
+      // Only an explicit executes:false counts: an unspecified call is treated as execution (fail closed).
+      if (c.executes === false && req.partner_key) return { allowed: true, regulated: true, requirement: reqKey, user_acts: true };
       const partner = req.partner_key ? p[req.partner_key] : null;
       if (partner && partner.live === true) {
         if (req.partner_key === "money_movement" && c.kyc && c.kyc.state !== "verified") return { allowed: false, regulated: true, requirement: reqKey, reason: "kyc_" + c.kyc.state, message: kycMessage(c.kyc, partner) };

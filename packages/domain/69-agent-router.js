@@ -112,6 +112,10 @@
       return out;
     }
 
+    function complete(flow, e, n) {
+      if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity) && n.name) : flow === "send" ? !!(n.amount_cents && n.name) : !!n.name;
+      return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
+    }
     const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
 
@@ -120,11 +124,16 @@
     async function handle(raw, ctx) {
       const c = ctx || {}, sessions = c.sessions || {}, text = String(raw || "");
       const live = Object.keys(sessions).filter(k => sessions[k] && sessions[k].pending);
+      // A bare one-time code goes straight to the cancellation waiting for it, never to the model, never into a log.
+      if (/^\s*\d{4,8}\s*$/.test(text) && sessions.cancel && sessions.cancel.awaiting_code) {
+        const result = await sessions.cancel.otp(text.trim());
+        return { route: "otp", source: "deterministic", flow: "cancel", result, understood: true, understood_first: true, withhold_text: true };
+      }
       // A reply to a live card never goes through the model: the flow's own deterministic classifier decides.
       if (live.length && (YES_NO.test(text) || CORRECTION.test(text) || /^\s*\d{4,8}\s*$/.test(text))) {
         const flow = live[live.length - 1];
         const result = await sessions[flow].reply(text);
-        return { route: "card_reply", source: "deterministic", flow, result, understood_first: true };
+        return { route: "card_reply", source: "deterministic", flow, result, understood: true, understood_first: true };
       }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
@@ -135,7 +144,7 @@
       if (!e) {
         // Safety net: the regex parsers route alone, and the result says so.
         source = "regex_net";
-        const guess = /\b(buy|purchase|invest)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|unsubscribe|stop paying|get rid of)\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal)\b/i.test(text) ? "send_money" : "other";
+        const guess = /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) ? "send_money" : "other";
         e = { intent: guess };
       }
       if (e.intent === "card_reply") {
@@ -147,16 +156,27 @@
       if (!f || !sessions[f.flow]) return { route: "fallthrough", source, intent: e.intent, problems: v.problems || [] };
       const n = net(f.flow, text, c.parsers);
       const dis = source === "model" ? disagreements(f.flow, e, n) : [];
-      if (dis.length) return { route: "ask", source, flow: f.flow, disagreements: dis, problems: v.problems || [], understood_first: false, result: { outcome: "ask", reason: "disagreement", text: dis.map(d => `Did you mean ${d.model} or ${d.net} for ${d.field}?`).join(" ") } };
+      if (dis.length) return { route: "ask", source, flow: f.flow, disagreements: dis, problems: v.problems || [], understood: false, understood_first: false, result: { outcome: "ask", reason: "disagreement", text: dis.map(d => `Did you mean ${d.model} or ${d.net} for ${d.field}?`).join(" ") } };
       // Two cards never stack: a new flow drops the other flow's live card and says so.
       const dropped = [];
       for (const k of live) if (k !== f.flow) { await sessions[k].reply("never mind"); dropped.push(k); }
       const can = source === "model" ? canonical(e) : text;
       const result = await sessions[f.flow].start(can);
-      const asked = result && (result.outcome === "ask" || result.outcome === "needs_terms");
+      // Understood means the flow and every detail it needs were read from the message (and agreed with the net).
+      // Understood on the first message also means the flow did not have to ask about the person's words. A flow that
+      // understood but cannot act (no partner, an unreadable account page) is understood, and its outcome says why.
+      const understood = complete(f.flow, e, source === "model" ? null : n);
+      // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding.
+      const DATA_GAP = ["new_recipient", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap"];
+      const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
-      return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood_first: !asked, problems: v.problems || [], dropped };
+      return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped };
     }
-    return { handle, validate, canonical, disagreements, numberIn, TOOL, SYSTEM, INTENTS, FLOWS };
+    // Cheap pre-filter so ordinary chat does not pay for an extra model call: a message is sent to the extractor only when
+    // it could be one of the three flows (or answers a live card, which the host checks from saved state). Broad on
+    // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
+    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire)\b/i;
+    const maybeFlow = text => MAYBE.test(String(text || ""));
+    return { handle, validate, canonical, disagreements, numberIn, maybeFlow, TOOL, SYSTEM, INTENTS, FLOWS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentRouter;

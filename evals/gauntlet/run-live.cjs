@@ -16,6 +16,19 @@ const DIGITS = Array.from({ length: 10 }, (_, i) => String(i)).join("");
 const GSM = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./" + DIGITS + ":;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà", EXT = "^{}\\[~]|€";
 function segments(s) { let u = 0; for (const ch of String(s)) { if (GSM.includes(ch)) u += 1; else if (EXT.includes(ch)) u += 2; else { const n = [...String(s)].length; return n <= 70 ? 1 : Math.ceil(n / 67); } } return u <= 160 ? 1 : Math.ceil(u / 153); }
 const QUESTION = /\?\s*$|^(which|how much|did you mean|who|what)\b/i;
+// Two numbers, both published. UNDERSTOOD is spec 16's bar (95%): the right flow, every detail it needs read from the
+// message, and no question about the person's words (a question caused by missing data, such as no saved recipient, is
+// not a misunderstanding). CARDED is stricter: a confirmation card with the right facts in two SMS segments.
+function understood(item, res) {
+  const meta = res && res.route || null;
+  if (!res || res.error) return { pass: false, reasons: [`handler error: ${res && res.error || "no response"}`] };
+  if (!meta) return { pass: false, reasons: ["the response carries no route metadata"] };
+  const reasons = [];
+  if (meta.flow !== item.flow) reasons.push(`routed to ${meta.flow || meta.route}, expected ${item.flow}`);
+  if (meta.understood !== true) reasons.push("the details were not all read from the message");
+  else if (meta.understood_first !== true) reasons.push(`asked about the person's words (${meta.ask_reason || "ask"})`);
+  return { pass: reasons.length === 0, reasons };
+}
 function grade(item, res) {
   const reasons = [], reply = String(res && res.reply || ""), meta = res && res.route || null;
   if (!res || res.error) return { pass: false, reasons: [`handler error: ${res && res.error || "no response"}`], reply };
@@ -39,12 +52,13 @@ async function post(body) {
   const rows = [];
   for (const item of corpus.items) {
     let res; try { res = await post({ message: item.text }); } catch (e) { res = { error: String(e && e.message || e) }; }
-    const g = grade(item, res); rows.push(Object.assign({ id: item.id, text: item.text, expected_flow: item.flow }, g));
+    const g = grade(item, res), u = understood(item, res); rows.push(Object.assign({ id: item.id, text: item.text, expected_flow: item.flow, understood: u.pass, understood_reasons: u.reasons }, g));
     if (res && res.thread_id) { try { await post({ thread_id: res.thread_id, message: "no" }); } catch (_) {} }
-    console.log(`${g.pass ? "PASS" : "FAIL"} ${item.id} ${JSON.stringify(item.text)}${g.pass ? "" : " -> " + g.reasons.join("; ")}`);
+    console.log(`${u.pass ? "UNDERSTOOD" : "MISSED    "} ${g.pass ? "CARDED" : "NO CARD"} ${item.id} ${JSON.stringify(item.text)}${u.pass ? "" : " | understanding: " + u.reasons.join("; ")}${g.pass ? "" : " | card: " + g.reasons.join("; ")}`);
   }
-  const passed = rows.filter(r => r.pass).length, score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: passed / rows.length >= 0.95, rows };
+  const passed = rows.filter(r => r.pass).length, und = rows.filter(r => r.understood).length;
+  const score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, understood: und, understood_pct: Math.round(und * 1000 / rows.length) / 10, carded: passed, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: und / rows.length >= 0.95, rows };
   fs.writeFileSync(path.join(__dirname, "results", `${label}.json`), JSON.stringify(score, null, 1));
-  console.log(`\nsloppy-20 against the live handler: ${passed}/${rows.length} (${score.pct}%), bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}`);
+  console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)`);
   process.exit(score.meets_bar ? 0 : 1);
 })();

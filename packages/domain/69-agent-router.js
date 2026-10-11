@@ -174,13 +174,15 @@
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
-    const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "declined", "expired"]);
+    const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "working", "partial", "declined", "expired"]);
+    // An order still working at the broker is settled as a card (the yes was used) but not final: it can still be canceled.
+    const WORKING = new Set(["working", "partial"]);
     const usd = c => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     // What the person last settled, in their words: the amount and who, or the order.
     function remember(memo, flow, r, now) {
       if (!r || !SETTLED.has(r.outcome)) return;
       const s = r.send || (r.order && r.order.send) || null;
-      const summary = s && Number.isInteger(s.amount_cents) && s.recipient ? `${usd(s.amount_cents)} to ${s.recipient.name}` : r.order && r.order.symbol ? `the ${r.order.symbol} order` : flow === "split" ? "those requests" : "that";
+      const summary = s && Number.isInteger(s.amount_cents) && s.recipient ? `${usd(s.amount_cents)} to ${s.recipient.name}` : r.order && r.order.symbol ? `the ${r.order.symbol} order` : flow === "trade" && r.order_id ? `order ${r.order_id}` : flow === "split" ? "those requests" : "that";
       memo.settled = { flow, outcome: r.outcome, summary, app: r.app || null, name: s && s.recipient ? s.recipient.name : null, at: now };
     }
     // The queued second ask starts once the first card is settled (staged, sent, declined, expired...), in the same reply.
@@ -197,6 +199,7 @@
     function secondYes(st) {
       if (st.outcome === "declined") return "Nothing's waiting for a yes: that card was dropped, and nothing was sent.";
       if (st.outcome === "expired") return "That card expired, so nothing was sent. Ask again and I'll put up a fresh one.";
+      if (WORKING.has(st.outcome)) return `Already placed: ${st.summary}, still working at the broker. A second yes doesn't place it again.`;
       if (st.outcome === "staged") return `That's already staged: ${st.summary}${st.app ? ` for you to send in ${st.app}` : ""}. A second yes doesn't stage it again.`;
       return `Already done: ${st.summary}. A second yes doesn't do it again.`;
     }
@@ -285,7 +288,7 @@
         memo.settled = null;
         return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: "already_done", text: secondYes(st) } };
       }
-      if (!live.length && st && since < 30 * 60000 && UNDO.test(text)) {
+      if (!live.length && st && since < 30 * 60000 && UNDO.test(text) && !WORKING.has(st.outcome)) {
         memo.settled = null;
         return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: st.outcome === "staged" ? "staged" : "final", text: undo(st) } };
       }

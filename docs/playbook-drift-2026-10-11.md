@@ -154,3 +154,34 @@ Behavior changed against earlier packet text (owner's megadoc wins, logged here)
   before anything was saved. The wiring now copies the state first.
 - **Item 19 (affordability) briefly read IN_PRODUCT** because safe-to-spend is inside the morning brief; "can I afford
   this" in chat is not wired, so the map points it at the what-if module only.
+
+## Testing agent, first full run (2026-10-11 night): what it found, what was true, what changed
+
+The first run of `deno run -A evals/agent/run.ts` against the repo as it was is kept unedited in
+`docs/testing/agent-first-run-2026-10-11.md`: **RED, 60/65, 2 critical, 3 failed.** Each finding, the source, and the fix:
+
+- **Spec 01 and docs/depth/CORE-005.md said a T4 envelope acts without a per-action yes; the owner's rule (2026-10-11)
+  says every run asks.** The gate (`43-agent-loop.js`) returned `confirm: false` inside an envelope for every T4
+  capability (PAY-025, SAVE-001, SAVE-006, SOC-005 TESTED; SAVE-021, SAVE-022, INV-013 claimed). Now inside an envelope
+  the default is `confirm: true, reason: "fresh_approval_rule"`; the old behaviour needs `policy: { envelope_autonomy:
+  true }`, which no shipped code sets (checked by O-18). Envelope tests and harness scenarios S05/S11 set it explicitly;
+  S04 now proves the default asks and runs once after the yes. Both docs carry the rule.
+- **An SSN typed in chat was stored word for word** in agent_messages and sent to the model (O-20). CLAUDE.md says
+  identity digits are never stored. The chat input is now redacted first (`_shared/identity_redact.ts`: SSNs, Luhn-valid
+  card numbers, labeled account and routing numbers), and the person is told what was removed. The check itself was
+  also wrong the first time: it counted the person's own message as the agent echoing it.
+- **The model path could claim a money action** (O-15): a bare "yes" with no card goes to the model, and nothing
+  corrected "Done, sent!". `_shared/claim_guard.ts` now appends a correction to any first-person claim of a send,
+  order or cancel on both model paths, before the reply is stored.
+- **A second "yes" after an order that is still working went to the model** (O-14): the router's settled set lacked
+  "working" and "partial". It now answers "Already placed: order ..., still working at the broker", and "cancel that"
+  still reaches the order-cancel path for a working order.
+- **"hey, send mike 40" asked "Who should I send it to?"** (found while fixing O-20): the regex net only read a send
+  verb at the start of the text. A clause before it now ends at punctuation.
+- **The scheduler told a freshly connected person their rent and weekly groceries were "new repeating charges"**,
+  and wrote $1450.00 without a thousands separator (found by the new R-07 and R-08). "New" now needs the charge to
+  start after the first interval of the history held; monitor amounts are formatted like every other message.
+- **The ALRT-004 exercise was wrong, not the code**: Netflix in the fixture is not a steady charge, so the bill-increase
+  path needs the steady rent, charged on its usual day.
+- **Design gap, not gated:** in the desktop preview at 1280x800 the login intro ("...right where you left them.") is
+  cut mid-line by its 303px scroll area; on a phone it reads in full. Found by `node evals/agent/visual.cjs`.

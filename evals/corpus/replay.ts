@@ -75,5 +75,5 @@ export async function replay(example: any) {
     first = false;
     actual.push({ user: text, reply: r.reply, outcome: r.route && r.route.outcome || null, flow: r.route && r.route.flow || null, executed: EXECUTED.has(r.route && r.route.outcome) });
   }
-  return { needsModel, actual, mock_orders: alpaca.orders.length };
+  return { needsModel, actual, mock_orders: alpaca.orders.length, state };
 }

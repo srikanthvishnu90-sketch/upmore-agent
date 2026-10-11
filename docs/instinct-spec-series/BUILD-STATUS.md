@@ -58,10 +58,19 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 | Decision | Owner's words | Applied as |
 | --- | --- | --- |
-| Automatic and recurring investing, copying portfolios, "etc." | "we can toggle automatic investing, copying portfolios etc. However every individual needs to approve it." | Per-person toggles: each person turns one on themselves after it is restated in exact terms, and one message turns it off. **Strict reading kept until the owner says otherwise:** every run still asks that person for a one-line yes, and every order stays under the $5 cap. If "approve it" meant approving the rule once, that is one setting to change. Engines not built yet. |
+| Automatic and recurring investing, copying portfolios, "etc." | "we can toggle automatic investing, copying portfolios etc. However every individual needs to approve it." | Per-person toggles: each person turns one on themselves after it is restated in exact terms, and one message turns it off. **Strict reading kept until the owner says otherwise:** every run still asks that person for a one-line yes, and every order stays under the $5 cap. Enforced in the loop since the testing agent found envelopes skipping the yes: inside an envelope the gate now asks (`fresh_approval_rule`); the old autonomy needs `policy: { envelope_autonomy: true }`, which no shipped code sets (O-18 checks both). If "approve it" meant approving the rule once, that policy is the one setting to change. Recurring-buy and copy engines not built yet. |
 | Automatic cancels | "before someone's free trial ends, we need to be able to message them saying (hey ur free trial is about to end, should i cancel this for you)" | Built: the proactive trial message asks; YES starts the cancel flow (its card is the one approval) or gives the steps when the trial never charged; NO keeps it; a late yes fires nothing. One approval per cancellation stands. |
 | Phone calls | not addressed | Still pending; no phone calls. |
 | $5 per-order cap | not raised | Unchanged. The owner's $200 live test envelope (10 x $5 recurring, $50 copy, $25 manual + dividends, $25 payments, $50 buffer) is recorded; no live test has run (no keys here; live tests are owner-triggered). |
+
+### Testing agent (owner brief, 2026-10-11): five families, 10/10 bar — **GREEN 68/68 offline; live and visual are on demand**
+
+| Part | Status | Check |
+| --- | --- | --- |
+| Offline run: response (corpus, no false action claims, numbers to the cent recomputed from rows, sources and as-of, "new" claims, money formatting, latency), outcome (megadoc 240, $5 cap, one approval per order and per cancellation, trial asks first, automations never skip a yes, no phone calls, identity digits), design (one-line approvals, receipts, no placeholders, labeled buttons, chat surface), flow (every REACHABLE capability exercised; a reachable claim with no exercise fails), live guard and ledger | **GREEN 68/68**, 0 critical; 5 labeled gaps, 3 not run. First run, kept as found: RED 60/65 (`docs/testing/agent-first-run-2026-10-11.md`); every finding fixed or corrected, logged in `docs/playbook-drift-2026-10-11.md` | `deno run -A evals/agent/run.ts --check` (CI) |
+| Self-test: 10 planted defects | 10/10 caught | `deno run -A evals/agent/mutations.ts` (CI) |
+| Visual: pixel baselines (phone + desktop, 9 signed-out screens), cut-off or covered copy, dead controls through DevTools | GREEN on this machine, 3 repeat runs identical; not in CI (fonts differ by machine); signed-in screens need a live login | `node evals/agent/visual.cjs` |
+| Live: one $5 buy, LIVE card, receipt with order id, ledger | **NOT RUN** (no deployed handler, JWT or connected account here). $0.00 of $200 spent | `deno run -A evals/agent/live.ts --spend-real-money` (owner-triggered) |
 
 ## Claimed files
 

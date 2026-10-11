@@ -4,6 +4,8 @@
 // Flow: load profile + thread + relevant verified routes → Anthropic →
 // grounding post-check → save + return reply.
 
+import { guardMoneyClaim } from "../_shared/claim_guard.ts";
+import { redactionNote } from "../_shared/identity_redact.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import {
   SYSTEM_PROMPT,
@@ -187,6 +189,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
     if (!input.ok) return json(cors, { error: input.error }, 400);
     const { message, userContent, imageBlocks } = input;
+    flowCtx.note = redactionNote(input.redacted);
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -270,7 +273,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);
       }
-      if (flow && flow.fallthrough) { flowCtx.note = flow.note; flow = null; }
+      if (flow && flow.fallthrough) { flowCtx.note = [flowCtx.note, flow.note].filter(Boolean).join(" ") || null; flow = null; }
       if (flow) {
         const saved = await supabase.from("agent_messages").insert([
           // A one-time code is used once by the run and never stored.
@@ -290,7 +293,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (history.error) throw new Error("Conversation history unavailable.");
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
         plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse());
-      const reply = result.reply;
+      // A planner reply that stages nothing may not claim a money action (testing agent O-15).
+      const reply = result.action ? result.reply : guardMoneyClaim(result.reply).reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},
         {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null,model_error:result.model_error||null}},
@@ -944,6 +948,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // construction. Skips when the model already added one.
     reply = appendSources(reply, routes, financeMode, financeIds,
       settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url })));
+    // No model reply may claim a money action: those only run through a card and a yes (testing agent O-15).
+    reply = guardMoneyClaim(reply).reply;
 
     // Persist
     await supabase.from("agent_messages").insert([

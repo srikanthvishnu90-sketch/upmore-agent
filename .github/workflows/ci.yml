@@ -37,6 +37,10 @@ jobs:
         with: { deno-version: v2.x }
       - name: Edge function tests (typed), including the live-failure replays
         run: deno test -A tests/edge/
+      - name: Testing agent (10/10 bar; a single CRITICAL fails the run; the committed report must be current)
+        run: deno run -A evals/agent/run.ts --check
+      - name: Testing agent self-test (10 planted defects, each must turn its check red)
+        run: deno run -A evals/agent/mutations.ts
       - name: Type-check the functions this branch deploys
         run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/agent-proactive/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts
   database:

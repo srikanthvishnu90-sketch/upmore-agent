@@ -28,7 +28,7 @@
     }
 
     // Autonomy gate: the tier is part of the capability definition, never a runtime guess.
-    function gate(cap, action, envelopes, now) {
+    function gate(cap, action, envelopes, now, policy) {
       if (!cap) return { allowed: false, reason: "unknown_capability" };
       const t = cap.tier;
       if (cap.status === "GATED") return { allowed: false, reason: "gated", detail: cap.gate_reason || null };
@@ -50,6 +50,10 @@
         if (amt > env.max_cents) return { allowed: true, confirm: true, reason: "outside_envelope" };
         if (env.recipient && recipient !== env.recipient) return { allowed: true, confirm: true, reason: "outside_envelope" };
         if (action.first_time) return { allowed: true, confirm: true, reason: "first_time_is_T5" };
+        // Owner rule (2026-10-11): an automation is a toggle the person turns on, and every run that moves money still asks
+        // that person for a fresh yes (fresh approval per order). The envelope bounds what may be proposed; it does not
+        // replace the yes unless the policy says so, and only the owner, in writing, may set that policy for production.
+        if (!(policy && policy.envelope_autonomy === true)) return { allowed: true, confirm: true, reason: "fresh_approval_rule", envelope: env.id };
         return { allowed: true, confirm: false, envelope: env.id };
       }
       return { allowed: false, reason: "invalid_tier" };
@@ -203,7 +207,7 @@
         if (cap) { const dupKey = keyFor(item, cap); const done = memory.outcomes.filter(x => x.idempotency_key === dupKey && x.result === "confirmed").pop(); if (done) return idle({ capability_id: cap.id, idempotency_key: dupKey }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${done.reference ? ` (ref ${done.reference})` : ""}. I did not do it again. Ask again with new details if you want a second one.` }); if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
         // Kill switch (SEC-010): while paused, nothing above a read runs, whatever the request says.
         if (o.control && typeof o.control.gate === "function") { const pg = o.control.gate(cap, now); if (pg && pg.allowed === false) return idle({ capability_id: cap.id }, { outcome: "blocked", reason: pg.reason || "paused", message: pg.message || "I'm paused, so I did not do that." }); }
-        const g = gate(cap, item, envelopesAt(now), now);
+        const g = gate(cap, item, envelopesAt(now), now, o.policy);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
         // Compliance gate (doc 14): one call site, before anything can act. A draft (a staged handoff the person sends from their own app)
         // is not execution: the agent writes nothing to any rail, so it is asked as executes:false. A regulated capability with no live partner fails closed with a specific message, whatever the prompt says.

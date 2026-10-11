@@ -37,7 +37,7 @@
       return toYmd(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(p[2], dim)));
     }
     const cents = v => Math.round(v * 100) / 100;
-    const usd = v => "$" + Math.abs(Number(v)).toFixed(2);
+    const usd = v => "$" + Math.abs(Number(v)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     const median = xs => { const s = xs.slice().sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
     function merchantKey(raw) {
@@ -130,8 +130,12 @@
     // 1. A repeating charge that isn't on the user's tracked list yet.
     function newSubscriptions(input) {
       const known = new Set((input.knownMerchants || []).map(merchantKey));
+      // "New" needs evidence it started inside the history we hold: a charge already there within one interval of the
+      // earliest row may be years old (rent, groceries on a freshly connected account), so it is never called new.
+      const dates = clean(input.transactions).filter(Boolean).map(t => t.date).sort();
+      const historyStart = dates[0] || null;
       return recurring(input.transactions, input.today)
-        .filter(r => !r.dormant && !known.has(r.key) && daysBetween(r.firstDate, input.today) <= 120)
+        .filter(r => !r.dormant && !known.has(r.key) && daysBetween(r.firstDate, input.today) <= 120 && !(historyStart && daysBetween(historyStart, r.firstDate) <= stepOf(r.interval)))
         .map(r => ({
           key: `new_subscription:${r.key}:${r.firstDate}`,
           kind: "new_subscription", capabilityId: "subscriptions.cancel",
@@ -1396,7 +1400,7 @@
     }
 
     // Autonomy gate: the tier is part of the capability definition, never a runtime guess.
-    function gate(cap, action, envelopes, now) {
+    function gate(cap, action, envelopes, now, policy) {
       if (!cap) return { allowed: false, reason: "unknown_capability" };
       const t = cap.tier;
       if (cap.status === "GATED") return { allowed: false, reason: "gated", detail: cap.gate_reason || null };
@@ -1418,6 +1422,10 @@
         if (amt > env.max_cents) return { allowed: true, confirm: true, reason: "outside_envelope" };
         if (env.recipient && recipient !== env.recipient) return { allowed: true, confirm: true, reason: "outside_envelope" };
         if (action.first_time) return { allowed: true, confirm: true, reason: "first_time_is_T5" };
+        // Owner rule (2026-10-11): an automation is a toggle the person turns on, and every run that moves money still asks
+        // that person for a fresh yes (fresh approval per order). The envelope bounds what may be proposed; it does not
+        // replace the yes unless the policy says so, and only the owner, in writing, may set that policy for production.
+        if (!(policy && policy.envelope_autonomy === true)) return { allowed: true, confirm: true, reason: "fresh_approval_rule", envelope: env.id };
         return { allowed: true, confirm: false, envelope: env.id };
       }
       return { allowed: false, reason: "invalid_tier" };
@@ -1571,7 +1579,7 @@
         if (cap) { const dupKey = keyFor(item, cap); const done = memory.outcomes.filter(x => x.idempotency_key === dupKey && x.result === "confirmed").pop(); if (done) return idle({ capability_id: cap.id, idempotency_key: dupKey }, { outcome: "already_done", message: `${item.describe || cap.name} was already done earlier${done.reference ? ` (ref ${done.reference})` : ""}. I did not do it again. Ask again with new details if you want a second one.` }); if (log.some(e => e.to === "ACTING" && e.input && e.input.idempotency_key === dupKey)) return reconcile(item, cap, dupKey); }
         // Kill switch (SEC-010): while paused, nothing above a read runs, whatever the request says.
         if (o.control && typeof o.control.gate === "function") { const pg = o.control.gate(cap, now); if (pg && pg.allowed === false) return idle({ capability_id: cap.id }, { outcome: "blocked", reason: pg.reason || "paused", message: pg.message || "I'm paused, so I did not do that." }); }
-        const g = gate(cap, item, envelopesAt(now), now);
+        const g = gate(cap, item, envelopesAt(now), now, o.policy);
         if (!g.allowed) return idle({ capability_id: item.capability_id }, { outcome: "blocked", reason: g.reason, message: compose("blocked", { text: cap ? (registry.answer ? registry.answer(cap.id).text : `${cap.name} is not available.`) : "That is not something Upmore can do." }) });
         // Compliance gate (doc 14): one call site, before anything can act. A draft (a staged handoff the person sends from their own app)
         // is not execution: the agent writes nothing to any rail, so it is asked as executes:false. A regulated capability with no live partner fails closed with a specific message, whatever the prompt says.
@@ -3546,7 +3554,7 @@
       const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
-      else { const verb = /(?:^|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
+      else { const verb = /(?:^|[,.;:!?]\s*|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
       if (phone) recipient_raw = recipient = phone;
       else if (recipient_raw) {
         // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",
@@ -5071,13 +5079,15 @@
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
-    const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "declined", "expired"]);
+    const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "working", "partial", "declined", "expired"]);
+    // An order still working at the broker is settled as a card (the yes was used) but not final: it can still be canceled.
+    const WORKING = new Set(["working", "partial"]);
     const usd = c => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     // What the person last settled, in their words: the amount and who, or the order.
     function remember(memo, flow, r, now) {
       if (!r || !SETTLED.has(r.outcome)) return;
       const s = r.send || (r.order && r.order.send) || null;
-      const summary = s && Number.isInteger(s.amount_cents) && s.recipient ? `${usd(s.amount_cents)} to ${s.recipient.name}` : r.order && r.order.symbol ? `the ${r.order.symbol} order` : flow === "split" ? "those requests" : "that";
+      const summary = s && Number.isInteger(s.amount_cents) && s.recipient ? `${usd(s.amount_cents)} to ${s.recipient.name}` : r.order && r.order.symbol ? `the ${r.order.symbol} order` : flow === "trade" && r.order_id ? `order ${r.order_id}` : flow === "split" ? "those requests" : "that";
       memo.settled = { flow, outcome: r.outcome, summary, app: r.app || null, name: s && s.recipient ? s.recipient.name : null, at: now };
     }
     // The queued second ask starts once the first card is settled (staged, sent, declined, expired...), in the same reply.
@@ -5094,6 +5104,7 @@
     function secondYes(st) {
       if (st.outcome === "declined") return "Nothing's waiting for a yes: that card was dropped, and nothing was sent.";
       if (st.outcome === "expired") return "That card expired, so nothing was sent. Ask again and I'll put up a fresh one.";
+      if (WORKING.has(st.outcome)) return `Already placed: ${st.summary}, still working at the broker. A second yes doesn't place it again.`;
       if (st.outcome === "staged") return `That's already staged: ${st.summary}${st.app ? ` for you to send in ${st.app}` : ""}. A second yes doesn't stage it again.`;
       return `Already done: ${st.summary}. A second yes doesn't do it again.`;
     }
@@ -5182,7 +5193,7 @@
         memo.settled = null;
         return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: "already_done", text: secondYes(st) } };
       }
-      if (!live.length && st && since < 30 * 60000 && UNDO.test(text)) {
+      if (!live.length && st && since < 30 * 60000 && UNDO.test(text) && !WORKING.has(st.outcome)) {
         memo.settled = null;
         return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: st.outcome === "staged" ? "staged" : "final", text: undo(st) } };
       }

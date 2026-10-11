@@ -67,7 +67,7 @@
       const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
-      else { const verb = /(?:^|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
+      else { const verb = /(?:^|[,.;:!?]\s*|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
       if (phone) recipient_raw = recipient = phone;
       else if (recipient_raw) {
         // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",

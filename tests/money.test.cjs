@@ -93,6 +93,6 @@ test('full lifecycle on the fake rail through the loop: confirm before act, idem
   const f1=await l2.wake({kind:'message',request:fail});const f2=await l2.wake({kind:'confirmation',confirmation_id:f1.confirmation_id,approved:true});assert.equal(f2.outcome,'failed');assert.match(f2.message,/insufficient funds/);assert.ok(!/Sent|Done/.test(f2.message));
   // T5 always asks, even inside an envelope
   const first=M.prepareSend({amount_cents:500,recipient:'Marcus L'},{people,today:TODAY});assert.equal(first.tier,'T5');
-  const l3=Loop.create({registry,connectors:rail,clock:()=>t.now,envelopes:[{id:'e',capability_id:'PAY-002',max_cents:100000,active:true}]});
+  const l3=Loop.create({policy:{envelope_autonomy:true},registry,connectors:rail,clock:()=>t.now,envelopes:[{id:'e',capability_id:'PAY-002',max_cents:100000,active:true}]});
   const t5=await l3.wake({kind:'message',request:Object.assign({},first.request,{capability_id:'PAY-002'})});assert.equal(t5.outcome,'awaiting_confirmation');
 });

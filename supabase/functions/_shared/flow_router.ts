@@ -13,7 +13,7 @@
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaPaper, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaPaper, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
@@ -111,13 +111,21 @@ export function liveConnectors(data: FlowData, now: () => number) {
   };
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: PaperBroker | null = null) {
+// Rail 3: the merchants' published terms pages, configured as data (packages/connectors/merchant-terms.json, embedded in
+// the bundle). Read with the function's own fetch; a page that fails or hangs (6 s) is said plainly, never filled in.
+let termsConfig: any = null;
+export function termsReader(fetchFn: typeof fetch, now: () => number) {
+  if (!termsConfig) termsConfig = MerchantTerms.load(MERCHANT_TERMS_JSON);
+  return { read: (merchant: string) => MerchantTerms.read(merchant, { config: termsConfig, fetch: fetchFn, clock: now, timeout_ms: 6000 }), facts: (r: any) => MerchantTerms.facts(r, { config: termsConfig }) };
+}
+
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: PaperBroker | null = null, termsFetch: typeof fetch | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
   return {
     trade: AgentTrade.create({ registry, connectors: broker ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker ? broker.partners : LIVE_PARTNERS, compliance: Compliance, state: s.trade }),
-    cancel: AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel }),
+    cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
     recipients,
@@ -136,7 +144,7 @@ export function hasLiveCard(saved: any): boolean {
 }
 
 // One routed message. Returns null when the message is not a flow, so the existing handler answers it unchanged.
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null }): Promise<FlowReply | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
@@ -145,7 +153,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,
       route: { route: "unavailable", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "unavailable", canonical: null, ask_reason: null, problems: [data.missing || "data unavailable"] } };
   }
-  const built = buildSessions(data, saved, now, deps.channel ?? null, deps.broker ?? null);
+  const built = buildSessions(data, saved, now, deps.channel ?? null, deps.broker ?? null, deps.termsFetch === undefined ? fetch : deps.termsFetch);
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.

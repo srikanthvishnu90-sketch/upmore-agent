@@ -99,15 +99,36 @@
         if (clock() - r.as_of > 48 * 3600000) missing.push("fresh read");
         return { missing, facts: f, source: r.source, as_of: r.as_of };
       }
+      const hhmm = ms => new Date(ms).toISOString().slice(11, 16) + " UTC";
+      async function published(sub) { if (typeof o.terms_reader !== "function") return null; try { return await o.terms_reader(sub.merchant); } catch (e) { return { ok: false, reason: "network", message: `I couldn't read ${nameOf(sub)}'s terms page, so I won't state their terms.` }; } }
       const undoText = t => t.resubscribe_until ? `Reply "undo" before ${t.resubscribe_until} and I'll resubscribe you at the same rate; after that it is a new signup at the current price.` : "Cancelling cannot be undone from here; a new signup would be at the current price.";
 
       async function stage(sub, ctx) {
         const r = route(sub), t = await terms(sub);
-        if (t.missing.length === 1 && t.missing[0] === "account read") { const d = directory[keyOf(sub.merchant)] || directory[keyOf(sub.merchant).split(" ")[0]]; return say("needs_terms", `I can't read ${nameOf(sub)}'s account page from here yet, so I can't show you the cancellation terms or cancel it for you. Nothing was changed.${d && d.url ? ` You can cancel at ${d.url}; tell me when it's done and I'll watch the ${sub.next} charge.` : ` Tell me when you've cancelled and I'll watch the ${sub.next} charge.`}`, { missing: t.missing, not_wired: true }); }
+        if (t.missing.length === 1 && t.missing[0] === "account read") {
+          const d = directory[keyOf(sub.merchant)] || directory[keyOf(sub.merchant).split(" ")[0]];
+          // Rail 3: the merchant's published terms, when readable, are quoted with their source and time; never guessed.
+          const pub = await published(sub), F = pub && pub.ok && o.terms_facts ? o.terms_facts(pub) : {};
+          const said = [F.access_until && F.access_until.value === "end_of_billing_period" ? "access to the end of the billing period" : null, F.refund_policy ? F.refund_policy.value : null].filter(Boolean);
+          const plain = `I can't read ${nameOf(sub)}'s account page from here yet, so I can't show you the cancellation terms or cancel it for you. Nothing was changed.${d && d.url ? ` You can cancel at ${d.url}; tell me when it's done and I'll watch the ${sub.next} charge.` : ` Tell me when you've cancelled and I'll watch the ${sub.next} charge.`}`;
+          // The published terms, quoted with their source and read time, in two SMS segments at most; if they don't fit, the plain reply.
+          const bare = u => String(u || "").replace(/^https?:\/\//i, "").replace(/\/$/, "");
+          const quoted = pub && pub.ok && said.length ? `I can't read ${nameOf(sub)}'s account page yet, so I can't cancel it here. Nothing was changed. ${nameOf(sub)}'s terms (${bare(pub.url)}, ${hhmm(pub.fetched_at)}): ${said.join("; ")}.${d && d.url ? ` Cancel at ${bare(d.url)}; I'll watch the ${sub.next} charge.` : ` Tell me when it's done; I'll watch the ${sub.next} charge.`}` : null;
+          const fits = x => (typeof AgentCards !== "undefined" && AgentCards.segments ? AgentCards.segments(x).segments : Math.ceil(x.length / 153)) <= 2;
+          return say("needs_terms", quoted && fits(quoted) ? quoted : plain, { missing: t.missing, not_wired: true, published: pub && pub.ok ? { url: pub.url, hash: pub.hash, fetched_at: pub.fetched_at, quoted: !!(quoted && fits(quoted)) } : null });
+        }
         if (t.missing.length) return say("needs_terms", `I need ${t.missing.join(", ")} from ${nameOf(sub)}'s account page before I ask you to confirm; I won't guess the terms.`, { missing: t.missing });
+        // Rail 3: the merchant's published terms are read before the card and snapshotted with it (text, hash, fetched_at).
+        // An unreadable page is said plainly with the merchant's own link, and no card goes up.
+        let policy = null;
+        if (o.terms_reader) {
+          const pub = await published(sub);
+          if (!pub || !pub.ok) return say("terms_unreadable", `${pub && pub.message ? pub.message : `I couldn't read ${nameOf(sub)}'s terms page, so I won't state their terms.`} Nothing was changed.${pub && pub.link && pub.link !== pub.url ? ` You can cancel at ${pub.link}.` : ""}`, { reason: pub ? pub.reason : "no_read", link: pub ? pub.link : null });
+          policy = { url: pub.url, text: pub.text, hash: pub.hash, fetched_at: pub.fetched_at };
+        }
         const f = t.facts, cyc = { monthly: "mo", quarterly: "qtr", yearly: "yr" }[sub.interval] || sub.interval;
         const name = nameOf(sub);
-        const spec = { action: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, short: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, amount_cents: 0, counterparty: name, direction: "to", fee_cents: f.fee_cents, total_cents: f.fee_cents, when_short: `Access until ${f.access_until}${r.human_only ? `; I'll guide you through the last step` : ""}`, timing: `Last charge ${sub.last}. You keep access until ${f.access_until}; the ${sub.next} charge will not happen`, undo: undoText(f), lines: [`${f.fee_cents ? `Cancellation fee ${money(f.fee_cents)}. ` : ""}${f.remaining_contract_cents ? `Remaining contract ${money(f.remaining_contract_cents)}. ` : ""}Refunds: ${f.refund_policy}.`, r.human_only ? `This one is ${r.text}; I'll walk you through it and watch the ${sub.next} charge.` : `I will cancel ${r.text} and text you the confirmation.`, `Terms per ${t.source} as of ${new Date(t.as_of).toISOString().slice(0, 10)}.`] };
+        const spec = { action: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, short: `Cancel ${name} (${f.plan}, ${money(sub.amount_cents)}/${cyc})`, amount_cents: 0, counterparty: name, direction: "to", fee_cents: f.fee_cents, total_cents: f.fee_cents, when_short: `Access until ${f.access_until}${r.human_only ? `; I'll guide you through the last step` : ""}${policy ? `. Terms as of ${hhmm(policy.fetched_at)}` : ""}`, timing: `Last charge ${sub.last}. You keep access until ${f.access_until}; the ${sub.next} charge will not happen`, undo: undoText(f), lines: [`${f.fee_cents ? `Cancellation fee ${money(f.fee_cents)}. ` : ""}${f.remaining_contract_cents ? `Remaining contract ${money(f.remaining_contract_cents)}. ` : ""}Refunds: ${f.refund_policy}.`, r.human_only ? `This one is ${r.text}; I'll walk you through it and watch the ${sub.next} charge.` : `I will cancel ${r.text} and text you the confirmation.`, `Terms per ${t.source} as of ${new Date(t.as_of).toISOString().slice(0, 10)}.`].concat(policy ? [`Published terms: ${policy.url}, read ${new Date(policy.fetched_at).toISOString().slice(0, 16).replace("T", " ")} UTC, sha256 ${policy.hash.slice(0, 12)}.`] : []) };
         const base = `${CAPABILITY}:${keyOf(sub.merchant)}:${sub.next}`;
         const done = cases.find(c => c.key.startsWith(base) && ["cancelled", "accepted", "running", "verified"].includes(c.state));
         if (done) return say("already_done", `${nameOf(sub)} was already cancelled${done.reference ? ` (confirmation ${done.reference})` : ""}; the ${sub.next} charge is being watched. I did not do it again.`);
@@ -122,7 +143,7 @@
         const card = cards.issue(spec, { conversation: (ctx && ctx.conversation) || "default", channel: (ctx && ctx.channel) || "in_app" });
         if (!card.ok) { await loop.wake({ kind: "confirmation", confirmation_id: w.confirmation_id, approved: false }); return say("refused", `I could not put up the card: ${card.errors.join("; ")}.`); }
         // The terms the person saw are a copy, never a live reference: stop-on-change compares the provider's next read against them.
-        const kase = { merchant: sub.merchant, name, key, sub, route: r, terms: JSON.parse(JSON.stringify(f)), terms_source: t.source, terms_as_of: t.as_of, card_id: card.card_id, confirmation_id: w.confirmation_id, request, state: "card", created_at: clock(), reference: null, run: null, claim: null, refund: null };
+        const kase = { merchant: sub.merchant, name, key, sub, route: r, terms: JSON.parse(JSON.stringify(f)), terms_source: t.source, terms_as_of: t.as_of, policy, card_id: card.card_id, confirmation_id: w.confirmation_id, request, state: "card", created_at: clock(), reference: null, run: null, claim: null, refund: null };
         cases.push(kase); pending = kase; last_mentioned = sub.merchant;
         return say("confirm", card.text, { card_id: card.card_id, merchant: sub.merchant, name, route: r.kind, fee_cents: f.fee_cents, details: card.details });
       }
@@ -147,6 +168,11 @@
         const now = t2.facts, moved = [];
         for (const k of ["fee_cents", "remaining_contract_cents"]) if (now[k] !== was[k]) moved.push(`${k === "fee_cents" ? "the cancellation fee" : "the remaining contract"} changed from ${money(was[k])} to ${money(now[k])}`);
         for (const [k, label] of [["plan", "the plan"], ["access_until", "access-until"], ["next_charge_on", "the next charge date"], ["refund_policy", "the refund policy"]]) if (String(now[k]) !== String(was[k])) moved.push(`${label} changed from ${was[k]} to ${now[k]}`);
+        if (kase.policy) {
+          const pub = await published(kase.sub);
+          if (!pub || !pub.ok) moved.push(`I could not re-read ${name}'s published terms (${pub && pub.reason ? pub.reason.replace("_", " ") : "no read"})`);
+          else if (pub.hash !== kase.policy.hash) moved.push(`${name}'s published terms changed since your card (read ${hhmm(kase.policy.fetched_at)}, different at ${hhmm(pub.fetched_at)})`);
+        }
         return moved;
       }
       // S04/S05/S06: the reply goes to the card layer; a fire becomes the loop's confirmation, and only then the run.

@@ -7,6 +7,13 @@ function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m)
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }
 import corpusJson from "../../evals/gauntlet/sloppy-20.json" with { type: "json" };
 const corpus: any = corpusJson;
+// The published-terms reader (Rail 3) fetches with the global fetch. These tests never touch the network: Netflix's terms
+// URL is served from the SYNTHETIC fixture, everything else answers 403.
+// A minimal SYNTHETIC page with the same structure as tests/fixtures/terms/netflix.html (inline, so the recorder's
+// no-permission run needs no file read).
+const NETFLIX_TERMS_FIXTURE = `<h2>3. Billing and Cancellation</h2><h3>3.3 Cancellation</h3><p>You can cancel your Netflix membership at any time, and you will continue to have access to the Netflix service through the end of your billing period. We do not provide refunds or credits for any partial membership periods.</p><h2>4. Netflix Service</h2><p>x</p>`;
+const offlineFetch = (async (u: any) => String(u) === "https://help.netflix.com/legal/termsofuse" && NETFLIX_TERMS_FIXTURE ? new Response(NETFLIX_TERMS_FIXTURE) : new Response("forbidden", { status: 403 })) as unknown as typeof fetch;
+globalThis.fetch = offlineFetch;
 const T0 = Date.UTC(2026, 9, 12, 14, 0, 0);
 
 function txRows() {
@@ -65,7 +72,7 @@ Deno.test("ordinary chat falls through without a model call; a flow message is r
   eq(await routeFlows("what's a roth ira", { db, extract: count, now: () => T0 }), null); eq(calls, 0); eq(store.saves, 0);
   const r = await routeFlows("cancle netflix", { db, extract: count, now: () => T0 });
   assert(r, "routed"); eq(calls, 1); eq(r!.route.flow, "cancel"); eq(r!.route.source, "model"); eq(r!.route.understood, true); eq(r!.route.outcome, "needs_terms");
-  assert(/^I can't read Netflix's account page from here yet/.test(r!.reply), r!.reply); assert(/Nothing was changed/.test(r!.reply));
+  assert(/^I can't read Netflix's account page/.test(r!.reply), r!.reply); assert(/Netflix's terms \(help\.netflix\.com\/legal\/termsofuse, 14:00 UTC\): access to the end of the billing period/.test(r!.reply), r!.reply); assert(/Nothing was changed/.test(r!.reply));
   eq(store.saves, 1);
 });
 

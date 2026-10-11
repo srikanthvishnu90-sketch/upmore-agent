@@ -52,6 +52,7 @@ One capability at a time. Before code: 15 user-observable sub-capabilities enume
 | BILL-003 cancel a subscription end to end (real-world C73) | docs/depth/BILL-003.md | 16 | 16/16 (2026-10-11; S16 stop-on-change added) | `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BILL-003` |
 | RAIL-1 recipient memory and resolution (pay, split, request, every person-to-person flow) | docs/depth/RAIL-1.md | 16 | 16/16 (2026-10-11) | `node --test tests/depth-RAIL-1.test.cjs && node evals/depth/run.cjs RAIL-1` |
 | RAIL-2 Alpaca paper adapter, every order type (MOCK Alpaca server only) | docs/depth/RAIL-2.md | 16 | 16/16 (2026-10-11) | `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL-2` |
+| RAIL-3 merchant-terms reader, any merchant (SYNTHETIC page fixtures only) | docs/depth/RAIL-3.md | 15 | 15/15 (2026-10-11) | `node --test tests/depth-RAIL-3.test.cjs && node evals/depth/run.cjs RAIL-3` |
 
 ### Real-world capability set (206 items, 2026-10-11)
 
@@ -111,6 +112,21 @@ Bugs this rail's own tests caught before commit: a conflicting size ("sell 1 sha
 Changes to earlier packets, stated: INV-011's cards now carry the quote line (the owner's requirement), so two INV-011 card assertions changed; its adversarial rows "sell half my VOO is refused as INV-012" and "a limit is refused as C57" now assert that sells and limits are handled. INV-012 rose GATED to TESTED through status-overlay.json with tests/depth-RAIL-2.test.cjs. Side effect in the real-world audit (mechanical rule: an item is LOGIC_TESTED when all its registry ids are TESTED): C47, C50 and C70 moved to LOGIC_TESTED. C47 (sell from a text) earned it; C50 (harvest losses) and C70 (exit on a schedule) did not gain any new logic of their own, so read their upgrade as "their sell leg is tested", nothing more. Done stays 0 of 206.
 
 Owner steps to make Rail 2 real: set ALPACA_BROKER_KEY_ID, ALPACA_BROKER_SECRET, ALPACA_PAPER_ACCOUNT_ID (a sandbox account) and ALPACA_PAPER_USER_ID (the gauntlet test user) as function secrets, deploy agent-chat, and allow `broker-api.sandbox.alpaca.markets` and `data.sandbox.alpaca.markets` in this environment's network policy so Claude can run the same matrix against the real sandbox. The data host is my reading of the docs and is unverified.
+
+### Rail 3: merchant-terms reader (any merchant) — **synthetic page fixtures only; 0 reads of a real terms page**
+
+This environment's network policy blocks netflix.com and spotify.com, so the two fixtures were written to resemble the real pages (wording modeled on the published terms as quoted by third-party mirrors). The config marks both entries `verified: false`. Live, the edge function reads the real pages with its own fetch; whether their structure matches the parse hints is unproven until that first read.
+
+| Piece | What it does | Its test | What was broken on purpose (each proven to make its test fail) |
+| --- | --- | --- | --- |
+| packages/connectors/merchant-terms.json | Merchants as data: name, terms URL, cancel URL, parse hints (page structure plus the section or clause title), fact rules (a phrase that must literally appear). Netflix (headings page) and Spotify (numbered-clauses page). | tests/depth-RAIL-3.test.cjs S01 | config errors collected but never raised (D01) |
+| packages/domain/72-merchant-terms.js | `read(merchant)` returns `{ text, hash, fetched_at }` (hash is SHA-256 of the normalized section; the pure implementation matches node's crypto; markup, classes, whitespace and curly quotes keep the hash; a changed word changes it). Unreadable (HTTP error, network, empty, moved section, oversized, a 6 s hang) returns one plain sentence with the merchant's link and no terms. `facts()` states only what a configured phrase literally supports, with the quote. | S02-S06, S15 | heading section runs into the next section (D02); clause swallows 5.3 (D03); hash over the raw page (D04); HTTP status ignored (D05); a fact without its phrase (D06); curly quotes not normalized (D15) |
+| The cancel flow (68-agent-cancel.js) | The card snapshots text, hash and fetched_at and says "Terms as of 15:00 UTC" (DETAILS: URL and hash). Execution re-reads; a different hash stops with nothing written and a fresh card; a failed re-read stops; an unreadable page before the card means no card, said with the merchant's links. When the account page cannot be read (today, live), the reply quotes the published terms with source and time in two SMS segments, or says nothing about them. | S07-S14 | no snapshot kept (D07); inverted comparison (D08); comparison skipped (D09); failed re-read ignored (D10); card up without readable terms (D11); descriptor lookup by full string only (D12); snapshot held by reference (D13); quote without source and time (D14) |
+| Live wiring (_shared/flow_router.ts `termsReader`) | The config is embedded in the bundle; the cancel session gets the reader with the function's fetch. Edge tests serve an inline synthetic page through a stubbed global fetch. | tests/edge/flow-router.test.ts | — |
+
+Bugs this rail's own tests caught before commit: the quoted needs-terms reply ran to three SMS segments (now compact, and it falls back to the plain reply rather than exceed two); a not-found message said "section ... section"; the source file carried raw curly-quote characters that made a planted defect unmatchable (now ASCII escapes).
+
+What stays true: cancel still cannot card live, because no account-page reader is connected; this rail is in the card path and runs the moment one is, and today it improves the honest "I can't" reply with the merchant's own published terms.
 
 ## Requests between agents
 

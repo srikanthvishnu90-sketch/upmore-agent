@@ -1,0 +1,35 @@
+✔ names common bank fees and ignores reversals and ordinary merchants (1.401875ms)
+✔ an open fee is a candidate with an unsent, approval-gated draft, never recovered money (1.70575ms)
+✔ a later observed credit is only an unverified refund lead on the same account (1.594917ms)
+✔ one credit is suggested for at most one fee; another fee-kind credit is not a lead (0.846125ms)
+✔ a credit larger than the fee or outside the window is not a suggested linkage (2.268458ms)
+✔ a duplicate pair split across two accounts is not a duplicate (0.3215ms)
+✔ duplicate charges need same account, merchant identity and amount within three days (2.36ms)
+✔ a same-merchant credit stays unverified; three identical charges yield one candidate pair (0.579625ms)
+✔ transfers, missing merchant identity and fees are not treated as duplicates (0.266625ms)
+✔ stale holds are flagged after seven days with a caveat; recent holds are not (0.210375ms)
+✔ unknown facts stay excluded and conflicting facts stop the scan (1.633042ms)
+✔ a large debit labeled as a fee is not trusted as a fee (0.166125ms)
+✔ account scope limits candidates; results are deterministic regardless of input order (0.686625ms)
+✔ an unrelated same-merchant credit cannot prove that a possible duplicate was refunded (0.51925ms)
+✔ a generic fee refund keyword is unverified without a trusted charge-specific linkage (0.371916ms)
+✔ caller assertions and untrusted fact labels cannot grant recovery verification (0.4455ms)
+✔ missing dates and nonexistent calendar dates fail closed instead of creating stale holds (0.4995ms)
+✔ unknown hold age is explicitly excluded while valid fees remain reviewable (0.470375ms)
+✔ future dated posted charges, credits and holds cannot influence current recovery candidates (0.308667ms)
+✔ indexed matching preserves earliest eligible unused credit and greedy duplicate pairing (1.28475ms)
+✔ large unrelated histories and oversized credit pools have bounded indexed work (175.280625ms)
+✔ a credit indexed as both merchant and fee remains single use across candidate types (0.565125ms)
+✔ credit window endpoints are inclusive without calendar overflow (0.588125ms)
+✔ indexed duplicate and merchant-credit results match a simple greedy reference across mixed histories (61.384334ms)
+✔ depleted credit pools prune used credits without repeated full scans (63.181459ms)
+✔ same provider identity with contradictory transfer status or provenance stops in either order (0.274417ms)
+✔ large safe-integer amounts retain every cent in duplicate-charge drafts (0.158583ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 395.595708

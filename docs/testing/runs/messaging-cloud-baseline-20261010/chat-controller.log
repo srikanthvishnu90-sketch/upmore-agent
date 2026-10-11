@@ -1,0 +1,20 @@
+✔ delayed token resolution after owner change never sends the previous message under the new token (2.808958ms)
+✔ new chat invalidation drops delayed replies and does not fall back to private local data (3.019458ms)
+✔ thread switch and chat mode changes invalidate captured work even without explicit invalidation (2.056291ms)
+✔ current new chat adopts only its own valid server thread and existing chats reject substitution (1.459542ms)
+✔ late errors are stale rather than triggering fallback, while current outages may use general guidance (1.881625ms)
+✔ thread list and history cannot repopulate an old owner or switched conversation (0.87125ms)
+✔ current history requires separately owned thread and exact message binding (1.298917ms)
+✔ workflow link validates exact identifiers, drops authority fields and stops after navigation changes (0.485417ms)
+✔ invalid workflow payload cannot become a bill link or financial approval (0.553542ms)
+✔ anonymous local scopes stay usable until sign-in changes their identity (0.692708ms)
+✔ sign-out and same-owner sign-in still invalidate old conversation tickets (0.946958ms)
+✔ malformed history and thread lists stay unavailable instead of leaking unbound rows (0.727583ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 74.198375

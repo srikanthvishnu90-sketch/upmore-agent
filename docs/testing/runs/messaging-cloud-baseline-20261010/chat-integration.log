@@ -1,0 +1,15 @@
+✔ actual agentAsk drops an old reply after new chat without adopting its server thread (142.030875ms)
+✔ actual Guide discards stale remote responses without invoking local fallback or adding private text (56.131958ms)
+✔ actual delayed typing render cannot append old financial content after owner reset (42.48575ms)
+✔ actual thread list discards late owner results and history verifies ownership before reading messages (40.700958ms)
+✔ actual agent mode drops stale tracked results before rendering or writing its audit entry (43.564917ms)
+✔ actual workflow reply presents a read-only review link that cannot survive a thread switch (51.324167ms)
+✔ actual chat sheet distinguishes failed history reads from a verified empty list and supports retry (61.409459ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 489.784042

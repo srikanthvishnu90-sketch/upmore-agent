@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "label": "messaging-spec-capture-20261010",
+  "commit": "adbad0027553c9ea6c4755bac1f68e9ed3351596",
+  "source_digest": "631b14f750ccb955d4a0b20e51af4d297bd2f32c52dc57719aa1e19b1be76a55",
+  "observed_at": "2026-10-11T02:57:35.089108+00:00",
+  "checks": [
+    {
+      "id": "messaging-spec-capture-20261010:messaging-spec",
+      "command": [
+        "python3",
+        "scripts/capture-messaging-spec.py",
+        "--check"
+      ],
+      "observed_at": "2026-10-11T02:57:35.089108+00:00",
+      "commit": "adbad0027553c9ea6c4755bac1f68e9ed3351596",
+      "source_digest": "631b14f750ccb955d4a0b20e51af4d297bd2f32c52dc57719aa1e19b1be76a55",
+      "environment": {
+        "os": "macOS-14.5-arm64-arm-64bit-Mach-O"
+      },
+      "result": "PASS",
+      "reported_outcomes": null,
+      "exit_code": 0,
+      "log": "docs/testing/runs/messaging-spec-capture-20261010/messaging-spec.log",
+      "log_sha256": "f88fff8edf0b98c37af427e22802257715188c26109f83e2f09133d87e1afc69",
+      "verification_level": "LOCAL",
+      "provider_mode": "synthetic",
+      "screenshots": [],
+      "test_ids": [],
+      "limitations": [
+        "Not browser, sandbox-provider or live verification."
+      ]
+    }
+  ],
+  "not_run": [
+    "Actual browser/accessibility inspection: no enabled browser surface.",
+    "Partner sandbox/live: adapters not registered; no production authorization.",
+    "Root lint/format/security script: no configured command identified.",
+    "Database harness: separate privileged invocation required."
+  ]
+}

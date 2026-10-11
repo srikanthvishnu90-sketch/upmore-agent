@@ -1,0 +1,3 @@
+PASS: rendered messaging specification, source URL and text hash verified.
+Specification SHA256: 032cc6154eba71650c69ddc894d2a905a90f7a1fd72e2c163d5fe064df01793c
+Gap-map artifact SHA256: 5036863348b4c0082eaf9a85fcb49dcb00f72096e06ff600dc5c1a3146de2e4a (artifact integrity, not behavior proof)

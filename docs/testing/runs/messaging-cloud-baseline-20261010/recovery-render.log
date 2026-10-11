@@ -1,0 +1,30 @@
+✔ authenticated scan permits only read preparation with exact account/page scope (7.255875ms)
+✔ unsupported recovery claims, unsafe money, malformed dates and execution commands fail closed (8.5785ms)
+✔ credit leads require explicit unverified linkage and included accounts (4.174458ms)
+✔ delayed owner response and same-owner invalidation never restore private results (1.690417ms)
+✔ renderer displays actual evidence as text, incomplete coverage and a draft without external sends (27.064541ms)
+✔ held funds and possibly related credits are never described as recovered cash (1.458708ms)
+✔ pagination rejects changed bank facts and retains existing evidence for honest retry (1.692375ms)
+✔ reset clears evidence, open drafts and account selection; late UI response stays cleared (1.140667ms)
+✔ verified empty scan explains limited coverage while failed scans give an error instead of an empty certification (3.399458ms)
+✔ later candidate pages carry the exact reviewed source hash and reject missing or malformed hashes (2.803791ms)
+✔ account filter scopes source accounts and candidate page bounds remain strict (2.043125ms)
+✔ UI pagination submits reviewed hash and a failed fresh reload cannot retain a previous More cursor (3.826333ms)
+✔ coverage shows the actual excluded pending-date count (2.232459ms)
+✔ account choices use owned source labels and reset removes private account options (2.41375ms)
+✔ opening a recovery case requires explicit preparation confirmation and bound evidence with stable unchanged retry ID (4.409292ms)
+✔ open proof must match owner, amount, current source identities and preparation-only outcome (10.962709ms)
+✔ durable case list rejects foreign rows, malformed pagination and recovery certification (2.908708ms)
+✔ case status changes bind expected version and user confirmation; stale sources permit closing only (2.438292ms)
+✔ late case writes and list responses cannot expose a switched owner and reset clears pending retry identity (0.919666ms)
+✔ case UI renders user-reported submission and closure honestly, with reviewed local status controls only (1.188208ms)
+✔ candidate Save requires checkbox and retains confirmed save proof if the case list cannot refresh (1.318042ms)
+✔ unchanged case statuses never write and superseded retry proof requires reload (0.670167ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 180.19275

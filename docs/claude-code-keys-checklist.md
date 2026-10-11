@@ -18,7 +18,7 @@ GitHub secrets API scope) — confirm each one is set there.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_PLACES_API_KEY` | Required by code | Confirm in `lane-b`. WARNING: Ring Google OAuth refresh credential leaked 2026-09-30 — rotation still open. Rotate before launch |
 | `LINK_TOKEN_KEY` (Stripe Link) | Required by code | Confirm in `lane-b` |
 | Ring Supabase URL + `SERVICE_KEY` | URL: `https://kjwvqwkuprfhftmfflnu.supabase.co` | Service key lives in the Supabase dashboard (project `ring`) — copy into `lane-b`, never into chat or repo |
-| `RING_TOKEN_KEY`, `RING_VAULT_KEY` | Required by code | Confirm in `lane-b` |
+| `RING_TOKEN_KEY`, `RING_VAULT_KEY` | Required by code; both values are in the local file `~/workspace/ring-vercel-env.txt` (600 perms, Oct 8) — copy from there, never from chat | Confirm in `lane-b` |
 | `LANEB_USER_ID` | Not referenced in code — environment-level value | You provide; set in `lane-b` |
 
 ### RING test logins (you provide — cannot be generated)

@@ -231,6 +231,24 @@ This session runs in a cloud container, **not on the owner's machine**. The v2 p
 
 What this means for Phase 1: deploying agent-chat with the rails code needs a decision first. **Option B (recommended):** graft the router onto the live v203 lineage and apply only the 5 self-contained migrations (flow_state, saved_recipients, brokerage_accounts_per_user [Brokerage connect], model_call_budget, financial_evidence). **Option A:** apply all 22 unapplied migrations, then deploy the rebuilt handler. A is larger and riskier. Under either option the owner runs the apply. `scripts/launch/apply-rails-and-seed.sh` does migrations plus seed plus RLS proof in one command.
 
+**Decided 2026-10-11, owner ("whatever is better long term"): Option A.** Why A is better long term, and why its risk is lower than it first looked:
+- **B forks production from the tested code.** Every test, depth packet and gauntlet here targets `handler.ts`. Grafting the router onto v203 would put untested glue into a lineage the tests never see, and every later fix would have to be made twice.
+- **B's 5 migrations are a subset of A's 22.** B only postpones the other 17, and the message inbox, payments and recovery work need them.
+- **The rebuilt handler is not a rewrite.** It is v203 plus 184 changed lines in the entry file. All 5 shared modules (agent, capabilities, finance_facts, cancel_paths, lessons) are byte-identical to the live ones. Every v203 guard is still there: gift, gambling, fake document, contest, crypto. So are lesson recording and notes, usage logging, profiles and threads, and the duplicate check. It needs no new required secret (`ANTHROPIC_ROUTER_MODEL` and `UPMORE_LIVE_ORDER_CAP_CENTS` are optional).
+- **Live schema check, read 2026-10-11:**
+  - every table the 22 migrations create (40) is absent live, so nothing collides;
+  - the only live tables they alter (`exec_approvals`, `agent_usage`) only gain columns;
+  - the only live functions they replace (`agent_rl_bump_as`, `record_agent_lesson`) keep identical signatures and return types, so v203 keeps working between the migrate step and the deploy;
+  - none of the files contains transaction-unsafe statements.
+- **Rehearsed locally on a live-shaped database** (the live migrations through 20261008_000005, including the live `brokerage_accounts`): `bash scripts/launch/apply-rails-and-seed.sh --all` applied 22 files in ONE transaction (all or nothing) in 0.5 s, with 0 errors. The seed ran and every proof check came back true. A second run was a clean no-op.
+- **What remains a real risk:** the rebuilt handler has never served live traffic, and its changed lines are tested here, not in production. Rollback is the exact v203 source in `scripts/launch/rollback/agent-chat-v203/` (README has the one-command redeploy). The migrations stay, because they are additive.
+
+Owner sequence:
+1. `SUPABASE_DB_URL=... bash scripts/launch/apply-rails-and-seed.sh --all`.
+2. Deploy agent-chat, broker-oauth-start, and broker-oauth-callback (`--no-verify-jwt`).
+3. Run the live gauntlet on that exact commit.
+4. If something breaks, redeploy the v203 copy.
+
 ## Requests between agents
 
 - Phase 1 gaps that keep every live card at zero (Claude, 2026-10-11; (1) is built as Rail 1, migration not applied live): (1) a saved-recipient table (people, handles, rails, history) so pay-a-person can card a known person; (2) a broker-dealer adapter (Alpaca paper first, labeled paper everywhere) with quotes, buying power and order read-back, so buy can card and a paper fill can be read back; (3) an account-page terms reader for at least one merchant through the existing agent-exec runner, so cancel can show its card. Each is a rail; none is faked meanwhile.

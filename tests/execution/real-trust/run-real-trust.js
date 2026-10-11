@@ -51,7 +51,10 @@ function wiring() {
 
   // agent-chat wiring: the deployed chat must call the shared lesson
   // helpers from ./_shared/lessons.ts, not re-implement them.
-  const chatSrc = readFileSync(join(root, "supabase/functions/agent-chat/index.ts"), "utf8");
+  // The chat entry point was split into index.ts + handler.ts; the wiring lives in either.
+  const chatSrc = ["index.ts", "handler.ts"]
+    .map((f) => { try { return readFileSync(join(root, "supabase/functions/agent-chat", f), "utf8"); } catch { return ""; } })
+    .join("\n");
   const chatMustCall = [
     'from "./_shared/lessons.ts"',
     "lessonRelevant(",

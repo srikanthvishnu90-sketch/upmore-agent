@@ -157,6 +157,9 @@ async function runAgent(agent, opts, judgeState) {
     if (!rec.ok && !rec.skipped && !rec.deferred) out.pass = false;
     out.steps.push(rec);
   }
+  // Judge branches can continue before the shared failure assignment. Derive
+  // outcome from every executed step so a failed judge cannot disappear.
+  out.pass = !out.steps.some(st => st.ok === false && !st.skipped && !st.deferred);
   out.ms = Date.now() - t0;
   return out;
 }
@@ -205,6 +208,11 @@ async function main() {
   const { dir, summary } = require("./report").writeRun(run);
   console.log(`\n${summary.pass}/${summary.agents} agents pass (${(summary.passRate * 100).toFixed(1)}%)`);
   console.log(`results: ${dir}`);
+  process.exitCode = runExitCode(run);
+}
+
+function runExitCode(run) {
+  return run.agents.some(agent => agent.pass === false || agent.steps.some(step => step.ok === false && !step.skipped && !step.deferred)) ? 1 : 0;
 }
 
 // Live variant: backend steps use real network fetch instead of the sandbox
@@ -239,4 +247,5 @@ async function backendCall(app, prompt, budget) {
   }
 }
 
-main().catch((e) => { console.error("runner failed:", e.message); process.exit(1); });
+if (require.main === module) main().catch((e) => { console.error("runner failed:", e.message); process.exit(1); });
+module.exports = {runAgent,runExitCode};

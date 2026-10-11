@@ -1,0 +1,227 @@
+  /* Send to a saved recipient, end to end (Instinct spec docs 01, 06, 11; depth protocol docs/depth/PAY-001.md).
+     The dialogue and state machine over AgentMoney (rails, recipient, scam and
+     velocity checks), AgentLoop (tiers, confirmation, idempotency, crash recovery),
+     AgentVoice (what a reply means) and DataGuard (memo text is data). One session
+     per conversation: start(text) stages or asks, reply(text) approves, corrects or
+     declines, followUp() reconciles, landed(rows) closes a handoff. Handoff rails
+     (Venmo, Zelle, Cash App, PayPal) are staged as drafts: the user taps, the agent
+     watches for the debit and only then says "landed". Partner rails write through
+     the loop and say "sent" only after the rail confirms. Nothing here talks to a
+     rail directly; the connectors the session is given do. Loads after MoneyMath,
+     AgentMoney, AgentLoop, AgentVoice, DataGuard. */
+  const AgentSend = (() => {
+    const DAY = 86400000, WEEK = 7 * DAY;
+    const money = c => { const s = Math.abs(c); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
+    const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+    const CAPABILITY = "PAY-001";
+
+    // S01/S02: the user's own words carry the amount and the recipient; the memo is whatever follows "for" and is never parsed for either.
+    const AMOUNT = /(?:^|[\s:])\$?\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s*(k\b)?(?![\d,.]*\w)/i;
+    function parseAmount(text) {
+      const m = AMOUNT.exec(text); if (!m) return null;
+      const whole = Number(m[1].replace(/,/g, "")), frac = m[2] ? Number((m[2] + "0").slice(0, 2)) : 0;
+      let cents = whole * 100 + frac; if (m[3]) cents *= 1000;
+      return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
+    }
+    function parse(text) {
+      const t = String(text || "").trim(), lower = t.toLowerCase();
+      const forIdx = lower.search(/\bfor\b/), head = forIdx >= 0 ? t.slice(0, forIdx) : t, memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "") || null : null;
+      const amount_cents = parseAmount(head);
+      let recipient = null;
+      const to = /\bto\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*)?)/.exec(head.replace(AMOUNT, " "));
+      if (to) recipient = to[1].trim();
+      else { const verb = /^(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*)?)/i.exec(head.replace(AMOUNT, " ").replace(/\s+/g, " ")); if (verb) recipient = verb[1].trim(); }
+      if (recipient) recipient = recipient.replace(/\b(my|the|some|another)\b\s*/gi, "").replace(/\s+(now|today|tonight|please|instantly|asap)$/i, "").trim() || null;
+      const speed = /\b(instant|instantly|right now|asap|now)\b/i.test(t) ? "instant" : null;
+      const funding = (/\bfrom\s+(checking|savings|[a-z]+ account)/i.exec(t) || [])[1] || null;
+      const railM = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head), rail = railM ? (/cash/i.test(railM[1]) ? "cash_app" : railM[1].toLowerCase()) : null;
+      return { amount_cents, recipient, memo, speed, funding, rail, text: t };
+    }
+    // S04: a handle one or two edits away from a saved one is a look-alike until the user says otherwise. The rule lives in
+    // the recipient layer (42-agent-recipients.js) so every person-to-person flow applies it the same way.
+    function lookalike(handle, people) {
+      const r = AgentRecipients.resolve(handle, people);
+      return r.status === "saved" && r.matched_by === "handle" ? { exact: r.person } : r.status === "lookalike" && r.handle ? { suspect: r.suspect, distance: r.distance } : null;
+    }
+
+    function create(opts) {
+      const o = opts || {}, clock = o.clock || (() => Date.now());
+      const Money = typeof AgentMoney !== "undefined" ? AgentMoney : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
+      const Rec = typeof AgentRecipients !== "undefined" ? AgentRecipients : null;
+      if (!Money || !Loop || !Rec) throw new Error("AgentSend needs AgentMoney, AgentLoop and AgentRecipients loaded.");
+      // A stateless host restores the session from snapshot(): the loop (log, memory, pending confirmation), the staged sends and the live card.
+      const st = o.state || {}, ls = st.loop || {};
+      const log = Array.isArray(o.log) ? o.log : Array.isArray(ls.log) ? ls.log : [], memoryInit = o.memory || ls.memory || null;
+      const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
+      const loop = Loop.create({ registry: o.registry, connectors: o.connectors, clock, log, memory: memoryInit, sent: ls.sent, pending: ls.pending || null, control: o.control || null, envelopes: o.envelopes || [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, guard: Guard, compliance: o.compliance || null, partners: o.partners || {}, kyc: o.kyc || null });
+      const sends = Array.isArray(o.sends) ? o.sends : Array.isArray(st.sends) ? st.sends : []; // staged handoff sends awaiting their debit
+      let pending = st.pending || null; // { send, confirmation_id, request, prep }
+      // Recipients come from the one recipient layer: saved rows (the host loads public.saved_recipients) plus any directory.
+      const book = o.recipients || Rec.book({ people: o.people || [], clock, channel: o.channel || null });
+      let identity = st.identity || null, waiting = st.waiting || null; // a "Which Marcus", look-alike or stranger follow-up and the send it is for
+      let saveOffer = st.save_offer || null; // a stranger confirmed by read-back whom the person may SAVE explicitly
+      const sentWithin = ms => loop.memory.outcomes.filter(x => (x.capability_id === CAPABILITY || x.capability_id === "PAY-002") && x.result === "confirmed" && clock() - (x.recorded_at || 0) < ms).reduce((s, x) => s + (x.amount_cents || 0), 0) + sends.filter(s => s.staged_at && !s.cancelled && clock() - s.staged_at < ms).reduce((s, x) => s + x.amount_cents, 0);
+
+      // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
+      // The card a person answers: two SMS segments at most. Who gets paid, the exact amount, the rail, the fee and total,
+      // and that it can't be undone once received. Funding account, timing and the full reversal terms are DETAILS.
+      const cardText = (send, channel) => {
+        const who = send.confirm.recipient, amt = money(send.amount_cents), rail = send.rail.name, irr = /irreversible|can'?t be undone|cannot be undone/i.test(String(send.rail.reversible || "")) && !/^friends-and-family/i.test(String(send.rail.reversible || ""));
+        const nu = send.recipient.readback_id ? `${send.recipient.name}${send.recipient.handle && send.recipient.handle !== send.recipient.name ? ` (${send.recipient.handle})` : ""}` : null;
+        const heads = nu ? [`New recipient, first send: set up ${amt} to ${nu} in ${rail} from ${send.confirm.from}, for you to send`, `New recipient, first send: set up ${amt} to ${nu} in ${rail}`]
+          : [send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail} from ${send.confirm.from}, for you to send` : `Send ${amt} to ${who} by ${rail} from ${send.confirm.from}`, send.rail.mode === "handoff" ? `Set up ${amt} to ${who} in ${rail}` : `Send ${amt} to ${who} by ${rail}`];
+        const fee = send.rail.fee_cents || 0;
+        for (const head of heads) {
+          const f = { head, fee_cents: fee, total_cents: send.amount_cents + fee, irreversible: irr || /friends-and-family/i.test(String(send.rail.reversible || "")), irreversible_text: /friends-and-family/i.test(String(send.rail.reversible || "")) ? "Friends-and-family sends can't be undone." : "Can't be undone once received.", expiry_ms: o.confirm_ttl_ms || 10 * 60000, when: send.memo_flagged ? "Your memo had instruction-like text; I kept it as text" : send.verify_question && nu ? "Only if they asked you for this themselves, in person or on a call you placed" : null };
+          const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${fee ? `Fee ${money(fee)}, total ${money(send.amount_cents + fee)}.` : "No fee."} Reply YES or NO, or DETAILS.`, segments: { segments: 1 } };
+          if (r.segments.segments <= 2) return r.text;
+        }
+        return `Send ${amt} to ${who}. Reply YES, NO or DETAILS.`;
+      };
+      const confirmText = send => `${send.confirm.action} ${send.confirm.amount} to ${send.confirm.recipient} from ${send.confirm.from}? ${send.confirm.fee ? "Fee " + send.confirm.fee : "No fee"}, ${send.confirm.when}. ${send.rail.reversible.charAt(0).toUpperCase() + send.rail.reversible.slice(1)}.${send.memo_flagged ? " The memo contained instruction-like text; I kept it as plain text and ignored it." : ""} Reply yes or no.`;
+
+      const prepare = (parsed, person, memo) => Money.prepareSend({ amount_cents: parsed.amount_cents, recipient: person.name, memo, speed: parsed.speed, funding: parsed.funding || o.default_funding || "checking", instruction: parsed.text }, { people: [person], partners: o.partners || {}, today: ymd(clock()), sent_today_cents: sentWithin(DAY), sent_week_cents: sentWithin(WEEK), envelope: o.limits || {}, large_cents: o.large_cents, default_funding: o.default_funding || "checking", include_gated: false });
+      // Starts the follow-up (choose, look-alike or the stranger path) and remembers the send it is for. Nothing is staged.
+      function follow(spec, parsed, reason, extra) {
+        const s0 = Rec.identityStart(spec, clock()); identity = s0.state; waiting = { parsed }; pending = null;
+        return Object.assign({ outcome: "ask", reason, text: s0.text }, extra || {});
+      }
+      async function stage(parsed, pick) {
+        if (!parsed.amount_cents) return { outcome: "ask", text: "How much?" };
+        if (!parsed.recipient && !pick) return { outcome: "ask", text: "Who should I send it to?" };
+        identity = null; waiting = null; saveOffer = null;
+        // Memo text is data: it may be quoted back, never obeyed.
+        let memo = parsed.memo, memo_flagged = false;
+        if (memo && Guard) { const g = Guard.wrap(memo); memo_flagged = !!g.flagged; }
+        // Rail 1: exact handle, then full name, then first name; ambiguity, look-alikes and strangers never pass as saved.
+        let person = pick || null;
+        if (!person) {
+          const r = book.resolve(parsed.recipient);
+          if (r.status === "unavailable") return { outcome: "unavailable", reason: "recipients_unreadable", text: r.ask };
+          if (r.status === "missing") return { outcome: "ask", text: r.ask };
+          if (r.status === "ambiguous") return follow({ candidates: r.candidates, ask: r.ask }, parsed, "ambiguous", { candidates: r.candidates.map(c => c.name) });
+          if (r.status === "lookalike") return follow({ suspect: r.suspect, handle: r.handle, rail: parsed.rail, name: r.handle ? null : r.query, ask: r.ask, lead: r.ask }, parsed, "lookalike");
+          if (r.status === "stranger") return follow({ name: r.name, handle: r.handle, rail: parsed.rail, lead: `I don't have ${r.name || parsed.recipient} on file.` }, parsed, "new_recipient", { new_recipient: true });
+          person = r.person;
+        }
+        // The app the person named, when the saved person is on it; a saved person not on that app is confirmed there in full.
+        if (parsed.rail && person.handles && person.handles[parsed.rail]) person = Rec.forRail(person, parsed.rail);
+        else if (parsed.rail && person.handles && !person.readback_id) return follow({ name: person.name, rail: parsed.rail, lead: `${person.name} is saved on ${person.rails.map(Rec.railName).join(" and ")}, not ${Rec.railName(parsed.rail)}.` }, parsed, "new_recipient", { new_recipient: true });
+        // Someone known by name who has never been paid and was never confirmed goes through the same stranger path, prefilled.
+        if (!person.saved && !(person.history && person.history.length) && !person.readback_id) {
+          const rail = parsed.rail && (person.rails || []).includes(parsed.rail) ? parsed.rail : (person.rails || []).find(x => Rec.RAILS[x]) || null;
+          return follow({ name: person.name, handle: person.handle || null, rail, lead: `${person.name} has never received money from you. First sends go through the new-recipient path and are confirmed in full.` }, parsed, "new_recipient", { new_recipient: true });
+        }
+        let prep = prepare(parsed, person, memo);
+        // A person saved on several apps: the card shows the handle on the app the money actually goes by.
+        if (!prep.stop && !prep.ask && person.handles && prep.rail && person.handles[prep.rail.id] && person.handle !== person.handles[prep.rail.id]) { person = Rec.forRail(person, prep.rail.id); prep = prepare(parsed, person, memo); }
+        if (prep.stop) return { outcome: "stop", reason: prep.reason, text: prep.message };
+        if (prep.ask) return { outcome: "ask", reason: prep.new_recipient ? "new_recipient" : "gap", text: prep.ask, new_recipient: !!prep.new_recipient };
+        if (prep.tier === "T5" && !person.readback_id) return { outcome: "ask", reason: "new_recipient", text: `${prep.recipient.name} has never received money from you. First sends go through the new-recipient path and are confirmed in full. ${prep.verify_question || ""}`.trim(), new_recipient: true };
+        const send = Object.assign({ memo_flagged, staged_at: null, landed: null }, prep);
+        const handoff = send.rail.mode === "handoff";
+        const request = { capability_id: person.readback_id ? "PAY-002" : CAPABILITY, key: prep.request.key, idempotency_key: prep.request.key, params: { amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name, recipient_name: send.recipient.name, rail: send.rail.id, memo: memo || null, funding: send.confirm.from }, describe: send.confirm.action, confirm: { action: send.confirm.action, amount: send.confirm.amount, recipient: send.confirm.recipient, from: send.confirm.from, fee: send.confirm.fee, when: send.confirm.when }, draft_only: handoff, amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name };
+        send.request_key = request.key;
+        // S10 for handoff rails: a staged send is "done" for the day even though no rail was written; the same instruction is not staged twice.
+        const staged = sends.find(x => x.request_key === request.key && !x.cancelled);
+        if (staged) return { outcome: "already_done", text: `${send.confirm.action} was already staged today${staged.landed ? ` and landed on ${staged.landed}` : ""}. I did not stage it again. If it never went through, say so and I'll restage it.` };
+        const r = await loop.wake({ kind: "message", request });
+        if (r.outcome === "awaiting_confirmation") { pending = { send, confirmation_id: r.confirmation_id, request, prep: { parsed: Object.assign({}, parsed, { memo: parsed.memo || null }) } }; return { outcome: "confirm", confirmation_id: r.confirmation_id, text: cardText(send), details: confirmText(send), send }; }
+        if (r.outcome === "already_done") { pending = null; return { outcome: "already_done", text: r.message }; }
+        if (r.outcome === "blocked") { pending = null; return { outcome: "blocked", reason: r.reason, text: r.message }; }
+        return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
+      }
+      // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
+      async function start(text) { if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
+
+      // The outcome of an approved action, in the user's words.
+      function settle(r, send) {
+        if (r.outcome === "draft_approved") {
+          const h = Money.handoff(send); send.staged_at = clock(); send.watch = h.watch; sends.push(send);
+          // Staged is not sent: a new recipient is saved when the money lands, or now if the person says SAVE.
+          const nu = send.recipient.readback_id && !send.recipient.saved;
+          if (nu) saveOffer = { name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id, readback_id: send.recipient.readback_id, offered_at: clock() };
+          return { outcome: "staged", text: nu ? `${h.text} Reply SAVE to keep ${send.recipient.name} for next time; otherwise I'll save them once the money lands.` : h.text, steps: h.steps, app: h.app, watch: h.watch, send, save_offered: !!nu };
+        }
+        if (r.outcome === "confirmed") {
+          const rc = Money.receipt(send, { reference: r.outcome_record && r.outcome_record.reference || (r.message.match(/ref ([^)]+)\)/) || [])[1] || "confirmed" });
+          const sv = book.save({ name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id }, { kind: "completed_send", reference: rc.reference, outcome: "sent" });
+          return { outcome: "sent", text: rc.text, reference: rc.reference, reversal_contract: rc.reversal_contract, mitigation: rc.mitigation, send, saved: sv.ok ? sv.op : null };
+        }
+        if (r.outcome === "unknown") return { outcome: "unknown", text: r.message, send };
+        if (r.outcome === "failed") return { outcome: "failed", text: `${r.message} ${send.rail.mode === "partner" ? "Nothing posted on their side; the money is still in " + send.confirm.from + "." : ""}`.trim(), send };
+        if (r.outcome === "expired") return { outcome: "expired", text: r.message };
+        if (r.outcome === "declined") return { outcome: "declined", text: r.message };
+        return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
+      }
+      function recheck(p) {
+        const was = p.send, parsed = (p.prep && p.prep.parsed) || {};
+        // The recipient is looked up again: a saved person whose handle changed, or who was removed, stops the send.
+        let cur = was.recipient;
+        if (!was.recipient.readback_id) { const rr = book.resolve(was.recipient.handle || was.recipient.name); if (rr.status !== "saved") return ["the recipient is no longer on file as before"]; cur = rr.person; }
+        const prep = Money.prepareSend({ amount_cents: was.amount_cents, recipient: cur.name, memo: was.memo || null, speed: parsed.speed || null, funding: was.confirm.from, instruction: parsed.text || "" }, { people: [cur], partners: o.partners || {}, today: ymd(clock()), sent_today_cents: sentWithin(DAY), sent_week_cents: sentWithin(WEEK), envelope: o.limits || {}, large_cents: o.large_cents, default_funding: o.default_funding || "checking", include_gated: false });
+        if (prep.stop || prep.ask) return [`it no longer clears: ${prep.message || prep.ask}`];
+        const moved = [];
+        if (prep.rail.id !== was.rail.id) moved.push(`the rail changed from ${was.rail.name} to ${prep.rail.name}`);
+        if ((prep.rail.fee_cents || 0) !== (was.rail.fee_cents || 0)) moved.push(`the fee changed from ${money(was.rail.fee_cents || 0)} to ${money(prep.rail.fee_cents || 0)}`);
+        if (prep.amount_cents !== was.amount_cents) moved.push(`the amount changed from ${money(was.amount_cents)} to ${money(prep.amount_cents)}`);
+        if ((prep.recipient.id || prep.recipient.name) !== (was.recipient.id || was.recipient.name) || prep.recipient.handle !== was.recipient.handle) moved.push(`the recipient's details changed`);
+        return moved;
+      }
+      async function reply(text) {
+        if (identity) {
+          const step = Rec.identityStep(identity, text, clock()); identity = step.state;
+          if (step.outcome === "ask") return { outcome: "ask", reason: "identity", text: step.text };
+          const w = waiting; waiting = null;
+          if (step.outcome === "use_saved" || step.outcome === "confirmed") return stage(w.parsed, step.person);
+          return { outcome: step.outcome === "expired" ? "expired" : "declined", text: step.text };
+        }
+        if (saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text))) {
+          const so = saveOffer; saveOffer = null;
+          const sv = book.save({ name: so.name, handle: so.handle, rail: so.rail }, { kind: "confirmed", approved: true, readback: true, confirmation_id: so.readback_id });
+          return sv.ok ? { outcome: "saved", text: `Saved ${so.name} (${Rec.railName(so.rail)} ${so.handle}). Next time a send to them goes straight to the card.`, row: sv.row } : { outcome: "not_saved", text: sv.text };
+        }
+        const p = pending;
+        if (!p) return { outcome: "nothing_pending", text: "There is no send waiting on you." };
+        const cls = Voice ? Voice.classify(text, { pending_confirmation: true }) : { type: /^y/i.test(text) ? "confirmation" : "question", approved: /^y/i.test(text) };
+        // S07: "yes, but" corrects. The old proposal is dropped and the corrected one is staged afresh; nothing is written in between.
+        if (cls.type === "correction") {
+          const fix = parse(text), merged = { amount_cents: fix.amount_cents || p.send.amount_cents, recipient: fix.recipient || p.send.recipient.name, memo: p.send.memo, speed: fix.speed || null, funding: fix.funding || p.send.confirm.from, text };
+          await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+          const again = await stage(merged);
+          return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
+        }
+        if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return settle(r, p.send); }
+        if (cls.type === "confirmation" && cls.approved === true) {
+          // Stop-on-change: the send is prepared again from the same words right before it goes out. If the rail, the fee, the
+          // amount or the recipient came out different, or a limit now stops it, nothing is sent and a fresh card says what moved.
+          const moved = recheck(p);
+          if (moved.length) {
+            await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+            const again = await stage(p.prep.parsed);
+            return Object.assign({}, again, { outcome: "changed", moved, next: again, text: `Stopped before sending: ${moved.join("; ")}. Nothing was sent.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}` });
+          }
+          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.send);
+        }
+        if (/^\s*(3|details?|more|terms|full terms)\s*[.!?]*\s*$/i.test(String(text))) return { outcome: "details", text: confirmText(p.send), details: true };
+        return { outcome: "ask", text: `Yes or no? ${cardText(p.send)}` };
+      }
+      async function followUp() { const r = await loop.wake({ kind: "follow_up" }); const key = (log.filter(e => e.to === "ACTING").pop() || { input: {} }).input.idempotency_key; const send = sends.find(s => s.request && s.request.key === key) || (pending && pending.send) || lastSend(key); return settle(r, send || { rail: { mode: "partner", reversible: "" }, confirm: { from: "your account" }, amount_cents: 0, recipient: { name: "?" } }); }
+      const lastSend = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const person = book.people.find(x => (x.id || x.name) === p.recipient) || { name: p.recipient_name || p.recipient }; const rail = Money.RAILS[p.rail] ? Object.assign({ id: p.rail }, Money.RAILS[p.rail]) : { id: p.rail, mode: "partner", name: p.rail, speed: "", reversible: "", mitigation: "" }; return { amount_cents: p.amount_cents, recipient: person, rail, confirm: { from: p.funding || "checking", action: `Send ${money(p.amount_cents)} to ${person.name}` }, memo: p.memo || null }; };
+      // S15 for handoff rails: "landed" only when the debit posts; overdue asks instead of assuming.
+      function landed(transactions) {
+        const out = [];
+        for (const s of sends) { if (s.landed || s.cancelled) continue; const hit = (transactions || []).find(t => { const c = Number.isInteger(t.amount_cents) ? t.amount_cents : Math.round(Number(t.amount || 0) * 100); const who = String(t.merchant_raw || "").toLowerCase(); return c === -s.amount_cents && Date.parse(String(t.posted_at).slice(0, 10) + "T00:00:00Z") >= Date.parse(ymd(s.staged_at) + "T00:00:00Z") && [s.recipient.name, s.recipient.handle].filter(Boolean).some(n => who.includes(String(n).toLowerCase().replace(/^@/, "").split(" ")[0])); }); if (hit) { s.landed = String(hit.posted_at).slice(0, 10); const rc = Money.receipt(s, { posted: s.landed }); const sv = book.save({ name: s.recipient.name, handle: s.recipient.handle, rail: s.rail.id }, { kind: "completed_send", transaction_id: hit.id, posted: s.landed }); if (sv.ok && saveOffer && saveOffer.handle === s.recipient.handle) saveOffer = null; out.push({ send: s, transaction_id: hit.id, text: rc.text, saved: sv.ok ? sv.op : null }); } }
+        return out;
+      }
+      function overdue(now) { return sends.filter(s => !s.landed && !s.cancelled && s.watch && now - s.staged_at > s.watch.deadline_days * DAY).map(s => ({ send: s, text: `I staged ${money(s.amount_cents)} to ${s.recipient.name} on ${s.rail.name} ${Math.floor((now - s.staged_at) / DAY)} day(s) ago and have not seen it post. Did you send it? If not, nothing left your account.` })); }
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending, identity, waiting, save_offer: saveOffer }));
+      // A reply that belongs to this flow's follow-up (a handle, NEW, a choice, SAVE) goes here and never to the model.
+      const accepts = text => (!!identity && Rec.identityAccepts(identity, text)) || (!!saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text || "")));
+      return { start, reply, followUp, landed, overdue, parse, loop, sends, snapshot, cardText, accepts, recipients: book,
+        get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; },
+        get awaiting_input() { return !!identity || !!saveOffer; } };
+    }
+    return { create, parse, parseAmount, lookalike, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = AgentSend;

@@ -1,0 +1,67 @@
+begin;
+reset role;
+insert into auth.users(id,email) values('00000000-0000-0000-0000-000000000001','turn1@example.com'),('00000000-0000-0000-0000-000000000002','turn2@example.com');
+insert into public.agent_threads(id,user_id,title) values
+ ('dddddddd-1111-1111-1111-111111111111','00000000-0000-0000-0000-000000000001','Owner conversation'),
+ ('dddddddd-2222-2222-2222-222222222222','00000000-0000-0000-0000-000000000002','Other conversation');
+insert into public.agent_message_transports(provider,account_key,organization_id,enabled) values('loopmessage','upmore','org',true);
+insert into public.agent_message_channels(id,user_id,provider,account_key,contact) values('cccccccc-1111-1111-1111-111111111111','00000000-0000-0000-0000-000000000001','loopmessage','upmore','+13125550123');
+select set_config('test.turn_inbox',public.agent_message_ingest('loopmessage','upmore','org','+13125550123','turn-1',repeat('a',64),'What is due tomorrow?')->>'inbox_id',true);
+select set_config('test.turn_lease',public.agent_message_claim(current_setting('test.turn_inbox')::uuid,120)->>'lease_token',true);
+select t.as_user('00000000-0000-0000-0000-000000000001');
+set role authenticated;
+select t.must_fail($$select public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid)$$,'permission denied','client cannot impersonate the message-turn worker');
+select t.must_fail($$select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,'{"reply":"forged"}','["forged"]')$$,'permission denied','client cannot forge a completed financial turn');
+reset role;
+select t.must_fail($$select public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,gen_random_uuid())$$,'lease unavailable','turn requires the original processing lease');
+select t.ok((public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid)->>'ready')::boolean,'one durable marker authorizes the original brain invocation');
+select t.ok(not (public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid)->>'ready')::boolean,'duplicate brain request is pending rather than started again');
+select t.ok((select count(*)=1 and bool_and(source_hash=repeat('a',64)) from public.agent_message_turns),'turn is bound to immutable source evidence');
+select t.must_fail($$update public.agent_message_inbox set text='Pay an attacker' where id=current_setting('test.turn_inbox')::uuid$$,'source is immutable','in-flight request content cannot change');
+select t.must_fail($$select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,'{"thread_id":"dddddddd-2222-2222-2222-222222222222","reply":"other owner"}','["other owner"]')$$,'owner mismatch','receipt cannot attach another user conversation');
+select t.ok((select state='started' from public.agent_message_turns),'invalid receipt leaves the original turn unresolved');
+select t.must_fail($$select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,'{"thread_id":"dddddddd-1111-1111-1111-111111111111","reply":"ok"}','["first",99]')$$,'invalid reply','invalid bubble batch rolls back the whole completion');
+select t.ok((select count(*)=0 from public.agent_message_outbox),'invalid completion cannot enqueue a partial reply');
+update public.agent_message_inbox set lease_until=now()-interval '1 second' where id=current_setting('test.turn_inbox')::uuid;
+select public.agent_message_claim(current_setting('test.turn_inbox')::uuid);
+select t.ok((select state='uncertain' from public.agent_message_inbox),'expired active brain is visible as uncertain');
+select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,
+ '{"thread_id":"dddddddd-1111-1111-1111-111111111111","reply":"Rent is due tomorrow."}','["Rent is due tomorrow."]');
+select t.ok((select state='completed' from public.agent_message_inbox),'original verified receipt resolves an expired processing lease');
+select t.ok((select count(*)=1 from public.agent_message_outbox),'resolved turn queues its answer exactly once');
+select t.ok((select thread_id='dddddddd-1111-1111-1111-111111111111' from public.agent_message_channels),'conversation memory is bound to the verified channel owner');
+select t.ok(public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid)->>'state'='completed','late retry receives the original completed receipt');
+select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,
+ '{"thread_id":"dddddddd-1111-1111-1111-111111111111","reply":"Rent is due tomorrow."}','["Rent is due tomorrow."]');
+select t.ok((select count(*)=1 from public.agent_message_outbox),'lost completion response does not create duplicate messages');
+select t.must_fail($$select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,'{"reply":"Changed facts"}','["Changed facts"]')$$,'conflicting turn receipt','finished answer cannot silently change on retry');
+select t.as_user('00000000-0000-0000-0000-000000000002');
+set role authenticated;
+select t.ok((select count(*)=0 from public.agent_message_turns),'durable model receipts isolate owners');
+reset role;
+select set_config('test.turn_inbox',public.agent_message_ingest('loopmessage','upmore','org','+13125550123','turn-unstarted',repeat('c',64),'Unstarted question')->>'inbox_id',true);
+select set_config('test.turn_lease',public.agent_message_claim(current_setting('test.turn_inbox')::uuid,120)->>'lease_token',true);
+select t.ok(public.agent_message_retry_unstarted(current_setting('test.turn_inbox')::uuid) is null,'live processing lease cannot be replaced');
+update public.agent_message_inbox set lease_until=now()-interval '1 second' where id=current_setting('test.turn_inbox')::uuid;
+select t.ok((select count(*)=1 from public.agent_message_queue_heads(5)),'unstarted expired request is eligible for safe recovery');
+select set_config('test.turn_new_lease',public.agent_message_retry_unstarted(current_setting('test.turn_inbox')::uuid)->>'lease_token',true);
+select t.ok(current_setting('test.turn_lease')<>current_setting('test.turn_new_lease'),'unstarted recovery replaces the old lease identity');
+select t.must_fail($$select public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid)$$,'lease unavailable','delayed old request cannot start after recovery');
+select public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_new_lease')::uuid);
+update public.agent_message_inbox set lease_until=now()-interval '1 second' where id=current_setting('test.turn_inbox')::uuid;
+select t.ok(public.agent_message_retry_unstarted(current_setting('test.turn_inbox')::uuid) is null,'started brain cannot be replayed by renewing its lease');
+select t.ok((select count(*)=0 from public.agent_message_queue_heads(5)),'unresolved started turn does not consume runnable queue slots');
+select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_new_lease')::uuid,200,
+ '{"thread_id":"dddddddd-1111-1111-1111-111111111111","reply":"Recovered before starting."}','["Recovered before starting."]');
+select set_config('test.turn_inbox',public.agent_message_ingest('loopmessage','upmore','org','+13125550123','turn-2',repeat('b',64),'Second question')->>'inbox_id',true);
+select set_config('test.turn_lease',public.agent_message_claim(current_setting('test.turn_inbox')::uuid,120)->>'lease_token',true);
+select public.agent_message_turn_begin(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid);
+select t.as_user('00000000-0000-0000-0000-000000000001');
+set role authenticated;
+select public.agent_message_revoke('cccccccc-1111-1111-1111-111111111111');
+reset role;
+select public.agent_message_turn_finish(current_setting('test.turn_inbox')::uuid,current_setting('test.turn_lease')::uuid,200,'{"thread_id":"dddddddd-1111-1111-1111-111111111111","reply":"Already computed answer."}','["Already computed answer."]');
+select t.ok((select state='completed' from public.agent_message_turns where inbox_id=current_setting('test.turn_inbox')::uuid),'disconnect retains an already-computed turn receipt');
+select t.ok((select state='cancelled' from public.agent_message_inbox where id=current_setting('test.turn_inbox')::uuid),'disconnect prevents delivery of the finished turn');
+select t.ok((select count(*)=0 from public.agent_message_outbox where inbox_id=current_setting('test.turn_inbox')::uuid),'revoked contact receives no new queued answer');
+rollback;

@@ -1,0 +1,51 @@
+begin;
+reset role;
+insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000001','model1@example.com'),('00000000-0000-4000-8000-000000000002','model2@example.com');
+insert into public.profiles(id) select id from auth.users where email like 'model%@example.com';
+insert into public.agent_threads(id,user_id,title) values
+ ('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000001','Owned'),
+ ('00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000002','Foreign');
+select t.as_user('00000000-0000-4000-8000-000000000001');
+set role authenticated;
+select t.must_fail($$select public.agent_model_call_reserve('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000012',gen_random_uuid(),0,'model')$$,'permission denied','users cannot burn another owner model quota');
+select t.must_fail($$select public.agent_model_call_record(gen_random_uuid(),'{}')$$,'permission denied','users cannot forge token receipts');
+select t.must_fail($$insert into public.agent_model_calls(user_id,thread_id,request_id,step,model) values('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011',gen_random_uuid(),0,'model')$$,'permission denied','users cannot create reservation permission directly');
+reset role;
+set role service_role;
+select t.must_fail($$select public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000012',gen_random_uuid(),0,'model')$$,'owner mismatch','service path requires an owned conversation');
+select t.must_fail($$select public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011',gen_random_uuid(),16,'model')$$,'invalid model reservation','invalid step cannot reserve');
+reset role;
+insert into public.agent_usage(user_id,model,created_at) select '00000000-0000-4000-8000-000000000001','legacy',now() from generate_series(1,898);
+insert into public.agent_usage(user_id,model,created_at) select '00000000-0000-4000-8000-000000000001','old',date_trunc('month',now() at time zone 'UTC') at time zone 'UTC'-interval '1 second' from generate_series(1,5);
+create temp table model_test_slots(id uuid);
+grant all on model_test_slots to service_role;
+set role service_role;
+insert into model_test_slots select (public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000021',0,'model')->>'call_id')::uuid;
+select t.ok((select count(*)=1 and bool_and(state='reserved' and usage is null) from public.agent_model_calls),'uncertain attempts occupy a reserved slot without claiming token usage');
+select t.ok(public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000021',0,'model')->>'state'='already_reserved','same request step cannot execute twice');
+select t.must_fail($$select public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000021',0,'different-model')$$,'reservation changed','same reserved request cannot change its model');
+select t.ok((public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000021',1,'model')->>'ok')::boolean,'next tool round reserves a separate slot; previous-month usage is excluded');
+select t.ok(public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011',gen_random_uuid(),0,'model')->>'state'='monthly_limit','legacy usage plus reservations stop exactly at 900');
+select public.agent_model_call_record((select id from model_test_slots),' {"input_tokens":12,"output_tokens":3,"cache_read_tokens":4,"cache_write_tokens":0}');
+select public.agent_model_call_record((select id from model_test_slots),' {"input_tokens":12,"output_tokens":3,"cache_read_tokens":4,"cache_write_tokens":0}');
+select t.ok((select count(*)=1 and bool_and(user_id='00000000-0000-4000-8000-000000000001' and thread_id='00000000-0000-4000-8000-000000000011' and input_tokens=12 and cache_read_tokens=4) from public.agent_usage where call_id=(select id from model_test_slots)),'receipt is owner-bound and recorded exactly once');
+select t.ok((select state='recorded' from public.agent_model_calls where id=(select id from model_test_slots)),'token receipt atomically completes the reservation');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":99,"output_tokens":3,"cache_read_tokens":4,"cache_write_tokens":0}')$$,'conflicting token usage','completed token receipt cannot be rewritten');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":1,"output_tokens":-1,"cache_read_tokens":0,"cache_write_tokens":0}')$$,'invalid token usage','negative usage rejected');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":1,"output_tokens":1.5,"cache_read_tokens":0,"cache_write_tokens":0}')$$,'invalid token usage','fractional usage rejected');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":1,"output_tokens":0,"cache_read_tokens":null,"cache_write_tokens":0}')$$,'invalid token usage','null usage rejected rather than logged as zero');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":1,"output_tokens":0,"cache_read_tokens":0}')$$,'invalid token usage','missing token field rejected');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":1,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0,"owner":"other"}')$$,'invalid token usage','receipt cannot inject extra fields');
+select t.must_fail($$select public.agent_model_call_record((select id from model_test_slots),'{"input_tokens":10000001,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}')$$,'invalid token usage','unbounded usage rejected');
+reset role;
+-- Deleting one old legacy call opens one slot. Logging a new-style receipt
+-- must not double-count the reservation it already consumed.
+delete from public.agent_usage where id=(select id from public.agent_usage where user_id='00000000-0000-4000-8000-000000000001' and model='legacy' limit 1);
+set role service_role;
+select t.ok((public.agent_model_call_reserve('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000011',gen_random_uuid(),0,'model')->>'ok')::boolean,'logged receipt is not counted a second time against the same model slot');
+select t.ok((public.agent_model_call_reserve('00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000012',gen_random_uuid(),0,'model')->>'ok')::boolean,'another owner has an independent budget');
+reset role;
+set role authenticated;
+select t.ok((select count(*)=3 from public.agent_model_calls),'RLS exposes only the signed-in owner reservations');
+reset role;
+rollback;

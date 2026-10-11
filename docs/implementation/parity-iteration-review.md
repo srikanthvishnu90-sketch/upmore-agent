@@ -1,0 +1,13 @@
+# Review and rollback for this local iteration
+
+Branch `codex/upmore-production-integration-20261010`; HEAD `b63731c4fa239fb195d015984bd2fa4e9b8f116d`; changes remain uncommitted. The separate mutation branch/worktree and its copied input hashes are in mutations.json. The original dirty owner checkout was not altered.
+
+Read `docs/competition/parity-matrix.md` and `.csv` for row-level status and `readiness.json` for computed denominators. The catalog currently validates, not completes parity. Software completion requires actual browser evidence, scoped passing tests and complete contracts; sandbox/live require additional supported provider and launch evidence. No blocked row is removed.
+
+Current validation is local and synthetic except actual throwaway PostgreSQL/concurrent workers. No screenshot artifact exists. Existing Vercel deployment and production Supabase functions/migrations have not been changed by this iteration. No new operational payment, messaging, bureau, EBT, certified wallet or brokerage capability is claimed.
+
+The bills interface intentionally prepares/reviews records while its execution prerequisites remain missing. Server adapter gates also hold; removing a UI button would not be sufficient. The new manual-entry and candidate-retry checks prevent stale facts from being silently reported as the submitted correction. Complete approval economics (verified destination, source, fees, rail, delivery date and reversibility) must be implemented and reviewed before enabling a financial review/submit path.
+
+Rollback is local source selection, not a database operation: preserve the existing dirty work and revert only the reviewed iteration's additions if rejected. Rebuild from the chosen template/controller sources so generated index/app/service-worker remain consistent. Keep server financial gates disabled. Do not reset the whole checkout, discard owner changes, drop retained financial records or rewrite applied migration history. These new migration changes have not been deployed; production needs a reviewed release/backup/restore plan after its actual migration history is reconciled. Owner approval must name the concrete release action.
+
+Next useful slices: inspect the current bill/review UI on real mobile/desktop browser; wire authenticated agent workflow proposals to a clear bill review entry point with conversation/owner race protection; implement exact bill editing/revision behavior; build the specified subscription and earning trackers without false completion; finish remaining twenty-target mutation evidence. Partner/legal items can run independently of these local tasks.

@@ -1,0 +1,126 @@
+-- SQL tests for 20261011030000_brokerage_accounts_per_user.sql: each person's OWN live brokerage connection, tokens only
+-- in the Vault, one-use connect attempts, disconnect wipes the Vault entry, and nobody reaches another person's account.
+begin;
+reset role;
+insert into auth.users(id,email) values('00000000-0000-0000-0000-0000000000b1','broker1@example.com'),('00000000-0000-0000-0000-0000000000b2','broker2@example.com');
+set role service_role;
+-- Connect attempts: one use, this person, this provider, not expired.
+select public.broker_state_create('00000000-0000-0000-0000-0000000000b1','alpaca',repeat('a',64),now()+interval '10 minutes');
+select t.ok((select public.broker_state_consume('00000000-0000-0000-0000-0000000000b2','alpaca',repeat('a',64)))=false,'CROSS-USER: a connect attempt issued to one person cannot be consumed for another');
+select t.ok((select public.broker_state_consume('00000000-0000-0000-0000-0000000000b1','schwab',repeat('a',64)))=false,'a connect attempt is bound to its provider');
+select t.ok((select public.broker_state_consume('00000000-0000-0000-0000-0000000000b1','alpaca',repeat('a',64)))=true,'the person''s own attempt is consumed once');
+select t.ok((select public.broker_state_consume('00000000-0000-0000-0000-0000000000b1','alpaca',repeat('a',64)))=false,'a replayed attempt is refused');
+reset role;
+insert into public.broker_oauth_states(nonce_hash,user_id,provider,expires_at) values(repeat('b',64),'00000000-0000-0000-0000-0000000000b1','alpaca',now()-interval '1 second');
+set role service_role;
+select t.ok((select public.broker_state_consume('00000000-0000-0000-0000-0000000000b1','alpaca',repeat('b',64)))=false,'an expired attempt is refused');
+select t.must_fail($$select public.broker_state_create('00000000-0000-0000-0000-0000000000b1','alpaca',repeat('c',64),now()+interval '2 hours')$$,'invalid connect attempt','an attempt cannot be made to last longer than 15 minutes');
+-- Link: the token goes to the Vault under the person's own name; the row holds only the reference.
+select public.broker_link('00000000-0000-0000-0000-0000000000b1','alpaca','acct-live-b1','****1234','trading data','{"access_token":"tok-b1"}');
+select public.broker_link('00000000-0000-0000-0000-0000000000b2','alpaca','acct-live-b2','****5678','trading data','{"access_token":"tok-b2"}');
+reset role;
+select t.ok((select count(*)=2 from public.brokerage_accounts where status='active' and paper=false),'each person''s live connection is stored');
+select t.ok((select count(*)=1 from vault.secrets s join public.brokerage_accounts a on s.name=a.vault_key_ref where a.user_id='00000000-0000-0000-0000-0000000000b1' and s.secret like '%tok-b1%'),'the token is in the Vault under the person''s own name');
+select t.ok((select count(*)=0 from public.brokerage_accounts where coalesce(vault_key_ref,'')||coalesce(scope,'')||coalesce(account_id,'') like '%tok-%'),'no table holds a token');
+set role service_role;
+select t.must_fail($$select public.broker_link('00000000-0000-0000-0000-0000000000b2','alpaca','acct-live-b1','****1234','trading data','{"access_token":"x"}')$$,'account_connected_to_another_user','CROSS-USER: an account connected to one person cannot be linked to another');
+select t.must_fail($$insert into public.brokerage_accounts(user_id,provider,label,paper,account_id,status) values('00000000-0000-0000-0000-0000000000b1','alpaca','paper',true,'acct-paper',  'paused')$$,'live_only','LIVE ONLY: a paper account row is refused');
+select t.must_fail($$insert into public.brokerage_accounts(user_id,provider,label,paper,account_id,status) values('00000000-0000-0000-0000-0000000000b1','alpaca','second',false,'acct-x','active')$$,'vault_ref','an active connection without a token reference is refused');
+select t.must_fail($$update public.brokerage_accounts set user_id='00000000-0000-0000-0000-0000000000b2' where account_id='acct-live-b1'$$,'vault_ref|unique','a connection cannot be moved to another person');
+select t.must_fail($$update public.brokerage_accounts set vault_key_ref=(select vault_key_ref from public.brokerage_accounts where account_id='acct-live-b2') where account_id='acct-live-b1'$$,'vault_ref','a row cannot point at another person''s token');
+-- Staged connections: the callback stages, and only the person who started it can confirm it from their own login.
+create temp table t_links(name text primary key, id uuid);
+grant all on t_links to service_role, authenticated;
+reset role;
+insert into auth.users(id,email) values('00000000-0000-0000-0000-0000000000b3','broker3@example.com'),('00000000-0000-0000-0000-0000000000b4','broker4@example.com');
+set role service_role;
+insert into t_links values('attack',public.broker_stage_link('00000000-0000-0000-0000-0000000000b3','alpaca','acct-victim','****9999','trading data','{"access_token":"tok-victim"}'));
+select t.must_fail($$select public.broker_stage_link('00000000-0000-0000-0000-0000000000b3','alpaca','acct-live-b1','****1234','trading data','{"access_token":"x"}')$$,'account_connected_to_another_user','an account another person holds cannot even be staged');
+reset role;
+select t.ok((select count(*)=1 from vault.secrets where name='broker_pending_'||(select id from t_links where name='attack')),'a staged token waits in the Vault under a pending name');
+select t.ok((select count(*)=0 from public.brokerage_accounts where account_id='acct-victim'),'a staged connection is not a connection: nothing can trade with it');
+-- The reversed attack: b3 started Connect, b4 approved on Alpaca; b4's app (signed in as b4) holds the link id.
+select t.as_user('00000000-0000-0000-0000-0000000000b4');
+set role authenticated;
+select t.ok(public.broker_confirm_link((select id from t_links where name='attack'))=false,'CROSS-USER: a staged connection confirmed from another login is refused');
+reset role;
+select t.ok((select count(*)=0 from public.broker_pending_links where account_id='acct-victim'),'the refused link is wiped');
+select t.ok((select count(*)=0 from vault.secrets where name='broker_pending_'||(select id from t_links where name='attack')),'the refused link''s token is wiped from the Vault');
+select t.ok((select count(*)=0 from public.brokerage_accounts where account_id='acct-victim'),'CROSS-USER: the other person''s account was never connected to the starter');
+-- The ordinary path: the starter's own app confirms, once.
+set role service_role;
+insert into t_links values('own',public.broker_stage_link('00000000-0000-0000-0000-0000000000b3','alpaca','acct-live-b3','****3333','trading data','{"access_token":"tok-b3"}'));
+reset role;
+select t.as_user('00000000-0000-0000-0000-0000000000b3');
+set role authenticated;
+select t.ok(public.broker_confirm_link((select id from t_links where name='own'))=true,'the person who started it confirms it');
+select t.ok(public.broker_confirm_link((select id from t_links where name='own'))=false,'a confirmation is used once');
+reset role;
+select t.ok((select count(*)=1 from public.brokerage_accounts where user_id='00000000-0000-0000-0000-0000000000b3' and account_id='acct-live-b3' and status='active'),'confirmed: the connection exists');
+select t.ok((select count(*)=1 from vault.secrets s join public.brokerage_accounts a on s.name=a.vault_key_ref where a.account_id='acct-live-b3' and s.secret like '%tok-b3%'),'confirmed: the token moved to the person''s own Vault name');
+select t.ok((select count(*)=0 from vault.secrets where name like 'broker_pending_%'),'no pending token is left behind');
+set role service_role;
+insert into t_links values('late',public.broker_stage_link('00000000-0000-0000-0000-0000000000b3','alpaca','acct-late','****4444','trading data','{"access_token":"tok-late"}'));
+reset role;
+update public.broker_pending_links set expires_at=now()-interval '1 second' where account_id='acct-late';
+select t.as_user('00000000-0000-0000-0000-0000000000b3');
+set role authenticated;
+select t.ok(public.broker_confirm_link((select id from t_links where name='late'))=false,'an expired staged connection is refused');
+select t.must_fail($$select * from public.broker_pending_links$$,'permission denied','the client cannot read staged connections');
+select t.must_fail($$select public.broker_stage_link('00000000-0000-0000-0000-0000000000b3','alpaca','a','****1','s','t')$$,'permission denied','the client cannot stage a connection');
+reset role;
+select t.as_user('');
+set role anon;
+select t.must_fail($$select public.broker_confirm_link('00000000-0000-0000-0000-000000000000')$$,'permission denied','anonymous callers cannot confirm');
+reset role;
+set role service_role;
+-- Per-request token read: keyed by the caller and the row; another person gets nothing.
+select t.ok((select public.broker_token_read('00000000-0000-0000-0000-0000000000b1',id) from public.brokerage_accounts where account_id='acct-live-b1') like '%tok-b1%','the owner''s request reads the owner''s token');
+select t.ok((select public.broker_token_read('00000000-0000-0000-0000-0000000000b2',id) from public.brokerage_accounts where account_id='acct-live-b1') is null,'CROSS-USER: another person''s request gets nothing for that account');
+-- The broker refused the token: Reconnect, and the token is wiped.
+select t.ok((select public.broker_mark_reconnect('00000000-0000-0000-0000-0000000000b2',id) from public.brokerage_accounts where account_id='acct-live-b1')=false,'CROSS-USER: another person cannot mark someone''s connection');
+select t.ok((select public.broker_mark_reconnect('00000000-0000-0000-0000-0000000000b2',id) from public.brokerage_accounts where account_id='acct-live-b2')=true,'a refused token marks the connection for Reconnect');
+reset role;
+select t.ok((select status='reconnect' and vault_key_ref is null from public.brokerage_accounts where account_id='acct-live-b2'),'Reconnect: the row shows it');
+select t.ok((select count(*)=0 from vault.secrets where name like 'broker_token_00000000-0000-0000-0000-0000000000b2_%'),'Reconnect: the refused token is wiped from the Vault');
+set role service_role;
+select public.broker_link('00000000-0000-0000-0000-0000000000b2','alpaca','acct-live-b2','****5678','trading data','{"access_token":"tok-b2-new"}');
+reset role;
+select t.ok((select status='active' and vault_key_ref is not null from public.brokerage_accounts where account_id='acct-live-b2'),'reconnecting relinks the same row');
+select id as b2row from public.brokerage_accounts where account_id='acct-live-b2' \gset
+-- The client: own rows only, never the reference, never writes, and disconnect only its own.
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
+select t.ok((select count(*)=1 and min(account_id)='acct-live-b1' and min(account_mask)='****1234' from public.brokerage_accounts),'CROSS-USER: a person reads only their own connection');
+select t.must_fail($$select vault_key_ref from public.brokerage_accounts$$,'permission denied','the client never reads the vault reference');
+select t.must_fail($$insert into public.brokerage_accounts(user_id,provider,label,paper,account_id) values('00000000-0000-0000-0000-0000000000b1','alpaca','mine',false,'acct-self')$$,'permission denied','the client cannot link an account itself');
+select t.must_fail($$update public.brokerage_accounts set account_id='acct-live-b2'$$,'permission denied','the client cannot repoint its connection at someone else''s account');
+select t.must_fail($$select public.broker_token_read('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-000000000000')$$,'permission denied','the client cannot call the token read');
+select t.must_fail($$select public.broker_link('00000000-0000-0000-0000-0000000000b1','alpaca','a','****1','s','t')$$,'permission denied','the client cannot call link');
+select t.must_fail($$select * from public.broker_oauth_states$$,'permission denied','the client cannot read connect attempts');
+reset role;
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
+select t.ok((select public.broker_disconnect((select id from public.brokerage_accounts limit 1)))=true,'the person disconnects their own connection');
+reset role;
+select t.ok((select count(*)=0 from public.brokerage_accounts where account_id='acct-live-b1'),'disconnect removes the connection');
+select t.ok((select count(*)=0 from vault.secrets where name like 'broker_token_00000000-0000-0000-0000-0000000000b1_%'),'disconnect wipes the Vault entry');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
+reset role;
+select t.ok((select count(*)=1 from vault.secrets where name like 'broker_token_00000000-0000-0000-0000-0000000000b2_%'),'the other person''s token is untouched');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
+select t.ok(public.broker_disconnect(:'b2row'::uuid)=false,'CROSS-USER: disconnecting another person''s row, even knowing its id, does nothing');
+reset role;
+set role service_role;
+select t.ok((select count(*)=1 from public.brokerage_accounts where account_id='acct-live-b2'),'CROSS-USER: one person''s disconnect never touches another''s connection');
+reset role;
+select t.as_user('');
+set role anon;
+select t.must_fail($$select id from public.brokerage_accounts$$,'permission denied','anonymous callers read nothing');
+select t.must_fail($$select public.broker_disconnect('00000000-0000-0000-0000-000000000000')$$,'permission denied','anonymous callers cannot disconnect');
+reset role;
+delete from auth.users where id='00000000-0000-0000-0000-0000000000b2';
+select t.ok((select count(*)=0 from public.brokerage_accounts where user_id='00000000-0000-0000-0000-0000000000b2'),'deleting a person deletes their connections');
+rollback;

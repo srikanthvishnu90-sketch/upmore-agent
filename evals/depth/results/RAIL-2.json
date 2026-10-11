@@ -1,0 +1,256 @@
+{
+ "capability": "RAIL-2",
+ "run_at": "2026-10-11T18:24:16.754Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 21,
+ "proven": 21,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Live only, the person's own token",
+   "defect": "the live host check is skipped, so a paper or shared-account base URL is accepted",
+   "test": "a paper host or the Broker API is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Numbers as strings",
+   "defect": "the limit price is sent as a JSON number",
+   "test": "limit_price goes out as a string",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S03",
+    "S13"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "The order-type matrix",
+   "defect": "the connector sends every order as a buy",
+   "test": "the broker receives the side the person said",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S09",
+    "S17"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "A quote with source and as-of on every card",
+   "defect": "the quote line is dropped from the card",
+   "test": "the card names the quote, its source and its time",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Buying power before a buy",
+   "defect": "the buying-power check is skipped",
+   "test": "a $500 buy with $320 stops",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "The position before a sell",
+   "defect": "the oversell check is skipped",
+   "test": "selling 9 of 7 shares stops",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "A fresh, single-use, context-bound yes",
+   "defect": "the confirmation expiry is not enforced",
+   "test": "a yes after 10 minutes places nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Partial is partial",
+   "defect": "partially_filled is mapped to filled",
+   "test": "half filled reads as partly filled",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "The receipt",
+   "defect": "the receipt drops the order id",
+   "test": "the receipt names the order id",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Market closed means queued",
+   "defect": "the broker's clock is read but treated as always open",
+   "test": "a closed market queues and says so",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "A thrown write is never retried blind",
+   "defect": "a write that threw is retried with a fresh client id",
+   "test": "a lost response is reconciled, never re-sent",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "A broker refusal is a failure",
+   "defect": "a definite refusal is treated as an unknown outcome",
+   "test": "a 403 is failed with the reason",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Canceled only when the record says so",
+   "defect": "any read-back after a cancel is reported as canceled",
+   "test": "pending_cancel is reported as requested",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "LIVE everywhere",
+   "defect": "the LIVE label is dropped from every surface",
+   "test": "the card starts with LIVE",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S06",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "The broker's order rules before sending",
+   "defect": "a dollar amount is allowed on a limit order",
+   "test": "a dollar amount on a limit asks for shares",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Stop-on-change",
+   "defect": "the re-verification result is ignored",
+   "test": "a moved price stops the order",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Cross-person isolation: the caller's own account",
+   "defect": "rows are not checked against the caller, so a broken read hands A's request B's older account",
+   "test": "a leaked row for another person opens nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "The token must open the person's own account",
+   "defect": "the account the token opens is never compared with the person's row",
+   "test": "a token for B's account sends nothing for A",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "The token reference is the person's own",
+   "defect": "the row's vault reference is trusted without checking it names this person and this row",
+   "test": "a row pointing at another person's secret opens nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "LIVE ONLY at the account layer",
+   "defect": "a paper row counts as live",
+   "test": "a paper row is never opened",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Only built providers are opened",
+   "defect": "a designed-but-unbuilt provider is opened with the Alpaca adapter",
+   "test": "a Schwab row is never sent to Alpaca",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

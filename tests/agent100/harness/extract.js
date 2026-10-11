@@ -12,28 +12,42 @@ const path = require("path");
 const { buildContext } = require("./stubs");
 
 const REPO_ROOT = path.join(__dirname, "..", "..", "..");
-let cached = null; // { dataBlock, appBlock }
+let cached = null; // { dataBlock, appBlock, preludeBlocks }
 
-function readBlocks() {
-  if (cached) return cached;
-  const html = fs.readFileSync(path.join(REPO_ROOT, "index.html"), "utf8");
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
-  if (scripts.length < 3) {
-    throw new Error(`expected >=3 script blocks in built index.html, got ${scripts.length}`);
+function readBlocks(html) {
+  const fromFile = html === undefined;
+  if (fromFile && cached) return cached;
+  if (fromFile) html = fs.readFileSync(path.join(REPO_ROOT, "index.html"), "utf8");
+  // Match semantic roles, never fixed positions. External scripts and the
+  // bundled Supabase SDK stay unexecuted; buildContext supplies its stub.
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+    .filter(m => !/\bsrc\s*=/i.test(m[1])).map(m => m[2]);
+  const unique = (label, pattern) => {
+    const matches = scripts.filter(block => pattern.test(block));
+    if (matches.length !== 1) throw Error(`expected unique ${label} script block, got ${matches.length}`);
+    return matches[0];
+  };
+  const dataBlock = unique('data', /\bconst\s+UPMORE_DATA\s*=/);
+  const appBlock = unique('app', /\bfunction\s+guideAnswer\s*\(/);
+  if (dataBlock === appBlock) throw Error('data and app must be separate script blocks');
+  const preludeBlocks = [];
+  for (const name of ['UpmoreLedgerReview','UpmoreBillWorkflow','UpmoreChatRequests']) {
+    const matches = scripts.filter(block => new RegExp('globalThis\\.' + name + '\\s*=\\s*function\\b').test(block));
+    if (matches.length > 1) throw Error(`expected unique ${name} prelude, got ${matches.length}`);
+    if (matches.length) preludeBlocks.push(matches[0]);
   }
-  if (!scripts[0].includes("const UPMORE_DATA")) {
-    throw new Error("block 0 is not the UPMORE_DATA block — build output changed");
-  }
-  cached = { dataBlock: scripts[0], appBlock: scripts[2] };
-  return cached;
+  const selected = {dataBlock,appBlock,preludeBlocks};
+  if (fromFile) cached = selected;
+  return selected;
 }
 
 // Fresh sandbox per agent. Returns { ctx, call, guide, setLS, getLS }.
 function loadApp() {
-  const { dataBlock, appBlock } = readBlocks();
+  const { dataBlock, appBlock, preludeBlocks } = readBlocks();
   const { sandbox, byId, store } = buildContext();
   const ctx = vm.createContext(sandbox);
   vm.runInContext(dataBlock, ctx, { filename: "upmore-data.js" });
+  preludeBlocks.forEach((block,index) => vm.runInContext(block,ctx,{filename:`upmore-controller-${index}.js`}));
   vm.runInContext(appBlock, ctx, { filename: "upmore-app.js" });
 
   const call = (expr) => vm.runInContext(expr, ctx);
@@ -43,8 +57,10 @@ function loadApp() {
     const paras = Array.isArray(r.paras) ? r.paras : [];
     return { text: paras.join("\n\n"), paras, action: r.action || null, card: r.card || null };
   };
-  const setLS = (k, v) => call(`localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(String(v))})`);
-  const getLS = (k) => call(`localStorage.getItem(${JSON.stringify(k)})`);
+  // Synthetic inputs enter the active test owner's/guest's namespace. Raw
+  // unscoped private keys are deliberately quarantined by the actual app.
+  const setLS = (k, v) => call(`financeStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(String(v))})`);
+  const getLS = (k) => call(`financeStorage.getItem(${JSON.stringify(k)})`);
   return { ctx, call, guide, setLS, getLS, byId, store };
 }
 

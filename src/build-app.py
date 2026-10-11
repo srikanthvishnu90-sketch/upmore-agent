@@ -35,6 +35,19 @@ for r in data.get("routes", []):
 payload = json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("</script>", "<\\/script>")
 script = "<script>\nconst UPMORE_DATA = " + payload + ";\n</script>"
 out = tpl.replace(ph, script, 1)
+for marker, filename, wrapped in [
+    ('<!--__LEDGER_CONTROLLER__-->', 'ledger-review-controller.js', True),
+    ('<!--__BILL_CONTROLLER__-->', 'bill-workflow-controller.js', True),
+    ('<!--__CHAT_CONTROLLER__-->', 'chat-request-controller.js', True),
+    ('/*__FINANCIAL_REVIEW__*/', 'financial-review.js', False),
+    ('/*__BILL_WORKFLOW_UI__*/', 'bill-workflow-ui.js', False),
+    ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),
+    ('/*__RECOVERY_UI__*/', 'recovery-review-ui.js', False),
+    ('/*__PRIVATE_FINANCE_SCOPE__*/', 'private-finance-scope.js', False),
+]:
+    assert marker in out, f'{marker} missing from template'
+    content = (HERE / filename).read_text()
+    out = out.replace(marker, '<script>\n' + content + '\n</script>' if wrapped else content, 1)
 
 # Keep the hardcoded marketing/copy counts in sync with the real data
 n_routes = len(data.get("routes", []))
@@ -95,11 +108,7 @@ root = HERE.parent
 print(f"published {root / 'index.html'}")
 sw_src = HERE / "sw.js"
 if sw_src.exists():
-    import subprocess
-    try:
-        build = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=HERE, capture_output=True, text=True).stdout.strip() or "dev"
-    except Exception:
-        build = "dev"
+    build = hashlib.sha256(out.encode('utf-8') + sw_src.read_bytes()).hexdigest()[:16]
     sw_text = sw_src.read_text().replace("__BUILD__", build)
     (root / "sw.js").write_text(sw_text)
     print(f"published {root / 'sw.js'} (cache {build})")

@@ -1,8 +1,15 @@
 // The testing agent tests itself: each defect below is planted in the shipped code, one at a time, and the agent must turn
-// the named check red (CRITICAL or FAIL). A check that stays green under its defect is not a check. The file is restored
-// in a finally block; tests/router-bundle.test.cjs would also catch a bundle left changed.
+// the named check red (CRITICAL or FAIL). A check that stays green under its defect is not a check. Defects are planted in
+// a throwaway copy of the repo, never in the working tree, so other checks running at the same time (the evidence recorder
+// runs them in parallel) always read the real files.
 //   deno run -A evals/agent/mutations.ts
-const root = new URL("../../", import.meta.url);
+const repo = new URL("../../", import.meta.url);
+const tmp = await Deno.makeTempDir({ prefix: "upmore-mutations-" });
+for (const part of ["evals", "supabase", "packages", "docs", "tests", "scripts", "corpus", "src", "index.html"]) {
+  const r = new Deno.Command("cp", { args: ["-R", decodeURIComponent(new URL(part, repo).pathname), tmp + "/"] }).outputSync();
+  if (r.code !== 0) { console.error(`could not copy ${part}: ${new TextDecoder().decode(r.stderr)}`); Deno.exit(2); }
+}
+const root = new URL(`file://${tmp}/`);
 const RC = "supabase/functions/_shared/router_core.js";
 const DEFECTS: { id: string; check: string; what: string; file: string; find: string; replace: string }[] = [
   { id: "M01", check: "O-18", what: "an envelope skips the yes again", file: RC, find: 'if (!(policy && policy.envelope_autonomy === true)) return { allowed: true, confirm: true, reason: "fresh_approval_rule", envelope: env.id };', replace: "" },
@@ -25,10 +32,11 @@ for (const d of DEFECTS) {
     Deno.writeTextFileSync(url, original.replace(d.find, d.replace));
     const r = new Deno.Command("deno", { args: ["run", "-A", "evals/agent/run.ts", "--dry"], cwd: root, stdout: "piped", stderr: "piped" }).outputSync();
     out = new TextDecoder().decode(r.stdout) + new TextDecoder().decode(r.stderr);
-  } finally { Deno.writeTextFileSync(url, original); }
+  } finally { Deno.writeTextFileSync(url, original); } // restores the copy for the next defect
   const hit = new RegExp(`^\\s+(CRITICAL|FAIL) ${d.check.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} `, "m").test(out);
   if (hit) caught++;
   console.log(`${d.id} ${hit ? "caught" : "MISSED"} by ${d.check}: ${d.what}`);
 }
+Deno.removeSync(tmp, { recursive: true });
 console.log(`testing agent mutations: ${caught}/${DEFECTS.length} caught`);
 if (caught !== DEFECTS.length) Deno.exit(1);

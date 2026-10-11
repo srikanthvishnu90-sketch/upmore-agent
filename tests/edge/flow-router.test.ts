@@ -333,3 +333,13 @@ Deno.test("L3 answering a question with a new request: the question is dropped a
   const late = await routeFlows("marcus t", { db, extract: l3Model, now: () => now + 2000 });
   assert(late === null || late.route.flow !== "send" || late.route.outcome !== "confirm", "the dropped question does not come back as a card");
 });
+
+Deno.test("Brokerage wiring: the connection (and its Vault token) is resolved only for a message that can be a flow, never for small talk", async () => {
+  let calls = 0; const stub = stubAlpaca(() => T0, { "tok-1": "acct-1" });
+  const factory = async () => { calls++; return await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1")]), () => {}, stub.f); };
+  const { db } = memDb();
+  eq(await routeFlows("hi, how are you", { db, extract: stubModel, now: () => T0, brokerFactory: factory } as any), null);
+  eq(calls, 0, "small talk never touches the brokerage connection");
+  const r = await routeFlows("buy $5 of VOO", { db, extract: stubModel, now: () => T0, brokerFactory: factory } as any);
+  eq(calls, 1, "a trade resolves it once"); eq(r!.route.outcome, "confirm");
+});

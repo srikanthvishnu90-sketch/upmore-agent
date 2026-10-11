@@ -193,7 +193,7 @@ function liveCardWords(sessions: any): string[] {
   return out;
 }
 
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
@@ -202,7 +202,10 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,
       route: { route: "unavailable", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "unavailable", canonical: null, ask_reason: null, problems: [data.missing || "data unavailable"] } };
   }
-  const built = buildSessions(data, saved, now, deps.channel ?? null, deps.broker ?? null, deps.termsFetch === undefined ? fetch : deps.termsFetch);
+  // The brokerage connection (a row read and a Vault token read) is resolved only here, after the message is known to be
+  // a flow or a live card exists: small talk never touches it.
+  const broker = deps.broker ?? (deps.brokerFactory ? await deps.brokerFactory() : null);
+  const built = buildSessions(data, saved, now, deps.channel ?? null, broker, deps.termsFetch === undefined ? fetch : deps.termsFetch);
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.

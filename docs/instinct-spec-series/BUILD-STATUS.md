@@ -243,7 +243,34 @@ What this means for Phase 1: deploying agent-chat with the rails code needs a de
 - **Rehearsed locally on a live-shaped database** (the live migrations through 20261008_000005, including the live `brokerage_accounts`): `bash scripts/launch/apply-rails-and-seed.sh --all` applied 22 files in ONE transaction (all or nothing) in 0.5 s, with 0 errors. The seed ran and every proof check came back true. A second run was a clean no-op.
 - **What remains a real risk:** the rebuilt handler has never served live traffic, and its changed lines are tested here, not in production. Rollback is the exact v203 source in `scripts/launch/rollback/agent-chat-v203/` (README has the one-command redeploy). The migrations stay, because they are additive.
 
-Owner sequence:
+**One command (2026-10-11):** `SUPABASE_DB_URL=... GAUNTLET_PASSWORD=... [ALPACA_OAUTH_CLIENT_ID=... ALPACA_OAUTH_CLIENT_SECRET=...] bash scripts/launch/go-live.sh` runs, in order:
+- preflight (the exact commit, a clean tree, local tests green);
+- the migrations in one transaction, the seed, and the RLS proof;
+- the secrets, if given;
+- deploys of agent-chat and the two broker functions;
+- live smoke checks that prove the new code is what answers;
+- the live gauntlet (spec16, sloppy, l3);
+- the rollback pointer.
+
+Its dry run is tested in tests/go-live.test.cjs. Claude can't run it from the cloud session: it has no Supabase CLI, the network policy denies the project host, the connector's writes timed out three times, and agent-chat's source (about 1 MB) is too large to pass through the connector's deploy call.
+
+**Live test plan, $100 cap.** Real-world status today: 0 of 206 capabilities done, and all 1,138 recorded checks are LOCAL.
+
+| Test | Cost |
+| --- | --- |
+| Gauntlet: about 50 texts, about 2 model calls each | Under $5 a run, so about 5 runs fit in $25 |
+| Alpaca, live in the owner's own account: a $1 buy, a $1 limit then cancel, then sell back. The money stays as shares; the cost is the spread. | Under $1 |
+| Cancel subscription (Netflix, Spotify): the first real read of their terms pages, from the function's own network. It cannot cancel yet, because no account-page reader is connected. | About $0 |
+| Pay and split with Sam: card correctness only, because no payment rail exists and nothing moves | About $0 |
+
+Not testable for any amount: bill pay, sending money, refunds and disputes. 205 of 206 items have no live rail.
+
+Order of the test:
+1. Gauntlet (`go-live.sh`).
+2. If understood is at least 95%, merge to main; this deploys the app with the Brokerage screen.
+3. Connect your own Alpaca account and place the $1 orders. This needs Alpaca's live OAuth approval first.
+
+Owner sequence (the manual steps that go-live.sh automates):
 1. `SUPABASE_DB_URL=... bash scripts/launch/apply-rails-and-seed.sh --all`.
 2. Deploy agent-chat, broker-oauth-start, and broker-oauth-callback (`--no-verify-jwt`).
 3. Run the live gauntlet on that exact commit.

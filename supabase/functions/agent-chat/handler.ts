@@ -222,11 +222,12 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
-        // The caller's own live brokerage connection, resolved for this request only; a 401 is marked for Reconnect
-        // (flush) before the reply goes out.
-        const broker = await userBroker(Deno.env, user.id, brokerSource(supabase, flowAdmin, user.id), (line) => console.log(line));
-        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app", broker });
-        if (broker.flush) await broker.flush();
+        // The caller's own live brokerage connection, resolved only when the message can be a flow (never for small
+        // talk); a 401 is marked for Reconnect (flush) before the reply goes out.
+        let broker: any = null;
+        const brokerFactory = async () => (broker = await userBroker(Deno.env, user.id, brokerSource(supabase, flowAdmin, user.id), (line) => console.log(line)));
+        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app", brokerFactory });
+        if (broker && broker.flush) await broker.flush();
       } catch (e) {
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);

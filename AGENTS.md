@@ -14,6 +14,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Datasets (doc 12): `node evals/data/validate.cjs` (schemas + privacy lint), `node evals/data/run-adversarial.cjs` (injection + traps through the agent), generators under `evals/data/generators/`; news relevance benchmark (doc 10 bar): `node evals/news/benchmark.cjs`
 - Parity matrix (doc 03): `node evals/parity/build-matrix.cjs` (regenerate + coverage per app; `--check` fails on a stale matrix, an unaccounted outcome, or a coverage decrease)
 - Eval harness (doc 13): `node evals/runner.cjs` (release verdict, results under `evals/results/`), `node evals/runner.cjs --mutations` (the 10 planted defects must all be caught)
+- Depth protocol (one capability at a time): `node --test tests/depth-<ID>.test.cjs && node evals/depth/run.cjs <ID>` (15 sub-capabilities, each test proven to fail under its planted defect; results into `docs/depth/<ID>.md`)
 - Record a check: `python3 scripts/capture-checks.py` writes `docs/testing/evidence-ledger.json`
 
 ## Rules

@@ -34,6 +34,8 @@
       if (cap.status === "GATED") return { allowed: false, reason: "gated", detail: cap.gate_reason || null };
       if (cap.status === "CLAIMED" || cap.status === "NOT_WIRED") return { allowed: false, reason: "not_built" };
       if (t === "T0" || t === "T1") return { allowed: true, confirm: false };
+      // A request may declare itself a draft (staging a handoff rail, drafting a letter): that only ever reduces authority, never the confirmation.
+      if (action && action.draft_only === true) return { allowed: true, confirm: true, draft_only: true, reason: "draft" };
       if (t === "T2") return { allowed: true, confirm: true, draft_only: true };
       if (t === "T5") return { allowed: true, confirm: true, always: true };
       if (t === "T3") return { allowed: true, confirm: true };

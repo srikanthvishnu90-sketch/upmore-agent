@@ -2167,13 +2167,15 @@
    "tier": "T3",
    "owner_doc": "06",
    "status": "TESTED",
-   "test_ref": "tests/money.test.cjs",
+   "test_ref": "tests/depth-PAY-001.test.cjs",
    "gate_reason": null,
    "connectors": [],
    "implementation": [
-    "packages/domain/54-agent-money.js"
+    "packages/domain/64-agent-send.js",
+    "packages/domain/54-agent-money.js",
+    "packages/domain/43-agent-loop.js"
    ],
-   "note": "prepareSend to a saved recipient: free rail first, exact confirm fields, handoff steps for tap rails, receipt with the reversal contract; the live rail stays gated on a partner.",
+   "note": "Depth protocol (docs/depth/PAY-001.md): 15 user-observable sub-capabilities, each with a test that is proven to fail under a planted defect (evals/depth/run.cjs PAY-001, 15/15). Amount and recipient from the user's words only; ambiguity asks; look-alike handles named; free rail first; five-field confirmation with zero writes before yes; qualified yes corrects; expiry; one write per instruction per day across duplicates, crashes and timeouts; scam and injection stops; limits and the kill switch; receipts only after the rail confirms, handoffs staged then landed. The live rail stays gated on a partner.",
    "description": "send to saved recipient"
   },
   {

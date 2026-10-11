@@ -25,7 +25,7 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 
 ## Claimed files
 
-- Claude: packages/domain/41-*.js and 43+ (new modules, 57-agent-ledger.js included), packages/capabilities/**, evals/** (harness, datasets, parity, news benchmark), tests/ledger.test.cjs, tests/news.test.cjs, tests/proactive.test.cjs, scripts/capabilities, scripts/build-capability-registry.py, tests/capabilities.test.cjs, tests/recovery.test.cjs, tests/datasets.test.cjs, tests/agent-loop.test.cjs, tests/voice.test.cjs, tests/execution/live-local/**, tests/execution/real-trust/run-real-trust.js, evals/** (new), docs/instinct-spec-series/**, scripts/run-claude-review.py.
+- Claude: packages/domain/41-*.js and 43+ (new modules, 57-agent-ledger.js included), packages/capabilities/**, evals/** (harness, datasets, parity, news benchmark, depth runner), docs/depth/**, tests/depth-*.test.cjs, tests/ledger.test.cjs, tests/news.test.cjs, tests/proactive.test.cjs, scripts/capabilities, scripts/build-capability-registry.py, tests/capabilities.test.cjs, tests/recovery.test.cjs, tests/datasets.test.cjs, tests/agent-loop.test.cjs, tests/voice.test.cjs, tests/execution/live-local/**, tests/execution/real-trust/run-real-trust.js, evals/** (new), docs/instinct-spec-series/**, scripts/run-claude-review.py.
 - Codex: supabase/functions/_shared/**, supabase/migrations/**, supabase/functions/agent-chat/**, agent-workflows/**, agent-payments/**, src/upmore-app-template.html, src/build-app.py, src/bill-workflow-*.js, packages/domain/33-40 (existing modules), scripts/parity-check, scripts/capture-*.py, scripts/merge-claude-research.py, docs/competition/**, docs/testing/evidence-ledger.json, docs/implementation/**, docs/compliance/**.
 - Shared, append-only: this file; docs/testing/claude-review.txt (Claude writes).
 
@@ -36,6 +36,14 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 3. Every packet ends with its own check: name the command, run it, paste the output. Record it in docs/testing/evidence-ledger.json via scripts/capture-checks.py (Codex owns the recorder; Claude sends it the command + log path).
 4. Outcomes, not reports. A cancel is done when the merchant's record says cancelled (tests/execution/live-local proves this locally). A fee is recovered when the reversal credit posts.
 5. Spec-to-stack mapping: pnpm/vitest in the spec means node --test (.cjs) or deno test here; src/<area>/ means packages/domain/<n>-<area>.js plus the matching Deno service; registry.ts means packages/capabilities/registry.json.
+
+## Depth protocol (per capability, non-negotiable from 2026-10-11)
+
+One capability at a time. Before code: 15 user-observable sub-capabilities enumerated in docs/depth/<ID>.md. Each gets implementation plus a tagged test, a planted defect in evals/depth/<ID>.mutations.cjs, and the proof that the test fails with the defect and passes without (`node evals/depth/run.cjs <ID>` writes the table into the doc and evals/depth/results/<ID>.json). Gate before the next capability: 15/15 proven, adversarial cases logged in the test, evidence ledger updated, harness RELEASE OK.
+
+| Capability | Doc | Sub-capabilities | Proven | Check |
+| --- | --- | --- | --- | --- |
+| PAY-001 send to a saved recipient | docs/depth/PAY-001.md | 15 | 15/15 (2026-10-11) | `node --test tests/depth-PAY-001.test.cjs && node evals/depth/run.cjs PAY-001` |
 
 ## Requests between agents
 

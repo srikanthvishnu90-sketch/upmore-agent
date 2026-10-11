@@ -25,6 +25,8 @@ begin
   values (p_name, p_secret, p_description) returning id into v;
   return v;
 end $$;
+-- Supabase exposes decrypted secrets through this view; the stub stores them in the clear (test-only).
+create view vault.decrypted_secrets as select id, name, description, secret, secret as decrypted_secret from vault.secrets;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,

@@ -13,7 +13,7 @@
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaPaper, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
@@ -69,17 +69,38 @@ export interface FlowReply { reply: string; route: RouteMeta; withhold_user_text
 // this note in front of its reply, so the card never stays pending silently and a later "yes" cannot fire it.
 export interface FlowFallthrough { fallthrough: true; note: string }
 
-// Rail 2: the Alpaca PAPER sandbox, bound only when all keys are in the function's environment AND the caller is the one
-// user the single sandbox account belongs to (ALPACA_PAPER_USER_ID). There is no per-user Alpaca account id column yet,
-// so nobody else can reach that account. The partner it opens is marked paper; real money stays NOT_WIRED. Every adapter
-// log line starts with "[PAPER (Alpaca sandbox)]"; keys are never logged.
-export interface PaperBroker { connectors: any; partners: Record<string, unknown>; label: string }
-export function paperBroker(env: { get(k: string): string | undefined }, userId: string, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): PaperBroker | null {
-  const owner = env.get("ALPACA_PAPER_USER_ID");
-  if (!owner || owner !== userId) return null;
-  const made = AlpacaPaper.fromEnv({ ALPACA_BROKER_KEY_ID: env.get("ALPACA_BROKER_KEY_ID"), ALPACA_BROKER_SECRET: env.get("ALPACA_BROKER_SECRET"), ALPACA_PAPER_ACCOUNT_ID: env.get("ALPACA_PAPER_ACCOUNT_ID") }, { log, ...(fetchFn ? { fetch: fetchFn } : {}) });
-  if (!made.wired || !made.adapter) { log(`[PAPER (Alpaca sandbox)] ${made.reason}`); return null; }
-  return { connectors: AlpacaPaper.connectors(made.adapter, {}), partners: Object.freeze({ broker_dealer: Object.freeze({ live: true, paper: true, name: "Alpaca paper sandbox" }) }), label: made.adapter.label };
+// Rail 2: per-user paper brokerage accounts (packages/domain/73-broker-accounts.js). Every request resolves the caller's
+// own account: rows through the caller's RLS client (the table's owner-only policy), a linked account's OAuth token from
+// the Vault through the service-role RPC broker_token_read(p_user, p_account), which recomputes the secret name from the
+// caller's id. A linked broker is primary; an Alpaca Broker API sub-account (the firm's keys from the environment) is the
+// bootstrap. Nothing is cached between requests. PAPER ONLY: a live row is never opened, and LIVE_PARTNERS stays empty.
+// Every adapter log line starts with "[PAPER (...)]"; no key or token is ever logged.
+export interface PaperBroker { connectors: any; partners: Record<string, unknown>; label: string; account: any }
+export interface BrokerSource { rows(): Promise<any[] | null>; token(q: { user_id: string; account: string }): Promise<string | null> }
+export function brokerSource(caller: any, admin: any, userId: string): BrokerSource {
+  return {
+    rows: async () => {
+      const r = await caller.from("brokerage_accounts").select("id,user_id,provider,kind,label,paper,account_id,status,created_at").eq("user_id", userId);
+      return r.error ? null : (r.data || []);
+    },
+    token: async (q) => {
+      const r = await admin.rpc("broker_token_read", { p_user: q.user_id, p_account: q.account });
+      if (r.error) throw new Error("broker token read failed");
+      return typeof r.data === "string" && r.data ? r.data : null;
+    },
+  };
+}
+export async function paperBroker(env: { get(k: string): string | undefined }, userId: string, src: BrokerSource | null, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): Promise<PaperBroker | null> {
+  if (!src) return null;
+  const rows = await src.rows().catch(() => null);
+  if (rows === null) { log("[PAPER] NOT_WIRED: brokerage accounts could not be read"); return null; }
+  const made: any = await BrokerAccounts.resolve({
+    user_id: userId, rows, credential: src.token,
+    env: { ALPACA_BROKER_KEY_ID: env.get("ALPACA_BROKER_KEY_ID"), ALPACA_BROKER_SECRET: env.get("ALPACA_BROKER_SECRET") },
+    adapter: { log, ...(fetchFn ? { fetch: fetchFn } : {}) },
+  });
+  if (!made.wired) { log(`[PAPER] ${made.reason}`); return null; }
+  return { connectors: made.connectors, partners: made.partners, label: made.label, account: made.account };
 }
 
 export function liveConnectors(data: FlowData, now: () => number) {

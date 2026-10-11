@@ -16,4 +16,16 @@ select t.as_user('00000000-0000-0000-0000-00000000dead');
 set role authenticated;
 select t.ok((select count(*)=0 from public.saved_recipients),'another user reads none');
 reset role;
+\set account_id 'acct-sandbox-test'
+\ir ../../scripts/launch/seed-paper-broker-account.sql
+\ir ../../scripts/launch/seed-paper-broker-account.sql
+select t.ok((select count(*)=1 from public.brokerage_accounts where user_id='2e8cb31d-59ab-4b2c-99bb-d4c5de8613a3' and kind='bootstrap' and paper and account_id='acct-sandbox-test' and vault_key_ref is null),'the paper sub-account seed is idempotent and stores no key');
+select t.as_user('2e8cb31d-59ab-4b2c-99bb-d4c5de8613a3');
+set role authenticated;
+select t.ok((select count(*)=1 from public.brokerage_accounts),'the test user reads their own paper account through RLS');
+reset role;
+select t.as_user('00000000-0000-0000-0000-00000000dead');
+set role authenticated;
+select t.ok((select count(*)=0 from public.brokerage_accounts),'another user reads none of it');
+reset role;
 rollback;

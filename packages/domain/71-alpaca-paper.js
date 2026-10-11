@@ -17,9 +17,20 @@
      Only sandbox hosts are accepted, so this code cannot reach a live account; a mock server is accepted only when the
      caller says it is a mock, and then every label says MOCK as well as PAPER. Keys are passed in by the host from its
      environment (ALPACA_BROKER_KEY_ID, ALPACA_BROKER_SECRET); nothing here reads the environment, logs a key or an
-     Authorization header. fetch is injected. */
+     Authorization header. fetch is injected.
+     Two account models (BrokerAccounts, 73-broker-accounts.js, picks one per request from the user's own row):
+       api "broker"  (bootstrap): an Alpaca Broker API sub-account the firm opened for the user; the firm's keys from the
+                     environment, the user's account_id from their row; paths as above.
+       api "trading" (linked): the user's own Alpaca paper account through OAuth; "Authorization: Bearer <token>", the
+                     token read from the Vault per request; the Trading API's /v2/account, /v2/positions, /v2/orders,
+                     /v2/orders:by_client_order_id (returns the order object), /v2/clock, /v2/assets on paper-api.alpaca.markets,
+                     quotes on data.alpaca.markets. The account the token opens must be the account_id on the user's row,
+                     checked before the first write; a mismatch refuses everything. */
   const AlpacaPaper = (() => {
     const SANDBOX = { broker: "https://broker-api.sandbox.alpaca.markets", data: "https://data.sandbox.alpaca.markets" };
+    const PAPER_TRADING = { broker: "https://paper-api.alpaca.markets", data: "https://data.alpaca.markets" };
+    // The only hosts each model may reach. Live trading hosts (api.alpaca.markets, broker-api.alpaca.markets) are in neither.
+    const HOSTS = { broker: ["broker-api.sandbox.alpaca.markets", "data.sandbox.alpaca.markets"], trading: ["paper-api.alpaca.markets", "data.alpaca.markets"] };
     const TYPES = ["market", "limit", "stop", "stop_limit", "trailing_stop"], SIDES = ["buy", "sell"], TIFS = ["day", "gtc", "opg", "cls", "ioc", "fok"];
     const FRACTIONAL_TYPES = ["market", "limit", "stop", "stop_limit"]; // Fractional Trading doc: these, time_in_force day only
     const OPEN = ["new", "accepted", "pending_new", "accepted_for_bidding", "held", "stopped", "calculated", "suspended", "pending_replace"];
@@ -96,20 +107,23 @@
 
     function create(cfg) {
       const c = cfg || {};
-      const mock = c.mock === true;
-      const base = String(c.base || SANDBOX.broker).replace(/\/+$/, ""), dataBase = String(c.data_base || (mock ? base : SANDBOX.data)).replace(/\/+$/, "");
-      const sandboxHost = u => { try { const h = new URL(u).hostname; return h === "broker-api.sandbox.alpaca.markets" || h === "data.sandbox.alpaca.markets"; } catch (_) { return false; } };
+      const mock = c.mock === true, api = c.api === undefined || c.api === "broker" ? "broker" : c.api === "trading" ? "trading" : null;
+      if (!api) throw new Error(`AlpacaPaper: unknown api ${c.api}`);
+      const hosts = api === "broker" ? SANDBOX : PAPER_TRADING;
+      const base = String(c.base || hosts.broker).replace(/\/+$/, ""), dataBase = String(c.data_base || (mock ? base : hosts.data)).replace(/\/+$/, "");
+      const sandboxHost = u => { try { return HOSTS[api].includes(new URL(u).hostname); } catch (_) { return false; } };
       const localHost = u => { try { const h = new URL(u).hostname; return h === "127.0.0.1" || h === "localhost" || h === "::1" || h === "[::1]"; } catch (_) { return false; } };
       // PAPER ONLY: a live Alpaca host (or any other host) is refused outright. A local mock is allowed only when declared.
       for (const u of [base, dataBase]) if (!(sandboxHost(u) || (mock && localHost(u)))) throw new Error(`AlpacaPaper refuses ${u}: only the Alpaca paper sandbox${mock ? " or a local mock" : ""} is allowed.`);
-      if (!c.key_id || !c.secret) throw new Error("AlpacaPaper needs key_id and secret from the host's environment.");
-      if (!c.account_id) throw new Error("AlpacaPaper needs the sandbox account_id.");
+      if (api === "broker" && (!c.key_id || !c.secret)) throw new Error("AlpacaPaper needs key_id and secret from the host's environment.");
+      if (api === "trading" && !c.token) throw new Error("AlpacaPaper needs the user's OAuth token from the Vault.");
+      if (!c.account_id) throw new Error("AlpacaPaper needs the paper account_id.");
       const fetchFn = c.fetch || (typeof fetch !== "undefined" ? fetch : null); if (!fetchFn) throw new Error("AlpacaPaper needs fetch.");
       const enc = typeof btoa === "function" ? btoa : s => Buffer.from(s, "utf8").toString("base64");
-      const auth = "Basic " + enc(`${c.key_id}:${c.secret}`);
+      const auth = api === "broker" ? "Basic " + enc(`${c.key_id}:${c.secret}`) : "Bearer " + c.token;
       const clock = c.clock || (() => Date.now()), timeout = c.timeout_ms || 10000;
-      const label = mock ? `${LABEL} (mock Alpaca server, not Alpaca)` : `${LABEL} (Alpaca sandbox)`;
-      const source = mock ? "Alpaca PAPER mock server" : "Alpaca PAPER sandbox";
+      const label = mock ? `${LABEL} (mock Alpaca server, not Alpaca)` : api === "broker" ? `${LABEL} (Alpaca sandbox)` : `${LABEL} (your Alpaca paper account)`;
+      const source = mock ? "Alpaca PAPER mock server" : api === "broker" ? "Alpaca PAPER sandbox" : "your Alpaca PAPER account";
       const logs = [];
       // Every log line says PAPER. No key, secret or Authorization header is ever written.
       const log = (event, detail) => { const line = `[${label}] ${event}${detail ? " " + JSON.stringify(detail) : ""}`; logs.push(line); if (typeof c.log === "function") c.log(line); };
@@ -131,15 +145,25 @@
         if (res.status >= 400) throw new BrokerError("rejected", (json && (json.message || json.error)) || `the broker refused it (${res.status})`, res.status);
         return { status: res.status, json };
       }
-      const P = path => `${base}/v1/trading/accounts/${acct}${path}`;
+      const P = path => api === "broker" ? `${base}/v1/trading/accounts/${acct}${path}` : `${base}/v2${path}`;
+      const V = api === "broker" ? "v1" : "v2";
+      // Linked accounts: the account the token opens must be the one on the user's row. Checked once, before any write.
+      let owner = api === "broker" ? true : null;
+      function checkOwner(id) {
+        if (api !== "trading") return;
+        if (id && id === c.account_id) { owner = true; return; }
+        owner = false; log("account mismatch: the token does not open the account on this user's row; nothing will be sent");
+        throw new BrokerError("isolation", "the linked account does not match this user's account, so nothing was sent");
+      }
+      async function ensureOwner() { if (owner === true) return; if (owner === false) throw new BrokerError("isolation", "the linked account does not match this user's account, so nothing was sent"); await account(); }
       let lastClock = null;
-      async function marketClock() { const r = await call("GET", `${base}/v1/clock`, null, "clock"); const j = r.json || {}; lastClock = { is_open: j.is_open === true, next_open: j.next_open || null, next_close: j.next_close || null, as_of: clock(), source }; return lastClock; }
+      async function marketClock() { const r = await call("GET", `${base}/${V}/clock`, null, "clock"); const j = r.json || {}; lastClock = { is_open: j.is_open === true, next_open: j.next_open || null, next_close: j.next_close || null, as_of: clock(), source }; return lastClock; }
       async function account() {
-        const r = await call("GET", P("/account"), null, "account"); const j = r.json || {};
+        const r = await call("GET", P("/account"), null, "account"); const j = r.json || {}; checkOwner(j.id);
         // Buying power rounds down to the cent: never claim a fraction of a cent the account does not have.
         return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: true }, source, as_of: clock() };
       }
-      async function asset(symbol) { const r = await call("GET", `${base}/v1/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
+      async function asset(symbol) { const r = await call("GET", `${base}/${V}/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, paper: true } : pos(r.json), source, as_of: clock() }; }
       const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: true });
@@ -157,6 +181,7 @@
       // Create. Validation first; a thrown or 5xx write is UNKNOWN (the order may exist); a 4xx is a definite refusal.
       async function submit(order, key) {
         const problems = validate(order); if (problems.length) { log("order refused locally", { problems }); throw new BrokerError("invalid", `not sent: ${problems.join("; ")}`); }
+        await ensureOwner();
         const coid = order.client_order_id || clientOrderId(key || JSON.stringify(order));
         const b = body(order, coid);
         log("submit", { symbol: b.symbol, side: b.side, type: b.type, qty: b.qty || null, notional: b.notional || null, client_order_id: coid });
@@ -176,13 +201,14 @@
         if (ch.time_in_force) b.time_in_force = ch.time_in_force;
         if (ch.client_order_id) b.client_order_id = ch.client_order_id;
         if (!Object.keys(b).length) throw new BrokerError("invalid", "not sent: nothing to change");
+        await ensureOwner();
         log("replace", { order_id: id, fields: Object.keys(b) });
         const r = await call("PATCH", P(`/orders/${encodeURIComponent(id)}`), b, "replace");
         return normalize(r.json, lastClock ? lastClock.is_open : undefined);
       }
       // Cancel: 204 means the request was accepted, not that the order is canceled; the caller reads the order back.
-      async function cancel(id) { log("cancel", { order_id: id }); const r = await call("DELETE", P(`/orders/${encodeURIComponent(id)}`), null, "cancel"); return { accepted: r.status === 204 || r.status === 200, status: r.status }; }
-      return { submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, paper: true, mock, account_id: c.account_id };
+      async function cancel(id) { await ensureOwner(); log("cancel", { order_id: id }); const r = await call("DELETE", P(`/orders/${encodeURIComponent(id)}`), null, "cancel"); return { accepted: r.status === 204 || r.status === 200, status: r.status }; }
+      return { submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, paper: true, mock, api, account_id: c.account_id };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -215,7 +241,7 @@
         if (p.notional_cents) order.notional_cents = p.notional_cents; else order.qty = p.quantity;
         for (const k of ["limit_cents", "stop_cents", "trail_cents", "trail_percent"]) if (p[k] !== undefined && p[k] !== null) order[k] = p[k];
         try { const r = await adapter.submit(order, key); return { reference: r.order.order_id, client_order_id: coid, order: r.order }; }
-        catch (e) { if (e && ["rejected", "invalid", "auth", "rate_limited"].includes(e.kind)) { refused.set(coid, e.message); return { reference: null, rejected: true, reason: e.message, client_order_id: coid }; } throw e; }
+        catch (e) { if (e && ["rejected", "invalid", "auth", "rate_limited", "isolation"].includes(e.kind)) { refused.set(coid, e.message); return { reference: null, rejected: true, reason: e.message, client_order_id: coid }; } throw e; }
       }
       // verify: the order exists at the broker (by id, or found again by client_order_id). Exists is "confirmed" for the loop;
       // filled or not is read back by the flow. Not found within the grace window is still unknown, never "not placed".
@@ -237,6 +263,6 @@
       if (!key || !secret || !account) return { wired: false, reason: `NOT_WIRED: ${[!key && "ALPACA_BROKER_KEY_ID", !secret && "ALPACA_BROKER_SECRET", !account && "ALPACA_PAPER_ACCOUNT_ID"].filter(Boolean).join(", ")} not set` };
       return { wired: true, adapter: create(Object.assign({ key_id: key, secret, account_id: account }, extra || {})) };
     }
-    return { create, connectors, fromEnv, validate, body, normalize, clientOrderId, centsToStr, strToCents, qtyStr, SANDBOX, TYPES, LABEL };
+    return { create, connectors, fromEnv, validate, body, normalize, clientOrderId, centsToStr, strToCents, qtyStr, SANDBOX, PAPER_TRADING, HOSTS, TYPES, LABEL, BrokerError };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AlpacaPaper;

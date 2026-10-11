@@ -2,11 +2,13 @@
 # Steps 1 and 3 of the launch plan, run by the owner from his own shell against the live project.
 #   SUPABASE_DB_URL='postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres' bash scripts/launch/apply-rails-and-seed.sh [--with-router-deps]
 # What it does, each file in its own transaction, stopping at the first error:
-#   1. the two rail migrations: 20261011010000_flow_state.sql, 20261011020000_saved_recipients.sql
+#   1. the three rail migrations: 20261011010000_flow_state.sql, 20261011020000_saved_recipients.sql,
+#      20261011030000_brokerage_accounts_per_user.sql (per-user PAPER accounts; tokens only in the Vault)
 #   2. with --with-router-deps, also the two the message router reads live: 20261010110000_model_call_budget.sql (the
 #      router's model call goes through the budget RPCs) and 20261010040000_financial_evidence.sql (the flows read
 #      transactions from agent_financial_transactions). Both are self-contained and additive.
-#   3. the gauntlet seed (Sam on Venmo and Zelle for the test user)
+#   3. the gauntlet seed (Sam on Venmo and Zelle for the test user), and, only when ALPACA_PAPER_ACCOUNT_ID is set, the
+#      test user's Alpaca sandbox sub-account as a PAPER bootstrap row (scripts/launch/seed-paper-broker-account.sql)
 #   4. the read-only RLS proof (scripts/launch/verify-rails-live.sql), rolled back
 # It does NOT run `supabase db push`: the live migration history is empty, so db push would try to replay all 59 files.
 # It never prints the connection string.
@@ -20,6 +22,13 @@ if [[ "${1:-}" == "--with-router-deps" ]]; then
 fi
 run supabase/migrations/20261011010000_flow_state.sql
 run supabase/migrations/20261011020000_saved_recipients.sql
+run supabase/migrations/20261011030000_brokerage_accounts_per_user.sql
 run scripts/launch/seed-gauntlet-test-user.sql
+if [[ -n "${ALPACA_PAPER_ACCOUNT_ID:-}" ]]; then
+  echo "== scripts/launch/seed-paper-broker-account.sql"
+  psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 -v account_id="$ALPACA_PAPER_ACCOUNT_ID" --single-transaction -f scripts/launch/seed-paper-broker-account.sql
+else
+  echo "== paper broker account: skipped (ALPACA_PAPER_ACCOUNT_ID not set; buying stays NOT_WIRED for the test user)"
+fi
 echo "== proof (read-only, rolled back)"
 psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/launch/verify-rails-live.sql

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-11T04:36:49.460Z",
+ "run_at": "2026-10-11T16:28:54.027Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 21,
+ "proven": 21,
  "problems": [],
  "rows": [
   {
@@ -14,7 +14,9 @@
    "test": "a live or unknown host is refused",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S20"
+   ],
    "status": "proven"
   },
   {
@@ -40,7 +42,8 @@
    "bites": true,
    "applied": true,
    "collateral": [
-    "S09"
+    "S09",
+    "S17"
    ],
    "status": "proven"
   },
@@ -185,6 +188,61 @@
    "title": "Stop-on-change",
    "defect": "the re-verification result is ignored",
    "test": "a moved price stops the order",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Cross-user isolation: the caller's own account",
+   "defect": "rows are not checked against the caller, so a broken read hands A's request B's older account",
+   "test": "a leaked row for another user opens nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "A linked token must open the user's own account",
+   "defect": "the account the token opens is never compared with the user's row",
+   "test": "a token for B's account sends nothing for A",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "The token reference is the user's own",
+   "defect": "the row's vault reference is trusted without checking it names this user and this row",
+   "test": "a row pointing at another user's secret opens nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "PAPER ONLY at the account layer",
+   "defect": "a live row counts as paper",
+   "test": "a live-only user is told why and nothing opens",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Linked is primary, the sub-account is the bootstrap",
+   "defect": "the bootstrap sub-account outranks the person's linked broker",
+   "test": "linked wins over the bootstrap",
    "bites": true,
    "applied": true,
    "collateral": [],

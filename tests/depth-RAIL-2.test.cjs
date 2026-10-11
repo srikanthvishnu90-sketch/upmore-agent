@@ -3,6 +3,9 @@
 // Alpaca Broker API server (tests/fixtures/alpaca-mock.cjs) over real HTTP: the adapter, the connector layer, the loop and
 // the trade flow are the production code; the broker is not Alpaca. No test here is evidence about Alpaca itself.
 // The domain is loaded from UPMORE_DOMAIN_DIR when set, which is how the runner substitutes a broken copy.
+// S17-S21 are the per-user account model (73-broker-accounts.js): two users on one mock server, each request resolving
+// the caller's own row; the mock records which account every request landed in, so a leak shows as a request in the
+// wrong account. The table, RLS and Vault side of the same rules is tests/db/brokerage_accounts.test.sql.
 // Check: node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL-2
 const {test,after}=require('node:test');
 const assert=require('node:assert/strict');
@@ -13,8 +16,8 @@ const root=path.resolve(__dirname,'..');
 const domainDir=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
 const Mock=require('./fixtures/alpaca-mock.cjs');
 const ctx=vm.createContext({fetch,AbortController,setTimeout,clearTimeout,URL,btoa,Buffer});
-vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca-paper.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaPaper;this.C=Compliance;this.Cards=AgentCards;',ctx);
-const {T,A,C,Cards}=ctx;
+vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca-paper.js','73-broker-accounts.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaPaper;this.C=Compliance;this.Cards=AgentCards;this.B=BrokerAccounts;',ctx);
+const {T,A,C,Cards,B}=ctx;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
 const T0=Date.UTC(2026,9,12,14,0,0);
@@ -170,6 +173,101 @@ test('[S16] stop-on-change: a price move between the card and the yes stops a ma
   const a=await w.s.reply('yes');assert.equal(a.outcome,'changed');assert.match(a.text,/^Stopped before placing it: VOO moved from \$512\.10 to \$515\.20 .* Nothing was placed\. New card: PAPER: Buy \$500\.00 of VOO/);assert.equal(posts(w.m).length,0);
   const s=await world({mock:{positions:{VOO:4}}});await s.s.start('sell 4 shares of VOO');s.m.state.positions.VOO=1;
   const b=await s.s.reply('yes');assert.equal(b.outcome,'changed');assert.match(b.text,/Alpaca PAPER now has 1 VOO available, less than the 4 to sell/);assert.equal(posts(s.m).length,0);
+});
+
+// Per-user accounts (S17-S21). Two users, one mock server, separate paper accounts; tokens map to exactly one account.
+const UA='00000000-0000-0000-0000-0000000000a1',UB='00000000-0000-0000-0000-0000000000b2';
+const ENV={ALPACA_BROKER_KEY_ID:KEY,ALPACA_BROKER_SECRET:SECRET};
+const boot=(id,user,acct,created)=>({id,user_id:user,provider:'alpaca_broker',kind:'bootstrap',label:'main',paper:true,account_id:acct,vault_key_ref:null,status:'active',created_at:created});
+const linked=(id,user,acct,created,ref)=>({id,user_id:user,provider:'alpaca_oauth',kind:'linked',label:'main',paper:true,account_id:acct,vault_key_ref:ref||`broker_token_${user}_${id}`,status:'active',created_at:created});
+// The host's Vault read, as broker_token_read(p_user, p_account) does it: keyed by the caller and the row, never by the row's reference.
+const VAULT={[`${UA}|row-la`]:'tok-A',[`${UB}|row-lb`]:'tok-B'};
+const vault=calls=>async q=>{calls&&calls.push(q);return VAULT[`${q.user_id}|${q.account}`]||null;};
+async function multi(o){
+  const t={now:T0};
+  const m=await Mock.start(Object.assign({now:()=>t.now,key:KEY,secret:SECRET,account:'acct-firm-unused',accounts:{'acct-A':{positions:{VOO:3}},'acct-B':{positions:{VOO:5}}},tokens:{'tok-A':'acct-A','tok-B':'acct-B'}},(o&&o.mock)||{}));servers.push(m);
+  return {t,m};
+}
+async function session(w,userId,rows,cred,env){
+  const r=await B.resolve({user_id:userId,rows,env:env||ENV,credential:cred||vault(),adapter:{base:w.m.base,mock:true,clock:()=>w.t.now},clock:()=>w.t.now});
+  return r.wired?{r,s:T.create({registry,connectors:r.connectors,clock:()=>w.t.now,instruments:[],partners:r.partners,compliance:C})}:{r};
+}
+const landed=(m,acct)=>m.state.requests.filter(q=>q.method!=='GET'&&q.account===acct);
+
+test('[S17] cross-user isolation: each request opens the caller\'s own account; A\'s order lands only in A\'s account and B\'s only in B\'s; a read that leaks another user\'s row opens nothing',async()=>{
+  const w=await multi();
+  const a=await session(w,UA,[boot('row-a',UA,'acct-A','2026-10-02')]);assert.equal(a.r.account.account_id,'acct-A');assert.equal(a.r.account.user_id,UA);
+  assert.equal((await a.s.start('buy $500 of VOO')).outcome,'confirm');assert.equal((await a.s.reply('yes')).outcome,'filled');
+  const b=await session(w,UB,[boot('row-b',UB,'acct-B','2026-10-01')]);assert.equal(b.r.account.account_id,'acct-B');
+  assert.equal((await b.s.start('sell 2 shares of VOO')).outcome,'confirm');assert.equal((await b.s.reply('yes')).outcome,'filled');
+  assert.equal(landed(w.m,'acct-A').length,1);assert.equal(landed(w.m,'acct-A')[0].body.side,'buy');
+  assert.equal(landed(w.m,'acct-B').length,1);assert.equal(landed(w.m,'acct-B')[0].body.side,'sell');
+  assert.equal(w.m.accounts['acct-B'].positions.VOO,3,'B sold 2 of B\'s 5');assert.ok(w.m.accounts['acct-A'].positions.VOO>3,'A bought into A\'s account');
+  assert.equal(landed(w.m,'acct-firm-unused').length,0);
+  // A broken read hands A's request both users' rows (B's is older, so a careless pick would take it). Nothing opens.
+  const before=w.m.state.requests.length;
+  const leak=await session(w,UA,[boot('row-b',UB,'acct-B','2026-10-01'),boot('row-a',UA,'acct-A','2026-10-02')]);
+  assert.equal(leak.r.wired,false,'a leaked row stops the request');assert.match(leak.r.reason,/^ISOLATION: 1 brokerage row\(s\) for another user reached this request, so no account was opened$/);
+  assert.equal(w.m.state.requests.length,before,'no request reached any account');
+  assert.equal((await session(w,null,[boot('row-a',UA,'acct-A','2026-10-02')])).r.reason,'NOT_WIRED: no signed-in user');
+});
+
+test('[S18] a linked account is opened only if the token opens the account on the user\'s own row; a token that opens someone else\'s account sends nothing',async()=>{
+  const w=await multi();
+  const a=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03')]);
+  assert.equal((await a.s.start('buy $500 of VOO')).outcome,'confirm');assert.equal((await a.s.reply('yes')).outcome,'filled');
+  assert.equal(landed(w.m,'acct-A').length,1);
+  // The Vault hands back a token that opens B's account (a mixed-up link). A's row says acct-A, so nothing is sent.
+  const swapped=async()=> 'tok-B';
+  const x=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03')],swapped);
+  const card=await x.s.start('buy $500 of VOO');assert.equal(card.outcome,'ask',card.text);assert.equal(card.reason,'accounts_unreadable');
+  assert.equal(card.text,'I can\'t read your brokerage accounts right now, so I can\'t place anything. Try again once the connection is back.');
+  await x.s.reply('yes');
+  assert.equal(landed(w.m,'acct-B').length,0,'nothing reached B\'s account');
+  assert.ok(x.r.adapter.logs.some(l=>/account mismatch/.test(l)),'the mismatch is logged');
+  for(const l of x.r.adapter.logs)assert.doesNotMatch(l,/tok-[AB]/,'no token in any log line');
+});
+
+test('[S19] the token is read for this user and this row only, and a row whose token reference is not the user\'s own opens nothing',async()=>{
+  const w=await multi(),calls=[];
+  const a=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03')],vault(calls));
+  assert.equal(a.r.wired,true);assert.deepEqual(JSON.parse(JSON.stringify(calls)),[{user_id:UA,account:'row-la'}]);
+  // A row (bad data, or a write that slipped past the table's constraint) pointing at B's secret.
+  const bad=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03',`broker_token_${UB}_row-lb`)],async()=> 'tok-B');
+  assert.equal(bad.r.wired,false);assert.match(bad.r.reason,/^ISOLATION: the linked account's token reference is not this user's/);
+  const gone=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03')],async()=>null);
+  assert.equal(gone.r.reason,'NOT_WIRED: the link to your Alpaca account needs to be renewed');
+  const down=await session(w,UA,[linked('row-la',UA,'acct-A','2026-10-03')],async()=>{throw new Error('rpc down');});
+  assert.equal(down.r.reason,'NOT_WIRED: I can\'t read the link to your Alpaca account right now');
+  assert.equal(landed(w.m,'acct-A').length+landed(w.m,'acct-B').length,0);
+});
+
+test('[S20] PAPER ONLY at the account layer: a live row is never opened; a live-only user is told why; the adapter refuses live hosts for both account models',async()=>{
+  const w=await multi();
+  const live=Object.assign(boot('row-x',UA,'acct-A','2026-10-01'),{paper:false});
+  const only=await session(w,UA,[live]);assert.equal(only.r.wired,false);
+  assert.equal(only.r.reason,'NOT_WIRED: your only brokerage account is a live one; Upmore trades paper only until live trading is confirmed in writing');
+  const both=await session(w,UA,[live,boot('row-a',UA,'acct-A','2026-10-02')]);assert.equal(both.r.wired,true);assert.equal(both.r.account.id,'row-a');assert.equal(both.r.account.paper,true);
+  assert.throws(()=>A.create({api:'trading',base:'https://api.alpaca.markets',token:'t',account_id:'a',fetch:async()=>{}}),/refuses https:\/\/api\.alpaca\.markets/);
+  assert.throws(()=>A.create({api:'broker',base:'https://broker-api.alpaca.markets',key_id:'k',secret:'s',account_id:'a',fetch:async()=>{}}),/refuses/);
+  const ok=A.create({api:'trading',token:'t',account_id:'a',fetch:async()=>{}});assert.equal(ok.label,'PAPER (your Alpaca paper account)');
+  assert.equal(both.r.partners.broker_dealer.paper,true);
+});
+
+test('[S21] multi-provider: a linked broker is primary, the Alpaca sub-account is the bootstrap; each speaks its own API; unknown providers and missing keys are NOT_WIRED by name',async()=>{
+  const w=await multi();
+  const rows=[boot('row-a',UA,'acct-A','2026-10-01'),linked('row-la',UA,'acct-A','2026-10-03')];
+  const p=await session(w,UA,rows);assert.equal(p.r.account.kind,'linked','linked wins over the bootstrap');assert.equal(p.r.account.provider,'alpaca_oauth');
+  await p.s.start('buy $500 of VOO');await p.s.reply('yes');
+  const l=landed(w.m,'acct-A')[0];assert.equal(l.path,'/v2/orders');assert.equal(l.authorization,'Bearer tok-A');
+  const bs=await session(w,UB,[boot('row-b',UB,'acct-B','2026-10-01')]);assert.equal(bs.r.account.kind,'bootstrap');assert.match(bs.r.partners.broker_dealer.name,/sub-account$/);
+  await bs.s.start('sell 1 share of VOO');await bs.s.reply('yes');
+  const k=landed(w.m,'acct-B')[0];assert.equal(k.path,'/v1/trading/accounts/acct-B/orders');assert.equal(k.authorization,'Basic '+Buffer.from(`${KEY}:${SECRET}`).toString('base64'));
+  const two=[boot('row-b2',UB,'acct-B','2026-10-01'),Object.assign(boot('row-b3',UB,'acct-B3','2026-09-01'),{label:'ira'})];
+  assert.equal(B.select(two,UB).row.id,'row-b2','label main before an older second account');
+  assert.equal((await session(w,UA,[Object.assign(boot('row-s',UA,'acct-S','2026-10-01'),{provider:'snaptrade',kind:'linked'})])).r.reason,'NOT_WIRED: snaptrade is not a broker Upmore can trade through yet');
+  assert.equal((await session(w,UB,[boot('row-b',UB,'acct-B','2026-10-01')],null,{})).r.reason,'NOT_WIRED: ALPACA_BROKER_KEY_ID, ALPACA_BROKER_SECRET not set');
+  assert.equal((await session(w,UA,[])).r.reason,'NOT_WIRED: no paper brokerage account on file for you');
 });
 
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{

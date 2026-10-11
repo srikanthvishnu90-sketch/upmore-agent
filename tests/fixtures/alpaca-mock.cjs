@@ -3,7 +3,9 @@
 // content/api-references/broker-api/trading/orders.md, positions.md, clock.md, accounts/accounts.md and
 // market-data-api/stock-pricing-data/historical.md). Responses use Alpaca's shapes (decimal strings, order statuses,
 // by_client_order_id returning an array, DELETE 204 / 422, PATCH returning a new order). Faults are injected on purpose:
-// a create whose response is lost after the order exists, a 500 before it exists, partial fills, rejections.
+// a create whose response is lost after the order exists, a 500 before it exists, partial fills, rejections. Several
+// accounts can sit behind one server (Broker API sub-accounts by id; Trading API accounts by OAuth Bearer token), so the
+// cross-user isolation tests can see which account every request landed in.
 const http = require("node:http");
 const crypto = require("node:crypto");
 
@@ -15,9 +17,16 @@ function start(opts) {
     buying_power_cents: o.buying_power_cents !== undefined ? o.buying_power_cents : 1000000,
     positions: Object.assign({}, o.positions || {}), // SYMBOL -> qty (number)
     quotes: {}, assets: Object.assign({ VOO: { name: "Vanguard S&P 500 ETF", fractionable: true, tradable: true }, VT: { name: "Vanguard Total World Stock ETF", fractionable: true, tradable: true }, NVDA: { name: "NVIDIA Corporation Common Stock", fractionable: true, tradable: true }, TSLA: { name: "Tesla, Inc. Common Stock", fractionable: true, tradable: true }, AAPL: { name: "Apple Inc. Common Stock", fractionable: true, tradable: true } }, o.assets || {}),
-    orders: [], requests: [], faults: { drop_next_create_response: false, fail_next_create: null, partial_next: null, reject_next: null, cancel_pending: false },
+    orders: [], requests: [], tokens: Object.assign({}, o.tokens || {}), faults: { drop_next_create_response: false, fail_next_create: null, partial_next: null, reject_next: null, cancel_pending: false },
   };
   for (const [sym, q] of Object.entries(o.quotes || { VOO: [51200, 51210], VT: [11800, 11810], NVDA: [10600, 10610], TSLA: [25000, 25010], AAPL: [22000, 22010] })) st.quotes[sym] = { bid: q[0], ask: q[1], t: st.now() - 30000 };
+  // Several paper accounts behind one server. The firm's Basic key reaches every account under /v1/trading/accounts/{id}
+  // (Broker API); an OAuth Bearer token reaches exactly one account under /v2 (Trading API). The default account keeps
+  // its fields on st so single-account tests read st.orders and st.positions as before.
+  const accts = { [st.account]: st };
+  for (const [id, a] of Object.entries(o.accounts || {})) accts[id] = { account: id, buying_power_cents: a.buying_power_cents !== undefined ? a.buying_power_cents : 1000000, positions: Object.assign({}, a.positions || {}), orders: [] };
+  let ac = st;
+  const fillAll = () => { for (const a of Object.values(accts)) { ac = a; for (const x of a.orders) fillOne(x); } ac = st; };
   const str = c => `${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`;
   const iso = () => new Date(st.now()).toISOString();
   const qtyStr = q => String(Math.round(q * 1e9) / 1e9);
@@ -50,10 +59,10 @@ function start(opts) {
     if (x.status === "filled") x.filled_at = iso();
     x.updated_at = iso();
     const cost = Math.round(fill * price);
-    if (x.side === "buy") { st.buying_power_cents -= cost; st.positions[x.symbol] = Math.round(((st.positions[x.symbol] || 0) + fill) * 1e9) / 1e9; }
-    else { st.buying_power_cents += cost; st.positions[x.symbol] = Math.round(((st.positions[x.symbol] || 0) - fill) * 1e9) / 1e9; if (st.positions[x.symbol] <= 0) delete st.positions[x.symbol]; }
+    if (x.side === "buy") { ac.buying_power_cents -= cost; ac.positions[x.symbol] = Math.round(((ac.positions[x.symbol] || 0) + fill) * 1e9) / 1e9; }
+    else { ac.buying_power_cents += cost; ac.positions[x.symbol] = Math.round(((ac.positions[x.symbol] || 0) - fill) * 1e9) / 1e9; if (ac.positions[x.symbol] <= 0) delete ac.positions[x.symbol]; }
   }
-  const reserved = (sym, exceptId) => st.orders.filter(x => x.side === "sell" && x.symbol === sym && x.id !== exceptId && ["new", "accepted", "partially_filled", "pending_new"].includes(x.status)).reduce((s, x) => s + (x.qty - (x.filled_qty || 0)), 0);
+  const reserved = (sym, exceptId) => ac.orders.filter(x => x.side === "sell" && x.symbol === sym && x.id !== exceptId && ["new", "accepted", "partially_filled", "pending_new"].includes(x.status)).reduce((s, x) => s + (x.qty - (x.filled_qty || 0)), 0);
   function validate(b) {
     const hasQ = b.qty !== undefined && b.qty !== null, hasN = b.notional !== undefined && b.notional !== null, tif = b.time_in_force;
     for (const k of ["qty", "notional", "limit_price", "stop_price", "trail_price", "trail_percent"]) if (b[k] !== undefined && b[k] !== null && typeof b[k] !== "string") return `${k} must be a string`;
@@ -71,7 +80,7 @@ function start(opts) {
     if ((b.type === "stop" || b.type === "stop_limit") && !b.stop_price) return "stop_price is required";
     if (b.type === "trailing_stop" && !b.trail_price && !b.trail_percent) return "trail_price or trail_percent is required";
     if (b.client_order_id && String(b.client_order_id).length > 48) return "client_order_id must be no more than 48 characters";
-    if (b.client_order_id && st.orders.some(x => x.client_order_id === b.client_order_id)) return "client_order_id must be unique";
+    if (b.client_order_id && ac.orders.some(x => x.client_order_id === b.client_order_id)) return "client_order_id must be unique";
     return null;
   }
   function send(res, status, obj) { res.writeHead(status, { "content-type": "application/json" }); res.end(obj === undefined ? "" : JSON.stringify(obj)); }
@@ -80,34 +89,42 @@ function start(opts) {
       const url = new URL(req.url, "http://x"), path = url.pathname;
       const body = raw ? (() => { try { return JSON.parse(raw); } catch (_) { return null; } })() : null;
       st.requests.push({ method: req.method, path, query: url.search, body, authorization: req.headers.authorization || null });
-      const want = "Basic " + Buffer.from(`${st.key}:${st.secret}`).toString("base64");
-      if (req.headers.authorization !== want) return send(res, 401, { code: 40110000, message: "request is not authorized" });
-      for (const x of st.orders) fillOne(x);
-      if (req.method === "GET" && path === "/v1/clock") return send(res, 200, { timestamp: iso(), is_open: st.is_open, next_open: st.next_open, next_close: "2026-10-12T16:00:00-04:00" });
+      const want = "Basic " + Buffer.from(`${st.key}:${st.secret}`).toString("base64"), given = req.headers.authorization || "";
+      const bearer = given.startsWith("Bearer ") ? given.slice(7) : null, tokenAccount = bearer !== null && Object.prototype.hasOwnProperty.call(st.tokens, bearer) ? st.tokens[bearer] : null;
+      if (given !== want && !tokenAccount) return send(res, 401, { code: 40110000, message: "request is not authorized" });
+      fillAll();
+      if (req.method === "GET" && (path === "/v1/clock" || path === "/v2/clock")) return send(res, 200, { timestamp: iso(), is_open: st.is_open, next_open: st.next_open, next_close: "2026-10-12T16:00:00-04:00" });
       let m;
-      if (req.method === "GET" && (m = /^\/v1\/assets\/([^/]+)$/.exec(path))) { const a = st.assets[decodeURIComponent(m[1])]; return a ? send(res, 200, { id: "asset-" + m[1], class: "us_equity", exchange: "ARCA", symbol: decodeURIComponent(m[1]), name: a.name, status: "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }) : send(res, 404, { message: "asset not found" }); }
+      if (req.method === "GET" && (m = /^\/v[12]\/assets\/([^/]+)$/.exec(path))) { const a = st.assets[decodeURIComponent(m[1])]; return a ? send(res, 200, { id: "asset-" + m[1], class: "us_equity", exchange: "ARCA", symbol: decodeURIComponent(m[1]), name: a.name, status: "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }) : send(res, 404, { message: "asset not found" }); }
       if (req.method === "GET" && (m = /^\/v2\/stocks\/([^/]+)\/(quotes|trades)\/latest$/.exec(path))) { const sym = decodeURIComponent(m[1]), q = st.quotes[sym]; if (!q) return send(res, 404, { message: "not found" }); return m[2] === "quotes" ? send(res, 200, { symbol: sym, quote: { t: new Date(q.t).toISOString(), ax: "V", ap: q.ask / 100, as: 1, bx: "V", bp: q.bid / 100, bs: 1, c: ["R"], z: "B" } }) : send(res, 200, { symbol: sym, trade: { t: new Date(q.t).toISOString(), x: "V", p: q.ask / 100, s: 10, c: ["@"], i: 1, z: "B" } }); }
-      const A = `/v1/trading/accounts/${st.account}`;
-      if (!path.startsWith(A)) return send(res, 404, { message: "account not found" });
-      const sub = path.slice(A.length);
-      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: st.account, account_number: "PA0000000", status: "ACTIVE", currency: "USD", buying_power: str(st.buying_power_cents) + "7311", cash: str(st.buying_power_cents), portfolio_value: str(st.buying_power_cents) });
-      if (req.method === "GET" && sub === "/positions") return send(res, 200, Object.entries(st.positions).map(([s, q]) => pos(s, q)));
-      if (req.method === "GET" && (m = /^\/positions\/([^/]+)$/.exec(sub))) { const s = decodeURIComponent(m[1]); return st.positions[s] ? send(res, 200, pos(s, st.positions[s])) : send(res, 404, { code: 40410000, message: "position does not exist" }); }
+      let sub, trading = false;
+      if ((m = /^\/v1\/trading\/accounts\/([^/]+)(\/.*)$/.exec(path))) {
+        if (given !== want) return send(res, 401, { code: 40110000, message: "request is not authorized" }); // OAuth tokens never reach the Broker API
+        const id = decodeURIComponent(m[1]); if (!accts[id]) return send(res, 404, { message: "account not found" });
+        ac = accts[id]; sub = m[2];
+      } else if (/^\/v2\/(account|positions|orders)/.test(path)) {
+        if (!tokenAccount || !accts[tokenAccount]) return send(res, 401, { code: 40110000, message: "request is not authorized" }); // the Trading API's account is the token's
+        ac = accts[tokenAccount]; sub = path.slice(3); trading = true;
+      } else return send(res, 404, { message: "not found" });
+      st.requests[st.requests.length - 1].account = ac.account;
+      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: "ACTIVE", currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents) });
+      if (req.method === "GET" && sub === "/positions") return send(res, 200, Object.entries(ac.positions).map(([s, q]) => pos(s, q)));
+      if (req.method === "GET" && (m = /^\/positions\/([^/]+)$/.exec(sub))) { const s = decodeURIComponent(m[1]); return ac.positions[s] ? send(res, 200, pos(s, ac.positions[s])) : send(res, 404, { code: 40410000, message: "position does not exist" }); }
       if (req.method === "POST" && sub === "/orders") {
         if (st.faults.fail_next_create) { const f = st.faults.fail_next_create; st.faults.fail_next_create = null; return send(res, f, { message: "internal error" }); }
         if (st.faults.reject_next) { const f = st.faults.reject_next; st.faults.reject_next = null; return send(res, f.status, { code: 0, message: f.message }); }
         const err = validate(body || {}); if (err) return send(res, 422, { code: 42210000, message: err });
         const q = st.quotes[body.symbol], qty = body.qty !== undefined ? Number(body.qty) : null, notional = body.notional !== undefined ? cents(body.notional) : null;
-        if (body.side === "buy") { const px = body.type === "limit" || body.type === "stop_limit" ? cents(body.limit_price) : body.type === "stop" ? Math.max(cents(body.stop_price), q.ask) : q.ask; const est = notional || Math.round(qty * px); if (est > st.buying_power_cents) return send(res, 403, { code: 40310000, message: "insufficient buying power" }); }
-        else { const have = (st.positions[body.symbol] || 0) - reserved(body.symbol); if ((qty || Math.round(notional / q.bid * 1e9) / 1e9) > have + 1e-9) return send(res, 403, { code: 40310000, message: `insufficient qty available for order (requested: ${body.qty || body.notional}, available: ${qtyStr(Math.max(0, have))})` }); }
+        if (body.side === "buy") { const px = body.type === "limit" || body.type === "stop_limit" ? cents(body.limit_price) : body.type === "stop" ? Math.max(cents(body.stop_price), q.ask) : q.ask; const est = notional || Math.round(qty * px); if (est > ac.buying_power_cents) return send(res, 403, { code: 40310000, message: "insufficient buying power" }); }
+        else { const have = (ac.positions[body.symbol] || 0) - reserved(body.symbol); if ((qty || Math.round(notional / q.bid * 1e9) / 1e9) > have + 1e-9) return send(res, 403, { code: 40310000, message: `insufficient qty available for order (requested: ${body.qty || body.notional}, available: ${qtyStr(Math.max(0, have))})` }); }
         const x = { id: crypto.randomUUID(), client_order_id: body.client_order_id || crypto.randomUUID(), created_at: iso(), updated_at: iso(), symbol: body.symbol, side: body.side, type: body.type, time_in_force: body.time_in_force, qty, notional_cents: notional, limit_cents: body.limit_price ? cents(body.limit_price) : null, stop_cents: body.stop_price ? cents(body.stop_price) : null, trail_cents: body.trail_price ? cents(body.trail_price) : null, trail_percent: body.trail_percent ? Number(body.trail_percent) : null, status: st.is_open ? "new" : "accepted", filled_qty: 0 };
-        st.orders.push(x); fillOne(x);
+        ac.orders.push(x); fillOne(x);
         if (st.faults.drop_next_create_response) { st.faults.drop_next_create_response = false; req.socket.destroy(); return; }
         return send(res, 200, orderObj(x));
       }
-      if (req.method === "GET" && sub === "/orders:by_client_order_id") { const x = st.orders.find(y => y.client_order_id === url.searchParams.get("client_order_id")); return x ? send(res, 200, [orderObj(x)]) : send(res, 404, { code: 40410000, message: "order not found" }); }
+      if (req.method === "GET" && sub === "/orders:by_client_order_id") { const x = ac.orders.find(y => y.client_order_id === url.searchParams.get("client_order_id")); return x ? send(res, 200, trading ? orderObj(x) : [orderObj(x)]) : send(res, 404, { code: 40410000, message: "order not found" }); }
       if ((m = /^\/orders\/([^/]+)$/.exec(sub))) {
-        const x = st.orders.find(y => y.id === m[1]); if (!x) return send(res, 404, { code: 40410000, message: "order not found" });
+        const x = ac.orders.find(y => y.id === m[1]); if (!x) return send(res, 404, { code: 40410000, message: "order not found" });
         if (req.method === "GET") return send(res, 200, orderObj(x));
         if (req.method === "DELETE") { if (!["new", "accepted", "partially_filled", "pending_new"].includes(x.status)) return send(res, 422, { code: 42210000, message: `order is ${x.status} and cannot be canceled` }); x.status = st.faults.cancel_pending ? "pending_cancel" : "canceled"; x.canceled_at = x.status === "canceled" ? iso() : null; x.updated_at = iso(); return send(res, 204); }
         if (req.method === "PATCH") {
@@ -116,7 +133,7 @@ function start(opts) {
           const y = Object.assign({}, x, { id: crypto.randomUUID(), client_order_id: body.client_order_id || crypto.randomUUID(), created_at: iso(), updated_at: iso(), replaces: x.id, replaced_by: null, status: st.is_open ? "new" : "accepted", filled_qty: 0, filled_avg_cents: null });
           if (body.qty !== undefined) y.qty = Number(body.qty); if (body.limit_price) y.limit_cents = cents(body.limit_price); if (body.stop_price) y.stop_cents = cents(body.stop_price); if (body.time_in_force) y.time_in_force = body.time_in_force;
           if (body.trail) { if (y.trail_percent) y.trail_percent = Number(body.trail); else y.trail_cents = cents(body.trail); }
-          x.status = "replaced"; x.replaced_by = y.id; x.replaced_at = iso(); st.orders.push(y); fillOne(y);
+          x.status = "replaced"; x.replaced_by = y.id; x.replaced_at = iso(); ac.orders.push(y); fillOne(y);
           return send(res, 200, orderObj(y));
         }
       }
@@ -127,9 +144,9 @@ function start(opts) {
   return new Promise(resolve => server.listen(0, "127.0.0.1", () => {
     const base = `http://127.0.0.1:${server.address().port}`;
     resolve({
-      base, state: st, close: () => new Promise(r => server.close(r)),
-      open() { st.is_open = true; for (const x of st.orders) fillOne(x); }, shut() { st.is_open = false; },
-      move(sym, bid, ask) { st.quotes[sym] = { bid, ask, t: st.now() }; for (const x of st.orders) { x.hold = false; fillOne(x); } },
+      base, state: st, accounts: accts, close: () => new Promise(r => server.close(r)),
+      open() { st.is_open = true; fillAll(); }, shut() { st.is_open = false; },
+      move(sym, bid, ask) { st.quotes[sym] = { bid, ask, t: st.now() }; for (const a of Object.values(accts)) for (const x of a.orders) x.hold = false; fillAll(); },
       age(sym, ms) { st.quotes[sym].t -= ms; },
       fault(name, value) { st.faults[name] = value === undefined ? true : value; },
       writes: () => st.requests.filter(r => r.method !== "GET"),

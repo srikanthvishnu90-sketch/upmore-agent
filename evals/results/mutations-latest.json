@@ -1,5 +1,5 @@
 {
- "at": "2026-10-11T00:10:06.417Z",
+ "at": "2026-10-11T00:19:26.829Z",
  "results": [
   {
    "name": "skip verification: unverified send reported as done",
@@ -36,9 +36,12 @@
    "to": "",
    "layer": 2,
    "applied": true,
-   "caught": false,
-   "named_layer": false,
-   "caught_by": []
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    2
+   ]
   },
   {
    "name": "drop freshness label: stale data not said",
@@ -109,25 +112,30 @@
    ]
   },
   {
-   "name": "fee recovery counts a credit on another account",
+   "name": "fee recovery ignores the account scope",
    "file": "packages/domain/41-agent-recovery.js",
-   "from": "c.account_id !== charge.account_id ||",
+   "from": "if (accountId && r.account_id !== accountId) { outOfScope++; continue; }",
    "to": "",
    "layer": 1,
-   "applied": false,
-   "caught": false,
-   "note": "anchor not found; mutation list is stale"
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1
+   ]
   },
   {
-   "name": "parity matrix hides an unmapped seed",
+   "name": "parity matrix reports every capability as delivered",
    "file": "scripts/build-parity-matrix.py",
-   "from": "errors.append(f\"{f['id']}: no mapping\"); continue",
-   "to": "continue",
+   "from": "\"delivered\": c[\"status\"] in DELIVERED",
+   "to": "\"delivered\": True",
    "layer": 3,
    "applied": true,
-   "caught": false,
-   "named_layer": false,
-   "caught_by": []
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    3
+   ]
   }
  ]
 }

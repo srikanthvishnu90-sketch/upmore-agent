@@ -78,10 +78,10 @@ test('T4 acts without confirmation inside the envelope, asks outside it, at the 
   r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:5001},amount_cents:5001,recipient:'savings',confirm:{amount:'$50.01',recipient:'savings'}}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(c.calls.write.length,0);assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'outside_envelope');
   ({c,loop}=mk());
-  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'cousin'}});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:100,recipient:'cousin'},confirm:{amount:'$1.00',recipient:'cousin'}}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'outside_envelope');
   ({c,loop}=mk());
-  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'savings',first_time:true}});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:100,recipient:'savings'},confirm:{amount:'$1.00',recipient:'savings'},first_time:true}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'first_time_is_T5');
   const none=AgentLoop.create({registry,connectors:fakeConnectors({}),clock:clockAt({now:1})});
   r=await none.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'savings'}});
@@ -179,6 +179,54 @@ test('a crash right after ACTING, followed by a brand-new request with the same 
   assert.ok(['confirmed','unknown','already_done'].includes(yes.outcome),yes.outcome);
 });
 
+test('review fixes: approval text must equal the submitted terms, a limitless envelope asks, drifted terms and revoked authority are refused at submission, and a store claim guards single use',async()=>{
+  // Approval text that disagrees with the terms is refused before anyone is asked.
+  let c=fakeConnectors({});let loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
+  let r=await loop.wake({kind:'message',request:{...send,confirm:{...send.confirm,amount:'$4.00'}}});
+  assert.equal(r.outcome,'blocked');assert.equal(r.reason,'confirmation_mismatch');assert.equal(c.calls.write.length,0);
+  r=await loop.wake({kind:'message',request:{...send,confirm:{...send.confirm,recipient:'Chen'}}});
+  assert.equal(r.reason,'confirmation_mismatch');
+  r=await loop.wake({kind:'message',request:{...send,confirm:{...send.confirm,amount:'$40.00',recipient:'Marcus Lee'}}});
+  assert.equal(r.outcome,'awaiting_confirmation','a fuller name for the same recipient is fine');
+  // A caller-supplied amount outside params is ignored by the envelope, and an envelope without a numeric limit asks.
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'SAVE-001'}]});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',params:{amount_cents:100,recipient:'savings'},confirm:{amount:'$1.00',recipient:'savings'}}});
+  assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'envelope_invalid');assert.equal(c.calls.write.length,0);
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'SAVE-001',max_cents:5000}]});
+  r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:10,params:{recipient:'savings'},confirm:{amount:'$0.10',recipient:'savings'}}});
+  assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'amount_unknown');
+  // Terms mutated between the ask and the approval: refused, nothing written.
+  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
+  const live={...send,params:{...send.params}};r=await loop.wake({kind:'message',request:live});
+  live.params.amount_cents=400000;
+  let x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'terms_changed');assert.equal(c.calls.write.length,0);assert.equal(loop.state,'IDLE');
+  // Authority revoked after the ask: refused at submission.
+  let revoked=false;c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),authority:()=>!revoked});
+  r=await loop.wake({kind:'message',request:send});revoked=true;
+  x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'authority_revoked');assert.equal(c.calls.write.length,0);
+  // Capability gated between the ask and the approval: refused.
+  const flipping={get:id=>flipping.gated?{...registry.get(id),status:'GATED',gate_reason:'partner lost'}:registry.get(id),answer:registry.answer};
+  c=fakeConnectors({});loop=AgentLoop.create({registry:flipping,connectors:c,clock:clockAt({now:1})});
+  r=await loop.wake({kind:'message',request:send});flipping.gated=true;
+  x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'blocked');assert.equal(x.reason,'gated');assert.equal(c.calls.write.length,0);
+  // The store's claim is the cross-worker single-use guard: a refused claim never writes.
+  const claims=[];c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),claim:async key=>{claims.push(key);return claims.length===1;}});
+  r=await loop.wake({kind:'message',request:send});x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'confirmed');assert.deepEqual(claims,['PAY-001:marcus-40']);
+  const fresh=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),claim:async()=>false});
+  r=await fresh.wake({kind:'message',request:{...send,key:'marcus-40-b'}});x=await fresh.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'already_claimed');assert.equal(c.calls.write.length,1);
+  // A rail rejection is reported as the rail's word, without promising nothing happened; an unknown fee is said to be unknown.
+  c=fakeConnectors({verify:{confirmed:false,reason:'insufficient funds',source:'Example Bank'}});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
+  r=await loop.wake({kind:'message',request:{...send,confirm:{action:'send',amount:'$40.00',recipient:'Marcus'}}});
+  assert.match(r.message,/fee not yet known/);
+  x=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  assert.equal(x.outcome,'failed');assert.match(x.message,/Example Bank reports .* did not go through \(insufficient funds\)\. I will reconcile/);assert.doesNotMatch(x.message,/Nothing was changed/);
+});
+
 test('a write failure stops without a blind retry and reports the outcome as unknown',async()=>{
   const c=fakeConnectors({writeThrows:true});const loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
   const r=await loop.wake({kind:'message',request:send});
@@ -194,7 +242,7 @@ test('a rail rejection is reported as failed, not unknown and not success',async
   const c=fakeConnectors({verify:{confirmed:false,reason:'insufficient funds'}});const loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
   const r=await loop.wake({kind:'message',request:send});
   const f=await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
-  assert.equal(f.outcome,'failed');assert.match(f.message,/did not go through \(insufficient funds\)\. Nothing was changed/);assert.equal(loop.state,'IDLE');
+  assert.equal(f.outcome,'failed');assert.match(f.message,/did not go through \(insufficient funds\)\. I will reconcile/);assert.equal(loop.state,'IDLE');
 });
 
 test('decision order: a fraud alert preempts a queued proactive message; a direct request beats a watch; silence is the default',async()=>{

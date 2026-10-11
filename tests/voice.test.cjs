@@ -108,6 +108,21 @@ test('classification maps every inbound message to one response type',()=>{
   assert.equal(V.classify('cancel my netflix subscription for me').intent.target,'netflix');
 });
 
+test('review fixes: a qualified yes is a correction, an unknown fee is never Free, Done needs a verified rail outcome',()=>{
+  same(V.classify('yes, but use the other account',{pending_confirmation:true}),{type:'correction',voids_pending:true});
+  same(V.classify('ok but make it $50',{pending_confirmation:true}),{type:'correction',voids_pending:true});
+  same(V.classify('yes',{pending_confirmation:true}),{type:'confirmation',approved:true});
+  assert.throws(()=>V.compose('confirm',{action:'Send',amount_cents:8500,recipient:'Sarah',timing:'lands in minutes'}),/compose needs fee_cents/);
+  assert.match(V.compose('confirm',{action:'Send',amount_cents:8500,recipient:'Sarah',timing:'lands in minutes',fee_cents:0}).bubbles[0],/Free/);
+  assert.match(V.compose('confirm',{action:'Send',amount_cents:8500,recipient:'Sarah',timing:'lands in minutes',fee_cents:25}).bubbles[0],/Fee \$0\.25/);
+  assert.throws(()=>V.compose('receipt',{done:'Sent',amount_cents:8500,recipient:'Sarah',rail:'Venmo',reference:'1'}),/verified:true/);
+  assert.throws(()=>V.compose('receipt',{done:'Sent',amount_cents:8500,recipient:'Sarah',rail:'Venmo',reference:'1',verified:false}),/verified:true/);
+  assert.equal(V.compose('placed',{action:'The $85.00 send to Sarah',rail:'Venmo',reference:'88291'}).bubbles[0],"The $85.00 send to Sarah is submitted to Venmo (ref 88291) and not yet confirmed. I'll tell you when Venmo confirms it.");
+  // Repeated clean confirmations only produce an offer; autonomy exists only after an explicit grant.
+  const L=V.ladder({});for(let i=0;i<5;i++)L.record('PAY-006','electric','clean_confirmation');
+  assert.equal(L.autonomous('PAY-006','electric'),false);assert.ok(L.offerText('PAY-006','electric',10000));
+});
+
 test('trust ladder: three clean confirmations of one shape earn an offer; corrections and surprises drop it; trust is per capability',()=>{
   const L=V.ladder({});
   L.record('PAY-006','electric','clean_confirmation');L.record('PAY-006','electric','clean_confirmation');

@@ -35,7 +35,8 @@ _Why this is right:_ Applies the correction, re-confirms in one line, and the co
      "action": "Send",
      "amount_cents": 4000,
      "recipient": "Marcus Chen (venmo @mchen)",
-     "timing": "lands in minutes"
+     "timing": "lands in minutes",
+     "fee_cents": 0
     },
     "ctx": {
      "register": "casual"

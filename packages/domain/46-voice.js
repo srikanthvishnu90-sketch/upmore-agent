@@ -22,6 +22,8 @@
       const t = String(text || "").trim();
       const c = ctx || {};
       if (!t) return { type: "smalltalk" };
+      // "yes, but use the other account" changes the terms: that is a correction, and the pending proposal is void, not approved.
+      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|instead|except|actually|not the|other|different|change|make it|use my|from my)\b/i.test(t)) return { type: "correction", voids_pending: true };
       if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
       if (c.pending_confirmation && /^(n|no|nope|don'?t|stop|cancel that|actually no|never ?mind)\b/i.test(t)) return { type: "confirmation", approved: false };
       if (/^(no[,.]? |not |wrong|that'?s wrong|i (said|meant)|it'?s actually|correction:)/i.test(t) || /\bnot [A-Z][a-z]+ [A-Z][a-z]+\b/.test(t)) return { type: "correction" };
@@ -93,12 +95,18 @@
       } else if (kind === "confirm") {
         if (f.restate) { need(f, ["context"]); parts.push(`${f.context} ${f.restate} ${reg === "casual" ? "ok?" : "Confirm?"}`); }
         else {
-          need(f, ["action", "amount_cents", "recipient", "timing"]);
+          // fee_cents is required: 0 reads as Free; an unknown fee is never rendered as Free.
+          need(f, ["action", "amount_cents", "recipient", "timing", "fee_cents"]);
           parts.push(`${f.action} ${money(f.amount_cents)} to ${f.recipient}${f.from ? ` from ${f.from}` : ""}? ${f.fee_cents ? `Fee ${money(f.fee_cents)}` : "Free"}, ${f.timing}.`);
         }
       } else if (kind === "receipt") {
+        // "Sent." is said only with a verified rail outcome; an unverified placement uses the "placed" kind.
         need(f, ["done", "amount_cents", "recipient", "rail", "reference"]);
+        if (f.verified !== true) throw new Error("a receipt needs verified:true from the rail; use kind 'placed' until then");
         parts.push(`${f.done}. ${money(f.amount_cents)} to ${f.recipient}, ${f.rail}, confirmation ${f.reference}.${f.followup ? " " + f.followup : ""}`);
+      } else if (kind === "placed") {
+        need(f, ["action", "rail"]);
+        parts.push(`${f.action} is submitted to ${f.rail}${f.reference ? ` (ref ${f.reference})` : ""} and not yet confirmed. I'll tell you when ${f.rail} confirms it.`);
       } else if (kind === "limit") {
         need(f, ["capability"]);
         const cap = f.capability, why = { GATED: cap.gate_reason || "it needs a licensed partner", NOT_WIRED: "the rail is not connected yet", CLAIMED: "it is not built yet" }[cap.status];

@@ -22,7 +22,7 @@ function world(o){
     functions:{invoke:async(name,opts)=>{calls.push(['invoke',name,opts]);return o.invoke||{data:{ok:true,url:'https://app.alpaca.markets/oauth/authorize?x=1'},error:null};}},
     rpc:async(name,args)=>{calls.push(['rpc',name,args]);return o.rpc||{data:true,error:null};},
   };
-  const ctx=vm.createContext({$:id=>els[id]||null,supa,session:{user:{id:'user-1'}},location:{href:'https://upmore-topaz.vercel.app/#you'},confirm:()=>o.confirm!==false,console});
+  const ctx=vm.createContext({$:id=>els[id]||null,supa,session:{user:{id:'user-1'}},location:{href:'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/#you'},confirm:()=>o.confirm!==false,console});
   vm.runInContext(fnSrc+'\nthis.refresh=refreshBrokerRow;',ctx);
   return {ctx,els,calls,refresh:()=>ctx.refresh()};
 }
@@ -42,7 +42,7 @@ test('Connect when the app credentials are not set: the server\'s honest message
   const w=world({invoke:{data:{ok:false,code:'not_configured',message:'Connecting a brokerage isn\'t switched on yet: Upmore\'s Alpaca app credentials are not set. Nothing was connected.'},error:null}});
   await w.refresh();await w.els.brokerBtn.onclick();
   assert.equal(w.els.brokerStatus.textContent,'Connecting a brokerage isn\'t switched on yet: Upmore\'s Alpaca app credentials are not set. Nothing was connected.');
-  assert.equal(w.ctx.location.href,'https://upmore-topaz.vercel.app/#you','no navigation');assert.equal(w.els.brokerBtn.disabled,false);
+  assert.equal(w.ctx.location.href,'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/#you','no navigation');assert.equal(w.els.brokerBtn.disabled,false);
 });
 
 test('connected: live with the masked account, and Disconnect deletes the person\'s own connection after a confirmation, saying what it did and what it did not',async()=>{

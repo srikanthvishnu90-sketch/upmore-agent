@@ -108,7 +108,7 @@ const diffPixels = async ([a, b]) => {
       });
       await page.waitForFunction(() => { const i = document.querySelector("#ccardProbe img"); return i && i.complete; }, null, { timeout: 3000 }).catch(() => {});
       const loaded = await page.evaluate(() => { const i = document.querySelector("#ccardProbe img"); return i ? i.naturalWidth : 0; });
-      const ok = card && card.title === "Connect Alpaca to Upmore" && card.domain === "upmore-topaz.vercel.app" && loaded === 1200;
+      const ok = card && card.title === "Connect Alpaca to Upmore" && card.domain === "upmore-srikanthvishnu90-sketchs-projects.vercel.app" && loaded === 1200;
       results.push({ id: "card:connect", status: ok ? "PASS" : "FAIL", why: ok ? "drawn" : `card ${JSON.stringify(card)}, image width ${loaded}` });
       const shot = await page.screenshot({ clip: { x: 0, y: 0, width: 390, height: 330 } }), file = path.join(BASE, "phone-connect-card.png");
       if (UPDATE || !fs.existsSync(file)) { fs.writeFileSync(file, shot); results.push({ id: "phone:connect-card", status: "BASELINE", why: "written" }); }

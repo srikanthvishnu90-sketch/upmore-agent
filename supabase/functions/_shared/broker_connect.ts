@@ -11,7 +11,7 @@
 // secret is logged, put in a URL, or returned.
 import { BrokerConnect } from "./router_core.js";
 
-export const DEFAULT_APP_URL = "https://upmore-topaz.vercel.app";
+export const DEFAULT_APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const KEYS = ["ALPACA_OAUTH_CLIENT_ID", "ALPACA_OAUTH_CLIENT_SECRET", "BROKER_OAUTH_STATE_SECRET", "BROKER_OAUTH_REDIRECT_URI", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "UPMORE_APP_URL"];
 export function connectEnv(get: (k: string) => string | undefined): Record<string, string | undefined> {
   const e: Record<string, string | undefined> = {};

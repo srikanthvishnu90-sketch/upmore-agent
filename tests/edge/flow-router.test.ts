@@ -219,7 +219,7 @@ Deno.test("Brokerage wiring: no connection, an unreadable table, a leaked row, a
   eq((await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1", { provider: "schwab" })]))).connect!.code, "not_wired");
   const { db } = memDb();
   const b = await routeFlows("buy $5 of VOO", { db, extract: stubModel, now: () => T0, broker: none });
-  eq(b!.route.outcome, "blocked"); eq(b!.reply, "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca");
+  eq(b!.route.outcome, "blocked"); eq(b!.reply, "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca");
 });
 
 Deno.test("Brokerage wiring: brokerSource reads the caller's rows through the RLS client, the token and the Reconnect mark through service-role RPCs keyed by caller and row", async () => {
@@ -269,7 +269,7 @@ Deno.test("Brokerage wiring: two people trade in their own accounts with their o
   const m3 = memDb();
   const r = await routeFlows("buy $5 of VOO", { db: m3.db, extract: stubModel, now: () => now, broker: revoked });
   await revoked.flush!();
-  eq(r!.route.outcome, "blocked"); eq(r!.reply, "Your brokerage connection was revoked or has expired, so nothing was placed - here's the link to reconnect.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca");
+  eq(r!.route.outcome, "blocked"); eq(r!.reply, "Your brokerage connection was revoked or has expired, so nothing was placed - here's the link to reconnect.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca");
   eq(JSON.stringify(marks), JSON.stringify([{ user_id: U1, account: "row-u-1" }])); eq(stub.calls.filter(x => x.method === "POST").length, 2, "nothing new was sent");
 });
 

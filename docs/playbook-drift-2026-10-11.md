@@ -196,3 +196,11 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
 - **Two production app URLs are in the code:** `upmore-topaz.vercel.app` (broker_connect.ts, now also the connect
   cards) and `upmore-srikanthvishnu90-sketchs-projects.vercel.app` (gmail-oauth APP_URL). Not changed here; the owner
   should say which is production, and gmail-oauth should follow it.
+- **Resolved the same night (owner): everything points at `upmore-srikanthvishnu90-sketchs-projects.vercel.app` until
+  a domain is bought.** broker_connect.ts DEFAULT_APP_URL and the connect cards moved there (gmail-oauth already was);
+  the preview pages and card images were rebuilt; tests follow. The CORS allow-lists (agent-chat, agent-workflows,
+  simplefin-proxy) keep both addresses so the old one is not cut off while it still serves the app. A live
+  `UPMORE_APP_URL` secret, if set to topaz, still overrides the default.
+- **Card restyled (owner):** black instead of white, the Upmore wordmark white in Tinos (metric-compatible with Times New
+  Roman, SIL OFL, `fonts/tinos-regular.woff2` + `fonts/tinos-OFL.txt`), a dark grey strip under it in the app; the
+  domain stays on one line with an ellipsis, as Messages shows it.

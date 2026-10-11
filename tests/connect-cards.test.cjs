@@ -26,20 +26,20 @@ test('only providers a person can connect today, each with its real logo, its so
 
 test('the reply is one short line and the link alone, and only an exact connect link is read as a card', () => {
   const m = CC.message('alpaca', { lead: "No brokerage is connected yet, so nothing was placed - here's the link." });
-  assert.equal(m, "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca");
-  assert.equal(CC.message('gmail'), "Not connected yet - here's the link.\n\nhttps://upmore-topaz.vercel.app/connect/gmail");
+  assert.equal(m, "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca");
+  assert.equal(CC.message('gmail'), "Not connected yet - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/gmail");
   assert.throws(() => CC.message('outlook'), /real logo/);
-  assert.equal(CC.parse('https://upmore-topaz.vercel.app/connect/alpaca'), 'alpaca');
+  assert.equal(CC.parse('https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca'), 'alpaca');
   assert.equal(CC.parse('  https://preview-1.vercel.app/connect/gmail/ '), 'gmail');
-  for (const not of ['http://upmore-topaz.vercel.app/connect/alpaca', 'see https://upmore-topaz.vercel.app/connect/alpaca', 'https://upmore-topaz.vercel.app/connect/outlook', 'https://upmore-topaz.vercel.app/connect/alpaca?x=1']) assert.equal(CC.parse(not), null, not);
+  for (const not of ['http://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca', 'see https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca', 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/outlook', 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca?x=1']) assert.equal(CC.parse(not), null, not);
   assert.equal(CC.title('alpaca'), 'Connect Alpaca to Upmore');
-  assert.equal(CC.host(CC.url('alpaca')), 'upmore-topaz.vercel.app');
+  assert.equal(CC.host(CC.url('alpaca')), 'upmore-srikanthvishnu90-sketchs-projects.vercel.app');
   // The production app the links point at is the one the brokerage callback returns to.
   assert.ok(read('supabase/functions/_shared/broker_connect.ts').includes(`export const DEFAULT_APP_URL = "${CC.DEFAULT_BASE}";`));
 });
 
 test('every brokerage prompt that asks the person to connect ends on the Alpaca connect link, alone on its line', () => {
-  const link = '\n\nhttps://upmore-topaz.vercel.app/connect/alpaca';
+  const link = '\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca';
   for (const t of [B.MESSAGES.connect, B.MESSAGES.reconnect('Alpaca'), B.MESSAGES.not_wired('Charles Schwab'), B.unsupported('fidelity')]) {
     assert.ok(t.endsWith(link), t);
     assert.match(t.split('\n\n')[0], /nothing was placed/, 'what did not happen is said first');
@@ -54,7 +54,7 @@ test('iMessage gets the line and the link as two bubbles, so it draws the previe
   const body = src.slice(src.indexOf('// ---- bubble formatting'), src.indexOf('\nserve('));
   const js = require('node:module').stripTypeScriptTypes(consts + '\n' + body + '\nmodule.exports = toBubbles;');
   const mod = { exports: null }; new Function('module', js)(mod);
-  assert.deepEqual(mod.exports(B.MESSAGES.connect), ["No brokerage is connected yet, so nothing was placed - here's the link.", 'https://upmore-topaz.vercel.app/connect/alpaca']);
+  assert.deepEqual(mod.exports(B.MESSAGES.connect), ["No brokerage is connected yet, so nothing was placed - here's the link.", 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca']);
 });
 
 test('the page behind each link carries the card for iMessage, and the images are 1200x630', () => {
@@ -102,4 +102,17 @@ test('real company icons only: every logo on file is a real mark with its source
   assert.ok(fn.includes('const b = brandIcon(name);') && fn.includes('style="display:none" aria-hidden="true"'), 'a real logo, or nothing');
   assert.ok(!/id="(sub|promo)SheetIcon">[A-Z]</.test(tpl), 'no letter placeholders');
   assert.ok(read('index.html').includes('const BRAND_ICONS = [{"slug":"1password"'), 'the manifest is inlined in the built app');
+});
+
+test('the card is black with the Upmore wordmark in white Tinos (a Times New Roman-style serif), on the projects domain', () => {
+  const { imageHtml } = require('../scripts/build-connect-cards.cjs');
+  const html = imageHtml('alpaca');
+  assert.match(html, /html, body \{[^}]*background: #000;/);
+  assert.match(html, /\.word \{[^}]*font: 400 84px\/1 "Tinos", "Times New Roman", serif;[^}]*color: #fff;/);
+  assert.ok(fs.existsSync(path.join(root, 'fonts/tinos-regular.woff2')) && /SIL Open Font License/.test(read('fonts/tinos-OFL.txt')), 'the font and its license are in the repo');
+  const tpl = read('src/upmore-app-template.html');
+  assert.ok(tpl.includes('.ccard-img { display: block; background: #000; }') && /\.amsg a\.ccard \{[^}]*background: #2C2C2E;/.test(tpl), 'the app draws the black card with the dark grey strip');
+  // Until a domain is bought, everything points at the projects deployment (owner, 2026-10-11).
+  assert.equal(CC.DEFAULT_BASE, 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app');
+  assert.ok(read('supabase/functions/gmail-oauth/index.ts').includes(`const APP_URL = "${CC.DEFAULT_BASE}";`));
 });

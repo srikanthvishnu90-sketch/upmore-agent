@@ -3,7 +3,8 @@
 //   connect/<provider>.html    the page behind https://<app>/connect/<provider>. iMessage reads its og:title
 //                              ("Connect Alpaca to Upmore") and og:image and draws the preview card itself (title and domain
 //                              in the grey strip); a person who opens it is sent on to the app, which starts that connection.
-//   img/connect/<provider>.png 1200x630: white, the company's real logo in the middle, the Upmore wordmark bottom right.
+//   img/connect/<provider>.png 1200x630: black, the company's real logo in the middle, the Upmore wordmark bottom right in
+//                              white Tinos (a Times New Roman-compatible serif).
 //                              The app's chat draws the same card from the same image.
 // Providers and their real logos come from packages/domain/76-connect-cards.js and img/brands/ (SOURCES.md).
 //   node scripts/build-connect-cards.cjs            write the pages, and the images (needs Playwright + Chromium)
@@ -38,10 +39,10 @@ function page(p) {
 <link rel="icon" href="/icon-192.png">
 <style>
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0B0B0D; font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  a { display: block; width: min(320px, 86vw); border-radius: 18px; overflow: hidden; background: #E9E9EB; color: #000; text-decoration: none; }
-  img { display: block; width: 100%; height: auto; background: #fff; }
+  a { display: block; width: min(320px, 86vw); border-radius: 18px; overflow: hidden; background: #2C2C2E; color: #F2F2F7; text-decoration: none; }
+  img { display: block; width: 100%; height: auto; background: #000; }
   b { display: block; padding: 10px 14px 0; font-weight: 600; }
-  span { display: block; padding: 2px 14px 11px; color: #86868B; font-size: 13px; }
+  span { display: block; padding: 2px 14px 11px; color: #A1A1A6; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -55,13 +56,16 @@ function page(p) {
 // The image, drawn in Chromium from the real logo file and Upmore's own typeface.
 function imageHtml(p) {
   const svg = fs.readFileSync(path.join(root, CC.PROVIDERS[p].icon), "utf8");
-  const font = "file://" + path.join(root, "fonts/schibsted-grotesk.woff2");
+  // Owner, 2026-10-11 (second pass): black card, the wordmark white in a Times New Roman-style serif. Tinos is metric-
+  // compatible with Times New Roman (fonts/tinos-regular.woff2, SIL OFL 1.1, fonts/tinos-OFL.txt), bundled so the image
+  // renders the same on every machine.
+  const font = "file://" + path.join(root, "fonts/tinos-regular.woff2");
   return `<!doctype html><html><head><style>
-  @font-face { font-family: "Schibsted Grotesk"; font-weight: 400 700; src: url("${font}") format("woff2"); }
-  html, body { margin: 0; width: 1200px; height: 630px; background: #fff; overflow: hidden; }
+  @font-face { font-family: "Tinos"; font-weight: 400; src: url("${font}") format("woff2"); }
+  html, body { margin: 0; width: 1200px; height: 630px; background: #000; overflow: hidden; }
   .logo { position: absolute; left: 50%; top: 47%; width: 172px; height: 172px; transform: translate(-50%, -50%); }
   .logo svg { width: 100%; height: 100%; display: block; }
-  .word { position: absolute; right: 48px; bottom: 30px; font: 500 74px/1 "Schibsted Grotesk", sans-serif; letter-spacing: -1.5px; color: #111; }
+  .word { position: absolute; right: 48px; bottom: 30px; font: 400 84px/1 "Tinos", "Times New Roman", serif; letter-spacing: -0.5px; color: #fff; }
   </style></head><body><div class="logo">${svg}</div><div class="word">Upmore</div></body></html>`;
 }
 
@@ -95,47 +99,49 @@ function pngSize(file) {
   return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
 }
 
-const providers = Object.keys(CC.PROVIDERS);
-const problems = [];
-for (const p of providers) {
-  if (!fs.existsSync(path.join(root, CC.PROVIDERS[p].icon))) problems.push(`${p}: no real logo at ${CC.PROVIDERS[p].icon}`);
-  if (!JSON.parse(fs.readFileSync(path.join(root, "img/brands/brands.json"), "utf8")).some(b => b.file === CC.PROVIDERS[p].icon)) problems.push(`${p}: ${CC.PROVIDERS[p].icon} has no entry in img/brands/brands.json`);
-}
-if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
-
-if (process.argv.includes("--check")) {
-  if (fs.readFileSync(path.join(root, "img/brands/SOURCES.md"), "utf8") !== sources()) problems.push("img/brands/SOURCES.md is stale");
+if (require.main === module) {
+  const providers = Object.keys(CC.PROVIDERS);
+  const problems = [];
   for (const p of providers) {
-    const f = path.join(root, "connect", `${p}.html`);
-    if (!fs.existsSync(f) || fs.readFileSync(f, "utf8") !== page(p)) problems.push(`connect/${p}.html is stale`);
-    const s = fs.existsSync(path.join(root, CC.PROVIDERS[p].card)) ? pngSize(path.join(root, CC.PROVIDERS[p].card)) : null;
-    if (!s || s.width !== 1200 || s.height !== 630) problems.push(`${CC.PROVIDERS[p].card} is missing or not 1200x630`);
+    if (!fs.existsSync(path.join(root, CC.PROVIDERS[p].icon))) problems.push(`${p}: no real logo at ${CC.PROVIDERS[p].icon}`);
+    if (!JSON.parse(fs.readFileSync(path.join(root, "img/brands/brands.json"), "utf8")).some(b => b.file === CC.PROVIDERS[p].icon)) problems.push(`${p}: ${CC.PROVIDERS[p].icon} has no entry in img/brands/brands.json`);
   }
-  if (problems.length) { console.error(problems.join("\n") + "\nrun node scripts/build-connect-cards.cjs"); process.exit(1); }
-  console.log(`connect cards verified: ${providers.join(", ")}`);
-} else {
-  fs.mkdirSync(path.join(root, "connect"), { recursive: true });
-  fs.mkdirSync(path.join(root, "img/connect"), { recursive: true });
-  fs.writeFileSync(path.join(root, "img/brands/SOURCES.md"), sources());
-  for (const p of providers) fs.writeFileSync(path.join(root, "connect", `${p}.html`), page(p));
-  let chromium;
-  for (const id of ["playwright", process.env.PLAYWRIGHT_MODULE, "/opt/node-tools/node_modules/playwright", () => execSync("npm root -g").toString().trim() + "/playwright"]) {
-    try { if (id) { ({ chromium } = require(typeof id === "function" ? id() : id)); break; } } catch { /* next */ }
-  }
-  if (!chromium) { console.log(`pages written; images NOT built (Playwright not found: set PLAYWRIGHT_MODULE)`); process.exit(2); }
-  (async () => {
-    const browser = await chromium.launch();
-    const pg = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+  if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
+
+  if (process.argv.includes("--check")) {
+    if (fs.readFileSync(path.join(root, "img/brands/SOURCES.md"), "utf8") !== sources()) problems.push("img/brands/SOURCES.md is stale");
     for (const p of providers) {
-      const tmp = path.join(require("node:os").tmpdir(), `upmore-connect-${p}.html`);
-      fs.writeFileSync(tmp, imageHtml(p));
-      await pg.goto("file://" + tmp);
-      await pg.evaluate(() => document.fonts.ready);
-      await pg.screenshot({ path: path.join(root, CC.PROVIDERS[p].card) });
-      fs.unlinkSync(tmp);
+      const f = path.join(root, "connect", `${p}.html`);
+      if (!fs.existsSync(f) || fs.readFileSync(f, "utf8") !== page(p)) problems.push(`connect/${p}.html is stale`);
+      const s = fs.existsSync(path.join(root, CC.PROVIDERS[p].card)) ? pngSize(path.join(root, CC.PROVIDERS[p].card)) : null;
+      if (!s || s.width !== 1200 || s.height !== 630) problems.push(`${CC.PROVIDERS[p].card} is missing or not 1200x630`);
     }
-    await browser.close();
-    console.log(`connect cards built: ${providers.map(p => `connect/${p}.html + ${CC.PROVIDERS[p].card}`).join(", ")}`);
-  })().catch(e => { console.error(e.message); process.exit(1); });
+    if (problems.length) { console.error(problems.join("\n") + "\nrun node scripts/build-connect-cards.cjs"); process.exit(1); }
+    console.log(`connect cards verified: ${providers.join(", ")}`);
+  } else {
+    fs.mkdirSync(path.join(root, "connect"), { recursive: true });
+    fs.mkdirSync(path.join(root, "img/connect"), { recursive: true });
+    fs.writeFileSync(path.join(root, "img/brands/SOURCES.md"), sources());
+    for (const p of providers) fs.writeFileSync(path.join(root, "connect", `${p}.html`), page(p));
+    let chromium;
+    for (const id of ["playwright", process.env.PLAYWRIGHT_MODULE, "/opt/node-tools/node_modules/playwright", () => execSync("npm root -g").toString().trim() + "/playwright"]) {
+      try { if (id) { ({ chromium } = require(typeof id === "function" ? id() : id)); break; } } catch { /* next */ }
+    }
+    if (!chromium) { console.log(`pages written; images NOT built (Playwright not found: set PLAYWRIGHT_MODULE)`); process.exit(2); }
+    (async () => {
+      const browser = await chromium.launch();
+      const pg = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+      for (const p of providers) {
+        const tmp = path.join(require("node:os").tmpdir(), `upmore-connect-${p}.html`);
+        fs.writeFileSync(tmp, imageHtml(p));
+        await pg.goto("file://" + tmp);
+        await pg.evaluate(() => document.fonts.ready);
+        await pg.screenshot({ path: path.join(root, CC.PROVIDERS[p].card) });
+        fs.unlinkSync(tmp);
+      }
+      await browser.close();
+      console.log(`connect cards built: ${providers.map(p => `connect/${p}.html + ${CC.PROVIDERS[p].card}`).join(", ")}`);
+    })().catch(e => { console.error(e.message); process.exit(1); });
+  }
 }
 module.exports = { page, imageHtml, sources };

@@ -5905,8 +5905,8 @@
   if (typeof module !== "undefined" && module.exports) module.exports = MerchantTerms;
 
   /* Connect cards (owner, 2026-10-11): every "connect X" moment looks like the owner's reference screenshot. One short
-     line, then the link alone on its own line. In iMessage the link becomes a preview card: white, the company's real logo
-     in the middle, the Upmore wordmark bottom right, and under it "Connect X to Upmore" with the domain. The card is
+     line, then the link alone on its own line. In iMessage the link becomes a preview card: black, the company's real logo
+     in the middle, the Upmore wordmark bottom right in white serif, and under it "Connect X to Upmore" with the domain. The card is
      drawn by the page behind the link (connect/<provider>.html: its og:title and og:image, img/connect/<provider>.png),
      and the app's chat draws the same card from the same image when a reply line is exactly that link.
      Real company icons only: a provider is listed here only with its real logo in img/brands/ (SOURCES.md says where each
@@ -5914,7 +5914,7 @@
      connect today are listed: a card that leads nowhere would be a faked connector. */
   const ConnectCards = (() => {
     // The production app (the same default as supabase/functions/_shared/broker_connect.ts DEFAULT_APP_URL).
-    const DEFAULT_BASE = "https://upmore-topaz.vercel.app";
+    const DEFAULT_BASE = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
     const PROVIDERS = Object.freeze({
       alpaca: Object.freeze({ name: "Alpaca", icon: "img/brands/alpaca.svg", card: "img/connect/alpaca.png" }),
       gmail: Object.freeze({ name: "Gmail", icon: "img/brands/gmail.svg", card: "img/connect/gmail.png" }),

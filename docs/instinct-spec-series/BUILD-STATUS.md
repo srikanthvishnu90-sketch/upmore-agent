@@ -212,7 +212,7 @@ The owner's decision: people connect THEIR OWN brokerage. There is no shared tra
 1. Register the OAuth app at app.alpaca.markets → OAuth Apps, with redirect URI `https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/broker-oauth-callback`. Get Alpaca's live/compliance approval.
 2. Set the function secrets `ALPACA_OAUTH_CLIENT_ID` and `ALPACA_OAUTH_CLIENT_SECRET`.
    - Optional: `BROKER_OAUTH_STATE_SECRET`. Without it, the state key is derived from the service-role key.
-   - Optional: `UPMORE_APP_URL`. The default is https://upmore-topaz.vercel.app.
+   - Optional: `UPMORE_APP_URL`. The default is https://upmore-srikanthvishnu90-sketchs-projects.vercel.app (owner, 2026-10-11: everything points there until a domain is bought; set this secret to the new domain then). If the live project already has `UPMORE_APP_URL` set to the topaz address, it overrides the default: change or remove it.
    - Optional: `UPMORE_LIVE_ORDER_CAP_CENTS`. The default is 500; raise it only in writing.
 3. Apply 20261011030000 with the other rail migrations: `SUPABASE_DB_URL=... bash scripts/launch/apply-rails-and-seed.sh`.
 4. Deploy the functions:

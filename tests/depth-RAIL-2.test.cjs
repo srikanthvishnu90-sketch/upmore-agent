@@ -233,7 +233,7 @@ test('[S19] the token is read for this person and this row only; a row whose tok
   const bad=await session(w,UA,[row('row-a',UA,'acct-A','2026-10-03',{vault_key_ref:`broker_token_${UB}_row-b`})],async()=>JSON.stringify({access_token:'tok-B'}));
   assert.equal(bad.r.wired,false);assert.equal(bad.r.code,'isolation');assert.match(bad.r.reason,/^ISOLATION: the connection's token reference is not this user's/);
   const gone=await session(w,UA,[row('row-a',UA,'acct-A','2026-10-03')],async()=>null);
-  assert.equal(gone.r.code,'reconnect');assert.equal(gone.r.message,'Your Alpaca connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');
+  assert.equal(gone.r.code,'reconnect');assert.equal(gone.r.message,'Your Alpaca connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');
   const down=await session(w,UA,[row('row-a',UA,'acct-A','2026-10-03')],async()=>{throw new Error('rpc down');});
   assert.equal(down.r.code,'unavailable');assert.equal(down.r.message,'I can\'t read your brokerage connection right now, so nothing was placed. Try again in a minute.');
   assert.equal(landed(w.m,'acct-A').length+landed(w.m,'acct-B').length,0);
@@ -243,7 +243,7 @@ test('[S20] LIVE ONLY at the account layer: a paper row is never opened; a perso
   const w=await multi();
   const paper=row('row-p',UA,'acct-A','2026-10-01',{paper:true});
   const only=await session(w,UA,[paper]);assert.equal(only.r.wired,false);assert.equal(only.r.code,'connect');
-  assert.equal(only.r.message,'No brokerage is connected yet, so nothing was placed - here\'s the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');
+  assert.equal(only.r.message,'No brokerage is connected yet, so nothing was placed - here\'s the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');
   const both=await session(w,UA,[paper,row('row-a',UA,'acct-A','2026-10-02')]);assert.equal(both.r.wired,true);assert.equal(both.r.account.id,'row-a');assert.equal(both.r.account.live,true);assert.equal(both.r.account.paper,false);
   assert.equal(both.r.partners.broker_dealer.live,true);assert.equal(both.r.partners.broker_dealer.paper,false);
   const re=await session(w,UA,[row('row-a',UA,'acct-A','2026-10-02',{status:'reconnect'})]);assert.equal(re.r.code,'reconnect');
@@ -253,10 +253,10 @@ test('[S21] only built providers are opened: Alpaca today; Schwab, E*TRADE and T
   const w=await multi();
   assert.equal(B.PROVIDERS.alpaca.status,'built');for(const k of ['schwab','etrade','tradier'])assert.equal(B.PROVIDERS[k].status,'designed');
   const sch=await session(w,UA,[row('row-s',UA,'acct-A','2026-10-01',{provider:'schwab'})]);
-  assert.equal(sch.r.wired,false);assert.equal(sch.r.code,'not_wired');assert.equal(sch.r.message,'Connecting Charles Schwab isn\'t available yet, so nothing was placed. Alpaca is the broker you can connect today - here\'s the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca');
+  assert.equal(sch.r.wired,false);assert.equal(sch.r.code,'not_wired');assert.equal(sch.r.message,'Connecting Charles Schwab isn\'t available yet, so nothing was placed. Alpaca is the broker you can connect today - here\'s the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');
   assert.equal(landed(w.m,'acct-A').length,0);assert.equal(w.m.state.requests.length,0,'a Schwab token is never sent to Alpaca');
   assert.equal((await session(w,UA,[row('row-u',UA,'acct-A','2026-10-01',{provider:'acme'})])).r.code,'not_wired');
-  for(const [k,n] of [['Fidelity','Fidelity'],['vanguard','Vanguard'],['Robinhood','Robinhood'],['SoFi','SoFi']])assert.equal(B.unsupported(k),`${n} doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.\n\nhttps://upmore-topaz.vercel.app/connect/alpaca`);
+  for(const [k,n] of [['Fidelity','Fidelity'],['vanguard','Vanguard'],['Robinhood','Robinhood'],['SoFi','SoFi']])assert.equal(B.unsupported(k),`${n} doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca`);
   assert.equal(B.unsupported('alpaca'),null);
   const two=[row('row-a2',UA,'acct-A','2026-10-02'),row('row-a3',UA,'acct-A3','2026-09-01',{label:'ira'})];
   assert.equal(B.select(two,UA).row.id,'row-a2','label main before an older second account');

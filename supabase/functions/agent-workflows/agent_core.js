@@ -37,7 +37,7 @@
       return toYmd(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(p[2], dim)));
     }
     const cents = v => Math.round(v * 100) / 100;
-    const usd = v => "$" + Math.abs(Number(v)).toFixed(2);
+    const usd = v => "$" + Math.abs(Number(v)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     const median = xs => { const s = xs.slice().sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
     function merchantKey(raw) {
@@ -130,8 +130,12 @@
     // 1. A repeating charge that isn't on the user's tracked list yet.
     function newSubscriptions(input) {
       const known = new Set((input.knownMerchants || []).map(merchantKey));
+      // "New" needs evidence it started inside the history we hold: a charge already there within one interval of the
+      // earliest row may be years old (rent, groceries on a freshly connected account), so it is never called new.
+      const dates = clean(input.transactions).filter(Boolean).map(t => t.date).sort();
+      const historyStart = dates[0] || null;
       return recurring(input.transactions, input.today)
-        .filter(r => !r.dormant && !known.has(r.key) && daysBetween(r.firstDate, input.today) <= 120)
+        .filter(r => !r.dormant && !known.has(r.key) && daysBetween(r.firstDate, input.today) <= 120 && !(historyStart && daysBetween(historyStart, r.firstDate) <= stepOf(r.interval)))
         .map(r => ({
           key: `new_subscription:${r.key}:${r.firstDate}`,
           kind: "new_subscription", capabilityId: "subscriptions.cancel",

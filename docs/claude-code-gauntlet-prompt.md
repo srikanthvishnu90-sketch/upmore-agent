@@ -70,8 +70,23 @@ every write async (accepted → filled/canceled — poll and reconcile, never
 assume). Reference `~/workspace/skills/alpaca/SKILL.md` if present.
 
 Keys from env (`ALPACA_BROKER_KEY_ID`, `ALPACA_BROKER_SECRET` — LIVE keys),
-never hardcoded. Label LIVE everywhere a user can see it: the card, the
-receipt, the portfolio answer, every log line.
+never hardcoded. These are Upmore's *partner* keys: they operate each
+user's own sub-account, never a shared pool. Label LIVE everywhere a user
+can see it: the card, the receipt, the portfolio answer, every log line.
+
+**Per-user accounts — the core rule.** There is NO shared trading account.
+Every trade executes inside the requesting user's own brokerage account:
+- The adapter resolves the account per request: look up
+  `brokerage_accounts` for (`user_id`, provider) → `account_id`.
+- Alpaca path: partner keys create and operate one sub-account per user.
+  A trade for user A can never touch user B's account.
+- Linked-broker path: a user may instead connect their own existing
+  brokerage via OAuth; tokens live per-user in the vault, referenced by
+  `brokerage_accounts.vault_key_ref` — never raw in the DB.
+- No brokerage account for the user: no card, just the honest connect flow
+  ("connect your brokerage to trade").
+- Tests must prove cross-user isolation: an order staged for user A is
+  rejected if resolved against user B's account.
 
 Safety rules (non-negotiable — real dollars):
 - Test trades capped at $5 per order until the owner raises the cap in

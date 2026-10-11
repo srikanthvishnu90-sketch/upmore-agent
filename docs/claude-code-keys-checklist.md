@@ -39,9 +39,9 @@ Put them in the vault / `lane-b` directly — never paste cards or passwords int
 |---|---|---|
 | `ANTHROPIC_API_KEY` | CONFIRMED SET (via secrets-list; values aren't retrievable via API) | None — already there |
 | Test JWT | GENERATED 2026-10-11 (below) | Use as `Authorization: Bearer <jwt>` against agent-chat |
-| `ALPACA_BROKER_KEY_ID` | MISSING | **You:** alpaca.markets → complete identity verification + bank link → generate LIVE keys → add as Supabase secret |
+| `ALPACA_BROKER_KEY_ID` | MISSING | **You:** Alpaca partner/broker API keys — these operate each user's own sub-account, NOT a shared trading account → Supabase secret |
 | `ALPACA_BROKER_SECRET` | MISSING | **You:** same as above |
-| Alpaca live account ID | MISSING | **You:** from the Alpaca dashboard (account must be funded for live orders) |
+| Per-user account IDs | Not a secret — live in `brokerage_accounts` per user | Created at connect time (Alpaca sub-account) or linked via the user's own broker OAuth |
 | `ALPACA_PAPER_USER_ID` | Not needed — owner ordered live-first | — |
 
 ### Not keys, not blockers for you

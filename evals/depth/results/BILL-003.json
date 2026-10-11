@@ -1,0 +1,179 @@
+{
+ "capability": "BILL-003",
+ "run_at": "2026-10-11T01:30:02.481Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 15,
+ "proven": 15,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "The subscription resolves from the user's own charges",
+   "defect": "with two matches the first is taken silently",
+   "test": "two matches ask one question",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "The purchase channel decides the route",
+   "defect": "the purchase channel is ignored, so a store-billed subscription is routed to the merchant",
+   "test": "a store-billed subscription goes to the store route",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "Terms are read before the card",
+   "defect": "a three-day-old account read is accepted as the terms",
+   "test": "a stale account read means no card",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "One card through the card layer with a 10-minute expiry",
+   "defect": "an expired card leaves the loop waiting, so the next request is refused as busy",
+   "test": "after an expired card the next request gets a fresh card",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "One approval per cancellation",
+   "defect": "the batch drops everything after the first subscription",
+   "test": "a batch queues the rest behind the first card",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "Execution goes through the loop once",
+   "defect": "the session forgets what it already cancelled and leans on the loop's generic answer",
+   "test": "the same cancellation twice answers already done with the confirmation",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "Done means the merchant's record says cancelled",
+   "defect": "the evidence check is dropped; the record state alone makes it cancelled",
+   "test": "a cancelled record with no captured confirmation is not confirmed",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "A plan-change page stops the run",
+   "defect": "a tripwire stop is reported as a plain failure",
+   "test": "the tripwire is reported with the offer",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "OTP is a bounded continuation",
+   "defect": "the OTP window is not enforced",
+   "test": "a code after 30 minutes is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "The receipt carries the proof",
+   "defect": "the receipt drops the confirmation reference",
+   "test": "the receipt names the confirmation reference",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "The feed verifies the claim",
+   "defect": "a charge after the cancellation is reported but the claim stays open and the savings stand",
+   "test": "a charge after the claim makes it a zombie",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Refund where eligible",
+   "defect": "refund eligibility is ignored and every cancellation requests one",
+   "test": "no refund is requested under a no-refund policy",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S10"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Failure in one message, no blind retry",
+   "defect": "the failure memory never accumulates",
+   "test": "the second failure at the same merchant stops retries",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "Undo and reactivation",
+   "defect": "the reinstatement window is not checked",
+   "test": "undo after the reinstatement window is refused honestly",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "Savings honesty",
+   "defect": "projected savings are counted as verified",
+   "test": "savings the day after are projected, not verified",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S12"
+   ],
+   "status": "proven"
+  }
+ ]
+}

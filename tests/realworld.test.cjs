@@ -189,7 +189,7 @@ test('failure text fills what it knows and never invents the rest; statements ci
 test('status is computed from the registry, the overlay, the catalog and the depth results, never by hand',()=>{
   const facts={depth,overlay};
   const c128=E.status('C128',facts);assert.equal(c128.logic,'LOGIC_PROVEN');assert.deepEqual(c128.proven,['PAY-001']);assert.equal(c128.rail,'NOT_WIRED');
-  const c73=E.status('C73',facts);assert.equal(c73.rail,'SANDBOX');assert.equal(c73.logic,'LOGIC_TESTED');
+  const c73=E.status('C73',facts);assert.equal(c73.rail,'SANDBOX');assert.equal(c73.logic,'LOGIC_PROVEN');assert.deepEqual(c73.proven,['BILL-003']);
   const c1=E.status('C1',facts);assert.equal(c1.logic,'LOGIC_TESTED');assert.equal(c1.tested,5);assert.deepEqual(c1.gaps,[]);
   const c90=E.status('C90',facts);assert.deepEqual(c90.gaps,['settlement-administrators']);
   const c81=E.status('C81',facts);assert.equal(c81.rail,'NOT_WIRED');

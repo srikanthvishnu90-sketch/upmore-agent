@@ -532,13 +532,16 @@
  },
  "BILL-003": {
   "status": "TESTED",
-  "test_ref": "tests/execution/live-local/run-live-local.js",
+  "test_ref": "tests/depth-BILL-003.test.cjs",
   "implementation": [
+   "packages/domain/68-agent-cancel.js",
+   "packages/domain/67-agent-cards.js",
    "supabase/functions/agent-exec/execution-guards.ts",
    "supabase/functions/agent-exec/index.ts",
    "supabase/functions/agent-exec/merchant-catalog.ts"
   ],
-  "note": "Passes against a local merchant fixture in a real browser. All 29 merchant playbooks remain verified:false, so real merchants fall back to guided steps until one live authenticated run succeeds."
+  "connectors": [],
+  "note": "Depth protocol docs/depth/BILL-003.md (real-world C73): 15 sub-capabilities, each proven to fail under its planted defect: resolution from the user's own charges, route by purchase channel, terms read before the card, one card per cancellation through the loop, done only when the merchant's record says cancelled, tripwire on plan changes, OTP as a bounded continuation, feed-verified claims (BILL-017/018), refund tracked separately, failure without blind retry, undo, savings honesty. The real-browser sandbox (node tests/execution/live-local/run-live-local.js) still proves the Chromium runner against a merchant that keeps state; all 29 merchant playbooks remain verified:false, so real merchants fall back to guided steps until one live authenticated run succeeds."
  },
  "BILL-017": {
   "status": "TESTED",

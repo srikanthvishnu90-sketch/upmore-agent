@@ -181,13 +181,15 @@
     "packages/domain/33-agent-monitors.js",
     "packages/domain/49-agent-save.js",
     "packages/domain/59-agent-alerts.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
     "tests/alerts.test.cjs",
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/save.test.cjs"
    ],
    "writes": false
@@ -247,12 +249,14 @@
     "packages/domain/41-agent-recovery.js",
     "packages/domain/49-agent-save.js",
     "packages/domain/63-agent-surfaces.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/recovery.test.cjs",
     "tests/save.test.cjs",
     "tests/surfaces.test.cjs"
@@ -1437,12 +1441,13 @@
     "packages/domain/45-advice-guard.js",
     "packages/domain/46-voice.js",
     "packages/domain/50-agent-invest.js",
-    "packages/domain/66-agent-trade.js"
+    "packages/domain/66-agent-trade.js",
+    "packages/domain/67-agent-cards.js"
    ],
    "tests": [
+    "tests/depth-CORE-009.test.cjs",
     "tests/depth-INV-011.test.cjs",
-    "tests/invest.test.cjs",
-    "tests/voice.test.cjs"
+    "tests/invest.test.cjs"
    ],
    "writes": true,
    "depth": "INV-011"
@@ -1759,12 +1764,13 @@
     "packages/domain/45-advice-guard.js",
     "packages/domain/46-voice.js",
     "packages/domain/50-agent-invest.js",
-    "packages/domain/66-agent-trade.js"
+    "packages/domain/66-agent-trade.js",
+    "packages/domain/67-agent-cards.js"
    ],
    "tests": [
+    "tests/depth-CORE-009.test.cjs",
     "tests/depth-INV-011.test.cjs",
-    "tests/invest.test.cjs",
-    "tests/voice.test.cjs"
+    "tests/invest.test.cjs"
    ],
    "writes": true
   },
@@ -2269,17 +2275,20 @@
    "gate": "one explicit yes per cancellation",
    "failure": "Cancellation not done: <provider> is NOT_WIRED (no login I can use); nothing was sent, and the next charge date stands.",
    "implementation": [
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts",
     "supabase/functions/cancel-watcher/index.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/execution/watcher-match.js"
    ],
    "writes": true,
-   "sandbox": "tests/execution/live-local/run-live-local.js"
+   "sandbox": "tests/execution/live-local/run-live-local.js",
+   "depth": "BILL-003"
   },
   {
    "id": "C74",
@@ -2306,12 +2315,14 @@
    "implementation": [
     "packages/domain/33-agent-monitors.js",
     "packages/domain/49-agent-save.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/save.test.cjs"
    ],
    "writes": true
@@ -2339,13 +2350,15 @@
    "failure": "Trial found; cancellation at <provider> is NOT_WIRED; here is the deadline and the page.",
    "implementation": [
     "packages/domain/43-agent-loop.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
     "tests/agent-loop.test.cjs",
-    "tests/execution/live-local/run-live-local.js"
+    "tests/depth-BILL-003.test.cjs"
    ],
    "writes": true
   },
@@ -2495,13 +2508,15 @@
    "gate": "sending the notice needs a yes",
    "failure": "Cancellation at <gym> is NOT_WIRED; here is the exact notice their contract requires.",
    "implementation": [
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts",
     "supabase/functions/cancel-watcher/index.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/execution/watcher-match.js"
    ],
    "writes": true
@@ -2528,12 +2543,14 @@
    "implementation": [
     "packages/domain/33-agent-monitors.js",
     "packages/domain/49-agent-save.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/save.test.cjs"
    ],
    "writes": true
@@ -2644,13 +2661,15 @@
    "failure": "Renewal detected; cancellation at <provider> is NOT_WIRED.",
    "implementation": [
     "packages/domain/49-agent-save.js",
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts",
     "supabase/functions/cancel-watcher/index.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/execution/watcher-match.js",
     "tests/save.test.cjs"
    ],
@@ -2767,13 +2786,15 @@
    "gate": "sending the notice needs a yes",
    "failure": "Notice delivery is NOT_WIRED.",
    "implementation": [
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts",
     "supabase/functions/cancel-watcher/index.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js",
+    "tests/depth-BILL-003.test.cjs",
     "tests/execution/watcher-match.js"
    ],
    "writes": true
@@ -3574,12 +3595,14 @@
    "gate": "initiating the port needs a yes",
    "failure": "Carrier port is NOT_WIRED.",
    "implementation": [
+    "packages/domain/67-agent-cards.js",
+    "packages/domain/68-agent-cancel.js",
     "supabase/functions/agent-exec/execution-guards.ts",
     "supabase/functions/agent-exec/index.ts",
     "supabase/functions/agent-exec/merchant-catalog.ts"
    ],
    "tests": [
-    "tests/execution/live-local/run-live-local.js"
+    "tests/depth-BILL-003.test.cjs"
    ],
    "writes": true
   },

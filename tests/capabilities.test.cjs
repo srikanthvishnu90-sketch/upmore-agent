@@ -15,10 +15,13 @@ test('generated registry is current, valid, and holds every spec doc 02 id',()=>
   execFileSync('python3',[path.join(root,'scripts/build-capability-registry.py'),'--check']);
   assert.deepEqual(Registry.validate(registry,exists),[]);
   const reg=Registry.load(registry,exists);
-  assert.equal(reg.size,296);
+  assert.equal(reg.size,296+112,'296 from doc 02 plus the 112 doc 15 backlog items');
   const byDomain=reg.summary();
-  assert.equal(Object.values(byDomain).reduce((n,d)=>n+d.total,0),296);
-  assert.equal(byDomain.ACCT.total,18);assert.equal(byDomain.CORE.total,16);
+  assert.equal(Object.values(byDomain).reduce((n,d)=>n+d.total,0),408);
+  assert.equal(byDomain.ACCT.total,18);assert.equal(byDomain.CORE.total,16);assert.equal(byDomain.MISS.total,112);
+  for(const c of reg.list(c=>c.domain_code==='MISS')){assert.equal(c.status,'CLAIMED',c.id);assert.match(c.owner_doc,/^\d{2}$/);assert.equal(c.tier_provisional,true);}
+  assert.equal(reg.get('MISS-001').name,'Cash spending log with photos of paper receipts');assert.deepEqual(reg.get('MISS-001').related_ids,['TXN-014']);
+  assert.ok(registry.corrections.some(c=>/doc 15 item '66\+76/.test(c)),'doc 15 numbering glitch recorded');
   assert.ok(registry.corrections.some(c=>/TXN-012/.test(c)),'CSV export renumbered to TXN-012');
   assert.ok(registry.corrections.some(c=>/316.*296/.test(c)),'spec total corrected');
   assert.equal(reg.get('TXN-012').name,'CSV export');assert.equal(reg.get('TXN-002').name,'search by merchant, amount, date, note');
@@ -62,8 +65,8 @@ test('answers about capabilities come from recorded status, and unknown ids are 
 
 test('the CLI validates, summarizes and answers',()=>{
   const cli=(...a)=>execFileSync('node',[path.join(root,'scripts/capabilities'),...a],{encoding:'utf8'});
-  assert.match(cli('--check'),/valid: 296 capabilities/);
-  assert.match(cli('--status'),/^all\s+296/m);
+  assert.match(cli('--check'),/valid: 408 capabilities/);
+  assert.match(cli('--status'),/^all\s+408/m);assert.match(cli('--status'),/^MISS\s+112\s+112/m);
   assert.match(cli('--ask','CORE-002'),/passes its acceptance test/);
   assert.match(cli('--domain','bill'),/BILL-003\s+TESTED/);
 });

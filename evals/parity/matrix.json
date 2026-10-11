@@ -11,10 +11,10 @@
    "rows": 38,
    "parity_rows": 32,
    "non_parity": 6,
-   "delivered": 0,
+   "delivered": 1,
    "gated": 4,
-   "claimed": 28,
-   "delivered_pct": 0.0
+   "claimed": 27,
+   "delivered_pct": 3.1
   },
   "GW": {
    "app": "Google Wallet",
@@ -51,30 +51,30 @@
    "rows": 31,
    "parity_rows": 26,
    "non_parity": 5,
-   "delivered": 5,
+   "delivered": 6,
    "gated": 6,
-   "claimed": 15,
-   "delivered_pct": 19.2
+   "claimed": 14,
+   "delivered_pct": 23.1
   },
   "PR": {
    "app": "Propel EBT & SNAP Benefits",
    "rows": 23,
    "parity_rows": 23,
    "non_parity": 0,
-   "delivered": 2,
+   "delivered": 3,
    "gated": 3,
-   "claimed": 18,
-   "delivered_pct": 8.7
+   "claimed": 17,
+   "delivered_pct": 13.0
   },
   "PP": {
    "app": "PayPal",
    "rows": 31,
    "parity_rows": 28,
    "non_parity": 3,
-   "delivered": 1,
+   "delivered": 3,
    "gated": 3,
-   "claimed": 24,
-   "delivered_pct": 3.6
+   "claimed": 22,
+   "delivered_pct": 10.7
   },
   "BA": {
    "app": "Bank of America Mobile Banking",
@@ -390,9 +390,9 @@
    "upmore": {
     "registry_id": "SAVE-002",
     "name": "HYSA rate comparison and routing suggestion",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -2143,9 +2143,9 @@
    "upmore": {
     "registry_id": "BILL-001",
     "name": "subscription inventory from transactions",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -2533,9 +2533,9 @@
    "upmore": {
     "registry_id": "TXN-004",
     "name": "merchant normalization (AMZN MKTP to Amazon)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -2989,9 +2989,9 @@
    "upmore": {
     "registry_id": "BILL-001",
     "name": "subscription inventory from transactions",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3122,9 +3122,9 @@
    "upmore": {
     "registry_id": "SAVE-002",
     "name": "HYSA rate comparison and routing suggestion",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",

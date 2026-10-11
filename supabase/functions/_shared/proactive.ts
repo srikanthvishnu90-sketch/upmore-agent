@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: ProactiveSettings = { alerts: true, morning_brief
 
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
-export interface ProactiveInput { accounts: any[]; transactions: any[]; settings: Partial<ProactiveSettings> | null; sent: SentRow[] }
+export interface ProactiveInput { accounts: any[]; transactions: any[]; settings: Partial<ProactiveSettings> | null; sent: SentRow[]; subscriptions?: any[] }
 
 const DAY = 86400000;
 const money = (c: number) => (c < 0 ? "-$" : "$") + Math.floor(Math.abs(c) / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(Math.abs(c) % 100).padStart(2, "0");
@@ -95,7 +95,8 @@ export function plan(input: ProactiveInput, now: number) {
 
   // Event alerts and findings, in the loop's decision order: safety, the person's watches, then findings within budget.
   if (s.alerts) {
-    const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, watches: s.watches || [], quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
+    // subscriptions: the ones the person tracks in the app (save_subscriptions), which carry trial end dates.
+    const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, subscriptions: input.subscriptions || [], watches: s.watches || [], quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
     out.held = (f.held || []).length;
     for (const x of f.safety || []) push({ key: `safety:${x.key}`, kind: "safety", text: x.text, capability_id: x.capability_id || "SEC-001", urgent: true, cadence: true });
     for (const x of f.watches || []) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
@@ -105,7 +106,9 @@ export function plan(input: ProactiveInput, now: number) {
       if (quietNow && !p.urgent) { out.suppressed.push({ key: p.key, reason: "quiet_hours" }); continue; }
       const b = AgentLoop.budgetAllows(budgetTimes, p, now);
       if (!b.allowed) { out.suppressed.push({ key: p.key, reason: b.reason }); continue; }
-      if (push({ key, kind: "finding", text: p.text, capability_id: p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: false }) && !p.urgent) budgetTimes.push(now);
+      // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
+      const exempt = b.reason !== "budget";
+      if (push({ key, kind: "finding", text: p.text, capability_id: p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt }) && !exempt) budgetTimes.push(now);
     }
   }
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
@@ -185,7 +188,9 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   }
   if ((m = /^\s*(?:tell me|let me know|alert me|text me|warn me|ping me)\s+(?:when|if)\s+(.+?)\s*[.!]?$/i.exec(t))) {
     const w: any = (AgentAlerts as any).parseWatch(t, now); // it strips the "tell me when" itself
-    if (!w.ok) return { settings: {}, reply: w.text + " Nothing was set up." };
+    // "Tell me when my rent is due" is usually a question: an unreadable "tell me when" goes to the normal chat; an
+    // explicit "alert me / text me / ping me" gets the honest list of what can be watched.
+    if (!w.ok) return /^\s*tell me|^\s*let me know/i.test(t) ? null : { settings: {}, reply: w.text + " Nothing was set up." };
     const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now}` });
     return { settings: { watches: (s.watches || []).concat([watch]).slice(-20) }, reply: AgentAlerts.restateWatch(watch) + " Say \"show my alerts\" to see them." };
   }
@@ -255,14 +260,17 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
     },
     async load(userId) {
       const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
-      const [acc, tx, st, log] = await Promise.all([
+      const [acc, tx, st, log, subs] = await Promise.all([
         admin.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", userId),
         admin.from("agent_financial_transactions").select("account_id,provider_transaction_id,currency,amount_cents,posted_on,merchant_raw,is_pending,is_transfer,presence").eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(5000),
         admin.from("agent_proactive_settings").select("*").eq("user_id", userId).maybeSingle(),
         admin.from("agent_proactive_log").select("key,sent_at,cadence").eq("user_id", userId).gte("sent_at", new Date(Date.now() - 40 * DAY).toISOString()).limit(2000),
+        admin.from("save_subscriptions").select("id,merchant,amount,billing_interval,next_billing_date,status").eq("user_id", userId).limit(500),
       ]);
       for (const r of [acc, tx, st, log]) if (r.error) throw new Error("proactive data unavailable");
-      return { accounts: mapAccounts(acc.data), transactions: mapTransactions(tx.data), settings: st.data || null, sent: (log.data || []).map((x: any) => ({ key: x.key, sent_at: Date.parse(x.sent_at), cadence: !!x.cadence })) };
+      // Tracked subscriptions only add trial and renewal alerts; when they can't be read the rest still runs (logged).
+      if (subs.error) console.error("[proactive] tracked subscriptions unavailable");
+      return { accounts: mapAccounts(acc.data), transactions: mapTransactions(tx.data), settings: st.data || null, sent: (log.data || []).map((x: any) => ({ key: x.key, sent_at: Date.parse(x.sent_at), cadence: !!x.cadence })), subscriptions: subs.error ? [] : (subs.data || []) };
     },
     async deliver(userId, messages, firedReports) {
       const delivered: string[] = [];
@@ -313,3 +321,25 @@ export async function handleProactive(req: Request, d: { env: { get(k: string): 
   catch (e) { console.error(`[proactive] run failed: ${e instanceof Error ? e.message : String(e)}`); return json({ ok: false, error: "run failed" }, 503); }
 }
 function sameSecret(a: string, b: string) { if (a.length !== b.length) return false; let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i); return x === 0; }
+
+// ---- The chat side: "send me a weekly recap on Fridays", "tell me when checking drops below $500", "quiet hours 10pm
+// to 7am", "every Friday tell me my food spend", "show my alerts". Recognized without a database read (most messages
+// cost nothing), then read, changed and saved through the person's own session (RLS), and restated. A save that fails
+// says so and changes nothing. Returns null for anything else, which goes on to the normal chat.
+export interface SettingsDb { read(): Promise<{ ok: boolean; settings: any | null }>; save(change: Partial<ProactiveSettings>): Promise<boolean> }
+export async function settingsMessage(message: string, db: SettingsDb, now: number): Promise<{ reply: string; changed: boolean } | null> {
+  if (!parseCommand(message, null, now)) return null;
+  const cur = await db.read();
+  if (!cur.ok) return { reply: "I can't reach your alert settings right now, so nothing changed. Try again in a moment.", changed: false };
+  const cmd = parseCommand(message, cur.settings, now);
+  if (!cmd) return null;
+  if (!Object.keys(cmd.settings).length) return { reply: cmd.reply, changed: false };
+  if (!(await db.save(cmd.settings))) return { reply: "I couldn't save that right now, so nothing changed. Try again in a moment.", changed: false };
+  return { reply: cmd.reply, changed: true };
+}
+export function supabaseSettingsDb(supabase: any, userId: string): SettingsDb {
+  return {
+    async read() { const r = await supabase.from("agent_proactive_settings").select("*").eq("user_id", userId).maybeSingle(); return r.error ? { ok: false, settings: null } : { ok: true, settings: r.data || null }; },
+    async save(change) { const r = await supabase.from("agent_proactive_settings").upsert(Object.assign({ user_id: userId }, change, { updated_at: new Date().toISOString() }), { onConflict: "user_id" }); return !r.error; },
+  };
+}

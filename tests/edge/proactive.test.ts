@@ -2,7 +2,7 @@
 // engines. Rows in the database's own shapes go through plan(); a memory store stands in for Supabase with the same
 // once-only rule the table enforces (unique user + key). Permission-free (static imports only).
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { plan, parseCommand, describe, mapAccounts, mapTransactions, runUser, runAll, handleProactive, localClock, THREAD_TITLE, type ProactiveStore, type ProactiveMessage } from "../../supabase/functions/_shared/proactive.ts";
+import { plan, parseCommand, describe, settingsMessage, mapAccounts, mapTransactions, runUser, runAll, handleProactive, localClock, THREAD_TITLE, type ProactiveStore, type ProactiveMessage } from "../../supabase/functions/_shared/proactive.ts";
 import { accountRows, txRows, NOW, USER } from "./lib/proactive_fixture.ts";
 
 const H = 3600000, DAY = 24 * H;
@@ -71,7 +71,8 @@ Deno.test("chat commands: a watch in the person's words becomes a condition that
   assert(/I'll tell you when checking drops below \$500\.00/.test(c.reply), c.reply);
   const p = plan(input({ settings: c.settings }), NOW);
   assert(p.messages.some(m => m.kind === "watch" && /500/.test(m.text)), JSON.stringify(p.messages.map(m => m.text)));
-  assert(/Nothing was set up/.test(parseCommand("tell me when the moon is full", null, NOW)!.reply));
+  assertEquals(parseCommand("tell me when my rent is due", null, NOW), null, "a question goes to the normal chat");
+  assert(/Nothing was set up/.test(parseCommand("alert me when the moon is full", null, NOW)!.reply));
 });
 Deno.test("chat commands: a standing report fires on its day, once per period, and can be stopped", () => {
   const friday = Date.UTC(2026, 9, 16, 14, 0, 0);
@@ -137,4 +138,31 @@ Deno.test("endpoint: POST only, the secret header is required and compared in fu
   const body = await ok.json();
   assertEquals(Object.keys(body).sort(), ["delivered", "failed", "ok", "suppressed", "users"]);
   assert(!/\$/.test(JSON.stringify(body)), "no amounts in the response");
+});
+
+Deno.test("chat side: ordinary messages cost no read; a command is read, saved through the person's session and restated; failures say nothing changed", async () => {
+  let reads = 0, saves: any[] = [];
+  const db = (o: { readOk?: boolean; saveOk?: boolean; settings?: any } = {}) => ({ async read() { reads++; return { ok: o.readOk !== false, settings: o.settings || null }; }, async save(c: any) { saves.push(c); return o.saveOk !== false; } });
+  assertEquals(await settingsMessage("send sam $40", db(), NOW), null); assertEquals(await settingsMessage("what's my balance", db(), NOW), null);
+  assertEquals(reads, 0, "no database read for messages that are not settings");
+  const ok = await settingsMessage("send me a weekly recap on fridays", db(), NOW);
+  assertEquals(ok, { reply: "I'll send your weekly recap every Friday from 8 a.m.: money in, money out, and what's coming up.", changed: true });
+  assertEquals(saves.pop(), { weekly_recap_dow: 5 });
+  const w = await settingsMessage("text me when checking drops below $500", db({ settings: { watches: [{ kind: "amount_over", threshold_cents: 10000, id: "w1" }] } }), NOW);
+  assert(w && w.changed); assertEquals(saves.pop().watches.length, 2, "a new watch is added to the ones already set");
+  assertEquals((await settingsMessage("quiet hours 10pm to 7am", db({ readOk: false }), NOW))!.reply, "I can't reach your alert settings right now, so nothing changed. Try again in a moment.");
+  assertEquals(await settingsMessage("quiet hours 10pm to 7am", db({ saveOk: false }), NOW), { reply: "I couldn't save that right now, so nothing changed. Try again in a moment.", changed: false });
+  const show = await settingsMessage("show my alerts", db({ settings: { morning_brief: true } }), NOW);
+  assert(show && !show.changed && /Morning brief on\./.test(show.reply), show ? show.reply : "no reply");
+});
+
+Deno.test("plan: a trial the person tracks in the app (save_subscriptions) warns before the first charge; within 2 days it is exempt from the budget", () => {
+  const trial = { id: "sub-1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-14", status: "active" };
+  const three = plan(Object.assign(input({ extra: [BIG] }), { subscriptions: [trial] }), NOW);
+  const t = three.messages.find(m => m.key.startsWith("finding:trial_converting:"));
+  assert(t && /^Paramount\+ trial ends in 3 days\. The first charge of \$11\.99 lands 2026-10-14 unless it is cancelled first\./.test(t.text), t ? t.text : JSON.stringify(three.messages.map(m => m.key)));
+  assertEquals(three.messages.filter(m => m.kind === "finding").length, 1, "3 days out it takes the day's one slot, ahead of the new-merchant note (money at risk first)");
+  const two = plan(Object.assign(input({ extra: [BIG] }), { subscriptions: [Object.assign({}, trial, { next_billing_date: "2026-10-13" })] }), NOW);
+  assertEquals(two.messages.filter(m => m.kind === "finding").length, 2, "2 days out it is a deadline: exempt, and the ordinary note still goes");
+  assert(!plan(Object.assign(input(), { subscriptions: [Object.assign({}, trial, { status: "cancelled" })] }), NOW).messages.some(m => /trial/.test(m.key)), "a cancelled trial is never warned about");
 });

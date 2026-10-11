@@ -13,11 +13,17 @@ test('dry run: preflight, only pending migrations (ledger), deploys incl. model-
   let at=-1;for(const step of order){const i=out.indexOf(step);assert.ok(i>at,`${step} comes next`);at=i;}
   assert.match(out,/skipped: no Alpaca OAuth pair given; Connect will say it isn't switched on yet/);
   assert.doesNotMatch(out,/supabase db push/,'never a replay of all 59 migrations');
+  // The agent speaks first: the scheduler is deployed public (its own secret), scheduled hourly from Vault, and smoke-tested.
+  const p=['DRY: supabase functions deploy agent-proactive --project-ref mrwngntwmnaqrqhupvlt --no-verify-jwt','DRY: psql <SUPABASE_DB_URL> -v url=https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/agent-proactive -f scripts/launch/schedule-proactive.sql','POST agent-proactive with no secret -> 401'];
+  let j=out.indexOf('== 3. deploy');for(const step of p){const i=out.indexOf(step);assert.ok(i>j,`${step} comes next`);j=i;}
+  const sql=require('node:fs').readFileSync(path.join(root,'scripts/launch/schedule-proactive.sql'),'utf8');
+  assert.match(sql,/decrypted_secrets where name = 'upmore_proactive_secret'/,'the job reads the secret from Vault at call time');
+  assert.match(sql,/cron\.unschedule\('upmore-proactive'\)/,'a re-run replaces the job instead of adding a second one');
 });
 
 test('dry run with the OpenAI key, the health token and the Alpaca pair: names only, the values are never printed',()=>{
-  const out=run({ALPACA_OAUTH_CLIENT_ID:'cid-should-not-print',ALPACA_OAUTH_CLIENT_SECRET:'secret-should-not-print',OPENAI_API_KEY:'sk-proj-should-not-print',HEALTH_CHECK_TOKEN:'token-should-not-print-0123456789'});
-  assert.match(out,/supabase secrets set --project-ref mrwngntwmnaqrqhupvlt --env-file <0600 temp file: OPENAI_API_KEY MODEL_PROVIDER ALPACA_OAUTH_CLIENT_ID ALPACA_OAUTH_CLIENT_SECRET HEALTH_CHECK_TOKEN>/);
+  const out=run({ALPACA_OAUTH_CLIENT_ID:'cid-should-not-print',ALPACA_OAUTH_CLIENT_SECRET:'secret-should-not-print',OPENAI_API_KEY:'sk-proj-should-not-print',HEALTH_CHECK_TOKEN:'token-should-not-print-0123456789',PROACTIVE_SECRET:'proactive-should-not-print-0123456789',SUPABASE_DB_URL:'postgresql://u:dbpass-should-not-print@h/db'});
+  assert.match(out,/supabase secrets set --project-ref mrwngntwmnaqrqhupvlt --env-file <0600 temp file: OPENAI_API_KEY MODEL_PROVIDER ALPACA_OAUTH_CLIENT_ID ALPACA_OAUTH_CLIENT_SECRET HEALTH_CHECK_TOKEN PROACTIVE_SECRET>/);
   assert.doesNotMatch(out,/should-not-print/);
 });
 

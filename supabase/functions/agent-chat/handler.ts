@@ -33,6 +33,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
+import { settingsMessage, supabaseSettingsDb } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -213,6 +214,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         { thread_id: tid, role: "assistant", content: earlyGuard, meta: { capability: true, guard: true } },
       ]);
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
+    }
+
+    // The agent speaks first (capability list section 2): what the person asks it to say on its own, and when, is
+    // remembered and restated here; the hourly agent-proactive run delivers it. No model call, no money path.
+    {
+      const s = await settingsMessage(message, supabaseSettingsDb(supabase, user.id), Date.now());
+      if (s) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: s.reply, meta: { capability: true, proactive_settings: true, changed: s.changed } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: s.reply, action: null });
+      }
     }
 
     // Phase 1 wiring (2026-10-11): buy from a text, cancel, pay a person back. The model only extracts intent and spans

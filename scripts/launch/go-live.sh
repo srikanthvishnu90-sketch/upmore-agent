@@ -16,8 +16,9 @@
 #   1. migrations: only those not yet in the live ledger (--pending), ONE transaction; a re-run applies nothing
 #   2. secrets: the OpenAI key, the health token and the Alpaca OAuth pair, each only if given (values via a 0600 temp
 #      file, never echoed)
-#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback and model-health (the last two --no-verify-jwt: a
-#      browser redirect and an uptime monitor carry no JWT)
+#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback, model-health and agent-proactive (the last three
+#      --no-verify-jwt: a browser redirect, an uptime monitor and pg_cron carry no JWT; the latter two check their own
+#      secret), then schedule agent-proactive hourly with pg_cron (the secret in Vault, read at call time)
 #   4. smoke: unauthenticated calls answer 401, the callback answers with the NEW code (proves the deploy took), and ONE
 #      live model call through model-health answers; if it does not, the provider's exact error is printed and the run
 #      STOPS before the gauntlet (nothing is built around a dead model)
@@ -59,12 +60,18 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then add OPENAI_API_KEY "$OPENAI_API_KEY"; ad
 if [[ -n "${ALPACA_OAUTH_CLIENT_ID:-}" && -n "${ALPACA_OAUTH_CLIENT_SECRET:-}" ]]; then add ALPACA_OAUTH_CLIENT_ID "$ALPACA_OAUTH_CLIENT_ID"; add ALPACA_OAUTH_CLIENT_SECRET "$ALPACA_OAUTH_CLIENT_SECRET"
 else echo "skipped: no Alpaca OAuth pair given; Connect will say it isn't switched on yet (honest, 503)"; fi
 add HEALTH_CHECK_TOKEN "$HEALTH_CHECK_TOKEN"
+# The proactive scheduler's header secret: kept in ~/.upmore/proactive-secret (0600), generated on the first run.
+PSF="$HOME/.upmore/proactive-secret"; NEW_PS=""
+if [[ -z "${PROACTIVE_SECRET:-}" && -f "$PSF" ]]; then PROACTIVE_SECRET="$(cat "$PSF")"; fi
+if [[ -z "${PROACTIVE_SECRET:-}" ]]; then PROACTIVE_SECRET="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"; NEW_PS=1; fi
+add PROACTIVE_SECRET "$PROACTIVE_SECRET"; export PROACTIVE_SECRET
 if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
 else
   ENVF="$(mktemp)"; chmod 600 "$ENVF"; trap 'rm -f "$ENVF"' EXIT
   printf '%s\n' "${LINES[@]}" >"$ENVF"
   supabase secrets set --project-ref "$REF" --env-file "$ENVF" >/dev/null; rm -f "$ENVF"; echo "set: ${NAMES[*]}"
   if [[ -n "$NEW_TOKEN" ]]; then mkdir -p "$(dirname "$TOKF")"; (umask 077; printf '%s' "$HEALTH_CHECK_TOKEN" >"$TOKF"); echo "health token saved to $TOKF (0600) for your uptime monitor"; fi
+  if [[ -n "$NEW_PS" ]]; then mkdir -p "$(dirname "$PSF")"; (umask 077; printf '%s' "$PROACTIVE_SECRET" >"$PSF"); echo "proactive scheduler secret saved to $PSF (0600)"; fi
 fi
 unset LINES
 
@@ -73,13 +80,18 @@ do_ supabase functions deploy agent-chat --project-ref "$REF"
 do_ supabase functions deploy broker-oauth-start --project-ref "$REF"
 do_ supabase functions deploy broker-oauth-callback --project-ref "$REF" --no-verify-jwt
 do_ supabase functions deploy model-health --project-ref "$REF" --no-verify-jwt
+do_ supabase functions deploy agent-proactive --project-ref "$REF" --no-verify-jwt
+# Hourly, at minute 7: pg_cron -> pg_net -> agent-proactive with the secret read from Vault at call time.
+if [[ -n "$DRY" ]]; then echo "DRY: psql <SUPABASE_DB_URL> -v url=$BASE/functions/v1/agent-proactive -f scripts/launch/schedule-proactive.sql (secret from Vault, never printed)"
+else psql "$SUPABASE_DB_URL" -q -v url="$BASE/functions/v1/agent-proactive" -f scripts/launch/schedule-proactive.sql; fi
 
 say "4. smoke (the new code is what answers)"
 expect() { local want="$1" got="$2" what="$3"; if [[ "$got" == "$want" ]]; then echo "ok   $what ($got)"; else echo "FAIL $what: wanted $want, got $got"; exit 1; fi; }
-if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid; GET model-health?probe=1 (token header) -> 200 or STOP with the provider's error"
+if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; POST agent-proactive with no secret -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid; GET model-health?probe=1 (token header) -> 200 or STOP with the provider's error"
 else
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/agent-chat")" "agent-chat refuses a call with no JWT"
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/broker-oauth-start")" "broker-oauth-start refuses a call with no JWT"
+  expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/agent-proactive")" "agent-proactive refuses a call without its secret"
   LOC="$(curl -s -o /dev/null -w '%{redirect_url}' "$BASE/functions/v1/broker-oauth-callback?state=x&code=y")"
   [[ "$LOC" == *"#you?broker=error&reason=state_invalid" ]] && echo "ok   broker-oauth-callback is the new code ($LOC)" || { echo "FAIL broker-oauth-callback answered '$LOC'"; exit 1; }
   # Step 1 of v3: one live model call. A dead model stops the run here with the provider's own words (key redacted).

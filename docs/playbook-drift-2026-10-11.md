@@ -138,3 +138,19 @@ Behavior changed against earlier packet text (owner's megadoc wins, logged here)
 - The corpus grader gained an **answer** rule: an example that answers is not passed by a clarifying question. Corpus
   2.07 had been a false PASS ("did anyone pay me back" -> "How much?"); it is now NEEDS_MODEL, and the ratchet baseline
   moved from 45 to 44 with that reason in the test.
+
+## Wiring section 2 (2026-10-11 night): what the mapping and the code got wrong
+
+- **The capability map called free-trial alerts "not built" (item 32, BILL-010 CLAIMED).** The monitors already had a
+  trial detector (`trialsConverting`) and the app already lets a person save a subscription with interval "trial" and a
+  trial-end date (save_subscriptions). Nothing connected them. Now the scheduler feeds tracked subscriptions to the
+  detector; BILL-010 rose to TESTED through the overlay (test_ref tests/edge/proactive.test.ts). Trials nobody tracked
+  still cannot be seen in bank rows, and the map says so.
+- **The edge bundle lacked AgentWorkflows**, which the save engine's fee scan (through AgentRecovery) needs: the first
+  run of the real feed threw. Added to `scripts/build-router-core.py`.
+- **AgentControl lost Sunday.** `day: spec.day || null` turned day 0 into "no day", so "every week on Sunday" fired on
+  whatever day came first. Fixed with a red-then-green test in tests/control.test.cjs.
+- **AgentControl keeps a reference to the state it is given**, so stopping a report mutated the saved settings object
+  before anything was saved. The wiring now copies the state first.
+- **Item 19 (affordability) briefly read IN_PRODUCT** because safe-to-spend is inside the morning brief; "can I afford
+  this" in chat is not wired, so the map points it at the what-if module only.

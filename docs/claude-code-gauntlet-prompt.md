@@ -75,14 +75,18 @@ user's own sub-account, never a shared pool. Label LIVE everywhere a user
 can see it: the card, the receipt, the portfolio answer, every log line.
 
 **Per-user accounts — the core rule.** There is NO shared trading account.
-Every trade executes inside the requesting user's own brokerage account:
+Every trade executes inside the requesting user's own brokerage account.
+The owner's confirmed model: users LINK THEIR OWN BROKER.
 - The adapter resolves the account per request: look up
-  `brokerage_accounts` for (`user_id`, provider) → `account_id`.
-- Alpaca path: partner keys create and operate one sub-account per user.
-  A trade for user A can never touch user B's account.
-- Linked-broker path: a user may instead connect their own existing
+  `brokerage_accounts` for (`user_id`, provider) → `account_id`,
+  `vault_key_ref`.
+- Linked-broker path (primary): the user connects their own existing
   brokerage via OAuth; tokens live per-user in the vault, referenced by
-  `brokerage_accounts.vault_key_ref` — never raw in the DB.
+  `vault_key_ref` — never raw in the DB. The adapter interface supports
+  multiple providers through the `provider` field.
+- Alpaca path (bootstrap/fallback): partner keys create and operate one
+  sub-account per user, for users without a linkable broker. A trade for
+  user A can never touch user B's account.
 - No brokerage account for the user: no card, just the honest connect flow
   ("connect your brokerage to trade").
 - Tests must prove cross-user isolation: an order staged for user A is
@@ -114,8 +118,10 @@ Requirements (apply to every order type, both sides):
 
 Tests: unit on the adapter, integration on a mock Alpaca server for
 shape/safety logic, then the full order-type matrix (buy/sell ×
-market/limit/stop) re-run against LIVE with the $5 test cap — not paper.
-Never present a mock result as live.
+market/limit/stop) against LIVE with the $5 test cap. If live keys are not
+in env yet, finish everything through the mock stage and report the live
+matrix as BLOCKED ON KEYS — do not fake it. Never present a mock result as
+live.
 
 ### RAIL 3 — Merchant-terms reader (ANY merchant; Netflix proves it)
 

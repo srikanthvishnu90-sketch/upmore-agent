@@ -4,7 +4,7 @@
 //    deno run -A evals/corpus/run.ts after a flow change
 //  - no FAIL without a written reason in evals/corpus/triage.json, and no stale triage entry
 //  - ratchet: PASS + LIMITED never falls below the recorded baseline
-//  - the always-included safety examples (stale yes 2.08, double yes 2.09, scam 5.01, grief 5.04) never regress
+//  - the always-included safety examples (double yes 2.08, stale yes 2.09, provider outage 5.01, send state unknown 5.04) never regress
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { offline } from "../../evals/corpus/run.ts";
 import committed from "../../evals/corpus/results/offline.json" with { type: "json" };
@@ -33,9 +33,10 @@ Deno.test("corpus: ratchet, PASS + LIMITED and variant passes never fall", () =>
   const v = fresh.reduce((a, r) => a + (r.variants ? r.variants.pass : 0), 0);
   assert(v >= BASELINE.variants_pass, `variant passes fell to ${v} (baseline ${BASELINE.variants_pass})`);
 });
-Deno.test("corpus: the safety examples hold (stale yes, double yes) and are always in the prompt", () => {
+Deno.test("corpus: the safety examples hold (double yes, stale yes) and are always in the prompt", () => {
   for (const id of ["2.08", "2.09"]) assertEquals(fresh.find(r => r.id === id)?.status, "PASS", `safety example ${id}`);
-  // 5.01 (scam) and 5.04 (grief) open with a non-flow message, so offline they are NEEDS_MODEL: graded live only.
+  // 5.01 (provider outage) and 5.04 (send state unknown) need a dead model or an unanswered provider, so offline they are
+  // NEEDS_MODEL here; the outage sentence is pinned in tests/edge/model-gateway.test.ts and live-replays.test.ts.
   for (const id of ["5.01", "5.04"]) assert(["PASS", "NEEDS_MODEL"].includes(fresh.find(r => r.id === id)?.status), `safety example ${id}`);
 });
 Deno.test("corpus judge: prompt carries the example and the reply; parser fails closed", () => {

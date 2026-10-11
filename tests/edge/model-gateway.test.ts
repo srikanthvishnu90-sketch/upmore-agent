@@ -111,6 +111,11 @@ Deno.test("planner through OpenAI: the tool loop runs on OpenAI tool calls and a
   const m = plannerModel(admin(), user, "thread", OPENAI, { request: (async (_u: string, init: any) => { bodies.push(JSON.parse(init.body)); return completion(steps[Math.min(n++, steps.length - 1)]); }) as any });
   const r = await runFinancialPlanner(f.session, m, "what's my balance");
   eq(bodies[0].tool_choice, "required"); assert(bodies[0].tools.some((t: any) => t.function.name === "finish_financial_reply"));
+  assert(!JSON.stringify(bodies[0].messages[0]).includes("STYLE EXAMPLES"), "no style block unless one is passed");
+  const styled: any[] = [];
+  const sm = plannerModel(admin(), user, "thread", OPENAI, { style: "STYLE EXAMPLES: copy the mannerisms, not the words", request: (async (_u: string, init: any) => { styled.push(JSON.parse(init.body)); return completion(steps[0]); }) as any });
+  await runFinancialPlanner(fixture().session, sm, "what's my balance");
+  assert(styled[0].messages[0].role === "system" && /You are Upmore's financial tool planner[\s\S]*\n\nSTYLE EXAMPLES: copy the mannerisms/.test(styled[0].messages[0].content), "the style block follows the planner's own rules");
   eq(r.reply, "Connect your bank and refresh it so I can see current cash evidence."); assert(!r.incomplete, JSON.stringify(r));
   const dead = plannerModel(admin(), user, "thread", OPENAI, { request: (async () => Response.json({ error: { message: "Incorrect API key provided: sk-proj-abc", type: "invalid_request_error" } }, { status: 401 })) as any });
   const d = await runFinancialPlanner(fixture().session, dead, "what's my balance");

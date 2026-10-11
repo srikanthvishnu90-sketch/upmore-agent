@@ -31,10 +31,11 @@ test('the rendered block puts the hard rules above the examples and copies manne
   assert.ok(b.includes('### 1.01 Pay a saved recipient, clean'));assert.ok(b.length<9000,`block is ${b.length} characters`);
 });
 
-test('bundled for the edge (STYLE_CORPUS_JSON, StyleCorpus) and wired into the chat prompt per message',async()=>{
+test('bundled for the edge (STYLE_CORPUS_JSON, StyleCorpus) and wired into the chat and planner prompts per message',async()=>{
   const core=fs.readFileSync(path.join(root,'supabase/functions/_shared/router_core.js'),'utf8');
   assert.match(core,/const STYLE_CORPUS_JSON = \{"source":/);assert.match(core,/export \{[^}]*StyleCorpus, STYLE_CORPUS_JSON/);
   const h=fs.readFileSync(path.join(root,'supabase/functions/agent-chat/handler.ts'),'utf8');
   assert.match(h,/StyleCorpus\.render\(StyleCorpus\.select\(STYLE_CORPUS_JSON\.examples, message\)\)/);
-  assert.ok(h.indexOf('StyleCorpus.render')>h.indexOf('const systemDynamic'),'in the per-message (uncached) block');
+  assert.ok(h.lastIndexOf('StyleCorpus.render')>h.indexOf('const systemDynamic'),'in the chat reply\'s per-message (uncached) block');
+  assert.match(h,/plannerModel\([^\n]*style:StyleCorpus\.render\(StyleCorpus\.select\(STYLE_CORPUS_JSON\.examples,message\)\)/,'and in the financial planner\'s prompt');
 });

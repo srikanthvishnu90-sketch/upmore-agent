@@ -161,14 +161,16 @@ export async function callModel(cfg: ModelConfig, payload: any, o: CallOptions =
 export const OUTAGE_REPLY = "I can't answer that right now: the AI service Upmore uses isn't responding, so I didn't look anything up and nothing was changed. Try again in a few minutes.";
 
 // The financial planner's model: one reserved budget slot per round, the provider's usage recorded against it.
-export function plannerModel(admin: any, userId: string, threadId: string, cfg: ModelConfig, o: CallOptions = {}): any {
+// style: the response-style examples for this message (StyleCorpus.render), appended to the planner's system prompt.
+export function plannerModel(admin: any, userId: string, threadId: string, cfg: ModelConfig, o: CallOptions & { style?: string } = {}): any {
   const requestId = crypto.randomUUID(), deadline = Date.now() + 70000;
   return { async complete(payload: any, step: number) {
     if (!cfg.apiKey) throw new ModelUnavailableError(0, "not_configured", `${providerName(cfg)} API key is not configured`);
     if (Date.now() > deadline - 5000) throw new Error("Financial model deadline reached.");
     const callId = await reserveModelCall(admin, userId, threadId, requestId, step, cfg.model);
     let response: any;
-    try { response = await callModel(cfg, Object.assign({}, payload, { max_tokens: 1200 }), Object.assign({}, o, { role: "planner", timeoutMs: Math.min(18000, deadline - Date.now()) })); }
+    const system = o.style && typeof payload.system === "string" ? `${payload.system}\n\n${o.style}` : payload.system;
+    try { response = await callModel(cfg, Object.assign({}, payload, { system, max_tokens: 1200 }), Object.assign({}, o, { role: "planner", timeoutMs: Math.min(18000, deadline - Date.now()) })); }
     catch (e) { if (e instanceof ModelUnavailableError) console.error(`[model] planner ${e.summary()}`); throw e; }
     await recordModelUsage(admin, callId, response.usage);
     return response;

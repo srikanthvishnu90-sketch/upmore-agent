@@ -253,7 +253,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const history = await supabase.from("agent_messages").select("role,content").eq("thread_id",tid).order("id",{ascending:false}).limit(10);
       if (history.error) throw new Error("Conversation history unavailable.");
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
-        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin)}),message,(history.data||[]).reverse());
+        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse());
       const reply = result.reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},

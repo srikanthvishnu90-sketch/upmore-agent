@@ -5900,14 +5900,15 @@
    "tier": "T1",
    "owner_doc": "01",
    "status": "TESTED",
-   "test_ref": "tests/voice.test.cjs",
+   "test_ref": "tests/depth-CORE-009.test.cjs",
    "gate_reason": null,
    "connectors": [],
    "implementation": [
+    "packages/domain/67-agent-cards.js",
     "packages/domain/46-voice.js",
     "evals/voice/gold"
    ],
-   "note": "Confirmations restate amount, recipient, account, fee and timing; every message is linted against 15 anti-patterns before it leaves the composer; 12 gold conversations are reproduced exactly.",
+   "note": "Depth protocol docs/depth/CORE-009.md (spec 16 confirmation card): 15 sub-capabilities, each proven to fail under its planted defect: fixed anatomy, 10-minute expiry, single use, context binding with supersession, read-back, plain-text degradation per channel, reply understanding, never mind, correction, new request mid-card, undo terms before and after, channel switch, duplicate delivery, transcript. Doc 11 composition and the 12 gold conversations remain in tests/voice.test.cjs.",
    "description": "confirmation composition per doc 11"
   },
   {

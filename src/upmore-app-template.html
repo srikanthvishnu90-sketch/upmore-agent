@@ -11089,6 +11089,31 @@
         ? "Gmail connected — the agent will grab sign-in codes itself now."
         : "Gmail connect didn't finish — try again from the You tab."), 900);
     }
+    // Brokerage connect return (2026-10-11): broker-oauth-callback redirects to #you?broker=confirm&link=<one-time id>
+    // or #you?broker=error&reason=<code>. Strip the params, keep the screen, say what happened. A staged connection is
+    // confirmed below with this person's own session (broker_confirm_link refuses anyone but the person who started it).
+    const bk = /[?&]broker=(connected|error|confirm)(?:&(?:reason|link)=([a-z0-9_-]+))?/.exec(h);
+    let brokerLink = null;
+    if (bk && bk[1] === "confirm") {
+      brokerLink = /^[0-9a-f-]{36}$/.test(bk[2] || "") ? bk[2] : null;
+      h = h.replace(/[?&]broker=confirm(&link=[a-z0-9-]+)?/, "").replace(/\?$/, "");
+      try { history.replaceState(null, "", "#" + h); } catch (e) {}
+    } else if (bk) {
+      const BROKER_SAYS = {
+        connected: "Alpaca connected. Upmore can now place the trades you approve in your own account.",
+        denied: "You didn't approve the connection on Alpaca's site, so nothing was connected.",
+        state_invalid: "That connection link wasn't valid or had expired. Nothing was connected; tap Connect again.",
+        state_used: "That connection link was already used. Nothing was connected; tap Connect again.",
+        not_live: "That doesn't open a live Alpaca account. Upmore trades in live accounts only, so nothing was connected.",
+        account_not_active: "That Alpaca account isn't active for trading yet, so nothing was connected.",
+        connected_elsewhere: "That Alpaca account is already connected to another Upmore login.",
+        not_configured: "Connecting a brokerage isn't switched on yet. Nothing was connected.",
+      };
+      const said = bk[1] === "connected" ? BROKER_SAYS.connected : (BROKER_SAYS[bk[2]] || "The connection didn't finish. Nothing was connected; tap Connect again.");
+      h = h.replace(/[?&]broker=(connected|error)(&reason=[a-z_]+)?/, "").replace(/\?$/, "");
+      try { history.replaceState(null, "", "#" + h); } catch (e) {}
+      setTimeout(() => toast(said), 900);
+    }
     const isAuthCallback = /(^|&)access_token=/.test(h);
     // Let supabase-js consume the OAuth callback before we touch the URL.
     for (let i = 0; i < 40; i++) {
@@ -11096,6 +11121,7 @@
       if (session || !isAuthCallback) break;
       await new Promise(r => setTimeout(r, 100));
     }
+    if (brokerLink) confirmBrokerLink(brokerLink);
     if (session) {
       // Restore only this authenticated owner's nonce-bound answers. Guest
       // and unscoped legacy answers remain quarantined until explicit review.
@@ -13009,7 +13035,8 @@ function timeAgo(iso) {
 async function renderAgentAccess() {
   const mount = $("agentAccessMount"); if (!mount) return;
   if (!supa || !session || !session.user) {
-    mount.innerHTML = `<div class="aasec"><h3>Agent access</h3><p class="asub">Sign in to manage the logins you've saved for the agent.</p></div>
+    mount.innerHTML = `<div class="aasec"><h3>Brokerage</h3><p class="asub">Sign in to connect your own brokerage account.</p></div>
+      <div class="aasec"><h3>Agent access</h3><p class="asub">Sign in to manage the logins you've saved for the agent.</p></div>
       <div class="aasec"><h3>Audit log</h3><p class="asub">Sign in to see every action the agent has taken.</p></div>`;
     return;
   }
@@ -13020,6 +13047,12 @@ async function renderAgentAccess() {
     refs = data || [];
   } catch (e) {}
   mount.innerHTML = `
+    <div class="aasec" id="brokerSec"><h3>Brokerage</h3>
+      <div class="aarow"><div class="agrow"><div class="an">Alpaca</div><div class="ad" id="brokerDesc">Checking…</div></div><button class="aabtn" id="brokerBtn" hidden>Connect</button></div>
+      <p class="asub">Trades go to your own Alpaca account with real money, and only after you approve each one. You approve the connection on Alpaca's site; Upmore never sees your password or keys. While Upmore is in testing, each order is limited to $5.00.</p>
+      <p class="asub" style="margin-top:6px">Fidelity, Vanguard, Robinhood and SoFi don't let apps place trades, so they can't be connected; to trade from Upmore, open an Alpaca account. Schwab, E*TRADE and Tradier aren't available yet.</p>
+      <p class="asub" id="brokerStatus" style="margin-top:6px"></p>
+    </div>
     <div class="aasec"><h3>Agent access</h3>
       <p class="asub">${refs.length ? "Logins the agent can use — only after you approve each action." : "No saved logins. When you let the agent act somewhere, its login appears here."}</p>
       <div>${refs.map(r => `<div class="aarow"><div class="agrow"><div class="an">${esc(r.label || r.merchant_key)}</div><div class="ad">Saved ${esc(new Date(r.created_at).toLocaleDateString())}</div></div><button class="aabtn" data-disconnect="${esc(r.merchant_key)}">Disconnect</button></div>`).join("")}</div>
@@ -13037,7 +13070,60 @@ async function renderAgentAccess() {
   const bt = $("bbSelfTest"); if (bt) bt.onclick = testBrowserConnection;
   const ae = $("auditExport"); if (ae) ae.onclick = exportAuditLog;
   refreshGmailRow();
+  refreshBrokerRow();
   renderAuditList();
+}
+/* Brokerage connect (2026-10-11): each person connects THEIR OWN Alpaca account through OAuth and trades live in it.
+   The client never sees a token: it reads its own row (RLS, no vault reference), starts the connection through
+   broker-oauth-start, and disconnects through broker_disconnect (its own row only; the stored token is deleted). */
+// The last step of Connect: this signed-in person confirms the connection they started. Anyone else gets "not connected".
+async function confirmBrokerLink(link) {
+  if (!supa || !session || !session.user) { setTimeout(() => toast("Sign in, then tap Connect again to finish connecting Alpaca."), 900); return; }
+  let ok = false;
+  try { const { data, error } = await supa.rpc("broker_confirm_link", { p_link: link }); ok = !error && data === true; } catch (e) { ok = false; }
+  setTimeout(() => toast(ok ? "Alpaca connected. Upmore can now place the trades you approve in your own account." : "That connection wasn't started from this login or has expired, so it wasn't connected. Tap Connect to try again."), 900);
+  if (typeof refreshBrokerRow === "function" && $("brokerDesc")) refreshBrokerRow();
+}
+async function refreshBrokerRow() {
+  const desc = $("brokerDesc"), btn = $("brokerBtn"), st = $("brokerStatus");
+  if (!desc || !btn) return;
+  let rows = null;
+  try {
+    const { data, error } = await supa.from("brokerage_accounts").select("id,provider,account_mask,status,connected_at").eq("user_id", session.user.id).eq("provider", "alpaca");
+    if (!error) rows = data || [];
+  } catch (e) {}
+  if (rows === null) { desc.textContent = "Can't check your connection right now."; btn.hidden = true; return; }
+  const row = rows.find(r => r.status === "active") || rows.find(r => r.status === "reconnect") || null;
+  const connect = async () => {
+    btn.disabled = true; if (st) st.textContent = "";
+    try {
+      const { data, error } = await supa.functions.invoke("broker-oauth-start", { body: { provider: "alpaca" } });
+      if (data && data.url) { location.href = data.url; return; } // Alpaca's own approval page, then back here
+      const msg = (data && data.message) || (error && error.context && typeof error.context.json === "function" ? ((await error.context.json().catch(() => ({}))).message) : null);
+      if (st) st.textContent = msg || "Couldn't start the connection. Nothing was connected; try again.";
+    } catch (e) { if (st) st.textContent = "Couldn't start the connection. Nothing was connected; try again."; }
+    btn.disabled = false;
+  };
+  if (row && row.status === "active") {
+    desc.textContent = "Connected, live" + (row.account_mask ? " (" + row.account_mask + ")" : "") + ".";
+    btn.textContent = "Disconnect"; btn.hidden = false;
+    btn.onclick = async () => {
+      if (!confirm("Disconnect Alpaca? Upmore deletes its access and can't place trades until you connect again.")) return;
+      btn.disabled = true;
+      try {
+        const { data, error } = await supa.rpc("broker_disconnect", { p_account: row.id });
+        if (error || data !== true) throw new Error("not disconnected");
+        if (st) st.textContent = "Disconnected. Upmore deleted its access. To remove it on Alpaca's side too, revoke Upmore under OAuth Apps in your Alpaca dashboard.";
+      } catch (e) { if (st) st.textContent = "Couldn't disconnect — nothing changed. Try again."; }
+      btn.disabled = false; refreshBrokerRow();
+    };
+  } else if (row && row.status === "reconnect") {
+    desc.textContent = "The connection was revoked or expired. Reconnect to trade.";
+    btn.textContent = "Reconnect"; btn.hidden = false; btn.onclick = connect;
+  } else {
+    desc.textContent = "Not connected.";
+    btn.textContent = "Connect"; btn.hidden = false; btn.onclick = connect;
+  }
 }
 /* Gmail connection (2026-09-28): read-only OAuth so the cancellation agent
    can fetch sign-in codes itself. Tokens stay server-side in the vault —

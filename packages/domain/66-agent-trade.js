@@ -138,7 +138,8 @@
       // and total, the quote it is priced on (source and as-of, on every card), what the order type does, that it queues
       // when the market is closed, that a filled order can't be undone, and PAPER on every paper account. The rest is DETAILS.
       const hhmm = ms => new Date(ms).toISOString().slice(11, 16) + " UTC";
-      const PAPER = acct => acct && acct.paper ? "PAPER: " : "";
+      // The account's mode on every surface: LIVE on a person's own live account (Brokerage connect), PAPER on a paper one.
+      const MODE = acct => acct && acct.live ? "LIVE: " : acct && acct.paper ? "PAPER: " : "";
       const verb = ord => ord.side === "sell" ? "Sell" : "Buy";
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
@@ -156,7 +157,7 @@
         const size = dollars ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = dollars ? "" : `, about ${money(ord.estimated_cents)}${ord.leftover_cents ? ` (whole shares only; ${money(ord.leftover_cents)} stays in cash)` : ""},`;
         const side = ord.side || "buy", V = side === "sell" ? "Sell" : "Buy", T = terms(ord), tif = tifWords(ord);
-        const heads = [`${PAPER(ord.account)}${V} ${size} ${ord.symbol} (${ord.name})${T.head}${est} in ${ord.account.name}`, `${PAPER(ord.account)}${V} ${size} ${ord.symbol}${T.head}${est} in ${ord.account.name}`];
+        const heads = [`${MODE(ord.account)}${V} ${size} ${ord.symbol} (${ord.name})${T.head}${est} in ${ord.account.name}`, `${MODE(ord.account)}${V} ${size} ${ord.symbol}${T.head}${est} in ${ord.account.name}`];
         const quote = `Quote ${money(ord.price_cents)} (${ord.quote_source}, ${hhmm(ord.quote_as_of)})`;
         const timing = ord.market_open ? null : ord.type === "market" ? `Queued until ${ord.when}` : `Works from ${ord.when}`;
         const whens = [[quote, T.note, tif && tif[0].toUpperCase() + tif.slice(1), timing], [quote, T.note, tif === "good till canceled" ? "GTC" : tif ? "Day order" : null, timing], [quote, T.note, timing]];
@@ -165,13 +166,13 @@
           const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee."} ${f.when}. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil((head.length + f.when.length + 80) / 153) } };
           if (r.segments.segments <= 2) return r.text;
         }
-        return `${PAPER(ord.account)}${V} ${ord.symbol}: ${money(ord.estimated_cents)}. ${quote}. Reply YES, NO or DETAILS.`;
+        return `${MODE(ord.account)}${V} ${ord.symbol}: ${money(ord.estimated_cents)}. ${quote}. Reply YES, NO or DETAILS.`;
       }
       function confirmText(ord) {
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = ord.notional_cents ? `about ${qty(ord.quantity)} shares at ${money(ord.price_cents)}` : `about ${money(ord.estimated_cents)} at ${money(ord.price_cents)}`;
         const T = terms(ord), tif = tifWords(ord);
-        return `${PAPER(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.paper ? "Paper trading: no real money moves. " : ""}Reply yes or no.`;
+        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ord.account.paper ? "Paper trading: no real money moves. " : ""}Reply yes or no.`;
       }
 
       // The instrument, from the caller's list, or (when the broker can answer) the broker's own asset record for a ticker.
@@ -201,8 +202,22 @@
       }
       let suggestion = st.suggestion || null; // "Did you mean VOO?" waiting on yes, with the order it is for
 
+      // Brokerage connect: nothing connected, a provider not built, or a connection the broker refused is said plainly, with
+      // where to fix it, before anything is read or staged (o.connect = { code, message } from BrokerAccounts.resolve).
+      const connectStop = () => o.connect && o.connect.message ? say("blocked", o.connect.message, { reason: "broker_" + (o.connect.code || "connect"), early: true }) : null;
+      const noApi = word => { const BA = typeof BrokerAccounts !== "undefined" ? BrokerAccounts : null; return BA && word ? BA.unsupported(word) : null; };
+      // A read that failed because the broker refused the person's token (401) is a Reconnect, never "try again later".
+      const READ_FAILS = ["broker_unreachable", "accounts_unreadable", "no_quote", "position_unreadable", "cash_unknown", "holdings_unreadable", "symbol_unknown"];
+      const gone = () => typeof conn.auth_failed === "function" && conn.auth_failed() === true;
+      const RECONNECT = "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
       async function stage(parsed) {
+        const r = await stageOnce(parsed);
+        if (r && gone() && READ_FAILS.includes(r.reason)) { pending = null; return say("blocked", RECONNECT, { reason: "broker_reconnect" }); }
+        return r;
+      }
+      async function stageOnce(parsed) {
         suggestion = null;
+        if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "portfolio") return portfolio();
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
@@ -212,6 +227,11 @@
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
         const DECIDE = /\b(whatever|whichever|best|good one|the dip|dipped|just dropped|hot|winner|winning|pick|choose|recommend|should i|would you|what (do|would) you|pelosi|buffett|congress)\b/i;
         if (Guard) { const g = Guard.request(parsed.text); if (g.decision === "block" || DECIDE.test(parsed.text)) return say("refuse", g.decision === "block" ? g.redirect : "That leaves the choice to me, and I don't make it: name the ticker and the amount and I'll place exactly that. I can show the data behind any name you're weighing.", { reason: "advice", rules: g.decision === "block" ? g.reasons : ["decision_left_to_agent"] }); }
+        // A broker with no public trading API, named by the person: the honest answer, nothing staged.
+        const nope = noApi(parsed.account) || noApi((/\b(fidelity|vanguard|robinhood|sofi)\b/i.exec(parsed.text || "") || [])[1]);
+        if (nope) return say("refuse", `${nope} Nothing was placed.`, { reason: "broker_no_public_api" });
+        // Nothing connected (or a connection to fix): said before any question about size or symbol and before any read.
+        { const c = connectStop(); if (c) return c; }
         // No partner, no order, said first: before any question about size or symbol and before any read, the person
         // learns that orders cannot be placed here yet. The loop's own compliance gate still stands behind this.
         const capRow = o.registry && typeof o.registry.get === "function" ? o.registry.get(CAP) : null;
@@ -273,6 +293,11 @@
         } else { quantity = parsed.quantity; if (!fractional && !Number.isInteger(quantity)) return ask("whole_shares", `${account.name} trades whole shares only; ${qty(quantity)} is not a whole number.`); estimated = Math.round(quantity * (type === "limit" || type === "stop_limit" ? lim : type === "stop" ? Math.max(stop, price) : price)); }
         // Fractional shares are day orders of type market, limit, stop or stop_limit only (the broker's rule, said up front).
         if (!Number.isInteger(quantity) && (type === "trailing_stop" || tif !== "day")) return ask("whole_shares", `${qty(quantity)} is a fractional share count, and ${type === "trailing_stop" ? "a trailing stop" : "a good-till-canceled order"} takes whole shares only. How many whole shares?`);
+        // The owner's per-order cap on live orders, said before any card (the adapter refuses above it as well).
+        const capC = Number.isSafeInteger(account.order_cap_cents) ? account.order_cap_cents : null;
+        // A share count that fills at market (or at a stop, or trailing) is held to the cap 2% through the quote, as the adapter does.
+        const capEst = order_notional => order_notional ? estimated : type === "limit" || type === "stop_limit" ? estimated : Math.ceil(estimated * 1.02);
+        if (capC !== null && capEst(parsed.notional_cents && type === "market") > capC) return say("stop", `That's about ${money(capEst(parsed.notional_cents && type === "market"))}; live orders are limited to ${money(capC)} each while Upmore is in testing. Nothing was placed.`, { reason: "order_cap" });
         // S06: buying power, read, before asking for a yes.
         const cash = Number.isSafeInteger(account.cash_cents) ? account.cash_cents : null, fee = Number.isSafeInteger(account.fee_cents) ? account.fee_cents : 0;
         if (side === "buy") {
@@ -288,7 +313,7 @@
         const prior = orders.filter(x => x.key === base || x.key.startsWith(base + ":")).length;
         const key = parsed.another && prior ? `${base}:${prior + 1}` : base;
         const sizeWords = order.notional_cents ? money(order.notional_cents) + " of" : qty(quantity) + " shares of";
-        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper }, describe: `${account.paper ? "PAPER " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
+        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper, live: !!account.live }, describe: `${account.live ? "LIVE " : account.paper ? "PAPER " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
         order.key = key; order.request = request;
         const r = await loop.wake({ kind: "message", request });
         if (r.outcome === "awaiting_confirmation") { pending = { order, confirmation_id: r.confirmation_id }; return say("confirm", cardText(order), { confirmation_id: r.confirmation_id, order, details: confirmText(order) }); }
@@ -309,8 +334,8 @@
       async function settle(r, order) {
         if (r.outcome === "declined") return say("declined", "Okay, not placing it. Nothing was sent to the broker.");
         if (r.outcome === "expired") return say("expired", `${r.message} Prices move; I'll quote it fresh.`);
-        if (r.outcome === "failed") return say("failed", `${order.account && order.account.paper ? "PAPER: " : ""}${r.message} Nothing was placed; ${order.side === "sell" ? `your ${order.symbol} stays in ${order.account.name}` : `${money(order.estimated_cents)} stays in ${order.account.name}`}.`);
-        if (r.outcome === "unknown") return say("unknown", `${order.account && order.account.paper ? "PAPER: " : ""}${r.message} The order may or may not be resting at the broker; I'll read it back by its id before anything else.`);
+        if (r.outcome === "failed") return say("failed", `${MODE(order.account)}${r.message} Nothing was placed; ${order.side === "sell" ? `your ${order.symbol} stays in ${order.account.name}` : `${money(order.estimated_cents)} stays in ${order.account.name}`}.`);
+        if (r.outcome === "unknown") return say("unknown", `${MODE(order.account)}${r.message} The order may or may not be resting at the broker; I'll read it back by its id before anything else.`);
         if (r.outcome !== "confirmed") return say(r.outcome, r.message || null, r);
         const ref = (r.outcome_record && r.outcome_record.reference) || (String(r.message).match(/ref ([^)]+)\)/) || [])[1] || null;
         order.order_id = ref; if (!orders.includes(order)) orders.push(order);
@@ -320,7 +345,7 @@
       // The receipt comes from the broker's record of the order, read back by its id; the module's own words never stand in for it.
       async function fromReadback(order, ref) {
         const rb = ref ? await readOr("order", { order_id: ref }) : null;
-        const P = order.account && order.account.paper ? "PAPER: " : "", sold = order.side === "sell";
+        const P = MODE(order.account), sold = order.side === "sell";
         if (!rb || !rb.value) return say("accepted_unread", `${P}The broker accepted the order (id ${ref || "unknown"}) but I can't read its status back yet, so I won't call it filled. I'll follow up.`, { order_id: ref });
         // A snapshot, never the live record: a receipt must say what was read at that moment, and a later mutation of the
         // broker's object must not rewrite what this session believes it reported.
@@ -338,12 +363,12 @@
         const hold = await readOr("holdings", { account: order.account.id });
         const pos = hold && (hold.value || []).find(h => h.symbol === order.symbol);
         order.position = pos ? { symbol: pos.symbol, quantity: pos.quantity !== undefined ? pos.quantity : pos.qty } : null;
-        loop.remember("facts", { capability_id: order.capability_id || CAPABILITY, value: { order_id: ref, side: order.side || "buy", symbol: order.symbol, quantity: shares, fill_price_cents: s.fill_price_cents, total_cents: total, account: order.account.id, paper: !!order.account.paper }, source: rb.source, as_of: rb.as_of });
+        loop.remember("facts", { capability_id: order.capability_id || CAPABILITY, value: { order_id: ref, side: order.side || "buy", symbol: order.symbol, quantity: shares, fill_price_cents: s.fill_price_cents, total_cents: total, account: order.account.id, paper: !!order.account.paper, live: !!order.account.live }, source: rb.source, as_of: rb.as_of });
         const now = order.position ? (sold ? `${qty(order.position.quantity)} ${order.symbol} left in that account.` : `Now ${qty(order.position.quantity)} ${order.symbol} in that account.`) : sold ? `No ${order.symbol} left in that account.` : "The position has not shown in the holdings read yet; I'll re-check.";
         return say("filled", `${P}Done: ${sold ? "sold" : "bought"} ${qty(shares)} ${order.symbol} (${order.name}) at ${money(s.fill_price_cents)}, ${money(total)} total${sold ? " proceeds" : ""}, in ${order.account.name}, order ${ref}, filled ${when(s.filled_at)} per ${rb.source} (as of ${when(rb.as_of)}). ${now}`, { order_id: ref, fill: { quantity: s.quantity, fill_price_cents: s.fill_price_cents, total_cents: total, filled_at: s.filled_at }, proof: evidence(order) });
       }
       // The real-world proof (C46, C47) is built from the same read-back, never from this module's own words.
-      function evidence(order) { const s = order.readback || {}; return Object.assign({ order_id: order.order_id, status: s.status, market_open: order.market_open, side: order.side || "buy", paper: !!(order.account && order.account.paper) }, s.status === "filled" ? { fill_price_cents: s.fill_price_cents, quantity: s.quantity, filled_at: s.filled_at, position: order.position ? { symbol: order.symbol, quantity: order.position.quantity } : undefined } : {}); }
+      function evidence(order) { const s = order.readback || {}; return Object.assign({ order_id: order.order_id, status: s.status, market_open: order.market_open, side: order.side || "buy", paper: !!(order.account && order.account.paper), live: !!(order.account && order.account.live) }, s.status === "filled" ? { fill_price_cents: s.fill_price_cents, quantity: s.quantity, filled_at: s.filled_at, position: order.position ? { symbol: order.symbol, quantity: order.position.quantity } : undefined } : {}); }
 
       // Cancel and change an open order: the order is read back first, the change goes on a card, and the result is what
       // the broker's record says afterwards (canceled only when it says canceled; a replace is a new order with a new id).
@@ -358,7 +383,7 @@
         const open = await openOrders(sym);
         if (!open.length) return say("answer", `I don't see an open order${sym ? ` for ${sym}` : ""} that I placed, so there is nothing to ${parsed.action === "cancel" ? "cancel" : "change"}.`);
         if (open.length > 1) return ask("order_which", `Which order: ${open.map(x => `${x.side === "sell" ? "sell" : "buy"} ${qty(x.quantity)} ${x.symbol}${terms(x).head} (order ${x.order_id})`).join(" or ")}?`);
-        const target = open[0], P = target.account.paper ? "PAPER: " : "";
+        const target = open[0], P = MODE(target.account);
         const describe = `${target.side === "sell" ? "sell" : "buy"} ${qty(target.quantity)} ${target.symbol}${terms(target).head}`;
         let changes = null, after = null;
         if (parsed.action === "modify") {
@@ -369,19 +394,21 @@
           else if (to) { const c = cents(to[1], to[2]); if (target.type === "limit") changes.limit_cents = c; else if (target.type === "stop") changes.stop_cents = c; else if (target.type === "stop_limit") { if (/\bstop\b/i.test(parsed.text)) changes.stop_cents = c; else changes.limit_cents = c; } else if (target.type === "trailing_stop") changes.trail_cents = c; else return ask("modify_what", `${describe} is a market order; there is no price to change. Cancel it instead?`); }
           if (!Object.keys(changes).length) return ask("modify_what", `What should change on ${describe}: the price ("to $103") or the share count ("to 5 shares")?`);
           after = Object.assign({}, target, { limit_cents: changes.limit_cents !== undefined ? changes.limit_cents : target.limit_cents, stop_cents: changes.stop_cents !== undefined ? changes.stop_cents : target.stop_cents, trail_percent: changes.trail_percent !== undefined ? changes.trail_percent : target.trail_percent, trail_cents: changes.trail_cents !== undefined ? changes.trail_cents : target.trail_cents, quantity: changes.qty !== undefined ? changes.qty : target.quantity });
+          const capM = Number.isSafeInteger(target.account.order_cap_cents) ? target.account.order_cap_cents : null;
+          if (capM !== null) { const px = after.type === "limit" || after.type === "stop_limit" ? after.limit_cents : Math.ceil(Math.max(after.stop_cents || 0, target.price_cents || 0) * 1.02); const est2 = Math.ceil(after.quantity * px); if (est2 > capM) return say("stop", `That change makes it about ${money(est2)}; live orders are limited to ${money(capM)} each while Upmore is in testing. Nothing was changed.`, { reason: "order_cap" }); }
           if (target.side === "buy") { const est = Math.round(after.quantity * (after.limit_cents || after.stop_cents || target.price_cents)); const accts = await readOr("brokerage_accounts"); const a = accts && (accts.value || []).find(x => x.id === target.account.id); if (!a || !Number.isSafeInteger(a.cash_cents)) return ask("cash_unknown", `I can't read buying power in ${target.account.name}, so I won't change the order.`); if (est > a.cash_cents + target.estimated_cents) return say("stop", `Changing it needs about ${money(est)}; ${target.account.name} has ${money(a.cash_cents)} free plus the ${money(target.estimated_cents)} this order holds. Nothing was changed.`, { reason: "insufficient_cash" }); after.estimated_cents = est; }
         }
         const action = parsed.action === "cancel" ? "cancel" : "replace", key = `${target.capability_id || CAPABILITY}:${action}:${target.order_id}:${JSON.stringify(changes || {})}`;
         const text = action === "cancel" ? `${P}Cancel order ${target.order_id}: ${describe} in ${target.account.name} (${target.readback.status === "partial" ? `partly filled, ${qty(target.readback.filled_quantity)} done` : "not filled"}). Reply YES or NO within ${Math.round((o.confirm_ttl_ms || 10 * 60000) / 60000)} min.`
           : `${P}Change order ${target.order_id}: ${describe} becomes ${after.side === "sell" ? "sell" : "buy"} ${qty(after.quantity)} ${after.symbol}${terms(after).head}. The broker replaces it with a new order. Reply YES or NO within ${Math.round((o.confirm_ttl_ms || 10 * 60000) / 60000)} min.`;
-        const request = { capability_id: target.capability_id || CAPABILITY, key, idempotency_key: key, params: { action, order_id: target.order_id, changes: changes || undefined, symbol: target.symbol, paper: !!target.account.paper }, describe: `${action === "cancel" ? "Cancel" : "Change"} ${P ? "PAPER " : ""}order ${target.order_id} (${describe})`, confirm: { action: action === "cancel" ? "Cancel order" : "Change order", recipient: `${target.symbol} order ${target.order_id}`, from: target.account.name, fee: null, when: "now" } };
+        const request = { capability_id: target.capability_id || CAPABILITY, key, idempotency_key: key, params: { action, order_id: target.order_id, changes: changes || undefined, symbol: target.symbol, paper: !!target.account.paper, live: !!target.account.live }, describe: `${action === "cancel" ? "Cancel" : "Change"} ${P ? "PAPER " : ""}order ${target.order_id} (${describe})`, confirm: { action: action === "cancel" ? "Cancel order" : "Change order", recipient: `${target.symbol} order ${target.order_id}`, from: target.account.name, fee: null, when: "now" } };
         const managed = Object.assign({}, after || target, { action, target, changes, key, request, order_id: null, readback: null });
         const r = await loop.wake({ kind: "message", request });
         if (r.outcome === "awaiting_confirmation") { pending = { order: managed, confirmation_id: r.confirmation_id }; return say("confirm", text, { confirmation_id: r.confirmation_id, order: managed, details: text }); }
         return say(r.outcome, r.message || null, r);
       }
       async function fromManaged(m, ref) {
-        const P = m.account.paper ? "PAPER: " : "", target = m.target;
+        const P = MODE(m.account), target = m.target;
         if (m.action === "cancel") {
           const rb = await readOr("order", { order_id: target.order_id }), s = rb && rb.value ? canon(JSON.parse(JSON.stringify(rb.value))) : null;
           if (s) target.readback = s;
@@ -397,7 +424,7 @@
         orders.push(fresh);
         return say(s.status === "filled" ? "filled" : "replaced", `${P}Changed: order ${target.order_id} is replaced by order ${ref}, ${fresh.side === "sell" ? "sell" : "buy"} ${qty(fresh.quantity)} ${fresh.symbol}${terms(fresh).head}, ${s.status === "filled" ? `filled at ${money(s.fill_price_cents)}` : s.status} per ${rb.source} (as of ${hhmm(rb.as_of)}).`, { order_id: ref, replaced: target.order_id });
       }
-      // The portfolio answer: positions and buying power from the account's own read, PAPER said first on a paper account.
+      // The portfolio answer: positions and buying power from the account's own read, LIVE or PAPER said first.
       async function portfolio() {
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
@@ -405,7 +432,7 @@
         if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
         const a = (accts.value || [])[0] || {}, paper = !!a.paper, rows = h.value || [];
         const fmt = x => `${qty(x.qty !== undefined ? x.qty : x.quantity)} ${x.symbol}${Number.isSafeInteger(x.market_value_cents) ? ` (${money(x.market_value_cents)})` : ""}`;
-        return say("answer", `${paper ? "PAPER portfolio (paper trading, no real money)" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper });
+        return say("answer", `${a.live ? "LIVE portfolio" : paper ? "PAPER portfolio (paper trading, no real money)" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper });
       }
 
       async function recheck(ord) {
@@ -456,6 +483,8 @@
           const moved = await recheck(p.order);
           if (moved.length) {
             await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+            // The broker refused the person's token while re-checking: that is the whole story, said once.
+            if (gone()) return say("blocked", RECONNECT, { reason: "broker_reconnect" });
             const again = await stage(restage(p.order));
             return say("changed", `Stopped before placing it: ${moved.join("; ")}. Nothing was placed.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}`, { moved, next: again, confirmation_id: again.confirmation_id || null, order: again.order || null });
           }
@@ -474,7 +503,7 @@
       }
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
-      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.paper ? " (PAPER)" : ""}`).join("; ") + "."); }
+      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : f.value.paper ? " (PAPER)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };

@@ -1,7 +1,7 @@
 // Phase 1 wiring of the chat handler (supabase/functions/_shared/flow_router.ts). These run the real wiring code in Deno
 // with an in-memory database and a STUB model. They prove the wiring, not the spec 16 score: the score comes only from
 // evals/gauntlet/run-live.cjs against the deployed handler with the real model.
-import { routeFlows as routeFlowsTyped, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, paperBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+import { routeFlows as routeFlowsTyped, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, userBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }
@@ -37,6 +37,8 @@ function memDb(opts: { fail?: string; people?: any[]; recipients?: any[]; tx?: a
 // A stub model: the extraction a correct model would return for each corpus text. Used only to exercise the wiring.
 const STUB: Record<string, any> = {
   "buy $500 of VOO": { intent: "buy_security", amount_span: "$500", amount_cents: 50000, unit: "dollars", instrument_span: "VOO" },
+  "buy $5 of VOO": { intent: "buy_security", amount_span: "$5", amount_cents: 500, unit: "dollars", instrument_span: "VOO" },
+  "buy $6 of VOO": { intent: "buy_security", amount_span: "$6", amount_cents: 600, unit: "dollars", instrument_span: "VOO" },
   "cancle netflix": { intent: "cancel_subscription", merchant_span: "netflix" },
   "pay sam back forty": { intent: "send_money", amount_span: "forty", amount_cents: 4000, recipient_span: "sam" },
   "venmo sam 40 for pizza": { intent: "send_money", amount_span: "40", amount_cents: 4000, recipient_span: "sam", memo_span: "pizza" },
@@ -172,101 +174,102 @@ Deno.test("Rail 1 live wiring: unreadable recipients are said plainly; a SAVE th
   eq(store.recipients.length, 0);
 });
 
-// Rail 2 wiring. The broker below is a STUBBED fetch that answers like the Alpaca Broker API: it proves the edge binds the
-// paper adapter only under the right conditions and labels it PAPER, not that Alpaca accepts these requests.
-function stubAlpaca(now: () => number, linked: Record<string, string> = {}) {
+// Brokerage connect wiring (live only, each person's own Alpaca account). The broker below is a STUBBED fetch shaped like
+// Alpaca's Trading API v2: it proves the edge resolves the caller's own connection and labels it LIVE, not that Alpaca
+// accepts these requests.
+function stubAlpaca(now: () => number, tokens: Record<string, string>) {
   const calls: { method: string; url: string; body: any; auth: string | null }[] = [];
   const orders: any[] = [];
   const f = async (input: any, init: any = {}) => {
     const url = String(input), u = new URL(url), method = init.method || "GET", body = init.body ? JSON.parse(init.body) : null;
-    calls.push({ method, url, body, auth: (init.headers || {}).authorization || null });
+    const auth = (init.headers || {}).authorization || null;
+    calls.push({ method, url, body, auth });
     const ok = (j: any, status = 200) => new Response(j === undefined ? null : JSON.stringify(j), { status, headers: { "content-type": "application/json" } });
+    const acct = tokens[String(auth || "").replace(/^Bearer /, "")];
+    if (!acct) return ok({ message: "unauthorized" }, 401);
     const t = new Date(now() - 30000).toISOString();
-    const auth = (init.headers || {}).authorization || "";
-    if (u.pathname === "/v2/account") { const id = linked[auth.replace(/^Bearer /, "")]; return id ? ok({ id, status: "ACTIVE", buying_power: "10000.00", cash: "10000.00" }) : ok({ message: "unauthorized" }, 401); }
-    if (u.pathname === "/v1/clock" || u.pathname === "/v2/clock") return ok({ is_open: true, next_open: "2026-10-13T09:30:00-04:00" });
-    if (u.pathname === "/v1/assets/VOO" || u.pathname === "/v2/assets/VOO") return ok({ symbol: "VOO", name: "Vanguard S&P 500 ETF", tradable: true, fractionable: true, status: "active" });
-    if (u.pathname.endsWith("/account")) return ok({ status: "ACTIVE", buying_power: "10000.00", cash: "10000.00" });
+    if (u.pathname === "/v2/account") return ok({ id: acct, status: "ACTIVE", buying_power: "10000.00", cash: "10000.00" });
+    if (u.pathname === "/v2/clock") return ok({ is_open: true, next_open: "2026-10-13T09:30:00-04:00" });
+    if (u.pathname === "/v2/assets/VOO") return ok({ symbol: "VOO", name: "Vanguard S&P 500 ETF", tradable: true, fractionable: true, status: "active" });
     if (u.pathname === "/v2/stocks/VOO/quotes/latest") return ok({ symbol: "VOO", quote: { t, ap: 512.1, bp: 512.0 } });
-    if (u.pathname.endsWith("/orders") && method === "POST") { const o = { id: "ord-" + (orders.length + 1), client_order_id: body.client_order_id, symbol: body.symbol, side: body.side, type: body.type, time_in_force: body.time_in_force, notional: body.notional ?? null, qty: body.qty ?? null, filled_qty: "0.9764", filled_avg_price: "512.10", status: "filled", filled_at: new Date(now()).toISOString() }; orders.push(o); return ok(o); }
-    const m = /\/orders\/([^/]+)$/.exec(u.pathname); if (m && method === "GET") { const o = orders.find(x => x.id === m[1]); return o ? ok(o) : ok({ message: "not found" }, 404); }
-    if (u.pathname.endsWith("/positions")) return ok([{ symbol: "VOO", qty: "0.9764", market_value: "500.01" }]);
+    if (u.pathname === "/v2/orders" && method === "POST") { const o = { id: "ord-" + (orders.length + 1), client_order_id: body.client_order_id, symbol: body.symbol, side: body.side, type: body.type, time_in_force: body.time_in_force, notional: body.notional ?? null, qty: body.qty ?? null, filled_qty: "0.0097", filled_avg_price: "512.10", status: "filled", submitted_at: t, filled_at: t, account: acct }; orders.push(o); return ok(o); }
+    const m = /\/v2\/orders\/([^/]+)$/.exec(u.pathname); if (m && method === "GET") { const o = orders.find(x => x.id === m[1] && x.account === acct); return o ? ok(o) : ok({ message: "not found" }, 404); }
+    if (u.pathname === "/v2/positions") return ok([{ symbol: "VOO", qty: "0.0097", market_value: "4.97" }]);
     return ok({ message: "not found" }, 404);
   };
   return { f: f as unknown as typeof fetch, calls };
 }
 const envOf = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
-const FULL = { ALPACA_BROKER_KEY_ID: "PKSTUB", ALPACA_BROKER_SECRET: "stub-secret" };
 const U1 = "u-1", U2 = "u-2";
-const bootRow = (user: string, acct: string, id = "row-" + user) => ({ id, user_id: user, provider: "alpaca_broker", kind: "bootstrap", label: "main", paper: true, account_id: acct, status: "active", created_at: "2026-10-01" });
-const linkRow = (user: string, acct: string, id = "link-" + user) => ({ id, user_id: user, provider: "alpaca_oauth", kind: "linked", label: "main", paper: true, account_id: acct, status: "active", created_at: "2026-10-02" });
+const liveRow = (user: string, acct: string, extra: Record<string, unknown> = {}) => ({ id: "row-" + user, user_id: user, provider: "alpaca", label: "main", paper: false, account_id: acct, account_mask: "****1111", status: "active", created_at: "2026-10-02", ...extra });
 // The Vault read as broker_token_read does it: by the caller and the row.
-const TOKENS: Record<string, string> = { "u-1|link-u-1": "tok-1", "u-2|link-u-2": "tok-2" };
-const srcOf = (rows: any[] | null): any => ({ rows: async () => rows, token: async (q: any) => TOKENS[`${q.user_id}|${q.account}`] ?? null });
+const TOKENS: Record<string, string> = { "u-1|row-u-1": JSON.stringify({ access_token: "tok-1" }), "u-2|row-u-2": JSON.stringify({ access_token: "tok-2" }) };
+const srcOf = (rows: any[] | null, marks: any[] = []): any => ({ rows: async () => rows, token: async (q: any) => TOKENS[`${q.user_id}|${q.account}`] ?? null, markReconnect: async (q: any) => { marks.push(q); return true; } });
 
-Deno.test("Rail 2 wiring: the paper broker resolves the caller's own account per request; missing keys, an unreadable table, a leaked row or no row leave buying blocked", async () => {
+Deno.test("Brokerage wiring: no connection, an unreadable table, a leaked row, a revoked link and a provider not built each give the trade flow the honest answer, never a broker", async () => {
   const lines: string[] = [];
-  eq(await paperBroker(envOf(FULL), U1, null), null);
-  eq(await paperBroker(envOf({}), U1, srcOf([bootRow(U1, "acct-1")]), l => lines.push(l)), null); eq(lines.pop(), "[PAPER] NOT_WIRED: ALPACA_BROKER_KEY_ID, ALPACA_BROKER_SECRET not set");
-  eq(await paperBroker(envOf(FULL), U1, srcOf(null), l => lines.push(l)), null); eq(lines.pop(), "[PAPER] NOT_WIRED: brokerage accounts could not be read");
-  eq(await paperBroker(envOf(FULL), U1, srcOf([bootRow(U2, "acct-2"), bootRow(U1, "acct-1")]), l => lines.push(l)), null);
-  eq(lines.pop(), "[PAPER] ISOLATION: 1 brokerage row(s) for another user reached this request, so no account was opened");
-  eq(await paperBroker(envOf(FULL), U1, srcOf([]), l => lines.push(l)), null); eq(lines.pop(), "[PAPER] NOT_WIRED: no paper brokerage account on file for you");
+  eq((await userBroker(envOf({}), U1, null)).connect!.code, "unavailable");
+  eq((await userBroker(envOf({}), U1, srcOf(null), l => lines.push(l))).connect!.code, "unavailable"); eq(lines.pop(), "[LIVE] NOT_WIRED: brokerage connections could not be read");
+  const leak = await userBroker(envOf({}), U1, srcOf([liveRow(U2, "acct-2"), liveRow(U1, "acct-1")]), l => lines.push(l));
+  eq(leak.connect!.code, "isolation"); eq(lines.pop(), "[LIVE] ISOLATION: 1 brokerage row(s) for another user reached this request, so no account was opened");
+  const none = await userBroker(envOf({}), U1, srcOf([]));
+  eq(none.connect!.code, "connect"); eq(none.connectors, undefined);
+  eq((await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1", { status: "reconnect" })]))).connect!.code, "reconnect");
+  eq((await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1", { provider: "schwab" })]))).connect!.code, "not_wired");
   const { db } = memDb();
-  const b = await routeFlows("buy $500 of VOO", { db, extract: stubModel, now: () => T0, broker: null });
-  eq(b!.route.outcome, "blocked");
+  const b = await routeFlows("buy $5 of VOO", { db, extract: stubModel, now: () => T0, broker: none });
+  eq(b!.route.outcome, "blocked"); eq(b!.reply, "No brokerage is connected, so nothing was placed. Connect your own Alpaca account in Settings > Brokerage: you approve it on Alpaca's site and Upmore never sees your password.");
 });
 
-Deno.test("Rail 2 wiring: brokerSource reads the caller's rows through the RLS client and the token through the service-role RPC, keyed by caller and row", async () => {
+Deno.test("Brokerage wiring: brokerSource reads the caller's rows through the RLS client, the token and the Reconnect mark through service-role RPCs keyed by caller and row", async () => {
   const seen: any[] = [];
-  const caller = { from: (t: string) => ({ select: (c: string) => ({ eq: async (k: string, v: string) => { seen.push({ t, c, k, v }); return { data: [bootRow(U1, "acct-1")], error: null }; } }) }) };
-  const admin = { rpc: async (fn: string, args: any) => { seen.push({ fn, args }); return { data: "tok-1", error: null }; } };
+  const caller = { from: (t: string) => ({ select: (c: string) => ({ eq: async (k: string, v: string) => { seen.push({ t, c, k, v }); return { data: [liveRow(U1, "acct-1")], error: null }; } }) }) };
+  const admin = { rpc: async (fn: string, args: any) => { seen.push({ fn, args }); return { data: fn === "broker_token_read" ? "tok-1" : true, error: null }; } };
   const src = brokerSource(caller, admin, U1);
-  eq((await src.rows())!.length, 1); eq(await src.token({ user_id: U1, account: "link-u-1" }), "tok-1");
+  eq((await src.rows())!.length, 1); eq(await src.token({ user_id: U1, account: "row-u-1" }), "tok-1"); eq(await src.markReconnect({ user_id: U1, account: "row-u-1" }), true);
   eq(seen[0].t, "brokerage_accounts"); eq(seen[0].k, "user_id"); eq(seen[0].v, U1); assert(!seen[0].c.includes("vault_key_ref"), "the client never selects the vault reference");
-  eq(seen[1].fn, "broker_token_read"); eq(JSON.stringify(seen[1].args), JSON.stringify({ p_user: U1, p_account: "link-u-1" }));
+  eq(seen[1].fn, "broker_token_read"); eq(JSON.stringify(seen[1].args), JSON.stringify({ p_user: U1, p_account: "row-u-1" }));
+  eq(seen[2].fn, "broker_mark_reconnect"); eq(JSON.stringify(seen[2].args), JSON.stringify({ p_user: U1, p_account: "row-u-1" }));
   const failing = brokerSource({ from: () => ({ select: () => ({ eq: async () => ({ data: null, error: { message: "denied" } }) }) }) }, { rpc: async () => ({ data: null, error: { message: "x" } }) }, U1);
   eq(await failing.rows(), null);
 });
 
-Deno.test("Rail 2 wiring: with the caller's sub-account bound, a buy cards with PAPER and a sourced quote, a yes places one order in that account, and the receipt is PAPER", async () => {
-  const lines: string[] = []; let now = T0; const stub = stubAlpaca(() => now);
-  const broker = (await paperBroker(envOf(FULL), U1, srcOf([bootRow(U1, "acct-1")]), l => lines.push(l), stub.f))!;
-  assert(broker, "bound"); eq(broker.label, "PAPER (Alpaca sandbox)"); eq(broker.account.account_id, "acct-1"); eq(broker.account.kind, "bootstrap");
+Deno.test("Brokerage wiring: with the caller's own live account, a $5 buy cards with LIVE and a sourced quote, a yes places one order with the caller's token, the receipt is LIVE, and $6 is over the cap", async () => {
+  const lines: string[] = []; let now = T0; const stub = stubAlpaca(() => now, { "tok-1": "acct-1", "tok-2": "acct-2" });
+  const broker = await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1")]), l => lines.push(l), stub.f);
+  assert(broker.connectors, "bound"); eq(broker.label, "LIVE (your Alpaca account)"); eq(broker.account.account_id, "acct-1"); eq(broker.account.order_cap_cents, 500);
   const { db } = memDb();
   const go = (m: string) => routeFlows(m, { db, extract: stubModel, now: () => now, broker });
-  const c = await go("buy $500 of VOO");
-  eq(c!.route.outcome, "confirm"); assert(/^PAPER: Buy \$500\.00 of VOO \(Vanguard S&P 500 ETF\) in Alpaca PAPER\. No fee\. Quote \$512\.10 \(Alpaca PAPER sandbox, IEX ask, 13:59 UTC\)\./.test(c!.reply), c!.reply);
+  const over = await go("buy $6 of VOO"); eq(over!.route.outcome, "stop"); eq(over!.reply, "That's about $6.00; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.");
+  const c = await go("buy $5 of VOO");
+  eq(c!.route.outcome, "confirm"); assert(/^LIVE: Buy \$5\.00 of VOO \(Vanguard S&P 500 ETF\) in your Alpaca account \(\*\*\*\*1111\)\. No fee\. Quote \$512\.10 \(your Alpaca account, IEX ask, 13:59 UTC\)\./.test(c!.reply), c!.reply);
   eq(stub.calls.filter(x => x.method === "POST").length, 0, "nothing before the yes");
   now += 60000;
   const y = await go("yes");
-  eq(y!.route.outcome, "filled"); assert(/^PAPER: Done: bought 0\.9764 VOO .* order ord-1, filled/.test(y!.reply), y!.reply);
-  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.length, 1); eq(typeof posts[0].body.notional, "string"); eq(posts[0].body.notional, "500.00");
-  assert(posts[0].url.startsWith("https://broker-api.sandbox.alpaca.markets/v1/trading/accounts/acct-1/orders"), posts[0].url);
-  eq(posts[0].auth, "Basic " + btoa("PKSTUB:stub-secret"));
-  assert(lines.length > 4); for (const l of lines) { assert(l.startsWith("[PAPER (Alpaca sandbox)]"), l); assert(!l.includes("stub-secret") && !l.includes("PKSTUB"), "no key in any log line"); }
+  eq(y!.route.outcome, "filled"); assert(/^LIVE: Done: bought 0\.0097 VOO .* order ord-1, filled/.test(y!.reply), y!.reply);
+  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.length, 1); eq(posts[0].body.notional, "5.00");
+  eq(posts[0].url, "https://api.alpaca.markets/v2/orders"); eq(posts[0].auth, "Bearer tok-1");
+  assert(lines.length > 4); for (const l of lines) { assert(l.startsWith("[LIVE (your Alpaca account)]"), l); assert(!l.includes("tok-1"), "no token in any log line"); }
 });
 
-Deno.test("Rail 2 wiring: a linked account is primary and speaks the Trading API with the caller's own token; two users' orders land in their own accounts", async () => {
-  let now = T0; const stub = stubAlpaca(() => now, { "tok-1": "acct-L1", "tok-2": "acct-L2" }); const lines: string[] = [];
-  const b1 = (await paperBroker(envOf(FULL), U1, srcOf([bootRow(U1, "acct-1"), linkRow(U1, "acct-L1")]), l => lines.push(l), stub.f))!;
-  eq(b1.account.kind, "linked"); eq(b1.label, "PAPER (your Alpaca paper account)");
-  const b2 = (await paperBroker(envOf(FULL), U2, srcOf([linkRow(U2, "acct-L2")]), l => lines.push(l), stub.f))!;
+Deno.test("Brokerage wiring: two people trade in their own accounts with their own tokens; a revoked token is marked for Reconnect and said, nothing placed", async () => {
+  let now = T0; const stub = stubAlpaca(() => now, { "tok-1": "acct-1", "tok-2": "acct-2" });
+  const b1 = await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1")]), () => {}, stub.f);
+  const b2 = await userBroker(envOf({}), U2, srcOf([liveRow(U2, "acct-2")]), () => {}, stub.f);
   const m1 = memDb(), m2 = memDb();
-  eq((await routeFlows("buy $500 of VOO", { db: m1.db, extract: stubModel, now: () => now, broker: b1 }))!.route.outcome, "confirm");
-  eq((await routeFlows("buy $500 of VOO", { db: m2.db, extract: stubModel, now: () => now, broker: b2 }))!.route.outcome, "confirm");
+  eq((await routeFlows("buy $5 of VOO", { db: m1.db, extract: stubModel, now: () => now, broker: b1 }))!.route.outcome, "confirm");
+  eq((await routeFlows("buy $5 of VOO", { db: m2.db, extract: stubModel, now: () => now, broker: b2 }))!.route.outcome, "confirm");
   now += 60000;
   eq((await routeFlows("yes", { db: m1.db, extract: stubModel, now: () => now, broker: b1 }))!.route.outcome, "filled");
   eq((await routeFlows("yes", { db: m2.db, extract: stubModel, now: () => now, broker: b2 }))!.route.outcome, "filled");
-  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.length, 2);
-  eq(posts.map(p => p.url).join(" "), "https://paper-api.alpaca.markets/v2/orders https://paper-api.alpaca.markets/v2/orders");
-  eq(posts.map(p => p.auth).join(" "), "Bearer tok-1 Bearer tok-2", "each user's order went with that user's own token");
-  for (const l of lines) assert(!/tok-\d/.test(l), "no token in any log line");
-  // A token that opens another user's account is refused before anything is sent.
-  const crossed = (await paperBroker(envOf(FULL), U1, { rows: async () => [linkRow(U1, "acct-L1")], token: async () => "tok-2" }, () => {}, stub.f))!;
+  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.map(p => p.auth).join(" "), "Bearer tok-1 Bearer tok-2", "each person's order went with that person's own token");
+  const marks: any[] = [];
+  const revoked = await userBroker(envOf({}), U1, { rows: async () => [liveRow(U1, "acct-1")], token: async () => "tok-revoked", markReconnect: async (q: any) => { marks.push(q); return true; } }, () => {}, stub.f);
   const m3 = memDb();
-  const r = await routeFlows("buy $500 of VOO", { db: m3.db, extract: stubModel, now: () => now, broker: crossed });
-  assert(r!.route.outcome !== "confirm", r!.reply); eq(stub.calls.filter(x => x.method === "POST").length, 2, "nothing new was sent");
+  const r = await routeFlows("buy $5 of VOO", { db: m3.db, extract: stubModel, now: () => now, broker: revoked });
+  await revoked.flush!();
+  eq(r!.route.outcome, "blocked"); eq(r!.reply, "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.");
+  eq(JSON.stringify(marks), JSON.stringify([{ user_id: U1, account: "row-u-1" }])); eq(stub.calls.filter(x => x.method === "POST").length, 2, "nothing new was sent");
 });
 
 // L3, state-machine adversarial (spec 16), in SIMULATION: the real wiring, an in-memory store, a stub model and a test clock.

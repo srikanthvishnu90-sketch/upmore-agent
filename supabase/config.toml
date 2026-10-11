@@ -18,3 +18,11 @@ verify_jwt = false
 
 [functions.agent-payments]
 verify_jwt = false
+
+# Brokerage connect: start needs the signed-in person; the callback is a browser redirect from the broker with no Upmore
+# JWT, authenticated by the signed, single-use OAuth state instead.
+[functions.broker-oauth-start]
+verify_jwt = true
+
+[functions.broker-oauth-callback]
+verify_jwt = false

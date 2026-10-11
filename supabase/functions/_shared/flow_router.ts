@@ -69,18 +69,25 @@ export interface FlowReply { reply: string; route: RouteMeta; withhold_user_text
 // this note in front of its reply, so the card never stays pending silently and a later "yes" cannot fire it.
 export interface FlowFallthrough { fallthrough: true; note: string }
 
-// Rail 2: per-user paper brokerage accounts (packages/domain/73-broker-accounts.js). Every request resolves the caller's
-// own account: rows through the caller's RLS client (the table's owner-only policy), a linked account's OAuth token from
-// the Vault through the service-role RPC broker_token_read(p_user, p_account), which recomputes the secret name from the
-// caller's id. A linked broker is primary; an Alpaca Broker API sub-account (the firm's keys from the environment) is the
-// bootstrap. Nothing is cached between requests. PAPER ONLY: a live row is never opened, and LIVE_PARTNERS stays empty.
-// Every adapter log line starts with "[PAPER (...)]"; no key or token is ever logged.
-export interface PaperBroker { connectors: any; partners: Record<string, unknown>; label: string; account: any }
-export interface BrokerSource { rows(): Promise<any[] | null>; token(q: { user_id: string; account: string }): Promise<string | null> }
+// Brokerage connect (owner decision 2026-10-11): every person trades in THEIR OWN live brokerage account, connected
+// through OAuth (supabase/functions/broker-oauth-start, broker-oauth-callback). No shared account, no paper. Every request
+// resolves the caller's own connection (packages/domain/73-broker-accounts.js): rows through the caller's RLS client (the
+// table's owner-only policy), the token from the Vault through the service-role RPC broker_token_read(p_user, p_account),
+// which recomputes the secret name from the caller's id. Nothing is cached between requests. When nothing can be opened,
+// the trade flow is told why (connect, reconnect, not_wired, isolation, unavailable) and says it plainly. A 401 from the
+// broker marks the row for Reconnect (broker_mark_reconnect wipes the token) before the reply goes out. Every order is
+// capped at UPMORE_LIVE_ORDER_CAP_CENTS ($5.00 when unset) until the owner raises it. Log lines start "[LIVE ...]" and
+// never carry a token.
+export interface UserBroker { connectors?: any; partners?: Record<string, unknown>; label?: string; account?: any; connect?: { code: string; message: string }; flush?: () => Promise<unknown> }
+export interface BrokerSource {
+  rows(): Promise<any[] | null>;
+  token(q: { user_id: string; account: string }): Promise<string | null>;
+  markReconnect(q: { user_id: string; account: string }): Promise<unknown>;
+}
 export function brokerSource(caller: any, admin: any, userId: string): BrokerSource {
   return {
     rows: async () => {
-      const r = await caller.from("brokerage_accounts").select("id,user_id,provider,kind,label,paper,account_id,status,created_at").eq("user_id", userId);
+      const r = await caller.from("brokerage_accounts").select("id,user_id,provider,label,paper,account_id,account_mask,status,created_at").eq("user_id", userId);
       return r.error ? null : (r.data || []);
     },
     token: async (q) => {
@@ -88,19 +95,26 @@ export function brokerSource(caller: any, admin: any, userId: string): BrokerSou
       if (r.error) throw new Error("broker token read failed");
       return typeof r.data === "string" && r.data ? r.data : null;
     },
+    markReconnect: async (q) => {
+      const r = await admin.rpc("broker_mark_reconnect", { p_user: q.user_id, p_account: q.account });
+      if (r.error) throw new Error("broker reconnect mark failed");
+      return r.data;
+    },
   };
 }
-export async function paperBroker(env: { get(k: string): string | undefined }, userId: string, src: BrokerSource | null, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): Promise<PaperBroker | null> {
-  if (!src) return null;
+export async function userBroker(env: { get(k: string): string | undefined }, userId: string, src: BrokerSource | null, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): Promise<UserBroker> {
+  const unavailable = { connect: { code: "unavailable", message: BrokerAccounts.MESSAGES.unavailable } };
+  if (!src) return unavailable;
   const rows = await src.rows().catch(() => null);
-  if (rows === null) { log("[PAPER] NOT_WIRED: brokerage accounts could not be read"); return null; }
+  if (rows === null) { log("[LIVE] NOT_WIRED: brokerage connections could not be read"); return unavailable; }
+  const jobs: Promise<unknown>[] = [];
   const made: any = await BrokerAccounts.resolve({
-    user_id: userId, rows, credential: src.token,
-    env: { ALPACA_BROKER_KEY_ID: env.get("ALPACA_BROKER_KEY_ID"), ALPACA_BROKER_SECRET: env.get("ALPACA_BROKER_SECRET") },
+    user_id: userId, rows, credential: src.token, order_cap_cents: env.get("UPMORE_LIVE_ORDER_CAP_CENTS"),
+    on_auth_failure: (q: { user_id: string; account: string }) => { jobs.push(src.markReconnect(q).catch(() => log("[LIVE] reconnect mark failed"))); },
     adapter: { log, ...(fetchFn ? { fetch: fetchFn } : {}) },
   });
-  if (!made.wired) { log(`[PAPER] ${made.reason}`); return null; }
-  return { connectors: made.connectors, partners: made.partners, label: made.label, account: made.account };
+  if (!made.wired) { log(`[LIVE] ${made.reason}`); return { connect: { code: made.code, message: made.message } }; }
+  return { connectors: made.connectors, partners: made.partners, label: made.label, account: made.account, flush: () => Promise.allSettled(jobs) };
 }
 
 export function liveConnectors(data: FlowData, now: () => number) {
@@ -143,12 +157,12 @@ export function termsReader(fetchFn: typeof fetch, now: () => number) {
   return { read: (merchant: string) => MerchantTerms.read(merchant, { config: termsConfig, fetch: fetchFn, clock: now, timeout_ms: 6000 }), facts: (r: any) => MerchantTerms.facts(r, { config: termsConfig }) };
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: PaperBroker | null = null, termsFetch: typeof fetch | null = null) {
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: UserBroker | null = null, termsFetch: typeof fetch | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
   return {
-    trade: AgentTrade.create({ registry, connectors: broker ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker ? broker.partners : LIVE_PARTNERS, compliance: Compliance, state: s.trade }),
+    trade: AgentTrade.create({ registry, connectors: broker && broker.connectors ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker && broker.partners ? broker.partners : LIVE_PARTNERS, connect: broker && broker.connect ? broker.connect : null, compliance: Compliance, state: s.trade }),
     cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
@@ -179,7 +193,7 @@ function liveCardWords(sessions: any): string[] {
   return out;
 }
 
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;

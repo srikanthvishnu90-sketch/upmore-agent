@@ -1,6 +1,6 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-11T16:28:54.027Z",
+ "run_at": "2026-10-11T18:24:16.754Z",
  "baseline_all_green": true,
  "sub_capabilities": 21,
  "proven": 21,
@@ -9,14 +9,12 @@
   {
    "sub": "S01",
    "id": "D01",
-   "title": "Paper only, keys from the environment",
-   "defect": "the sandbox host check is skipped, so any base URL is accepted",
-   "test": "a live or unknown host is refused",
+   "title": "Live only, the person's own token",
+   "defect": "the live host check is skipped, so a paper or shared-account base URL is accepted",
+   "test": "a paper host or the Broker API is refused",
    "bites": true,
    "applied": true,
-   "collateral": [
-    "S20"
-   ],
+   "collateral": [],
    "status": "proven"
   },
   {
@@ -160,13 +158,19 @@
   {
    "sub": "S14",
    "id": "D14",
-   "title": "PAPER everywhere",
-   "defect": "the PAPER label is dropped from the card",
-   "test": "the card starts with PAPER",
+   "title": "LIVE everywhere",
+   "defect": "the LIVE label is dropped from every surface",
+   "test": "the card starts with LIVE",
    "bites": true,
    "applied": true,
    "collateral": [
     "S06",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
     "S16"
    ],
    "status": "proven"
@@ -196,9 +200,9 @@
   {
    "sub": "S17",
    "id": "D17",
-   "title": "Cross-user isolation: the caller's own account",
+   "title": "Cross-person isolation: the caller's own account",
    "defect": "rows are not checked against the caller, so a broken read hands A's request B's older account",
-   "test": "a leaked row for another user opens nothing",
+   "test": "a leaked row for another person opens nothing",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -207,8 +211,8 @@
   {
    "sub": "S18",
    "id": "D18",
-   "title": "A linked token must open the user's own account",
-   "defect": "the account the token opens is never compared with the user's row",
+   "title": "The token must open the person's own account",
+   "defect": "the account the token opens is never compared with the person's row",
    "test": "a token for B's account sends nothing for A",
    "bites": true,
    "applied": true,
@@ -218,9 +222,9 @@
   {
    "sub": "S19",
    "id": "D19",
-   "title": "The token reference is the user's own",
-   "defect": "the row's vault reference is trusted without checking it names this user and this row",
-   "test": "a row pointing at another user's secret opens nothing",
+   "title": "The token reference is the person's own",
+   "defect": "the row's vault reference is trusted without checking it names this person and this row",
+   "test": "a row pointing at another person's secret opens nothing",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -229,9 +233,9 @@
   {
    "sub": "S20",
    "id": "D20",
-   "title": "PAPER ONLY at the account layer",
-   "defect": "a live row counts as paper",
-   "test": "a live-only user is told why and nothing opens",
+   "title": "LIVE ONLY at the account layer",
+   "defect": "a paper row counts as live",
+   "test": "a paper row is never opened",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -240,9 +244,9 @@
   {
    "sub": "S21",
    "id": "D21",
-   "title": "Linked is primary, the sub-account is the bootstrap",
-   "defect": "the bootstrap sub-account outranks the person's linked broker",
-   "test": "linked wins over the bootstrap",
+   "title": "Only built providers are opened",
+   "defect": "a designed-but-unbuilt provider is opened with the Alpaca adapter",
+   "test": "a Schwab row is never sent to Alpaca",
    "bites": true,
    "applied": true,
    "collateral": [],

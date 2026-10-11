@@ -1,40 +1,39 @@
-  /* Alpaca Broker API adapter, PAPER ONLY (Rail 2, BUILD-STATUS). Every order type the trade flow places: market, limit,
-     stop, stop_limit and trailing_stop; buys and sells; whole and fractional (qty or notional); replace and cancel.
-     Follows the Broker API reference (github.com/alpacahq/alpaca-docs, content/api-references/broker-api/trading/orders.md,
-     positions.md, clock.md, accounts/accounts.md; market-data-api/stock-pricing-data/historical.md):
-       POST   /v1/trading/accounts/{account_id}/orders                         create (client_order_id <= 48 chars)
-       GET    /v1/trading/accounts/{account_id}/orders/{order_id}              read back
-       GET    /v1/trading/accounts/{account_id}/orders:by_client_order_id      reconcile a write whose response was lost
-       PATCH  /v1/trading/accounts/{account_id}/orders/{order_id}              replace (returns a new order with a new id)
-       DELETE /v1/trading/accounts/{account_id}/orders/{order_id}              cancel (204 accepted; 422 not cancelable)
-       GET    /v1/trading/accounts/{account_id}/account                        buying power, cash (strings)
-       GET    /v1/trading/accounts/{account_id}/positions[/{symbol}]           positions (404 = none)
-       GET    /v1/clock, GET /v1/assets/{symbol}                               session, tradable and fractionable
-       GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp
-     HTTP Basic auth with base64(key_id:secret). All numbers go out as strings. Writes are asynchronous at the broker: a
-     created order is read back and reconciled, never assumed filled. A write that throws (network, timeout, 5xx) is
-     UNKNOWN: it is never retried blind; it is reconciled by client_order_id. A 4xx is a definite refusal (nothing placed).
-     Only sandbox hosts are accepted, so this code cannot reach a live account; a mock server is accepted only when the
-     caller says it is a mock, and then every label says MOCK as well as PAPER. Keys are passed in by the host from its
-     environment (ALPACA_BROKER_KEY_ID, ALPACA_BROKER_SECRET); nothing here reads the environment, logs a key or an
-     Authorization header. fetch is injected.
-     Two account models (BrokerAccounts, 73-broker-accounts.js, picks one per request from the user's own row):
-       api "broker"  (bootstrap): an Alpaca Broker API sub-account the firm opened for the user; the firm's keys from the
-                     environment, the user's account_id from their row; paths as above.
-       api "trading" (linked): the user's own Alpaca paper account through OAuth; "Authorization: Bearer <token>", the
-                     token read from the Vault per request; the Trading API's /v2/account, /v2/positions, /v2/orders,
-                     /v2/orders:by_client_order_id (returns the order object), /v2/clock, /v2/assets on paper-api.alpaca.markets,
-                     quotes on data.alpaca.markets. The account the token opens must be the account_id on the user's row,
-                     checked before the first write; a mismatch refuses everything. */
-  const AlpacaPaper = (() => {
-    const SANDBOX = { broker: "https://broker-api.sandbox.alpaca.markets", data: "https://data.sandbox.alpaca.markets" };
-    const PAPER_TRADING = { broker: "https://paper-api.alpaca.markets", data: "https://data.alpaca.markets" };
-    // The only hosts each model may reach. Live trading hosts (api.alpaca.markets, broker-api.alpaca.markets) are in neither.
-    const HOSTS = { broker: ["broker-api.sandbox.alpaca.markets", "data.sandbox.alpaca.markets"], trading: ["paper-api.alpaca.markets", "data.alpaca.markets"] };
+  /* Alpaca Trading API adapter, LIVE ONLY, for a person's OWN Alpaca account connected through OAuth (owner decision
+     2026-10-11: users connect their own brokerage; no shared trading account; no paper trading anywhere in this flow).
+     Every order type the trade flow places: market, limit, stop, stop_limit and trailing_stop; buys and sells; whole and
+     fractional (qty or notional); replace and cancel. Paths from Alpaca's Trading API v2 reference and OAuth guide
+     (github.com/alpacahq/alpaca-docs: content/oauth/guide.md, api-references/trading-api/orders.md, account.md,
+     positions.md, clock.md, assets.md; market-data-api/stock-pricing-data/historical.md):
+       POST   /v2/orders                         placeOrder (client_order_id <= 48 chars)
+       GET    /v2/orders/{order_id}              getOrderStatus
+       GET    /v2/orders:by_client_order_id      reconcile a write whose response was lost (returns the order object)
+       PATCH  /v2/orders/{order_id}              replace (returns a new order with a new id)
+       DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
+       GET    /v2/account                        getAccount: id, status, buying power, cash (strings)
+       GET    /v2/positions[/{symbol}]           getPositions (404 = none)
+       GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable
+       GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
+              OAuth "data" scope)
+     "Authorization: Bearer <token>" with the person's own OAuth token, read from the Vault for that person on every request
+     (BrokerAccounts, 73-broker-accounts.js); nothing here reads the environment, logs a token or an Authorization header.
+     Only api.alpaca.markets and data.alpaca.markets are accepted: the paper hosts and the Broker API are refused, so this
+     code cannot trade paper or a shared account. A local mock is accepted only when the caller says it is a mock, and then
+     every label says "mock Alpaca server, not Alpaca" as well as LIVE.
+     Safety, in this code and not only in the flow: the account the token opens must be the account on the person's row
+     (checked before anything is sent); every order and replace is estimated and refused above order_cap_cents (the
+     owner's per-order test cap, $5.00 by default, raised only by the owner); a write that throws (network, timeout, 5xx)
+     is UNKNOWN and is never retried blind, it is reconciled by client_order_id; a 4xx is a definite refusal; a 401 means
+     the connection was revoked or expired and calls on_auth_failure so the host can show Reconnect. fetch is injected. */
+  const AlpacaTrading = (() => {
+    const LIVE = { trading: "https://api.alpaca.markets", data: "https://data.alpaca.markets" };
+    // The only hosts this adapter may reach. Paper (paper-api.alpaca.markets) and the Broker API (broker-api.*) are refused.
+    const HOSTS = ["api.alpaca.markets", "data.alpaca.markets"];
+    const DEFAULT_CAP_CENTS = 500; // the owner's per-order test cap: $5.00 until the owner raises it
     const TYPES = ["market", "limit", "stop", "stop_limit", "trailing_stop"], SIDES = ["buy", "sell"], TIFS = ["day", "gtc", "opg", "cls", "ioc", "fok"];
     const FRACTIONAL_TYPES = ["market", "limit", "stop", "stop_limit"]; // Fractional Trading doc: these, time_in_force day only
     const OPEN = ["new", "accepted", "pending_new", "accepted_for_bidding", "held", "stopped", "calculated", "suspended", "pending_replace"];
-    const LABEL = "PAPER";
+    const LABEL = "LIVE";
+    const MARKET_BUFFER = 1.02; // a market or trailing order is estimated 2% through the quote for the cap check
     // Exact decimal handling: money is integer cents, quantities are decimal strings; never a float multiply on money.
     function centsToStr(c) { if (!Number.isSafeInteger(c) || c < 0) throw new Error("price must be whole non-negative cents"); return `${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`; }
     function strToCents(s, mode) {
@@ -100,34 +99,43 @@
       return { order_id: r.id || null, client_order_id: r.client_order_id || null, symbol: r.symbol || null, side: r.side || null, type: r.type || r.order_type || null, time_in_force: r.time_in_force || null,
         qty: num(r.qty), notional_cents: strToCents(r.notional), filled_qty: filled, fill_price_cents: strToCents(r.filled_avg_price, "round"), limit_cents: strToCents(r.limit_price), stop_cents: strToCents(r.stop_price),
         trail_percent: num(r.trail_percent), trail_cents: strToCents(r.trail_price), status: s, state, submitted_at: r.submitted_at || r.created_at || null, filled_at: r.filled_at || null, canceled_at: r.canceled_at || r.cancelled_at || null,
-        replaced_by: r.replaced_by || null, replaces: r.replaces || null, reason: r.reject_reason || r.failed_reason || null, paper: true };
+        replaced_by: r.replaced_by || null, replaces: r.replaces || null, reason: r.reject_reason || r.failed_reason || null, live: true };
+    }
+
+    // What an order could cost (or bring in), in cents, for the per-order cap. Exact for a dollar amount; a share count is
+    // priced at its limit, or at its stop or the quote plus a 2% buffer (a market fill can land above the quote). ref_cents
+    // is the quote on the order's side, read by the adapter just before sending. null means it can't be priced.
+    function estimate(o, refCents) {
+      if (Number.isSafeInteger(o.notional_cents)) return o.notional_cents;
+      const q = Number(o.qty); if (!(q > 0)) return null;
+      if ((o.type === "limit" || o.type === "stop_limit") && Number.isSafeInteger(o.limit_cents)) return Math.ceil(q * o.limit_cents);
+      const px = Math.max(o.type === "stop" && Number.isSafeInteger(o.stop_cents) ? o.stop_cents : 0, Number.isSafeInteger(refCents) ? refCents : 0);
+      return px > 0 ? Math.ceil(q * px * MARKET_BUFFER) : null;
     }
 
     class BrokerError extends Error { constructor(kind, message, status) { super(message); this.kind = kind; this.status = status || null; } }
 
     function create(cfg) {
       const c = cfg || {};
-      const mock = c.mock === true, api = c.api === undefined || c.api === "broker" ? "broker" : c.api === "trading" ? "trading" : null;
-      if (!api) throw new Error(`AlpacaPaper: unknown api ${c.api}`);
-      const hosts = api === "broker" ? SANDBOX : PAPER_TRADING;
-      const base = String(c.base || hosts.broker).replace(/\/+$/, ""), dataBase = String(c.data_base || (mock ? base : hosts.data)).replace(/\/+$/, "");
-      const sandboxHost = u => { try { return HOSTS[api].includes(new URL(u).hostname); } catch (_) { return false; } };
+      const mock = c.mock === true;
+      const base = String(c.base || LIVE.trading).replace(/\/+$/, ""), dataBase = String(c.data_base || (mock ? base : LIVE.data)).replace(/\/+$/, "");
+      const liveHost = u => { try { return HOSTS.includes(new URL(u).hostname); } catch (_) { return false; } };
       const localHost = u => { try { const h = new URL(u).hostname; return h === "127.0.0.1" || h === "localhost" || h === "::1" || h === "[::1]"; } catch (_) { return false; } };
-      // PAPER ONLY: a live Alpaca host (or any other host) is refused outright. A local mock is allowed only when declared.
-      for (const u of [base, dataBase]) if (!(sandboxHost(u) || (mock && localHost(u)))) throw new Error(`AlpacaPaper refuses ${u}: only the Alpaca paper sandbox${mock ? " or a local mock" : ""} is allowed.`);
-      if (api === "broker" && (!c.key_id || !c.secret)) throw new Error("AlpacaPaper needs key_id and secret from the host's environment.");
-      if (api === "trading" && !c.token) throw new Error("AlpacaPaper needs the user's OAuth token from the Vault.");
-      if (!c.account_id) throw new Error("AlpacaPaper needs the paper account_id.");
-      const fetchFn = c.fetch || (typeof fetch !== "undefined" ? fetch : null); if (!fetchFn) throw new Error("AlpacaPaper needs fetch.");
-      const enc = typeof btoa === "function" ? btoa : s => Buffer.from(s, "utf8").toString("base64");
-      const auth = api === "broker" ? "Basic " + enc(`${c.key_id}:${c.secret}`) : "Bearer " + c.token;
+      // LIVE ONLY: a paper host, the Broker API or any other host is refused outright. A local mock only when declared.
+      for (const u of [base, dataBase]) if (!(liveHost(u) || (mock && localHost(u)))) throw new Error(`AlpacaTrading refuses ${u}: only the live Alpaca Trading API${mock ? " or a local mock" : ""} is allowed.`);
+      if (!c.token) throw new Error("AlpacaTrading needs the person's OAuth token from the Vault.");
+      if (!c.account_id) throw new Error("AlpacaTrading needs the account_id on the person's row.");
+      const cap = c.order_cap_cents === undefined ? DEFAULT_CAP_CENTS : c.order_cap_cents;
+      if (!Number.isSafeInteger(cap) || cap <= 0) throw new Error("AlpacaTrading needs a whole, positive order_cap_cents.");
+      const fetchFn = c.fetch || (typeof fetch !== "undefined" ? fetch : null); if (!fetchFn) throw new Error("AlpacaTrading needs fetch.");
+      const auth = "Bearer " + c.token;
       const clock = c.clock || (() => Date.now()), timeout = c.timeout_ms || 10000;
-      const label = mock ? `${LABEL} (mock Alpaca server, not Alpaca)` : api === "broker" ? `${LABEL} (Alpaca sandbox)` : `${LABEL} (your Alpaca paper account)`;
-      const source = mock ? "Alpaca PAPER mock server" : api === "broker" ? "Alpaca PAPER sandbox" : "your Alpaca PAPER account";
+      const label = mock ? `${LABEL} (mock Alpaca server, not Alpaca)` : `${LABEL} (your Alpaca account)`;
+      const source = mock ? "Alpaca mock server" : "your Alpaca account";
       const logs = [];
-      // Every log line says PAPER. No key, secret or Authorization header is ever written.
+      // Every log line says LIVE. No token or Authorization header is ever written.
       const log = (event, detail) => { const line = `[${label}] ${event}${detail ? " " + JSON.stringify(detail) : ""}`; logs.push(line); if (typeof c.log === "function") c.log(line); };
-      const acct = encodeURIComponent(c.account_id);
+      let authFailed = false;
       async function call(method, url, payload, kind) {
         let res;
         try {
@@ -139,33 +147,34 @@
         let json = null; try { json = text ? JSON.parse(text) : null; } catch (_) { json = null; }
         log(`${method} ${kind} -> ${res.status}`);
         if (res.status >= 500) throw new BrokerError("server", `the broker answered ${res.status}`, res.status);
-        if (res.status === 401) throw new BrokerError("auth", "the paper credentials were refused (401)", 401);
+        if (res.status === 401) {
+          if (!authFailed) { authFailed = true; log("connection refused (401): revoked or expired; the person must reconnect"); if (typeof c.on_auth_failure === "function") { try { c.on_auth_failure(); } catch (_) { /* the host's marker never blocks the answer */ } } }
+          throw new BrokerError("auth", "your Alpaca connection was revoked or has expired, so nothing was sent. Reconnect it in Settings, Brokerage", 401);
+        }
         if (res.status === 404) return { status: 404, json: null };
         if (res.status === 429) throw new BrokerError("rate_limited", "the broker rate-limited the request (429)", 429);
         if (res.status >= 400) throw new BrokerError("rejected", (json && (json.message || json.error)) || `the broker refused it (${res.status})`, res.status);
         return { status: res.status, json };
       }
-      const P = path => api === "broker" ? `${base}/v1/trading/accounts/${acct}${path}` : `${base}/v2${path}`;
-      const V = api === "broker" ? "v1" : "v2";
-      // Linked accounts: the account the token opens must be the one on the user's row. Checked once, before any write.
-      let owner = api === "broker" ? true : null;
+      const P = path => `${base}/v2${path}`;
+      // The account the token opens must be the one on the person's row. Checked once, before anything is staged or sent.
+      let owner = null;
       function checkOwner(id) {
-        if (api !== "trading") return;
         if (id && id === c.account_id) { owner = true; return; }
         owner = false; log("account mismatch: the token does not open the account on this user's row; nothing will be sent");
         throw new BrokerError("isolation", "the linked account does not match this user's account, so nothing was sent");
       }
       async function ensureOwner() { if (owner === true) return; if (owner === false) throw new BrokerError("isolation", "the linked account does not match this user's account, so nothing was sent"); await account(); }
       let lastClock = null;
-      async function marketClock() { const r = await call("GET", `${base}/${V}/clock`, null, "clock"); const j = r.json || {}; lastClock = { is_open: j.is_open === true, next_open: j.next_open || null, next_close: j.next_close || null, as_of: clock(), source }; return lastClock; }
+      async function marketClock() { const r = await call("GET", `${base}/v2/clock`, null, "clock"); const j = r.json || {}; lastClock = { is_open: j.is_open === true, next_open: j.next_open || null, next_close: j.next_close || null, as_of: clock(), source }; return lastClock; }
       async function account() {
         const r = await call("GET", P("/account"), null, "account"); const j = r.json || {}; checkOwner(j.id);
         // Buying power rounds down to the cent: never claim a fraction of a cent the account does not have.
-        return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: true }, source, as_of: clock() };
+        return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
-      async function asset(symbol) { const r = await call("GET", `${base}/${V}/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
+      async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
-      async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, paper: true } : pos(r.json), source, as_of: clock() }; }
+      async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
       const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: true });
       // The quote a card is priced on: the ask for a buy, the bid for a sell, with the quote's own timestamp as its as-of.
       // A zero or missing side falls back to the latest trade, said so in the source.
@@ -182,6 +191,7 @@
       async function submit(order, key) {
         const problems = validate(order); if (problems.length) { log("order refused locally", { problems }); throw new BrokerError("invalid", `not sent: ${problems.join("; ")}`); }
         await ensureOwner();
+        await withinCap(order);
         const coid = order.client_order_id || clientOrderId(key || JSON.stringify(order));
         const b = body(order, coid);
         log("submit", { symbol: b.symbol, side: b.side, type: b.type, qty: b.qty || null, notional: b.notional || null, client_order_id: coid });
@@ -191,6 +201,15 @@
       async function getOrder(id) { const r = await call("GET", P(`/orders/${encodeURIComponent(id)}`), null, "order"); return r.status === 404 ? null : normalize(r.json, lastClock ? lastClock.is_open : undefined); }
       // The reference returns "an array containing the requested Order object"; a bare object is accepted too.
       async function byClientOrderId(coid) { const r = await call("GET", `${P("/orders:by_client_order_id")}?client_order_id=${encodeURIComponent(coid)}`, null, "order by client id"); if (r.status === 404) return null; const j = Array.isArray(r.json) ? r.json[0] : r.json; return j ? normalize(j, lastClock ? lastClock.is_open : undefined) : null; }
+      // The owner's per-order cap, checked here so no caller can skip it. The flow says it first, before any card.
+      async function withinCap(o) {
+        let ref = null;
+        if (!Number.isSafeInteger(o.notional_cents) && !(o.type === "limit" || o.type === "stop_limit")) { const q = await quote(o.symbol, o.side).catch(() => null); ref = q && q.value ? q.value.price_cents : null; }
+        const est = estimate(o, ref);
+        if (est === null) { log("order refused locally", { cap_cents: cap, reason: "unpriced" }); throw new BrokerError("cap", `not sent: I can't price it against the $${centsToStr(cap)} per-order limit`); }
+        if (est > cap) { log("order refused locally", { cap_cents: cap, estimated_cents: est }); throw new BrokerError("cap", `not sent: about $${centsToStr(est)} is over the $${centsToStr(cap)} per-order limit for live orders while Upmore is in testing`); }
+        return est;
+      }
       // Replace: whole shares only for qty ("You can only patch full shares for now"); the answer is a NEW order with a new id.
       async function replace(id, changes) {
         const ch = changes || {}, b = {};
@@ -202,13 +221,19 @@
         if (ch.client_order_id) b.client_order_id = ch.client_order_id;
         if (!Object.keys(b).length) throw new BrokerError("invalid", "not sent: nothing to change");
         await ensureOwner();
+        // A change can raise what the order could cost: the changed order is held to the same cap.
+        const cur = await getOrder(id); if (!cur) throw new BrokerError("rejected", "not sent: that order was not found");
+        await withinCap({ symbol: cur.symbol, side: cur.side, type: cur.type, qty: ch.qty !== undefined ? Number(ch.qty) : cur.qty, notional_cents: ch.qty === undefined && cur.qty === null ? cur.notional_cents : undefined, limit_cents: Number.isSafeInteger(ch.limit_cents) ? ch.limit_cents : cur.limit_cents, stop_cents: Number.isSafeInteger(ch.stop_cents) ? ch.stop_cents : cur.stop_cents });
         log("replace", { order_id: id, fields: Object.keys(b) });
         const r = await call("PATCH", P(`/orders/${encodeURIComponent(id)}`), b, "replace");
         return normalize(r.json, lastClock ? lastClock.is_open : undefined);
       }
       // Cancel: 204 means the request was accepted, not that the order is canceled; the caller reads the order back.
       async function cancel(id) { await ensureOwner(); log("cancel", { order_id: id }); const r = await call("DELETE", P(`/orders/${encodeURIComponent(id)}`), null, "cancel"); return { accepted: r.status === 204 || r.status === 200, status: r.status }; }
-      return { submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, paper: true, mock, api, account_id: c.account_id };
+      // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
+      // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
+      return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -218,10 +243,10 @@
       const attempts = new Map(); // client_order_id -> first attempt time, so a 404 right after a lost response stays unknown
       const refused = new Map();  // client_order_id -> the broker's reason for a definite 4xx refusal (nothing was placed)
       let attemptedAt = () => undefined; // bound by the flow to its loop log, so a stateless restart still knows when it wrote
-      const name = o.account_name || "Alpaca PAPER";
+      const name = o.account_name || "your Alpaca account";
       async function read(kind, p) {
         const q = p || {};
-        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: true, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
+        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
         if (kind === "quote") return adapter.quote(q.symbol, q.side || "buy");
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);
@@ -229,24 +254,24 @@
         if (kind === "asset") { const a = await adapter.asset(q.symbol); return a ? { value: a, source: adapter.source, as_of: now() } : null; }
         if (kind === "order") { const r = await adapter.getOrder(q.order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
         if (kind === "order_by_client_id") { const r = await adapter.byClientOrderId(q.client_order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
-        throw new Error(`NOT_WIRED: ${kind} is not an Alpaca paper read`);
+        throw new Error(`NOT_WIRED: ${kind} is not an Alpaca read`);
       }
       async function write(capabilityId, params, key) {
         const p = params || {};
         if (p.action === "cancel") { const r = await adapter.cancel(p.order_id); return { reference: p.order_id, cancel_requested: r.accepted }; }
         if (p.action === "replace") { const r = await adapter.replace(p.order_id, p.changes || {}); return { reference: r.order_id, replaced: p.order_id, order: r }; }
-        const coid = AlpacaPaper.clientOrderId(key);
+        const coid = AlpacaTrading.clientOrderId(key);
         if (!attempts.has(coid)) attempts.set(coid, now());
         const order = { symbol: p.symbol, side: p.side, type: p.type || "market", time_in_force: p.time_in_force || "day", client_order_id: coid };
         if (p.notional_cents) order.notional_cents = p.notional_cents; else order.qty = p.quantity;
         for (const k of ["limit_cents", "stop_cents", "trail_cents", "trail_percent"]) if (p[k] !== undefined && p[k] !== null) order[k] = p[k];
         try { const r = await adapter.submit(order, key); return { reference: r.order.order_id, client_order_id: coid, order: r.order }; }
-        catch (e) { if (e && ["rejected", "invalid", "auth", "rate_limited", "isolation"].includes(e.kind)) { refused.set(coid, e.message); return { reference: null, rejected: true, reason: e.message, client_order_id: coid }; } throw e; }
+        catch (e) { if (e && ["rejected", "invalid", "auth", "rate_limited", "isolation", "cap"].includes(e.kind)) { refused.set(coid, e.message); return { reference: null, rejected: true, reason: e.message, client_order_id: coid }; } throw e; }
       }
       // verify: the order exists at the broker (by id, or found again by client_order_id). Exists is "confirmed" for the loop;
       // filled or not is read back by the flow. Not found within the grace window is still unknown, never "not placed".
       async function verify(capabilityId, key, ref) {
-        const coid = AlpacaPaper.clientOrderId(key);
+        const coid = AlpacaTrading.clientOrderId(key);
         if (refused.has(coid)) return { confirmed: false, reason: refused.get(coid), source: adapter.source, refused: true };
         const r = ref && ref.reference ? await adapter.getOrder(ref.reference) : typeof ref === "string" ? await adapter.getOrder(ref) : await adapter.byClientOrderId(coid);
         if (r && r.state === "rejected") return { confirmed: false, reason: r.reason || "rejected by the broker", source: adapter.source, reference: r.order_id };
@@ -255,14 +280,8 @@
         if (first === undefined || first === null || now() - first < graceMs) throw new Error(`not found yet at ${adapter.source}; still unknown`);
         return { confirmed: false, reason: `no order with client id ${coid} exists at ${adapter.source}, so nothing was placed`, source: adapter.source, not_found: true };
       }
-      return { read, write, verify, bindLog(fn) { if (typeof fn === "function") attemptedAt = fn; }, paper: true, mock: adapter.mock, label: adapter.label };
+      return { read, write, verify, bindLog(fn) { if (typeof fn === "function") attemptedAt = fn; }, auth_failed: () => adapter.auth_failed(), live: true, paper: false, mock: adapter.mock, label: adapter.label };
     }
-    // The host builds the adapter only when both keys are in its environment; otherwise trading stays NOT_WIRED.
-    function fromEnv(env, extra) {
-      const e = env || {}, key = e.ALPACA_BROKER_KEY_ID, secret = e.ALPACA_BROKER_SECRET, account = e.ALPACA_PAPER_ACCOUNT_ID;
-      if (!key || !secret || !account) return { wired: false, reason: `NOT_WIRED: ${[!key && "ALPACA_BROKER_KEY_ID", !secret && "ALPACA_BROKER_SECRET", !account && "ALPACA_PAPER_ACCOUNT_ID"].filter(Boolean).join(", ")} not set` };
-      return { wired: true, adapter: create(Object.assign({ key_id: key, secret, account_id: account }, extra || {})) };
-    }
-    return { create, connectors, fromEnv, validate, body, normalize, clientOrderId, centsToStr, strToCents, qtyStr, SANDBOX, PAPER_TRADING, HOSTS, TYPES, LABEL, BrokerError };
+    return { create, connectors, validate, body, normalize, estimate, clientOrderId, centsToStr, strToCents, qtyStr, LIVE, HOSTS, DEFAULT_CAP_CENTS, TYPES, LABEL, BrokerError };
   })();
-  if (typeof module !== "undefined" && module.exports) module.exports = AlpacaPaper;
+  if (typeof module !== "undefined" && module.exports) module.exports = AlpacaTrading;

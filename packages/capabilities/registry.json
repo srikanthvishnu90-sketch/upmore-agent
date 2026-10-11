@@ -3988,10 +3988,11 @@
    "connectors": [],
    "implementation": [
     "packages/domain/66-agent-trade.js",
-    "packages/domain/71-alpaca-paper.js",
+    "packages/domain/71-alpaca.js",
+    "packages/domain/73-broker-accounts.js",
     "packages/domain/43-agent-loop.js"
    ],
-   "note": "Rail 2 (docs/depth/RAIL-2.md): sells from a text (shares, dollars, half, all, a percent) with the position read before staging, every order type (market, limit, stop, stop limit, trailing stop), a fresh single-use yes, the fill read back. Proven against a MOCK Alpaca Broker API server only; the Alpaca paper sandbox adapter exists but has never run against Alpaca (no keys here). PAPER only: the adapter refuses any non-sandbox host. Real money stays gated on a broker-dealer partner.",
+   "note": "Rail 2 (docs/depth/RAIL-2.md) and Brokerage connect (docs/depth/BROKER-CONNECT.md): sells from a text (shares, dollars, half, all, a percent) with the position read before staging, every order type (market, limit, stop, stop limit, trailing stop), a fresh single-use yes, the fill read back. Since 2026-10-11 LIVE only, in the person's OWN Alpaca account connected through OAuth (no shared account, no paper), $5.00 per-order cap until the owner raises it. Proven against a MOCK Alpaca Trading API server and stubbed OAuth only; 0 live connections and 0 live orders.",
    "description": "user-directed sell order"
   },
   {

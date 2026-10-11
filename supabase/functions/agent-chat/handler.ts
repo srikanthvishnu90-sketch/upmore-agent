@@ -26,8 +26,9 @@ import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact 
 import { AgentIntents } from "./agent_core.js";
 import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
-import { reserveModelCall, recordModelUsage, anthropicPlannerModel } from "../_shared/model_calls.ts";
-import { routeFlows, supabaseFlowDb, anthropicRouteExtractor, flowErrorReply, userBroker, brokerSource } from "../_shared/flow_router.ts";
+import { reserveModelCall, recordModelUsage } from "../_shared/model_calls.ts";
+import { modelConfig, chatReply, plannerModel, newMeter, adminHealthSink, type TurnMeter, type HealthSink } from "../_shared/model_gateway.ts";
+import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
@@ -39,8 +40,7 @@ import {
   type ChatLesson,
 } from "./_shared/lessons.ts";
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
+// The provider and model come from the model gateway (MODEL_PROVIDER / OPENAI_* / ANTHROPIC_* secrets), read per request.
 const MAX_TOKENS = 400; // tight budget: short, basic replies
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size — output already capped at MAX_TOKENS
@@ -77,9 +77,19 @@ let catalogCache: { at: number; routes: any[] } | null = null;
 
 // A note from the flow layer (a live card was dropped because the person moved on) goes in front of whatever reply the
 // rest of the handler produces, so the person always learns the card is gone.
+// Every turn that called a model leaves one agent_turn_costs row (calls, tokens, estimated cost), whatever the reply was.
+type TurnCtx = { note: string | null; meter: TurnMeter; user: string | null; thread: string | null; health: HealthSink | undefined };
 export async function handleChat(req: Request): Promise<Response> {
-  const ctx: { note: string | null } = { note: null };
+  const ctx: TurnCtx = { note: null, meter: newMeter(), user: null, thread: null, health: undefined };
   const res = await handleChatInner(req, ctx);
+  if (ctx.meter.calls > 0 && ctx.user) {
+    try {
+      const m = ctx.meter;
+      const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await svc.from("agent_turn_costs").insert({ user_id: ctx.user, thread_id: ctx.thread, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+      console.log(`[cost] turn calls=${m.calls} failed=${m.failed} in=${m.input_tokens} out=${m.output_tokens} usd=${(m.usd_micros / 1e6).toFixed(6)} ${m.provider} ${m.models.join(",")}`);
+    } catch (_) { /* cost logging never breaks a reply */ }
+  }
   if (!ctx.note || res.status !== 200) return res;
   try {
     const body = await res.clone().json();
@@ -90,7 +100,7 @@ export async function handleChat(req: Request): Promise<Response> {
   } catch { return res; }
 }
 
-async function handleChatInner(req: Request, flowCtx: { note: string | null }): Promise<Response> {
+async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response> {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -197,6 +207,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       if(error instanceof ChatThreadError) return json(cors,{error:error.code},error.status);
       throw error;
     }
+    flowCtx.user = user.id; flowCtx.thread = tid;
 
     // Catalog-independent safety guards run BEFORE the heavy parallel fetches
     // (1500-route catalog in 5 pages). They need no DB data, so a gambling,
@@ -221,7 +232,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       let flow: any = null;
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-        const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
+        const extract = routeExtractor(flowAdmin, user.id, tid, modelConfig(Deno.env, "router"), { meter: flowCtx.meter, health: flowCtx.health ??= adminHealthSink(flowAdmin) });
         // The caller's own live brokerage connection, resolved only when the message can be a flow (never for small
         // talk); a 401 is marked for Reconnect (flush) before the reply goes out.
         let broker: any = null;
@@ -251,7 +262,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       const history = await supabase.from("agent_messages").select("role,content").eq("thread_id",tid).order("id",{ascending:false}).limit(10);
       if (history.error) throw new Error("Conversation history unavailable.");
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
-        anthropicPlannerModel(admin,user.id,tid,MODEL,Deno.env.get("ANTHROPIC_API_KEY")||""),message,(history.data||[]).reverse());
+        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin)}),message,(history.data||[]).reverse());
       const reply = result.reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},
@@ -751,18 +762,12 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
     // (rate limit was already enforced for every request at the top of the
     // handler, before any DB work)
     const usageAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const chatCfg = modelConfig(Deno.env, "chat");
     let modelCallId:string;
-    try { modelCallId = await reserveModelCall(usageAdmin,user.id,tid,crypto.randomUUID(),0,MODEL); }
+    try { modelCallId = await reserveModelCall(usageAdmin,user.id,tid,crypto.randomUUID(),0,chatCfg.model); }
     catch { return json(cors,{error:"agent_unavailable",message:"The model budget is unavailable or exhausted. Your deterministic tools still work."},503); }
-    const anthropicRes = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
+    // A provider failure is said plainly, saved with its cause, and answered 200: never a silent 502, never planner wording.
+    const chat = await chatReply(chatCfg, {
         max_tokens: MAX_TOKENS,
         system: [
           { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
@@ -773,14 +778,15 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
           role: "user",
           content: [...imageBlocks, { type: "text", text: message }],
         }],
-      }),
-    });
-    if (!anthropicRes.ok) {
-      const t = await anthropicRes.text();
-      console.error("anthropic error", anthropicRes.status, t.slice(0, 300));
-      return json(cors, { error: "agent_unavailable" }, 502);
+      }, { meter: flowCtx.meter, health: flowCtx.health ??= adminHealthSink(usageAdmin) });
+    if (!chat.ok) {
+      await supabase.from("agent_messages").insert([
+        { thread_id: tid, role: "user", content: userContent },
+        { thread_id: tid, role: "assistant", content: chat.reply, meta: { capability: true, failure_code: "model_unavailable", model_error: chat.model_error } },
+      ]);
+      return json(cors, { thread_id: tid, reply: chat.reply, action: null, failure_code: "model_unavailable" });
     }
-    const aj = await anthropicRes.json();
+    const aj = chat.message;
     let reply: string = aj.content?.map((b: any) => b.text ?? "").join("") ?? "";
 
     // COST OPT 2026-09-27: log token usage per request for margin verification.

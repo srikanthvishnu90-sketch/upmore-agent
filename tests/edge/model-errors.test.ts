@@ -3,9 +3,12 @@
 // financial plan ... no payment was approved". These tests hold the fix: the provider's own error type and message are
 // kept (never the key), the planner says plainly that the AI service isn't responding, and the router's problem names
 // the cause.
-import {anthropicPlannerModel,ModelUnavailableError} from "../../supabase/functions/_shared/model_calls.ts";
+import {ModelUnavailableError} from "../../supabase/functions/_shared/model_calls.ts";
+import {plannerModel} from "../../supabase/functions/_shared/model_gateway.ts";
+const anthropicPlannerModel=(a:any,u:string,t:string,model:string,apiKey:string,request:any)=>plannerModel(a,u,t,{provider:"anthropic",model,apiKey,reasoningEffort:null},{request});
 import {runFinancialPlanner} from "../../supabase/functions/_shared/financial_planner.ts";
-import {anthropicRouteExtractor} from "../../supabase/functions/_shared/flow_router.ts";
+import {routeExtractor} from "../../supabase/functions/_shared/flow_router.ts";
+const anthropicRouteExtractor=(a:any,u:string,t:string,model:string,apiKey:string,request:any)=>routeExtractor(a,u,t,{provider:"anthropic",model,apiKey,reasoningEffort:null},{request});
 import {fixture,rejects,user} from "./lib/financial_fixture.ts";
 function assert(v:unknown,m="assertion failed"){if(!v)throw new Error(m);}
 const admin=()=>({calls:[] as any[],async rpc(name:string,args:any){this.calls.push({name,args});return {data:{ok:true,call_id:"slot"},error:null};}});

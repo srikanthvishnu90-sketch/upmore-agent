@@ -1,7 +1,8 @@
 // Phase 1 wiring of the chat handler (supabase/functions/_shared/flow_router.ts). These run the real wiring code in Deno
 // with an in-memory database and a STUB model. They prove the wiring, not the spec 16 score: the score comes only from
 // evals/gauntlet/run-live.cjs against the deployed handler with the real model.
-import { routeFlows as routeFlowsTyped, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, userBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+import { routeFlows as routeFlowsTyped, routeExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, userBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+const anthropicRouteExtractor = (a: any, u: string, t: string, model: string, apiKey: string, request: any) => routeExtractor(a, u, t, { provider: "anthropic", model, apiKey, reasoningEffort: null }, { request });
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }

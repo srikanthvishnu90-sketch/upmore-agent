@@ -14,7 +14,8 @@
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
 import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
-import { reserveModelCall, recordModelUsage, providerError } from "./model_calls.ts";
+import { reserveModelCall, recordModelUsage, ModelUnavailableError } from "./model_calls.ts";
+import { callModel, type CallOptions, type ModelConfig } from "./model_gateway.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
 let registryCache: any = null;
@@ -248,22 +249,20 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   };
 }
 
-// The model call: one forced tool call inside the existing budget reservation. Any failure throws, and the router falls
-// back to the regex net and marks the result source "regex_net".
-export function anthropicRouteExtractor(admin: any, userId: string, threadId: string, model: string, apiKey: string, request: typeof fetch = fetch) {
+// The model call: one forced tool call inside the existing budget reservation, through the model gateway (OpenAI or
+// Anthropic, same request). Any failure throws, and the router falls back to the regex net and marks the result source
+// "regex_net".
+export function routeExtractor(admin: any, userId: string, threadId: string, cfg: ModelConfig, o: CallOptions = {}) {
   return async (message: string) => {
-    if (!apiKey) throw new Error("router model is not configured");
-    const callId = await reserveModelCall(admin, userId, threadId, crypto.randomUUID(), 1, model);
-    const res = await request("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, max_tokens: 400, system: AgentRouter.SYSTEM, tools: [AgentRouter.TOOL], tool_choice: { type: "tool", name: AgentRouter.TOOL.name }, messages: [{ role: "user", content: message }] }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) { const e = await providerError(res); console.error(`[model] router ${e.summary()}`); throw new Error(`router model ${e.summary()}`); }
-    const raw = await res.text();
-    if (raw.length > 30000) throw new Error("router model response is too large");
-    const body = JSON.parse(raw);
+    if (!cfg.apiKey) throw new Error("router model is not configured");
+    const callId = await reserveModelCall(admin, userId, threadId, crypto.randomUUID(), 1, cfg.model);
+    let body: any;
+    try {
+      body = await callModel(cfg, { max_tokens: 400, system: AgentRouter.SYSTEM, tools: [AgentRouter.TOOL], tool_choice: { type: "tool", name: AgentRouter.TOOL.name }, messages: [{ role: "user", content: message }] }, Object.assign({ timeoutMs: 10000 }, o, { role: "router" }));
+    } catch (e) {
+      if (e instanceof ModelUnavailableError) { console.error(`[model] router ${e.summary()}`); throw new Error(`router model ${e.summary()}`); }
+      throw e;
+    }
     await recordModelUsage(admin, callId, body.usage);
     const block = (body.content || []).find((b: any) => b && b.type === "tool_use" && b.name === AgentRouter.TOOL.name);
     if (!block || typeof block.input !== "object") throw new Error("router model returned no route_message call");

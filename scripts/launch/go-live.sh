@@ -5,14 +5,22 @@
 #   GAUNTLET_PASSWORD='...'                 the password of gauntlet-test@upmore.test (mints a fresh 1-hour JWT here;
 #                                           the JWT goes into this process's environment only, never a file)
 #   ALPACA_OAUTH_CLIENT_ID / ALPACA_OAUTH_CLIENT_SECRET   optional: set as function secrets for Brokerage connect
+#   OPENAI_API_KEY='...'                    optional: set as a function secret; the model gateway then uses OpenAI
+#                                           (gpt-5-nano). Type it without shell history: read -rs OPENAI_API_KEY; export OPENAI_API_KEY
+#   HEALTH_CHECK_TOKEN='...'                optional: the model-health token; generated (and kept in ~/.upmore/health-token,
+#                                           0600) when not given and not already saved
 #   bash scripts/launch/go-live.sh [--no-wait]
 #
 # Needs: the supabase CLI logged in (`supabase login`), psql, node 18+, curl, jq. Stops at the first failure.
 #   0. preflight: clean tree, the exact commit, the local checks green (node tests, bundle current)
-#   1. migrations: all 22 pending, ONE transaction, then the gauntlet seed and the read-only RLS proof
-#   2. secrets: the Alpaca OAuth pair, only if given (values via a 0600 temp file, never echoed)
-#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback (--no-verify-jwt: a browser redirect carries no JWT)
-#   4. smoke: unauthenticated calls answer 401, and the callback answers with the NEW code (proves the deploy took)
+#   1. migrations: only those not yet in the live ledger (--pending), ONE transaction; a re-run applies nothing
+#   2. secrets: the OpenAI key, the health token and the Alpaca OAuth pair, each only if given (values via a 0600 temp
+#      file, never echoed)
+#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback and model-health (the last two --no-verify-jwt: a
+#      browser redirect and an uptime monitor carry no JWT)
+#   4. smoke: unauthenticated calls answer 401, the callback answers with the NEW code (proves the deploy took), and ONE
+#      live model call through model-health answers; if it does not, the provider's exact error is printed and the run
+#      STOPS before the gauntlet (nothing is built around a dead model)
 #   5. gauntlet against the live handler: spec16, sloppy, l3 (--no-wait reports the timed turns NOT RUN instead of
 #      waiting 11 minutes); raw replies in evals/gauntlet/results/<label>*.json
 #   6. prints the rollback command
@@ -37,34 +45,48 @@ if [[ -z "$DRY" ]]; then
 fi
 echo "commit $SHA"
 
-say "1. migrations (one transaction), seed, RLS proof"
-do_ bash scripts/launch/apply-rails-and-seed.sh --all
+say "1. migrations not yet applied (one transaction, recorded in the ledger)"
+do_ bash scripts/launch/apply-rails-and-seed.sh --pending
 
 say "2. secrets"
-if [[ -n "${ALPACA_OAUTH_CLIENT_ID:-}" && -n "${ALPACA_OAUTH_CLIENT_SECRET:-}" ]]; then
-  if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ALPACA_OAUTH_CLIENT_ID, ALPACA_OAUTH_CLIENT_SECRET>"
-  else
-    ENVF="$(mktemp)"; chmod 600 "$ENVF"; trap 'rm -f "$ENVF"' EXIT
-    printf 'ALPACA_OAUTH_CLIENT_ID=%s\nALPACA_OAUTH_CLIENT_SECRET=%s\n' "$ALPACA_OAUTH_CLIENT_ID" "$ALPACA_OAUTH_CLIENT_SECRET" >"$ENVF"
-    supabase secrets set --project-ref "$REF" --env-file "$ENVF" >/dev/null; rm -f "$ENVF"; echo "set: ALPACA_OAUTH_CLIENT_ID, ALPACA_OAUTH_CLIENT_SECRET"
-  fi
+TOKF="$HOME/.upmore/health-token"
+if [[ -z "${HEALTH_CHECK_TOKEN:-}" && -f "$TOKF" ]]; then HEALTH_CHECK_TOKEN="$(cat "$TOKF")"; fi
+NEW_TOKEN=""
+if [[ -z "${HEALTH_CHECK_TOKEN:-}" ]]; then HEALTH_CHECK_TOKEN="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"; NEW_TOKEN=1; fi
+NAMES=(); LINES=()
+add() { NAMES+=("$1"); LINES+=("$1=$2"); }
+if [[ -n "${OPENAI_API_KEY:-}" ]]; then add OPENAI_API_KEY "$OPENAI_API_KEY"; add MODEL_PROVIDER openai; else echo "skipped: no OPENAI_API_KEY given (an already-set secret stays as it is)"; fi
+if [[ -n "${ALPACA_OAUTH_CLIENT_ID:-}" && -n "${ALPACA_OAUTH_CLIENT_SECRET:-}" ]]; then add ALPACA_OAUTH_CLIENT_ID "$ALPACA_OAUTH_CLIENT_ID"; add ALPACA_OAUTH_CLIENT_SECRET "$ALPACA_OAUTH_CLIENT_SECRET"
+else echo "skipped: no Alpaca OAuth pair given; Connect will say it isn't switched on yet (honest, 503)"; fi
+add HEALTH_CHECK_TOKEN "$HEALTH_CHECK_TOKEN"
+if [[ -n "$DRY" ]]; then echo "DRY: supabase secrets set --project-ref $REF --env-file <0600 temp file: ${NAMES[*]}>"
 else
-  echo "skipped: no Alpaca OAuth pair given; Connect will say it isn't switched on yet (honest, 503)"
+  ENVF="$(mktemp)"; chmod 600 "$ENVF"; trap 'rm -f "$ENVF"' EXIT
+  printf '%s\n' "${LINES[@]}" >"$ENVF"
+  supabase secrets set --project-ref "$REF" --env-file "$ENVF" >/dev/null; rm -f "$ENVF"; echo "set: ${NAMES[*]}"
+  if [[ -n "$NEW_TOKEN" ]]; then mkdir -p "$(dirname "$TOKF")"; (umask 077; printf '%s' "$HEALTH_CHECK_TOKEN" >"$TOKF"); echo "health token saved to $TOKF (0600) for your uptime monitor"; fi
 fi
+unset LINES
 
 say "3. deploy"
 do_ supabase functions deploy agent-chat --project-ref "$REF"
 do_ supabase functions deploy broker-oauth-start --project-ref "$REF"
 do_ supabase functions deploy broker-oauth-callback --project-ref "$REF" --no-verify-jwt
+do_ supabase functions deploy model-health --project-ref "$REF" --no-verify-jwt
 
 say "4. smoke (the new code is what answers)"
 expect() { local want="$1" got="$2" what="$3"; if [[ "$got" == "$want" ]]; then echo "ok   $what ($got)"; else echo "FAIL $what: wanted $want, got $got"; exit 1; fi; }
-if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid"
+if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid; GET model-health?probe=1 (token header) -> 200 or STOP with the provider's error"
 else
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/agent-chat")" "agent-chat refuses a call with no JWT"
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/broker-oauth-start")" "broker-oauth-start refuses a call with no JWT"
   LOC="$(curl -s -o /dev/null -w '%{redirect_url}' "$BASE/functions/v1/broker-oauth-callback?state=x&code=y")"
   [[ "$LOC" == *"#you?broker=error&reason=state_invalid" ]] && echo "ok   broker-oauth-callback is the new code ($LOC)" || { echo "FAIL broker-oauth-callback answered '$LOC'"; exit 1; }
+  # Step 1 of v3: one live model call. A dead model stops the run here with the provider's own words (key redacted).
+  HB="$(mktemp)"; HC="$(curl -s -o "$HB" -w '%{http_code}' -H "x-health-token: $HEALTH_CHECK_TOKEN" "$BASE/functions/v1/model-health?probe=1")"
+  if [[ "$HC" == "200" ]]; then echo "ok   live model call answered: $(jq -c '{provider,model,probe}' "$HB")"; rm -f "$HB"
+  else echo "FAIL the live model call did not answer (HTTP $HC): $(jq -c '{status,provider,model,probe,last_error:.window.last_error}' "$HB" 2>/dev/null || cat "$HB")"; rm -f "$HB"
+       echo "stopped before the gauntlet: fix the provider key (supabase secrets set ...) and re-run; nothing else was changed after the deploy"; exit 1; fi
 fi
 
 say "5. live gauntlet on $SHA"

@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.broker-oauth-callback]
 verify_jwt = false
+
+[functions.model-health]
+verify_jwt = false

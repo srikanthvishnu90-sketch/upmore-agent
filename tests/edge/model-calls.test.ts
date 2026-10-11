@@ -1,4 +1,7 @@
-import {reserveModelCall,recordModelUsage,anthropicPlannerModel} from "../../supabase/functions/_shared/model_calls.ts";
+import {reserveModelCall,recordModelUsage} from "../../supabase/functions/_shared/model_calls.ts";
+import {plannerModel} from "../../supabase/functions/_shared/model_gateway.ts";
+// The planner through the model gateway, Anthropic provider (the OpenAI path is in model-gateway.test.ts).
+const anthropicPlannerModel=(a:any,u:string,t:string,model:string,apiKey:string,request:any)=>plannerModel(a,u,t,{provider:"anthropic",model,apiKey,reasoningEffort:null},{request});
 import {rejects,user} from "./lib/financial_fixture.ts";
 function assert(v:unknown,m="assertion failed"){if(!v)throw new Error(m);}
 function admin(data:any={ok:true,call_id:"slot"},error:any=null){const calls:any[]=[];return {calls,async rpc(name:string,args:any){calls.push({name,args});return {data,error};}};}

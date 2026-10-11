@@ -45,9 +45,9 @@ const STUB: Record<string, any> = {
 };
 const stubModel = async (m: string) => STUB[m] ?? { intent: "other" };
 
-Deno.test("data mapping: pending rows are excluded, cents are exact, paper accounts say paper, and no partner is live", () => {
-  const d = mapFlowData(txRows(), [{ id: "a", provider: "alpaca", label: "main", paper: true, status: "active" }, { id: "b", provider: "alpaca", label: "old", paper: false, status: "revoked" }], [{ brokerage_account_id: "a", cash: 12.34 }]);
-  eq(d.transactions.length, 4); eq(d.transactions[0].amount, -17.99); eq(d.brokerageAccounts.length, 1); eq(d.brokerageAccounts[0].name, "alpaca main (paper)"); eq(d.brokerageAccounts[0].cash_cents, 1234);
+Deno.test("data mapping: pending rows are excluded, cents are exact, a paper account is never listed (everything is live), and no partner is live", () => {
+  const d = mapFlowData(txRows(), [{ id: "p", provider: "alpaca", label: "practice", paper: true, status: "active" }, { id: "a", provider: "alpaca", label: "main", paper: false, status: "active" }, { id: "b", provider: "alpaca", label: "old", paper: false, status: "revoked" }], [{ brokerage_account_id: "a", cash: 12.34 }]);
+  eq(d.transactions.length, 4); eq(d.transactions[0].amount, -17.99); eq(d.brokerageAccounts.length, 1); eq(d.brokerageAccounts[0].name, "alpaca main"); eq(d.brokerageAccounts[0].id, "a"); eq(d.brokerageAccounts[0].cash_cents, 1234);
   eq(d.people, [], "people come only from saved_recipients rows"); eq(d.recipients, []); eq(d.recipients_ok, true);
   eq(mapFlowData([], [], [], null).recipients_ok, false, "an unreadable recipient table is reported, never treated as empty");
   eq(Object.keys(LIVE_PARTNERS).length, 0, "no rail is live; nothing can be configured to look live");

@@ -318,11 +318,12 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
   };
 }
 
-// Pure mapping from database rows to what the flows read. Paper accounts are labeled as paper, never presented as live.
+// Pure mapping from database rows to what the flows read. Everything is live (owner rule 2026-10-11): a paper account row
+// is never shown or offered, and only active, live connections are listed.
 export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = []) {
   const transactions = txRows.filter(t => t.posted_on && !t.is_pending).map(t => ({ id: t.provider_transaction_id, account_id: t.account_id, posted_at: t.posted_on, amount: Number(t.amount_cents) / 100, merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer }));
   const cashOf = (id: string) => { const s = snapRows.find(r => r.brokerage_account_id === id); return s && s.cash !== null && s.cash !== undefined ? Math.round(Number(s.cash) * 100) : undefined; };
-  const brokerageAccounts = acctRows.filter(a => a.status !== "revoked").map(a => ({ id: a.id, name: `${a.provider} ${a.label}${a.paper ? " (paper)" : ""}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
+  const brokerageAccounts = acctRows.filter(a => a.status !== "revoked" && a.paper !== true).map(a => ({ id: a.id, name: `${a.provider} ${a.label}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
   // People come only from public.saved_recipients (rows saved on evidence); anyone else is a stranger and is confirmed in
   // full. No instrument list exists yet; orders stop at the compliance gate before needing one.
   const people: any[] = [], instruments: any[] = [];

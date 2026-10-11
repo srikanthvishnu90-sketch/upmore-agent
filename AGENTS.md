@@ -22,6 +22,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Record a check: `python3 scripts/capture-checks.py` writes `docs/testing/evidence-ledger.json`
 
 ## Rules
+- Everything is LIVE (owner, standing since 2026-10-11): no paper trading, paper accounts, paper labels or paper fallback anywhere. Trades run only in the person's own live brokerage account, behind a fresh approval and the $5 per-order cap until the owner raises it in writing. Mocks exist only inside tests and are labeled mock.
 - Money paths stay gated. No provider adapter, migration push to the live project, deploy, or production credential without the owner doing it himself.
 - Never fake a connector or outcome: a rail that is not live returns NOT_WIRED; a cancel is done when the merchant's record says cancelled; a fee is recovered when the credit posts.
 - Every user-facing money statement cites its data source and as-of time. The model explains numbers; functions over real rows produce them.

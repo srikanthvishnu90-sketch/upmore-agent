@@ -136,10 +136,11 @@
       // S07: the confirmation restates the exact order: side, size, symbol with name, estimate at the quote with source and as-of, account, type, timing.
       // The card a person answers: two SMS segments at most. Action with the exact amount, where the money goes, the fee
       // and total, the quote it is priced on (source and as-of, on every card), what the order type does, that it queues
-      // when the market is closed, that a filled order can't be undone, and PAPER on every paper account. The rest is DETAILS.
+      // when the market is closed, that a filled order can't be undone, and LIVE on every live account. The rest is DETAILS.
       const hhmm = ms => new Date(ms).toISOString().slice(11, 16) + " UTC";
-      // The account's mode on every surface: LIVE on a person's own live account (Brokerage connect), PAPER on a paper one.
-      const MODE = acct => acct && acct.live ? "LIVE: " : acct && acct.paper ? "PAPER: " : "";
+      // LIVE on every surface of a person's own live account. Owner rule (2026-10-11): everything is live; there is no paper
+      // mode, label or fallback anywhere. A paper account is refused at account selection.
+      const MODE = acct => acct && acct.live ? "LIVE: " : "";
       const verb = ord => ord.side === "sell" ? "Sell" : "Buy";
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
@@ -172,7 +173,7 @@
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = ord.notional_cents ? `about ${qty(ord.quantity)} shares at ${money(ord.price_cents)}` : `about ${money(ord.estimated_cents)} at ${money(ord.price_cents)}`;
         const T = terms(ord), tif = tifWords(ord);
-        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ord.account.paper ? "Paper trading: no real money moves. " : ""}Reply yes or no.`;
+        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ""}Reply yes or no.`;
       }
 
       // The instrument, from the caller's list, or (when the broker can answer) the broker's own asset record for a ticker.
@@ -262,6 +263,7 @@
         else if (linked.length === 1) account = linked[0];
         else if (!linked.length) return ask("no_account", "No brokerage account is linked, so there is nowhere to place this.");
         else return ask("account_which", `Which account: ${linked.map(a => a.name).join(" or ")}?`);
+        if (account.paper === true) return say("refuse", "That account is a paper (practice) account. Upmore trades only in your own live brokerage account, so nothing was placed.", { reason: "paper_account" });
         if (account.tradable === false) return say("refuse", `${account.name} is view-only here; orders can't be placed in it.`, { reason: "account_view_only" });
         if (Array.isArray(inst.tradable_at) && !inst.tradable_at.includes(account.id)) return say("refuse", `${inst.symbol} is not tradable in ${account.name}.`, { reason: "not_tradable_here" });
         const fractional = account.fractional !== false && inst.fractionable !== false;
@@ -313,7 +315,7 @@
         const prior = orders.filter(x => x.key === base || x.key.startsWith(base + ":")).length;
         const key = parsed.another && prior ? `${base}:${prior + 1}` : base;
         const sizeWords = order.notional_cents ? money(order.notional_cents) + " of" : qty(quantity) + " shares of";
-        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper, live: !!account.live }, describe: `${account.live ? "LIVE " : account.paper ? "PAPER " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
+        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper, live: !!account.live }, describe: `${account.live ? "LIVE " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
         order.key = key; order.request = request;
         const r = await loop.wake({ kind: "message", request });
         if (r.outcome === "awaiting_confirmation") { pending = { order, confirmation_id: r.confirmation_id }; return say("confirm", cardText(order), { confirmation_id: r.confirmation_id, order, details: confirmText(order) }); }
@@ -424,15 +426,15 @@
         orders.push(fresh);
         return say(s.status === "filled" ? "filled" : "replaced", `${P}Changed: order ${target.order_id} is replaced by order ${ref}, ${fresh.side === "sell" ? "sell" : "buy"} ${qty(fresh.quantity)} ${fresh.symbol}${terms(fresh).head}, ${s.status === "filled" ? `filled at ${money(s.fill_price_cents)}` : s.status} per ${rb.source} (as of ${hhmm(rb.as_of)}).`, { order_id: ref, replaced: target.order_id });
       }
-      // The portfolio answer: positions and buying power from the account's own read, LIVE or PAPER said first.
+      // The portfolio answer: positions and buying power from the account's own read, LIVE said first.
       async function portfolio() {
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
         const h = await readOr("holdings", {});
         if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
-        const a = (accts.value || [])[0] || {}, paper = !!a.paper, rows = h.value || [];
+        const a = (accts.value || [])[0] || {}, rows = h.value || [];
         const fmt = x => `${qty(x.qty !== undefined ? x.qty : x.quantity)} ${x.symbol}${Number.isSafeInteger(x.market_value_cents) ? ` (${money(x.market_value_cents)})` : ""}`;
-        return say("answer", `${a.live ? "LIVE portfolio" : paper ? "PAPER portfolio (paper trading, no real money)" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper });
+        return say("answer", `${a.live ? "LIVE portfolio" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper: false, live: !!a.live });
       }
 
       async function recheck(ord) {
@@ -503,7 +505,7 @@
       }
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
-      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : f.value.paper ? " (PAPER)" : ""}`).join("; ") + "."); }
+      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };

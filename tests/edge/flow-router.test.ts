@@ -1,7 +1,7 @@
 // Phase 1 wiring of the chat handler (supabase/functions/_shared/flow_router.ts). These run the real wiring code in Deno
 // with an in-memory database and a STUB model. They prove the wiring, not the spec 16 score: the score comes only from
 // evals/gauntlet/run-live.cjs against the deployed handler with the real model.
-import { routeFlows, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+import { routeFlows, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, paperBroker, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }
@@ -161,4 +161,56 @@ Deno.test("Rail 1 live wiring: unreadable recipients are said plainly; a SAVE th
   const s = await routeFlows("SAVE", { db: d2, extract: model, now: () => now });
   eq(s!.route.outcome, "not_saved"); eq(s!.reply, "I couldn't save that right now, so nothing was saved. Reply SAVE again in a moment."); assert(s!.route.problems.includes("recipient save failed"));
   eq(store.recipients.length, 0);
+});
+
+// Rail 2 wiring. The broker below is a STUBBED fetch that answers like the Alpaca Broker API: it proves the edge binds the
+// paper adapter only under the right conditions and labels it PAPER, not that Alpaca accepts these requests.
+function stubAlpaca(now: () => number) {
+  const calls: { method: string; url: string; body: any; auth: string | null }[] = [];
+  const orders: any[] = [];
+  const f = async (input: any, init: any = {}) => {
+    const url = String(input), u = new URL(url), method = init.method || "GET", body = init.body ? JSON.parse(init.body) : null;
+    calls.push({ method, url, body, auth: (init.headers || {}).authorization || null });
+    const ok = (j: any, status = 200) => new Response(j === undefined ? null : JSON.stringify(j), { status, headers: { "content-type": "application/json" } });
+    const t = new Date(now() - 30000).toISOString();
+    if (u.pathname === "/v1/clock") return ok({ is_open: true, next_open: "2026-10-13T09:30:00-04:00" });
+    if (u.pathname === "/v1/assets/VOO") return ok({ symbol: "VOO", name: "Vanguard S&P 500 ETF", tradable: true, fractionable: true, status: "active" });
+    if (u.pathname.endsWith("/account")) return ok({ status: "ACTIVE", buying_power: "10000.00", cash: "10000.00" });
+    if (u.pathname === "/v2/stocks/VOO/quotes/latest") return ok({ symbol: "VOO", quote: { t, ap: 512.1, bp: 512.0 } });
+    if (u.pathname.endsWith("/orders") && method === "POST") { const o = { id: "ord-" + (orders.length + 1), client_order_id: body.client_order_id, symbol: body.symbol, side: body.side, type: body.type, time_in_force: body.time_in_force, notional: body.notional ?? null, qty: body.qty ?? null, filled_qty: "0.9764", filled_avg_price: "512.10", status: "filled", filled_at: new Date(now()).toISOString() }; orders.push(o); return ok(o); }
+    const m = /\/orders\/([^/]+)$/.exec(u.pathname); if (m && method === "GET") { const o = orders.find(x => x.id === m[1]); return o ? ok(o) : ok({ message: "not found" }, 404); }
+    if (u.pathname.endsWith("/positions")) return ok([{ symbol: "VOO", qty: "0.9764", market_value: "500.01" }]);
+    return ok({ message: "not found" }, 404);
+  };
+  return { f: f as unknown as typeof fetch, calls };
+}
+const envOf = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
+const FULL = { ALPACA_BROKER_KEY_ID: "PKSTUB", ALPACA_BROKER_SECRET: "stub-secret", ALPACA_PAPER_ACCOUNT_ID: "acct-1", ALPACA_PAPER_USER_ID: "u-1" };
+
+Deno.test("Rail 2 wiring: the paper broker binds only with every key and only for its one user; without it buying stays blocked", async () => {
+  const lines: string[] = [];
+  eq(paperBroker(envOf({}), "u-1"), null);
+  eq(paperBroker(envOf({ ...FULL, ALPACA_PAPER_USER_ID: "someone-else" }), "u-1"), null, "the single sandbox account belongs to one user");
+  eq(paperBroker(envOf({ ...FULL, ALPACA_BROKER_SECRET: "" }), "u-1", l => lines.push(l)), null); assert(/^\[PAPER \(Alpaca sandbox\)\] NOT_WIRED: ALPACA_BROKER_SECRET not set$/.test(lines[0]), lines[0]);
+  const { db } = memDb();
+  const b = await routeFlows("buy $500 of VOO", { db, extract: stubModel, now: () => T0, broker: null });
+  eq(b!.route.outcome, "blocked");
+});
+
+Deno.test("Rail 2 wiring: with the paper broker bound, a buy cards with PAPER and a sourced quote, a yes places one order, and the receipt is PAPER", async () => {
+  const lines: string[] = []; let now = T0; const stub = stubAlpaca(() => now);
+  const broker = paperBroker(envOf(FULL), "u-1", l => lines.push(l), stub.f)!;
+  assert(broker, "bound"); eq(broker.label, "PAPER (Alpaca sandbox)");
+  const { db } = memDb();
+  const go = (m: string) => routeFlows(m, { db, extract: stubModel, now: () => now, broker });
+  const c = await go("buy $500 of VOO");
+  eq(c!.route.outcome, "confirm"); assert(/^PAPER: Buy \$500\.00 of VOO \(Vanguard S&P 500 ETF\) in Alpaca PAPER\. No fee\. Quote \$512\.10 \(Alpaca PAPER sandbox, IEX ask, 13:59 UTC\)\./.test(c!.reply), c!.reply);
+  eq(stub.calls.filter(x => x.method === "POST").length, 0, "nothing before the yes");
+  now += 60000;
+  const y = await go("yes");
+  eq(y!.route.outcome, "filled"); assert(/^PAPER: Done: bought 0\.9764 VOO .* order ord-1, filled/.test(y!.reply), y!.reply);
+  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.length, 1); eq(typeof posts[0].body.notional, "string"); eq(posts[0].body.notional, "500.00");
+  assert(posts[0].url.startsWith("https://broker-api.sandbox.alpaca.markets/v1/trading/accounts/acct-1/orders"), posts[0].url);
+  eq(posts[0].auth, "Basic " + btoa("PKSTUB:stub-secret"));
+  assert(lines.length > 4); for (const l of lines) { assert(l.startsWith("[PAPER (Alpaca sandbox)]"), l); assert(!l.includes("stub-secret") && !l.includes("PKSTUB"), "no key in any log line"); }
 });

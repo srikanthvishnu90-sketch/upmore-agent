@@ -27,7 +27,7 @@ import { AgentIntents } from "./agent_core.js";
 import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
 import { reserveModelCall, recordModelUsage, anthropicPlannerModel } from "../_shared/model_calls.ts";
-import { routeFlows, supabaseFlowDb, anthropicRouteExtractor, flowErrorReply } from "../_shared/flow_router.ts";
+import { routeFlows, supabaseFlowDb, anthropicRouteExtractor, flowErrorReply, paperBroker } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
@@ -207,7 +207,7 @@ export async function handleChat(req: Request): Promise<Response> {
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
-        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app" });
+        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app", broker: paperBroker(Deno.env, user.id, (line) => console.log(line)) });
       } catch (e) {
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);

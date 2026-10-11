@@ -282,12 +282,14 @@
   "note": "Depth protocol docs/depth/INV-011.md: 15 sub-capabilities, each proven to fail under its planted defect. Execution is closed by the compliance gate until a broker-dealer partner is live (doc 14); the logic is proven against a fake rail that fills, queues, partially fills, rejects and times out."
  },
  "INV-012": {
-  "status": "GATED",
-  "gate_reason": "no broker-dealer partner rail; see INV-011",
+  "status": "TESTED",
+  "test_ref": "tests/depth-RAIL-2.test.cjs",
   "implementation": [
-   "packages/domain/50-agent-invest.js",
+   "packages/domain/66-agent-trade.js",
+   "packages/domain/71-alpaca-paper.js",
    "packages/domain/43-agent-loop.js"
-  ]
+  ],
+  "note": "Rail 2 (docs/depth/RAIL-2.md): sells from a text (shares, dollars, half, all, a percent) with the position read before staging, every order type (market, limit, stop, stop limit, trailing stop), a fresh single-use yes, the fill read back. Proven against a MOCK Alpaca Broker API server only; the Alpaca paper sandbox adapter exists but has never run against Alpaca (no keys here). PAPER only: the adapter refuses any non-sandbox host. Real money stays gated on a broker-dealer partner."
  },
  "INV-014": {
   "status": "TESTED",

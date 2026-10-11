@@ -22,8 +22,8 @@ Everything below describes how far the not-done items are from done. None of it 
 | Logic, not done | Items |
 | --- | --- |
 | LOGIC_PROVEN | 3 |
-| LOGIC_TESTED | 102 |
-| PARTLY_TESTED | 79 |
+| LOGIC_TESTED | 105 |
+| PARTLY_TESTED | 76 |
 | DESIGNED | 22 |
 
 | Rail | Items |
@@ -32,7 +32,7 @@ Everything below describes how far the not-done items are from done. None of it 
 | SANDBOX | 1 |
 | NOT_WIRED | 205 |
 
-Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 67. Writes with no registry id at T3 or above: 68.
+Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 66. Writes with no registry id at T3 or above: 68.
 
 ## Proof kinds (verification surfaces)
 
@@ -120,10 +120,10 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | Id | Capability | Done | Proof kind | Logic | Rail | Registry (status) | Connector gaps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C46 | Buy a stock or ETF from a text | no | fill | LOGIC_PROVEN | NOT_WIRED | INV-011 TESTED, INV-024 TESTED, CORE-009 TESTED | none |
-| C47 | Sell a position from a text | no | fill | PARTLY_TESTED | NOT_WIRED | INV-012 GATED, INV-001 TESTED, INV-024 TESTED | none |
+| C47 | Sell a position from a text | no | fill | LOGIC_TESTED | NOT_WIRED | INV-012 TESTED, INV-001 TESTED, INV-024 TESTED | none |
 | C48 | Automatic investing | no | fill | PARTLY_TESTED | NOT_WIRED | INV-013 CLAIMED, ALRT-007 TESTED, CORE-004 TESTED | brokerage-recurring-orders |
 | C49 | Rebalance my portfolio | no | fill | LOGIC_TESTED | NOT_WIRED | INV-014 TESTED, INV-002 TESTED, INV-016 TESTED | none |
-| C50 | Harvest tax losses | no | fill | PARTLY_TESTED | NOT_WIRED | INV-015 TESTED, INV-016 TESTED, INV-017 TESTED, INV-012 GATED | none |
+| C50 | Harvest tax losses | no | fill | LOGIC_TESTED | NOT_WIRED | INV-015 TESTED, INV-016 TESTED, INV-017 TESTED, INV-012 TESTED | none |
 | C51 | Buy Treasuries or build a T-bill ladder | no | fill | LOGIC_TESTED | NOT_WIRED | INV-011 TESTED, SAVE-002 TESTED | brokerage-fixed-income, treasury-yields |
 | C52 | Copy-trade real investors, trade by trade | no | fill | LOGIC_TESTED | NOT_WIRED | INV-011 TESTED, NEWS-005 TESTED, INV-024 TESTED | congressional-disclosures, sec-13f, copy-trading-feed |
 | C53 | Clone Nancy Pelosi's disclosed portfolio | no | fill | LOGIC_TESTED | NOT_WIRED | INV-011 TESTED, INV-002 TESTED, INV-024 TESTED | congressional-disclosures |
@@ -141,9 +141,9 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C65 | Old 401(k) rollover | no | payout_tracked | LOGIC_TESTED | NOT_WIRED | INV-019 TESTED, INV-018 TESTED | custodian-rollover-flow |
 | C66 | 401(k) contribution change | no | enrollment_verified | LOGIC_TESTED | NOT_WIRED | EARN-005 TESTED, SAVE-019 TESTED | benefits-portal-write |
 | C67 | ESPP enrollment | no | enrollment_verified | LOGIC_TESTED | NOT_WIRED | EARN-006 TESTED, EARN-005 TESTED | equity-portal-write |
-| C68 | RSU sell plan | no | fill | PARTLY_TESTED | NOT_WIRED | INV-003 TESTED, INV-012 GATED, TAX-008 CLAIMED | equity-platform-vests |
+| C68 | RSU sell plan | no | fill | PARTLY_TESTED | NOT_WIRED | INV-003 TESTED, INV-012 TESTED, TAX-008 CLAIMED | equity-platform-vests |
 | C69 | 529 contributions | no | delivery_confirmed | PARTLY_TESTED | NOT_WIRED | INV-018 TESTED, TAX-009 CLAIMED | 529-plan |
-| C70 | Exit on a schedule | no | fill | PARTLY_TESTED | NOT_WIRED | INV-012 GATED, CORE-004 TESTED | none |
+| C70 | Exit on a schedule | no | fill | LOGIC_TESTED | NOT_WIRED | INV-012 TESTED, CORE-004 TESTED | none |
 | C71 | Portfolio guardrails | no | fill | LOGIC_TESTED | NOT_WIRED | INV-003 TESTED, INV-014 TESTED | none |
 | C72 | Make my cash earn | no | delivery_confirmed | PARTLY_TESTED | NOT_WIRED | SAVE-002 TESTED, EARN-018 CLAIMED, PAY-009 TESTED | treasury-yields, cd-rates |
 
@@ -580,7 +580,6 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | INV-006 | CLAIMED | C22, C63 |
 | INV-008 | CLAIMED | C21, C26, C27, C35, C36, C44, C45, C55 |
 | INV-010 | CLAIMED | C17, C20 |
-| INV-012 | GATED | C47, C50, C68, C70 |
 | INV-013 | CLAIMED | C48, C60 |
 | INV-021 | CLAIMED | C55 |
 | INV-023 | CLAIMED | C61 |

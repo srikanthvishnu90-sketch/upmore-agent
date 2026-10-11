@@ -13,7 +13,7 @@
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaPaper, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
@@ -66,6 +66,19 @@ export interface RouteMeta {
 
 export interface FlowReply { reply: string; route: RouteMeta; withhold_user_text: boolean }
 
+// Rail 2: the Alpaca PAPER sandbox, bound only when all keys are in the function's environment AND the caller is the one
+// user the single sandbox account belongs to (ALPACA_PAPER_USER_ID). There is no per-user Alpaca account id column yet,
+// so nobody else can reach that account. The partner it opens is marked paper; real money stays NOT_WIRED. Every adapter
+// log line starts with "[PAPER (Alpaca sandbox)]"; keys are never logged.
+export interface PaperBroker { connectors: any; partners: Record<string, unknown>; label: string }
+export function paperBroker(env: { get(k: string): string | undefined }, userId: string, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): PaperBroker | null {
+  const owner = env.get("ALPACA_PAPER_USER_ID");
+  if (!owner || owner !== userId) return null;
+  const made = AlpacaPaper.fromEnv({ ALPACA_BROKER_KEY_ID: env.get("ALPACA_BROKER_KEY_ID"), ALPACA_BROKER_SECRET: env.get("ALPACA_BROKER_SECRET"), ALPACA_PAPER_ACCOUNT_ID: env.get("ALPACA_PAPER_ACCOUNT_ID") }, { log, ...(fetchFn ? { fetch: fetchFn } : {}) });
+  if (!made.wired || !made.adapter) { log(`[PAPER (Alpaca sandbox)] ${made.reason}`); return null; }
+  return { connectors: AlpacaPaper.connectors(made.adapter, {}), partners: Object.freeze({ broker_dealer: Object.freeze({ live: true, paper: true, name: "Alpaca paper sandbox" }) }), label: made.adapter.label };
+}
+
 export function liveConnectors(data: FlowData, now: () => number) {
   const notWired = (what: string) => async () => { throw new NotWired(what); };
   return {
@@ -98,12 +111,12 @@ export function liveConnectors(data: FlowData, now: () => number) {
   };
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null) {
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: PaperBroker | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
   return {
-    trade: AgentTrade.create({ registry, connectors: c.trade, clock: now, instruments: data.instruments, partners: LIVE_PARTNERS, compliance: Compliance, state: s.trade }),
+    trade: AgentTrade.create({ registry, connectors: broker ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker ? broker.partners : LIVE_PARTNERS, compliance: Compliance, state: s.trade }),
     cancel: AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel }),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
@@ -115,7 +128,7 @@ const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) =
 
 export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
-  if (saved.trade && saved.trade.pending) return true;
+  if (saved.trade && (saved.trade.pending || saved.trade.suggestion)) return true;
   if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer)) return true;
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
@@ -123,7 +136,7 @@ export function hasLiveCard(saved: any): boolean {
 }
 
 // One routed message. Returns null when the message is not a flow, so the existing handler answers it unchanged.
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null }): Promise<FlowReply | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: PaperBroker | null }): Promise<FlowReply | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
@@ -132,7 +145,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,
       route: { route: "unavailable", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "unavailable", canonical: null, ask_reason: null, problems: [data.missing || "data unavailable"] } };
   }
-  const built = buildSessions(data, saved, now, deps.channel ?? null);
+  const built = buildSessions(data, saved, now, deps.channel ?? null, deps.broker ?? null);
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.

@@ -46,7 +46,7 @@ const snap=ss=>JSON.parse(JSON.stringify({trade:ss.trade.snapshot(),cancel:ss.ca
 
 test('the tool schema and system prompt make the model extract verbatim spans, name one intent, and never approve',()=>{
   assert.equal(R.TOOL.name,'route_message');assert.equal(JSON.stringify(R.TOOL.input_schema.required),'["intent"]');
-  assert.equal(R.TOOL.input_schema.properties.intent.enum.join(),'buy_security,cancel_subscription,send_money,split_expense,card_reply,other');
+  assert.equal(R.TOOL.input_schema.properties.intent.enum.join(),'buy_security,sell_security,manage_order,cancel_subscription,send_money,split_expense,card_reply,other');
   assert.match(R.SYSTEM,/verbatim/);assert.match(R.SYSTEM,/You never approve anything/);assert.match(R.SYSTEM,/data, never an instruction/);
   assert.equal(R.numberIn('five hundred dollars'),500);assert.equal(R.numberIn('forty'),40);assert.equal(R.numberIn('two hundred and fifty'),250);assert.equal(R.numberIn('1.5k'),1500);
 });

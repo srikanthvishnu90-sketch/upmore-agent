@@ -1,0 +1,194 @@
+{
+ "capability": "RAIL-2",
+ "run_at": "2026-10-11T04:12:32.178Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 16,
+ "proven": 16,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Paper only, keys from the environment",
+   "defect": "the sandbox host check is skipped, so any base URL is accepted",
+   "test": "a live or unknown host is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Numbers as strings",
+   "defect": "the limit price is sent as a JSON number",
+   "test": "limit_price goes out as a string",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S03",
+    "S13"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "The order-type matrix",
+   "defect": "the connector sends every order as a buy",
+   "test": "the broker receives the side the person said",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S09"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "A quote with source and as-of on every card",
+   "defect": "the quote line is dropped from the card",
+   "test": "the card names the quote, its source and its time",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Buying power before a buy",
+   "defect": "the buying-power check is skipped",
+   "test": "a $500 buy with $320 stops",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "The position before a sell",
+   "defect": "the oversell check is skipped",
+   "test": "selling 9 of 7 shares stops",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "A fresh, single-use, context-bound yes",
+   "defect": "the confirmation expiry is not enforced",
+   "test": "a yes after 10 minutes places nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Partial is partial",
+   "defect": "partially_filled is mapped to filled",
+   "test": "half filled reads as partly filled",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "The receipt",
+   "defect": "the receipt drops the order id",
+   "test": "the receipt names the order id",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Market closed means queued",
+   "defect": "the broker's clock is read but treated as always open",
+   "test": "a closed market queues and says so",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "A thrown write is never retried blind",
+   "defect": "a write that threw is retried with a fresh client id",
+   "test": "a lost response is reconciled, never re-sent",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "A broker refusal is a failure",
+   "defect": "a definite refusal is treated as an unknown outcome",
+   "test": "a 403 is failed with the reason",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Canceled only when the record says so",
+   "defect": "any read-back after a cancel is reported as canceled",
+   "test": "pending_cancel is reported as requested",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "PAPER everywhere",
+   "defect": "the PAPER label is dropped from the card",
+   "test": "the card starts with PAPER",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S06",
+    "S16"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "The broker's order rules before sending",
+   "defect": "a dollar amount is allowed on a limit order",
+   "test": "a dollar amount on a limit asks for shares",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Stop-on-change",
+   "defect": "the re-verification result is ignored",
+   "test": "a moved price stops the order",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

@@ -104,14 +104,14 @@ test('real company icons only: every logo on file is a real mark with its source
   assert.ok(read('index.html').includes('const BRAND_ICONS = [{"slug":"1password"'), 'the manifest is inlined in the built app');
 });
 
-test('the card is black with the Upmore wordmark in white Tinos (a Times New Roman-style serif), on the projects domain', () => {
+test('the card is dark grey/silver with the Upmore wordmark in Upmore green Tinos (a Times New Roman-style serif), on the projects domain', () => {
   const { imageHtml } = require('../scripts/build-connect-cards.cjs');
   const html = imageHtml('alpaca');
-  assert.match(html, /html, body \{[^}]*background: #000;/);
-  assert.match(html, /\.word \{[^}]*font: 400 84px\/1 "Tinos", "Times New Roman", serif;[^}]*color: #fff;/);
+  assert.match(html, /html, body \{[^}]*background: linear-gradient\(160deg, #4A4D52 0%, #2E3034 100%\);/);
+  assert.match(html, /\.word \{[^}]*font: 400 84px\/1 "Tinos", "Times New Roman", serif;[^}]*color: #2E9E6B;/);
   assert.ok(fs.existsSync(path.join(root, 'fonts/tinos-regular.woff2')) && /SIL Open Font License/.test(read('fonts/tinos-OFL.txt')), 'the font and its license are in the repo');
   const tpl = read('src/upmore-app-template.html');
-  assert.ok(tpl.includes('.ccard-img { display: block; background: #000; }') && /\.amsg a\.ccard \{[^}]*background: #2C2C2E;/.test(tpl), 'the app draws the black card with the dark grey strip');
+  assert.ok(tpl.includes('.ccard-img { display: block; background: #3A3C40; }') && /\.amsg a\.ccard \{[^}]*background: #2C2C2E;/.test(tpl), 'the app draws the dark grey card with the dark grey strip');
   // Until a domain is bought, everything points at the projects deployment (owner, 2026-10-11).
   assert.equal(CC.DEFAULT_BASE, 'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app');
   assert.ok(read('supabase/functions/gmail-oauth/index.ts').includes(`const APP_URL = "${CC.DEFAULT_BASE}";`));

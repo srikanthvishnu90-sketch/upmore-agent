@@ -204,3 +204,5 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
 - **Card restyled (owner):** black instead of white, the Upmore wordmark white in Tinos (metric-compatible with Times New
   Roman, SIL OFL, `fonts/tinos-regular.woff2` + `fonts/tinos-OFL.txt`), a dark grey strip under it in the app; the
   domain stays on one line with an ellipsis, as Messages shows it.
+- **Card restyled again (owner):** the background is dark grey/silver (a gradient from #4A4D52 to #2E3034) and the Upmore
+  wordmark is Upmore green (#2E9E6B, the app's --accent), still in Tinos.

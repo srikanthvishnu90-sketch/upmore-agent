@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-0Jl7WzLGGtHCs91DnPTILw3rGlI77AH9/Ynr2N7N990=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-yoJOXKdqcR10urmmSEkYqPVFNi2x8AbUy9EqIReyUSo=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -972,7 +972,7 @@
   .amsg a { color: #6EA8FF; }
   /* Connect card: the iMessage link preview, copied (owner, 2026-10-11). */
   .amsg a.ccard { display: block; width: min(300px, 100%); margin: 6px 0 2px; border-radius: 18px; overflow: hidden; background: #2C2C2E; text-decoration: none; -webkit-tap-highlight-color: transparent; }
-  .ccard-img { display: block; background: #000; }
+  .ccard-img { display: block; background: #3A3C40; }
   .ccard-img img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; }
   .ccard-foot { display: block; padding: 9px 13px 10px; }
   .ccard-foot b { display: block; font-weight: 600; font-size: 15px; line-height: 1.25; color: #F2F2F7; }
@@ -2216,8 +2216,8 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
 </script>
 <script>
   /* Connect cards (owner, 2026-10-11): every "connect X" moment looks like the owner's reference screenshot. One short
-     line, then the link alone on its own line. In iMessage the link becomes a preview card: black, the company's real logo
-     in the middle, the Upmore wordmark bottom right in white serif, and under it "Connect X to Upmore" with the domain. The card is
+     line, then the link alone on its own line. In iMessage the link becomes a preview card: dark grey/silver, the company's real
+     logo in the middle, the Upmore wordmark bottom right in green serif, and under it "Connect X to Upmore" with the domain. The card is
      drawn by the page behind the link (connect/<provider>.html: its og:title and og:image, img/connect/<provider>.png),
      and the app's chat draws the same card from the same image when a reply line is exactly that link.
      Real company icons only: a provider is listed here only with its real logo in img/brands/ (SOURCES.md says where each
@@ -12979,7 +12979,7 @@ const mdLine = (s) => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
   .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 /* Connect card (owner, 2026-10-11): a reply line that is exactly a connect link is drawn the way iMessage draws it, from the
-   same image: black, the company's real logo, the Upmore wordmark in white serif, and a dark grey strip with "Connect X to
+   same image: dark grey/silver, the company's real logo, the Upmore wordmark in green serif, and a dark grey strip with "Connect X to
    Upmore" and the domain. Tapping it starts that connection here (no page hop). Providers and logos: packages/domain/76-connect-cards.js. */
 function connectCardHTML(link, p) {
   const c = ConnectCards.PROVIDERS[p];

@@ -255,7 +255,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       const reply = result.reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},
-        {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null}},
+        {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null,model_error:result.model_error||null}},
       ]);
       if (saved.error) throw saved.error;
       return json(cors,{thread_id:tid,reply,action:result.action,sources:result.sources,incomplete:!!result.incomplete});

@@ -14,7 +14,7 @@
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
 import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
-import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
+import { reserveModelCall, recordModelUsage, providerError } from "./model_calls.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
 let registryCache: any = null;
@@ -260,7 +260,7 @@ export function anthropicRouteExtractor(admin: any, userId: string, threadId: st
       body: JSON.stringify({ model, max_tokens: 400, system: AgentRouter.SYSTEM, tools: [AgentRouter.TOOL], tool_choice: { type: "tool", name: AgentRouter.TOOL.name }, messages: [{ role: "user", content: message }] }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) throw new Error(`router model HTTP ${res.status}`);
+    if (!res.ok) { const e = await providerError(res); console.error(`[model] router ${e.summary()}`); throw new Error(`router model ${e.summary()}`); }
     const raw = await res.text();
     if (raw.length > 30000) throw new Error("router model response is too large");
     const body = JSON.parse(raw);

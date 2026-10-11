@@ -31,6 +31,7 @@ import { modelConfig, chatReply, plannerModel, newMeter, adminHealthSink, type T
 import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
+import { chatInput } from "./_shared/chat_input.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -179,22 +180,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       );
     }
 
-    const { thread_id, message, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
-    if (!message || typeof message !== "string") return json(cors, { error: "message required" }, 400);
-    if (message.length > MAX_MESSAGE_LEN) return json(cors, { error: "message too long" }, 400);
-    // Optional photo attachments: validated Anthropic image blocks (max 3,
-    // each capped at ~2MB base64 — the client downscales to 1024px JPEG).
-    const imageBlocks: unknown[] = [];
-    if (Array.isArray(images)) {
-      for (const im of images.slice(0, 3)) {
-        if (!im || typeof im.data !== "string" || im.data.length === 0 || im.data.length > 2_000_000) continue;
-        const mt = typeof im.media_type === "string" ? im.media_type : "";
-        if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mt)) continue;
-        imageBlocks.push({ type: "image", source: { type: "base64", media_type: mt, data: im.data } });
-      }
-    }
-    // Stored user content: the text plus an honest marker when photos were attached.
-    const userContent = (imageBlocks.length ? "[photo attached] " : "") + message;
+    const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    // Text, photos, or both (a photo alone is a message: spec 16 item 12).
+    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
+    if (!input.ok) return json(cors, { error: input.error }, 400);
+    const { message, userContent, imageBlocks } = input;
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")

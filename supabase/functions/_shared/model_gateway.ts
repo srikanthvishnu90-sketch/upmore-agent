@@ -36,7 +36,8 @@ export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
 export const providerName = (c: ModelConfig) => PROVIDER_NAME[c.provider];
 // Reasoning models (gpt-5 family, o-series) take max_completion_tokens and reasoning_effort, and reject a custom temperature.
 const reasoningModel = (model: string) => /^(gpt-5|o\d)/i.test(model);
-export const REASONING_HEADROOM = 1024;
+// Owner, 2026-10-11: keep OpenAI spend small. At minimal effort gpt-5-nano rarely thinks; 512 is a cap, not a spend.
+export const REASONING_HEADROOM = 512;
 
 // Anthropic request -> OpenAI chat completions request.
 export function toOpenAI(payload: any, cfg: ModelConfig): any {

@@ -8,6 +8,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 g = root / "evals/gauntlet"
 embed = {n: json.loads((g / n).read_text()) for n in ["sloppy-20.json", "spec16-20.json", "l3-adversarial.json"]}
+# The media items' photos (synthetic fixtures from evals/gauntlet/media/make-media.py), so the single file runs all 20.
+import base64
+embed["media"] = {p.stem: {"data": base64.b64encode(p.read_bytes()).decode(), "media_type": "image/jpeg"} for p in sorted((g / "media").glob("S16-*.jpg"))}
 runner = (g / "run-live.cjs").read_text()
 if runner.startswith("#!"):
     runner = runner.split("\n", 1)[1]

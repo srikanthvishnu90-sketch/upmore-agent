@@ -10,6 +10,10 @@
 //   --suite l3       spec 16 L3 state-machine cases, each its own thread; a wait over --max-wait-min (default 15) is saved
 //                    and finished later with --resume <label> once it is due (the 3-hours-late yes)
 //   --no-wait        report waiting turns as NOT RUN instead of sleeping
+//   --media-dir DIR  photos for the media items (S16-11.jpg, S16-12.jpg, S16-17.jpg); default evals/gauntlet/media, which
+//                    holds synthetic fixtures (make-media.py). An item whose photo is missing is NOT RUN, never faked.
+// Every FAIL is recorded as a permanent replay fixture (evals/gauntlet/replays/, tests/edge/live-replays.test.ts) when
+// this runs inside the repo; the single-file build prints how to record them.
 const fs = require("node:fs"), path = require("node:path");
 const root = path.resolve(__dirname, "../..");
 // The corpora are files next to this script, or embedded when this runs as the single-file build
@@ -51,6 +55,16 @@ function grade(item, res) {
   const seg = segments(reply); if (seg > 2) reasons.push(`card is ${seg} SMS segments`);
   return { pass: reasons.length === 0, reasons, reply, segments: seg, route: meta };
 }
+// A media item's photo: the embedded copy (single-file build), --media-dir, or evals/gauntlet/media.
+function loadMedia(id) {
+  const emb = globalThis.__UPMORE_GAUNTLET_EMBED__ && globalThis.__UPMORE_GAUNTLET_EMBED__.media;
+  const dir = args.includes("--media-dir") ? path.resolve(args[args.indexOf("--media-dir") + 1]) : path.join(__dirname, "media");
+  for (const ext of [["jpg", "image/jpeg"], ["jpeg", "image/jpeg"], ["png", "image/png"]]) {
+    const f = path.join(dir, `${id}.${ext[0]}`);
+    if (fs.existsSync(f)) return { data: fs.readFileSync(f).toString("base64"), media_type: ext[1] };
+  }
+  return emb && emb[id] ? emb[id] : null;
+}
 async function post(body) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` }, body: JSON.stringify(body) });
   const j = await r.json().catch(() => ({ error: `HTTP ${r.status}, not JSON` })); if (!r.ok && !j.error) j.error = `HTTP ${r.status}`; return j;
@@ -81,12 +95,14 @@ async function runSpec16() {
   const sc = loadCorpus("spec16-20.json");
   const rows = []; let thread = null;
   for (const item of sc.items) {
-    if (item.needs_media) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [`needs ${item.needs_media}; this runner sends text only`] }); console.log(`NOT RUN ${item.id} (needs media)`); continue; }
+    const photo = item.needs_media ? loadMedia(item.id) : null;
+    if (item.needs_media && !photo) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [`needs ${item.needs_media}; no ${item.id}.jpg/.png in the media folder`] }); console.log(`NOT RUN ${item.id} (needs media)`); continue; }
     if (item.wait_ms) { if (noWait || item.wait_ms > maxWait) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [`needs a ${Math.round(item.wait_ms / 60000)}-minute wait`] }); console.log(`NOT RUN ${item.id} (wait)`); continue; } console.log(`waiting ${Math.round(item.wait_ms / 60000)} min before ${item.id}...`); await sleep(item.wait_ms); }
-    let res; try { res = await post(thread ? { thread_id: thread, message: item.text } : { message: item.text }); } catch (e) { res = { error: String(e && e.message || e) }; }
+    const body = Object.assign(thread ? { thread_id: thread } : {}, { message: item.text }, photo ? { images: [photo] } : {});
+    let res; try { res = await post(body); } catch (e) { res = { error: String(e && e.message || e) }; }
     if (res && res.thread_id) thread = res.thread_id;
     const reasons = check(item.checks || {}, res);
-    rows.push({ id: item.id, text: item.text, expect: item.expect, status: reasons.length ? "FAIL" : "PASS", reasons, reply: res && res.reply || null, route: res && res.route || null, segments: segments(res && res.reply || "") });
+    rows.push({ id: item.id, text: item.text, expect: item.expect, media: photo ? item.needs_media : undefined, status: reasons.length ? "FAIL" : "PASS", reasons, reply: res && res.reply || null, route: res && res.route || null, error: res && res.error || null, failure_code: res && res.failure_code || null, segments: segments(res && res.reply || "") });
     console.log(`${reasons.length ? "FAIL" : "PASS"} ${item.id} ${JSON.stringify(item.text)}${reasons.length ? " | " + reasons.join("; ") : ""}`);
   }
   // Leave nothing live behind the run.
@@ -115,7 +131,7 @@ async function runL3(pendingIn) {
       for (const r of results) if (r && r.thread_id) thread = r.thread_id;
       const c = t.checks || {};
       const reasons = c.at_most_one_matches ? (results.filter(r => new RegExp(c.at_most_one_matches).test(String(r && r.reply || ""))).length > 1 ? [`more than one reply matched /${c.at_most_one_matches}/`] : []) : check(c, results[0]);
-      turns.push({ text: t.text, replies: results.map(r => r && r.reply || null), routes: results.map(r => r && r.route || null), reasons });
+      turns.push({ text: t.text, replies: results.map(r => r && r.reply || null), routes: results.map(r => r && r.route || null), errors: results.map(r => r && (r.error || r.failure_code) || null), checks: c, reasons });
     }
     if (saved) continue;
     const pass = turns.every(x => !x.reasons.length);
@@ -126,7 +142,14 @@ async function runL3(pendingIn) {
   return { suite: "l3", total: sc.cases.length, finished: out.length, passed: out.filter(x => x.status === "PASS").length, pending, cases: out };
 }
 
-(async () => {
+// Record every FAIL as a replay fixture (inside the repo only; the single-file build has no replay folder).
+function recordReplays(result) {
+  if (/\/\/(127\.0\.0\.1|localhost)[:/]/.test(url)) return; // a canned local server is not live: nothing to replay
+  let rec; try { rec = require("./record-replays.cjs"); } catch (_) { console.log(`replay fixtures: not recorded here; in the repo run node evals/gauntlet/record-replays.cjs <this result file>`); return; }
+  const r = rec.record(result); console.log(`replay fixtures: ${r.added} new, ${r.seen} seen again (evals/gauntlet/replays/live-failures.json); untriaged ones fail tests/edge/live-replays.test.ts until fixed or triaged`);
+}
+module.exports = { check, segments, grade, understood };
+if (require.main === module) (async () => {
   if (!url || !jwt) { console.log("NOT RUN: UPMORE_CHAT_URL and UPMORE_TEST_JWT are not set. The gauntlet only runs against the live handler; no score was produced."); process.exit(2); }
   fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
   if (suite === "spec16" || suite === "l3" || resume) {
@@ -136,6 +159,7 @@ async function runL3(pendingIn) {
     if (prior) { r.cases = prior.cases.concat(r.cases); r.finished = r.cases.length; r.passed = r.cases.filter(x => x.status === "PASS").length; }
     const result = Object.assign({ label: resume || label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>.") }, r);
     fs.writeFileSync(file, JSON.stringify(result, null, 1));
+    recordReplays(result);
     if (r.suite === "spec16") console.log(`\nspec 16 20-text gauntlet against the live handler: ${r.passed}/${r.ran} behaved as specified (${r.not_run} not run: media or wait). Raw replies: ${path.relative(root, file)}`);
     else console.log(`\nL3 against the live handler: ${r.passed}/${r.finished} cases passed${r.pending.length ? `, ${r.pending.length} waiting (resume later)` : ""}. Spec 16 needs 100%. Raw replies: ${path.relative(root, file)}`);
     process.exit(r.suite === "spec16" ? (r.passed === r.ran ? 0 : 1) : (r.passed === r.finished && !r.pending.length ? 0 : 1));
@@ -150,6 +174,7 @@ async function runL3(pendingIn) {
   const passed = rows.filter(r => r.pass).length, und = rows.filter(r => r.understood).length;
   const score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, understood: und, understood_pct: Math.round(und * 1000 / rows.length) / 10, carded: passed, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: und / rows.length >= 0.95, rows };
   fs.writeFileSync(path.join(__dirname, "results", `${label}.json`), JSON.stringify(score, null, 1));
+  recordReplays(Object.assign({ suite: "sloppy" }, score));
   console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)`);
   process.exit(score.meets_bar ? 0 : 1);
 })();

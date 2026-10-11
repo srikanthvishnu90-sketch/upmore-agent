@@ -3881,6 +3881,10 @@
     }
 
     // What the deterministic parsers read from the raw message, for the cross-check.
+    // A bill is not a person (live finding 2026-10-11, spec16 item 15): "pay my rent" went to the person-to-person flow
+    // as a recipient called "rent" and was asked "How much?". Bills fall through to the bill workflow; "pay sam for rent"
+    // (the bill word only in the memo) is still a send to Sam.
+    const BILL_NOT_PERSON = /\b(rent|mortgage|bills?|utilit(?:y|ies)|electric(?:ity)?|water bill|gas bill|internet bill|phone bill|insurance|tuition|loan|credit card|car payment|student loans?)\b/i;
     function net(flow, raw, parsers) {
       const p = parsers && parsers[flow]; if (!p) return null;
       const r = p(raw) || {};
@@ -3981,7 +3985,7 @@
       if (!e) {
         // Safety net: the regex parsers route alone, and the result says so.
         source = "regex_net";
-        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own)\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) ? "send_money" : "other";
+        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own)\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) && !BILL_NOT_PERSON.test(text.split(/\bfor\b/i)[0]) ? "send_money" : "other";
         e = { intent: guess };
       }
       if (e.intent === "card_reply") {

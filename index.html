@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-ASRpRPKA53qdcrZsQEm/Lm8phIYe11n+6V85j4H9Eu0=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-jyc+YNyuQMeGdEQCE3z2rbjmQ9wRKIIAcxd4KAWt5Nw=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -12979,8 +12979,11 @@ function renderChatTab() {
 /* Pending photo attachments for the next chat message. Hoisted to module
    scope: wireChat() fills them, chatSubmit() consumes and clears them. */
 let chatImages = [];
+// Send is live with words, or with a photo alone in agent mode (spec 16 item 12).
+function chatSendReady() { const ta = $("chatInput"), b = $("chatSend"); if (ta && b) b.disabled = !(ta.value.trim() || (chatImages.length && chatMode !== "ask")); }
 function renderChatImages() {
   let bar = $("chatImgBar");
+  chatSendReady();
   if (!chatImages.length) { if (bar) bar.remove(); return; }
   if (!bar) {
     bar = document.createElement("div");
@@ -13016,7 +13019,7 @@ function wireChat() {
   $("chatsSheetClose").onclick = () => { $("chatsSheet").hidden = true; };
   const ta = $("chatInput");
   ta.addEventListener("input", () => {
-    $("chatSend").disabled = !ta.value.trim();
+    chatSendReady();
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
   });
@@ -13097,7 +13100,8 @@ function wireChat() {
 function chatSubmit() {
   const ta = $("chatInput"); if (!ta) return;
   const v = ta.value.trim();
-  if (!v || busy) return;
+  // A photo alone is a message to the agent (spec 16 item 12); Ask mode still needs words.
+  if (busy || (!v && !(chatImages.length && chatMode !== "ask"))) return;
   const imgs = chatImages; chatImages = []; renderChatImages();
   ta.value = ""; ta.style.height = "auto"; $("chatSend").disabled = true;
   if (chatMode === "ask") guideAsk(v, imgs);

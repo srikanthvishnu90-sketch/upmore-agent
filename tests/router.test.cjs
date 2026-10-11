@@ -130,3 +130,18 @@ test('the app the person named survives the model path, and a new request in the
   assert.equal(again.result.outcome,'confirm','not "busy"');assert.deepEqual([...again.dropped],['send']);assert.match(again.result.text,/^I dropped the earlier card\. Set up \$50\.00 to Sam K/);
   const y=await R.handle('yes',{extract:null,sessions:ss,parsers});assert.equal(y.result.outcome,'staged');assert.equal(y.result.send.amount_cents,5000,'only the latest card can fire');
 });
+
+// Live finding 2026-10-11 (spec16 item 15): with the router model down, "pay my rent" went to the person-to-person flow
+// (a recipient called "rent") and was answered "How much?". A bill is not a person: the safety net leaves bills to the
+// bill workflow, and a bill word in the memo still pays the person.
+test('safety net: a bill is not a person; a bill word in the memo still pays the person',async()=>{
+  const down=async()=>{throw new Error('router model HTTP 400');};
+  for(const t of ['pay my rent','pay rent','pay my electric bill','pay my mortgage','pay my bills','pay my phone bill','pay my credit card']){
+    const r=await R.handle(t,{extract:down,sessions:sessions(world()),parsers}).catch(e=>({error:String(e)}));
+    assert.ok(!r||r.route!=='send_money',`${t} -> ${r&&r.route}`);
+  }
+  for(const t of ['pay sam for rent','pay sam $40','venmo sam 40 for the electric bill']){
+    const g=await R.handle(t,{extract:down,sessions:sessions(world()),parsers}).catch(e=>({error:String(e)}));
+    assert.equal(g&&g.route,'send_money',t);
+  }
+});

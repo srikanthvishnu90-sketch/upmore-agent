@@ -1,0 +1,638 @@
+{
+ "about": "Every live gauntlet failure, replayed by tests/edge/live-replays.test.ts. Written by evals/gauntlet/record-replays.cjs; a person only edits triage.",
+ "fixtures": [
+  {
+   "key": "8ec6-cfbb-c1ad-81ee",
+   "kind": "planner_wording",
+   "suite": "spec16",
+   "id": "S16-01",
+   "text": "what's my balance",
+   "media": null,
+   "context": [],
+   "checks": {
+    "matches": [
+     "\\$[\\d,]+\\.\\d{2}",
+     "as of|updated|\\d{1,2}:\\d{2}"
+    ],
+    "no_question": true
+   },
+   "observed": {
+    "reply": "I couldn’t complete the requested financial plan. These are the records I verified; no payment was approved or submitted by the planner. Check your financial connections or provide the missing bill details.",
+    "route": null,
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "reply lacks /\\$[\\d,]+\\.\\d{2}/",
+    "reply lacks /as of|updated|\\d{1,2}:\\d{2}/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "2d99-f6fb-de3c-aa0f",
+   "kind": "planner_wording",
+   "suite": "spec16",
+   "id": "S16-02",
+   "text": "how much did i spend on food last month",
+   "media": null,
+   "context": [
+    "what's my balance"
+   ],
+   "checks": {
+    "matches": [
+     "\\$[\\d,]+\\.\\d{2}",
+     "than|vs\\.?|compared|more|less|up|down",
+     "from|per|source|as of"
+    ]
+   },
+   "observed": {
+    "reply": "I couldn’t complete the requested financial plan. These are the records I verified; no payment was approved or submitted by the planner. Check your financial connections or provide the missing bill details.",
+    "route": null,
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "reply lacks /\\$[\\d,]+\\.\\d{2}/",
+    "reply lacks /than|vs\\.?|compared|more|less|up|down/",
+    "reply lacks /from|per|source|as of/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "4bd8-d8bf-b3c5-6eb9",
+   "kind": "flow",
+   "suite": "spec16",
+   "id": "S16-03",
+   "text": "cancel netflix",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month"
+   ],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "Access until|Terms as of"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "regex_net",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": [
+      "router model HTTP 400"
+     ]
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome ask, expected confirm",
+    "reply lacks /Cancel Netflix/",
+    "reply lacks /Access until|Terms as of/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank connected, so there is no Netflix charge on file; asking which card it is on is the honest answer for that data. Passes only once the test account holds a real Netflix charge.",
+    "by": "Claude Code session, 2026-10-11",
+    "test_ref": null
+   }
+  },
+  {
+   "key": "37ed-c435-c947-2b94",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-04",
+   "text": "yes",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix"
+   ],
+   "checks": {
+    "matches": [
+     "expired"
+    ],
+    "not_matches": [
+     "cancelled\\b|Done:|Staged\\."
+    ]
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "ced6-716b-6dc7-9f14",
+   "kind": "flow",
+   "suite": "spec16",
+   "id": "S16-06",
+   "text": "actually make it $50",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40"
+   ],
+   "checks": {
+    "outcome": "confirm",
+    "matches": [
+     "\\$50\\.00",
+     "Got it|Replaces|replaced"
+    ]
+   },
+   "observed": {
+    "reply": "Yes or no? Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+    "route": {
+     "route": "card_reply",
+     "flow": "send",
+     "source": "deterministic",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "ask",
+     "canonical": null,
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome ask, expected confirm",
+    "reply lacks /\\$50\\.00/",
+    "reply lacks /Got it|Replaces|replaced/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "b46f-a4f8-3e3e-0311",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-08",
+   "text": "what's a roth ira",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind"
+   ],
+   "checks": {
+    "matches": [
+     "[Rr]oth"
+    ],
+    "not_matches": [
+     "you should|I recommend|I'd recommend|best (fund|stock) for you"
+    ],
+    "min_chars": 80
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "eae9-7b2c-89f3-a476",
+   "kind": "flow",
+   "suite": "spec16",
+   "id": "S16-10",
+   "text": "buy 2 shares of vt",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla"
+   ],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "2 shares of VT",
+     "No fee|Fee \\$",
+     "can't be (undone|canceled|cancelled)"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected, so nothing was placed. Connect your own Alpaca account in Settings > Brokerage: you approve it on Alpaca's site and Upmore never sees your password.",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "regex_net",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy 2 shares of vt",
+     "ask_reason": null,
+     "problems": [
+      "router model HTTP 400"
+     ]
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected confirm",
+    "reply lacks /2 shares of VT/",
+    "reply lacks /No fee|Fee \\$/",
+    "reply lacks /can't be (undone|canceled|cancelled)/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so 'connect first, nothing placed' is the correct live-only answer. A card needs the person's own connected live account.",
+    "by": "Claude Code session, 2026-10-11",
+    "test_ref": null
+   }
+  },
+  {
+   "key": "c965-f74e-eca9-cc89",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-13",
+   "text": "set up a budget",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt"
+   ],
+   "checks": {
+    "max_questions": 3
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "9b09-ba72-520d-8870",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-14",
+   "text": "how am i doing",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget"
+   ],
+   "checks": {
+    "matches": [
+     "\\$[\\d,]+"
+    ],
+    "max_chars": 900
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "1478-8228-2168-4809",
+   "kind": "flow",
+   "suite": "spec16",
+   "id": "S16-15",
+   "text": "pay my rent",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget",
+    "how am i doing"
+   ],
+   "checks": {
+    "matches": [
+     "[Rr]ent",
+     "month|monthly",
+     "Reply YES|Confirm below"
+    ]
+   },
+   "observed": {
+    "reply": "How much?",
+    "route": {
+     "route": "send_money",
+     "flow": "send",
+     "source": "regex_net",
+     "understood": false,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "pay my rent",
+     "ask_reason": null,
+     "problems": [
+      "router model HTTP 400"
+     ]
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "reply lacks /[Rr]ent/",
+    "reply lacks /month|monthly/",
+    "reply lacks /Reply YES|Confirm below/"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": {
+    "verdict": "not_built",
+    "note": "Routing fixed in this commit (tests/router.test.cjs, a bill is not a person): 'pay my rent' now reaches the bill workflow instead of a person-to-person send. A monthly rent card still needs a live model, a rent bill on file, and the standing rent flow (real-world C110), which is not built.",
+    "by": "Claude Code session, 2026-10-11",
+    "test_ref": "tests/router.test.cjs"
+   }
+  },
+  {
+   "key": "bdfd-3c42-4cf5-3a29",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-16",
+   "text": "did rent go through",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget",
+    "how am i doing",
+    "pay my rent"
+   ],
+   "checks": {
+    "matches": [
+     "as of|posted|pending|not yet|\\d{1,2}:\\d{2}"
+    ]
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "d5af-4f70-a5a4-4bcb",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-18",
+   "text": "find me money",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget",
+    "how am i doing",
+    "pay my rent",
+    "did rent go through"
+   ],
+   "checks": {
+    "matches": [
+     "\\$[\\d,]+",
+     "(^|\\n)\\s*(1[.)]|-|\\u2022)"
+    ]
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "ef3e-97e2-ac2e-b37a",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-19",
+   "text": "connect my fidelity",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget",
+    "how am i doing",
+    "pay my rent",
+    "did rent go through",
+    "find me money"
+   ],
+   "checks": {
+    "matches": [
+     "link|connect|https?://|open"
+    ]
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  },
+  {
+   "key": "5330-2bfe-54b3-6cc0",
+   "kind": "provider_outage",
+   "suite": "spec16",
+   "id": "S16-20",
+   "text": "what can't you do",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "yes",
+    "send sam $40",
+    "actually make it $50",
+    "never mind",
+    "what's a roth ira",
+    "should i buy tesla",
+    "buy 2 shares of vt",
+    "set up a budget",
+    "how am i doing",
+    "pay my rent",
+    "did rent go through",
+    "find me money",
+    "connect my fidelity"
+   ],
+   "checks": {
+    "matches": [
+     "can't|cannot|not yet|don't"
+    ],
+    "min_list_items": 3
+   },
+   "observed": {
+    "reply": null,
+    "route": null,
+    "error": "agent_unavailable",
+    "failure_code": null
+   },
+   "reasons": [
+    "handler error: agent_unavailable"
+   ],
+   "label": "go-live-92a8364-spec16",
+   "first_seen": "2026-10-11T19:13:36.292Z",
+   "last_label": "go-live-92a8364-spec16",
+   "last_seen": "2026-10-11T19:13:36.292Z",
+   "times": 1,
+   "triage": null
+  }
+ ]
+}

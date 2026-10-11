@@ -50,13 +50,11 @@ Code's own job — it writes them, applies them, and deploys itself. Already
 done on the Supabase side: all existing migrations applied, agent-chat v203
 ACTIVE (`verify_jwt=true`).
 
-### Fresh test JWT (test user `gauntlet-test@upmore.test`, minted 2026-10-11)
+### Test JWT (test user `gauntlet-test@upmore.test`)
+
+Removed 2026-10-11 (security). A one-hour test JWT was committed here; it expired at 16:53 UTC the same day, but it
+stays in public git history, so treat it as disclosed. Never write a JWT or any key into this repo. To get one, mint it
+into an environment variable only: `scripts/launch/go-live.sh` does this itself from `GAUNTLET_PASSWORD` (password
+grant), and `evals/gauntlet/run-live.cjs` reads it from `UPMORE_TEST_JWT`.
 
 Function URL: `https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/agent-chat`
-
-```
-eyJhbGciOiJFUzI1NiIsImtpZCI6ImZkNmFmYTIzLWNhMzMtNGQzMy1iYzEwLTU4NmFkYzEyM2NhMyIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL21yd25nbnR3bW5hcXJxaHVwdmx0LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIyZThjYjMxZC01OWFiLTRiMmMtOTliYi1kNGM1ZGU4NjEzYTMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzkxNzM3NjA2LCJpYXQiOjE3OTE3MzQwMDYsImVtYWlsIjoiZ2F1bnRsZXQtdGVzdEB1cG1vcmUudGVzdCIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWxfdmVyaWZpZWQiOnRydWUsInB1cnBvc2UiOiJnYXVudGxldC1ydW5uZXIifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJvdHAiLCJ0aW1lc3RhbXAiOjE3OTE3MzQwMDZ9XSwic2Vzc2lvbl9pZCI6ImZiNzVhNDA3LTUzM2QtNDVlYy1iZDc4LWM0OTA1ZDI4YmIzMyIsImlzX2Fub255bW91cyI6ZmFsc2V9.NmXNY5kqkGtBlArIMLtMJN_hCB_k3anszdjEL36ghvegv0gB3c172x6-AskYzbb1s6r3I72narY-h7gczZzr1Q
-```
-
-Verified working 2026-10-11. Test-only credential — safe to hand to Claude
-Code, do not reuse for anything real.

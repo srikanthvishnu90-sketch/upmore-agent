@@ -178,7 +178,7 @@ Bugs this rail's own tests caught before commit: the quoted needs-terms reply ra
 
 What stays true: cancel still cannot card live, because no account-page reader is connected; this rail is in the card path and runs the moment one is, and today it improves the honest "I can't" reply with the merchant's own published terms.
 
-### The gauntlet (after the rails) — **NOT RUN against the live handler; no live score exists**
+### The gauntlet (after the rails) — **first live run 2026-10-11 19:01-19:13 UTC: spec16 3/17 passed (3 NOT RUN: photos), blocked by the model key; the replies and the fixes are in the v3 section below.** The rows that follow are the history before that run.
 
 | What | State |
 | --- | --- |
@@ -200,7 +200,25 @@ Failures found while preparing the gauntlet, each named by stage and fixed befor
 
 Expected live outcome once the blockers are cleared, stated before any score so it cannot be misread: sloppy-20 carded stays low until the account-page reader (cancel) and the paper broker keys (buy) are in place; sends to Sam card only once Sam's rows exist in `saved_recipients`. Owner steps for a live run: allow the function host in this environment's network settings; apply 20261011010000_flow_state.sql and 20261011020000_saved_recipients.sql; seed Sam (Venmo and Zelle rows, source completed_send) for the test user; set the Alpaca paper secrets if the buy items should card; deploy agent-chat; issue a fresh test JWT; then `UPMORE_CHAT_URL=... UPMORE_TEST_JWT=... node evals/gauntlet/run-live.cjs --suite sloppy --label live-<date>` and the same with `--suite spec16` and `--suite l3`.
 
-### Launch (Tuesday) — live state, read from the project on 2026-10-11 (Supabase connector, read-only)
+### v3 (2026-10-11 evening): model gateway, health, cost, replays — **built and tested here, NOT deployed; 0 live model calls have succeeded**
+
+| What | State | Check |
+| --- | --- | --- |
+| First live run (go-live 19:01 UTC on 92a8364, raw file `evals/gauntlet/results/go-live-92a8364-spec16.spec16.json`) | spec16 **3/17** mechanically (S16-05 send Sam $40, S16-07 never mind, S16-09 tesla refusal); 8 silent 502s (dead model); 3 NOT RUN (photos). sloppy and l3 results are not in the repo. The earlier "6 right" was a person's reading, not the published grader. | the raw file |
+| Root cause of the 502s | Anthropic answered every call HTTP 400: "This API key is not scoped to a workspace". 16 `agent_model_calls` reserved, 0 recorded in 24 h. Nothing alerted. | live read, 19:30 UTC |
+| Model gateway (owner: OpenAI, smallest model) | Built: `_shared/model_gateway.ts`; gpt-5-nano at minimal reasoning when `OPENAI_API_KEY` is set (`MODEL_PROVIDER=anthropic` switches back). Chat, router and planner use it. **Never called OpenAI from here: the environment denies api.openai.com.** | `deno test -A --no-check tests/edge/model-gateway.test.ts` (8; 3 planted defects caught) |
+| Provider down | A 200 with the outage sentence and the cause in meta, never a 502 or planner wording | same + `tests/edge/live-replays.test.ts` |
+| Health | `model-health` (token; `?probe=1` makes one real call): 503 + founder alert when down; `model_health()` verdict over `agent_provider_events` | `tests/edge/model-health.test.ts` (4), `tests/db/model_health.test.sql` (13) |
+| Cost per turn | `agent_turn_costs` + `agent_daily_costs`; prices labelled with their source (third-party tables until the invoice reconciles) | same |
+| Live failures replay forever | 14 fixtures from the first run; 11 pass by behavior, 3 triaged in writing (S16-03 no Netflix charge, S16-10 no brokerage, S16-15 rent flow C110 not built) | `deno test -A --no-check tests/edge/live-replays.test.ts`, `node --test tests/gauntlet-replays.test.cjs` |
+| Fixes from the run | S16-06 $40 -> $50 (0919f4b); balance wording (3407575); a photo alone is a message (S16-12, app + handler); "pay my rent" no longer a person-to-person send (S16-15 routing) | PAY-001 S07, `tests/photo-only.test.cjs`, `tests/router.test.cjs` |
+| Photos for S16-11/12/17 | Synthetic fixtures (`evals/gauntlet/media/make-media.py`): a scam text, a receipt with a faint "send $500", a circled charge; the owner may use real photos with `--media-dir`. Only the 11-minute wait is NOT RUN with `--no-wait`. | `tests/gauntlet-runner.test.cjs` |
+| Safe re-run | go-live.sh now applies only pending migrations (`upmore_migration_ledger`); `--all` would have replayed 22 applied files | `bash tests/db/run.sh` (ledger step) |
+| Secrets | A test-user JWT was committed (expired); removed on main (ab6019e), still in public history. Repo is still PUBLIC. `tests/no-secrets.test.cjs` scans every tracked file. | `node --test tests/no-secrets.test.cjs` |
+| CI | `.github/workflows/ci.yml` added (there was none): node, Deno, Postgres, secret scan on every push | GitHub Actions |
+| OpenAI key as a Supabase secret | **NOT SET by this session**: the session's permission rules refused the secret write. The owner sets it (go-live.sh step 2, or `supabase secrets set`). | — |
+
+### Launch (Tuesday) — live state, read from the project on 2026-10-11 (Supabase connector, read-only) — **superseded by the 19:01 UTC go-live: the 22 migrations are applied, agent-chat is v207, broker-oauth-start/callback are v1. Kept as history.**
 
 | Fact | State |
 | --- | --- |

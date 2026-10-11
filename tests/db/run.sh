@@ -53,7 +53,8 @@ for m in 20260923_000001_agent_rate_limits.sql 20260923_000006_rate_limiter_hard
          20261011010000_flow_state.sql \
          20261011020000_saved_recipients.sql \
          20261011030000_brokerage_accounts_per_user.sql \
-         20261011040000_model_health_and_turn_costs.sql; do
+         20261011040000_model_health_and_turn_costs.sql \
+         20261011050000_broker_vault_cascade.sql; do
   "${QUIET[@]}" -f "$ROOT/supabase/migrations/$m"
 done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261010120000_chat_lesson_ownership.sql"
@@ -83,6 +84,7 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011020000_saved_recipients.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011030000_brokerage_accounts_per_user.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011040000_model_health_and_turn_costs.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011050000_broker_vault_cascade.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"
@@ -92,7 +94,7 @@ done
 echo "== migration ledger (--pending): backfill, apply only what is new, then nothing on a re-run"
 LEDGER_OUT="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
 grep -q "ledger backfilled up to 20261011030000_brokerage_accounts_per_user.sql" <<<"$LEDGER_OUT" || { echo "$LEDGER_OUT"; echo "FAIL ledger backfill"; exit 1; }
-grep -q "pending migrations, one transaction: .*20261011040000_model_health_and_turn_costs.sql" <<<"$LEDGER_OUT" || { echo "$LEDGER_OUT"; echo "FAIL pending set"; exit 1; }
+grep -q "pending migrations, one transaction: .*20261011040000_model_health_and_turn_costs.sql 20261011050000_broker_vault_cascade.sql" <<<"$LEDGER_OUT" || { echo "$LEDGER_OUT"; echo "FAIL pending set"; exit 1; }
 grep -q "20261011030000" <<<"$(grep 'pending migrations' <<<"$LEDGER_OUT")" && { echo "FAIL an already-applied file was replayed"; exit 1; }
 AGAIN="$(cd "$ROOT" && SUPABASE_DB_URL="postgresql://postgres@/postgres?host=$WORK&port=$PORT" bash scripts/launch/apply-rails-and-seed.sh --pending 2>&1)"
 [[ "$AGAIN" == "== no pending migrations" ]] || { echo "$AGAIN"; echo "FAIL a re-run applied something"; exit 1; }

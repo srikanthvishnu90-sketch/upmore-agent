@@ -1,0 +1,47 @@
+# Every push and pull request: the same checks a contributor runs locally (CLAUDE.md "Commands"). No step is allowed to
+# fail quietly; the live gauntlet is not here (it needs the deployed handler and a test JWT) and is run by go-live.sh.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Domain, registry, router, gauntlet grader, UI, secret scan
+        run: node --test tests/*.cjs
+      - name: Generated files are current
+        run: |
+          python3 scripts/build-router-core.py --check
+          python3 scripts/build-standalone-gauntlet.py --check
+          node evals/parity/build-matrix.cjs --check
+          node scripts/realworld-audit.cjs --check
+      - name: Datasets, eval harness, planted mutations
+        run: |
+          node evals/data/validate.cjs
+          node evals/runner.cjs
+          node evals/runner.cjs --mutations
+      - name: Agent100 dry run (must stay 103/103)
+        working-directory: tests/agent100
+        run: node harness/runner.js --mode dry --all
+  deno:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - name: Edge function tests (typed), including the live-failure replays
+        run: deno test -A tests/edge/
+      - name: Type-check the functions this branch deploys
+        run: deno check supabase/functions/agent-chat/index.ts supabase/functions/model-health/index.ts supabase/functions/broker-oauth-start/index.ts supabase/functions/broker-oauth-callback/index.ts
+  database:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migrations, RLS and SQL tests on a throwaway Postgres 16, plus the migration ledger
+        run: PGBIN=/usr/lib/postgresql/16/bin PATH=/usr/lib/postgresql/16/bin:$PATH bash tests/db/run.sh

@@ -24,6 +24,8 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 ## Rules
 - Everything is LIVE (owner, standing since 2026-10-11): no paper trading, paper accounts, paper labels or paper fallback anywhere. Trades run only in the person's own live brokerage account, behind a fresh approval and the $5 per-order cap until the owner raises it in writing. Mocks exist only inside tests and are labeled mock.
 - Money paths stay gated. No provider adapter, migration push to the live project, deploy, or production credential without the owner doing it himself.
+- Docs follow the code: any session that finds docs-vs-code drift (a playbook, spec, BUILD-STATUS or README claim the repo or the live project contradicts) fixes the doc in the same commit as the finding and logs it in `docs/playbook-drift-<date>.md` (what the doc said, what is true, the source). Owner rule, 2026-10-11.
+- A live failure is a test: every FAIL from a live gauntlet run is recorded by `evals/gauntlet/record-replays.cjs` and replayed by `tests/edge/live-replays.test.ts`; it stays red until fixed or triaged in writing (precondition, not_built, grader). Merge to main only after the live gauntlet passes on the exact commit.
 - Never fake a connector or outcome: a rail that is not live returns NOT_WIRED; a cancel is done when the merchant's record says cancelled; a fee is recovered when the credit posts.
 - Every user-facing money statement cites its data source and as-of time. The model explains numbers; functions over real rows produce them.
 - `packages/capabilities/registry.json` is the source of truth. Status rises only via `status-overlay.json` with a `test_ref` that exists and passes.

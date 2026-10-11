@@ -8,12 +8,12 @@ says, what is true, and the source. Items marked **[safety]** or **[blocker]** n
 ## Live state the playbook does not know about (it predates the 19:01 UTC go-live run)
 
 1. **[blocker] Every model call is failing.** Live, the router call and the money-question planner both received HTTP 400
-   from Anthropic (`agent_messages.meta.flow_route.problems = ["router model HTTP 400"]`; three `agent_model_calls` rows
-   stuck in `reserved`; `agent_usage` last recorded 2026-10-08 16:24 UTC). The playbook's 2.2 step 15 and 4.2 describe a
-   working Haiku call. The most likely cause is the Anthropic account's credit balance (that error is a 400); the code
-   kept only the status, so it is not yet confirmed. Fixed in this commit: the provider's error type and message are now
-   logged and saved in the reply's `meta.model_error`, and the planner says "the AI service Upmore uses isn't responding"
-   instead of a payment-planner message. Source: tests/edge/model-errors.test.ts.
+   from Anthropic (16 `agent_model_calls` rows `reserved`, 0 `recorded` in the 24 hours to 19:30 UTC). Cause, from the
+   function logs: "This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id
+   header" (not the credit balance this note first guessed). Owner decision the same evening: switch to OpenAI, the
+   cheapest model. Built: the model gateway (`_shared/model_gateway.ts`, gpt-5-nano by `OPENAI_API_KEY`), a 200 with an
+   honest outage sentence instead of a 502, `model-health` (503 + founder alert when the provider is down), cost per turn
+   (`agent_turn_costs`). Not deployed until the owner runs go-live.sh with the key.
 2. **Live bug found on the first live text.** "what's my balance" and "how much did i spend on food last month" were
    answered "I couldn't complete the requested financial plan ... no payment was approved or submitted by the planner",
    because personal-finance questions go to the tool planner (`isPersonalFinancialRequest`), which needs the model. The
@@ -66,3 +66,34 @@ says, what is true, and the source. Items marked **[safety]** or **[blocker]** n
 - One merchant playbook is `verified: true` (devin); the others are false. (merchant-catalog.ts)
 - Chat model default `claude-haiku-4-5-20251001` (live `agent_model_calls.model`).
 - 0 of 206 real-world capabilities done; every recorded check is LOCAL (docs/realworld/README.md, evidence ledger).
+
+## Corrections applied to the playbook (2026-10-11, evening)
+
+The playbook lives outside the repo (pasted into the session), so it cannot be fixed in a commit. A corrected copy
+(41 exact replacements, each checked to match once) was handed to the owner privately; it goes into `docs/` once the
+repo is private, so later drift is fixed in the same commit as the code. The replacements, by section:
+
+- Header: corrected-as-of note and the standing drift rule (now in CLAUDE.md and AGENTS.md).
+- 2.1: template ~13,300 lines; 61 migrations with a ledger (`upmore_migration_ledger`, `apply-rails-and-seed.sh --pending`).
+- 2.2 step 15, 4.2, 4.3: the model gateway; OpenAI gpt-5-nano at minimal reasoning; OpenAI's automatic prefix cache.
+- 2.4: `brokerage_accounts` is live-only (a constraint refuses paper rows).
+- 2.6: secrets list; the committed test JWT (removed on main in ab6019e, in public history); go-live.sh as the deploy.
+- 4.4, 4.5, 11.1: worst case about $0.80-0.90 per person per month on gpt-5-nano (estimate from third-party price tables
+  until reconciled with the invoice; was about $3.87 on Haiku); measured per turn from now on.
+- 5.4: built and deployed; scopes `trading data`; staged link + confirm; no Alpaca refresh; sub-account fallback removed.
+- 6.2: Browserbase is an open decision. 6.3: trade via app built; live only.
+- 7 (G), 7.6, 9, 19: gauntlet built and run (3/17, model key); CI added; failures replay; status rows updated.
+- 10.1, 10.3: provider error rate and model-health; provider down is a 200 with the outage sentence, never a 502.
+- 13.2: secret scanning done. 17.1: merge to main only after the live gauntlet on the exact commit; drift fixed in the
+  same commit; mocks stay inside tests. 18: degraded modes name the AI provider, not Anthropic.
+
+## Also found this evening
+
+- **Re-running go-live.sh was not safe.** `--all` replays every migration after 20261008_000005, 22 of which are already
+  applied live and several are not idempotent. Now `--pending` with a ledger; tested against Postgres (tests/db/run.sh).
+- **The repo had no CI.** `.github/workflows/ci.yml` added (node, Deno, Postgres, secret scan).
+- **A photo alone could not be sent** (spec 16 item 12): Send stayed disabled and the handler answered 400. Fixed.
+- **"pay my rent" went to person-to-person send** with the model down (live S16-15). Bills now reach the bill workflow.
+- **The live score was 3/17, not "6 right"**: the first report counted replies a person judged reasonable; the mechanical
+  grader (the published number) passed 3. S16-03 and S16-10 fail on test-account preconditions (no Netflix charge, no
+  brokerage connected), recorded as triage in `evals/gauntlet/replays/live-failures.json`.

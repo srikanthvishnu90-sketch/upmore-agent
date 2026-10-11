@@ -57,7 +57,7 @@
   <a class="back" href="/">&larr; Back to Upmore</a>
 
   <h1>Upmore Privacy Policy</h1>
-  <p class="meta"><strong>Last updated:</strong> September 27, 2026</p>
+  <p class="meta"><strong>Last updated:</strong> October 11, 2026</p>
   <p class="meta"><strong>Company:</strong> Upmore (sole proprietorship, founder Vishnu Srikanth)</p>
   <p class="meta"><strong>Contact:</strong> <a href="mailto:vishnusrikanth8@gmail.com">vishnusrikanth8@gmail.com</a></p>
 
@@ -72,8 +72,8 @@
   <p><strong>Your activity.</strong> Plan progress, subscriptions, receipts, ledger entries, renewals, claims, reminders, notification preferences, saved routes, and payout proof you submit.</p>
   <p><strong>Guide conversations.</strong> Your chat messages with the Upmore Guide, kept so the conversation has continuity.</p>
   <p><strong>AI usage counters.</strong> Anonymous-ish counts of AI requests, used only to enforce the monthly usage quota (900 model calls). Raw rows are aged out after 90 days.</p>
-  <p><strong>Bank connection (SimpleFIN, optional).</strong> If you connect your bank, SimpleFIN handles your bank sign-in on their site — we never see or store your bank username or password. We store a read-only access credential, encrypted, in our database vault, so the app can sync your accounts. Balances and transactions are fetched to display to you and are not persisted as records.</p>
-  <p><strong>Brokerage connection (Plaid Investments, optional, pending).</strong> Works the same way once live: read-only, access token stored encrypted in our vault, holdings processed to display to you, never sold, disconnect deletes the token.</p>
+  <p><strong>Bank connection (SimpleFIN, optional).</strong> If you connect your bank, SimpleFIN handles your bank sign-in on their site — we never see or store your bank username or password. We store a read-only access credential, encrypted, in our database vault, so the app can sync your accounts. Your accounts and transactions are stored in your account so the agent can answer questions about your own money and show where each number came from; deleting your account deletes them.</p>
+  <p><strong>Brokerage connection (Alpaca, optional).</strong> If you connect your own Alpaca brokerage account, you approve it on Alpaca's site; we never see your Alpaca password. Alpaca gives us a token with trading and market-data permission for your account only. It is stored encrypted in our vault and used only to show your account and to place an order you approved on a confirmation card, one order per approval. Disconnecting, or deleting your Upmore account, deletes the token.</p>
   <p><strong>Payments (Stripe, planned).</strong> When subscriptions go live, billing is handled by Stripe. Your card details go to Stripe, never to Upmore — we store only customer and subscription IDs, plus any referral credits on your account.</p>
   <p><strong>What we don't collect.</strong> No payment card details, no bank logins, no location tracking, no contacts, no advertising IDs.</p>
 
@@ -81,7 +81,7 @@
   <ul>
     <li>To run your account and keep you signed in.</li>
     <li>To power your money plan: budgets, Money tools, the Guide, reminders, and the earn catalog.</li>
-    <li>To sync read-only bank/brokerage data you asked us to show you.</li>
+    <li>To sync bank and brokerage data you asked us to show you, and to place a brokerage order only after you approve its confirmation card.</li>
     <li>To enforce usage quotas and keep the service reliable.</li>
     <li>To respond when you contact us.</li>
   </ul>
@@ -92,10 +92,11 @@
   <ul>
     <li><strong>Supabase</strong> — sign-in, database, and encrypted vault (US). Your rows are isolated to your account.</li>
     <li><strong>Vercel</strong> — hosts the app.</li>
-    <li><strong>Anthropic</strong> — your Guide messages are sent to Claude so it can answer you. Conversations are trimmed and capped, and are not used to train models.</li>
+    <li><strong>OpenAI</strong> (and Anthropic, if we switch providers) — your Guide messages, and any photo you attach, are sent to the AI provider so it can answer you. Conversations are trimmed and capped. Under these providers' API terms, data sent through their API is not used to train their models by default.</li>
     <li><strong>Google</strong> — sign-in only, if you choose it.</li>
     <li><strong>SimpleFIN</strong> — only if you connect your bank (read-only bank data).</li>
-    <li><strong>Plaid</strong> — only if you connect your brokerage (read-only investments data), once approved.</li>
+    <li><strong>Alpaca</strong> — only if you connect your own brokerage account (account data, and the orders you approve).</li>
+    <li><strong>Plaid</strong> — only if you connect investments for read-only data, once approved.</li>
     <li><strong>Stripe</strong> — only for subscription billing, once live.</li>
   </ul>
   <p>Nobody else. If we add a processor, we'll update this list.</p>

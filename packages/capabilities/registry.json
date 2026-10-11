@@ -3956,15 +3956,16 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "GATED",
-   "test_ref": null,
-   "gate_reason": "no broker-dealer partner rail (Alpaca or DriveWealth plus doc 14 compliance setup); the restate-and-confirm flow is proven against a fake rail in tests/invest.test.cjs",
+   "status": "TESTED",
+   "test_ref": "tests/depth-INV-011.test.cjs",
+   "gate_reason": null,
    "connectors": [],
    "implementation": [
+    "packages/domain/66-agent-trade.js",
     "packages/domain/50-agent-invest.js",
     "packages/domain/43-agent-loop.js"
    ],
-   "note": null,
+   "note": "Depth protocol docs/depth/INV-011.md: 15 sub-capabilities, each proven to fail under its planted defect. Execution is closed by the compliance gate until a broker-dealer partner is live (doc 14); the logic is proven against a fake rail that fills, queues, partially fills, rejects and times out.",
    "description": "user-directed buy order"
   },
   {

@@ -608,10 +608,12 @@
    "implementation": [
     "packages/domain/43-agent-loop.js",
     "packages/domain/50-agent-invest.js",
-    "packages/domain/59-agent-alerts.js"
+    "packages/domain/59-agent-alerts.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
     "tests/alerts.test.cjs",
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": false
@@ -1028,9 +1030,11 @@
     "evals/data/labeled/advice-boundary.json",
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": false
@@ -1432,13 +1436,16 @@
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
     "packages/domain/46-voice.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs",
     "tests/voice.test.cjs"
    ],
-   "writes": true
+   "writes": true,
+   "depth": "INV-011"
   },
   {
    "id": "C47",
@@ -1583,9 +1590,11 @@
    "implementation": [
     "packages/domain/43-agent-loop.js",
     "packages/domain/49-agent-save.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/save.test.cjs"
    ],
    "writes": true
@@ -1617,9 +1626,11 @@
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
     "packages/domain/50-agent-invest.js",
-    "packages/domain/55-agent-news.js"
+    "packages/domain/55-agent-news.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs",
     "tests/news.test.cjs"
    ],
@@ -1649,9 +1660,11 @@
     "evals/data/labeled/advice-boundary.json",
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": true
@@ -1680,9 +1693,11 @@
     "evals/data/labeled/advice-boundary.json",
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": true
@@ -1743,9 +1758,11 @@
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
     "packages/domain/46-voice.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs",
     "tests/voice.test.cjs"
    ],
@@ -1771,9 +1788,12 @@
    "failure": "Limit orders are NOT_WIRED.",
    "implementation": [
     "packages/domain/43-agent-loop.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
-   "tests": [],
+   "tests": [
+    "tests/depth-INV-011.test.cjs"
+   ],
    "writes": true
   },
   {
@@ -1799,9 +1819,11 @@
     "evals/data/labeled/advice-boundary.json",
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": true
@@ -1827,9 +1849,12 @@
    "failure": "Ladder orders are NOT_WIRED.",
    "implementation": [
     "packages/domain/43-agent-loop.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
-   "tests": [],
+   "tests": [
+    "tests/depth-INV-011.test.cjs"
+   ],
    "writes": true
   },
   {
@@ -1879,9 +1904,11 @@
     "evals/data/labeled/advice-boundary.json",
     "packages/domain/43-agent-loop.js",
     "packages/domain/45-advice-guard.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
    "tests": [
+    "tests/depth-INV-011.test.cjs",
     "tests/invest.test.cjs"
    ],
    "writes": true
@@ -1907,9 +1934,12 @@
    "failure": "Fractional orders are NOT_WIRED.",
    "implementation": [
     "packages/domain/43-agent-loop.js",
-    "packages/domain/50-agent-invest.js"
+    "packages/domain/50-agent-invest.js",
+    "packages/domain/66-agent-trade.js"
    ],
-   "tests": [],
+   "tests": [
+    "tests/depth-INV-011.test.cjs"
+   ],
    "writes": true
   },
   {
@@ -3938,7 +3968,8 @@
     "tests/depth-PAY-001.test.cjs",
     "tests/money.test.cjs"
    ],
-   "writes": true
+   "writes": true,
+   "depth": "PAY-001"
   },
   {
    "id": "C129",

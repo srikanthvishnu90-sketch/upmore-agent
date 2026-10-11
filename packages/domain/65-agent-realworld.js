@@ -195,7 +195,9 @@
         const it = get(id), f = facts || {}, depth = f.depth || {}, overlay = f.overlay || {};
         const st = it.registry.map(r => ({ id: r, status: (overlay[r] && overlay[r].status) || (caps.get(r) || {}).status || "CLAIMED" }));
         const tested = st.filter(s => s.status === "TESTED" || s.status === "VERIFIED").length;
-        const proven = it.registry.filter(r => depth[r] && depth[r].proven === depth[r].sub_capabilities && depth[r].sub_capabilities >= 15);
+        // Proven means this item's own depth packet (docs/depth/<id>.md, named in the map) is 15/15; a proven id that merely
+        // appears among an item's registry ids proves nothing about the item (a limit order is not a market buy).
+        const proven = it.depth && depth[it.depth] && depth[it.depth].proven === depth[it.depth].sub_capabilities && depth[it.depth].sub_capabilities >= 15 ? [it.depth] : [];
         const logic = proven.length ? "LOGIC_PROVEN" : tested === st.length ? "LOGIC_TESTED" : tested ? "PARTLY_TESTED" : "DESIGNED";
         const wired = it.connectors.some(p => { const row = providers.get(p); return row && /live/.test(row.adapter_state || ""); });
         const rail = wired ? "LIVE" : it.sandbox ? "SANDBOX" : NOT_WIRED;

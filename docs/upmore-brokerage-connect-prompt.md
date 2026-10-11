@@ -67,9 +67,10 @@ infra, or keys.)
 ## Env needed (owner's tap)
 - `ALPACA_OAUTH_CLIENT_ID` + `ALPACA_OAUTH_CLIENT_SECRET` as Supabase secrets
   (project upmore). Owner registers the app at app.alpaca.markets → Connect:
-  e-sign the OAuth agreement, add redirect URIs (dev + production), request
-  scopes `account:write trading`. Live trading needs Alpaca Compliance
-  approval — paper works immediately.
+  e-sign the OAuth agreement, redirect URI
+  `https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/broker-oauth-callback`,
+  scopes `account:write trading`, `env=live`. NOTHING works until Alpaca
+  Compliance approves the app for live trading — no paper fallback exists.
 
 ## Report
 Files changed, tests added, what you verified live (real OAuth round trip

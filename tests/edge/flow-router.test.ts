@@ -5,7 +5,8 @@ import { routeFlows, anthropicRouteExtractor, mapFlowData, hasLiveCard, flowErro
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
 function eq(a: unknown, b: unknown, m = "") { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} expected ${JSON.stringify(b)} got ${JSON.stringify(a)}`); }
-const corpus = JSON.parse(await Deno.readTextFile(new URL("../../evals/gauntlet/sloppy-20.json", import.meta.url)));
+import corpusJson from "../../evals/gauntlet/sloppy-20.json" with { type: "json" };
+const corpus: any = corpusJson;
 const T0 = Date.UTC(2026, 9, 12, 14, 0, 0);
 
 function txRows() {

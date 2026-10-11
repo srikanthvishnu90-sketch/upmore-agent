@@ -193,7 +193,8 @@ export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[]) {
   const brokerageAccounts = acctRows.filter(a => a.status !== "revoked").map(a => ({ id: a.id, name: `${a.provider} ${a.label}${a.paper ? " (paper)" : ""}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
   // No saved-recipient table exists yet, so the send flow knows no one: every person is a first-time recipient and is
   // confirmed in full. No instrument list exists yet; orders stop at the compliance gate before needing one.
-  return { transactions, brokerageAccounts, people: [], instruments: [], directory: merchantDirectory() };
+  const people: any[] = [], instruments: any[] = [];
+  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory() };
 }
 
 // Where each known merchant's own cancellation page is, from the researched catalog. Used only to point the person at

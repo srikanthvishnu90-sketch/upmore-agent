@@ -28,9 +28,4 @@ Deno.test("the chat input carries only the redacted text, and the person is told
   assertEquals(redactionNote([]), null);
   assertEquals(redactionNote(["ssn", "card"]), "(I removed the Social Security number and card number from your message and didn't keep it. Upmore never needs it here.)");
 });
-
-Deno.test("the handler sets the note from the redaction and keeps it when a card is dropped", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
-  assert(h.includes("flowCtx.note = redactionNote(input.redacted);"));
-  assert(h.includes("flowCtx.note = [flowCtx.note, flow.note].filter(Boolean).join(\" \") || null;"));
-});
+// The handler wiring is checked in tests/model-guards-wiring.test.cjs (it reads the source; edge tests run without permissions).

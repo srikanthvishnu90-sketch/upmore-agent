@@ -2,6 +2,8 @@
 // before any request, a wrong card is answered no, and every yes is written to the ledger. No real order is placed here.
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { runLive, spent, type Ledger } from "../../evals/agent/live.ts";
+// Static import so this runs with no permissions (the evidence recorder runs deno test without -A).
+import committed from "../../evals/agent/live-ledger.json" with { type: "json" };
 
 const now = () => new Date("2026-10-11T15:00:00Z");
 const ledger = (rows: any[] = []): Ledger => ({ envelope_cents: 20000, order_cap_cents: 500, rows });
@@ -42,7 +44,7 @@ Deno.test("MOCK: an unreadable receipt after a yes is still counted as spent", a
 });
 
 Deno.test("the committed ledger is inside the envelope and every row is $5 or less", () => {
-  const l: Ledger = JSON.parse(Deno.readTextFileSync(new URL("../../evals/agent/live-ledger.json", import.meta.url)));
+  const l = committed as Ledger;
   assertEquals([l.envelope_cents, l.order_cap_cents], [20000, 500]);
   assert(spent(l) <= 20000); assert(l.rows.every(r => r.cents <= 500));
 });

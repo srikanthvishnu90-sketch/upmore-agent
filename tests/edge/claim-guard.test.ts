@@ -21,10 +21,4 @@ Deno.test("the correction is appended once", () => {
   const once = guardMoneyClaim("I've sent it.").reply;
   assertEquals(guardMoneyClaim(once).reply, once);
 });
-
-Deno.test("the handler runs the guard on both model paths, before the reply is stored", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
-  assert(h.includes('import { guardMoneyClaim } from "../_shared/claim_guard.ts";'));
-  assert(h.indexOf("reply = guardMoneyClaim(reply).reply;") < h.indexOf('{ thread_id: tid, role: "assistant", content: reply, meta: { action, violations'));
-  assert(h.includes("const reply = result.action ? result.reply : guardMoneyClaim(result.reply).reply;"));
-});
+// The handler wiring is checked in tests/model-guards-wiring.test.cjs (it reads the source; edge tests run without permissions).

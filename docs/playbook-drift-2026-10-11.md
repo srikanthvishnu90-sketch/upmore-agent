@@ -97,3 +97,17 @@ repo is private, so later drift is fixed in the same commit as the code. The rep
 - **The live score was 3/17, not "6 right"**: the first report counted replies a person judged reasonable; the mechanical
   grader (the published number) passed 3. S16-03 and S16-10 fail on test-account preconditions (no Netflix charge, no
   brokerage connected), recorded as triage in `evals/gauntlet/replays/live-failures.json`.
+
+## Corpus pass (2026-10-11 night): behavior changed to match the owner's response-style corpus
+
+Each was fixed in the same commit as the code and its pinned tests (the standing drift rule).
+- **A bare number on a market buy is dollars** ("buy 100 of nvda" = $100.00), per the corpus over INV-011's earlier
+  "ask shares or dollars". A sell's bare number still asks (selling the wrong unit is worse). docs/depth/INV-011.md updated.
+- **Two requests in one text are handled in order**, one card at a time ("Two things, one at a time. First: ... Then I'll
+  do: ..."); the second starts in the same reply as the first card settles ("Next: ..."). Was: name both and ask "1 or 2".
+  The old ask remains when the first part cannot be read as a flow on its own. L3-06 and L3-07 checks updated.
+- **The send handoff says "Staged, not sent."** and lists the steps; live gauntlet guards changed from `Staged\.` to `Staged\b`.
+- **A stale yes re-offers**: "That card expired, so nothing was sent. Here's a fresh one: ..." (was a bare expiry).
+- **Ambiguous names show their handles** ("Which Marcus: Marcus L (@marcusl) or Marcus T (@mtee)?").
+- **Typed text is tidied before parsing**: misspelled leading verbs, trailing "rn/pls/now", trailing "!!" or ".".
+- **A family word is not a look-alike**: "mom" no longer offers "Tom Hale". Saved nicknames are not built (no column).

@@ -25,7 +25,10 @@
       // "Yes, but use the other account" is a correction that invalidates the proposal, never an approval of it.
       if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
       if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
-      if (c.pending_confirmation && /^(n|no|nope|don'?t|stop|cancel that|actually no|never ?mind)\b/i.test(t)) return { type: "confirmation", approved: false };
+      // "no wait" / "hold on" keeps the card and moves nothing (scenario P05); "wait no", "nah", "scratch that" drop it
+      // (response-style corpus 1.09).
+      if (c.pending_confirmation && /^(no,?\s*wait|wait|hold on|hang on|one sec(ond)?|give me a (sec|second|minute))\s*[.!]*$/i.test(t)) return { type: "hold" };
+      if (c.pending_confirmation && /^(n|no|nope|nah|don'?t( send( it)?)?|stop|cancel( that| it)?|actually no|never ?mind|nvm|wait,?\s*no|forget it|scratch that)\b/i.test(t)) return { type: "confirmation", approved: false };
       if (/^(no[,.]? |not |wrong|that'?s wrong|i (said|meant)|it'?s actually|correction:)/i.test(t) || /\bnot [A-Z][a-z]+ [A-Z][a-z]+\b/.test(t)) return { type: "correction" };
       if (/\b(why the hell|wtf|what the f|ridiculous|this is bs|i'?m (so )?(pissed|furious|angry)|seriously\?)\b/i.test(t)) return { type: "venting" };
       const intent = typeof AgentIntents !== "undefined" ? AgentIntents.match(t) : null;

@@ -62,9 +62,12 @@ test('grounding: an amount, ticker, person or merchant the message does not cont
 });
 
 test('sloppy texts the regex net missed reach the right flow through the model extraction',async()=>{
+  assert.equal(R.tidy('cancle netflix'),'cancel netflix');assert.equal(R.tidy('buy 100 of nvda rn pls'),'buy 100 of nvda');assert.equal(R.tidy('Split dinner 142.60 with 3 friends!!'),'Split dinner 142.60 with 3 friends');
+  assert.equal(R.tidy('what is my balance?'),'what is my balance?','a question mark is kept');assert.equal(R.tidy('123456'),'123456','a code is never touched');
   const w=world();const ss=sessions(w);
   const extract=stub({
-    'cancle netflix':{intent:'cancel_subscription',merchant_span:'netflix'},
+    // A misspelled leading verb is fixed before the model sees it (AgentRouter.tidy), so the model is asked about the clean text.
+    'cancel netflix':{intent:'cancel_subscription',merchant_span:'netflix'},
     'pay sam back forty':{intent:'send_money',amount_span:'forty',amount_cents:4000,recipient_span:'sam'},
     'buy five hundred dollars of VOO':{intent:'buy_security',amount_span:'five hundred dollars',amount_cents:50000,unit:'dollars',instrument_span:'VOO'}
   });

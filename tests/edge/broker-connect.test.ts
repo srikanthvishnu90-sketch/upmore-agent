@@ -57,3 +57,22 @@ Deno.test("broker-oauth-callback: the round trip stages the connection for the s
   for (const r of [ok, again, forged, paper]) assert(!String(r.headers.get("location")).includes("tok-") && !String(r.headers.get("location")).includes("good"), "no token or code in a redirect");
   eq((await handleCallback(new Request("https://x/cb", { method: "POST" }), { env, db: m.db })).status, 405);
 });
+
+// Found 2026-10-11 (an intermittent failure of the test above): a base64url signature's last character carries only 4
+// bits, so a different final character could decode to the same bytes and a changed state string still verified. Only
+// the canonical encoding is accepted now: every altered signature string is refused, deterministically.
+Deno.test("broker state: a signature in a non-canonical encoding (same bytes, different string) is refused", async () => {
+  const { BrokerConnect } = await import("../../supabase/functions/_shared/router_core.js");
+  const key = "k".repeat(32), now = Date.UTC(2026, 9, 11, 12);
+  const state = await BrokerConnect.signState({ v: 1, p: "alpaca", u: "user-a", n: "nonce", e: now + 60000 }, key, {});
+  const [body, sig] = state.split(".");
+  const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const last = B64.indexOf(sig[sig.length - 1]);
+  let alt = 0; for (let v = 0; v < 64; v++) if (v !== last && (v >> 2) === (last >> 2)) { alt = v; break; } // same top 4 bits
+  const twin = `${body}.${sig.slice(0, -1)}${B64[alt]}`;
+  if (twin === state) throw new Error("the twin must differ as a string");
+  const ok = await BrokerConnect.verifyState(state, key, now, {});
+  const bad = await BrokerConnect.verifyState(twin, key, now, {});
+  if (!ok.ok) throw new Error("the real state verifies");
+  if (bad.ok || bad.reason !== "tampered") throw new Error(`a non-canonical twin must be refused as tampered, got ${JSON.stringify(bad)}`);
+});

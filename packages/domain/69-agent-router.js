@@ -135,7 +135,7 @@
       if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity || n.fraction) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
       return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
-    const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$/i;
+    const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
 
     // Two requests in one text ("send sam 40 and cancel netflix", "send $40 to sam and $20 to marcus") are never half-done
@@ -157,6 +157,40 @@
       return real.length >= 2 ? real.slice(0, 2) : null;
     }
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
+    const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
+    const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
+    const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "declined", "expired"]);
+    const usd = c => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // What the person last settled, in their words: the amount and who, or the order.
+    function remember(memo, flow, r, now) {
+      if (!r || !SETTLED.has(r.outcome)) return;
+      const s = r.send || (r.order && r.order.send) || null;
+      const summary = s && Number.isInteger(s.amount_cents) && s.recipient ? `${usd(s.amount_cents)} to ${s.recipient.name}` : r.order && r.order.symbol ? `the ${r.order.symbol} order` : flow === "split" ? "those requests" : "that";
+      memo.settled = { flow, outcome: r.outcome, summary, app: r.app || null, name: s && s.recipient ? s.recipient.name : null, at: now };
+    }
+    // The queued second ask starts once the first card is settled (staged, sent, declined, expired...), in the same reply.
+    async function afterSettle(out, c, memo, now) {
+      const q = memo.queue, r = out.result;
+      if (!q || !r || !SETTLED.has(r.outcome) || r.expired) return out;
+      memo.queue = null;
+      if (now - q.at > 30 * 60000) return out;
+      const next = await handle(q.text, Object.assign({}, c, { memo }));
+      if (!next || !next.result || !next.result.text) return out;
+      // Two short messages, not one block (corpus mannerism 1): a blank line between them.
+      return Object.assign({}, next, { route: next.route, settled: r.outcome, result: Object.assign({}, next.result, { text: `${r.text}\n\nNext: ${next.result.text}` }) });
+    }
+    function secondYes(st) {
+      if (st.outcome === "declined") return "Nothing's waiting for a yes: that card was dropped, and nothing was sent.";
+      if (st.outcome === "expired") return "That card expired, so nothing was sent. Ask again and I'll put up a fresh one.";
+      if (st.outcome === "staged") return `That's already staged: ${st.summary}${st.app ? ` for you to send in ${st.app}` : ""}. A second yes doesn't stage it again.`;
+      return `Already done: ${st.summary}. A second yes doesn't do it again.`;
+    }
+    function undo(st) {
+      if (st.outcome === "declined" || st.outcome === "expired") return "There's nothing to cancel: that card was dropped and nothing was sent.";
+      if (st.outcome === "staged") return `${st.summary.charAt(0).toUpperCase() + st.summary.slice(1)} is staged for you to send${st.app ? ` in ${st.app}` : ""}; Upmore didn't move any money. If you haven't sent it yet, just don't. Nothing else changed.`;
+      if (st.flow === "trade") return `That order already went through, so it can't be canceled. Selling would be a new order with its own card.`;
+      return `It already went through, so I can't cancel it.${st.name ? ` If you want it back, ask ${st.name.split(" ")[0]} to send it back.` : ""}`;
+    }
 
     // One message in, one outcome out. ctx: { extract: async (raw) => toolInput | null, sessions: { trade, cancel, send },
     // parsers: { trade, cancel, send } (the regex net), timeout_ms }. Returns { route, source, flow, canonical, result, understood_first, ... }.
@@ -175,8 +209,18 @@
       if (!live0.length && !(memo.pair && YES_NO.test(text))) {
         const two = splitRequests(text);
         if (two) {
-          memo.pair = { parts: two, at: now };
-          return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's two requests: 1) ${two[0]}, 2) ${two[1]}. I do one at a time so nothing gets mixed up. Reply 1 or 2 to start, then send me the other when it's done.` } });
+          // Two asks in one text: in order, one card at a time; the second starts when the first card is settled (owner's
+          // response-style corpus rule 9 and 2.11; scenarios A14, P08, P09). Nothing is staged for the second yet.
+          const first = await handle(two[0], Object.assign({}, c, { memo }));
+          // The first ask was not read as a flow on its own: never drop both. Name both and let the person pick.
+          if (!first || first.route === "fallthrough" || !first.result) {
+            memo.pair = { parts: two, at: now };
+            return done({ route: "ask", source: "deterministic", flow: null, understood: true, understood_first: true, ask_reason: "two_requests", result: { outcome: "ask", reason: "two_requests", text: `That's two requests: 1) ${two[0]}, 2) ${two[1]}. Which first? Reply 1 or 2.` } });
+          }
+          memo.queue = { text: two[1], at: now };
+          const fr = Object.assign({}, first.result || {});
+          fr.text = `Two things, one at a time. First: ${fr.text || ""} Then I'll do: ${two[1]}.`;
+          return Object.assign(first, { result: fr, memo, two_requests: two });
         }
       }
       if (memo.pair && !PICK.test(text)) memo.pair = null;
@@ -195,11 +239,23 @@
           return { route: "card_reply", source: "deterministic", flow: k, result, understood: true, understood_first: true, note: "follow-up" };
         }
       }
+      // Right after a card is settled, a second "yes" or a "cancel that" is about THAT card: it is answered here, from what
+      // actually happened, and never reaches the model (response-style corpus 1.10, 2.08; scenarios P03, F14).
+      const st = memo.settled, since = st ? now - st.at : Infinity;
+      if (!live.length && st && since < 5 * 60000 && YES_ONLY.test(text)) {
+        memo.settled = null;
+        return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: "already_done", text: secondYes(st) } };
+      }
+      if (!live.length && st && since < 30 * 60000 && UNDO.test(text)) {
+        memo.settled = null;
+        return { route: "card_reply", source: "deterministic", flow: st.flow, understood: true, understood_first: true, result: { outcome: st.outcome === "staged" ? "staged" : "final", text: undo(st) } };
+      }
       // A reply to a live card never goes through the model: the flow's own deterministic classifier decides.
       if (live.length && (YES_NO.test(text) || CORRECTION.test(text) || /^\s*\d{4,8}\s*$/.test(text))) {
         const flow = live[live.length - 1];
         const result = await sessions[flow].reply(text);
-        return { route: "card_reply", source: "deterministic", flow, result, understood: true, understood_first: true };
+        remember(memo, flow, result, now);
+        return afterSettle({ route: "card_reply", source: "deterministic", flow, result, understood: true, understood_first: true }, c, memo, now);
       }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
@@ -216,7 +272,8 @@
       if (e.intent === "card_reply") {
         if (!live.length) return { route: "fallthrough", source, reason: "a reply with no live card", problems: v.problems || [] };
         const flow = live[live.length - 1]; const result = await sessions[flow].reply(text);
-        return { route: "card_reply", source: "deterministic", flow, result, understood_first: true, note: "the model said card_reply; the flow's classifier decided" };
+        remember(memo, flow, result, now);
+        return afterSettle({ route: "card_reply", source: "deterministic", flow, result, understood_first: true, note: "the model said card_reply; the flow's classifier decided" }, c, memo, now);
       }
       const f = FLOWS[e.intent];
       if (!f || !sessions[f.flow]) return { route: "fallthrough", source, intent: e.intent, problems: v.problems || [] };
@@ -224,6 +281,7 @@
       const dis = source === "model" ? disagreements(f.flow, e, n) : [];
       if (dis.length) return { route: "ask", source, flow: f.flow, disagreements: dis, problems: v.problems || [], understood: false, understood_first: false, result: { outcome: "ask", reason: "disagreement", text: dis.map(d => `Did you mean ${d.model} or ${d.net} for ${d.field}?`).join(" ") } };
       // Two cards never stack: a new flow drops the other flow's live card and says so.
+      if (memo.queue && memo.queue.text !== text) memo.queue = null;
       const dropped = [];
       for (const k of live) { await sessions[k].reply("never mind"); dropped.push(k); }
       for (const k of Object.keys(sessions)) if (k !== f.flow && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
@@ -243,8 +301,21 @@
     // it could be one of the flows (or answers a live card, which the host checks from saved state). Broad on
     // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
     const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|(?:limit|stop|trailing) order|my \w+ order)\b/i;
-    const maybeFlow = text => MAYBE.test(String(text || ""));
-    async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(raw, c); out.memo = c.memo; return out; }
-    return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, TOOL, SYSTEM, INTENTS, FLOWS };
+    // How people text, cleaned before any parser or the model sees it (corpus variants: "cancle netflix", "buy 100 of nvda
+    // rn pls", "3 friends!!"): a misspelled leading verb, trailing filler and trailing ! or . are not part of the request.
+    // A trailing ? is kept (it can make a question). Nothing else is rewritten.
+    const VERB_TYPO = { spilt: "split", splt: "split", slpit: "split", cancle: "cancel", cancell: "cancel", cancl: "cancel", canel: "cancel", cancal: "cancel", sned: "send", snd: "send", semd: "send", pya: "pay", reqest: "request", requst: "request", byu: "buy", sel: "sell" };
+    const FILLER = "rn|pls|plz|please|asap|thx|thanks|ty|now|right now|for me";
+    function tidy(raw) {
+      let t = String(raw == null ? "" : raw).trim();
+      if (/^\s*\d{4,8}\s*$/.test(t)) return t;
+      t = t.replace(/^(?:pls|plz|please)\s+/i, "");
+      t = t.replace(/^([a-z]+)\b/i, w => VERB_TYPO[w.toLowerCase()] || w);
+      for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
+      return t;
+    }
+    const maybeFlow = text => MAYBE.test(tidy(text));
+    async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
+    return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentRouter;

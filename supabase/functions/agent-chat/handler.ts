@@ -32,6 +32,7 @@ import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker,
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
+import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -702,7 +703,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
     const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + "\n" + ipoLine + financeNudge +
-      renderLessonsBlock(chatLessons);
+      renderLessonsBlock(chatLessons) +
+      // The response-style corpus (corpus/, owner 2026-10-11): the hard rules, then the 6 examples nearest this message
+      // plus the 4 safety examples. Per message, so it sits in the uncached dynamic block (~1K tokens).
+      "\n\n" + StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples, message));
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the
     // $10/mo margin. 900 model calls/month (~30/day) caps worst-case AI cost

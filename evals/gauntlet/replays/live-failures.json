@@ -139,7 +139,7 @@
      "expired"
     ],
     "not_matches": [
-     "cancelled\\b|Done:|Staged\\."
+     "cancelled\\b|Done:|Staged\\b"
     ]
    },
    "observed": {

@@ -265,7 +265,7 @@ test('[S21] only built providers are opened: Alpaca today; Schwab, E*TRADE and T
 
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
-  assert.equal((await w.s.start('buy 500 VOO')).reason,'size_ambiguous');
+  assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');
   assert.equal((await w.s.start('should I sell my VOO')).outcome,'refuse');
   assert.equal((await world({partners:{}})).s?(await (await world({partners:{}})).s.start('buy $500 of VOO')).outcome:null,'blocked');
   const two=await w.s.start('buy $500 of VOO');await w.s.reply('yes');await w.s.reply('yes');assert.equal(posts(w.m).length,1,'double yes');

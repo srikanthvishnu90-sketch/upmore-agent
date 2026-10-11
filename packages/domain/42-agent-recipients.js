@@ -22,6 +22,7 @@
     const normHandle = h => String(h || "").trim().toLowerCase().replace(/^[@$]/, ""); // punctuation counts: @sarah_m and @sarah-m are different accounts
     const normName = s => String(s || "").toLowerCase().replace(/[^a-z0-9' -]/g, " ").replace(/\s+/g, " ").trim();
     const title = s => String(s || "").trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const KIN = /^(mom|mum|mama|mother|dad|papa|father|sis|sister|bro|brother|grandma|grandpa|nana|wife|husband|hubby|son|daughter|aunt|uncle|cousin)$/;
     // Optimal string alignment: a swapped pair of letters is one edit ("sma" is one edit from "sam").
     function editDistance(a, b) {
       const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i].concat(Array(n).fill(0)));
@@ -61,7 +62,8 @@
     // A label per candidate that tells them apart: the name, then the handle, then the app.
     function labels(cands) {
       const by = f => { const ls = cands.map(f); return new Set(ls.map(l => l.toLowerCase())).size === ls.length ? ls : null; };
-      return by(p => p.name) || by(p => `${p.name}${p.handle ? ` (${p.handle})` : ""}`) || cands.map(p => `${p.name}${p.handle ? ` (${p.handle})` : ""}${p.rails && p.rails[0] ? ` on ${railName(p.rails[0])}` : ""}`);
+      // Look-alike names always show their handles (response-style corpus 1.04), so the person picks a handle, not a name.
+      return by(p => `${p.name}${p.handle ? ` (${p.handle})` : ""}`) || cands.map(p => `${p.name}${p.handle ? ` (${p.handle})` : ""}${p.rails && p.rails[0] ? ` on ${railName(p.rails[0])}` : ""}`);
     }
     const orList = xs => xs.length <= 2 ? xs.join(" or ") : `${xs.slice(0, -1).join(", ")} or ${xs[xs.length - 1]}`;
     function ambiguous(raw, cands) {
@@ -97,7 +99,8 @@
       // 4. Look-alikes are named, never resolved.
       if (looksLikeHandle(raw)) {
         for (const p of list) for (const h of handlesOf(p)) { const d = editDistance(qh, normHandle(h)); if (d >= 1 && d <= 2) return { status: "lookalike", suspect: p, distance: d, query: raw, handle: raw, ask: `${raw} is not on file, but it is ${d === 1 ? "one character" : "two characters"} away from ${p.name} (${h}). Did you mean ${p.name}? If this is someone new, say NEW and I'll confirm them in full.` }; }
-      } else if (qn.length >= 3) {
+      } else if (qn.length >= 3 && !KIN.test(qn)) {
+        // A family word ("mom", "dad", "sis") is a relationship, not a misspelled name: never offer "Tom" for "mom".
         for (const p of list) { const n = normName(p.name), f = n.split(" ")[0]; if ((f.length >= 3 && editDistance(qn, f) === 1) || editDistance(qn, n) === 1) return { status: "lookalike", suspect: p, distance: 1, query: raw, handle: null, ask: `I don't have ${title(raw)} on file, but ${p.name}${p.handle ? ` (${p.handle})` : ""} is one letter away. Did you mean ${p.name}? If ${title(raw)} is someone new, say NEW and I'll confirm them in full.` }; }
       }
       // 5. A stranger.
@@ -105,7 +108,8 @@
     }
 
     // The follow-up a flow keeps in its snapshot. Two mismatches stop it; never mind stops it; ten minutes stop it.
-    const DROP = /^\s*(no|n|nope|stop|cancel|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$/i;
+    // "never mind" alone, or at the end of an answer ("the uber driver nvm"), drops the question (response-style corpus 1.08).
+    const DROP = /^\s*(no|n|nope|stop|cancel|never ?mind|nvm|forget it|scratch that)\s*[.!?]*\s*$|\b(nvm|never ?mind|forget it)\s*[.!?]*\s*$/i;
     const NEW = /^\s*(new|it'?s new|someone new|someone else|a new one|new person|new recipient)\s*[.!]*\s*$/i;
     const YES = /^\s*(y|yes|yep|yeah|yup|correct|right|that'?s (him|her|them|right))\s*[.!]*\s*$/i;
     function handleIn(text) {
@@ -117,15 +121,18 @@
     function identityStart(spec, now) {
       const s = spec || {}, rail = s.rail || railFor(s.handle);
       const stage = s.candidates ? "choose" : s.suspect ? "lookalike" : s.handle && rail ? "readback" : "handle";
-      const st = { id: `idn-${now}-${normHandle(s.handle || s.name || "x").replace(/[^a-z0-9]+/g, "")}`, stage, name: s.name || null, handle: s.handle || null, rail, suspect: s.suspect || null, candidates: s.candidates || null, ask: s.ask || null, started_at: now, misses: 0 };
+      const st = { id: `idn-${now}-${normHandle(s.handle || s.name || "x").replace(/[^a-z0-9]+/g, "")}`, stage, name: s.name || null, handle: s.handle || null, rail, suspect: s.suspect || null, candidates: s.candidates || null, ask: s.ask || null, brief: !!s.brief, started_at: now, misses: 0 };
       return { state: st, text: identityAsk(st, s.lead || null) };
     }
     function identityAsk(st, lead) {
       const who = st.name || st.handle || "them", L = lead ? lead + " " : "";
       if (st.stage === "choose" || st.stage === "lookalike") return lead || st.ask;
       if (st.stage === "handle" && st.handle && !st.rail) return `${L}Which app is ${st.handle} on: Venmo, Cash App or PayPal?`;
-      if (st.stage === "handle" && st.rail) return `${L}Reply with ${who}'s ${railName(st.rail)} ${st.rail === "zelle" ? "email or phone" : "handle"}. New recipients are confirmed in full, every time.`;
-      if (st.stage === "handle") return `${L}Reply with ${who}'s Venmo, Cash App, PayPal or Zelle (like "venmo @${normName(who).split(" ")[0] || "name"}"). New recipients are confirmed in full, every time.`;
+      // The question comes last, as a question (response-style corpus 1.02); with no name, "their", never a made-up name.
+      const poss = st.name ? `${st.name}'s` : st.handle ? `${st.handle}'s` : "their";
+      if (st.stage === "handle" && st.rail) return `${L}New recipients are confirmed in full, every time. What's ${poss} ${railName(st.rail)} ${st.rail === "zelle" ? "email or phone" : "handle"}?`;
+      if (st.stage === "handle" && st.brief) return `${L}What's ${poss} Venmo, Cash App, PayPal or Zelle handle, or phone number?`;
+      if (st.stage === "handle") return `${L}New recipients are confirmed in full, every time. What's ${poss} Venmo, Cash App, PayPal or Zelle (like "venmo @${normName(who).split(" ")[0] && st.name ? normName(who).split(" ")[0] : "name"}")?`;
       return `${L}New recipient: ${st.name ? st.name + ", " : ""}${railName(st.rail)} ${st.handle}. I can't see who owns that account, so check the name and photo in ${railName(st.rail)} first. Then type the handle back exactly to confirm it's them.`;
     }
     // One reply. Returns { state, outcome, text, person? }: ask (still going), confirmed (the handle was typed back; person is
@@ -163,6 +170,9 @@
     }
     // An answer to "Which Marcus": a full name, a handle, or the part that tells them apart ("T", "the cash app one").
     function choose(cands, text) {
+      // "the first", "2", "the last one" pick by the order the question listed them (response-style corpus 1.04).
+      const ord = /^\s*(?:the\s+)?(first|1st|1|one|second|2nd|2|two|third|3rd|3|three|last)(?:\s+one)?\s*[.!]*\s*$/i.exec(String(text || ""));
+      if (ord && cands && cands.length) { const w = ord[1].toLowerCase(), i = /^(first|1st|1|one)$/.test(w) ? 0 : /^(second|2nd|2|two)$/.test(w) ? 1 : /^(third|3rd|3|three)$/.test(w) ? 2 : cands.length - 1; if (cands[i]) return cands[i]; }
       const r = resolve(text, cands); if (r.status === "saved") return r.person;
       const t = normName(text).replace(/^(the\s+)?/, "").replace(/\s+one$/, "");
       const hits = (cands || []).filter(p => { const parts = normName(p.name).split(" "); return parts.length > 1 && parts.slice(1).join(" ") === t; });

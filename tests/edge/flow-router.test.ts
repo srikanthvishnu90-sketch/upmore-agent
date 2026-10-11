@@ -40,7 +40,7 @@ const STUB: Record<string, any> = {
   "buy $500 of VOO": { intent: "buy_security", amount_span: "$500", amount_cents: 50000, unit: "dollars", instrument_span: "VOO" },
   "buy $5 of VOO": { intent: "buy_security", amount_span: "$5", amount_cents: 500, unit: "dollars", instrument_span: "VOO" },
   "buy $6 of VOO": { intent: "buy_security", amount_span: "$6", amount_cents: 600, unit: "dollars", instrument_span: "VOO" },
-  "cancle netflix": { intent: "cancel_subscription", merchant_span: "netflix" },
+  "cancel netflix": { intent: "cancel_subscription", merchant_span: "netflix" },
   "pay sam back forty": { intent: "send_money", amount_span: "forty", amount_cents: 4000, recipient_span: "sam" },
   "venmo sam 40 for pizza": { intent: "send_money", amount_span: "40", amount_cents: 4000, recipient_span: "sam", memo_span: "pizza" },
 };
@@ -116,9 +116,9 @@ Deno.test("state survives between messages through the store: the card is restor
   assert(hasLiveCard(store.state), "the card is in the saved state");
   now += 11 * 60000;
   const late = await routeFlows("yes", { db, extract: count, now: () => now });
-  eq(calls, 1, "a reply to a live card never reaches the model"); eq(late!.route.source, "deterministic"); eq(late!.route.outcome, "expired");
-  const b = await routeFlows("pay sam back forty", { db, extract: count, now: () => now });
-  eq(b!.route.outcome, "confirm");
+  eq(calls, 1, "a reply to a live card never reaches the model"); eq(late!.route.source, "deterministic");
+  // The stale yes fires nothing; a fresh card is re-offered for a fresh yes (spec 16 item 4, corpus 2.09).
+  eq(late!.route.outcome, "confirm"); assert(/^That card expired, so nothing was sent\. Here's a fresh one: Set up \$40\.00 to Sam K/.test(late!.reply), late!.reply);
   const y = await routeFlows("yes", { db, extract: count, now: () => now + 60000 });
   eq(y!.route.outcome, "staged", "the handoff is staged for the person to send; no rail is written");
   const again = await routeFlows("yes", { db, extract: count, now: () => now + 120000 });
@@ -148,7 +148,7 @@ Deno.test("Rail 1 live wiring: pay and split share saved_recipients; a stranger 
   const extract = async (m: string) => { calls++; return model[m] ?? { intent: "other" }; };
   const go = (m: string) => routeFlows(m, { db, extract, now: () => now, channel: "sms" });
   const a = await go("venmo dana 25 for tickets");
-  eq(a!.route.flow, "send"); eq(a!.route.outcome, "ask"); eq(a!.route.ask_reason, "new_recipient"); assert(/^I don't have Dana on file\. Reply with Dana's Venmo handle\./.test(a!.reply), a!.reply);
+  eq(a!.route.flow, "send"); eq(a!.route.outcome, "ask"); eq(a!.route.ask_reason, "new_recipient"); assert(/^I don't have Dana on file\. New recipients are confirmed in full, every time\. What's Dana's Venmo handle\?$/.test(a!.reply), a!.reply);
   const b = await go("@dana-k"); assert(/^New recipient: Dana, Venmo @dana-k\./.test(b!.reply), b!.reply); eq(calls, 1, "the handle never reaches the model");
   const c = await go("@dana-k"); eq(c!.route.outcome, "confirm"); assert(/^New recipient, first send: set up \$25\.00 to Dana \(@dana-k\) in Venmo/.test(c!.reply), c!.reply); assert(AgentCards.segments(c!.reply).segments <= 2);
   const y = await go("yes"); eq(y!.route.outcome, "staged"); eq(store.recipientWrites.length, 0, "staged is not sent: nobody saved");
@@ -304,13 +304,14 @@ Deno.test("spec16 item 6 (found live 2026-10-11): \"actually make it $50\" after
   eq(y.route.outcome, "staged"); assert(/\$50\.00/.test(y.reply) && !/\$40\.00/.test(y.reply), y.reply);
 });
 
-Deno.test("L3 a yes three hours late fires nothing and says it expired", async () => {
+Deno.test("L3 a yes three hours late fires nothing, says it expired and re-offers; only a yes to the fresh card stages, once", async () => {
   const { db } = memDb({ recipients: SAM }); let now = T0;
   await routeFlows("send sam $40", { db, extract: l3Model, now: () => now });
   now += 3 * 3600000;
   const y = await routeFlows("yes", { db, extract: l3Model, now: () => now });
-  eq(y.route.outcome, "expired"); assert(/expired/i.test(y.reply), y.reply);
-  const again = await routeFlows("yes", { db, extract: l3Model, now: () => now }); assert(again === null || again.route.outcome !== "staged");
+  eq(y.route.outcome, "confirm"); assert(/^That card expired, so nothing was sent\. Here's a fresh one:/.test(y.reply), y.reply); assert(!/Staged\b/.test(y.reply));
+  const fresh = await routeFlows("yes", { db, extract: l3Model, now: () => now + 60000 }); eq(fresh.route.outcome, "staged", "the yes to the fresh card");
+  const third = await routeFlows("yes", { db, extract: l3Model, now: () => now + 70000 }); assert(third === null || third.route.outcome !== "staged", "never twice");
 });
 
 Deno.test("L3 two yes replies: one staging, the second fires nothing", async () => {
@@ -321,23 +322,36 @@ Deno.test("L3 two yes replies: one staging, the second fires nothing", async () 
   eq(y1.route.outcome, "staged"); assert(y2 === null || y2.route.outcome !== "staged", "the second yes stages nothing");
 });
 
-Deno.test("L3 two requests in one text: both named, nothing staged, the person picks one, the other is not lost", async () => {
-  const { db, store } = memDb({ recipients: SAM }); const now = T0; let calls = 0;
-  const counted = async (m: string) => { calls++; return l3Model(m); };
-  const a = await routeFlows("send sam $40 and cancel netflix", { db, extract: counted, now: () => now });
-  eq(a.route.outcome, "ask"); eq(a.route.ask_reason, "two_requests"); eq(a.route.understood, true);
-  eq(a.reply, "That's two requests: 1) send sam $40, 2) cancel netflix. I do one at a time so nothing gets mixed up. Reply 1 or 2 to start, then send me the other when it's done.");
-  eq(calls, 0, "no model call for a split"); assert(!store.state.send.pending && !store.state.cancel.pending_index, "nothing staged");
-  const b = await routeFlows("1", { db, extract: counted, now: () => now + 1000 });
-  eq(b.route.flow, "send"); eq(b.route.outcome, "confirm"); assert(/\$40\.00 to Sam K/.test(b.reply), b.reply);
-  const two = await routeFlows("send $40 to sam and $20 to marcus", { db: memDb({ recipients: SAM }).db, extract: counted, now: () => now });
-  assert(/2\) send \$20 to marcus/.test(two.reply), two.reply);
+Deno.test("L3 two requests in one text: handled in order, one card at a time, the second starts when the first settles", async () => {
+  const { db, store } = memDb({ recipients: SAM }); const now = T0;
+  const a = await routeFlows("send sam $40 and cancel netflix", { db, extract: l3Model, now: () => now });
+  eq(a.route.flow, "send"); eq(a.route.outcome, "confirm");
+  assert(/^Two things, one at a time\. First: .*\$40\.00 to Sam K \(@samk\).*Reply YES or NO.* Then I'll do: cancel netflix\.$/.test(a.reply), a.reply);
+  assert(!store.state.cancel.pending_index, "nothing staged for the second ask yet");
+  // Settling the first card (here a no) starts the second in the same reply, as a second message.
+  const b = await routeFlows("no", { db, extract: l3Model, now: () => now + 1000 });
+  eq(b.route.flow, "cancel"); assert(/nothing/i.test(b.reply.split("\n\n")[0]), b.reply); assert(/\n\nNext: .*Netflix/.test(b.reply), b.reply);
+  assert(!store.state.send.pending, "the declined send is gone");
+  // A new request in between drops the queued one: it never comes back on its own.
+  const { db: db2 } = memDb({ recipients: SAM });
+  await routeFlows("send sam $40 and cancel netflix", { db: db2, extract: l3Model, now: () => now });
+  await routeFlows("send $40 to marcus", { db: db2, extract: l3Model, now: () => now + 1000 });
+  const after = await routeFlows("no", { db: db2, extract: l3Model, now: () => now + 2000 });
+  assert(!after || !/Next:/.test(after.reply), "the queued cancel was dropped by the new request");
+});
+
+Deno.test("L3 two requests whose first part is not read as a flow: both named, nothing dropped, the person picks", async () => {
+  const { db, store } = memDb({ recipients: SAM }); const now = T0;
+  const two = await routeFlows("send $40 to sam and $20 to marcus", { db, extract: l3Model, now: () => now });
+  eq(two.route.outcome, "ask"); eq(two.route.ask_reason, "two_requests");
+  eq(two.reply, "That's two requests: 1) send $40 to sam, 2) send $20 to marcus. Which first? Reply 1 or 2.");
+  assert(!store.state.send.pending, "nothing staged");
 });
 
 Deno.test("L3 answering a question with a new request: the question is dropped and the new request is handled", async () => {
   const { db } = memDb({ recipients: MARCUSES }); const now = T0;
   const q = await routeFlows("send $40 to marcus", { db, extract: l3Model, now: () => now });
-  eq(q.reply, "Which Marcus: Marcus L or Marcus T?");
+  eq(q.reply, "Which Marcus: Marcus L (@marcusl) or Marcus T (@mtee)?");
   const c = await routeFlows("cancel netflix", { db, extract: l3Model, now: () => now + 1000 });
   eq(c.route.flow, "cancel"); assert(c.route.outcome !== "confirm" || /Cancel Netflix/.test(c.reply), c.reply);
   const late = await routeFlows("marcus t", { db, extract: l3Model, now: () => now + 2000 });

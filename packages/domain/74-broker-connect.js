@@ -71,7 +71,9 @@
       const parts = String(state || "").split(".");
       if (parts.length !== 2 || !parts[0] || !parts[1]) return { ok: false, reason: "malformed" };
       let sig; try { sig = unb64url(parts[1]); } catch (_) { return { ok: false, reason: "malformed" }; }
-      if (!same(sig, await hmac(key, parts[0], subtleOf(deps)))) return { ok: false, reason: "tampered" };
+      // Only the canonical encoding counts: a base64url string's last character carries spare bits, so a different string
+      // can decode to the same bytes. Any altered signature string is refused (found 2026-10-11 by an intermittent test).
+      if (b64url(sig) !== parts[1] || !same(sig, await hmac(key, parts[0], subtleOf(deps)))) return { ok: false, reason: "tampered" };
       let p; try { p = JSON.parse(new TextDecoder().decode(unb64url(parts[0]))); } catch (_) { return { ok: false, reason: "malformed" }; }
       if (!p || p.v !== 1 || typeof p.u !== "string" || typeof p.p !== "string" || typeof p.n !== "string" || !Number.isSafeInteger(p.e)) return { ok: false, reason: "malformed" };
       if (now > p.e) return { ok: false, reason: "expired" };

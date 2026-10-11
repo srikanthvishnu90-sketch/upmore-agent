@@ -47,7 +47,7 @@
       const lessons = st.lessons || {}; // merchant key -> failures
       let pending = Number.isInteger(st.pending_index) ? cases[st.pending_index] || null : null, queue = Array.isArray(st.queue) ? st.queue : [], last_mentioned = st.last_mentioned || o.last_mentioned || null;
       // The name a person uses, never the bank descriptor: "Netflix", not "NETFLIX.COM".
-      const nameOf = sub => { const d = directory[keyOf(sub.merchant)]; if (d && d.display_name) return d.display_name; /* exact match only: "Netflix Games" must not read as "Netflix" */ return String(sub.merchant).replace(/^(sq \*|tst\* ?|pp\*|paypal \*)/i, "").replace(/\.(com|net|tv|io|co)\b.*$/i, "").trim().split(/\s+/).map(w => w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" "); };
+      const nameOf = sub => { const d = directory[keyOf(sub.merchant)]; if (d && d.display_name) return d.display_name; /* exact match only: "Netflix Games" must not read as "Netflix" */ return String(sub.merchant).replace(/^(sq \*|tst\* ?|pp\*|paypal \*)/i, "").replace(/\s+\+?\d[\d\s().-]{6,}$/, "") /* a descriptor's trailing phone number is not the name */.replace(/\.(com|net|tv|io|co)\b.*$/i, "").trim().split(/\s+/).map(w => w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" "); };
       const say = (outcome, text, extra) => Object.assign({ outcome, text }, extra || {});
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
 

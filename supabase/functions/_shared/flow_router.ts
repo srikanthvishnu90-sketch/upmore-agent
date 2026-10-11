@@ -173,6 +173,14 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
 
 const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) => AgentSend.parse(t), cancel: (t: string) => AgentCancel.parse(t), split: (t: string) => AgentSplit.parse(t) };
 
+// The router also takes the answer to a flow's own question ("Do you mean $4.50?") and, for a few minutes after a card
+// settles, a second "yes" or a "cancel that" about it (they are answered from what happened, never by the model).
+export function needsRouter(saved: any, now: number): boolean {
+  if (hasLiveCard(saved)) return true;
+  if (saved && saved.send && saved.send.amount_check) return true;
+  if (saved && saved.split && saved.split.waiting_names) return true;
+  return !!(saved && saved.router && saved.router.settled && now - saved.router.settled.at < 30 * 60000);
+}
 export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
   if (saved.router && saved.router.pair) return true;
@@ -197,7 +205,7 @@ function liveCardWords(sessions: any): string[] {
 export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
-  if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
+  if (!needsRouter(saved, now()) && !AgentRouter.maybeFlow(message)) return null;
   const data = await deps.db.loadData();
   if (!data.ok) {
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,

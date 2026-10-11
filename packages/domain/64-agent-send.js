@@ -25,21 +25,33 @@
     }
     // The new amount sits right next to the change words, so "no, wait 5 minutes" is never read as $5.
     const AMT = String.raw`\$?\s?[\d,]+(?:\.\d{1,2})?(?:\s*(?:dollars|bucks))?`;
+    // A schedule ("every friday", "weekly", "on the 1st") is not part of a name; recurring sends are not built.
+    const SCHEDULE = /\b(?:every\s+(?:day|week|other week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|night)|each\s+(?:week|month|friday|monday)|weekly|monthly|biweekly|recurring|on the \d{1,2}(?:st|nd|rd|th)?)\b/i;
     const AMOUNT_CHANGE = new RegExp(String.raw`^\s*(?:no[,.]?\s+|actually[,.]?\s+|wait[,.]?\s+|sorry[,.]?\s+)*(?:(?:make (?:it|that)|change (?:it|that)? ?to|switch (?:it|that)? ?to|(?:it|that) should be|should be|i meant|meant to say|actually)\s+${AMT}|\$\s?[\d,]+(?:\.\d{1,2})?|${AMT}\s+instead)\s*(?:instead|please|then)?\s*[.!]*\s*$`, "i");
     function parse(text) {
       const t = String(text || "").trim(), lower = t.toLowerCase();
       const forIdx = lower.search(/\bfor\b/), head = forIdx >= 0 ? t.slice(0, forIdx) : t, memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "") || null : null;
       const amount_cents = parseAmount(head);
-      let recipient = null;
-      const to = /\bto\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*)?)/.exec(head.replace(AMOUNT, " "));
-      if (to) recipient = to[1].trim();
-      else { const verb = /^(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*)?)/i.exec(head.replace(AMOUNT, " ").replace(/\s+/g, " ")); if (verb) recipient = verb[1].trim(); }
-      if (recipient) recipient = recipient.replace(/\b(my|the|some|another)\b\s*/gi, "").replace(/\s+(now|today|tonight|please|instantly|asap)$/i, "").trim() || null;
+      let recipient = null, recipient_raw = null;
+      const bare = head.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
+      const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
+      if (to) recipient_raw = to[1].trim();
+      else { const verb = /(?:^|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
+      if (recipient_raw) {
+        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|please|instantly|asap|rn|pls|back)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+        recipient = recipient_raw.split(/\s+/).slice(0, 2).join(" ").replace(/\b(my|the|some|another)\b\s*/gi, "").trim() || null;
+      }
       const speed = /\b(instant|instantly|right now|asap|now)\b/i.test(t) ? "instant" : null;
       const funding = (/\bfrom\s+(checking|savings|[a-z]+ account)/i.exec(t) || [])[1] || null;
       const railM = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head), rail = railM ? (/cash/i.test(railM[1]) ? "cash_app" : railM[1].toLowerCase()) : null;
-      return { amount_cents, recipient, memo, speed, funding, rail, text: t };
+      // "4.5" could be $4.50, $45 or $4,500: one question, never a guess (response-style corpus 1.14).
+      const one_decimal = /(?:^|[\s$])\d+\.\d(?!\d)/.test(head);
+      return { amount_cents, recipient, recipient_raw, memo, speed, funding, rail, text: t, one_decimal, recurring: SCHEDULE.test(t) };
     }
+    // A description of a person, not a name: "the guy from yesterday", "my landlord's cousin", "a guy i just met at the bar".
+    // It never becomes a recipient's name; the person is asked who it is (response-style corpus 1.02, 1.08).
+    const DESCRIBED = /^(?:my|the|a|an|this|that|his|her|our|their)\b|\b(?:guy|girl|man|woman|lady|person|someone|somebody|cousin|friend|brother|sister|mom|mother|dad|father|landlord|roommate|boss|coworker|neighbou?r|contractor|plumber|driver|home|bar|store|shop|company|agency|office)\b|\b(?:from|at|who|met|yesterday|tonight|earlier)\b/i;
+    const GRIEF = /\b(passed( away)?|died|funeral|lost my (dad|mom|father|mother|husband|wife|son|daughter|brother|sister|grand\w+))\b/i;
     // S04: a handle one or two edits away from a saved one is a look-alike until the user says otherwise. The rule lives in
     // the recipient layer (42-agent-recipients.js) so every person-to-person flow applies it the same way.
     function lookalike(handle, people) {
@@ -63,6 +75,7 @@
       const book = o.recipients || Rec.book({ people: o.people || [], clock, channel: o.channel || null });
       let identity = st.identity || null, waiting = st.waiting || null; // a "Which Marcus", look-alike or stranger follow-up and the send it is for
       let saveOffer = st.save_offer || null; // a stranger confirmed by read-back whom the person may SAVE explicitly
+      let pendingAmountCheck = st.amount_check || null; // "Do you mean $4.50?" waiting on its answer
       const sentWithin = ms => loop.memory.outcomes.filter(x => (x.capability_id === CAPABILITY || x.capability_id === "PAY-002") && x.result === "confirmed" && clock() - (x.recorded_at || 0) < ms).reduce((s, x) => s + (x.amount_cents || 0), 0) + sends.filter(s => s.staged_at && !s.cancelled && clock() - s.staged_at < ms).reduce((s, x) => s + x.amount_cents, 0);
 
       // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
@@ -90,8 +103,14 @@
         return Object.assign({ outcome: "ask", reason, text: s0.text }, extra || {});
       }
       async function stage(parsed, pick) {
-        if (!parsed.amount_cents) return { outcome: "ask", text: "How much?" };
-        if (!parsed.recipient && !pick) return { outcome: "ask", text: "Who should I send it to?" };
+        // A scam pattern stops the request before any question about who or how much (response-style corpus 5.06).
+        const scam = Money.SCAM.exec(String(parsed.text || ""));
+        if (scam && !pick) return { outcome: "stop", reason: "scam_pattern", text: `That's a scam pattern ("${scam[0]}"): no real agency or company asks for money this way. I won't send this, and nothing was sent. If someone called you, hang up.` };
+        const beat = GRIEF.test(String(parsed.text || "")) && !pick ? "I'm so sorry. " : "";
+        if (parsed.recurring && !pick) { const rr = parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? book.resolve(parsed.recipient) : null, nm = rr && rr.status === "saved" ? rr.person.name : null; return { outcome: "not_built", reason: "recurring", text: `Recurring payments aren't built yet, so I can't set that up and nothing was scheduled.${parsed.amount_cents && nm ? ` I can do a one-time ${money(parsed.amount_cents)} to ${nm} now. Want that?` : ""}` }; }
+        if (parsed.one_decimal && parsed.amount_cents && !parsed.amount_checked && !pick) { pendingAmountCheck = parsed; return { outcome: "ask", reason: "amount_format", text: `Do you mean ${money(parsed.amount_cents)}? Checking since it could also be ${money(parsed.amount_cents * 10)} or ${money(parsed.amount_cents * 1000)}.` }; }
+        if (!parsed.amount_cents) return { outcome: "ask", text: `${beat}How much?` };
+        if (!parsed.recipient && !pick) return { outcome: "ask", text: `${beat}Who should I send it to?` };
         identity = null; waiting = null; saveOffer = null;
         // Memo text is data: it may be quoted back, never obeyed.
         let memo = parsed.memo, memo_flagged = false;
@@ -104,7 +123,9 @@
           if (r.status === "missing") return { outcome: "ask", text: r.ask };
           if (r.status === "ambiguous") return follow({ candidates: r.candidates, ask: r.ask }, parsed, "ambiguous", { candidates: r.candidates.map(c => c.name) });
           if (r.status === "lookalike") return follow({ suspect: r.suspect, handle: r.handle, rail: parsed.rail, name: r.handle ? null : r.query, ask: r.ask, lead: r.ask }, parsed, "lookalike");
-          if (r.status === "stranger") return follow({ name: r.name, handle: r.handle, rail: parsed.rail, lead: `I don't have ${r.name || parsed.recipient} on file.` }, parsed, "new_recipient", { new_recipient: true });
+          // A description is never turned into a name: ask who it is (corpus 1.02, 1.08, 5.05, 5.10).
+          if (r.status === "stranger" && DESCRIBED.test(parsed.recipient_raw || "")) return follow({ name: null, handle: null, rail: parsed.rail, brief: true, lead: beat ? "I'm so sorry. I can help with the payment when you're ready." : `I don't have ${String(parsed.recipient_raw).replace(/^my\b/i, "your")} saved.` }, Object.assign({}, parsed, { recipient: null }), "new_recipient", { new_recipient: true });
+          if (r.status === "stranger") return follow({ name: r.name, handle: r.handle, rail: parsed.rail, lead: `${beat}I don't have ${r.name || parsed.recipient} on file.` }, parsed, "new_recipient", { new_recipient: true });
           person = r.person;
         }
         // The app the person named, when the saved person is on it; a saved person not on that app is confirmed there in full.
@@ -135,7 +156,7 @@
         return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
+      async function start(text) { pendingAmountCheck = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
 
       // The outcome of an approved action, in the user's words.
       function settle(r, send) {
@@ -172,6 +193,12 @@
         return moved;
       }
       async function reply(text) {
+        if (pendingAmountCheck && AMOUNT_ANSWER.test(String(text || ""))) {
+          const was = pendingAmountCheck; pendingAmountCheck = null;
+          if (/^\s*(n|no|nope)\b/i.test(text)) return { outcome: "declined", text: "Okay. Nothing sent. Tell me the amount you meant." };
+          const typed = parseAmount(String(text)), amount_cents = typed || was.amount_cents;
+          return stage(Object.assign({}, was, { amount_cents, amount_checked: true, one_decimal: false }));
+        }
         if (identity) {
           const step = Rec.identityStep(identity, text, clock()); identity = step.state;
           if (step.outcome === "ask") return { outcome: "ask", reason: "identity", text: step.text };
@@ -198,6 +225,7 @@
           const again = await stage(merged);
           return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
         }
+        if (cls.type === "hold") return { outcome: "held", text: `Holding it. Nothing sent. Say yes to ${cardText(p.send).split(". ")[0].replace(/^Set up/, "set up").replace(/^Send/, "send")}, or no to drop it.` };
         if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return settle(r, p.send); }
         if (cls.type === "confirmation" && cls.approved === true) {
           // Stop-on-change: the send is prepared again from the same words right before it goes out. If the rail, the fee, the
@@ -208,7 +236,15 @@
             const again = await stage(p.prep.parsed);
             return Object.assign({}, again, { outcome: "changed", moved, next: again, text: `Stopped before sending: ${moved.join("; ")}. Nothing was sent.${again.outcome === "confirm" ? ` New card: ${again.text}` : ` ${again.text}`}` });
           }
-          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null; return settle(r, p.send);
+          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null;
+          // A stale yes never fires: the card expired, nothing was sent, and a fresh card goes up from the same request for a
+          // fresh yes (spec 16 item 4 "expired, re-offered, never fired"; response-style corpus 2.09).
+          if (r.outcome === "expired") {
+            const again = await stage(p.prep.parsed);
+            if (again.outcome === "confirm") return Object.assign({}, again, { expired: true, text: `That card expired, so nothing was sent. Here's a fresh one: ${again.text}` });
+            return { outcome: "expired", text: `That card expired, so nothing was sent. ${again.text || ""}`.trim() };
+          }
+          return settle(r, p.send);
         }
         if (/^\s*(3|details?|more|terms|full terms)\s*[.!?]*\s*$/i.test(String(text))) return { outcome: "details", text: confirmText(p.send), details: true };
         return { outcome: "ask", text: `Yes or no? ${cardText(p.send)}` };
@@ -222,12 +258,13 @@
         return out;
       }
       function overdue(now) { return sends.filter(s => !s.landed && !s.cancelled && s.watch && now - s.staged_at > s.watch.deadline_days * DAY).map(s => ({ send: s, text: `I staged ${money(s.amount_cents)} to ${s.recipient.name} on ${s.rail.name} ${Math.floor((now - s.staged_at) / DAY)} day(s) ago and have not seen it post. Did you send it? If not, nothing left your account.` })); }
-      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending, identity, waiting, save_offer: saveOffer }));
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending, identity, waiting, save_offer: saveOffer, amount_check: pendingAmountCheck }));
       // A reply that belongs to this flow's follow-up (a handle, NEW, a choice, SAVE) goes here and never to the model.
-      const accepts = text => (!!identity && Rec.identityAccepts(identity, text)) || (!!saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text || "")));
+      const AMOUNT_ANSWER = /^\s*(y|yes|yep|yeah|ya|correct|right|that'?s right|n|no|nope|\$?\s?[\d,]+(\.\d{1,2})?)\s*[.!]*\s*$/i;
+      const accepts = text => (!!identity && Rec.identityAccepts(identity, text)) || (!!saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text || ""))) || (!!pendingAmountCheck && AMOUNT_ANSWER.test(String(text || "")));
       return { start, reply, followUp, landed, overdue, parse, loop, sends, snapshot, cardText, accepts, recipients: book,
         get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; },
-        get awaiting_input() { return !!identity || !!saveOffer; } };
+        get awaiting_input() { return !!identity || !!saveOffer || !!pendingAmountCheck; } };
     }
     return { create, parse, parseAmount, lookalike, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
   })();

@@ -1,0 +1,133 @@
+{
+ "at": "2026-10-11T00:10:06.417Z",
+ "results": [
+  {
+   "name": "skip verification: unverified send reported as done",
+   "file": "packages/domain/43-agent-loop.js",
+   "from": "if (confirmed) return idle",
+   "to": "if (true) return idle",
+   "layer": 2,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    2
+   ]
+  },
+  {
+   "name": "swap tier check: T5 acts without asking",
+   "file": "packages/domain/43-agent-loop.js",
+   "from": "if (t === \"T5\") return { allowed: true, confirm: true, always: true };",
+   "to": "if (t === \"T5\") return { allowed: true, confirm: false };",
+   "layer": 2,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    2
+   ]
+  },
+  {
+   "name": "double execution: idempotency key ignored",
+   "file": "packages/domain/43-agent-loop.js",
+   "from": "if (log.some(e => e.to === \"ACTING\" && e.input && e.input.idempotency_key === key)) return reconcile(item, cap, key);",
+   "to": "",
+   "layer": 2,
+   "applied": true,
+   "caught": false,
+   "named_layer": false,
+   "caught_by": []
+  },
+  {
+   "name": "drop freshness label: stale data not said",
+   "file": "packages/domain/46-voice.js",
+   "from": "that sync is stale, so it may have changed.",
+   "to": "",
+   "layer": 2,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    2
+   ]
+  },
+  {
+   "name": "filler allowed in the voice",
+   "file": "packages/domain/46-voice.js",
+   "from": "for (const re of FILLER) if (re.test(s))",
+   "to": "for (const re of []) if (re.test(s))",
+   "layer": 2,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    2
+   ]
+  },
+  {
+   "name": "overclaim a capability: registry accepts TESTED without a test",
+   "file": "packages/capabilities/registry.js",
+   "from": "else if (fileExists && !fileExists(c.test_ref))",
+   "to": "else if (false)",
+   "layer": 1,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1
+   ]
+  },
+  {
+   "name": "advice guard stops blocking directed buy/sell",
+   "file": "packages/domain/45-advice-guard.js",
+   "from": "const BASE = \"buy|sell|hold|trim|dump|short|exit|unload|rotate|switch|own|keep|pick|choose|liquidate\";",
+   "to": "const BASE = \"liquidate\";",
+   "layer": 5,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1,
+    5
+   ]
+  },
+  {
+   "name": "savings ledger mixes estimates into verified totals",
+   "file": "packages/domain/47-save-engine.js",
+   "from": "const expected = s.entries.filter(e => e.status === \"expected\")",
+   "to": "const expected = s.entries",
+   "layer": 1,
+   "applied": true,
+   "caught": true,
+   "named_layer": true,
+   "caught_by": [
+    1
+   ]
+  },
+  {
+   "name": "fee recovery counts a credit on another account",
+   "file": "packages/domain/41-agent-recovery.js",
+   "from": "c.account_id !== charge.account_id ||",
+   "to": "",
+   "layer": 1,
+   "applied": false,
+   "caught": false,
+   "note": "anchor not found; mutation list is stale"
+  },
+  {
+   "name": "parity matrix hides an unmapped seed",
+   "file": "scripts/build-parity-matrix.py",
+   "from": "errors.append(f\"{f['id']}: no mapping\"); continue",
+   "to": "continue",
+   "layer": 3,
+   "applied": true,
+   "caught": false,
+   "named_layer": false,
+   "caught_by": []
+  }
+ ]
+}

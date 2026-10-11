@@ -1,0 +1,206 @@
+{
+ "at": "2026-10-11T00:07:51.965Z",
+ "commit": "8c7618c",
+ "full": false,
+ "registry_capabilities": 408,
+ "proven": 25,
+ "ok": false,
+ "duration_ms": 33446,
+ "layers": [
+  {
+   "layer": 1,
+   "name": "capability acceptance",
+   "ok": false,
+   "registry_valid": true,
+   "proven": 25,
+   "failing": [
+    "CORE-009"
+   ],
+   "suites": {
+    "tests/save-engine.test.cjs": {
+     "ok": true,
+     "pass": 7,
+     "fail": 0,
+     "failures": []
+    },
+    "tests/recovery.test.cjs": {
+     "ok": true,
+     "pass": 27,
+     "fail": 0,
+     "failures": []
+    },
+    "tests/execution/live-local/run-live-local.js": {
+     "ok": true,
+     "pass": 25,
+     "fail": 0
+    },
+    "tests/execution/watcher-match.js": {
+     "ok": true,
+     "pass": 0,
+     "fail": 0
+    },
+    "tests/advice-guard.test.cjs": {
+     "ok": true,
+     "pass": 6,
+     "fail": 0,
+     "failures": []
+    },
+    "tests/agent-loop.test.cjs": {
+     "ok": true,
+     "pass": 15,
+     "fail": 0,
+     "failures": []
+    },
+    "tests/capabilities.test.cjs": {
+     "ok": true,
+     "pass": 5,
+     "fail": 0,
+     "failures": []
+    },
+    "tests/voice.test.cjs": {
+     "ok": false,
+     "pass": 6,
+     "fail": 1,
+     "failures": []
+    }
+   }
+  },
+  {
+   "layer": 2,
+   "name": "scenarios",
+   "ok": false,
+   "operating_model": {
+    "ok": true,
+    "pass": 15,
+    "fail": 0,
+    "failures": []
+   },
+   "gold_voice": {
+    "ok": false,
+    "pass": 6,
+    "fail": 1,
+    "failures": []
+   },
+   "execution_trust": {
+    "ok": true,
+    "pass": 184,
+    "fail": 0
+   },
+   "money_safety_browser": {
+    "skipped": "run with --full (real Chromium)"
+   }
+  },
+  {
+   "layer": 3,
+   "name": "benchmarks",
+   "ok": true,
+   "savings_detection": {
+    "benchmark": "savings-detection",
+    "lives": 40,
+    "baseline": "raw-descriptor recurring finder (subscriptions only)",
+    "upmore": {
+     "planted": 475,
+     "found": 475,
+     "recall": 1,
+     "exact_dollars": 475,
+     "dollar_accuracy": 1,
+     "control_hits": 0,
+     "unplanted": 76,
+     "by_play": {
+      "P2_negotiation": {
+       "planted": 120,
+       "found": 120
+      },
+      "P1_subscription": {
+       "planted": 131,
+       "found": 131
+      },
+      "P8_structural": {
+       "planted": 51,
+       "found": 51
+      },
+      "P3_fee": {
+       "planted": 90,
+       "found": 90
+      },
+      "P4_rate": {
+       "planted": 55,
+       "found": 55
+      },
+      "P7_debt": {
+       "planted": 28,
+       "found": 28
+      }
+     }
+    },
+    "baseline_scores": {
+     "planted": 475,
+     "found": 107,
+     "recall": 0.225,
+     "exact_dollars": 79,
+     "dollar_accuracy": 0.738,
+     "control_hits": 0,
+     "unplanted": 184,
+     "by_play": {
+      "P2_negotiation": {
+       "planted": 120,
+       "found": 0
+      },
+      "P1_subscription": {
+       "planted": 131,
+       "found": 107
+      },
+      "P8_structural": {
+       "planted": 51,
+       "found": 0
+      },
+      "P3_fee": {
+       "planted": 90,
+       "found": 0
+      },
+      "P4_rate": {
+       "planted": 55,
+       "found": 0
+      },
+      "P7_debt": {
+       "planted": 28,
+       "found": 0
+      }
+     }
+    },
+    "ok": true
+   },
+   "parity_coverage": {
+    "ok": true,
+    "delivered": 19,
+    "rows": 260,
+    "pct": 7.3
+   }
+  },
+  {
+   "layer": 4,
+   "name": "judged quality",
+   "ok": true,
+   "skipped": "requires an LLM judge run with rubric + calibration set; not part of the offline suite"
+  },
+  {
+   "layer": 5,
+   "name": "safety gates",
+   "ok": true,
+   "advice_guard": {
+    "ok": true,
+    "pass": 6,
+    "fail": 0,
+    "failures": []
+   },
+   "privacy_lint": {
+    "ok": true
+   },
+   "prompt_injection": {
+    "ok": true,
+    "skipped": "no component ingests free-text connector data yet; the 116-case set is ready for the connector layer (doc 04)"
+   },
+   "hard_gate": true
+  }
+ ]
+}

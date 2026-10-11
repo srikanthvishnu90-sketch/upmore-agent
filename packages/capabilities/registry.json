@@ -2218,12 +2218,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Bonus requirement checklist (direct deposit, debit count, minimum balance) tracked against the account's own transactions; bonus posting verified by the credit.",
    "description": "bonus requirement tracker (direct deposit, debit count)"
   },
   {
@@ -2263,12 +2265,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Match left on the table, ESPP discount value, HSA seed and unused stipends from a payroll/benefits fixture; needs a payroll connector for live data.",
    "description": "employer benefits audit (match, ESPP, stipends)"
   },
   {
@@ -2278,12 +2282,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "ESPP enrollment window surfaced with the annual discount value; enrollment is the user's action (T3).",
    "description": "ESPP discount capture reminder"
   },
   {
@@ -2293,12 +2299,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Name AND address verification before an unclaimed-property hit is shown as money; the live state-database search itself is not built.",
    "description": "unclaimed property search (state databases)"
   },
   {
@@ -2308,12 +2316,14 @@
    "domain": "earnings",
    "tier": "T1",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Settlements matched against purchase history within the class window, deadline tracked; filing is the user's action with evidence attached.",
    "description": "class action settlement matching"
   },
   {
@@ -2353,12 +2363,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Points valued at real redemption rates with the marketing overstatement shown; expiring balances within 60 days flagged.",
    "description": "rewards points valuation across programs"
   },
   {
@@ -2383,12 +2395,14 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/earn-engine.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/44-agent-earn.js"
+   ],
+   "note": "Earn-app offers rated by effective hourly rate after cash-out fees; payout alerts only when a threshold is crossed. Skill matching not built.",
    "description": "side-income surfaces matched to user skills"
   },
   {
@@ -2473,12 +2487,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Consolidation across brokerage holdings with source and as-of; needs the brokerage connectors (doc 05) for live reads.",
    "description": "portfolio read across brokerages"
   },
   {
@@ -2488,11 +2504,13 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
    "note": null,
    "description": "holdings consolidation and allocation"
   },
@@ -2503,12 +2521,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Threshold-based concentration statements that pass the advice guard.",
    "description": "concentration risk reporting"
   },
   {
@@ -2548,12 +2568,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Trailing paid total and a forward estimate from declared rates, labeled estimate.",
    "description": "dividend tracking and forecast"
   },
   {
@@ -2563,12 +2585,14 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Runs only user-defined criteria over a provided universe; no market-data connector yet.",
    "description": "user-defined screener runs"
   },
   {
@@ -2623,12 +2647,14 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "CLAIMED",
+   "status": "NOT_WIRED",
    "test_ref": null,
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Order restatement and confirmation flow exist behind a fake rail; no broker-dealer partner is connected.",
    "description": "user-directed buy order"
   },
   {
@@ -2638,12 +2664,14 @@
    "domain": "investing",
    "tier": "T3",
    "owner_doc": "09",
-   "status": "CLAIMED",
+   "status": "NOT_WIRED",
    "test_ref": null,
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Same flow as INV-011 for sells; real execution is gated on a partner and the doc 14 compliance setup.",
    "description": "user-directed sell order"
   },
   {
@@ -2683,12 +2711,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Unrealized losses by lot with the wash-sale window stated; the user decides and directs.",
    "description": "tax-loss harvest candidate surfacing"
   },
   {
@@ -2698,11 +2728,13 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
    "note": null,
    "description": "wash sale checking"
   },
@@ -2728,12 +2760,14 @@
    "domain": "investing",
    "tier": "T1",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/investing.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/48-investing.js"
+   ],
+   "note": "Contribution room from limits and contributions supplied; limit tables are data, not derived.",
    "description": "retirement account contribution tracking"
   },
   {

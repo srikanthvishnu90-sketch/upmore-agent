@@ -31,7 +31,11 @@ test('status is honest by default: only overlay entries with existing tests rise
   const reg=Registry.load(registry,exists);
   const raised=reg.list(c=>!['CLAIMED','GATED'].includes(c.status));
   assert.deepEqual(raised.map(c=>c.id).sort(),Object.keys(overlay).filter(id=>overlay[id].status!=='GATED').sort());
-  for(const c of raised){assert.ok(c.test_ref&&exists(c.test_ref),c.id);assert.ok(c.implementation.length,c.id);for(const f of c.implementation)assert.ok(exists(f),f);}
+  for(const c of raised){
+    if(c.status!=='NOT_WIRED')assert.ok(c.test_ref&&exists(c.test_ref),c.id);
+    assert.ok(c.implementation.length,`${c.id} names its implementation`);for(const f of c.implementation)assert.ok(exists(f),f);
+  }
+  for(const c of reg.list(c=>c.status==='NOT_WIRED'))assert.match(c.note||'',/rail|partner|connect/i,`${c.id} says what is not connected`);
   assert.equal(reg.list(c=>c.status==='VERIFIED').length,0,'nothing has run against a live account yet');
   const gated=reg.list(c=>c.status==='GATED');
   assert.ok(gated.length>=15);for(const c of gated)assert.ok(c.gate_reason,c.id);

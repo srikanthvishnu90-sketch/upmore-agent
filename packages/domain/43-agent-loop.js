@@ -168,10 +168,13 @@
       async function wake(input) {
         const now = clock();
         if (state === "AWAITING_CONFIRMATION" && input && input.kind === "confirmation") return handleConfirmation(input);
-        if (state === "FOLLOW_UP_SCHEDULED" && input && input.kind === "follow_up") {
-          const last = log.filter(e => e.to === "FOLLOW_UP_SCHEDULED").pop();
-          const cap = registry.get(last && last.input && last.input.capability_id) || registry.get((log.filter(e => e.to === "ACTING" && e.input.idempotency_key === last.input.idempotency_key).pop() || { input: {} }).input.capability_id);
-          return reconcile({ describe: cap && cap.name }, cap, last.input.idempotency_key);
+        // A follow-up after any in-flight write (crash after ACTING or VERIFYING, or a scheduled follow-up) reconciles from the
+        // source of truth. The ACTING entry carries the idempotency key, so the log alone is enough to recover.
+        if (["ACTING", "VERIFYING", "FOLLOW_UP_SCHEDULED"].includes(state) && input && input.kind === "follow_up") {
+          const acting = log.filter(e => e.to === "ACTING" && e.input && e.input.idempotency_key).pop();
+          if (!acting) return idle(null, { outcome: "nothing_in_flight", message: "Nothing was in flight." });
+          const cap = registry.get(acting.input.capability_id);
+          return reconcile({ describe: cap && cap.name }, cap || { id: acting.input.capability_id, name: acting.input.capability_id }, acting.input.idempotency_key);
         }
         if (state !== "IDLE") return { outcome: "busy", state, message: null };
         transition("OBSERVING", { kind: input && input.kind || "unknown" });

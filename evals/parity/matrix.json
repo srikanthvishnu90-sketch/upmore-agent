@@ -11,70 +11,70 @@
    "rows": 38,
    "parity_rows": 32,
    "non_parity": 6,
-   "delivered": 1,
+   "delivered": 4,
    "gated": 4,
-   "claimed": 27,
-   "delivered_pct": 3.1
+   "claimed": 24,
+   "delivered_pct": 12.5
   },
   "GW": {
    "app": "Google Wallet",
    "rows": 27,
    "parity_rows": 19,
    "non_parity": 8,
-   "delivered": 0,
+   "delivered": 1,
    "gated": 1,
-   "claimed": 18,
-   "delivered_pct": 0.0
+   "claimed": 17,
+   "delivered_pct": 5.3
   },
   "CH": {
    "app": "Chase Mobile",
    "rows": 34,
    "parity_rows": 29,
    "non_parity": 5,
-   "delivered": 1,
+   "delivered": 2,
    "gated": 3,
-   "claimed": 25,
-   "delivered_pct": 3.4
+   "claimed": 24,
+   "delivered_pct": 6.9
   },
   "VE": {
    "app": "Venmo",
    "rows": 41,
    "parity_rows": 31,
    "non_parity": 10,
-   "delivered": 0,
+   "delivered": 3,
    "gated": 4,
-   "claimed": 27,
-   "delivered_pct": 0.0
+   "claimed": 24,
+   "delivered_pct": 9.7
   },
   "CO": {
    "app": "Capital One Mobile",
    "rows": 31,
    "parity_rows": 26,
    "non_parity": 5,
-   "delivered": 6,
+   "delivered": 7,
    "gated": 6,
-   "claimed": 14,
-   "delivered_pct": 23.1
+   "claimed": 13,
+   "delivered_pct": 26.9
   },
   "PR": {
    "app": "Propel EBT & SNAP Benefits",
    "rows": 23,
    "parity_rows": 23,
    "non_parity": 0,
-   "delivered": 3,
+   "delivered": 4,
    "gated": 3,
-   "claimed": 17,
-   "delivered_pct": 13.0
+   "claimed": 16,
+   "delivered_pct": 17.4
   },
   "PP": {
    "app": "PayPal",
    "rows": 31,
    "parity_rows": 28,
    "non_parity": 3,
-   "delivered": 3,
+   "delivered": 5,
    "gated": 3,
-   "claimed": 22,
-   "delivered_pct": 10.7
+   "claimed": 20,
+   "delivered_pct": 17.9
   },
   "BA": {
    "app": "Bank of America Mobile Banking",
@@ -91,10 +91,10 @@
    "rows": 28,
    "parity_rows": 26,
    "non_parity": 2,
-   "delivered": 0,
+   "delivered": 12,
    "gated": 1,
-   "claimed": 25,
-   "delivered_pct": 0.0
+   "claimed": 13,
+   "delivered_pct": 46.2
   },
   "WF": {
    "app": "Wells Fargo Mobile",
@@ -409,9 +409,9 @@
    "upmore": {
     "registry_id": "EARN-002",
     "name": "bonus requirement tracker (direct deposit, debit count)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "low",
@@ -459,9 +459,9 @@
    "upmore": {
     "registry_id": "INV-001",
     "name": "portfolio read across brokerages",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -478,9 +478,9 @@
    "upmore": {
     "registry_id": "INV-001",
     "name": "portfolio read across brokerages",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -856,9 +856,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -1289,9 +1289,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -1667,9 +1667,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -1743,9 +1743,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -1817,9 +1817,9 @@
    "upmore": {
     "registry_id": "INV-001",
     "name": "portfolio read across brokerages",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -2067,9 +2067,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -2742,9 +2742,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3027,9 +3027,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3721,9 +3721,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3740,9 +3740,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -3759,9 +3759,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -3778,9 +3778,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -3797,9 +3797,9 @@
    "upmore": {
     "registry_id": "EARN-002",
     "name": "bonus requirement tracker (direct deposit, debit count)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3816,9 +3816,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -3835,9 +3835,9 @@
    "upmore": {
     "registry_id": "EARN-002",
     "name": "bonus requirement tracker (direct deposit, debit count)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",
@@ -3854,9 +3854,9 @@
    "upmore": {
     "registry_id": "EARN-002",
     "name": "bonus requirement tracker (direct deposit, debit count)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -3873,9 +3873,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "low",
@@ -3961,9 +3961,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "low",
@@ -3980,9 +3980,9 @@
    "upmore": {
     "registry_id": "EARN-002",
     "name": "bonus requirement tracker (direct deposit, debit count)",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T1",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -4037,9 +4037,9 @@
    "upmore": {
     "registry_id": "EARN-013",
     "name": "side-income surfaces matched to user skills",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "medium",
@@ -5167,9 +5167,9 @@
    "upmore": {
     "registry_id": "EARN-011",
     "name": "rewards points valuation across programs",
-    "status": "CLAIMED",
+    "status": "TESTED",
     "tier": "T0",
-    "delivered": false,
+    "delivered": true,
     "gate_reason": null
    },
    "confidence": "high",

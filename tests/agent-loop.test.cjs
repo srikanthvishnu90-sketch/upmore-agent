@@ -158,6 +158,27 @@ test('approval gaps: confirmations expire, the envelope is checked against the v
   assert.equal(fresh.outcome,'awaiting_confirmation','a new key is a new action');
 });
 
+test('a crash right after ACTING, followed by a brand-new request with the same key, never writes a second time',async()=>{
+  const t={now:100};const c=fakeConnectors({});const persisted=[];
+  const first=AgentLoop.create({registry,connectors:c,clock:clockAt(t),persist:e=>persisted.push(e)});
+  const r=await first.wake({kind:'message',request:send});
+  // The write is issued, then the process dies before verify or any outcome is remembered: only the event log survives.
+  c.verify=async()=>{await new Promise(()=>{});};
+  first.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:true});
+  await new Promise(res=>setTimeout(res,10));
+  assert.equal(c.calls.write.length,1);assert.ok(persisted.some(e=>e.to==='ACTING'));
+  const log=persisted.filter(e=>e.to!=='VERIFYING'||true);
+  c.verify=async(id,key,ref)=>{c.calls.verify.push([id,key,ref]);return {confirmed:true,source:'Example Bank'};};
+  const second=AgentLoop.create({registry,connectors:c,clock:clockAt(t),log:log.slice()});
+  // State is mid-flight; a follow-up reconciles. Then the user repeats the request: the log already holds the key.
+  const rec=await second.wake({kind:'follow_up'});assert.equal(rec.outcome,'confirmed');
+  const third=AgentLoop.create({registry,connectors:c,clock:clockAt(t),log:persisted.filter(e=>['OBSERVING','DECIDING','AWAITING_CONFIRMATION','ACTING'].includes(e.to)).concat([{seq:99,at:t.now,from:'ACTING',to:'IDLE',input:null,output:null}])});
+  const again=await third.wake({kind:'message',request:send});
+  const yes=again.confirmation_id?await third.wake({kind:'confirmation',confirmation_id:again.confirmation_id,approved:true}):again;
+  assert.equal(c.calls.write.length,1,'the ACTING entry in the log is enough to stop a second execution even with no remembered outcome');
+  assert.ok(['confirmed','unknown','already_done'].includes(yes.outcome),yes.outcome);
+});
+
 test('a write failure stops without a blind retry and reports the outcome as unknown',async()=>{
   const c=fakeConnectors({writeThrows:true});const loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1})});
   const r=await loop.wake({kind:'message',request:send});

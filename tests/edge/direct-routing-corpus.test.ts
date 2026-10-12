@@ -3,7 +3,7 @@
 // answers tests/edge/lib/direct_chain.ts exports, after the connect answer, the way handler.ts does. Every bug found
 // tonight was a misroute; a new one found live gets a row in tests/edge/fixtures/direct-asks.json.
 import { assertEquals } from "jsr:@std/assert@1";
-import { connectReply, creditScoreReply, paperTradingReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import { ANSWERS, ORDER } from "./lib/direct_chain.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
@@ -14,6 +14,7 @@ async function owner(ask: string): Promise<string | null> {
   if (connectReply(ask)) return "connectReply";
   if (creditScoreReply(ask)) return "creditScoreReply";
   if (paperTradingReply(ask)) return "paperTradingReply";
+  if (accountPrivacyReply(ask, "openai")) return "accountPrivacyReply";
   for (const name of ORDER) if ((await ANSWERS[name](ask)) !== null) return name;
   return null;
 }

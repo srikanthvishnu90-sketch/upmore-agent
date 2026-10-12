@@ -92,6 +92,23 @@ serve(async (req: Request) => {
     });
   } catch { /* best-effort: account deletion proceeds regardless */ }
 
+  // FIX (2026-10-12): purge the Gmail OAuth token (oauth_gmail_{uid}). Its
+  // user_oauth_connections row cascades, but the vault has no cascade, so the
+  // refresh token outlived the account. 20261012060000_oauth_vault_cascade.sql
+  // also removes it by trigger on any row delete; this covers a project where
+  // that migration is not applied yet.
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/oauth_vault_delete`, {
+      method: "POST",
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_name: `oauth_gmail_${uid}` }),
+    });
+  } catch { /* best-effort: account deletion proceeds regardless */ }
+
   // FIX (QA-D2 2026-09-27): plaid_requests has no FK to profiles/auth.users,
   // so its rows do NOT cascade — delete them explicitly or they orphan.
   try {

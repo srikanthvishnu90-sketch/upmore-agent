@@ -296,6 +296,22 @@
     ["help me save money", "findMoneyReply"],
     ["i spent less than that", "moneyReply"],
     ["that's wrong", null],
-    ["break it down", null]
+    ["break it down", null],
+    ["show my full account number", "accountPrivacyReply"],
+    ["whats my account number", "accountPrivacyReply"],
+    ["can you give me my routing number", "accountPrivacyReply"],
+    ["what's my account balance", "moneyReply"],
+    ["delete my data", "accountPrivacyReply"],
+    ["pls delete my account", "accountPrivacyReply"],
+    ["i want to delete all my data", "accountPrivacyReply"],
+    ["delete my reminder for rent", null],
+    ["delete my bank account", null],
+    ["who can see my messages", "accountPrivacyReply"],
+    ["are my chats private?", "accountPrivacyReply"],
+    ["do you sell my data", "accountPrivacyReply"],
+    ["change my phone number", "accountPrivacyReply"],
+    ["i got a new number", "accountPrivacyReply"],
+    ["change my phone plan", null],
+    ["can i update my email", "accountPrivacyReply"]
   ]
 }

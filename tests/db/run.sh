@@ -30,6 +30,7 @@ for m in 20260923_000001_agent_rate_limits.sql 20260923_000006_rate_limiter_hard
          20260928_000004_exec_trust.sql \
          20260928_000006_agent_lessons.sql \
          20260928_000007_lesson_upsert_rpc.sql \
+         20260928_000011_oauth_connections.sql \
          20261008_000002_agent_rl_bump_as.sql \
          20261010010000_agent_permissions_ledger.sql \
          20261010020000_execution_integrity.sql \
@@ -99,6 +100,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012050000_ious.sql"
 # Idempotent: the IOU log migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012050000_ious.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
+# Idempotent: the OAuth vault cascade must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012060000_oauth_vault_cascade.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

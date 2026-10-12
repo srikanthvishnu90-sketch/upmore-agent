@@ -83,6 +83,49 @@ export function phoneCallReply(message: string): string | null {
   return PHONE_ASK.some((re) => re.test(m)) ? PHONE_CALL_NONE : null;
 }
 
+// Account and privacy asks (megadoc Q03, Q04, Q06, Q08), answered from what the app and the privacy policy actually say
+// (src/upmore-app-template.html: the You screen's "Export data" and "Delete data"; privacy.html, 2026-10-11), never from
+// the model, which would guess at settings screens and processors:
+//   - "show my full account number": Upmore never receives one (the bank connection sends names, balances and
+//     transactions; a brokerage keeps only its last four), and none goes in chat.
+//   - "delete my data": never done from chat; the app's Delete data (type DELETE) or an email to the policy contact.
+//   - "who can see my messages": stored in the person's own rows, sent to the AI provider this deployment runs on
+//     (modelConfig's provider, so the answer follows the MODEL_PROVIDER secret), nobody else.
+//   - "change my phone number" / "my email": Upmore has no phone number on file; changing the sign-in email is by email.
+const ACCOUNT_NUMBER = [
+  /\b(?:show|give|send|tell|text|read|what(?:'?s| is| are)|whats|need|get|find|see)\b[^?.!]{0,24}?\bmy (?:full |whole |complete |entire |real )?(?:bank |checking |savings |credit card |debit card |card |brokerage )?(?:account|routing|card) (?:number|#|no\.?)s?\b/i,
+  /\b(?:full|whole|complete|unmasked) (?:bank |checking |savings )?(?:account|card|routing) numbers?\b/i,
+];
+export const ACCOUNT_NUMBER_NONE =
+  "I don't have your account number, and I wouldn't put one in chat. Your bank connection is read-only: it sends Upmore account names, balances and transactions, never account, routing or card numbers. A connected brokerage keeps only its last four, like ****1234, which the You screen shows. For the full number, use your bank's own app or a statement.";
+const DELETE_ASK = /^\s*(?:(?:hey|ok|okay|so|um)[,\s]+)?(?:please |pls |can you |could you |can u |i want to |i wanna |i'?d like to |i need to |how (?:do|can) i |help me |go ahead and )?(?:delete|erase|wipe|purge|remove)\s+(?:all\s+(?:of\s+)?)?(?:my\s+)?(?:data|upmore account|upmore data|account and (?:all )?(?:my )?data|personal (?:data|info(?:rmation)?)|information|info|everything(?: you (?:have|know|store)(?: on| about) me)?|my account|account)\s*(?:from upmore|on upmore|with upmore|for good|permanently|completely)?\s*(?:please|pls)?\s*[?.!]*\s*$|^\s*(?:please |pls )?(?:forget (?:about )?me|forget everything(?: about me)?|close my upmore account)\s*[?.!]*\s*$/i;
+export const DELETE_DATA_STEPS =
+  "I can't delete your account from chat; that's on purpose, since it can't be undone. In the app: You, then Delete data at the bottom; type DELETE and tap Delete everything. That erases your profile, chats, progress, saved items, reminders, and your bank and brokerage connections including their stored credentials, and deletes your account right away, so you can't sign in with this email afterward.\nWant a copy first? Export data is right next to it. Or email vishnusrikanth8@gmail.com from your account email: Upmore confirms the account is yours, then finishes within 30 days.\nNothing was deleted.";
+const WHO_SEES = [
+  /\bwho (?:else )?(?:can|could|gets to|is able to|will|would) (?:see|read|access|view|look at)\b[^?.!]{0,30}?\b(?:messages|chats?|texts|conversations?|data|info|information)\b/i,
+  /\b(?:are|is) my (?:messages|chats?|texts|conversations?|data|info|information) (?:private|safe|secure|shared|encrypted|being (?:read|shared|sold))\b/i,
+  /\b(?:do|does|will) (?:you|upmore|anyone(?: else)?|anybody(?: else)?|a human|humans|people|someone) (?:sell|share|read|see|train on|use)\b[^?.!]{0,12}?\bmy (?:messages|chats?|texts|conversations?|data|info|information)\b/i,
+];
+export function whoSeesReply(provider: "openai" | "anthropic"): string {
+  const ai = provider === "anthropic" ? "Anthropic (Claude)" : "OpenAI";
+  return `Your messages are stored in your own Upmore account so the conversation keeps its thread; database access is restricted so only your account can read its rows. To write each answer they're sent to Upmore's AI provider, which is ${ai} right now; under its API terms, data sent through the API isn't used to train its models by default. Nobody else: Upmore never sells your data and has no ads or third-party trackers. Deleting your account (You, then Delete data) erases your chats.\nFrom Upmore's privacy policy, updated Oct 11, 2026 (You, then Privacy Policy).`;
+}
+const PHONE_CHANGE = /\b(?:change|update|edit|switch|replace|fix)\b[^?.!]{0,12}?\bmy (?:phone(?: number)?|cell(?: phone)?(?: number)?|mobile(?: number)?|number)\b(?! (?:plan|bill|carrier|provider|company|payment))|\bi (?:got|have) a new (?:phone )?number\b/i;
+const EMAIL_CHANGE = /\b(?:change|update|edit|switch|replace|fix)\b[^?.!]{0,12}?\bmy (?:login |sign[- ]?in |account )?email(?: address)?\b/i;
+export const PHONE_NONE =
+  "There's no phone number on your Upmore account to change: you sign in with your email (or Google), and texting Upmore from your phone isn't open yet. If you meant the email you sign in with, that can't be changed in the app yet; email vishnusrikanth8@gmail.com from your current account email to ask, and Upmore confirms the account is yours first. Nothing was changed.";
+export const EMAIL_NONE =
+  "Changing the email you sign in with isn't in the app yet. Email vishnusrikanth8@gmail.com from your current account email to ask, and Upmore confirms the account is yours first. Nothing was changed.";
+export function accountPrivacyReply(message: string, provider: "openai" | "anthropic"): string | null {
+  const m = String(message || "");
+  if (ACCOUNT_NUMBER.some((re) => re.test(m))) return ACCOUNT_NUMBER_NONE;
+  if (DELETE_ASK.test(m)) return DELETE_DATA_STEPS;
+  if (WHO_SEES.some((re) => re.test(m))) return whoSeesReply(provider);
+  if (PHONE_CHANGE.test(m)) return PHONE_NONE;
+  if (EMAIL_CHANGE.test(m)) return EMAIL_NONE;
+  return null;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, creditScoreReply, paperTradingReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
@@ -255,8 +255,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
     const rules = !tzRead.error && tzRead.data && Array.isArray(tzRead.data.category_rules) ? tzRead.data.category_rules : [];
     {
-      // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so.
-      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message);
+      // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so. So do
+      // the account and privacy asks (full account number, delete my data, who can see my messages, change my phone or
+      // email): from the app's real screens and the privacy policy, the AI provider named from this deployment's config.
+      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider);
       let linkedCount = 0;
       if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");

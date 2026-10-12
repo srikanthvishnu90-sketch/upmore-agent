@@ -75,3 +75,64 @@ Deno.test("find me money with only ordinary subscriptions lists them with their 
   assert(!/NaN|undefined/.test(r));
   assert(!/guarantee/i.test(r));
 });
+
+// Megadoc Q03, Q04, Q06, Q08: account and privacy asks answered from the app's real screens and the privacy policy.
+// Every app path named here is checked against the app source itself, and the processors against /privacy, so a
+// renamed button or a changed policy fails this test instead of the chat quoting something that isn't there.
+import SRC_APP from "../../src/upmore-app-template.html" with { type: "text" };
+import SRC_PRIVACY from "../../privacy.html" with { type: "text" };
+const { accountPrivacyReply, whoSeesReply, ACCOUNT_NUMBER_NONE, DELETE_DATA_STEPS, PHONE_NONE, EMAIL_NONE } = DirectAnswers;
+
+Deno.test("show my full account number: none is held or shown; the brokerage's last four only (Q03)", () => {
+  for (const t of ["show my full account number", "whats my account number", "can you give me my routing number", "send me my full card number", "what is my checking account number?", "i need my full account number"]) assertEquals(accountPrivacyReply(t, "openai"), ACCOUNT_NUMBER_NONE, t);
+  for (const t of ["what's my account balance", "how many accounts do i have", "my account number changed", "is 1234 my account"]) assertEquals(accountPrivacyReply(t, "openai"), null, t);
+  assert(!/\d{5,}/.test(ACCOUNT_NUMBER_NONE), "no number in the reply");
+  assertMatch(ACCOUNT_NUMBER_NONE, /\*\*\*\*1234/);
+  // The You screen does show a connected brokerage as "Connected, live (****1234)".
+  assertMatch(SRC_APP, /"Connected, live" \+ \(row\.account_mask \? " \(" \+ row\.account_mask/);
+});
+
+Deno.test("delete my data: never done from chat; the app's own Delete data steps, the policy's email and 30 days (Q04)", () => {
+  for (const t of ["delete my data", "pls delete my account", "i want to delete all my data", "how do i delete my account?", "delete everything you have on me", "erase my personal info", "forget me", "can you delete my upmore account permanently"]) assertEquals(accountPrivacyReply(t, "openai"), DELETE_DATA_STEPS, t);
+  for (const t of ["delete my reminder for rent", "delete my bank account", "remove my budget", "delete that charge", "clear everything", "remove my card from netflix", "delete the iou with sam"]) assertEquals(accountPrivacyReply(t, "openai"), null, t);
+  assertMatch(DELETE_DATA_STEPS, /Nothing was deleted\.$/);
+  // Each step named is a real control with that label in the app, on the You screen, and the modal asks for DELETE.
+  assertMatch(SRC_APP, /id="profile" aria-label="You">[\s\S]{0,400}?<h1 class="ptitle">You<\/h1>/);
+  assertMatch(SRC_APP, /id="deleteData">Delete data</);
+  assertMatch(SRC_APP, /id="exportData">Export data</);
+  assertMatch(SRC_APP, />Delete everything</);
+  assertMatch(SRC_APP, /Type <b>DELETE<\/b> to confirm/);
+  // The contact, the 30 days and what is erased are the policy's own words.
+  assertMatch(SRC_PRIVACY, /vishnusrikanth8@gmail\.com/);
+  assertMatch(SRC_PRIVACY, /We verify you own the account, then complete requests within 30 days/);
+  assertMatch(SRC_PRIVACY, /deleting your account erases your profile, chats, progress, saved items, reminders, and your bank\/brokerage connections including stored credentials/);
+});
+
+Deno.test("who can see my messages: the person's own rows and the AI provider this deployment runs on, from the policy (Q06)", () => {
+  for (const t of ["who can see my messages", "who else can read my chats", "are my chats private?", "do you sell my data", "does anyone else see my messages", "do you train on my data", "is my data safe"]) assertEquals(accountPrivacyReply(t, "openai"), whoSeesReply("openai"), t);
+  for (const t of ["who can see my spending", "can you see my balance", "who sells the cheapest data plan"]) assert(accountPrivacyReply(t, "openai") === null || /Upmore's AI provider/.test(accountPrivacyReply(t, "openai")!), t);
+  assertMatch(whoSeesReply("openai"), /which is OpenAI right now/);
+  assertMatch(whoSeesReply("anthropic"), /which is Anthropic \(Claude\) right now/);
+  assertMatch(whoSeesReply("openai"), /From Upmore's privacy policy, updated Oct 11, 2026 \(You, then Privacy Policy\)\.$/);
+  // Both providers are the policy's own list, and its date is the one quoted.
+  assertMatch(SRC_PRIVACY, /OpenAI<\/strong> \(and Anthropic, if we switch providers\)/);
+  assertMatch(SRC_PRIVACY, /not used to train their models by default/);
+  assertMatch(SRC_PRIVACY, /Last updated:<\/strong> October 11, 2026/);
+  assertMatch(SRC_APP, /id="privacyRow"[^>]*><span class="pl">Privacy Policy</);
+  // The in-app Privacy Policy sheet says what /privacy and the code say (it named Anthropic, Plaid for brokerage, "we never
+  // move money" and saved merchant logins until 2026-10-12): the chat's "(You, then Privacy Policy)" points at it.
+  const sheet = /<div class="sheet" id="privacySheet"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/.exec(SRC_APP)![0];
+  assertMatch(sheet, /Last updated: October 11, 2026/);
+  assertMatch(sheet, /OpenAI, or Anthropic if we switch providers/);
+  assertMatch(sheet, /Alpaca \(only if you connect your own brokerage account/);
+  for (const stale of [/go to Claude/, /brokerage connection \(Plaid\)/, /merchant logins you/, /we never move money,/]) assert(!stale.test(sheet), String(stale));
+});
+
+Deno.test("change my phone number or email: no phone on the account; email changes by asking, nothing changed (Q08)", () => {
+  for (const t of ["change my phone number", "i got a new number", "update my cell number", "how do i change my number"]) assertEquals(accountPrivacyReply(t, "openai"), PHONE_NONE, t);
+  for (const t of ["can i update my email", "change my login email"]) assertEquals(accountPrivacyReply(t, "openai"), EMAIL_NONE, t);
+  for (const t of ["change my phone plan", "my phone bill went up", "cancel my phone plan", "update my phone carrier"]) assertEquals(accountPrivacyReply(t, "openai"), null, t);
+  assertMatch(PHONE_NONE, /Nothing was changed\.$/);
+  // Sign-up really is email + password or Google: no phone field.
+  assert(!/type="tel"/.test(SRC_APP), "the app has no phone input");
+});

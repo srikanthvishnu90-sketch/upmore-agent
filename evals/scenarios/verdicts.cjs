@@ -166,7 +166,11 @@ set("P12", "BUILT", "'yes but ...' is a correction, never an approval", "tests/d
 set("P13", "DIVERGES", "'ok' counts as a yes on a card; the DO prefers an explicit yes only", "tests/voice.test.cjs");
 set("P14", "BUILT", "with no list open, asked back with no model call and nothing changed; with a pair of choices open it picks from them", "tests/router.test.cjs");
 // Q. misc
-set("Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09", "MODEL", "the chat model and the app's own settings flows");
+set("Q01 Q02 Q05 Q07 Q09", "MODEL", "the chat model and the app's own settings flows");
+set("Q03", "LIMITED", "answered from code: Upmore never receives an account, routing or card number (the bank connection sends names, balances and transactions; a brokerage keeps only its last four), so none is shown and the full number is pointed to the bank's app; the DO's 'last 4' is shown only for a connected brokerage, in the app", "tests/edge/direct-answers.test.ts");
+set("Q04", "LIMITED", "answered from code: never deleted from chat; the app's real steps (You, Delete data, type DELETE), what is erased and the policy's email with its 30 days; deletion itself is the app's, immediate, with no request id logged from chat; a deleted account's Gmail token now leaves the Vault too (the OAuth vault cascade migration)", "tests/edge/direct-answers.test.ts");
+set("Q06", "BUILT", "answered from code from the privacy policy: stored in the person's own rows, sent to the AI provider this deployment runs on (named from its config), nobody else, no training by default under the API terms, the policy's date and where to read it", "tests/edge/direct-answers.test.ts");
+set("Q08", "LIMITED", "answered from code: there is no phone number on an Upmore account (email or Google sign-in; texting isn't open yet); an email change is asked for by email; no step-up or verification event exists because nothing is changed", "tests/edge/direct-answers.test.ts");
 set("Q10", "BUILT", "a bank or card connect ask gets the app's real path in plain words (Home, Connect bank, SimpleFIN Bridge, read-only, the bank signs you in, never a password in chat); that the bank is on SimpleFIN's list is never promised; a brokerage keeps the connector matrix answer", "tests/edge/direct-answers.test.ts");
 module.exports = V;
 

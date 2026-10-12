@@ -26,7 +26,7 @@ const TX = [
 const oldest = async () => TX.slice().sort((a, b) => (a.posted_on < b.posted_on ? -1 : 1)) as any[];
 const accounts = async () => ACCOUNTS as any[];
 
-const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
+export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[] }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),
   subscriptionReply: (m) => subscriptionReply(m, TODAY, oldest),
@@ -38,7 +38,7 @@ const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   unclaimedReply: (m) => unclaimedReply(m, TODAY, oldest, accounts),
 };
 const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
-const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);
+export const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);
 
 // The answer each ask belongs to; null = none of these (it goes on to the flows or the model).
 const OWNER: [string, string | null][] = [

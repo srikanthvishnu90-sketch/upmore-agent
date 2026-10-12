@@ -88,3 +88,8 @@ test("[ADV] a descriptor carrying instructions is shown cleaned, never in Upmore
   assert.match(r.text, /deposit from PULASKI SAVINGS BANK on/);
   assert.doesNotMatch(r.text, /password/);
 });
+test("[ADV] nothing linked is said as such, never as 'I looked through your accounts'", () => {
+  const r = say("did my bank fail?", { accounts: [], transactions: [] });
+  assert.match(r.text, /in your message, and nothing is linked for me to look through\./);
+  assert.doesNotMatch(r.text, /your linked accounts and history/);
+});

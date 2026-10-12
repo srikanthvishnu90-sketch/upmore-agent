@@ -23,7 +23,10 @@ Deno.test("anything else returns null without reading a row", async () => {
   }
 });
 
-Deno.test("no linked cards: nothing to say here (the nothing-linked line answers elsewhere)", async () => {
-  const r = await rewardsReply("freedom flex 5% categories", "2026-10-12", async () => [], async () => []);
-  assert(r === null);
+// The nothing-linked line in handler.ts answers only balance and spending asks, so a null here went to the model, which
+// could invent the categories (found by the empty-data sweep, 2026-10-12). The categories are offer-book facts.
+Deno.test("no linked cards: the quarter's categories from the offer book, and the spend count needs the card", async () => {
+  const r = (await rewardsReply("freedom flex 5% categories", "2026-10-12", async () => [], async () => []))!;
+  assert(/categories are grocery stores, dining, American Red Cross/.test(r), r);
+  assert(/No card is linked, so I can't count what you've spent/.test(r), r);
 });

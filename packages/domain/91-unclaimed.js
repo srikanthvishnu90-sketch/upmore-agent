@@ -114,7 +114,8 @@
       }
       if (!out.length) {
         const first = banks.map(b => b.closed_on).sort()[0];
-        out.push(`I don't see a bank from the FDIC failed bank list in your message${c.accounts || c.transactions ? " or your linked accounts and history" : ""}. My copy has the ${new Set(banks.map(b => b.name + b.closed_on)).size} failures since ${nice(first)} (checked ${banks[0] ? banks[0].checked_on : "never"}); older ones and the full list are at ${data.list.url}. Tell me the bank's name and city and I'll check it.`);
+        const looked = (c.accounts || []).length || (c.transactions || []).length;
+        out.push(`I don't see a bank from the FDIC failed bank list in your message${looked ? " or your linked accounts and history" : c.accounts || c.transactions ? ", and nothing is linked for me to look through" : ""}. My copy has the ${new Set(banks.map(b => b.name + b.closed_on)).size} failures since ${nice(first)} (checked ${banks[0] ? banks[0].checked_on : "never"}); older ones and the full list are at ${data.list.url}. Tell me the bank's name and city and I'll check it.`);
       } else {
         out.push(`I can't search FDIC or state records for you or file a claim. Getting your own money back is free; anyone asking for an upfront fee is a red flag.`);
       }

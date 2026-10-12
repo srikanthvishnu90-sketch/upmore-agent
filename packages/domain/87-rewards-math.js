@@ -42,6 +42,14 @@
     const CATEGORY_RX = { "grocery stores": /\b(trader joe|kroger|whole ?foods|wholefds|safeway|aldi|publix|wegmans|sprouts|h-e-b|food lion|stop ?& ?shop|meijer|albertsons|vons|ralphs|harris teeter|winco|lidl|giant eagle|grocery|market)\b/i,
       dining: /\b(restaurant|starbucks|chipotle|mcdonald|dunkin|chick-?fil-?a|taco bell|wendy|burger king|doordash|grubhub|uber \*?eats|pizza|cafe|grill|bistro|diner|sushi|thai|kitchen)\b/i,
       "american red cross": /\bred cross\b/i };
+    // The same first two lines as rotating() (categories and activation), from the same code, with no card's rows.
+    function rotatingTerms(card, today, book, cards) {
+      const head = rotating(card, { name: "Chase Freedom Flex", account_id: null }, [], today, book).split("\n");
+      if (head.length < 3) return head.join("\n");
+      return [head[0], head[1],
+        cards.length ? `I don't see it among your linked cards (${cards.map(a => a.name).join(", ")}), so I can't count what you've spent in those categories; if it's linked under another name, tell me which.` : `No card is linked, so I can't count what you've spent in those categories; connect it in the app (Home, then Connect bank) and ask again.`,
+      ].join("\n");
+    }
     function rotating(card, acct, tx, today, book) {
       const base = card.rotating;
       const cats = book.term(`${base}.q4_2026.categories`, today), by = book.term(`${base}.q4_2026.activate_by`, today), cap = book.term(`${base}.q4_2026.cap_cents`, today), rate = book.term(`${base}.q4_2026.rate`, today);
@@ -125,10 +133,16 @@
       const k = kind(message);
       if (!k) return null;
       const card = cardIn(message);
-      if (!card) return "Which card? Name it (like \"Freedom Flex\" or \"Sapphire Preferred\") and I'll do the math from its own transactions.";
+      if (!card) {
+        // A family name with more than one card in it asks which one by name, never the generic prompt.
+        const family = [[/\bsapphire\b/i, "Sapphire Preferred or Sapphire Reserve"], [/\b(?:amex|american express)\b/i, "Amex Platinum or Amex Gold"], [/\bcapital one\b/i, "Venture or Savor"]].find(([re]) => re.test(String(message || "")));
+        return family ? `Which one: ${family[1]}? I'll do the math from its own transactions.` : "Which card? Name it (like \"Freedom Flex\" or \"Sapphire Preferred\") and I'll do the math from its own transactions.";
+      }
       const { hit, several, cards } = accountFor(card, accounts);
       if (several) return `More than one linked card looks like that (${several.map(a => a.name).join(", ")}). Which one?`;
-      if (!hit) return cards.length ? `I don't see that card among your linked cards (${cards.map(a => a.name).join(", ")}). If it's linked under another name, tell me which.` : null;
+      // The quarter's categories are dated offer-book facts that need no card; only the spend count needs its rows.
+      if (!hit && !several && k === "rotating" && card.rotating) return rotatingTerms(card, today, book, cards);
+      if (!hit) return cards.length ? `I don't see that card among your linked cards (${cards.map(a => a.name).join(", ")}). If it's linked under another name, tell me which.` : "I don't see a linked credit card yet, so I can't do the math from its transactions. Connect it in the app (Home, then Connect bank) and ask again.";
       if (k === "rotating") return rotating(card, hit, tx, today, book);
       if (k === "fee") return annualFee(hit, tx, today);
       const t = parseTarget(message);

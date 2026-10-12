@@ -76,3 +76,14 @@ test("merchant names carrying instructions change nothing", () => {
   assert.match(a, /\$50\.00 at merchants that fit/);
   assert.doesNotMatch(a, /activated|I activated|done/i);
 });
+
+test("nothing linked: the categories still come from the offer book, the spend count says it needs the card (found by the empty-data sweep)", () => {
+  const a = R.answer("what are the freedom flex categories this quarter", "2026-10-12", [], [], book);
+  assert.match(a, /^Chase Freedom Flex: this quarter's 5% categories are grocery stores, dining, American Red Cross, up to \$1,500\.00 of spend \(per NerdWallet: Chase Freedom calendar, checked 2026-10-11\)\./);
+  assert.match(a, /No card is linked, so I can't count what you've spent/);
+  assert.match(R.answer("is my sapphire preferred annual fee worth it", "2026-10-12", [], [], book), /^I don't see a linked credit card yet/);
+});
+
+test("a family name asks which card in it, never the generic prompt", () => {
+  assert.match(R.answer("is my sapphire annual fee worth it", "2026-10-12", [], [], book), /^Which one: Sapphire Preferred or Sapphire Reserve\?/);
+});

@@ -60,3 +60,8 @@ test("a stale window term says it may have changed", () => {
   const a = P.answer("costco price drop from $49.99 to $39.99", "2027-02-01", [tx("2027-01-20", -5000, "COSTCO WHSE #1")], book);
   assert.match(a, /may have changed, so check before acting/);
 });
+
+test("'no matching charge' says how far the card history goes, or that none is linked (found by the citation sweep)", () => {
+  assert.match(P.answer("target price drop from $89.99 to $69.99", T, [tx("2026-10-07", -2000, "KROGER #1")], book), /on your linked cards, whose history runs through 2026-10-07, so I can't check the window\. If you bought it after that, it may not have synced yet/);
+  assert.match(P.answer("target price drop from $89.99 to $69.99", T, [], book), /^No card history is linked, so I can't find the Target charge/);
+});

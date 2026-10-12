@@ -55,7 +55,11 @@
       const diff = p.old_cents - p.new_cents, t = book.term(p.store.term, today);
       const f = findPurchase(p, rows, today);
       if (f.several) return `I see more than one ${p.store.name} charge that could be it: ${f.several.map(r => `${money(-r.amount_cents)} on ${r.posted_on}`).join(", ")}. Which day did you buy it?`;
-      if (f.none) return `I don't see a ${p.store.name} charge ${p.bought ? `on ${p.bought}` : `near ${money(p.old_cents)}`} on your linked cards, so I can't check the window. Tell me the day you bought it, or the amount on your statement.`;
+      // "Not found" is a statement about the person's rows, so it says how far they go: a purchase not synced yet is not "none".
+      const through = (rows || []).map(r => r && r.posted_on).filter(Boolean).sort().slice(-1)[0];
+      if (f.none) return through
+        ? `I don't see a ${p.store.name} charge ${p.bought ? `on ${p.bought}` : `near ${money(p.old_cents)}`} on your linked cards, whose history runs through ${String(through).slice(0, 10)}, so I can't check the window. If you bought it after that, it may not have synced yet; otherwise tell me the day you bought it, or the amount on your statement.`
+        : `No card history is linked, so I can't find the ${p.store.name} charge or check the window. Connect the card you paid with, or tell me the day you bought it and the amount on your statement.`;
       const r = f.row, age = daysBetween(r.posted_on, today);
       const lines = [];
       const what = p.item ? `the ${p.item}` : "the item";

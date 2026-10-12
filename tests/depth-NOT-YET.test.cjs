@@ -76,8 +76,8 @@ test("[S13] questions about money are not actions", () => {
 });
 
 test("[S14] every reply says nothing was done, or (stolen card) that Upmore can't act on the card", () => {
-  for (const k of N.KINDS) assert.match(N.TEXT[k], /nothing was (?:moved|changed|paid|opened|set up|sent or changed)|Upmore can't report or cancel a card|I won't guess at them/i, k);
-  assert.equal(N.KINDS.length, 11);
+  for (const k of N.KINDS) assert.match(N.TEXT[k], /nothing was (?:moved|changed|paid|opened|set up|sent|requested|placed)|Upmore can't report or cancel a card|I won't guess at them/i, k);
+  assert.equal(N.KINDS.length, 18);
 });
 
 test("[S15] the way people type it: lead words, curly apostrophes, capitals", () => {
@@ -102,4 +102,42 @@ test("[S18] a payment to the wrong person: Upmore can't pull it back; the app it
   for (const t of ["sent maya 40 earlier by mistake to maya-k2, get it back", "i paid the wrong person", "i venmoed sam by accident", "accidentally zelled $200 to my old landlord"]) assert.equal(kind(t), "wrong_send", t);
   assert.equal(N.answer("i paid the wrong person"), "I can't pull a payment back, and nothing was sent or changed. Ask the app it went through: in Venmo or Cash App, contact their support from the payment and ask the person to send it back; for Zelle, call your bank right away. Getting it back isn't guaranteed, so do it today.");
   for (const t of ["send sam 40", "get my money back from amazon", "sam sent me 40 by mistake"]) assert.notEqual(kind(t), "wrong_send", t);
+});
+
+test("[S19] a refund from a store: Upmore can't ask; the store's app, a dispute for a wrong charge, an IOU for a person", () => {
+  for (const t of ["get my money back from Amazon", "ask target for a refund", "request a refund from walmart"]) assert.equal(kind(t), "refund_request", t);
+  assert.equal(N.answer("get my money back from Amazon"), "Upmore can't ask Amazon for your money back, so nothing was sent. If it's a store, start a return or refund in its own app or site; if the charge itself is wrong or you didn't make it, say \"dispute this charge\" and I'll draft what to send your bank. If it's a person, say \"amazon owes me\" and the amount, and I'll keep track.");
+  assert.equal(kind("did my refund from amazon arrive"), null, "a refund that's coming is the refund check's");
+});
+
+test("[S20] savings automation: round-ups, a recurring amount, pausing it: not built, nothing set up", () => {
+  for (const t of ["save 200 a month for a vacation", "round up purchases to savings", "pause my savings this month", "set up auto save", "cancel my savings plan"]) assert.equal(kind(t), "savings_automation", t);
+  assert.equal(kind("I want to save 10000 by June"), null, "a savings target is the save-goal math");
+});
+
+test("[S21] a savings goal's status: goals aren't saved; the balance or the save-goal math instead", () => {
+  for (const t of ["how's my vacation fund", "how is my emergency fund", "where's my house fund at"]) assert.equal(kind(t), "goal_status", t);
+  for (const t of ["how's my index fund doing", "how is my retirement fund", "how big should my emergency fund be"]) assert.notEqual(kind(t), "goal_status", t);
+});
+
+test("[S22] daily stock messages: not built; the quote on request", () => {
+  for (const t of ["send me a daily stock reminder at 8am for NVDA, PLTR", "text me a stock update every morning", "weekly portfolio summary please"]) assert.equal(kind(t), "stock_digest", t);
+  assert.match(N.answer("send me a daily stock reminder at 8am for NVDA, PLTR"), /^Daily stock messages aren't built yet, so nothing was set up\. Ask anytime, like "price of NVDA"/);
+});
+
+test("[S23] IPOs: the trade flow's own words; why no allocation is said; what an IPO is goes on", () => {
+  assert.equal(N.answer("IPO indication of interest for 500"), "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.");
+  assert.match(N.answer("why didn't I get shares in the IPO"), /^Upmore doesn't take part in IPO allocations, so there were none through Upmore\./);
+  for (const t of ["what is an ipo", "how do ipos work"]) assert.equal(kind(t), null, t);
+});
+
+test("[S24] reminding or messaging someone else: Upmore messages nobody but the person; a reminder for them instead", () => {
+  for (const t of ["remind sam about the 37", "text maya that dinner was 40", "can you nudge alex to pay me back"]) assert.equal(kind(t), "remind_other", t);
+  assert.equal(N.answer("remind sam about the 37"), "I can't message other people, so I haven't contacted Sam. I can remind you to do it: say \"remind me to ask sam about it on Friday\".");
+  for (const t of ["remind me to pay rent", "text me when rent is due", "remind us to pay rent"]) assert.notEqual(kind(t), "remind_other", t);
+});
+
+test("[S25] a request to a group chat: no members are known; name them", () => {
+  for (const t of ["request 50 from everyone in the trip chat", "split it with the whole group", "charge everybody 20"]) assert.equal(kind(t), "group_request", t);
+  assert.equal(kind("split 200 with sam, maya and alex"), null);
 });

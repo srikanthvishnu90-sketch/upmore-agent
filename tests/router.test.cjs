@@ -351,3 +351,20 @@ test('two amounts in one message are asked; the answer picks one; a correction s
   const c=await H('send sam 50 no wait make it 5');assert.match(c.result.text,/^Using 5, your last number\. /);await H('no');
   assert.equal(w.writes.length,0);
 });
+
+// A hypothetical is not an order (found 2026-10-12, megadoc G11): "if i sell all my tesla how much would i owe" or "i'm
+// thinking of selling my VOO" is not a "how/what" question, so it reached the model extraction, and a model that reads
+// "sell" would stage a sell-everything card for a what-if. Now it falls through before the model is asked; a real
+// conditional order ("if TSLA drops to 200 sell 2") and a plain order still route.
+test('a hypothetical never reaches a money flow, even when the model reads it as a sell; a conditional order still does',async()=>{
+  const w=world();const ss=sessions(w);let calls=0;
+  const extract=async raw=>{calls++;return {intent:'sell_security',quantity:null,unit:null,instrument_span:/voo/i.test(raw)?'VOO':'VTI'};};
+  for(const t of ['if i sell all my VTI how much would i owe','i\'m thinking of selling my VOO','hypothetically if i sold half my VTI','suppose i sell 2 VOO, what would i get','considering selling all my VOO','what would happen if i sold my VTI']){
+    const r=await R.handle(t,{extract,sessions:ss,parsers});
+    assert.equal(r.route,'fallthrough',t);assert.ok(['hypothetical','question'].includes(r.reason),t);
+  }
+  assert.equal(calls,0,'the model is never asked to read a what-if as an order');
+  assert.equal(w.writes.length,0);
+  const live=async raw=>({intent:'sell_security',quantity:2,unit:'shares',amount_span:'2',instrument_span:'VOO'});
+  const c=await R.handle('sell 2 VOO',{extract:live,sessions:sessions(world()),parsers});assert.equal(c.route,'sell_security');
+});

@@ -504,3 +504,18 @@ Installments, "pay in 4" without a provider) separate from the dated provider fi
 | --- | --- | --- | --- |
 | `docs/depth/DISPUTE.md`: the dispute answer takes "didn't authorize" asks | The pattern ended "authori[sz]e" before a word boundary, so "I never authorized this charge" and "I haven't authorized that payment" (past tense) never matched, and "this was unauthorized" only did with a noun after it; all three went to the model | `79-dispute.js` ASK; found while building "what's this charge" (102-charge-check.js), whose own dispute guard had copied the pattern | Past tense, "haven't" and "was/is unauthorized" are dispute asks; "what does unauthorized mean" and "I authorized the payment" are not. DISPUTE S17, D17. Also found and fixed: the shared name cleaner left a phone number's dashes ("Acme Inc - -") in every money answer (MONEY-ANSWERS S18) |
 
+
+## Deadlines: undated calendars, and a stale testing-agent count (2026-10-12, capability list item 39)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `docs/capability-list/map.cjs` item 39 (and the generated README row) | "tax and enrollment calendars are modules; FSA reminder not built" (MODULE_ONLY) | The calendars in `62-agent-documents.js` are usual month-days in code with no source, no checked date and no weekend or holiday roll, and nothing called them. Now `99-deadlines.js` reads dated official data (`packages/offers/deadlines.json`: IRS Publication 509 and Form 1040-ES, Medicare.gov, HealthCare.gov, each with how it was checked), rolls tax dates (Jan 15, 2028 is a Saturday and Jan 17 Martin Luther King Jr. Day, so Tue Jan 18), and is said by the hourly run and in chat; TAX-010, TAX-003 and INS-009 are REACHABLE with flow checks. Class-action claim dates are still not built (no verified settlement list) | `tests/depth-DEADLINES.test.cjs`, `tests/edge/deadlines.test.ts` |
+| `docs/depth/DOCUMENTS.md` S08 | The marketplace window closes January 15 (the module's `PUBLIC_WINDOWS`) | Not confirmed for 2027 coverage: HealthCare.gov's pages say January 15, while CMS rule CMS-9884-F (2025) set December 15 for the federal platform from plan year 2027. The doc now says so; the dated file keeps only December 15 (the last day for January 1 coverage, which both sources give) and says the close is unconfirmed | healthcare.gov and cms.gov search results, 2026-10-12 |
+| `docs/instinct-spec-series/BUILD-STATUS.md` testing-agent row | GREEN 80/80 (the heading above it said 82/82) | The report said 82/82 at the previous commit; 85/85 with the TAX-010, TAX-003 and INS-009 flow checks added here. Both lines now say 85/85 | `docs/testing/agent-report.md` |
+
+Found, not fixed (for the owner): `62-agent-documents.js` `taxCalendar` and `enrollmentWindows` still compute undated
+usual dates (no roll, the January 15 marketplace close); nothing reachable calls them, and their depth packet (DOCUMENTS)
+pins that behavior, so they are left as they are and noted in their doc. The official pages (irs.gov, cms.gov,
+medicare.gov, healthcare.gov) could not be opened from the build environment (DNS); every date in the dated file was
+checked against the official site's own search result text, and says so in `how_checked`. Re-check on the pages
+themselves.

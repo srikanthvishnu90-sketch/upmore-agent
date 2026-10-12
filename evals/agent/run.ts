@@ -28,6 +28,7 @@ import { guardPlan, ENVELOPE_CENTS, ORDER_CAP_CENTS } from "./live_guard.ts";
 import { guardMoneyClaim } from "../../supabase/functions/_shared/claim_guard.ts";
 import { chatInput } from "../../supabase/functions/agent-chat/_shared/chat_input.ts";
 import { moneyReply } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
+import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 import { ConnectCards, BrokerAccounts } from "../../supabase/functions/_shared/router_core.js";
 
 type Status = "PASS" | "FAIL" | "CRITICAL" | "GAP" | "NOT_RUN";
@@ -308,6 +309,18 @@ async function flow() {
     const ok = !!a && /\n- Klarna, Target: \$25\.00 every 2 weeks, 2 (?:of 4 )?payments seen \(Sep 27, Oct 11\)\. Next expected Oct 25\./.test(a) && /\nFrom your linked accounts\b[^\n]*\.$/.test(a) && !!c && /^Next 30 days \(Oct 11-Nov 10\), from your cash, repeating bills, paychecks and pay-later payments: lowest -?\$[\d,]+\.\d\d on /.test(c);
     return [ok, `${String(a).split("\n")[1]} / ${String(c).split("\n")[0]}`];
   };
+  // Item 39 (99-deadlines.js): a dated deadline through the hourly run (said once by its key, with its official source
+  // and checked date) and the chat answer the handler calls. The person's facts are what the settings command saves (MOCK).
+  const fact = (f: string, extra: any = {}) => Object.assign({ id: `deadline-${f}-mock`, kind: "deadline_fact", fact: f, created_on: "2026-10-11", status: "active" }, extra);
+  const due = (settings: any, now: number, key: RegExp, text: RegExp) => { const p = plan({ accounts: [], transactions: [], settings, sent: [] }, now); const m = p.messages.find((x: any) => key.test(x.key)); return [!!m && text.test(m.text), m ? `${m.key}: ${m.text.slice(0, 110)}` : JSON.stringify(p.suppressed)] as [boolean, string]; };
+  const OCT12 = Date.UTC(2026, 9, 12, 15);
+  const ask = (msg: string, re: RegExp, watches: any[] = []): Ex => async () => { const r = await deadlinesReply(msg, new Date(OCT12), { tz: "America/New_York", watches: () => watches }); return [!!r && re.test(r) && /\nSources, checked [A-Z][a-z]{2} \d{1,2}, \d{4}: /.test(r), `${msg}: ${String(r).split("\n").slice(0, 2).join(" / ").slice(0, 140)}`]; };
+  ex["TAX-010"] = both(async () => due({ watches: [fact("extension", { tax_year: 2025 })] }, OCT12, /^deadline:fed-extended-2025:14$/, /^Tax date: extended 2025 federal income tax returns \(Form 1040\) are due Thursday, October 15, 2026, 3 days from today\. .*\(IRS fourth-quarter tax calendar, Publication 509 for 2026, checked Oct 12, 2026\)$/),
+    ask("when are taxes due", /\n- Thursday, April 15, 2027 \(in 185 days\): 2026 federal income tax returns \(Form 1040\) and extension requests \(Form 4868\) are due\.\n/));
+  ex["TAX-003"] = both(async () => due({ watches: [fact("estimated_tax")] }, Date.UTC(2027, 0, 1, 15), /^deadline:fed-est-2026-q4:14$/, /^Tax date: the 4th estimated tax payment for 2026 \(Form 1040-ES\) is due Friday, January 15, 2027, 14 days from today\. You told me you pay estimated tax\./),
+    ask("when are quarterly taxes due", /\n- Friday, January 15, 2027 \(in 95 days\): the 4th estimated tax payment for 2026 \(Form 1040-ES\) is due, if you pay estimated tax\./));
+  ex["INS-009"] = both(async () => due({ watches: [fact("medicare")] }, Date.UTC(2026, 10, 23, 15), /^deadline:medicare-oe-2027:14$/, /^Enrollment: Medicare Open Enrollment for 2027 coverage ends Monday, December 7, 2026, 14 days from today\. You told me you're on Medicare\./),
+    ask("when is open enrollment", /\n- Monday, December 7, 2026 \(in 56 days\): Medicare Open Enrollment for 2027 coverage ends/));
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

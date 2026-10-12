@@ -35,6 +35,11 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   look-alike domain". D09.
 - S08 (found here): in early January the marketplace window still open from November was "opens in 295 days". The window
   that has not closed is used; after Medicare's Dec 7 close the next year's opening is given instead of "closed". D10.
+  These are the usual month-days in code (`PUBLIC_WINDOWS`), not dated data: the marketplace's January 15 close is not
+  confirmed for 2027 coverage (HealthCare.gov's pages say January 15; CMS rule CMS-9884-F set December 15 for the
+  federal platform from 2027), and the tax dates here do not roll past weekends or holidays. What the chat and the hourly
+  run say comes from `99-deadlines.js` over `packages/offers/deadlines.json` instead (docs/depth/DEADLINES.md;
+  docs/playbook-drift-2026-10-12.md).
 - S09 (found here): "(1 days)", "(0 days)", "opens in 1 days". D11, D12.
 - S10 (found here): a paper return "received" was told "most e-filed refunds arrive within 21 days, so by about" a
   42-day date; a received return past its window was told "by about" a date already gone. D13, D14.

@@ -210,7 +210,7 @@ Every row counted PART above, each placed on its own with the half the list does
 | T1-ALBERT-036 | Albert | Assistant | 7 | IN_PRODUCT | money questions over the person's data (7); everyday questions are outside the list |
 | T1-ALBERT-050 | Albert | Vault | 3 | MODULE_ONLY | reading an uploaded document (3); storage of documents has no item |
 | T1-ALBERT-112 | Albert | Smart money investing | 55 | NOT_BUILT | investing set-aside cash automatically (55); the set-aside is Albert's own savings automation |
-| T1-ALBERT-132 | Albert | Expiring policy alerts | 39 | MODULE_ONLY | a deadline alert (39); 39 names tax, FSA, enrollment and claim dates, not a policy's end date |
+| T1-ALBERT-132 | Albert | Expiring policy alerts | 39 | IN_PRODUCT | a deadline alert (39); 39 names tax, FSA, enrollment and claim dates, not a policy's end date |
 | T2-ROCKET-041 | Rocket Money | Income vs spend charts | 6 | IN_PRODUCT | income against spending (6); Upmore gives the numbers in words, the chart itself is not built |
 | T2-ROCKET-066 | Rocket Money | Amount Left After Bills | 14 | IN_PRODUCT | income minus bills, the core of safe to spend (14) |
 | T2-ROCKET-113 | Rocket Money | Account Sharing | 137 | MODULE_ONLY | a partner sees the household's accounts (137); keeping personal spending private is the rest |

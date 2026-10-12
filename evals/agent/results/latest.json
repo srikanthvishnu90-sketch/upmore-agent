@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 82,
-  "total": 82
+  "pass": 85,
+  "total": 85
  },
  "results": [
   {
@@ -409,6 +409,12 @@
   },
   {
    "family": "flow",
+   "id": "F:INS-009",
+   "title": "INS-009: scheduler + chat: Medicare Open Enrollment and HealthCare.gov's January 1 coverage date for people who said they use them, and the work open-enrollment dates the person gave; \"when is open enrollment\" (Deadlines)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:INV-001",
    "title": "INV-001: chat: trade flow reads the live portfolio",
    "status": "PASS"
@@ -465,6 +471,18 @@
    "family": "flow",
    "id": "F:SAVE-004",
    "title": "SAVE-004: chat: planner tool get_recovery_report (fees)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:TAX-003",
+   "title": "TAX-003: scheduler + chat: federal estimated-tax dates, said on their own only to people who said \"I pay estimated taxes\"; \"when are quarterly taxes due\" (Deadlines)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:TAX-010",
+   "title": "TAX-010: scheduler + chat: the federal Form 1040 date for everyone with alerts on, the extended date for people who said they filed an extension, rolled past weekends and legal holidays; \"when are taxes due\" (Deadlines)",
    "status": "PASS"
   },
   {

@@ -13852,7 +13852,7 @@
    ],
    "capability_coverage": "part",
    "capability_note": "a deadline alert (39); 39 names tax, FSA, enrollment and claim dates, not a policy's end date",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {

@@ -140,6 +140,27 @@ const OWNER: [string, string | null][] = [
   ["pay my klarna", null],
   ["pay off my affirm early", null],
   ["should i use afterpay for a $400 tv", null],
+  // Deadlines (capability list item 39, 99-deadlines.js): dated tax and enrollment dates and the person's own FSA and work
+  // dates, last in the chain; what the person tells it ("i pay estimated taxes", "my fsa plan year ends december 31") is a
+  // settings command, so no direct answer may take it; advice, other taxes and a "remind me" go on.
+  ["what deadlines are coming up", "deadlinesReply"],
+  ["when are taxes due", "deadlinesReply"],
+  ["when is tax day", "deadlinesReply"],
+  ["when are quarterly taxes due", "deadlinesReply"],
+  ["when is open enrollment", "deadlinesReply"],
+  ["when does medicare open enrollment end", "deadlinesReply"],
+  ["when is my fsa deadline", "deadlinesReply"],
+  ["any class action deadlines?", "deadlinesReply"],
+  ["i pay estimated taxes", null],
+  ["i filed an extension", null],
+  ["i'm on medicare", null],
+  ["my fsa plan year ends december 31 with a grace period until march 15", null],
+  ["my open enrollment at work is november 2 to november 13", null],
+  ["forget my fsa deadline", null],
+  ["should i file an extension", null],
+  ["when are property taxes due", null],
+  ["remind me when taxes are due", null],
+  ["what's the deadline to dispute a charge", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

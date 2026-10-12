@@ -81,6 +81,13 @@ const REACHABLE = {
   // plans only; cards and loans are not in this answer. Evidence: tests/edge/bnpl-answer.test.ts (through moneyReply),
   // tests/bnpl.test.cjs, tests/depth-BNPL.test.cjs (docs/depth/BNPL.md).
   "CRDT-008": "chat: \"show my buy now pay later plans\", every Klarna, Affirm, Afterpay, Zip and PayPal Pay in 4 plan in the person's rows, what is left where the plan's shape makes it certain (Bnpl); cards and loans are not in it",
+  // Item 39 (2026-10-12): dated deadlines (99-deadlines.js over packages/offers/deadlines.json, each date with its official
+  // source and checked date) said by the hourly run's plan() 14 and 2 days before, and in chat through
+  // agent-chat/_shared/deadlines_answer.ts. Evidence: tests/edge/deadlines.test.ts, tests/depth-DEADLINES.test.cjs
+  // (docs/depth/DEADLINES.md).
+  "TAX-010": "scheduler + chat: the federal Form 1040 date for everyone with alerts on, the extended date for people who said they filed an extension, rolled past weekends and legal holidays; \"when are taxes due\" (Deadlines)",
+  "TAX-003": "scheduler + chat: federal estimated-tax dates, said on their own only to people who said \"I pay estimated taxes\"; \"when are quarterly taxes due\" (Deadlines)",
+  "INS-009": "scheduler + chat: Medicare Open Enrollment and HealthCare.gov's January 1 coverage date for people who said they use them, and the work open-enrollment dates the person gave; \"when is open enrollment\" (Deadlines)",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -134,7 +141,7 @@ const MAP = [
   [36, "INV-006 EARN-018", "full", "", null],
   [37, "CRDT-001 CRDT-006 CRDT-007", "part", "modules over a credit feed that is not connected", null],
   [38, "TXN-013 EARN-015 ALRT-010", "part", "chat: \"tell me if my $45.99 Amazon refund doesn't arrive by Oct 20\" (or \"within 7 business days\", \"by Friday\") is the person's own watch: the refund posting is said once to the cent, another credit from that merchant is said with the watch kept, and the day after the deadline with no matching credit it says so once with what was checked; the promised window is what the person says (a pasted merchant email is not read for it yet), and settlement payouts (EARN-015) are not watched this way; \"did my refund arrive?\" / \"did amazon refund me\" is answered from the person's rows (98-refund-check.js), none found offering the watch", null],
-  [39, "TAX-010 INS-009 EARN-008 SAVE-020", "part", "tax and enrollment calendars are modules; FSA reminder not built", null],
+  [39, "TAX-010 TAX-003 INS-009 EARN-008 SAVE-020", "part", "federal tax dates (estimated tax only for people who said they pay it), Medicare and HealthCare.gov enrollment, and the FSA and work open-enrollment dates the person gives are said 14 and 2 days before and on ask, from dated official sources with their checked date (99-deadlines.js); class-action claim dates are not built (no verified settlement list on file); FSA and HSA contribution maximums (SAVE-020's max reminder) not built", null],
   [40, "SAVE-002 SAVE-008 CRDT-011", "part", "HYSA comparison and refinance watch are modules; insurance rebid not built", null],
   [41, "EARN-008 EARN-015", "part", "settlement and recall matching are modules", null],
   [42, "CORE-010 CORE-011 PAY-022", "full", "receipts and undo contracts in the flows; no action has a live receipt yet", null],

@@ -50,6 +50,7 @@ import { cardOffersReply } from "./_shared/card_offers_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
+import { deadlinesReply } from "./_shared/deadlines_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
@@ -322,6 +323,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // A state treasurer letter or a failed bank (_shared/unclaimed_answer.ts) before a general "am I owed".
         if (!direct) direct = await unclaimedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
         if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
+        // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
+        // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.
+        if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([

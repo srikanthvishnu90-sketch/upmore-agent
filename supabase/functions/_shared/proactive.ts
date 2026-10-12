@@ -19,7 +19,14 @@
 // "category_budget". Once at 80% and once at 100% of it each month the agent says so, as a watch: what the person asked
 // to hear, outside the daily budget, once only by its log key (budget:<id>:<month>:<threshold>). Tracking only: nothing
 // is blocked or moved.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules } from "./router_core.js";
+//
+// Deadlines (capability list item 39, packages/domain/99-deadlines.js over packages/offers/deadlines.json): a dated
+// federal tax date, Medicare or HealthCare.gov enrollment date, or an FSA or work open-enrollment date the person gave,
+// said 14 days and 2 days before (key deadline:<id>:<lead>), held in quiet hours. A public date for everyone is a finding
+// (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
+// What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
+// Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -112,10 +119,17 @@ export function plan(input: ProactiveInput, now: number) {
   const sentKeys = new Set((input.sent || []).map(x => x.key));
   const quietRule = s.quiet_start != null && s.quiet_end != null ? { start: s.quiet_start, end: s.quiet_end, utc_offset_hours: clock.offset_hours } : null;
   const rentLater = () => rentOffers(input, today, tz, clock.hour < 8 || (!!quietRule && AgentAlerts.inQuiet(now, quietRule)), sentKeys, out);
-  // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs.
-  if (!accounts.length) { rentLater(); return out; }
   // The budget counts only unrequested messages; what the person asked for (a cadence, a watch) never uses it up.
   const budgetTimes = (input.sent || []).filter(x => !x.cadence).map(x => x.sent_at);
+  // Item 39: dated deadlines (Deadlines.proactive), with their own source and checked date, never the accounts' as-of.
+  const deadlinesLater = () => {
+    const d: any = (Deadlines as any).proactive({ now, tz, watches: s.watches || [], alerts: s.alerts !== false, quiet_now: !!quietRule && AgentAlerts.inQuiet(now, quietRule), sent: [...sentKeys], budget_times: budgetTimes });
+    for (const m of d.messages) { sentKeys.add(m.key); out.messages.push({ key: m.key, kind: m.kind, text: m.text, capability_id: m.capability_id, urgent: false, cadence: m.cadence, source: m.source, as_of: m.as_of }); }
+    out.suppressed.push(...d.suppressed);
+  };
+  // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs,
+  // and so are the dates they told Upmore about; a public date needs no account either.
+  if (!accounts.length) { deadlinesLater(); rentLater(); return out; }
   const prov: any = (AgentLedger as any).provenance(accounts, transactions, today);
   const cite = ` (${prov.source}, as of ${asOfText(prov.as_of, tz)})`;
   const push = (m: Omit<ProactiveMessage, "source" | "as_of" | "offer"> & { offer?: ProactiveOffer }) => {
@@ -128,7 +142,7 @@ export function plan(input: ProactiveInput, now: number) {
 
   // The person's own watches and budgets are theirs, not "alerts": they come through with alerts off, as "stop alerts"
   // promises ("Anything you asked me to watch still comes through").
-  const plainWatches = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w));
+  const plainWatches = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w) && !(Deadlines as any).isFact(w));
   // Event alerts and findings, in the loop's decision order: safety, the person's watches, then findings within budget.
   if (!s.alerts && plainWatches.length) {
     for (const x of (AgentAlerts as any).evaluateWatches(plainWatches, { today, transactions, accounts })) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
@@ -171,6 +185,8 @@ export function plan(input: ProactiveInput, now: number) {
     const nr = numbersRows(accounts, transactions);
     for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys], rules: s.category_rules || [] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
   }
+  // Deadlines after the findings, so a finding about the person's own money uses the day's budget first.
+  deadlinesLater();
   // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
   rentLater();
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
@@ -339,6 +355,12 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // spending is counted, nothing at the bank, and never move money.
   const cr: any = (CategoryRules as any).command(t, s.category_rules || [], now);
   if (cr) return { settings: cr.rules ? { category_rules: cr.rules } : {}, reply: cr.reply };
+  // Deadlines the person tells Upmore (packages/domain/99-deadlines.js): "I pay estimated taxes", "I filed an extension",
+  // "I'm on Medicare", "I get my insurance from healthcare.gov", "my FSA plan year ends December 31 with a grace period
+  // until March 15", "my open enrollment at work is November 2 to November 13", "forget my FSA deadline". Restated
+  // exactly; dates only.
+  const dc: any = (Deadlines as any).command(t, s.watches || [], now, zone);
+  if (dc) return { settings: dc.watches ? { watches: capWatches(dc.watches) } : {}, reply: dc.reply };
   // "Tell me when free trials are about to convert" (megadoc J15): said as it is, nothing saved. plan() asks "Should I
   // cancel it for you?" before a trial the person tracks in the app bills (save_subscriptions, billing "trial" with its
   // end date, within the 7 days before; AgentMonitors.trialsConverting), with alerts on, for people the hourly run
@@ -375,22 +397,25 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   return null;
 }
 const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
-// The table holds at most 20 watches. Budgets (one per category, at most 8) are never pushed out by a new watch: the
-// oldest plain watches go first.
+// The table holds at most 20 watches. Budgets (one per category, at most 8) and deadline facts (one per kind, at most 6)
+// are never pushed out by a new watch: the oldest plain watches go first.
 export const MAX_WATCHES = 20;
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w);
 export function capWatches(list: any[]): any[] {
-  const all = list || [], keep = all.filter((w: any) => (Budgets as any).isBudget(w));
-  const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !(Budgets as any).isBudget(w));
+  const all = list || [], keep = all.filter(sticky);
+  const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));
   const kept = new Set([...keep, ...plain.slice(Math.max(0, plain.length - room))]);
   return all.filter((w: any) => kept.has(w));
 }
 export function describe(s0: Partial<ProactiveSettings> | null) {
   const s = Object.assign({}, DEFAULT_SETTINGS, s0 || {}), parts: string[] = [];
   parts.push(s.alerts ? "Alerts are on (low balance ahead, large or unusual charges, price rises, deposits, fees), at most one unrequested note a day." : "Alerts are off.");
-  const plain = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w));
+  const plain = (s.watches || []).filter((w: any) => !sticky(w));
   if (plain.length) parts.push(`You asked me to watch: ${plain.map((w: any) => AgentAlerts.restateWatch(w).replace(/^I'll tell you /, "").replace(/\.$/, "")).join("; ")}.`);
   const budgetLine = (Budgets as any).describe(s.watches || []);
   if (budgetLine) parts.push(budgetLine);
+  const deadlineLine = (Deadlines as any).describe(s.watches || []);
+  if (deadlineLine) parts.push(deadlineLine);
   const ruleLine = (CategoryRules as any).describe(s.category_rules || []);
   if (ruleLine) parts.push(ruleLine);
   const reports = s.control && Array.isArray(s.control.instructions) ? s.control.instructions.filter((i: any) => i.status === "active") : [];

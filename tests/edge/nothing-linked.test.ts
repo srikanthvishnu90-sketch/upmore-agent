@@ -16,6 +16,7 @@ import { budgetReply } from "../../supabase/functions/agent-chat/_shared/budget_
 import { cardOffersReply } from "../../supabase/functions/agent-chat/_shared/card_offers_answer.ts";
 import { winBackReply } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
+import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
 import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
@@ -29,6 +30,8 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["win-back", (m) => winBackReply(m, T, none, none)], ["subscription", (m) => subscriptionReply(m, T, none)], ["substitutes", (m) => substitutesReply(m, T, none)], ["find money", (m) => findMoneyReply(m, T, none)], ["card offers", (m) => cardOffersReply(m, T, none, none)], ["rewards", (m) => rewardsReply(m, T, none, none)],
   ["price drop", (m) => priceDropReply(m, T, none)], ["airline", (m) => airlineReply(m, T, none)], ["unclaimed", (m) => unclaimedReply(m, T, none, none)],
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],
+  // Deadlines read no account: dated public dates and the person's own facts (none here).
+  ["deadlines", (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: none })],
 ];
 const corpus = JSON.parse(SRC_DIRECT_ASKS);
 const LOOKED = /\b(?:in|through|from|among|or|and) your linked (?:accounts|cards|history|transactions)\b|\byour linked (?:cards|accounts), whose history\b/i;

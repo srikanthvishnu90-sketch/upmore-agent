@@ -15,6 +15,7 @@ import { whatsNewReply } from "../../../supabase/functions/agent-chat/_shared/wh
 import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 import { budgetReply } from "../../../supabase/functions/agent-chat/_shared/budget_answer.ts";
+import { deadlinesReply } from "../../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
@@ -53,6 +54,8 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   airlineReply: (m) => airlineReply(m, TODAY, oldest),
   unclaimedReply: (m) => unclaimedReply(m, TODAY, oldest, accounts),
   whatsNewReply: (m) => whatsNewReply(m, TODAY, async () => TX as any[], async () => []),
+  // The person's settings row as the handler reads it: here the budget only, no deadline facts (MOCK).
+  deadlinesReply: (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: () => BUDGETS }),
 };
 const handler = SRC_HANDLER;
 export const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);

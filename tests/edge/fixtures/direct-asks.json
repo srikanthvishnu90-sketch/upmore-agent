@@ -243,6 +243,20 @@
     ["target charged me twice", "moneyReply"],
     ["i never authorized this charge", "disputeReply"],
     ["this was unauthorized", "disputeReply"],
-    ["what's this charge", null]
+    ["what's this charge", null],
+    ["any deadlines coming up?", "deadlinesReply"],
+    ["upcoming deadlines", "deadlinesReply"],
+    ["when do i have to file my taxes", "deadlinesReply"],
+    ["when's the tax deadline", "deadlinesReply"],
+    ["when is my next estimated tax payment due", "deadlinesReply"],
+    ["when is the extension deadline", "deadlinesReply"],
+    ["when is medicare open enrollment", "deadlinesReply"],
+    ["when does open enrollment end on healthcare.gov", "deadlinesReply"],
+    ["what's the deadline for my fsa", "deadlinesReply"],
+    ["how much tax do i owe", null],
+    ["when is the filing deadline for my llc", null],
+    ["i'm on an aca plan", null],
+    ["my fsa ends june 30", null],
+    ["deadline", null]
   ]
 }

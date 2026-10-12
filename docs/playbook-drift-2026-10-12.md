@@ -249,3 +249,15 @@ back. POSTED-FLOW found nothing to fix. Each line: what the doc or code said, wh
 | `37-agent-financial-model.js` `cashSummary` ("Linked cash and recorded bills only") and `financial_tools.ts` get_cash_position | Recorded bills are summed (USD) or counted as needing verification | A bill in another currency was neither: a verified CAD bill next to a verified $84.32 bill gave "Recorded verified bill amounts: $84.32. 0 recorded bills need verification." with no word of it. Fixed: counted (`unsupported_currency_obligations`), never added to dollars, and chat adds "1 recorded bill in another currency is not included in the dollar amounts." only when there is one | `tests/depth-FINANCIAL-MODEL.test.cjs` S23 (red first); D23; `tests/edge/financial-tools.test.ts` |
 | `38-agent-biller-model.js` header ("validates server-fetched biller facts") | A biller record's facts are the biller's | A record without a currency became USD (`AgentWorkflows.normalize` defaults it), so a Canadian biller's C$1,500.00 would be a verified $1,500.00 bill in the amount due. Fixed: a biller record must state its currency (`biller_currency_required`). No adapter is verified yet (`BILLER_ADAPTERS` is empty), so no real record was affected | `tests/depth-BILLER-MODEL.test.cjs` S14 (red first); D14 |
 | CLAUDE.md "Every user-facing money statement cites its data source and as-of time"; `40-agent-classified-ledger.js` and `financial_tools.ts` get_spending_income_report | "Spending $X, income $Y" is a calculation over retained rows | The report had no as-of and the chat fact's source said `observed_at: null`. Fixed: `oldest_receipt_at`, the oldest bank fetch of a counted row (unknown when any counted row has none, as in the posted-flow report), is the fact's as-of | `tests/depth-CLASSIFIED-LEDGER.test.cjs` S21 (red first); D21, D21b; `tests/edge/classified-ledger.test.ts` |
+
+## A second overdraft fee was never mentioned (2026-10-12, morning; from the PROACTIVE packet's notes)
+
+- Said (proactive feed): every bank fee is raised once.
+- True: the save engine keyed a fee refund offer by kind ("fee_refund:overdraft"); the delivery log is unique per
+  (person, key) for good; and the feed keeps the save offer over the monitors' per-fee finding for the same charge. So
+  the first overdraft fee was said, and a later fee of another amount (or any fee once the first had left the scan
+  window) produced an offer under a key already sent, and was never said.
+- Now: the offer is keyed by its fee row ("fee_refund:overdraft:<transaction id>"). Same-amount fees in two months stay
+  the monthly-fee offer. Red first through plan() (tests/edge/fee-offer-keys.test.ts) and PROACTIVE S17 (D17; 20/20).
+  Tests and the eval benchmark that compared keys exactly now compare fee refunds by kind (the labeled lives are
+  unchanged).

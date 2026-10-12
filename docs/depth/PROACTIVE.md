@@ -49,4 +49,5 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S15 | The person's watches | a balance watch fires | `S15` in tests/depth-PROACTIVE.test.cjs | the person's watches are not passed to the alerts | proven |
 | S16 | Deposits reach the insurance check | a $312,500 savings balance is flagged with its source and as-of; a brokerage is not | `S16` in tests/depth-PROACTIVE.test.cjs | the feed hands the monitors no accounts (the path found missing building this packet) | proven |
 | S16 | Only deposits are insured | a $400,000 brokerage cash sweep is never called over the deposit-insurance limit | `S16` in tests/depth-PROACTIVE.test.cjs | every account kind is handed to the insurance check | proven |
+| S17 | Each fee is its own offer | two overdraft fees are two keys | `S17` in tests/depth-PROACTIVE.test.cjs | a fee refund offer is keyed by kind only, so a later fee is never said | proven |
 <!-- results:end -->

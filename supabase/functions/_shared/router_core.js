@@ -2322,7 +2322,9 @@
             evidence: { rule: "The same fee kind and amount in two or more months.", rows: cs.map(c => c.evidence[0]), computed: { months: [...months].sort() } },
             verify: { how: "a month passes with no fee of this kind, or the credit posts" } }));
         else for (const c of cs)
-          out.push(opp("P3_fee", `fee_refund:${kind}`, { title: `${money(c.amount_cents)} ${kind.replace(/_/g, " ")} fee`, capability_id: "SAVE-005", tier: "T3", one_time_cents: c.amount_cents, expected_monthly_cents: 0,
+          // Keyed by the fee row itself: each fee is offered once, and a later fee of the same kind is a new offer (the
+          // delivery log is unique per key for good, so a kind-only key would silence every later fee).
+          out.push(opp("P3_fee", `fee_refund:${kind}:${c.evidence[0].transaction_id}`, { title: `${money(c.amount_cents)} ${kind.replace(/_/g, " ")} fee`, capability_id: "SAVE-005", tier: "T3", one_time_cents: c.amount_cents, expected_monthly_cents: 0,
             confidence: kind === "overdraft" || kind === "nsf" ? "medium" : "low", candidate_id: c.id,
             action: { type: "refund_request", capability_id: "SAVE-005", draft: c.action && c.action.text || null, sent_by: "user" },
             evidence: { rule: "A posted charge the recovery engine names as a bank fee.", rows: c.evidence, computed: { age_days: c.age_days } },

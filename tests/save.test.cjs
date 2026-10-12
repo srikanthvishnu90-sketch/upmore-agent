@@ -42,10 +42,10 @@ const PLANTED={'duplicate_service:music':1099,'duplicate_service:cloud':299,'pri
 
 test('every detector finds its target on the household and nothing fires on the control rows',()=>{
   const r=S.detect(household());
-  const found=Object.fromEntries(r.opportunities.map(o=>[o.key,o.expected_monthly_cents]));
+  const found=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o.expected_monthly_cents]));
   assert.deepEqual(Object.keys(found).sort(),Object.keys(PLANTED).sort());
   for(const [k,v] of Object.entries(PLANTED))assert.equal(found[k],v,k);
-  const byKey=Object.fromEntries(r.opportunities.map(o=>[o.key,o]));
+  const byKey=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o]));
   assert.equal(byKey['fee_refund:overdraft'].one_time_cents,3500);assert.equal(byKey['fee_refund:atm'].one_time_cents,350);
   assert.equal(r.inventory.length,12,'twelve subscriptions in the inventory');
   assert.ok(!r.inventory.some(i=>/starbucks|transfer|target|rent|fee|xfinity/i.test(i.merchant)));
@@ -60,7 +60,7 @@ test('every detector finds its target on the household and nothing fires on the 
 });
 
 test('tiers and actions: cancellations are T3 minimum, rate and debt plans are T0 information, nothing auto-enrolls',()=>{
-  const r=S.detect(household());const by=Object.fromEntries(r.opportunities.map(o=>[o.key,o]));
+  const r=S.detect(household());const by=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o]));
   for(const o of r.opportunities)if(o.action&&/cancel/.test(o.action.type))assert.equal(o.tier,'T3',o.key);
   assert.equal(by['idle_cash:chk_to_hysa'].tier,'T0');assert.equal(by['idle_cash:chk_to_hysa'].action.tier,'T3');
   assert.equal(by['avalanche_vs_snowball:extra_200'].tier,'T0');
@@ -69,7 +69,7 @@ test('tiers and actions: cancellations are T3 minimum, rate and debt plans are T
 });
 
 test('verify reads the outcome back from later data for every play; failures say why',()=>{
-  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key,o]));
+  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o]));
   const later=h.transactions.filter(t=>!(t.merchant_raw==='DROPBOX'&&t.posted_at>'2026-10-11'));
   // P1: a cancellation is verified only when the billing date passes with no charge
   const claim={merchant:'DROPBOX',created_at:'2026-10-11',expected_billing_date:'2026-11-05',billing_interval:'monthly'};
@@ -100,7 +100,7 @@ test('verify reads the outcome back from later data for every play; failures say
 });
 
 test('the ledger books only verified deltas, and the motivating message is computed from verified entries alone',()=>{
-  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key,o]));
+  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o]));
   const L=S.ledger();
   assert.throws(()=>L.book(by['idle_cash:chk_to_hysa'],{verified:false,reason:'nothing moved'},'2026-10-12'),/verified deltas only/);
   assert.throws(()=>L.book(by['idle_cash:chk_to_hysa'],null,'2026-10-12'));
@@ -119,13 +119,13 @@ test('the ledger books only verified deltas, and the motivating message is compu
 });
 
 test('the queue ranks verified dollars first, then estimates by confidence, and every item states the reason the user cares',()=>{
-  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key,o]));
+  const h=household();const r=S.detect(h);const by=Object.fromEntries(r.opportunities.map(o=>[o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1'),o]));
   const L=S.ledger();L.book(by['bill_above_market:Gym'],{verified:true,verified_monthly_cents:1500},'2026-10-20');
   const q=S.rank(r.opportunities,L);
   assert.equal(q[0].key,'bill_above_market:Gym');assert.equal(q[0].verified,true);assert.equal(q[0].estimate,false);assert.match(q[0].reason,/verified: \$15\.00 a month/);
   for(let i=1;i<q.length;i++)assert.ok(q[i-1].score>=q[i].score);
   assert.equal(q[1].key,'idle_cash:chk_to_hysa');assert.match(q[1].reason,/estimated \$42\.40 a month \(high confidence\)/);
-  assert.ok(q.find(o=>o.key==='fee_refund:atm').score<q.find(o=>o.key==='fee_refund:overdraft').score,'low confidence ranks below medium at similar dollars');
+  assert.ok(q.find(o=>/^fee_refund:atm:/.test(o.key)).score<q.find(o=>/^fee_refund:overdraft:/.test(o.key)).score,'low confidence ranks below medium at similar dollars');
   for(const o of q)assert.ok(o.reason&&o.estimate===!o.verified);
 });
 
@@ -134,12 +134,12 @@ test('on the 40 synthetic lives every planted play is found with its labeled val
   let found=0,controls=0;
   for(const l of data.lives){
     const r=S.detect({today:l.today,transactions:l.transactions,accounts:l.accounts,bills:l.bills,debts:l.debts,extra_payment_cents:data.detector_inputs.extra_payment_cents,reference_apy_bps:data.detector_inputs.reference_apy_bps});
-    const byPlay=k=>r.opportunities.filter(o=>o.play===k).map(o=>o.key).sort();
+    const byPlay=k=>r.opportunities.filter(o=>o.play===k).map(o=>o.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1')).sort();
     const labeled=k=>l.opportunities.filter(o=>o.play===k).map(o=>o.key).sort();
     for(const play of ['P1_subscription','P2_negotiation','P3_fee','P4_rate','P7_debt','P8_structural']){
       same(byPlay(play),labeled(play),`${l.id} ${play}`);
       for(const lab of l.opportunities.filter(o=>o.play===play)){
-        const o=r.opportunities.find(x=>x.key===lab.key);found++;
+        const o=r.opportunities.find(x=>x.key.replace(/^(fee_refund:[a-z_]+):.+$/,'$1')===lab.key);found++;
         if(lab.one_time_cents)assert.equal(o.one_time_cents,lab.one_time_cents,`${l.id} ${lab.key} one-time`);
         else assert.ok(Math.abs(o.expected_monthly_cents-lab.expected_monthly_cents)<=1,`${l.id} ${lab.key}: ${o.expected_monthly_cents} vs ${lab.expected_monthly_cents}`);
       }

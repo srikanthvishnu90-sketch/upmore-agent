@@ -72,7 +72,7 @@ function benchmark(m, label) {
   const perPlay = {};
   for (const l of data.lives) {
     const r = m.AgentSave.detect({ today: l.today, transactions: l.transactions, accounts: l.accounts, bills: l.bills, debts: l.debts, extra_payment_cents: data.detector_inputs.extra_payment_cents, reference_apy_bps: data.detector_inputs.reference_apy_bps });
-    for (const play of plays) { const got = new Set(r.opportunities.filter(o => o.play === play).map(o => o.key)), want = new Set(l.opportunities.filter(o => o.play === play).map(o => o.key)); const p = perPlay[play] || (perPlay[play] = { tp: 0, fp: 0, fn: 0 }); for (const k of got) { if (want.has(k)) { tp++; p.tp++; } else { fp++; p.fp++; } } for (const k of want) if (!got.has(k)) { fn++; p.fn++; } }
+    for (const play of plays) { const got = new Set(r.opportunities.filter(o => o.play === play).map(o => o.key.replace(/^(fee_refund:[a-z_]+):.+$/, "$1"))), want = new Set(l.opportunities.filter(o => o.play === play).map(o => o.key)); const p = perPlay[play] || (perPlay[play] = { tp: 0, fp: 0, fn: 0 }); for (const k of got) { if (want.has(k)) { tp++; p.tp++; } else { fp++; p.fp++; } } for (const k of want) if (!got.has(k)) { fn++; p.fn++; } }
     const truth = new Set(l.transactions.map(t => m.AgentMonitors.merchantKey(t.merchant_raw)).filter(k => SUBS.includes(k)));
     const inv = new Set(r.inventory.map(i => i.key)); for (const k of inv) { if (truth.has(k)) invTp++; else invFp++; } for (const k of truth) if (!inv.has(k)) invFn++;
     const naive = new Set(NaiveFinder.inventory(l.transactions).map(i => i.key)); for (const k of naive) { if (truth.has(k)) nTp++; else nFp++; } for (const k of truth) if (!naive.has(k)) nFn++;

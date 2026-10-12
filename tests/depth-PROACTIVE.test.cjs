@@ -33,7 +33,9 @@ const twice = (d, c, m) => [tx(d, c, m), tx(d, c, m)];
 const monthly = (dates, c, m) => dates.map(d => tx(d, c, m));
 const ANHOUR = 3600000;
 const spent = [NOON - ANHOUR]; // one unrequested message already went out today: the daily budget is used up
-const keys = f => f.proactive.map(p => p.key);
+// A fee refund's key ends in its own row id (49-agent-save.js); tests compare it by kind.
+const fk = k => k.replace(/^(save:fee_refund:[a-z_]+):.+$/, "$1");
+const keys = f => f.proactive.map(p => fk(p.key));
 // The regex plan() uses to attach the cancel offer (proactive.ts trialOffer).
 const OFFER_KEY = /^trial_converting:([^:]+):(\d{4}-\d{2}-\d{2})$/;
 
@@ -83,13 +85,13 @@ test("[S06] each finding carries the reason the person cares, the rule that fire
 test("[S07] what the save engine offers never acts without the person: a cancellation is approved first, a refund request is theirs to send", () => {
   const f = feed(monthly(["2026-08-03", "2026-09-03", "2026-10-03"], -1199, "SPOTIFY USA").concat(monthly(["2026-08-06", "2026-09-06", "2026-10-06"], -1099, "APPLE.COM/BILL APPLE MUSIC"), [tx("2026-10-01", -3500, "OVERDRAFT FEE")]));
   assert.equal(f.proactive.find(x => x.key === "save:duplicate_service:music").text, "2 music streaming services at once. Want me to set up the cancellation? You approve it before anything happens.");
-  assert.equal(f.proactive.find(x => x.key === "save:fee_refund:overdraft").text, "$35.00 overdraft fee. Want the refund request drafted? You send it.");
+  assert.equal(f.proactive.find(x => fk(x.key) === "save:fee_refund:overdraft").text, "$35.00 overdraft fee. Want the refund request drafted? You send it.");
   assert.equal(P.offerText({ action: { type: "something_new" } }), "Want the details?");
 });
 
 test("[S08] a one-time saving carries its amount: a $35 fee to get back is 3500, not zero", () => {
   const f = feed([tx("2026-10-01", -3500, "OVERDRAFT FEE")]);
-  assert.equal(f.proactive.find(x => x.key === "save:fee_refund:overdraft").amount_cents, 3500);
+  assert.equal(f.proactive.find(x => fk(x.key) === "save:fee_refund:overdraft").amount_cents, 3500);
 });
 
 test("[S09] money at risk comes first: a duplicate charge outranks a renewal due sooner", () => {
@@ -162,4 +164,12 @@ test("[S16] a deposit over the insurance limit reaches the feed, with the balanc
   assert.match(p[0].text, /\$312,500\.00 in one account\. Deposit insurance covers \$250,000\.00 per person, per bank, per ownership type, so \$62,500\.00 may be uninsured\./);
   assert.match(p[0].text, /Balance per Mock Bank via SimpleFIN, as of 2026-10-12 06:00 UTC\./);
   assert.equal(p[0].amount_cents, 6250000);
+});
+
+test("[S17] each fee is its own offer: two overdraft fees of different amounts are two keys, each ending in its row", () => {
+  // The delivery log is unique per key for good, so a kind-only key let the first fee be said and silenced every later
+  // one (tests/edge/fee-offer-keys.test.ts runs it through plan()).
+  const a = tx("2026-09-20", -3500, "OVERDRAFT FEE"), b = tx("2026-10-09", -3400, "OVERDRAFT FEE");
+  const offers = feed([a, b]).proactive.filter(p => /^save:fee_refund:overdraft:/.test(p.key)).map(p => p.key).sort();
+  assert.deepEqual(offers, [`save:fee_refund:overdraft:${a.id}`, `save:fee_refund:overdraft:${b.id}`]);
 });

@@ -1,9 +1,9 @@
 {
  "capability": "PROACTIVE",
- "run_at": "2026-10-12T06:44:57.914Z",
+ "run_at": "2026-10-12T07:32:48.302Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 19,
+ "sub_capabilities": 17,
+ "proven": 20,
  "problems": [],
  "rows": [
   {
@@ -226,6 +226,17 @@
    "title": "Only deposits are insured",
    "defect": "every account kind is handed to the insurance check",
    "test": "a $400,000 brokerage cash sweep is never called over the deposit-insurance limit",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Each fee is its own offer",
+   "defect": "a fee refund offer is keyed by kind only, so a later fee is never said",
+   "test": "two overdraft fees are two keys",
    "bites": true,
    "applied": true,
    "collateral": [],

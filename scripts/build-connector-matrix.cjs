@@ -55,6 +55,8 @@ function render() {
     `| **Verified with a real account** | **${vcount(owner).verified}** | **${vcount(rows).verified}** |`,
     `| **Unverified** (researched with sources / research could not confirm) | **${vcount(owner).unverified}** (${vcount(owner).researched} / ${vcount(owner).unconfirmed}) | **${vcount(rows).unverified}** (${vcount(rows).researched} / ${vcount(rows).unconfirmed}) |`,
     "",
+    `**Research contradictions: ${BC.contradictions(rows).length}.** Every row's route is the one its own research names as best (a shared account follows its parent), no row marked researched relies on a part its research calls unverified, and no row claims trading where its research says read-only (checked by \`contradictions()\` in packages/domain/77-brokerage-connectors.js on every build).`,
+    "",
     `**Today:** ${t.connect || 0} connect now (${rows.filter(r => BC.today(r, rows).state === "connect" && BC.capability(r).trade).map(r => r.platform).join(", ") || "none"} with trading; the rest track only, through Plaid), ${t.try || 0} worth a try through Plaid (coverage unverified), ${t.fallback || 0} track now through a fallback while the direct route waits, ${t.not_built || 0} not built, ${t.blocked || 0} off, ${t.none || 0} can't connect.`,
     `Adapters: ${s.live || 0} rows on a live adapter, ${s.built || 0} built (tested, not live), ${s.not_built || 0} not built. Verified with a real account: **${verified} of ${s.total}**; every other row is unverified until one connects through it.`,
     "Live adapter means the code path is deployed (Plaid's production function, Alpaca's OAuth functions); it does not mean",
@@ -83,7 +85,7 @@ function render() {
   return L.join("\n");
 }
 
-const errors = BC.validate(rows);
+const errors = BC.validate(rows).concat(BC.contradictions(rows).map(c => `#${c.n} ${c.id}: research contradiction (${c.kind}): ${c.text}`));
 // Rows 1..100 are the owner's list, once each; rows past 100 are platforms Upmore added (Alpaca), numbered on from 101.
 const nums = rows.map(r => r.n).sort((a, b) => a - b);
 if (nums.length < 100 || nums.some((n, i) => n !== i + 1)) errors.push(`rows must be numbered 1..${Math.max(100, nums.length)} once each (have ${nums.length})`);

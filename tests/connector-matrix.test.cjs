@@ -23,7 +23,7 @@ test('the numbers the owner was given: trade + track, track only, off, none, and
   const s = BC.summary(owner), all = BC.summary(rows);
   assert.deepEqual([s.total, s.trade, s.track_only, s.blocked, s.none, s.shared], [100, 16, 64, 15, 5, 9]);
   assert.deepEqual([all.total, all.trade], [101, 17]);
-  assert.deepEqual(all.today, { connect: 13, fallback: 4, not_built: 35, try: 29, blocked: 15, none: 5 });
+  assert.deepEqual(all.today, { connect: 12, fallback: 4, not_built: 35, try: 30, blocked: 15, none: 5 });
   // Trading today happens only on a live adapter: Alpaca. Every other trade-capable row says what it still needs.
   assert.deepEqual(rows.filter(r => BC.capability(r).trade && BC.today(r, rows).state === 'connect').map(r => r.id), ['alpaca']);
   for (const r of rows.filter(r => BC.capability(r).trade && r.adapter_state !== 'live')) assert.ok(r.needs, `#${r.n} ${r.platform}: names what trading there still needs`);
@@ -74,7 +74,21 @@ test('the connector catalog agrees with the matrix on how each brokerage signs i
 test('every update shows verified vs unverified, and a row is unverified until a real account connects through it', () => {
   const readme = fs.readFileSync(path.join(root, 'docs/connector-matrix/README.md'), 'utf8');
   assert.match(readme, /\| \*\*Verified with a real account\*\* \| \*\*0\*\* \| \*\*0\*\* \|/);
-  assert.match(readme, /\| \*\*Unverified\*\* \(researched with sources \/ research could not confirm\) \| \*\*100\*\* \(52 \/ 48\) \| \*\*101\*\* \(53 \/ 48\) \|/);
+  assert.match(readme, /\| \*\*Unverified\*\* \(researched with sources \/ research could not confirm\) \| \*\*100\*\* \(47 \/ 53\) \| \*\*101\*\* \(48 \/ 53\) \|/);
   assert.ok(!/\| researched \|/.test(readme), 'researched is never shown as if it were verified');
   for (const r of rows) assert.ok(r.verification !== 'verified_live', `${r.id}: verified only after a real account connects (none has yet)`);
+});
+
+test('matrix honesty: no row contradicts its own research, and the report shows verified vs unverified (benchmark 2026-10-12)', () => {
+  assert.deepEqual(BC.contradictions(rows), []);
+  const readme = fs.readFileSync(path.join(root, 'docs/connector-matrix/README.md'), 'utf8');
+  assert.match(readme, /\*\*Research contradictions: 0\.\*\*/);
+  // The checker catches each kind on a planted row.
+  const base = rows.find(r => r.id === 'fidelity');
+  const planted = [
+    Object.assign({}, base, { id: 'p1', route: 'snaptrade', auth: 'aggregator' }),
+    Object.assign({}, rows.find(r => r.id === 'empower'), { id: 'p2', verification: 'researched' }),
+    Object.assign({}, rows.find(r => r.id === 'public'), { id: 'p3', trade: true, research: Object.assign({}, rows.find(r => r.id === 'public').research, { snaptrade: 'listed; read-only' }) }),
+  ];
+  assert.deepEqual(BC.contradictions(planted).map(c => c.kind), ['route', 'verification', 'trade']);
 });

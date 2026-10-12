@@ -161,17 +161,17 @@
    "category": "US brokerage",
    "region": "US",
    "status": "active",
-   "route": "snaptrade",
-   "auth": "aggregator",
+   "route": "native_api",
+   "auth": "partner_oauth",
    "trade": true,
    "read": true,
    "adapter_state": "not_built",
    "verification": "researched",
-   "needs": "the owner's SnapTrade account and keys",
+   "needs": "Webull Connect API registration (contact Webull's API team)",
    "aliases": [
     "webull"
    ],
-   "notes": "SnapTrade trades Webull (partnership, Dec 2025). Webull's own Connect API (OAuth2) has unclear eligibility.",
+   "notes": "Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025).",
    "research": {
     "native_api": "third-party OAuth/partner API (Webull Connect API, OAuth 2.0, documented Jan 2026); read + trade",
     "snaptrade": "listed; trading supported (OAuth plus Webull trade PIN; partnership Dec 2025)",
@@ -181,7 +181,9 @@
    "sources": [
     "https://developer.webull.com/apis/docs/connect-api/about-connect-api/",
     "https://snaptrade.com/brokerage-integrations/webull-api",
-    "https://www.newswire.com/news/snaptrade-partners-with-webull-22678081"
+    "https://www.newswire.com/news/snaptrade-partners-with-webull-22678081",
+    "https://developer.webull.com/apis/docs/connect-api/about-connect-api",
+    "https://developer.webull.com/apis/docs/connect-api/authentication"
    ]
   },
   {
@@ -371,14 +373,14 @@
    "trade": true,
    "read": true,
    "adapter_state": "not_built",
-   "verification": "researched",
+   "verification": "unverified",
    "needs": "a tastytrade OAuth app registration",
    "aliases": [
     "tastytrade",
     "tasty trade",
     "tastyworks"
    ],
-   "notes": "OAuth2 with read and trade scopes; SnapTrade also trades it.",
+   "notes": "OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it.",
    "research": {
     "native_api": "third-party OAuth API (OAuth2 with read and trade scopes; connects third-party or private apps); formal partner-program terms unverified",
     "snaptrade": "listed; trading supported (per SnapTrade tastytrade page, OAuth)",
@@ -387,7 +389,8 @@
    },
    "sources": [
     "https://developer.tastytrade.com/docs/authentication/oauth2/",
-    "https://snaptrade.com/brokerage-integrations/tastytrade-api"
+    "https://snaptrade.com/brokerage-integrations/tastytrade-api",
+    "https://developer.tastytrade.com/docs/get-started/"
    ]
   },
   {
@@ -926,12 +929,12 @@
    "trade": false,
    "read": true,
    "adapter_state": "live",
-   "verification": "researched",
+   "verification": "unverified",
    "aliases": [
     "vanguard institutional",
     "vanguard 401k"
    ],
-   "notes": "Retail Vanguard is read-only on both aggregators; whether institutional 401k accounts come through the same login was not confirmed.",
+   "notes": "Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published.",
    "research": {
     "native_api": "none (SnapTrade's Vanguard page says Vanguard has no open developer API)",
     "snaptrade": "Vanguard US listed, read-only (credential login); workplace 401k coverage unverified",
@@ -941,7 +944,8 @@
    "sources": [
     "https://plaid.com/institutions/vanguard/",
     "https://snaptrade.com/brokerage-integrations/vanguard-api",
-    "https://401kspecialistmag.com/ascensus-to-buy-vanguards-individual-401k-multi-sep-and-simple-ira-plans/"
+    "https://401kspecialistmag.com/ascensus-to-buy-vanguards-individual-401k-multi-sep-and-simple-ira-plans/",
+    "https://plaid.com/institutions/vanguard/"
    ]
   },
   {
@@ -956,14 +960,14 @@
    "trade": false,
    "read": true,
    "adapter_state": "not_built",
-   "verification": "researched",
+   "verification": "unverified",
    "fallback_route": "plaid",
    "needs": "the owner's SnapTrade account and keys",
    "aliases": [
     "empower",
     "empower retirement"
    ],
-   "notes": "Only 401k recordkeeper here with a confirmed SnapTrade page. Read-only; no trading route exists for plan accounts.",
+   "notes": "SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published.",
    "research": {
     "native_api": "partner OAuth exists (SnapTrade connects via Empower-hosted OAuth, read-only); no public self-serve developer API found",
     "snaptrade": "yes, read-only (OAuth); whether 401k accounts are included is unverified",
@@ -972,7 +976,8 @@
    },
    "sources": [
     "https://snaptrade.com/brokerage-integrations/empower-api",
-    "https://plaid.com/blog/changelog-august-2019/"
+    "https://plaid.com/blog/changelog-august-2019/",
+    "https://stockunlock.com/broker/empower.html"
    ]
   },
   {
@@ -1412,7 +1417,7 @@
    "trade": false,
    "read": true,
    "adapter_state": "not_built",
-   "verification": "researched",
+   "verification": "unverified",
    "same_account_as": "empower",
    "needs": "the owner's SnapTrade account and keys",
    "aliases": [
@@ -1563,7 +1568,7 @@
    "trade": false,
    "read": true,
    "adapter_state": "live",
-   "verification": "researched",
+   "verification": "unverified",
    "same_account_as": "robinhood",
    "blocked_reason": "Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.",
    "aliases": [

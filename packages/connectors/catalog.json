@@ -1422,7 +1422,7 @@
    "provider": "webull",
    "display_name": "Webull",
    "domain": "brokerages and investment accounts",
-   "auth_method": "AGGREGATOR",
+   "auth_method": "OAUTH",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",

@@ -253,3 +253,11 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   brokerage, sets up payments to people and cancels subscriptions, each on a card with their yes; moving money between
   accounts is not built. All three now say that (`agent-chat/_shared/agent.ts`, `capabilities.ts`, the app template), and
   "what can't you do" answers from a fixed list. Source: live replies, `docs/gauntlet/live-2026-10-12.md`.
+- **Connector matrix vs its own research (benchmark matrix-honesty, 2026-10-12).** Five rows contradicted the research
+  recorded beside them. Webull was routed through SnapTrade though its research names Webull's own Connect API (OAuth 2.0,
+  orders included; access by registration with Webull's API team), which comes first in the owner's route order: now
+  native. tastytrade, Vanguard Institutional, Empower (and MassMutual, which follows it) and Robinhood Event Contracts were
+  marked researched while their research says the part relied on is unverified (tastytrade partner terms unpublished; Plaid's
+  Vanguard page inconsistent on Investments and silent on 401(k); SnapTrade's Empower plan coverage unpublished; event
+  contracts not shown to come through Plaid): now unverified. Sources in each row. A `contradictions()` check now gates
+  the matrix build and its tests.

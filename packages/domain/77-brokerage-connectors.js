@@ -170,6 +170,25 @@
       if (t.state === "fallback") return { platform: r.platform, state: t.state, text: `${via}${capability(r).trade ? `Trading at ${r.platform} needs ${waits}.` : `Upmore's direct connection to ${r.platform} isn't switched on yet.`} Meanwhile it can be tracked read-only through Plaid. ${plaidSteps}` };
       return { platform: r.platform, state: t.state, text: `${via}Upmore can't connect ${name} yet: it needs ${waits}${r.route === "browser_assisted" ? " (a secure window where you log in yourself)" : ""}. Nothing was connected.` };
     }
-    return { ROUTES, AUTH, DEFAULT_CAP_CENTS, capability, today, validate, find, adapterFor, summary, connectAnswer };
+    // A row's decision must not contradict its own recorded research (benchmark matrix-honesty, 2026-10-12): the route is
+    // the one the research names as best (a shared account follows its parent), a row marked researched has no clause in
+    // its route's research saying the part it relies on is unverified, and trading is never claimed where the research
+    // for that route says read-only. Clauses about trading are ignored for track-only rows (they claim no trading).
+    const ROUTE_WORD = { plaid: /plaid/, snaptrade: /snaptrade/, native_api: /native|api|direct/, browser_assisted: /browser/, none: /none|defunct|no |not available|institutional/ };
+    const DOUBT = /\b(unverified|not found|likely|not confirmed|unconfirmed|unclear)\b/i;
+    function contradictions(rows) {
+      const out = [];
+      for (const r of rows || []) {
+        const R = r.research; if (!R) continue;
+        const said = String({ plaid: R.plaid, snaptrade: R.snaptrade, native_api: R.native_api }[r.route] || "");
+        const best = String(R.best_route || "").toLowerCase();
+        if (!r.same_account_as && ROUTE_WORD[r.route] && !ROUTE_WORD[r.route].test(best)) out.push({ id: r.id, n: r.n, kind: "route", text: `route ${r.route}, but the research names "${R.best_route}"` });
+        const clauses = said.split(/[;.]|\s-\s|,\s(?=whether|but|holdings|trading)/).filter(c => c.trim() && (r.trade || !/trad/i.test(c)));
+        if (r.verification === "researched" && clauses.some(c => DOUBT.test(c))) out.push({ id: r.id, n: r.n, kind: "verification", text: `marked researched, but the research says: "${clauses.find(c => DOUBT.test(c)).trim()}"` });
+        if (r.trade && capability(r, { route: true }).trade && /read[- ]only|no trad/i.test(said) && !/trad(e|ing) (?:via|through|permitted|supported)|trading\)/i.test(said)) out.push({ id: r.id, n: r.n, kind: "trade", text: `trading claimed, but the research says: "${said.slice(0, 120)}"` });
+      }
+      return out;
+    }
+    return { ROUTES, AUTH, DEFAULT_CAP_CENTS, capability, today, validate, find, adapterFor, summary, connectAnswer, contradictions };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = BrokerageConnectors;

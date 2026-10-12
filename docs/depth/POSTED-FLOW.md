@@ -19,10 +19,10 @@ agent-chat is deployed by `scripts/launch/go-live.sh`.
 
 Bugs: none found. Every sub-capability below was already right; the packet pins it.
 
-Noted, not changed (for the owner): the range is whatever the planner passes, and the planner is told only "Current UTC
-date" (`financial_planner.ts`). Bank dates are UTC too (`simplefin-proxy`), so "what went out today" asked on a US
-evening uses tomorrow's UTC date for both, which is consistent, but a range ending on the person's local today leaves out
-that evening's rows (dated tomorrow in UTC). The module has no notion of today, so this is the caller's to settle.
+Settled in the caller (7cc1058): the range is whatever the planner passes, and the planner is now told the person's
+local date as well as the UTC date, and that bank rows are dated by calendar day, so a row dated the UTC date can be
+from this evening (`financial_planner.ts`, tests/edge/financial-planner.test.ts). The module itself has no notion of
+today.
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |

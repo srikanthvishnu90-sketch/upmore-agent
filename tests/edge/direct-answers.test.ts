@@ -255,3 +255,23 @@ Deno.test("copy trading: not built, the disclosure lag said right, an unverifiab
   // The trade flow refuses with the same sentence, so the two never disagree.
   assert(SRC_TRADE.includes(COPY_NONE));
 });
+
+// Megadoc O01, O06, O07, O08, O10: hard moments get a short, calm reply with no advice and one offer, each a phrase that
+// really reaches an answer from the person's own rows.
+import { moneyKind } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
+Deno.test("hard moments: calm, no advice, one offer that reaches a real answer (O01 O06 O07 O08 O10)", () => {
+  const { momentReply } = DirectAnswers;
+  const laid = momentReply("I got laid off")!, broke = momentReply("I'm so broke")!, lost = momentReply("I lost 8k today in the market")!, night = momentReply("3am can't sleep worried about money")!, scam = momentReply("I feel dumb for losing money on this scam")!;
+  assertMatch(laid, /say "how long will my money last"\. Nothing changes unless you ask\.$/);
+  assertMatch(broke, /say "how am I doing"\. Just the numbers, no judgment\.$/);
+  assertMatch(lost, /^That's a hard day\. I won't tell you what to do next\..*say "how's my portfolio"\.$/);
+  assertMatch(night, /say "how am I doing"\. Or I can send a short brief at 8 a\.m\. instead: say "turn on the morning brief"\.$/);
+  assertMatch(scam, /^It isn't dumb: .*report it at reportfraud\.ftc\.gov.*say "dispute this charge" and I'll draft what to send your bank\.$/);
+  for (const t of [laid, broke, lost, night, scam]) assert(!/\b(?:you should|i recommend|i suggest|don't worry|cheer up|it'll be fine)\b/i.test(t), t);
+  for (const t of ["i'm broke, can i afford a $20 dinner?", "my friend got laid off", "i lost my keys", "i'm not broke", "how much did i lose in the market", "i lost $40 on that bet"]) assertEquals(momentReply(t), null, t);
+  // Each offered phrase reaches its answer.
+  assertEquals(moneyKind("how long will my money last"), "runway");
+  assertEquals(moneyKind("how am I doing"), "checkup");
+  assertEquals((AgentTrade as any).parse("how's my portfolio").action, "portfolio");
+  assertEquals((parseCommand("turn on the morning brief", null, Date.parse("2026-10-12T15:00:00Z")) as any).settings, { morning_brief: true });
+});

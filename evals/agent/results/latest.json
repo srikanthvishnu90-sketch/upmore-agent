@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 86,
-  "total": 86
+  "pass": 87,
+  "total": 87
  },
  "results": [
   {
@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 116, LIMITED 37, DIVERGES 8, MODEL 12, NOT_BUILT 67",
+   "title": "megadoc states: PROVEN 0, BUILT 121, LIMITED 37, DIVERGES 8, MODEL 7, NOT_BUILT 67",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },
@@ -224,9 +224,8 @@
   {
    "family": "design",
    "id": "D-06",
-   "title": "pixel regression of the signed-out screens",
-   "status": "NOT_RUN",
-   "actual": "last run 2026-10-12T06:02:21.532Z saw a different app, images, fonts or baselines; run again: node evals/agent/visual.cjs (real Chromium, phone and desktop: pixel regression against evals/agent/visual-baseline, clipped or covered copy, dead controls read through DevTools). Signed-in screens need a live login."
+   "title": "pixel regression of the signed-out screens (real Chromium 141.0.7390.37, run 2026-10-12, recorded with a fingerprint of what it rendered)",
+   "status": "PASS"
   },
   {
    "family": "flow",

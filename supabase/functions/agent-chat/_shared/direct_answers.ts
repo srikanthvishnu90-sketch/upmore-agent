@@ -240,6 +240,28 @@ export function copyReply(message: string): string | null {
   return COPY_NONE;
 }
 
+// Hard moments (megadoc O01, O06, O07, O08, O10): short, calm, no advice, no cheerleading, and one offer the person can
+// take up in their own time, each a phrase that really reaches an answer from their own rows ("how long will my money
+// last" is the runway, "how am I doing" the checkup, "how's my portfolio" the holdings, "turn on the morning brief" the
+// 8 a.m. brief, "dispute this charge" the drafted dispute). Nothing is set up or moved.
+const MOMENTS: [string, RegExp, string][] = [
+  ["scam_shame", /\b(?:feel|felt|i'?m|i am) (?:so |really |pretty )?(?:dumb|stupid|like an idiot|embarrassed|ashamed|naive)\b[^.?!]{0,50}\b(?:scam|scammed|fraud|got taken|conned)\b|\bi (?:got|was|just got|have been) (?:scammed|conned)\b/i,
+    "It isn't dumb: these scams are built to fool careful people. What helps now: tell your bank right away and ask about disputing or recalling the payment, report it at reportfraud.ftc.gov, and change any password or code you shared. If it was a card charge, say \"dispute this charge\" and I'll draft what to send your bank."],
+  ["laid_off", /\b(?:i (?:just )?(?:got|was|have been|'ve been) (?:laid off|fired|let go)|(?:i )?lost my job|i'?m (?:now )?(?:unemployed|out of work|between jobs))\b/i,
+    "I'm sorry, that's a hard one. When you want it, I can work out how long your money lasts at your current spending, from your own accounts: say \"how long will my money last\". Nothing changes unless you ask."],
+  ["lost_market", /\bi (?:just )?lost \$?\d[\d,.]*k?(?: dollars| bucks| grand)?\b[^.?!]{0,30}\b(?:in|on) (?:the )?(?:market|stock market|stocks?|trading)\b|\b(?:lost|down) (?:big|a lot|so much|everything)\b[^.?!]{0,20}\b(?:in|on) (?:the )?(?:market|stocks?)\b/i,
+    "That's a hard day. I won't tell you what to do next. If you want the facts, I can show your holdings and how each has done since you bought: say \"how's my portfolio\"."],
+  ["worried_night", /\b(?:can'?t sleep|cannot sleep|up all night|lying awake|wide awake)\b[^.?!]{0,50}\b(?:money|bills|rent|debt|finances|broke)\b|\b(?:worried|stressed|anxious|panicking|freaking out) (?:about|over) (?:money|my finances|my bills|bills|rent|my debt|debt)\b/i,
+    "Money worries feel bigger at night. If you want the numbers now, say \"how am I doing\". Or I can send a short brief at 8 a.m. instead: say \"turn on the morning brief\"."],
+  ["broke", /^\s*(?:(?:ugh|man|honestly|lol)[,!.\s]+)*i'?m (?:so |really |completely |totally |dead |flat )?(?:broke|out of money|poor)(?: af| rn| right now| again)?\s*[.!]*\s*$|^\s*i have no money(?: left)?\s*[.!]*\s*$/i,
+    "That's a rough feeling. If it would help, I can lay out where things stand right now, from your own accounts: say \"how am I doing\". Just the numbers, no judgment."],
+];
+export function momentReply(message: string): string | null {
+  const m = String(message || "");
+  for (const [, re, text] of MOMENTS) if (re.test(m)) return text;
+  return null;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

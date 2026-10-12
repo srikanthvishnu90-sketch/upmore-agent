@@ -4,7 +4,8 @@
 misread or claimed: a transfer between the person's own accounts (the send parser read "transfer 1000 from savings to
 brokerage" as a payment to someone called "brokerage"), locking or unlocking a card, a lost or stolen card, blocking a
 merchant, paying a utility, phone, card or insurance bill, pausing or downgrading a subscription, opening an account,
-and recurring investing. Each reply: what isn't built, the real path (the bank's, issuer's or service's own app, or what
+recurring investing, and portfolio analytics (a benchmark comparison, sector weights, period returns, movers, tax on
+a sale, dividends: "compare my portfolio to the S&P" used to get the plain portfolio as if that answered it). Each reply: what isn't built, the real path (the bank's, issuer's or service's own app, or what
 Upmore can do instead: cancel by name, rent, buy now behind a yes), and that nothing was done. A send to a person, rent,
 a split and money questions keep their own answers; a stolen card is answered even mid-sentence.
 
@@ -30,4 +31,5 @@ Check: `node --test tests/depth-NOT-YET.test.cjs && node evals/depth/run.cjs NOT
 | S13 | Questions are not actions | balance, due date, declined | `S13` in tests/depth-NOT-YET.test.cjs | the question filter is gone | proven |
 | S14 | Nothing was done | every reply | `S14` in tests/depth-NOT-YET.test.cjs | the transfer reply drops 'nothing was moved' | proven (also fails S01) |
 | S15 | The way people type it | lead words, curly apostrophes, capitals | `S15` in tests/depth-NOT-YET.test.cjs | curly apostrophes and capitals are not normalised | proven |
+| S16 | Portfolio analytics | benchmarks, sectors, returns, dividends said not built | `S16` in tests/depth-NOT-YET.test.cjs | analytics asks are not caught | proven |
 <!-- results:end -->

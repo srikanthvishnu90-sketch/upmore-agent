@@ -1,9 +1,9 @@
 {
  "capability": "NOT-YET",
- "run_at": "2026-10-12T12:37:49.097Z",
+ "run_at": "2026-10-12T13:04:04.775Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -176,6 +176,17 @@
    "title": "The way people type it",
    "defect": "curly apostrophes and capitals are not normalised",
    "test": "lead words, curly apostrophes, capitals",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Portfolio analytics",
+   "defect": "analytics asks are not caught",
+   "test": "benchmarks, sectors, returns, dividends said not built",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -48,3 +48,18 @@
   History is not rewritten. Proposed reading for the owner: every commit from a given commit onward has its own green
   CI run (push one commit at a time so none is skipped). Until the owner picks the reading, passes stays false.
 - Next: testing-agent (GREEN 70/70 today with "gaps 5, not run 3": decide what full-suite green requires).
+
+## 2026-10-12, overnight run (owner: 10+ hours unattended; plan docs/overnight/2026-10-12-overnight-plan.md)
+- 04:00 UTC: Methods 1-3 saved verbatim (0ec67a7); hourly check-in Routine created (fires :01 UTC, until 16:00).
+- A1 be1c769: 194 method cards as spec items, 130 hard-gated (all 14 prediction-market and 15 sportsbook/casino cards).
+- B1 cb8df6f: balance-aware sends (corpus 1.05). B4 31bc660: teardowns on the capability list; fixed an inflation in the
+  agent's map (rows in partly covered sections borrowed their section's status: 486 claimed IN_PRODUCT, 90 honest).
+- 70f222f: found during B1's merge: the flow router read transactions oldest first with limit 3000 (same bug as the
+  chat's): one shared newest-first reader, red-first test with real query semantics, two planted defects caught.
+- B3 c74c2db: sell or buy by company name (corpus 3.05); trade depth packets re-proven (RAIL-2 21/21, INV-011 16/16,
+  BROKER-CONNECT 17/17). B2 4755650: saved nicknames (corpus 1.06); its migration reused 20261012020000 (renamed 030000);
+  DB suite run locally as postgres before push: 735 checks pass (the agent could not run it).
+- A3 a936f07: offer book (37 sourced, dated terms; stale past window).
+- Corpus offline now NOT_BUILT 0 (PASS 38, LIMITED 9, DIVERGES 2); testing agent GREEN 71/71, gaps 3, not run 2.
+- CI: runs 36-42 green, one per pushed commit. Wave 2 running: C1 airline refunds, C2-C4 money owed, D subscription
+  savings, E the numbers.

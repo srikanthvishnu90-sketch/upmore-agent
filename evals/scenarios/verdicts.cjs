@@ -165,4 +165,5 @@ set("L01 L02 L05 L08", "BUILT", "the spending answer from the person's own rows:
 set("L11", "BUILT", "safe to spend: cash minus the repeating bills due before payday (or the next 30 days with no paycheck found, said), card balances not subtracted and said", "tests/edge/megadoc-money-asks.test.ts");
 set("L12", "BUILT", "'can I afford a 900 trip': $900.00 against safe to spend, what is left and per day; a number of days, weeks or months is never read as dollars", "tests/edge/megadoc-money-asks.test.ts");
 set("G16 F08", "BUILT", "the cash balance from the person's accounts with the as-of time; a balance more than a day old is said as stale", "tests/edge/megadoc-money-asks.test.ts");
+set("J03", "BUILT", "the subscriptions that repeat in the person's rows (recurring charges at services the chat counts as subscriptions, their category rules included), each with its latest charge, how often and when; one that stopped is said apart; the monthly and yearly total; what can't show; the cancel flow named with its own yes", "tests/edge/megadoc-money-asks.test.ts");
 

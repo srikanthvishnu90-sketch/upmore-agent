@@ -15,8 +15,8 @@ test("the report is current and every recorded planted defect bit", () => {
 test("every domain module appears, as covered or as a gap, and no module is in both", () => {
   const doc = fs.readFileSync(path.join(root, "docs/depth/MUTATION-COVERAGE.md"), "utf8");
   const gaps = new Set([...doc.split("## Gaps")[1].matchAll(/^- (\S+\.js)$/gm)].map(m => m[1]));
-  const covered = new Set([...doc.split("## Gaps")[0].matchAll(/^\| (\d\d-\S+\.js) \|/gm)].map(m => m[1]));
-  for (const f of fs.readdirSync(path.join(root, "packages/domain")).filter(f => /^\d\d-.*\.js$/.test(f))) {
+  const covered = new Set([...doc.split("## Gaps")[0].matchAll(/^\| (\d{2,3}-\S+\.js) \|/gm)].map(m => m[1]));
+  for (const f of fs.readdirSync(path.join(root, "packages/domain")).filter(f => /^\d{2,3}-.*\.js$/.test(f))) {
     assert.ok(gaps.has(f) !== covered.has(f), `${f} must be exactly one of covered or gap`);
   }
 });

@@ -227,6 +227,10 @@
     ["can I afford a 900 trip", "moneyReply"],
     ["what's my cash flow", null],
     ["where is my money market account", null],
-    ["can i afford a 2 week trip", null]
+    ["can i afford a 2 week trip", null],
+    ["what subscriptions do I have", "moneyReply"],
+    ["list my subscriptions", "moneyReply"],
+    ["what am i subscribed to", "moneyReply"],
+    ["my subscriptions are too expensive", null]
   ]
 }

@@ -160,3 +160,18 @@ test("[ADV] planted instructions, junk rows and a monitor that throws never reac
   // findMoneyReply hands the engines only rows with a date and a finite amount; the planted text rides along.
   assert.doesNotMatch(findMoney(rows.filter(r => r && /^\d{4}-/.test(r.posted_at) && Number.isFinite(r.amount))).lines.join("\n"), /ignore|instructions|password/i);
 });
+
+test("[S16] a per-charge code after * is not part of the merchant: Amazon Prime billed yearly groups as one service", () => {
+  assert.equal(M.merchantKey("AMAZON PRIME*AB1CD2"), "amazon prime");
+  assert.equal(M.merchantKey("AMZN Mktp US*2K4LM1"), "amzn mktp us");
+  assert.equal(M.merchantKey("AMAZON.COM*1A2B3C4D5"), "amazon com");
+  // Names stay names: a product number, a word with a digit, a name after the star.
+  assert.equal(M.merchantKey("MICROSOFT*365"), "microsoft 365");
+  assert.equal(M.merchantKey("PY *1PASSWORD"), "1password");
+  assert.equal(M.merchantKey("KINDLE SVCS*UNLIMITED2"), "kindle svcs unlimited2", "a word with a digit after the star is a name");
+  assert.equal(M.merchantKey("GOOGLE *YOUTUBEPREMIUM"), "google youtubepremium");
+  assert.equal(M.merchantKey("UBER *TRIP"), "uber trip");
+  const r = rec([tx("2025-10-03", -139, "AMAZON PRIME*AB1"), tx("2026-10-03", -139, "AMAZON PRIME*CD2")]);
+  assert.deepEqual(r.map((x) => [x.key, x.interval, x.occurrences]), [["amazon prime", "yearly", 2]]);
+});
+

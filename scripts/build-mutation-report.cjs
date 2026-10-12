@@ -14,7 +14,7 @@ const out = path.join(root, "docs/depth/MUTATION-COVERAGE.md");
 
 function build() {
   const problems = [];
-  const modules = fs.readdirSync(domainDir).filter(f => /^\d\d-.*\.js$/.test(f)).sort();
+  const modules = fs.readdirSync(domainDir).filter(f => /^\d{2,3}-.*\.js$/.test(f)).sort();
   const packets = fs.readdirSync(depthDir).filter(f => f.endsWith(".mutations.cjs")).map(f => f.replace(".mutations.cjs", "")).sort();
   const byModule = Object.fromEntries(modules.map(m => [m, []]));
   const packetRows = [];

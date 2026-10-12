@@ -40,3 +40,12 @@ Deno.test("L12: a bare 900 is $900.00; a 2 week trip is not $2", async () => {
   assertMatch(r, /^For \$900\.00 today: yes\./);
   assertEquals((await first("can i afford a 2 week trip"))[0], null);
 });
+
+Deno.test("J03: the subscriptions that repeat, each with its latest charge, and the cancel flow's own yes", async () => {
+  const [k, r] = await first("what subscriptions do I have");
+  assertEquals(k, "moneyReply");
+  assertMatch(r, /^1 subscription repeats in your linked accounts, about \$15\.99 a month \(\$191\.88 a year\):\n- Netflix: \$15\.99 a month, last charged Oct 5\n/);
+  assert(r.includes('Say "cancel Netflix" to start a cancellation; nothing is cancelled until you say yes to it.'), r);
+  assertMatch(r, SRC);
+});
+

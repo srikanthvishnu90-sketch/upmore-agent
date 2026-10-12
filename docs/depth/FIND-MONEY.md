@@ -35,4 +35,6 @@ Two bugs found building this packet, each written as a failing test first (logge
 | S13 | A rise is 5% and $0.50 | $15.49 to $16.20 (4.6%) is not a rise | `S13` in tests/depth-FIND-MONEY.test.cjs | only the $0.50 floor is checked | proven |
 | S14 | A rise at its own cadence | a $10 weekly rise is $43.33 a month | `S14` in tests/depth-FIND-MONEY.test.cjs | every rise is called a monthly one (the bug found building this packet) | proven |
 | S15 | Bank fees inside 60 days | a 72-day-old service fee is not raised | `S15` in tests/depth-FIND-MONEY.test.cjs | the fee window is 90 days | proven |
+| S16 | A reference code is not the merchant | AMAZON PRIME*AB1 and *CD2 are one yearly charge | `S16` in tests/depth-FIND-MONEY.test.cjs | the code after * stays in the key, so a yearly subscription never groups | proven |
+| S16 | A name with a digit stays a name | PY *1PASSWORD is 1password, not py | `S16` in tests/depth-FIND-MONEY.test.cjs | any code with a digit is stripped, names included | proven |
 <!-- results:end -->

@@ -64,8 +64,13 @@
 
     function merchantKey(raw) {
       let s = String(raw || "").toLowerCase();
-      s = s.replace(/^(sq \*|paypal \*|tst\*|amzn\*|amazon\*|pp\*|sp \*)\s*/i, "");
+      s = s.replace(/^(sq \*|paypal \*|tst\*|amzn\*|amazon\*|pp\*|sp \*|py \*)\s*/i, "");
       s = s.replace(/\s+#?\d{3,}.*$/, ""); // trailing store numbers and references
+      // A per-charge reference after "*" ("AMAZON PRIME*AB1CD2", "AMZN MKTP US*2K4LM"): a code mixing letters and digits,
+      // or a long number, never a name ("GOOGLE *YOUTUBEPREMIUM", "UBER *TRIP", "MICROSOFT*365", "1PASSWORD" keep theirs: a
+      // code never has four letters in a row), so one
+      // service's charges group as one merchant.
+      s = s.replace(/(\S)\s*\*\s*(?:(?=[a-z0-9]*\d)(?=[a-z0-9]*[a-z])(?![a-z0-9]*[a-z]{4})[a-z0-9]{3,}|\d{5,})(?:\s.*)?$/, "$1");
       return s.replace(/[^a-z0-9]+/g, " ").trim();
     }
     // Display-safe merchant names come from MerchantLabel (32-merchant-label.js, loaded first in every bundle).

@@ -1,9 +1,9 @@
 {
  "capability": "FIND-MONEY",
- "run_at": "2026-10-12T05:52:14.581Z",
+ "run_at": "2026-10-12T09:19:59.475Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 17,
+ "sub_capabilities": 16,
+ "proven": 19,
  "problems": [],
  "rows": [
   {
@@ -192,6 +192,28 @@
    "title": "Bank fees inside 60 days",
    "defect": "the fee window is 90 days",
    "test": "a 72-day-old service fee is not raised",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D18",
+   "title": "A reference code is not the merchant",
+   "defect": "the code after * stays in the key, so a yearly subscription never groups",
+   "test": "AMAZON PRIME*AB1 and *CD2 are one yearly charge",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D18b",
+   "title": "A name with a digit stays a name",
+   "defect": "any code with a digit is stripped, names included",
+   "test": "PY *1PASSWORD is 1password, not py",
    "bites": true,
    "applied": true,
    "collateral": [],

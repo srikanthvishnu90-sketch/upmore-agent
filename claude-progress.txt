@@ -11,3 +11,18 @@
   Decisions 2 and 3 stay OFF (owner, this prompt), superseding the earlier Kalshi/Coinbase approval request.
 - Four feature builds are running in agent worktrees (dispute drafting, money answers, monthly rent, live sign-in window);
   they are merged only after every suite passes.
+
+## 2026-10-12, session 1: benchmark matrix-honesty -> passes (commit 5b7c400)
+- Research used: Webull Connect API docs (developer.webull.com/apis/docs/connect-api/about-connect-api, /authentication),
+  tastytrade developer docs (developer.tastytrade.com/docs/get-started/), SnapTrade Empower page + Stock Unlock's Empower
+  report, Plaid's Vanguard institution page.
+- Root cause: the rows were decided by hand; nothing compared each decision with its own recorded research.
+- Fix: contradictions() in packages/domain/77-brokerage-connectors.js (route vs research's best route, "researched" vs
+  research that says unverified, trading vs research that says read-only), gating the matrix build and tests; five rows
+  corrected (Webull native Connect API; tastytrade, Vanguard Institutional, Empower, MassMutual, Robinhood Event Contracts
+  to unverified). Catalog: Webull OAUTH.
+- Evidence (end to end, as a person would ask): "connect my X" for all 101 rows through the real reply code
+  (direct_answers.ts over the edge bundle): 101/101 consistent with the row; README shows "Research contradictions: 0",
+  verified 0 / unverified 101 (48 researched, 53 unconfirmed). Suites: node 532/532, edge 283/283, Agent100 103/103,
+  testing agent GREEN 70/70 critical 0, eval RELEASE OK, matrix --check OK.
+- Next: node-ci (verify CI green on every commit through this one).

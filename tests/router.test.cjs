@@ -368,3 +368,26 @@ test('a hypothetical never reaches a money flow, even when the model reads it as
   const live=async raw=>({intent:'sell_security',quantity:2,unit:'shares',amount_span:'2',instrument_span:'VOO'});
   const c=await R.handle('sell 2 VOO',{extract:live,sessions:sessions(world()),parsers});assert.equal(c.route,'sell_security');
 });
+
+// Not an order either (found 2026-10-12 with a worst-case model that always names the money intent): "did i pay sam 40"
+// (a question, though "pay sam 40" looks like a command), "should i send sam 40", "i already bought 2 VOO", "i sold 2
+// VOO yesterday", "maybe send sam 40 later", "i might send sam 40". Each put up a money card; each now falls through
+// before the model is asked. A split of something already paid, and plain orders, still route.
+test('questions, reports of what already happened and maybes never reach a money flow; a split of a past payment still does',async()=>{
+  let calls=0;
+  const worst=intent=>async raw=>{calls++;const m=/(\d+)/.exec(raw);return intent==='send_money'?{intent,amount_span:m?m[1]:undefined,amount_cents:m?Number(m[1])*100:undefined,recipient_span:'sam'}:{intent,quantity:m?Number(m[1]):null,unit:m?'shares':null,amount_span:m?m[1]:undefined,instrument_span:'VOO'};};
+  for(const [t,intent] of [['did i pay sam 40','send_money'],['have i sent sam 40 yet','send_money'],['should i pay sam 40','send_money'],['should i send sam 40 for dinner','send_money'],['maybe send sam 40 later','send_money'],['i might send sam 40','send_money'],['i already sent sam 40','send_money'],['i already bought 2 VOO','buy_security'],['i sold 2 VOO yesterday','sell_security'],['i wish i bought 2 VOO','buy_security']]){
+    const w=world();const r=await R.handle(t,{extract:worst(intent),sessions:sessions(w),parsers});
+    assert.equal(r.route,'fallthrough',t);assert.equal(w.writes.length,0,t);
+  }
+  assert.equal(calls,0,'the model is never asked to read these as orders');
+  // "Should i buy/sell" is refused in the trade flow's own words, never carded, never asked of the model.
+  for(const [t,intent] of [['should i buy 2 VOO','buy_security'],['should i sell 2 VOO','sell_security'],['should I sell NVDA','sell_security'],['should i buy apple','buy_security']]){
+    const w=world();const r=await R.handle(t,{extract:worst(intent),sessions:sessions(w),parsers});
+    assert.equal(r.result.outcome,'refuse',t);assert.equal(r.result.text,"I can't tell you what to buy or sell. If you decide, name the ticker and the amount and I'll put up a card. Want to see your current holdings?",t);assert.equal(w.writes.length,0,t);
+  }
+  assert.equal(calls,0);
+  assert.ok(require('fs').readFileSync(require('path').join(root,'packages/domain/66-agent-trade.js'),'utf8').includes("I can't tell you what to buy or sell. If you decide, name the ticker and the amount and I'll put up a card. Want to see your current holdings?"),'the same words as the trade flow');
+  const s=await R.handle('send sam 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(s.route,'send_money');
+  const b=await R.handle('buy 2 VOO',{extract:worst('buy_security'),sessions:sessions(world()),parsers});assert.equal(b.route,'buy_security');
+});

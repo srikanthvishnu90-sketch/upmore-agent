@@ -168,7 +168,9 @@ const SECURITIES = /\b(?:stocks?|shares?|etfs?|(?:index |mutual )?funds?|bonds?|
 export function adviceReply(message: string): string | null {
   const m = String(message || ""), g = (AdviceGuard as any).request(m);
   if (!g || g.decision !== "block") return null;
-  return (g.reasons || []).includes("tips_or_good_buy") || SECURITIES.test(m) ? ADVICE_NONE : null;
+  // A ticker as people write one counts as a securities word: "should i buy 2 VOO", "should i sell TSLA", "$NVDA".
+  const ticker = /\b\d+(?:\.\d+)?\s+(?:shares?\s+(?:of\s+)?)?[A-Z]{1,5}\b|\$[A-Z]{1,5}\b|\b(?:buy|sell|hold|dump|trim)\s+(?:my\s+)?[A-Z]{2,5}\b/.test(m);
+  return (g.reasons || []).includes("tips_or_good_buy") || SECURITIES.test(m) || ticker ? ADVICE_NONE : null;
 }
 
 // "I'm traveling in Japan" (megadoc Q09): Upmore can't file a travel notice (no bank or card write), so it says where

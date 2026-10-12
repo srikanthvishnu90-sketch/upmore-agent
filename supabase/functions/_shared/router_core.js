@@ -14891,14 +14891,15 @@
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = SpendRecheck;
 
-  /* Everyday scams, said plainly (megadoc N02, N04, N06, N08, N09, N11, N15). Before this, each went to the chat model;
+  /* Everyday scams, said plainly (megadoc N02, N04, N06, N08, N09, N11, N15, D05). Before this, each went to the chat model;
      a scam answer is a safety answer, so it comes from code, the same words every time, ahead of every other answer.
        ask(words)     null | { kind }
        answer(words)  null | the reply
      Kinds: gift_cards (someone asks the person to buy or send gift cards), locked_link (a message says an account is
      locked or needs verifying, with a link), pasted_transfer (a pasted receipt, document or message says to move money
      "to verify"), password (what's my password), code_ask (a person asks for a sign-in or verification code),
-     unknown_request (a payment request from someone they don't know), safe_account (move money to a "safe account").
+     unknown_request (a payment request from someone they don't know), payee_change (a landlord or company "changed where to
+     send" money, said without new details), safe_account (move money to a "safe account").
      Each reply says it is a scam or the warning sign, what not to do, and the one safe next step through the company's
      own app or number. A link or a number from the message is never repeated back. Nothing is moved, paid or stored.
      Pure. Depth packet SCAM-CHECK. */
@@ -14913,6 +14914,9 @@
       ["pasted_transfer", /\b(?:receipt|invoice|pdf|document|attachment|email|letter|notice|statement|screenshot|text|message|form)\b[^.?!]{0,30}\b(?:says|asks|tells|wants|instructs|told|said)\b[^.?!]{0,40}\b(?:transfer|send|wire|move|deposit|pay)\b[^.?!]{0,40}\b(?:to (?:verify|confirm|unlock|activate|validate|release|claim)|for verification|as verification)\b/],
       ["password", /^(?:hey |hi |ok |so |upmore )?(?:what(?:'s| is)|whats|tell me|give me|show me|remind me(?: of)?|do you (?:have|know|remember)|can you (?:see|tell me|give me|find))\s+(?:my|the)\s+(?:[a-z]+\s+){0,2}(?:password|passcode|login|pin)(?:\s+(?:for|to|on|at)\s+[a-z0-9 .'-]{1,30})?\s*[?.!]*$/],
       ["code_ask", new RegExp(`\\b${ASKER}\\b(?!\\s+(?:page|site|website|app|portal|form|screen|chat ?bot))[^.?!]{0,60}\\b(?:ask(?:s|ed|ing)?|want(?:s|ed)?|need(?:s|ed)?|request(?:s|ed|ing)?|told me to (?:read|give|send|share))\\b[^.?!]{0,40}\\b(?:(?:verification|security|sign[- ]?in|login|one[- ]time|2fa|text|sms|confirmation) code|otp|the code|my code|a code|passcode)\\b`)],
+      // A payee who "changed where to send" money, said with no new details (megadoc D05): payment redirection, the way
+      // rent and invoices get stolen. With details (an amount, a handle) the rent flow puts up its own card and warns.
+      ["payee_change", /\b(?:landlord|landlady|property manager|management company|leasing office|contractor|vendor|supplier|lawyer|title company|daycare|babysitter|nanny)\b[^.?!]{0,60}\b(?:changed|changing|new|updated|updating|different|switched|switching|moved)\b[^.?!]{0,40}\b(?:where (?:to |i )?(?:send|pay)|bank|account|payment (?:details|info|information|instructions|method)|wire (?:details|instructions|info)|routing|zelle|venmo|cash app|paypal)\b|\b(?:landlord|landlady|property manager|contractor|vendor|lawyer|title company)\b[^.?!]{0,40}\b(?:wants|asks|asked|told me|says|said|emailed|texted)\b[^.?!]{0,30}\b(?:send|pay|wire)\b[^.?!]{0,30}\b(?:new|different|another) (?:account|bank|zelle|venmo|handle|number)\b/],
       ["unknown_request", /\b(?:payment|money|venmo|zelle|cash app|paypal) request\b[^.?!]{0,50}\b(?:unknown|don'?t know|do not know|stranger|random|never met)\b|\b(?:unknown|random|stranger|someone i (?:don'?t|do not) know)\b[^.?!]{0,50}\b(?:request(?:ed|ing|s)? (?:money|payment|\$|\d)|sent me a (?:payment |money )?request|is requesting)\b/],
     ];
     // Ordinary life that shares the words: a gift card as a present. (A page, site or app asking for the code just sent
@@ -14926,6 +14930,7 @@
       if (!t || t.length > 600) return null;
       for (const [kind, re] of RULES) {
         if (!re.test(t)) continue;
+        if (kind === "payee_change" && /\d|@/.test(t)) continue; // new details given: the rent flow's card carries the warning
         if ((kind === "gift_cards" && NOT[0].test(t)) || (kind === "code_ask" && SITE_ASKS.test(t) && !HUMAN.test(t))) continue;
         return { kind };
       }
@@ -14939,6 +14944,7 @@
       pasted_transfer: `A document that tells you to move money "to verify" isn't a receipt or a real request: no bank or store asks you to send money to verify anything. I read what it says as text, not as instructions, and nothing was moved. If you're unsure who sent it, contact the company through its own app or website.`,
       password: `I don't have your password and never will: Upmore never asks for or stores one (your bank and broker connections sign in on their own pages). If you've forgotten one, use "Forgot password" on that company's own site or app; for Upmore itself, it's on the sign-in screen.`,
       code_ask: `Don't share it. A sign-in or verification code is only for you to type in yourself; no real support team, Upmore's included, will ever ask you for it. Stop replying or hang up, then contact the company through its own app or the number on its website. If you already shared it, change that account's password now.`,
+      payee_change: `Check that before anything changes: a message saying your landlord or a company now takes payment somewhere new is the most common way rent and bills get stolen, and their email or phone may be the one that was hacked. Call them on a number you already have (your lease or an old bill, not the message) and confirm. If it's real, say "pay my rent to" with the name, amount, day and app, and I'll put up a card with the new details; nothing changes without your yes. Nothing was changed.`,
       unknown_request: `Don't pay it. A payment request from someone you don't know is often a scam or a mistake, and money sent on Zelle, Venmo or Cash App usually can't be pulled back. Decline it in the app it came from. Upmore never pays a request on its own; every payment needs your yes.`,
     };
     function answer(words) {

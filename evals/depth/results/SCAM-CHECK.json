@@ -1,9 +1,9 @@
 {
  "capability": "SCAM-CHECK",
- "run_at": "2026-10-12T12:21:19.911Z",
+ "run_at": "2026-10-12T14:05:05.120Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -130,7 +130,8 @@
    "collateral": [
     "S01",
     "S07",
-    "S09"
+    "S09",
+    "S16"
    ],
    "status": "proven"
   },
@@ -142,7 +143,9 @@
    "test": "curly quotes, capitals, long paste",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -186,6 +189,17 @@
    "title": "The report path",
    "defect": "the gift-card reply drops the report path",
    "test": "the bank, then reportfraud.ftc.gov",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "A changed payee is checked first",
+   "defect": "the payee-change rule is dropped, so the chat model answers it",
+   "test": "'my landlord changed where to send rent' says call on a number you have",
    "bites": true,
    "applied": true,
    "collateral": [],

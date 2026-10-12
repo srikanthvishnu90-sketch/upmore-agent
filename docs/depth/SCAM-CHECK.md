@@ -25,10 +25,11 @@ Check: `node --test tests/depth-SCAM-CHECK.test.cjs && node evals/depth/run.cjs 
 | S07 | A person asking for a code | don't share it | `S07` in tests/depth-SCAM-CHECK.test.cjs | code asks are not caught | proven (also fails S08) |
 | S08 | A site asking for a code | ordinary sign-in | `S08` in tests/depth-SCAM-CHECK.test.cjs | a site asking is taken for a person asking | proven |
 | S09 | Unknown payment request | don't pay it | `S09` in tests/depth-SCAM-CHECK.test.cjs | unknown requests are not caught | proven (also fails S10) |
-| S10 | Nothing echoed | no link, number or amount repeated | `S10` in tests/depth-SCAM-CHECK.test.cjs | the reply repeats the message | proven (also fails S01, S07, S09) |
-| S11 | The way people type it | curly quotes, capitals, long paste | `S11` in tests/depth-SCAM-CHECK.test.cjs | curly quotes and capitals are not normalised | proven |
+| S10 | Nothing echoed | no link, number or amount repeated | `S10` in tests/depth-SCAM-CHECK.test.cjs | the reply repeats the message | proven (also fails S01, S07, S09, S16) |
+| S11 | The way people type it | curly quotes, capitals, long paste | `S11` in tests/depth-SCAM-CHECK.test.cjs | curly quotes and capitals are not normalised | proven (also fails S16) |
 | S12 | Never asks for anything back | no code, password, card or number asked | `S12` in tests/depth-SCAM-CHECK.test.cjs | a reply asks for the code | proven (also fails S07) |
 | S13 | The strongest warning wins | safe account over a code ask | `S13` in tests/depth-SCAM-CHECK.test.cjs | the rules run weakest first | proven |
 | S14 | One safe next step | the company's own channel | `S14` in tests/depth-SCAM-CHECK.test.cjs | the safe-account reply drops the call-your-bank step | proven |
 | S15 | The report path | the bank, then reportfraud.ftc.gov | `S15` in tests/depth-SCAM-CHECK.test.cjs | the gift-card reply drops the report path | proven |
+| S16 | A changed payee is checked first | 'my landlord changed where to send rent' says call on a number you have | `S16` in tests/depth-SCAM-CHECK.test.cjs | the payee-change rule is dropped, so the chat model answers it | proven |
 <!-- results:end -->

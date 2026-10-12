@@ -216,6 +216,9 @@ Deno.test("everyday scams run among the early guards, ahead of every other answe
   assert(guard > 0 && guard < direct, "scam check before the direct answers");
   assertMatch((ScamCheck as any).answer("a \"support agent\" called, they asked me to move money to a safe account"), /^Stop: that's a scam\./);
   assertEquals((ScamCheck as any).answer("transfer $50 to my savings"), null);
+  // D05: a payee that "changed where to send" money is checked on a number the person already has, before any flow.
+  assertMatch((ScamCheck as any).answer("my landlord changed where to send rent"), /^Check that before anything changes: .*Nothing was changed\.$/);
+  assertEquals((ScamCheck as any).answer("pay my rent to Mike 1450 on the 1st via zelle"), null);
 });
 
 // Megadoc O09 "I want to YOLO 10k on options": Upmore can't trade options; the trade flow's own refusal, reached even

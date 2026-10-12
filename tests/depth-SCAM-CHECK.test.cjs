@@ -78,7 +78,7 @@ test("[S13] the strongest warning wins: a caller asking for a code and a safe ac
 });
 
 test("[S14] every reply names one safe next step through the company's own channel or the person's own hands", () => {
-  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/ };
+  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/, payee_change: /Call them on a number you already have \(your lease or an old bill, not the message\)/ };
   for (const k of S.KINDS) assert.match(S.TEXT[k], STEP[k], k);
 });
 
@@ -89,5 +89,13 @@ test("[S15] where money or a code may already be gone, the report path is said: 
 
 test("[S12] the reply never asks for anything back: no code, password, card or account number", () => {
   for (const k of S.KINDS) assert.doesNotMatch(S.TEXT[k], /\b(?:send|tell|give|share) me\b|\bwhat(?:'s| is) your (?:code|password|card|account)\b/i, k);
-  assert.equal(S.KINDS.length, 7);
+  assert.equal(S.KINDS.length, 8);
+});
+
+test("[S16] a landlord or company that 'changed where to send' money, with no new details, is checked on a number the person already has before anything changes; details go to the rent card", () => {
+  for (const t of ["my landlord changed where to send rent", "landlord says rent goes to a new account now", "my property manager emailed new payment instructions", "the contractor texted that he switched banks, pay the new account", "landlord has a new zelle", "My Landlord Sent Updated Bank Details"]) {
+    assert.equal(kind(t), "payee_change", t);
+    assert.match(S.answer(t), /^Check that before anything changes: .* Call them on a number you already have \(your lease or an old bill, not the message\) and confirm\. .* nothing changes without your yes\. Nothing was changed\.$/, t);
+  }
+  for (const t of ["my landlord changed to zelle jane@example.com, pay rent 1500 on the 1st", "landlord raised the rent to 1600", "my landlord changed the due date", "pay my rent", "is my landlord allowed to raise rent", "I changed banks"]) assert.notEqual(kind(t), "payee_change", t);
 });

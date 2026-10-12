@@ -34,7 +34,11 @@
       out.uneven = /\b\d{1,2}\s*\/\s*\d{1,2}\b|\bunevenly\b|\d{1,2}\s*%|\bpercent\b/i.test(t);
       out.itemized = /\b(?:only|just) had\b|\bitemi[sz]e|\bby item\b/i.test(t);
       head = head.replace(/,?\s*\b(?:tip|tax) included\b|,?\s*\bincluding (?:the )?(?:tip|tax)\b|,?\s*\bplus (?:the )?tip\b/gi, " ").replace(/\bunevenly\b|\b\d{1,2}\s*\/\s*\d{1,2}\b/gi, " ");
-      const withM = /\b(?:with|between|among|w\/)\s+(.+)$/i.exec(head);
+      // Chat filler at the end is never part of a name ("split 90 with sarah thx"); "w" alone is "with"; "sarah and i split
+      // 90" names Sarah (all found by probing, 2026-10-12).
+      head = head.replace(/[\s,.!]+(?:thx|thanks|thank you|ty|pls|plz|please|lol|lmao|haha|asap|rn|k|ok)\s*[.!]*\s*$/i, "");
+      const pair = /^\s*(.+?)\s+and\s+(?:i|me)\s+split\b/i.exec(head);
+      const withM = /\b(?:with|between|among|w\/|w(?=\s))\s+(.+)$/i.exec(head) || (pair ? [pair[0], pair[1]] : null);
       if (withM) {
         out.names = withM[1].replace(/\b(evenly|equally|even|on (venmo|zelle|cash ?app|paypal)|in (venmo|zelle|cash ?app|paypal)|please|pls)\b/gi, " ")
           .split(/\s*(?:,|\band\b|&|\+)\s*/).map(n => n.replace(/^(my|the)\s+/i, "").replace(/\s+/g, " ").trim()).filter(n => n && !/^(me|myself|i|us)$/i.test(n));
@@ -55,6 +59,8 @@
       // "I pay 50", "my share is 50": the person's own fixed share; the rest is split (corpus 2.02).
       const mine = /\b(?:i(?:'ll| will)?\s+(?:pay|cover)|ill\s+(?:pay|cover)|my (?:share|part|half) is)\s+\$?\s?(\d+(?:\.\d{1,2})?)/i.exec(t);
       if (mine) { const c = Math.round(Number(mine[1]) * 100); if (c > 0 && (!out.amount_cents || c < out.amount_cents)) out.mine_cents = c; }
+      // "the 90 dollar dinner", "90 bucks": the currency word is the amount's, never the memo's.
+      if (out.memo) out.memo = out.memo.replace(/^(?:dollars?|bucks|usd)\b\s*/i, "").trim() || null;
       return out;
     }
 

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-1",
- "run_at": "2026-10-12T15:11:59.567Z",
+ "run_at": "2026-10-12T15:14:52.297Z",
  "baseline_all_green": true,
- "sub_capabilities": 19,
- "proven": 19,
+ "sub_capabilities": 20,
+ "proven": 20,
  "problems": [],
  "rows": [
   {
@@ -64,7 +64,8 @@
     "S16",
     "S17",
     "S18",
-    "S19"
+    "S19",
+    "S20"
    ],
    "status": "proven"
   },
@@ -268,6 +269,17 @@
    "title": "The person's own share is not a name",
    "defect": "the own-share clause stays in the names, so 'I Pay 50' is asked for a Venmo handle",
    "test": "split 100 with sarah, i pay 50 requests from Sarah only",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "Splits as people type them",
+   "defect": "chat filler at the end stays in the name, so 'Sarah Thx' is a stranger",
+   "test": "split 90 with sarah thx names Sarah",
    "bites": true,
    "applied": true,
    "collateral": [],

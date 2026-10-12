@@ -59,7 +59,7 @@ Not live: the migration is not applied to the live project (owner step). Until i
 | --- | --- | --- | --- | --- | --- |
 | S01 | Exact handle first, and a handle is only a handle | @marcus resolves by handle; a bare "marcus" shared by two people asks | `S01` in tests/depth-RAIL-1.test.cjs | the handle step runs for every query, so a first name that equals someone's handle resolves silently | proven (also fails S04, S13, S16) |
 | S02 | Full name second | "sam" picks the saved Sam, not Sam K | `S02` in tests/depth-RAIL-1.test.cjs | the full-name step is skipped, so a first-name match wins | proven (also fails S01, S03, S04, S05, S06, S07, S09, S10, S11, S12, S13, S15, S16, S17, S19) |
-| S03 | First name, after the handle and the nickname | a unique first name goes straight to the card | `S03` in tests/depth-RAIL-1.test.cjs | the first-name step is skipped, so every first name is a stranger | proven (also fails S01, S04, S11, S13, S16, S17, S18, S19) |
+| S03 | First name, after the handle and the nickname | a unique first name goes straight to the card | `S03` in tests/depth-RAIL-1.test.cjs | the first-name step is skipped, so every first name is a stranger | proven (also fails S01, S04, S11, S13, S16, S17, S18, S19, S20) |
 | S04 | Two matches ask and stage nothing | "Which Marcus: Marcus L or Marcus T?" with no card and no loop confirmation | `S04` in tests/depth-RAIL-1.test.cjs | an ambiguous first name takes the first match | proven (also fails S01, S13, S16) |
 | S05 | A handle look-alike is named | @sarah-m next to a saved @sarah_m is named, never resolved | `S05` in tests/depth-RAIL-1.test.cjs | the look-alike window is zero edits, so a near handle is a stranger with no warning | proven (also fails S13) |
 | S06 | A name look-alike is asked about | "sarha" asks "Did you mean Sarah M?" | `S06` in tests/depth-RAIL-1.test.cjs | names are never compared for near misses | proven |
@@ -76,4 +76,5 @@ Not live: the migration is not applied to the live project (owner step). Until i
 | S17 | A group is never a person | split with my roommates asks who they are | `S17` in tests/depth-RAIL-1.test.cjs | group words are read as names, so 'Roommates' is asked for a Venmo handle | proven |
 | S18 | Names after the memo are people | split $90 for dinner with marcus names Marcus | `S18` in tests/depth-RAIL-1.test.cjs | everything after 'for' is the memo, so the names are lost and a bare 'who' is asked | proven (also fails S17) |
 | S19 | The person's own share is not a name | split 100 with sarah, i pay 50 requests from Sarah only | `S19` in tests/depth-RAIL-1.test.cjs | the own-share clause stays in the names, so 'I Pay 50' is asked for a Venmo handle | proven |
+| S20 | Splits as people type them | split 90 with sarah thx names Sarah | `S20` in tests/depth-RAIL-1.test.cjs | chat filler at the end stays in the name, so 'Sarah Thx' is a stranger | proven |
 <!-- results:end -->

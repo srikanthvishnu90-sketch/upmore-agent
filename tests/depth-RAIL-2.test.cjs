@@ -311,6 +311,13 @@ test('[S25] today\'s change is the broker\'s own per-position number, summed, si
   assert.equal(posts(w.m).length+posts(part.m).length,0);
 });
 
+test('[S26] sizes as people type them: "one share of apple", "a share of NVDA", "four dollars of VOO", "1 AAPL share" are read, never asked again; "a lot" still asks',async()=>{
+  const w=await world({mock:{positions:{AAPL:7}}});
+  for(const [m,re] of [['sell one share of apple',/^LIVE: Sell 1 share of AAPL /],['buy a share of NVDA',/^LIVE: Buy 1 share of NVDA /],['buy four dollars of VOO',/^LIVE: Buy \$4\.00 of VOO /],['sell 1 AAPL share',/^LIVE: Sell 1 share of AAPL /],['sell 2 AAPL shares',/^LIVE: Sell 2 shares of AAPL /]]){const r=await w.s.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,re,m);await w.s.reply('no');}
+  assert.equal((await w.s.start('buy a lot of VOO')).reason,'size');
+  assert.equal(posts(w.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

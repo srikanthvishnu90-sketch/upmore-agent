@@ -84,7 +84,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S11 | A thrown write is never retried blind | a lost response is reconciled, never re-sent | `S11` in tests/depth-RAIL-2.test.cjs | a write that threw is retried with a fresh client id | proven |
 | S12 | A broker refusal is a failure | a 403 is failed with the reason | `S12` in tests/depth-RAIL-2.test.cjs | a definite refusal is treated as an unknown outcome | proven |
 | S13 | Canceled only when the record says so | pending_cancel is reported as requested | `S13` in tests/depth-RAIL-2.test.cjs | any read-back after a cancel is reported as canceled | proven |
-| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24) |
+| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26) |
 | S15 | The broker's order rules before sending | a dollar amount on a limit asks for shares | `S15` in tests/depth-RAIL-2.test.cjs | a dollar amount is allowed on a limit order | proven |
 | S16 | Stop-on-change | a moved price stops the order | `S16` in tests/depth-RAIL-2.test.cjs | the re-verification result is ignored | proven |
 | S17 | Cross-person isolation: the caller's own account | a leaked row for another person opens nothing | `S17` in tests/depth-RAIL-2.test.cjs | rows are not checked against the caller, so a broken read hands A's request B's older account | proven |
@@ -96,4 +96,5 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S23 | A restricted account is said before any card | Alpaca's restriction flags and a non-ACTIVE status refuse with the source and time, nothing staged | `S23` in tests/depth-RAIL-2.test.cjs | the adapter stops reading the restriction, so a blocked account is carded and the broker refuses the order after the yes | proven |
 | S24 | A timing Upmore can't see is named first | 'sell my NVDA before earnings' says Upmore has no earnings dates before asking the size | `S24` in tests/depth-RAIL-2.test.cjs | the situation note is dropped, so the flow asks the size as if the timing had been understood | proven |
 | S25 | Today's change is the broker's own number | 'why is my portfolio down today' sums Alpaca's unrealized_intraday_pl per position, signed and sourced | `S25` in tests/depth-RAIL-2.test.cjs | the adapter stops reading unrealized_intraday_pl, so today's change is never available | proven |
+| S26 | Sizes as people type them | 'one share of apple' cards 1 share | `S26` in tests/depth-RAIL-2.test.cjs | counts in words are not read, so the flow asks the size again | proven |
 <!-- results:end -->

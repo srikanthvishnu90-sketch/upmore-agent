@@ -63,3 +63,18 @@
 - Corpus offline now NOT_BUILT 0 (PASS 38, LIMITED 9, DIVERGES 2); testing agent GREEN 71/71, gaps 3, not run 2.
 - CI: runs 36-42 green, one per pushed commit. Wave 2 running: C1 airline refunds, C2-C4 money owed, D subscription
   savings, E the numbers.
+
+## 2026-10-12 05:15 UTC overnight wave 2 merged (check-in)
+- dd1b489 C2-C4 money owed: card credit balance, escrow surplus, refund-notice check. Removed an Amazon enrollment
+  window the agent wrote from memory (no past charge matched until the FTC page is checked; tested with a MOCK window).
+- dbfa1c8 C1 airline refunds. Two bugs found merging, each red-first: "I cancelled my flight" was answered as the airline
+  cancelling and owing a cash refund; "my Delta flight was cancelled, what am I owed?" was taken by money owed. New
+  tests/edge/direct-order.test.ts reads the handler's order and pins every ask to its answer.
+- d6c5181 E1-E7 the numbers in chat. Fixed the agent's map: item 87 (BNPL warning) read IN_PRODUCT though nothing warns
+  (now NOT_BUILT); item 15 over-time half not reachable (part); "forecast my cash..." fell through.
+- 505d280 H0 every teardown row placed on its own; fixed 16 overclaims (charts drawn as words, strangers' portfolios
+  on the friend item, a policy end date as a tax deadline).
+- cee5716 morning brief and chat now give one safe-to-spend (the brief said -$1,253.40 on rows where chat said $0.00).
+- a4ec255 G4 mutation coverage report (CI-checked); 28ad630 depth packets MERCHANT-LABEL and PRICE-DROP (15/15 each)
+  found a handle bug ("@eve-money" -> "-money"), fixed. 28/57 domain modules now have planted defects.
+- CI runs 50-52 green; later pushes pending. Agents running: D4+D7, F4. Next: A2, C6, H1, more depth packets for gaps.

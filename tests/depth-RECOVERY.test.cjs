@@ -175,6 +175,18 @@ test("[S21] a fee label on a debit over $500 is not trusted as a fee; $500.00 is
   assert.deepEqual(kinds(scan([fee("OVERDRAFT FEE", 50001, "2026-10-02")])), []);
 });
 
+test("[S22] more of the names banks use for fees count; a merchant's own service fee and a bounced deposit do not", () => {
+  // From the packet's notes, fixed after merge: credit unions call the overdraft fee "Courtesy Pay"; "INTL" and
+  // "international purchase transaction" are foreign transaction fees; "MAINT" is maintenance. A delivery app's service
+  // fee is the merchant's, and a bare "RETURNED ITEM" debit is a deposited check bouncing back, not a fee.
+  const named = { "COURTESY PAY FEE": "overdraft", "Courtesy Pay Fee - Item 2": "overdraft", "INTL TRANSACTION FEE": "foreign_transaction",
+    "INTERNATIONAL PURCHASE TRANSACTION FEE": "foreign_transaction", "MONTHLY MAINT FEE": "monthly_maintenance", "SERVICE CHARGE": "monthly_maintenance",
+    "CHECKING MONTHLY SERVICE FEE": "monthly_maintenance", "ACCOUNT SERVICE FEE": "monthly_maintenance", "RETURNED ITEM FEE": "nsf" };
+  for (const [label, kind] of Object.entries(named)) assert.equal(R.feeKind({ merchant_raw: label }), kind, label);
+  for (const label of ["DOORDASH SERVICE FEE", "TICKETMASTER SERVICE FEE", "UBER *TRIP SERVICE FEE", "RETURNED ITEM", "RETURNED ITEM - DEPOSITED CHECK", "COURTESY PAY FEE REFUND", "COURTESY CREDIT"])
+    assert.equal(R.feeKind({ merchant_raw: label }), null, label);
+});
+
 test("[ADV] merchant text cannot make a refund lead, a fee or a bigger request", () => {
   // A debit that calls itself a reversal is not a credit; a credit from a merchant is not a fee reversal for the bank's fee.
   assert.equal(scan([fee("OVERDRAFT FEE", 3500, "2026-10-02"), fee("OVERDRAFT FEE REVERSAL", 3500, "2026-10-03")]).candidates.filter(c => c.kind === "bank_fee").length, 1);

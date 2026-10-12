@@ -1,8 +1,8 @@
 // Planted defects for money a bank may owe back (depth protocol step 2). A patch must match exactly once.
 const F = "41-agent-recovery.js";
-const OD = String.raw`["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b/i],`;
+const OD = String.raw`["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b|\bcourtesy\s+pay\s*(item\s*)?fee\b/i],`;
 const ATM = String.raw`["atm", /\b(atm|non[- ]?network|out[- ]of[- ]network)\b.*\bfee\b|\bfee\b.*\batm\b/i],`;
-const MAINT = String.raw`["monthly_maintenance", /\b((monthly\s+)?(maintenance|service)\s+(charge|fee)|account\s+fee)\b/i],`;
+const MAINT = String.raw`["monthly_maintenance", /\b(monthly\s+)?(maintenance|maint\.?)\s+(charge|fee)\b|(^|\b(monthly|account|acct|checking|chk|savings|sav)\s+)(monthly\s+)?service\s+(charge|fee)\b|\baccount\s+fee\b/i],`;
 const MAINT_OLD = String.raw`["monthly_maintenance", /\b(monthly\s+(maintenance|service)|maintenance|service\s+(charge|fee)|account\s+fee)\b/i],`;
 const DUPKEY = "if (r.amount_cents >= 0 || r.is_transfer === true || !r.merchant_key || claimed.has(identity(r))) return;";
 module.exports = [
@@ -28,4 +28,7 @@ module.exports = [
   { id: "D19", sub: "S19", title: "Conflicting copies stop the scan", test: "the same id with $3.50 and $35.00 throws", defect: "a repeated id is skipped without comparing its facts", patches: [{ file: F, find: "if (seen.get(id) !== signature) throw new Error(\"Conflicting duplicate transaction facts.\");", replace: "" }] },
   { id: "D20", sub: "S20", title: "Biggest first", test: "the $200 hold before the $35 fee", defect: "the order is reversed", patches: [{ file: F, find: "candidates.sort((a, b) => b.amount_cents - a.amount_cents ||", replace: "candidates.sort((a, b) => a.amount_cents - b.amount_cents ||" }] },
   { id: "D21", sub: "S21", title: "$500.00 is still a fee", test: "a $500.00 overdraft fee is a candidate", defect: "the cap excludes exactly $500.00", patches: [{ file: F, find: "-r.amount_cents > MAX_FEE_CENTS", replace: "-r.amount_cents >= MAX_FEE_CENTS" }] },
+  { id: "D22", sub: "S22", title: "Courtesy Pay is the overdraft fee", test: "a credit union's COURTESY PAY FEE is an overdraft fee", defect: "\"courtesy\" is read as a reversal word everywhere", patches: [{ file: F, find: "courtesy(?!\\s+pay\\b)|rebate", replace: "courtesy|rebate" }] },
+  { id: "D22b", sub: "S22", title: "A merchant's service fee is not the bank's", test: "DOORDASH SERVICE FEE is not a monthly maintenance fee", defect: "any \"service fee\" is a bank fee", patches: [{ file: F, find: "(^|\\b(monthly|account|acct|checking|chk|savings|sav)\\s+)(monthly\\s+)?service", replace: "(monthly\\s+)?service" }] },
+  { id: "D22c", sub: "S22", title: "A bounced deposit is not a fee", test: "a bare RETURNED ITEM debit is not an NSF fee", defect: "any returned item is an NSF fee", patches: [{ file: F, find: "\\breturn(ed)?\\s+(item|check|payment)\\s+(fee|charge)\\b", replace: "\\breturn(ed)?\\s+(item|check|payment)\\b" }] },
 ];

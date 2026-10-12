@@ -1,9 +1,9 @@
 {
  "capability": "RECOVERY",
- "run_at": "2026-10-12T06:59:45.195Z",
+ "run_at": "2026-10-12T07:07:55.238Z",
  "baseline_all_green": true,
- "sub_capabilities": 21,
- "proven": 22,
+ "sub_capabilities": 22,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -36,7 +36,9 @@
    "test": "VALLEY AUTO MAINTENANCE is no fee",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S22"
+   ],
    "status": "proven"
   },
   {
@@ -47,7 +49,9 @@
    "test": "OVERDRAFT FEE REVERSAL is no fee",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S22"
+   ],
    "status": "proven"
   },
   {
@@ -249,6 +253,39 @@
    "title": "$500.00 is still a fee",
    "defect": "the cap excludes exactly $500.00",
    "test": "a $500.00 overdraft fee is a candidate",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "Courtesy Pay is the overdraft fee",
+   "defect": "\"courtesy\" is read as a reversal word everywhere",
+   "test": "a credit union's COURTESY PAY FEE is an overdraft fee",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22b",
+   "title": "A merchant's service fee is not the bank's",
+   "defect": "any \"service fee\" is a bank fee",
+   "test": "DOORDASH SERVICE FEE is not a monthly maintenance fee",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22c",
+   "title": "A bounced deposit is not a fee",
+   "defect": "any returned item is an NSF fee",
+   "test": "a bare RETURNED ITEM debit is not an NSF fee",
    "bites": true,
    "applied": true,
    "collateral": [],

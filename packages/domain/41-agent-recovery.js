@@ -15,16 +15,18 @@
     };
     // Ordered: the first match names the fee. Reversal wording is excluded first.
     const FEES = [
-      ["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b/i],
-      ["nsf", /\b(nsf|insufficient\s+funds|returned\s+item)\b/i],
+      ["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b|\bcourtesy\s+pay\s*(item\s*)?fee\b/i],
+      // A bare "RETURNED ITEM" debit is a deposited check bouncing back; the fee says fee or charge.
+      ["nsf", /\b(nsf|insufficient\s+funds)\b|\breturn(ed)?\s+(item|check|payment)\s+(fee|charge)\b/i],
       // A fee or charge word is required: "VALLEY AUTO MAINTENANCE" or "XFINITY MONTHLY SERVICE" is a business, not the bank.
-      ["monthly_maintenance", /\b((monthly\s+)?(maintenance|service)\s+(charge|fee)|account\s+fee)\b/i],
+      // "Service fee" is the bank's only at the start or after an account word: "DOORDASH SERVICE FEE" is the merchant's.
+      ["monthly_maintenance", /\b(monthly\s+)?(maintenance|maint\.?)\s+(charge|fee)\b|(^|\b(monthly|account|acct|checking|chk|savings|sav)\s+)(monthly\s+)?service\s+(charge|fee)\b|\baccount\s+fee\b/i],
       ["atm", /\b(atm|non[- ]?network|out[- ]of[- ]network)\b.*\bfee\b|\bfee\b.*\batm\b/i],
-      ["foreign_transaction", /\b(foreign\s+(transaction|txn|exchange)|international\s+(transaction|purchase))\s*fee\b/i],
+      ["foreign_transaction", /\b(foreign|international|intl\.?)\s+(transaction|txn|exchange|purchase)(\s+transaction)?\s*fee\b/i],
       ["late_payment", /\blate\s*(payment\s*)?fee\b/i],
       ["paper_statement", /\bpaper\s+statement\s+fee\b/i]
     ];
-    const REVERSAL = /\b(refund|reversal|reversed|credit|waive[dr]?|courtesy|rebate|adjustment)\b/i;
+    const REVERSAL = /\b(refund|reversal|reversed|credit|waive[dr]?|courtesy(?!\s+pay\b)|rebate|adjustment)\b/i;
     const REVERSAL_WORDS = new RegExp(REVERSAL.source, "gi"); // every reversal word: "OD FEE REVERSAL CREDIT" names two
     const MAX_FEE_CENTS = 50000; // a fee label on a larger debit is not trusted as a fee
     const DUPLICATE_WINDOW_DAYS = 3, HOLD_STALE_DAYS = 7, REVERSAL_WINDOW_DAYS = 60;

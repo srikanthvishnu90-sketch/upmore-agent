@@ -33,19 +33,23 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   and never influence a candidate (`tests/recovery.test.cjs` says both). D18 plants the throw, D18b the drop.
 
 Noted, not changed (for the owner): a bare "MONTHLY MAINTENANCE" with no fee word is no longer a fee (no fixture or
-known bank uses it; a miss costs one lead, a false one drafts a bank refund for a merchant's bill). Not detected today:
-credit unions' "COURTESY PAY FEE" (their overdraft program; "courtesy" reads as a reversal word), "INTL TRANSACTION
-FEE" and "INTERNATIONAL PURCHASE TRANSACTION FEE", abbreviations like "MONTHLY MAINT FEE"; and "DOORDASH SERVICE FEE"
-style merchant fees still read as a bank service fee. A deposited check that bounced ("RETURNED ITEM" with no fee word)
-reads as an NSF fee when it is under $500.
+known bank uses it; a miss costs one lead, a false one drafts a bank refund for a merchant's bill).
+
+- S22 (fixed after merge, from this packet's notes): credit unions' "COURTESY PAY FEE" (their overdraft program) is an
+  overdraft fee ("courtesy" is a reversal word only when not "courtesy pay"); "INTL TRANSACTION FEE" and "INTERNATIONAL
+  PURCHASE TRANSACTION FEE" are foreign transaction fees; "MONTHLY MAINT FEE" is maintenance. A "service fee" is the
+  bank's only at the start of the label or after an account word ("MONTHLY SERVICE FEE", "CHECKING MONTHLY SERVICE
+  FEE"), so "DOORDASH SERVICE FEE" is the merchant's; a bare "RETURNED ITEM" debit (a deposited check bouncing back)
+  is no NSF fee, "RETURNED ITEM FEE" is. Old vs new over the 74,774 quoted strings in the repo: 25 changed, every one
+  of them one of these. D22, D22b, D22c plant each back.
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
 | S01 | Fees named by kind | OVERDRAFT ITEM FEE is an overdraft fee | `S01` in tests/depth-RECOVERY.test.cjs | the overdraft pattern forgets "item", so OVERDRAFT ITEM FEE is no fee at all | proven |
 | S02 | ATM cash is not a fee | a $200 ATM withdrawal is no candidate | `S02` in tests/depth-RECOVERY.test.cjs | any ATM line counts, fee word or not | proven |
-| S03 | A business named maintenance is not the bank | VALLEY AUTO MAINTENANCE is no fee | `S03` in tests/depth-RECOVERY.test.cjs | bare "maintenance" or "monthly service" is a fee (the bug found building this packet) | proven |
-| S04 | A fee's reversal is not a fee | OVERDRAFT FEE REVERSAL is no fee | `S04` in tests/depth-RECOVERY.test.cjs | reversal wording is not excluded first | proven |
+| S03 | A business named maintenance is not the bank | VALLEY AUTO MAINTENANCE is no fee | `S03` in tests/depth-RECOVERY.test.cjs | bare "maintenance" or "monthly service" is a fee (the bug found building this packet) | proven (also fails S22) |
+| S04 | A fee's reversal is not a fee | OVERDRAFT FEE REVERSAL is no fee | `S04` in tests/depth-RECOVERY.test.cjs | reversal wording is not excluded first | proven (also fails S22) |
 | S05 | The fee request, word for word | $35.05 is written $35.05 | `S05` in tests/depth-RECOVERY.test.cjs | cents are not zero-padded, so $35.05 is written $35.5 | proven (also fails S16) |
 | S06 | The person sends it | the draft needs the person's approval | `S06` in tests/depth-RECOVERY.test.cjs | the draft no longer needs the person's approval | proven |
 | S07 | Day 60 is in the window | a reversal on day 60 is a lead | `S07` in tests/depth-RECOVERY.test.cjs | the window's last day is left out | proven |
@@ -64,4 +68,7 @@ reads as an NSF fee when it is under $500.
 | S19 | Conflicting copies stop the scan | the same id with $3.50 and $35.00 throws | `S19` in tests/depth-RECOVERY.test.cjs | a repeated id is skipped without comparing its facts | proven |
 | S20 | Biggest first | the $200 hold before the $35 fee | `S20` in tests/depth-RECOVERY.test.cjs | the order is reversed | proven |
 | S21 | $500.00 is still a fee | a $500.00 overdraft fee is a candidate | `S21` in tests/depth-RECOVERY.test.cjs | the cap excludes exactly $500.00 | proven |
+| S22 | Courtesy Pay is the overdraft fee | a credit union's COURTESY PAY FEE is an overdraft fee | `S22` in tests/depth-RECOVERY.test.cjs | "courtesy" is read as a reversal word everywhere | proven |
+| S22 | A merchant's service fee is not the bank's | DOORDASH SERVICE FEE is not a monthly maintenance fee | `S22` in tests/depth-RECOVERY.test.cjs | any "service fee" is a bank fee | proven |
+| S22 | A bounced deposit is not a fee | a bare RETURNED ITEM debit is not an NSF fee | `S22` in tests/depth-RECOVERY.test.cjs | any returned item is an NSF fee | proven |
 <!-- results:end -->

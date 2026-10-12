@@ -197,3 +197,12 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
 - True (CLAUDE.md automations rule, 2026-10-11): envelope autonomy is off in shipped code; every run asks the person
   for a one-line yes. Found by the MONEY-PLANS packet's agent, outside its files.
 - Now: the note and both gates say each run needs the person's yes (envelope autonomy is off). No code changed.
+
+## Bank fee names, from the RECOVERY packet's notes (2026-10-12, morning)
+
+- Said ("find me money", 49-agent-save.js over 41-agent-recovery.js): bank fees are found by the names banks use.
+- True: "COURTESY PAY FEE" (credit unions' overdraft fee) was read as a reversal; "INTL TRANSACTION FEE", "INTERNATIONAL
+  PURCHASE TRANSACTION FEE" and "MONTHLY MAINT FEE" were missed; "DOORDASH SERVICE FEE" was a bank service fee, and a
+  bare "RETURNED ITEM" (a deposited check bouncing back) an NSF fee, each with a refund draft to "your bank".
+- Now: all fixed in the fee table (RECOVERY S22, D22/D22b/D22c proven, 25/25). Over 74,774 quoted strings in the repo,
+  exactly 25 classifications changed, all of them these cases.

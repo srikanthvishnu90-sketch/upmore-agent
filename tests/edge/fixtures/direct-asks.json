@@ -90,6 +90,11 @@
     ["what's my credit score", null],
     ["how much do i owe on my credit card", null],
     ["when is my credit card due", null],
-    ["how much interest am i paying", null]
+    ["how much interest am i paying", null],
+    ["Amex Offers: Spend $50 or more at Walgreens, get $10 back, expires 11/30/2026", "cardOffersReply"],
+    ["chase offers: 10% back at kroger up to $5 expires in 5 days", "cardOffersReply"],
+    ["which of these amex offers should i use?", "cardOffersReply"],
+    ["activate all my chase offers", "cardOffersReply"],
+    ["how am i doing on my freedom flex 5% this quarter", "rewardsReply"]
   ]
 }

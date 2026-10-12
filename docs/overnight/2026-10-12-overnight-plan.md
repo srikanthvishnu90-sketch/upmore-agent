@@ -123,7 +123,8 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
   days left. Read-only.
 - [x] **F3. Annual-fee review** (the retention-offer card without the call): fee posted vs benefits actually used from
   rows; the keep / ask / cancel math. Calling stays off; the person asks.
-- [ ] **F4. Card-linked offer matcher**: usual merchants vs offers the person pastes or forwards (fixtures).
+- [x] **F4. Card-linked offer matcher**: usual merchants vs offers the person pastes or forwards (fixtures).
+  (90-card-offers.js; terms only from the paste; Upmore never adds or activates; depth CARD-OFFERS 18/18)
 
 ## Block G: test hardening (runs between builds)
 

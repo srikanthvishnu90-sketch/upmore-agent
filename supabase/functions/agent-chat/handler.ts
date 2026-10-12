@@ -44,6 +44,7 @@ import { airlineReply } from "./_shared/airline_answer.ts";
 import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
+import { cardOffersReply } from "./_shared/card_offers_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
@@ -279,6 +280,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
         if (!direct) direct = await subscriptionReply(message, today, oldestFirst);
         if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
+        // Card-linked offers the person pastes (_shared/card_offers_answer.ts): before rewards, so "Chase Offers on my Freedom Flex: 5% back at X" is an offer list.
+        if (!direct) direct = await cardOffersReply(message, today, readAccounts, oldestFirst);
         // Rewards math on cards the person holds (_shared/rewards_answer.ts): rotating categories, a stated bonus target, the annual fee.
         if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);
         // A store's own price drop inside its window (_shared/price_drop_answer.ts): a draft the person sends.

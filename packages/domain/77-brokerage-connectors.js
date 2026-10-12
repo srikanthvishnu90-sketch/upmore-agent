@@ -20,14 +20,42 @@
       browser_assisted: { name: "guided manual connect", trade_possible: false },
       none: { name: "no connection", trade_possible: false },
     });
+    // How a person signs in on each route. Passwords never reach Upmore on any of them (owner, 2026-10-11, decision 1):
+    // OAuth and aggregators log in on the company's own page; a personal API key goes through the secure link into the
+    // vault, never through chat; a manual session is the person logging in themselves in a live browser window, and only
+    // the encrypted session is kept.
+    const AUTH = Object.freeze({
+      native_api: ["oauth", "partner_oauth", "personal_api_key"], snaptrade: ["aggregator"], plaid: ["aggregator"],
+      browser_assisted: ["manual_session"], none: ["none"],
+    });
     const DEFAULT_CAP_CENTS = 500; // the owner's per-order cap while Upmore is in testing (raised only by the owner)
     const refusal = (code, text, extra) => Object.assign({ ok: false, code, text }, extra || {});
 
-    // What a connection can do, in the words the person sees on every card and reply.
-    function capability(row) {
+    // What a connection can do, in the words the person sees on every card and reply. A row the owner has switched off
+    // (blocked_reason: prediction markets under the gambling guard, crypto under the crypto rule) can do nothing until he
+    // lifts it in writing; { route: true } asks what the route itself could do, for the matrix.
+    function capability(row, opts) {
+      if (row && row.blocked_reason && !(opts && opts.route)) return { trade: false, read: false, label: "Off: owner decision", blocked: true };
       if (!row || row.route === "none" || !ROUTES[row.route]) return { trade: false, read: false, label: "Can't connect" };
       const trade = !!row.trade && ROUTES[row.route].trade_possible, read = !!row.read;
       return { trade, read, label: trade ? "Trade + track" : read ? "Track only" : "Can't connect" };
+    }
+
+    // Where a platform stands today, not what its route could do one day: connect now (its adapter is live), track now
+    // through a live fallback route (Schwab through Plaid while its trading approval is pending), not built, off, or none.
+    function today(row, rows) {
+      const c = capability(row);
+      if (c.blocked) return { state: "blocked", label: "Off: owner decision" };
+      if (!row || row.route === "none" || !ROUTES[row.route]) return { state: "none", label: "Can't connect" };
+      const parent = row.same_account_as ? (rows || []).find(x => x.id === row.same_account_as) : null;
+      const r = parent && !parent.blocked_reason ? parent : row;
+      // A live route whose coverage of this platform nobody has confirmed is offered as a try, never as a promise.
+      if (r.adapter_state === "live") return r.verification === "unverified"
+        ? { state: "try", label: `Try now through ${ROUTES[r.route].name} (coverage unverified)` }
+        : { state: "connect", label: c.trade ? "Connect now: trade + track" : "Connect now: track only" };
+      const fb = r.fallback_route;
+      if (fb && (rows || []).some(x => x.route === fb && x.adapter_state === "live" && !x.blocked_reason)) return { state: "fallback", label: `Track now through ${ROUTES[fb].name}; ${c.trade ? "trading" : "the direct route"} not built` };
+      return { state: "not_built", label: "Not built yet" };
     }
 
     // Validate the matrix: every row complete, routes real, no trading promised where the route can't trade, shared
@@ -44,8 +72,17 @@
         if (!["verified_live", "researched", "unverified"].includes(r.verification)) errors.push(`${tag}: verification must be verified_live, researched or unverified`);
         if (r.verification === "verified_live" && r.adapter_state !== "live") errors.push(`${tag}: verified live needs a live adapter`);
         if (r.verification !== "unverified" && !(Array.isArray(r.sources) && r.sources.length)) errors.push(`${tag}: a researched row cites its sources`);
+        if (r.auth !== undefined && !(AUTH[r.route] || []).includes(r.auth)) errors.push(`${tag}: auth ${r.auth} does not fit a ${r.route} route`);
+        if (r.fallback_route !== undefined && (!ROUTES[r.fallback_route] || r.fallback_route === "none" || r.fallback_route === r.route || ROUTES[r.fallback_route].trade_possible)) errors.push(`${tag}: a fallback route is a different read-only route`);
+        if (r.blocked_reason !== undefined && !(typeof r.blocked_reason === "string" && r.blocked_reason.trim())) errors.push(`${tag}: a blocked row says why`);
       }
-      for (const r of rows || []) if (r && r.same_account_as && !(rows || []).some(x => x.id === r.same_account_as)) errors.push(`#${r.n} ${r.platform}: same_account_as ${r.same_account_as} is not a row`);
+      for (const r of rows || []) {
+        if (!r || !r.same_account_as) continue;
+        const p = (rows || []).find(x => x.id === r.same_account_as);
+        if (!p) errors.push(`#${r.n} ${r.platform}: same_account_as ${r.same_account_as} is not a row`);
+        else if (p.same_account_as) errors.push(`#${r.n} ${r.platform}: same_account_as points at another shared row`);
+        else if (p.route !== r.route) errors.push(`#${r.n} ${r.platform}: a shared account uses its parent's route (${p.route})`);
+      }
       return errors;
     }
 
@@ -60,12 +97,14 @@
       if (!best) return null;
       const r = best.r;
       // A shared account (Robinhood Crypto, ForecastEx) is one connection: the parent row connects it.
+      if (r.blocked_reason) return r;
       return r.same_account_as ? Object.assign({}, (rows || []).find(x => x.id === r.same_account_as) || r, { via: r.platform }) : r;
     }
 
     // The adapter for a row, wrapped so the rules hold whatever the adapter does.
     function adapterFor(row, deps) {
       const d = deps || {}, cap = capability(row);
+      if (row && row.blocked_reason) return closed(`${row.platform} isn't available in Upmore, so nothing was connected.`, "blocked");
       if (!row || row.route === "none") return closed(row ? `${row.platform} can't be connected${row.notes ? `: ${row.notes}` : "."}` : "That platform isn't in the connector matrix yet.");
       const impl = d.adapters && d.adapters[row.route];
       const notWired = what => refusal("not_wired", `NOT_WIRED: ${row.platform} through ${ROUTES[row.route].name} is not switched on yet (${what}). Nothing was connected.`);
@@ -89,21 +128,25 @@
         },
       };
     }
-    function closed(text) {
-      const no = () => Promise.resolve(refusal("unavailable", text));
-      return { row: null, capability: { trade: false, read: false, label: "Can't connect" }, connect: no, verify: no, positions: no, placeOrder: no };
+    function closed(text, code) {
+      const no = () => Promise.resolve(refusal(code || "unavailable", text));
+      return { row: null, capability: { trade: false, read: false, label: code === "blocked" ? "Off: owner decision" : "Can't connect" }, connect: no, verify: no, positions: no, placeOrder: no };
     }
 
-    // The matrix in numbers, for reports.
+    // The matrix in numbers, for reports. trade / track_only / none count what each platform can do in Upmore (a row the
+    // owner switched off counts as blocked, not as trade); route_trade counts what the routes could do with nothing off;
+    // today counts where each platform stands now.
     function summary(rows) {
-      const out = { total: 0, trade: 0, track_only: 0, none: 0, shared: 0, by_route: {}, live: 0, built: 0, not_built: 0 };
+      const out = { total: 0, trade: 0, track_only: 0, none: 0, blocked: 0, route_trade: 0, shared: 0, by_route: {}, live: 0, built: 0, not_built: 0, today: {} };
       for (const r of rows || []) {
         out.total++; if (r.same_account_as) out.shared++;
-        const c = capability(r); if (c.trade) out.trade++; else if (c.read) out.track_only++; else out.none++;
+        const c = capability(r); if (c.blocked) out.blocked++; else if (c.trade) out.trade++; else if (c.read) out.track_only++; else out.none++;
+        if (capability(r, { route: true }).trade) out.route_trade++;
         out.by_route[r.route] = (out.by_route[r.route] || 0) + 1; out[r.adapter_state] = (out[r.adapter_state] || 0) + 1;
+        const t = today(r, rows).state; out.today[t] = (out.today[t] || 0) + 1;
       }
       return out;
     }
-    return { ROUTES, DEFAULT_CAP_CENTS, capability, validate, find, adapterFor, summary };
+    return { ROUTES, AUTH, DEFAULT_CAP_CENTS, capability, today, validate, find, adapterFor, summary };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = BrokerageConnectors;

@@ -20,6 +20,7 @@ jobs:
           python3 scripts/build-router-core.py --check
           python3 scripts/build-financial-core.py --check
           node scripts/build-connect-cards.cjs --check
+          node scripts/build-connector-matrix.cjs --check
           python3 scripts/build-standalone-gauntlet.py --check
           node evals/parity/build-matrix.cjs --check
           node scripts/realworld-audit.cjs --check

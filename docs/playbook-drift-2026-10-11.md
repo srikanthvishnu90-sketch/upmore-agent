@@ -211,3 +211,18 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
 - **Wordmark font changed (owner, "a little different, more finance oriented"):** Libre Baskerville replaces Tinos
   (Baskerville is the classic banknote and financial-print face; SIL OFL, `fonts/libre-baskerville-regular.woff2` +
   `fonts/libre-baskerville-OFL.txt`). Tinos was removed from the repo.
+- **Connector catalog vs the research (100-platform coverage, 2026-10-11).** `packages/connectors/catalog.json` said
+  Robinhood, Fidelity, Vanguard, M1, Betterment, Wealthfront, Public and SoFi Invest connect by OAUTH. True: none of them
+  offers third-party OAuth to an app like Upmore; they are read through an aggregator (Plaid, or SnapTrade for Public),
+  sources in `packages/connectors/platforms.json`. Binance.US said OAUTH; it offers personal API keys only. Webull,
+  Coinbase and Kraken said OAUTH; the chosen route is SnapTrade (AGGREGATOR). Fixed in the catalog; the cross-check is
+  `tests/connector-matrix.test.cjs`.
+- **Vaulted credentials vs the owner's decision 1 (no password storage, session-only).** The connector model (spec docs 04
+  and 05, `51-connectors.js`, `52-connector-catalog.js`, 58 catalog rows) named VAULTED_CREDENTIALS, a stored login. True
+  now: the person logs in themselves in a live browser window and only the encrypted session persists. Renamed
+  LIVE_SESSION everywhere (still the least reliable class); 401(k) rows the research found on an aggregator
+  (NetBenefits, Empower, Voya, Principal, T. Rowe Price) moved to AGGREGATOR. A personal API key got its own method
+  (PERSONAL_API_KEY: the person's own key, through the secure link into the vault).
+- **Crypto rows vs the shipped crypto guard.** The owner's list has 12 crypto platforms; the chat's shipped hard rule
+  (`tryCryptoGuard`) refuses crypto outright. The matrix keeps them switched off (`blocked_reason`) until the owner lifts
+  that rule in writing, alongside the prediction markets under the gambling guard (decision 2).

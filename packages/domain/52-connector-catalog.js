@@ -6,7 +6,7 @@
      and never aspirational, and runs the coverage test against financial
      life scenarios. Pure. */
   const ConnectorCatalog = (() => {
-    const AUTH = ["AGGREGATOR", "OAUTH", "VAULTED_CREDENTIALS", "MANUAL", "PUBLIC_DATA"];
+    const AUTH = ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL", "PUBLIC_DATA"]; // LIVE_SESSION replaced vaulted credentials (owner decision 1: no password storage)
     const ID = /^[A-Z]{3,4}-\d{3}$/;
     function validate(catalog, registry) {
       const errors = [], ids = new Set((registry && registry.capabilities || []).map(c => c.id)), seen = new Set();
@@ -21,7 +21,7 @@
         for (const id of c.capabilities || []) if (!ID.test(id) || !ids.has(id)) errors.push(`${tag}: capability ${id} is not in the registry`);
         for (const w of c.write_actions || []) { if (!w.capability || !ids.has(w.capability)) errors.push(`${tag}: write action cites unknown capability ${w.capability}`); if (!/^T[3-5]$/.test(w.tier || "")) errors.push(`${tag}: write action ${w.action} must be T3 or above`); if (!w.gated && !(c.adapter_state && /live/.test(c.adapter_state))) errors.push(`${tag}: write action ${w.action} promised without a live adapter and no gated reason`); }
         if (c.gated_reason === "" ) errors.push(`${tag}: empty gated reason`);
-        if (c.auth_method === "VAULTED_CREDENTIALS" && !/low/.test(c.reliability_class)) errors.push(`${tag}: vaulted credentials must be labeled the least reliable class`);
+        if (c.auth_method === "LIVE_SESSION" && !/low/.test(c.reliability_class)) errors.push(`${tag}: a live session must be labeled the least reliable class`);
       }
       return errors;
     }

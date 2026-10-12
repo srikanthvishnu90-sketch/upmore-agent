@@ -63,3 +63,41 @@ test('the summary counts what can trade, what can only be tracked, and what cann
   const s = BC.summary(ROWS);
   assert.deepEqual([s.total, s.trade, s.track_only, s.none, s.shared], [5, 3, 1, 1, 1]);
 });
+
+test('a platform the owner switched off connects nothing and says so plainly, whatever its route could do', async () => {
+  const kalshi = { n: 6, id: 'kalshi', platform: 'Kalshi', route: 'native_api', auth: 'personal_api_key', trade: true, read: true, adapter_state: 'not_built', verification: 'researched', sources: ['https://example.test/mock'], blocked_reason: 'prediction market: owner decision' };
+  const rows = ROWS.concat([kalshi]);
+  assert.deepEqual(BC.validate(rows), []);
+  assert.deepEqual(BC.capability(kalshi), { trade: false, read: false, label: 'Off: owner decision', blocked: true });
+  assert.equal(BC.capability(kalshi, { route: true }).label, 'Trade + track', 'the matrix still shows what the route could do');
+  let called = 0;
+  const a = BC.adapterFor(kalshi, { adapters: { native_api: { connect: async () => { called++; return { ok: true }; }, placeOrder: async () => { called++; return { ok: true }; } } } });
+  assert.deepEqual(await a.connect({}), { ok: false, code: 'blocked', text: "Kalshi isn't available in Upmore, so nothing was connected." });
+  assert.equal((await a.placeOrder({}, { estimated_cents: 100, approval })).code, 'blocked');
+  assert.equal(called, 0);
+  assert.equal(BC.find(rows, 'can you hook up kalshi').id, 'kalshi');
+  const s = BC.summary(rows);
+  assert.deepEqual([s.trade, s.blocked, s.route_trade], [3, 1, 4]);
+  assert.match(BC.validate([Object.assign({}, kalshi, { blocked_reason: ' ' })]).join(' '), /a blocked row says why/);
+});
+
+test('today is where a platform stands now: connect, track through a live fallback, not built, off or none', () => {
+  const plaidLive = { n: 10, id: 'vanguard', platform: 'Vanguard', route: 'plaid', auth: 'aggregator', trade: false, read: true, adapter_state: 'live', verification: 'researched', sources: ['https://example.test/mock'] };
+  const schwab = { n: 11, id: 'schwab', platform: 'Charles Schwab', route: 'native_api', auth: 'partner_oauth', trade: true, read: true, adapter_state: 'not_built', verification: 'researched', sources: ['https://example.test/mock'], fallback_route: 'plaid' };
+  const tda = { n: 12, id: 'tda', platform: 'TD Ameritrade', route: 'native_api', auth: 'partner_oauth', trade: true, read: true, adapter_state: 'not_built', verification: 'researched', sources: ['https://example.test/mock'], same_account_as: 'schwab' };
+  const live = Object.assign({}, ROWS[4], { adapter_state: 'live', auth: 'oauth' });
+  const rows = [plaidLive, schwab, tda, live, ROWS[3], ROWS[0]];
+  assert.deepEqual(BC.validate(rows), []);
+  assert.deepEqual(BC.today(plaidLive, rows), { state: 'connect', label: 'Connect now: track only' });
+  assert.deepEqual(BC.today(live, rows), { state: 'connect', label: 'Connect now: trade + track' });
+  assert.deepEqual(BC.today(schwab, rows), { state: 'fallback', label: 'Track now through Plaid; trading not built' });
+  assert.equal(BC.today(tda, rows).state, 'fallback', 'a shared account stands where its parent stands');
+  assert.equal(BC.today(schwab, [schwab]).state, 'not_built', 'a fallback counts only when that route is live');
+  assert.equal(BC.today(ROWS[3], rows).state, 'none');
+  assert.equal(BC.today(ROWS[0], rows).state, 'not_built');
+  assert.deepEqual(BC.today(Object.assign({}, plaidLive, { verification: 'unverified' }), rows), { state: 'try', label: 'Try now through Plaid (coverage unverified)' }, 'unconfirmed coverage is a try, not a promise');
+  // How people sign in is checked per route: no aggregator row claims an API key, no browser row claims OAuth.
+  assert.match(BC.validate([Object.assign({}, plaidLive, { auth: 'personal_api_key' })]).join(' '), /auth personal_api_key does not fit a plaid route/);
+  assert.match(BC.validate([Object.assign({}, schwab, { fallback_route: 'snaptrade' })]).join(' '), /different read-only route/);
+  assert.match(BC.validate([schwab, Object.assign({}, tda, { route: 'plaid', trade: false, auth: 'aggregator' })]).join(' '), /uses its parent's route/);
+});

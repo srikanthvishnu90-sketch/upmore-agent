@@ -353,6 +353,12 @@ Owner sequence (the manual steps that go-live.sh automates):
 3. Run the live gauntlet on that exact commit.
 4. If something breaks, redeploy the v203 copy.
 
+## Connector matrix (from 2026-10-11, owner's 100-platform coverage prompt v2)
+
+- Data `packages/connectors/platforms.json` (100 researched rows + Alpaca as 101), contract `packages/domain/77-brokerage-connectors.js`, report `docs/connector-matrix/README.md` (generated; `--check` in CI), tests `tests/brokerage-connectors.test.cjs`, `tests/connector-matrix.test.cjs`.
+- Owner's 100: 16 trade + track by route, 64 track only, 15 off (prediction markets under decision 2, crypto under the shipped crypto rule), 5 can't connect. Today: Alpaca is the only live trading connector; 12 Plaid rows connect now (coverage researched), 29 are a try (Plaid coverage unverified), 4 track through a fallback, 35 not built. Verified live with a real account: 0.
+- BUILT, not VERIFIED. What remains is owner-gated: SnapTrade account and keys, partner approvals (Schwab, E*TRADE, IBKR, Saxo), guided manual connect (live browser login, not built), and decision 2.
+
 ## Requests between agents
 
 - Phase 1 gaps that keep every live card at zero (Claude, 2026-10-11; (1) is built as Rail 1, migration not applied live): (1) a saved-recipient table (people, handles, rails, history) so pay-a-person can card a known person; (2) a broker-dealer adapter (Alpaca paper first, labeled paper everywhere) with quotes, buying power and order read-back, so buy can card and a paper fill can be read back; (3) an account-page terms reader for at least one merchant through the existing agent-exec runner, so cancel can show its card. Each is a rail; none is faked meanwhile.

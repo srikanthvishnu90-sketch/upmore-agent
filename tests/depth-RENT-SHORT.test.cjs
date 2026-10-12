@@ -48,12 +48,12 @@ test("[S05] paychecks and bills before the due date, and what is left after rent
 test("[S06] still short on the due date: a draft to the landlord, part on time, the rest by the next payday", () => {
   const t = ans("i can't pay rent this month", 50000);
   assert.match(t, /\nBefore Nov 1: .*you'd still be \$1,085\.00 short on Nov 1\./);
-  assert.match(t, /\nLandlords often take part on time and the rest a few days later if you ask before Nov 1\. A message you can send:\n"Hi, rent of \$2,400\.00 is due Nov 1\. I can pay \$1,315\.00 on time and the remaining \$1,085\.00 by Nov 6, when my next paycheck lands\. Would that work\?"\nNothing was paid, moved or sent\.\n/);
+  assert.match(t, /\nLandlords often take part on time and the rest a few days later if you ask before Nov 1\. A message you can send:\n"Hi, rent of \$2,400\.00 is due Nov 1\. I can pay \$1,315\.00 on time and the remaining \$1,085\.00 by Nov 6, when my next paycheck lands\. Would that work\?"\nFor local rent help, call or text 211, or go to 211\.org: it connects you to assistance programs near you\.\nNothing was paid, moved or sent\.\n/);
 });
 
 test("[S07] covered by the due date: no draft, nothing to send", () => {
   const t = ans("rent is due and I only have 1900");
-  assert.doesNotMatch(t, /Landlords|message you can send/);
+  assert.doesNotMatch(t, /Landlords|message you can send|211/);
 });
 
 test("[S08] the rent amount the person gives wins, with the last one said", () => {

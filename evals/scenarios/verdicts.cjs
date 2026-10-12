@@ -184,6 +184,8 @@ set("N08", "BUILT", "Upmore has no password and never asks for one; Forgot passw
 set("N09", "BUILT", "a person asking for a code: don't share it, no support team asks, change the password if shared; a site asking for the code just sent is ordinary sign-in", "tests/depth-SCAM-CHECK.test.cjs");
 set("N11", "BUILT", "a payment request from a stranger: don't pay it, decline in that app; Upmore never pays a request on its own", "tests/depth-SCAM-CHECK.test.cjs");
 set("N15", "BUILT", "a 'safe account' ask is a scam: stop, nothing moved, call the bank on the card's number, report at reportfraud.ftc.gov", "tests/depth-SCAM-CHECK.test.cjs");
+set("O09", "BUILT", "answered from code: Upmore can't trade options, nothing placed (the trade flow's own refusal, now reached even when the message isn't order-shaped), the $5 cap when a size was named, and one plain risk line; no lecture, no pick", "tests/edge/direct-answers.test.ts");
+set("O03", "BUILT", "answered from rows (money kind rentshort, 106-rent-short.js): rent read from the repeating payment or asked, the cash today and the paychecks and bills before the due date, a part-now-rest-later message to the landlord, and local help (211) when still short; nothing paid or sent", "tests/depth-RENT-SHORT.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

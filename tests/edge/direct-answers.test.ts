@@ -217,3 +217,15 @@ Deno.test("everyday scams run among the early guards, ahead of every other answe
   assertMatch((ScamCheck as any).answer("a \"support agent\" called, they asked me to move money to a safe account"), /^Stop: that's a scam\./);
   assertEquals((ScamCheck as any).answer("transfer $50 to my savings"), null);
 });
+
+// Megadoc O09 "I want to YOLO 10k on options": Upmore can't trade options; the trade flow's own refusal, reached even
+// when the message isn't order-shaped, with the one plain risk line and the cap when a size was named.
+Deno.test("YOLO on options: can't be traded here, nothing placed, one plain risk line, no lecture, no pick (O09)", () => {
+  const { optionsReply } = DirectAnswers;
+  assertEquals(optionsReply("I want to YOLO 10k on options"), "Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own Alpaca account, each behind your yes, and every order is capped at $5 for now. Plainly: options you buy can expire worthless, losing everything paid for them.");
+  assertEquals(optionsReply("can i trade options"), "Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own Alpaca account, each behind your yes. Plainly: options you buy can expire worthless, losing everything paid for them.");
+  for (const t of ["yolo 10k on tsla calls", "buy 2 TSLA calls", "i wanna bet my paycheck on 0dte puts"]) assertMatch(optionsReply(t)!, /^Upmore can't trade options, so nothing was placed\./, t);
+  for (const t of ["what are my options for paying rent", "should i exercise my stock options from work", "i have rsus and stock options at work, can i sell", "call my bank", "what are puts", "what other options do i have", "buy 2 shares of TSLA"]) assertEquals(optionsReply(t), null, t);
+  // The same fact the trade flow refuses with, so the two never disagree.
+  assertMatch(SRC_TRADE, /Upmore can't trade options, so nothing was placed\./);
+});

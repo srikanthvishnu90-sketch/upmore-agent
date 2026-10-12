@@ -198,6 +198,20 @@ export function travelReply(message: string, tz: string): string | null {
   return `Have a good trip. Upmore can't file a travel notice with your bank or card; if yours wants one, it's in that bank's or card's own app. Charges you make there still show up in your linked transactions, and alerts work as usual.${local} Nothing was changed.`;
 }
 
+// "I want to YOLO 10k on options" (megadoc O09): Upmore can't trade options (the trade flow refuses them,
+// 66-agent-trade.js "options_unsupported"), but the router only sends an order-shaped message there, so a YOLO, a "can i
+// trade options" or a bet on calls went to the model. The same fact from code, the one plain risk line, the $5 cap
+// when a size was named, no lecture and no pick.
+const OPTIONS = /\b(?:options?|calls|puts|call options?|put options?|contracts|0dte|leaps)\b/i;
+const OPTIONS_INTENT = /\b(?:yolo|trade|trading|buy|buying|sell|selling|bet|betting|gamble|put (?:it|\$?\d[\d,.]*k?) (?:all )?(?:in|into|on)|go all in|all in on|throw)\b/i;
+const OPTIONS_NOT = /\b(?:stock options? (?:at|from) (?:work|my job)|employee (?:stock )?options?|rsus?|esop|options? to (?:pay|save|cut)|payment options?|what are my options|other options?|options? for (?:rent|paying|my bills|debt|loans?))\b/i;
+export function optionsReply(message: string): string | null {
+  const m = String(message || "");
+  if (!OPTIONS.test(m) || !OPTIONS_INTENT.test(m) || OPTIONS_NOT.test(m)) return null;
+  const sized = /\$?\d[\d,.]*\s*(?:k|grand|thousand|dollars|bucks)?\b/i.test(m.replace(/\b(?:0dte|\d+ ?(?:shares?|contracts?))\b/gi, "")) && /\d/.test(m);
+  return `Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own Alpaca account, each behind your yes${sized ? ", and every order is capped at $5 for now" : ""}. Plainly: options you buy can expire worthless, losing everything paid for them.`;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

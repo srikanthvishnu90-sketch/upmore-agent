@@ -90,6 +90,8 @@
         const by = nextPay ? ` by ${label(nextPay.on)}, when my next paycheck lands` : " soon";
         if (part > 0 && rest > 0) lines.push(`Landlords often take part on time and the rest a few days later if you ask before ${due ? label(due) : "the due date"}. A message you can send:\n"Hi, rent of ${money(rentCents)} is due${due ? ` ${label(due)}` : ""}. I can pay ${money(part)} on time and the remaining ${money(rest)}${by}. Would that work?"`);
         else lines.push(`Landlords often give a few days' grace if you ask before ${due ? label(due) : "the due date"}; your lease says what the late fee is.`);
+        // Local help (megadoc O03): 211 is United Way's free referral line for local rent and utility assistance.
+        lines.push("For local rent help, call or text 211, or go to 211.org: it connects you to assistance programs near you.");
         lines.push("Nothing was paid, moved or sent.");
       }
       lines.push(src);

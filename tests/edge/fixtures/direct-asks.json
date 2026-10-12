@@ -322,6 +322,8 @@
     ["whats the best stock rn", "adviceReply"],
     ["is this a good buy at costco", null],
     ["I'm traveling in Japan", "travelReply"],
-    ["im going to costco", null]
+    ["im going to costco", null],
+    ["I want to YOLO 10k on options", "optionsReply"],
+    ["what are my options for paying rent", null]
   ]
 }

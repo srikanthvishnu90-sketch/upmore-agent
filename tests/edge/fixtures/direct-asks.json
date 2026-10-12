@@ -237,6 +237,12 @@
     ["did maya pay me back?", "moneyReply"],
     ["has jake paid me yet", "moneyReply"],
     ["did i pay maya", null],
-    ["how much interest am i paying on my card", null]
+    ["how much interest am i paying on my card", null],
+    ["whats this 96.30 charge from target", "moneyReply"],
+    ["I don't recognize a charge from DELTA AIR LINES", "moneyReply"],
+    ["target charged me twice", "moneyReply"],
+    ["i never authorized this charge", "disputeReply"],
+    ["this was unauthorized", "disputeReply"],
+    ["what's this charge", null]
   ]
 }

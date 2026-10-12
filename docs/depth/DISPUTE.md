@@ -32,4 +32,5 @@ Found building this packet (fixed red-first, regression tests in tests/dispute.t
 | S14 | A photo is deferred | a photo with no details is left to the photo reader | `S14` in tests/depth-DISPUTE.test.cjs | the photo is ignored and the charges are listed | proven |
 | S15 | A photo's merchant must match | a Hulu photo is not the Netflix row | `S15` in tests/depth-DISPUTE.test.cjs | the amount alone matches a photo to a row | proven |
 | S16 | Another currency is said in it | a 45.00 EUR charge is never $45.00 | `S16` in tests/depth-DISPUTE.test.cjs | every amount is said in dollars (the bug found building this packet) | proven |
+| S17 | 'never authorized' is a dispute | 'i never authorized this charge' is a dispute ask | `S17` in tests/depth-DISPUTE.test.cjs | only the bare verb 'authorize' is read, so 'authorized' slips to the model | proven |
 <!-- results:end -->

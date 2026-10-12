@@ -59,3 +59,13 @@ Deno.test("M04 / C08: interest paid in and a payment from a person, from rows; n
   assertMatch(r2, SRC);
 });
 
+Deno.test("K01 / K02 / K05: what's this charge, from rows; disputes stay with the dispute answer", async () => {
+  const [k, r] = await first("whats this 96.30 charge from target");
+  assertEquals(k, "moneyReply");
+  assertMatch(r, /^\$96\.30 on Oct 3 \([^)]+\), shown by your bank as "Target"\.\n/);
+  assert(r.includes('say "dispute this charge" and I\'ll draft the dispute for you to file. Nothing was sent.'), r);
+  assertMatch(r, SRC);
+  assertMatch((await first("target charged me twice"))[1], /^I see one charge from Target in the last 90 days, but no two of the same amount within 3 days/);
+  assertEquals((await first("i never authorized this charge"))[0], "disputeReply");
+});
+

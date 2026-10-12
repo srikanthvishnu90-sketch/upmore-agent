@@ -145,3 +145,12 @@ test("[S17] a refund follow-up looks for the credit at that merchant, never a ch
   const r = (d, c, m) => ({ account_id: "mock-card", provider_transaction_id: `mock-${d}-${c}`, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T08:00:00Z" });
   assert.match(M.didItGoThrough([r("2026-10-03", -9630, "TARGET 00012345"), r("2026-10-09", 2000, "TARGET 00012345")], "did my target credit post?", now), /^Yes, it posted: \$20\.00 from Target on Oct 9/);
 });
+
+test("[S18] a merchant's name never carries a phone number's leftover dashes", () => {
+  assert.equal(M.display("ACME INC 800-555-0100"), "Acme Inc");
+  assert.equal(M.display("HULU 877-8244858"), "Hulu");
+  // Dashes inside a name stay: 7-Eleven, T-Mobile.
+  assert.equal(M.display("7-ELEVEN 12345"), "7-Eleven");
+  assert.equal(M.display("T-MOBILE"), "T-Mobile");
+});
+

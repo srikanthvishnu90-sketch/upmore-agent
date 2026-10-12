@@ -20,7 +20,7 @@
     const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
     const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    const ASK = /\b(?:disput(?:e|es|ed|ing)|charge[- ]?backs?|wrong charges?|(?:didn'?t|did not|never) authori[sz]e|unauthori[sz]ed (?:charges?|transactions?|payments?|purchases?)|refund (?:this|that|the|my) (?:charge|payment|transaction))\b/i;
+    const ASK = /\b(?:disput(?:e|es|ed|ing)|charge[- ]?backs?|wrong charges?|(?:didn'?t|did not|never|have not|haven'?t|havent) authori[sz]e[ds]?|unauthori[sz]ed (?:charges?|transactions?|payments?|purchases?)|(?:was|is|were|are|looks?) unauthori[sz]ed|refund (?:this|that|the|my) (?:charge|payment|transaction))\b/i;
     // A question about disputes in general, or about one already opened, is for the model, not a draft.
     const GENERAL = /^\s*(?:what(?:'s| is| are| does)|explain|define|tell me (?:about|what))\b|\bmy (?:open |last |old )?(?:dispute|chargeback)s?\b|\b(?:status|update) (?:of|on) (?:the |my )?(?:dispute|chargeback)/i;
     const LAST = /\b(?:the |my )?(?:last|latest|most recent|newest)\b(?: one| charge| payment| transaction)?/i;
@@ -175,7 +175,7 @@
       const o = opts || {};
       if (!isDisputeAsk(text)) return { kind: "not_dispute", text: null };
       const ask = parseAsk(text, o.today);
-      const unauthorized = /\b(?:didn'?t|did not|never) authori[sz]e|unauthori[sz]ed\b/i.test(String(text));
+      const unauthorized = /\b(?:didn'?t|did not|never|have not|haven'?t|havent) authori[sz]e[ds]?\b|\bunauthori[sz]ed\b/i.test(String(text));
       const rowsIn = rows || [];
       const all = charges(rowsIn);
       if (o.has_photo && !ask.amount_cents && !ask.date && !ask.last && !all.some(r => ask.words.some(w => squash(r.merchant_raw).includes(w)))) {

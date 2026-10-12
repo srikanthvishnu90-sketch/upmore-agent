@@ -27,7 +27,9 @@
 // charge, and the ones that stopped (packages/domain/100-subscription-list.js). tests/edge/subscription-list.test.ts.
 // Money coming in (megadoc M04 "how much am I earning on savings", C08 "did maya pay me back?"): interest paid in, and a
 // payment from a person, from the person's own rows (packages/domain/101-money-in.js).
-import { Bnpl, BNPL_PROVIDERS_JSON, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
+// "What's this charge?" (megadoc K01, K02, K05): the charge found by its text or amount, what the statement shows, its
+// history and a possible double charge; dispute asks stay with the dispute answer (packages/domain/102-charge-check.js).
+import { Bnpl, BNPL_PROVIDERS_JSON, ChargeCheck, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -43,7 +45,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -96,6 +98,7 @@ export function moneyKind(message: string): MoneyKind | null {
   if (RefundCheck.ask(m)) return "refund";
   if (SubscriptionList.ask(m)) return "subs";
   if (MoneyIn.ask(m)) return "moneyin";
+  if (ChargeCheck.ask(m)) return "charge";
   if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m)) return "through";
   // "my year in money", "year in review", "how did 2026 go": a whole year. "how much did i spend this year" is spend's.
   if (YearInMoney.ask(m)) return "year";
@@ -146,6 +149,7 @@ export async function moneyReply(message: string, now: Date | number | string, r
   if (kind === "refund") return RefundCheck.answer(tx, message, now, { tz });
   if (kind === "subs") return SubscriptionList.answer(tx, message, now, { tz, rules });
   if (kind === "moneyin") return MoneyIn.answer(accounts, tx, message, now, { tz });
+  if (kind === "charge") return ChargeCheck.answer(accounts, tx, message, now, { tz });
   if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
   if (kind === "math" || kind === "explain") {
     // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed

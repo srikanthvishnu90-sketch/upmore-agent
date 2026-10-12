@@ -176,7 +176,9 @@
     function cleanName(raw) {
       raw = label(raw);
       const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|card \d+)\b/gi, " ")
-        .replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ").replace(/\s+/g, " ").trim();
+        .replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ")
+        // A phone number's dashes or a store number's slash left alone between spaces ("ACME INC 800-555-0100") are noise.
+        .replace(/(^|\s)[-–\/.]+(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
       if (!s) return String(raw || "Unknown").trim() || "Unknown";
       return s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase());
     }

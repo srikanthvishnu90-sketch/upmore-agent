@@ -32,4 +32,5 @@ tests/money-answers.test.cjs).
 | S15 | Did it go through, this month | a Sep 1 rent is not this month's on Oct 12 | `S15` in tests/depth-MONEY-ANSWERS.test.cjs | anything in the last two months counts as gone through | proven |
 | S16 | A partial month is said in the checkup | data from Oct 10 says this covers only from then | `S16` in tests/depth-MONEY-ANSWERS.test.cjs | the checkup's start-date caveat is dropped (the bug found building this packet) | proven |
 | S17 | A refund follow-up finds the credit | the $20.00 Target credit is found | `S17` in tests/depth-MONEY-ANSWERS.test.cjs | refund words are read as part of the merchant name again (the bug found overnight) | proven |
+| S18 | No leftover dashes | ACME INC 800-555-0100 is Acme Inc | `S18` in tests/depth-MONEY-ANSWERS.test.cjs | stray punctuation stays, so the name reads 'Acme Inc - -' | proven |
 <!-- results:end -->

@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 86, LIMITED 26, DIVERGES 13, MODEL 42, NOT_BUILT 73",
+   "title": "megadoc states: PROVEN 0, BUILT 87, LIMITED 26, DIVERGES 13, MODEL 41, NOT_BUILT 73",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },

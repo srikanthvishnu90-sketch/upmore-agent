@@ -69,3 +69,18 @@ Deno.test("K01 / K02 / K05: what's this charge, from rows; disputes stay with th
   assertEquals((await first("i never authorized this charge"))[0], "disputeReply");
 });
 
+
+Deno.test("J08: charged after a cancel, from the cancel flow's own record and the rows; an unreadable record is said", async () => {
+  const [k, r] = await first("I got charged for something I cancelled");
+  assertEquals(k, "moneyReply");
+  // The MOCK record: Netflix cancelled Oct 6 (its own record); the last Netflix charge is Oct 5, before it.
+  assertMatch(r, /^I don't see a charge from Netflix after you cancelled on Oct 6 \(Netflix's own record when I cancelled it for you\)\./);
+  assertMatch(r, SRC);
+  for (const m of ["netflix charged me after i cancelled", "still being billed for netflix even though i cancelled"]) assertEquals((await first(m))[0], "moneyReply", m);
+  // The dispute and win-back answers keep theirs.
+  assertEquals((await first("dispute the netflix charge i cancelled"))[0], "disputeReply");
+  const { moneyReply } = await import("../../supabase/functions/agent-chat/_shared/money_answers.ts");
+  const acc = [{ account_id: "a", name: "Card", institution: "Mock", account_kind: "credit", balance_cents: 0, balance_as_of: "2026-10-12T08:00:00Z", fetched_at: "2026-10-12T08:00:00Z", status: "active", currency: "USD" }];
+  const unreadable = await moneyReply("I got charged for something I cancelled", new Date("2026-10-12T15:00:00Z"), { accounts: async () => acc as any, transactions: async () => [], cancellations: async () => { throw new Error("down"); } }, { tz: "America/New_York" });
+  assertMatch(unreadable!, /^I can't read the cancellations I've done for you right now/);
+});

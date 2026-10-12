@@ -29,7 +29,7 @@
 // payment from a person, from the person's own rows (packages/domain/101-money-in.js).
 // "What's this charge?" (megadoc K01, K02, K05): the charge found by its text or amount, what the statement shows, its
 // history and a possible double charge; dispute asks stay with the dispute answer (packages/domain/102-charge-check.js).
-import { Bnpl, BNPL_PROVIDERS_JSON, ChargeCheck, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
+import { Bnpl, BNPL_PROVIDERS_JSON, CancelledCharge, ChargeCheck, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -41,11 +41,11 @@ export type MoneyTxRow = {
 };
 // history(from): the person's rows from a past day on (a past year's review), when the host can read further back than
 // transactions() does; without it the review uses transactions() and says where those rows start.
-export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]>; previous?(): Promise<{ role: string; content: string }[]>; history?(from: string): Promise<MoneyTxRow[]> };
+export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]>; previous?(): Promise<{ role: string; content: string }[]>; history?(from: string): Promise<MoneyTxRow[]>; cancellations?(): Promise<any[] | null> };
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -94,6 +94,8 @@ function numbersKind(m: string): NumbersKind | null {
 export function moneyKind(message: string): MoneyKind | null {
   const m = String(message || "");
   if (CHECKUP.test(m)) return "checkup";
+  // "I got charged for something I cancelled" (104-cancelled-charge.js), before the refund and charge asks it also reads as.
+  if (CancelledCharge.ask(m)) return "cancelled";
   // Before "did it go through": "did the refund go through" is about money coming back, not a charge.
   if (RefundCheck.ask(m)) return "refund";
   if (SubscriptionList.ask(m)) return "subs";
@@ -150,6 +152,12 @@ export async function moneyReply(message: string, now: Date | number | string, r
   if (kind === "subs") return SubscriptionList.answer(tx, message, now, { tz, rules });
   if (kind === "moneyin") return MoneyIn.answer(accounts, tx, message, now, { tz });
   if (kind === "charge") return ChargeCheck.answer(accounts, tx, message, now, { tz });
+  if (kind === "cancelled") {
+    // The cancel flow's own records (win_back_answer.ts readCancellations); an unreadable table is null, said plainly.
+    let cancellations: any[] | null = [];
+    try { cancellations = read.cancellations ? await read.cancellations() : []; } catch { cancellations = null; }
+    return CancelledCharge.answer({ message, now: typeof now === "number" ? now : Date.parse(String(now instanceof Date ? now.toISOString() : now)), tz, transactions: tx, cancellations });
+  }
   if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
   if (kind === "math" || kind === "explain") {
     // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed

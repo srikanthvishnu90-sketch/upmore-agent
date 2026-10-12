@@ -539,3 +539,14 @@ Found, not fixed (for the owner): the legacy route-reminder reply still answers 
 | --- | --- | --- | --- |
 | `tests/edge/fixtures/direct-asks.json` | "connect my chase account": null (no direct answer; the model) | A bank connect ask now gets the app's real path (Home, Connect bank, SimpleFIN Bridge, read-only) from `direct_answers.ts` bankConnectReply; the row says connectReply. | `tests/edge/direct-answers.test.ts` |
 | `packages/domain/77-brokerage-connectors.js` connectAnswer (through connectReply) | "connect my Ally savings" answered as Ally Invest (Plaid, read-only brokerage) | Ally Invest's alias "ally" took a bank account. A bank account kind (checking, savings, card, bank) said with a bank's name now gets the bank answer first; "ally invest" keeps the matrix. | same |
+
+
+## "I got charged for something I cancelled" was the model's (2026-10-12, megadoc J08)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `evals/scenarios/verdicts.cjs` J08 | MODEL: "the chat model over transactions" | The model has no cancel records and no rule for a charge that posted after a cancel but was made before it. Built from code (`104-cancelled-charge.js`, money kind "cancelled"); BUILT with `tests/edge/megadoc-money-asks.test.ts`. | depth packet CANCELLED-CHARGE |
+
+Found, not fixed (for the owner): `80-money-answers.js` termMatch, which several answers share, still matches a name
+squashed inside a longer word ("hulu" in "HULULAND"); this answer uses a whole-token match instead. Changing termMatch
+would move every answer that uses it, so it is listed rather than changed overnight.

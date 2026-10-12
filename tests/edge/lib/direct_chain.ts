@@ -41,7 +41,7 @@ export const BUDGETS = [{ id: "budget-groceries-mock", kind: "category_budget", 
 
 export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   budgetReply: (m) => budgetReply(m, NOW, { budgets: async () => BUDGETS, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
-  moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[] }),
+  moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[], cancellations: async () => CANCELS }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),
   winBackReply: (m) => winBackReply(m, TODAY, oldest, async () => CANCELS),
   subscriptionReply: (m) => subscriptionReply(m, TODAY, oldest),

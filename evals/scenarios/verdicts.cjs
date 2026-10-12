@@ -112,7 +112,8 @@ set("I06", "MODEL", "accreditation explained by the chat model; Upmore decides n
 // J. subscriptions
 set("J01 J04 J06", "LIMITED", "finds the charge, then stops honestly: the merchant's account page/terms are not readable yet, nothing changed", "tests/depth-BILL-003.test.cjs");
 set("J02", "BUILT", "no usage data: asks which, one card each", "tests/depth-BILL-003.test.cjs");
-set("J03 J08", "MODEL", "the chat model over transactions");
+set("J03", "MODEL", "the chat model over transactions");
+set("J08", "BUILT", "charges posted after the cancel day, to the cent: the day from the cancel flow's own record (with its confirmation) or the day the person says; one within 2 days may predate the cancel and is never called a yes; no day on file or said is asked, never assumed; a cancel the merchant never confirmed is never called cancelled; the merchant is asked first in a draft the person sends, then the dispute flow is named; nothing is sent", "tests/edge/megadoc-money-asks.test.ts");
 set("J05 J07 J10 J11 J13", "BUILT", "no matching charge on file: says what it does see and asks; never invents a merchant", "tests/depth-BILL-003.test.cjs");
 set("J09 J14", "NOT_BUILT", "pause and downgrade");
 set("J15", "DIVERGES", "no new rule is made: the trial ask is already on (with alerts on) for trials the person adds in the app (Add a subscription, Free trial, end date): in the week before the first charge it says the date and amount and asks 'Should I cancel it for you?'. The code reply says exactly that and how to add one; trials are never found on their own (nothing shows in transactions before the first charge)", "tests/edge/proactive.test.ts");

@@ -289,6 +289,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         transactions: readTx,
         // A past year's review ("how did 2025 go") reads from that year's Jan 1, further back than the shared read.
         history: (from: string) => readRecentTransactions(supabase, user.id, Date.now(), { days: Math.ceil((Date.now() - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 2 }),
+        // "I got charged for something I cancelled": the cancellations the cancel flow recorded (own rows, RLS).
+        cancellations: () => readCancellations(supabase, user.id),
         // "show me the math" explains the answer just given in this thread.
         previous: readPrevious,
       }, { tz, rules });

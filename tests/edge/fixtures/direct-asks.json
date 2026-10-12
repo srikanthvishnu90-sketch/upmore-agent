@@ -271,6 +271,11 @@
     ["add my card", null],
     ["add chase sapphire", null],
     ["set up my savings goal", null],
-    ["connect my venmo", null]
+    ["connect my venmo", null],
+    ["I got charged for something I cancelled", "moneyReply"],
+    ["netflix charged me after i cancelled", "moneyReply"],
+    ["i cancelled hulu on sep 20 but they still charged me", "moneyReply"],
+    ["still being billed for planet fitness even though i cancelled", "moneyReply"],
+    ["how do i cancel netflix", null]
   ]
 }

@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 87,
-  "total": 87
+  "pass": 92,
+  "total": 92
  },
  "results": [
   {
@@ -349,6 +349,12 @@
   },
   {
    "family": "flow",
+   "id": "F:ANL-016",
+   "title": "ANL-016: chat: savings goals tied to an account's balance, \"how's my vacation fund\" (114-savings-goals.js, agent-chat/_shared/goal_answer.ts)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:ANL-020",
    "title": "ANL-020: scheduler: the weekly recap, Sundays by default; \"send me a weekly recap on Fridays\" moves it",
    "status": "PASS"
@@ -421,6 +427,18 @@
   },
   {
    "family": "flow",
+   "id": "F:INV-005",
+   "title": "INV-005: chat: trade flow, \"how are my investments doing this year\", \"compare my portfolio to the S&P\" (performanceAnswer, 66-agent-trade.js)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:INV-006",
+   "title": "INV-006: chat: trade flow, \"what dividends did I get\" (dividendsAnswer, 66-agent-trade.js, from Alpaca account activities)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:INV-011",
    "title": "INV-011: chat: trade flow, live, $5 cap",
    "status": "PASS"
@@ -453,6 +471,18 @@
    "family": "flow",
    "id": "F:PAY-004",
    "title": "PAY-004: chat: split flow (requests staged in the person's app)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:PAY-007",
+   "title": "PAY-007: chat: \"pay maya 40 tomorrow at 9\" (113-scheduled-send.js) and \"pay maya 40 when my paycheck lands\" (115-paycheck-send.js): at that time the hourly run asks for the send card, which needs its own yes",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:PAY-008",
+   "title": "PAY-008: chat: \"cancel the scheduled send to maya\", \"cancel the paycheck send to maya\" (_shared/proactive.ts parseCommand)",
    "status": "PASS"
   },
   {
@@ -561,7 +591,7 @@
   {
    "family": "response",
    "id": "R-06",
-   "title": "offline latency: p95 of 29 conversations under 2,000 ms",
+   "title": "offline latency: p95 of 31 conversations under 2,000 ms",
    "status": "PASS"
   }
  ]

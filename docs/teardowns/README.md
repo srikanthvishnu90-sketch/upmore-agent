@@ -60,17 +60,17 @@ that are on the list and that a build may reach.
 
 | App | Rows | PROVEN | IN_PRODUCT | MODULE_ONLY | GATED | NOT_BUILT | PART | NO_ITEM | Hard-gated | Ungated with an item |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| dub | 144 | 0 | 4 | 8 | 0 | 15 | 3 | 114 | 49 | 15 |
-| Alinea | 79 | 0 | 3 | 4 | 0 | 7 | 2 | 63 | 40 | 6 |
-| Autopilot | 67 | 0 | 9 | 2 | 0 | 16 | 2 | 38 | 44 | 5 |
-| Origin | 209 | 0 | 39 | 23 | 0 | 3 | 6 | 138 | 48 | 59 |
-| Albert | 148 | 0 | 26 | 10 | 0 | 2 | 6 | 104 | 82 | 30 |
+| dub | 144 | 0 | 9 | 5 | 0 | 13 | 3 | 114 | 49 | 15 |
+| Alinea | 79 | 0 | 4 | 3 | 0 | 7 | 2 | 63 | 40 | 6 |
+| Autopilot | 67 | 0 | 11 | 2 | 0 | 14 | 2 | 38 | 44 | 5 |
+| Origin | 209 | 0 | 41 | 21 | 0 | 3 | 6 | 138 | 48 | 59 |
+| Albert | 148 | 0 | 27 | 9 | 0 | 2 | 6 | 104 | 82 | 30 |
 | Rocket Money | 132 | 0 | 52 | 13 | 0 | 11 | 3 | 53 | 20 | 72 |
-| Monarch | 330 | 0 | 60 | 52 | 0 | 2 | 15 | 201 | 28 | 113 |
-| Copilot Money | 311 | 0 | 97 | 21 | 0 | 7 | 13 | 173 | 6 | 132 |
+| Monarch | 330 | 0 | 63 | 49 | 0 | 2 | 15 | 201 | 28 | 113 |
+| Copilot Money | 311 | 0 | 102 | 16 | 0 | 7 | 13 | 173 | 6 | 132 |
 | YNAB | 242 | 0 | 21 | 10 | 0 | 3 | 3 | 205 | 0 | 37 |
 | Cleo | 156 | 0 | 15 | 6 | 0 | 0 | 4 | 131 | 86 | 22 |
-| **all** | 1818 | 0 | 326 | 149 | 0 | 66 | 57 | 1220 | 403 | 491 |
+| **all** | 1818 | 0 | 345 | 134 | 0 | 62 | 57 | 1220 | 403 | 491 |
 
 Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 936.
 
@@ -198,7 +198,7 @@ Every row counted PART above, each placed on its own with the half the list does
 | T1-ALINEA-030 | Alinea | Copy a playlist | 49 | NOT_BUILT | copying another member's shared list (49); 49 is a friend who shares it, this is any member's public list |
 | T1-ALINEA-033 | Alinea | Playlists Pro | 46 | NOT_BUILT | following politicians and hedge funds (46); the world-events and AI portfolios are Alinea's managed picks |
 | T1-AUTOPILOT-022 | Autopilot | Portfolio page | 48 | NOT_BUILT | the average trade delay shows how stale a copy is (48); the rest is a catalog page |
-| T1-AUTOPILOT-054 | Autopilot | Portfolio alerts | 42, 51 | MODULE_ONLY | rebalance and performance notices (42, 51); market-news alerts are the rest |
+| T1-AUTOPILOT-054 | Autopilot | Portfolio alerts | 42, 51 | IN_PRODUCT | rebalance and performance notices (42, 51); market-news alerts are the rest |
 | T1-ORIGIN-009 | Origin | Home value | 15 | IN_PRODUCT | a home counts in net worth (15); an automatic market-value feed for it is the rest |
 | T1-ORIGIN-037 | Origin | Sankey diagram | 6 | IN_PRODUCT | where income went, drawn as a flow (6); Upmore gives the numbers in words, the chart itself is not built |
 | T1-ORIGIN-087 | Origin | Allocation view | 65 | MODULE_ONLY | the asset mix (65); judging it against a risk profile leans into advice |
@@ -303,7 +303,7 @@ suggests is in its own "Build order suggestion" section.
 | Copy trading | 21 | 5 | 7 | 9 | 16 | T1-DUB-045 .. T1-DUB-064 (5) | 45, 47, 52 | part (row by row): copying a portfolio at the person's dollars (45), re-copying and stopping it (47) and selling a copy (52); basket trades, rebalance locks, capacity limits, stock exclusions and dub Advisors oversight are dub's brokerage machinery | IN_PRODUCT 3, NOT_BUILT 7, NO_ITEM 11 |
 | Creating portfolios | 8 | 1 | 7 | 0 | 2 | T1-DUB-066 .. T1-DUB-072 (6) | 49, 56 | part (row by row): a target split the person sets and rebalances to (56) and sharing it so a friend can copy it (49); public tickers and listing rules are dub's | IN_PRODUCT 1, MODULE_ONLY 1, NOT_BUILT 2, NO_ITEM 4 |
 | Creator program | 7 | 4 | 2 | 1 | 2 | T1-DUB-074 .. T1-DUB-079 (5) | none | none | NO_ITEM 7 |
-| Performance and risk metrics | 15 | 15 | 0 | 0 | 0 | T1-DUB-080 .. T1-DUB-094 (15) | 51, 64 | part (row by row): returns and fees paid on the person's copies (51, 64); creator-side metrics (capital, copier count, alpha and risk scores) belong to dub's catalog | MODULE_ONLY 3, NOT_BUILT 2, NO_ITEM 10 |
+| Performance and risk metrics | 15 | 15 | 0 | 0 | 0 | T1-DUB-080 .. T1-DUB-094 (15) | 51, 64 | part (row by row): returns and fees paid on the person's copies (51, 64); creator-side metrics (capital, copier count, alpha and risk scores) belong to dub's catalog | IN_PRODUCT 5, NO_ITEM 10 |
 | Notifications and reports | 10 | 8 | 1 | 1 | 0 | T1-DUB-095 .. T1-DUB-104 (10) | 42 | part (row by row): trade confirmations and account activity as a receipt for each action (42); statements, paper delivery and the social feed are the broker's records | MODULE_ONLY 3, NOT_BUILT 1, NO_ITEM 6 |
 | Tax documents | 2 | 2 | 0 | 0 | 2 | none | none | none | NO_ITEM 2 |
 | Social features | 9 | 4 | 5 | 0 | 0 | T1-DUB-107 .. T1-DUB-115 (9) | none | none | NO_ITEM 9 |
@@ -322,7 +322,7 @@ suggests is in its own "Build order suggestion" section.
 | AI assistant | 8 | 7 | 0 | 1 | 5 | T1-ALINEA-018 .. T1-ALINEA-020 (3) | 63 | part (row by row): explaining the person's portfolio and what it holds (63); general market Q&A, single-stock questions and self-adjusting portfolios lean into advice | IN_PRODUCT 1, NO_ITEM 7 |
 | Portfolios and playlists | 14 | 6 | 5 | 3 | 9 | T1-ALINEA-027 .. T1-ALINEA-032 (5) | 49, 50, 56 | part (row by row): investing in a themed list (50), copying a member's list (49) and rebalancing (56); expert-built and managed portfolios choose positions for the person | MODULE_ONLY 2, NOT_BUILT 5, PART 2, NO_ITEM 5 |
 | Trading | 7 | 3 | 4 | 0 | 4 | T1-ALINEA-039 .. T1-ALINEA-041 (3) | 52 | part (row by row): buying and selling stocks, ETFs and fractions by amount (52); ticker search and market screens are research views with no item | IN_PRODUCT 2, NOT_BUILT 1, NO_ITEM 4 |
-| Performance and insights | 7 | 7 | 0 | 0 | 0 | T1-ALINEA-044 .. T1-ALINEA-050 (7) | 64, 66 | part (row by row): news for holdings (66) and portfolio returns (64); growth projections, the time machine and broker statements have no item | MODULE_ONLY 2, NO_ITEM 5 |
+| Performance and insights | 7 | 7 | 0 | 0 | 0 | T1-ALINEA-044 .. T1-ALINEA-050 (7) | 64, 66 | part (row by row): news for holdings (66) and portfolio returns (64); growth projections, the time machine and broker statements have no item | IN_PRODUCT 1, MODULE_ONLY 1, NO_ITEM 5 |
 | Education | 3 | 3 | 0 | 0 | 0 | T1-ALINEA-051 .. T1-ALINEA-053 (3) | none | none | NO_ITEM 3 |
 | Social and rewards | 5 | 3 | 2 | 0 | 2 | T1-ALINEA-054 .. T1-ALINEA-058 (3) | none | none | NO_ITEM 5 |
 | Notifications | 3 | 0 | 0 | 3 | 0 | T1-ALINEA-059 .. T1-ALINEA-061 (3) | none | none | NO_ITEM 3 |
@@ -339,7 +339,7 @@ suggests is in its own "Build order suggestion" section.
 | Marketplace and discovery | 9 | 9 | 0 | 0 | 2 | T1-AUTOPILOT-017 .. T1-AUTOPILOT-024 (7) | 48 | part (row by row): Autopilot's featured lists, rankings, categories and pilot directory are its own catalog; only the trade delay on a portfolio page says how stale a copy is (48) | PART 1, NO_ITEM 8 |
 | Portfolios you can copy | 11 | 0 | 0 | 11 | 11 | none | 45, 46, 50 | part (row by row): copying Congress and 13F filers (45, 46) and themes (50); Autopilot's own strategies (Inverse Cramer, AI, expert and risk-based portfolios) are managed portfolios with no item | NOT_BUILT 5, NO_ITEM 6 |
 | Copy trading | 15 | 1 | 6 | 8 | 15 | none | 45, 47, 56 | part (row by row): sizing and buying a copy at the person's dollars (45), auto-copying new trades (47) and rebalancing (56); stock exclusions, small-position and cash-buffer settings and the quarterly suitability review have no item | IN_PRODUCT 1, MODULE_ONLY 1, NOT_BUILT 9, NO_ITEM 4 |
-| Tracking and alerts | 7 | 7 | 0 | 0 | 0 | T1-AUTOPILOT-051 .. T1-AUTOPILOT-057 (7) | 42, 51 | part (row by row): how the copy performed (51) and a notice for each trade placed (42); market-news alerts, SMS terms and education have no item | MODULE_ONLY 1, NOT_BUILT 2, PART 1, NO_ITEM 3 |
+| Tracking and alerts | 7 | 7 | 0 | 0 | 0 | T1-AUTOPILOT-051 .. T1-AUTOPILOT-057 (7) | 42, 51 | part (row by row): how the copy performed (51) and a notice for each trade placed (42); market-news alerts, SMS terms and education have no item | IN_PRODUCT 2, MODULE_ONLY 1, PART 1, NO_ITEM 3 |
 | Plans and billing | 7 | 2 | 2 | 3 | 4 | T1-AUTOPILOT-062 .. T1-AUTOPILOT-064 (3) | none | none | NO_ITEM 7 |
 | Creators, support and security | 3 | 2 | 1 | 0 | 1 | T1-AUTOPILOT-066 .. T1-AUTOPILOT-067 (2) | none | none | NO_ITEM 3 |
 
@@ -353,7 +353,7 @@ suggests is in its own "Build order suggestion" section.
 | Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) | 10, 18, 31, 106 | full | IN_PRODUCT 8 |
 | Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) | 20 | part (row by row): what-if scenarios such as a home purchase or a new income (20); a lifetime plan with Monte Carlo odds, retirement, Social Security, equity and tax modeling has no item (16 forecasts 90 days) | MODULE_ONLY 8, NO_ITEM 12 |
 | Net worth | 3 | 3 | 0 | 0 | 0 | T1-ORIGIN-080 .. T1-ORIGIN-082 (3) | 15 | full | IN_PRODUCT 3 |
-| Investment tracking | 12 | 12 | 0 | 0 | 1 | T1-ORIGIN-083 .. T1-ORIGIN-094 (11) | 64, 65, 66, 68 | part (row by row): returns against a benchmark (64), allocation (65), earnings dates (66) and a watchlist (68); analyst ratings, market watch and themed screens are research tools with no item | IN_PRODUCT 1, MODULE_ONLY 3, PART 3, NO_ITEM 5 |
+| Investment tracking | 12 | 12 | 0 | 0 | 1 | T1-ORIGIN-083 .. T1-ORIGIN-094 (11) | 64, 65, 66, 68 | part (row by row): returns against a benchmark (64), allocation (65), earnings dates (66) and a watchlist (68); analyst ratings, market watch and themed screens are research tools with no item | IN_PRODUCT 3, MODULE_ONLY 1, PART 3, NO_ITEM 5 |
 | Origin Invest and cash account | 13 | 2 | 8 | 3 | 13 | none | none | none | IN_PRODUCT 1, NOT_BUILT 1, NO_ITEM 11 |
 | AI adviser and other AI features | 18 | 18 | 0 | 0 | 6 | T1-ORIGIN-110 .. T1-ORIGIN-123 (12) | 7, 20, 22, 24 | part (row by row): plain questions over the person's data (7), what-if questions (20), the daily market brief (22) and the weekly recap (24); the health score, ranked recommendations, risk profile and memory controls have no item | IN_PRODUCT 5, MODULE_ONLY 1, PART 1, NO_ITEM 11 |
 | Human financial planners | 10 | 4 | 6 | 0 | 6 | T1-ORIGIN-130 .. T1-ORIGIN-133 (4) | none | none | NO_ITEM 10 |
@@ -380,7 +380,7 @@ suggests is in its own "Build order suggestion" section.
 | Instant cash advances and loans | 15 | 5 | 6 | 4 | 15 | none | none | none | NO_ITEM 15 |
 | Automatic savings | 15 | 2 | 4 | 9 | 15 | none | none | none | NO_ITEM 15 |
 | Albert Cash | 20 | 1 | 17 | 2 | 20 | none | none | none | NO_ITEM 20 |
-| Investing | 15 | 6 | 4 | 5 | 14 | T1-ALBERT-114 (1) | 52, 53, 56, 64 | part (row by row): buying and selling (52), recurring buys (53), rebalancing (56) and performance across outside accounts (64); Albert's managed portfolios, its own brokerage account and its transfers have no item | IN_PRODUCT 2, MODULE_ONLY 2, NOT_BUILT 2, PART 1, NO_ITEM 8 |
+| Investing | 15 | 6 | 4 | 5 | 14 | T1-ALBERT-114 (1) | 52, 53, 56, 64 | part (row by row): buying and selling (52), recurring buys (53), rebalancing (56) and performance across outside accounts (64); Albert's managed portfolios, its own brokerage account and its transfers have no item | IN_PRODUCT 3, MODULE_ONLY 1, NOT_BUILT 2, PART 1, NO_ITEM 8 |
 | Credit and identity protection | 12 | 5 | 1 | 6 | 7 | T1-ALBERT-122 .. T1-ALBERT-129 (5) | 37, 101 | part (row by row): score and credit report alerts (37, 101); identity monitoring, data broker removal, insurance and restoration have no item | IN_PRODUCT 1, MODULE_ONLY 3, NO_ITEM 8 |
 | Insurance | 2 | 1 | 0 | 1 | 1 | T1-ALBERT-132 (1) | 39, 40 | part (row by row): placed row by row; a policy end date is not among the deadlines 39 names | MODULE_ONLY 1, PART 1 |
 | Alerts and reports | 5 | 0 | 2 | 3 | 0 | T1-ALBERT-133 .. T1-ALBERT-137 (5) | 9, 29, 34 | part (row by row): large transactions (34), low balance (29) and spending trends (9); notification settings and texting the app are channels, not items | IN_PRODUCT 3, NO_ITEM 2 |
@@ -417,7 +417,7 @@ suggests is in its own "Build order suggestion" section.
 | Recurring bills and subscriptions | 9 | 5 | 1 | 3 | 4 | T2-MONARCH-136 .. T2-MONARCH-140 (5) | 10, 18, 28 | full | IN_PRODUCT 9 |
 | Goals | 20 | 17 | 1 | 2 | 0 | T2-MONARCH-145 .. T2-MONARCH-164 (20) | none | none | MODULE_ONLY 2, NO_ITEM 18 |
 | Net worth and accounts | 16 | 16 | 0 | 0 | 0 | T2-MONARCH-165 .. T2-MONARCH-180 (16) | 4, 15 | part (row by row): net worth over time (15) and one list of accounts (4); utilisation bars, notes, logos and hide, close or invert controls have no item | IN_PRODUCT 3, MODULE_ONLY 2, PART 2, NO_ITEM 9 |
-| Investments | 20 | 16 | 1 | 3 | 2 | T2-MONARCH-181 .. T2-MONARCH-200 (18) | 4, 64, 65, 67 | part (row by row): holdings and returns against a benchmark (64), allocation (65), fund breakdowns (67) and hand-added holdings (4); equity compensation tracking has no item | IN_PRODUCT 3, MODULE_ONLY 7, PART 2, NO_ITEM 8 |
+| Investments | 20 | 16 | 1 | 3 | 2 | T2-MONARCH-181 .. T2-MONARCH-200 (18) | 4, 64, 65, 67 | part (row by row): holdings and returns against a benchmark (64), allocation (65), fund breakdowns (67) and hand-added holdings (4); equity compensation tracking has no item | IN_PRODUCT 6, MODULE_ONLY 4, PART 2, NO_ITEM 8 |
 | Forecasting | 24 | 24 | 0 | 0 | 9 | T2-MONARCH-202 .. T2-MONARCH-224 (15) | 20 | part (row by row): what-if events and scenarios such as a new job or a home (20); a lifetime forecast with retirement, Social Security, withdrawal order and tax assumptions has no item (16 forecasts 90 days) | MODULE_ONLY 7, PART 1, NO_ITEM 16 |
 | Business Tracking | 7 | 6 | 1 | 0 | 2 | T2-MONARCH-225 .. T2-MONARCH-231 (5) | none | none | NO_ITEM 7 |
 | Estate planning | 2 | 0 | 2 | 0 | 0 | T2-MONARCH-232 .. T2-MONARCH-233 (2) | none | none | NO_ITEM 2 |
@@ -444,7 +444,7 @@ suggests is in its own "Build order suggestion" section.
 | Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) | 10, 18 | full | IN_PRODUCT 23 |
 | Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) | 7, 12, 14, 18 | part (row by row): free to spend (14), upcoming recurrings (18), this month against last (12) and search (7); the pace chart and budgets card are budget features, and the review card, referral card and tab order are app chrome | IN_PRODUCT 3, PART 1, NO_ITEM 7 |
 | Cash flow | 10 | 8 | 2 | 0 | 0 | T2-COPILOT-168 .. T2-COPILOT-177 (10) | 6, 12 | full | IN_PRODUCT 10 |
-| Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 4, 22, 64, 65 | part (row by row): returns against a benchmark (64), allocation (65), top movers (22) and hand-tracked holdings (4); live balance estimates have no item | IN_PRODUCT 4, MODULE_ONLY 12, NO_ITEM 6 |
+| Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 4, 22, 64, 65 | part (row by row): returns against a benchmark (64), allocation (65), top movers (22) and hand-tracked holdings (4); live balance estimates have no item | IN_PRODUCT 9, MODULE_ONLY 7, NO_ITEM 6 |
 | Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) | none | none | NO_ITEM 19 |
 | AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) | 7, 8, 9 | part (row by row): answers from the person's data (7), category and rule fixes by chat (8) and unusual-charge briefings (9); charts in chat, tag suggestions, nudges and the MCP connector have no item | IN_PRODUCT 3, PART 5, NO_ITEM 11 |
 | Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) | 25, 26 | part (row by row): the month (25) and year (26) in review; slide sharing and CSV export have no item | IN_PRODUCT 3, NO_ITEM 5 |

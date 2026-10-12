@@ -22,9 +22,9 @@ Everything below describes how far the not-done items are from done. None of it 
 | Logic, not done | Items |
 | --- | --- |
 | LOGIC_PROVEN | 3 |
-| LOGIC_TESTED | 106 |
-| PARTLY_TESTED | 75 |
-| DESIGNED | 22 |
+| LOGIC_TESTED | 108 |
+| PARTLY_TESTED | 74 |
+| DESIGNED | 21 |
 
 | Rail | Items |
 | --- | --- |
@@ -32,7 +32,7 @@ Everything below describes how far the not-done items are from done. None of it 
 | SANDBOX | 1 |
 | NOT_WIRED | 205 |
 
-Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 65. Writes with no registry id at T3 or above: 68.
+Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 64. Writes with no registry id at T3 or above: 68.
 
 ## Proof kinds (verification surfaces)
 
@@ -85,7 +85,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C19 | Portfolio mover explainer | no | research_cited | LOGIC_TESTED | NOT_WIRED | INV-002 TESTED, NEWS-002 TESTED, NEWS-005 TESTED, INV-024 TESTED | market-data, news-feed |
 | C20 | Earnings alerts for my holdings | no | alert_fired | PARTLY_TESTED | NOT_WIRED | INV-010 CLAIMED, NEWS-007 CLAIMED, INV-002 TESTED | earnings-calendar |
 | C21 | Watchlist briefing | no | alert_fired | PARTLY_TESTED | NOT_WIRED | INV-008 CLAIMED, NEWS-002 TESTED, NEWS-005 TESTED | market-data, news-feed |
-| C22 | Dividend tracker | no | feed_tie | PARTLY_TESTED | NOT_WIRED | INV-006 CLAIMED, INV-001 TESTED, INV-017 TESTED | none |
+| C22 | Dividend tracker | no | feed_tie | LOGIC_TESTED | NOT_WIRED | INV-006 TESTED, INV-001 TESTED, INV-017 TESTED | none |
 | C23 | Macro calendar reminders | no | push_delivered | PARTLY_TESTED | NOT_WIRED | NEWS-008 CLAIMED, INV-002 TESTED | macro-calendar |
 | C24 | Money reminders that remember context | no | push_delivered | LOGIC_TESTED | NOT_WIRED | CORE-007 TESTED, ALRT-010 TESTED, CARD-008 TESTED | push-transport |
 | C25 | Rate-watch alerts | no | alert_fired | LOGIC_TESTED | NOT_WIRED | CRDT-011 TESTED, ALRT-010 TESTED | rate-data |
@@ -136,7 +136,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C60 | DCA into crypto | no | fill | DESIGNED | NOT_WIRED | INV-013 CLAIMED | crypto-recurring-orders |
 | C61 | Options income on my shares | no | fill | PARTLY_TESTED | NOT_WIRED | INV-023 CLAIMED, INV-011 TESTED, INV-024 TESTED | options-brokerage, options-quotes |
 | C62 | Fractional investing | no | fill | LOGIC_TESTED | NOT_WIRED | INV-011 TESTED | none |
-| C63 | Dividend reinvestment control | no | enrollment_verified | DESIGNED | NOT_WIRED | INV-006 CLAIMED | brokerage-account-settings |
+| C63 | Dividend reinvestment control | no | enrollment_verified | LOGIC_TESTED | NOT_WIRED | INV-006 TESTED | brokerage-account-settings |
 | C64 | IRA contribution before the deadline | no | delivery_confirmed | PARTLY_TESTED | NOT_WIRED | INV-018 TESTED, TAX-009 CLAIMED | custodian-contribution-flow |
 | C65 | Old 401(k) rollover | no | payout_tracked | LOGIC_TESTED | NOT_WIRED | INV-019 TESTED, INV-018 TESTED | custodian-rollover-flow |
 | C66 | 401(k) contribution change | no | enrollment_verified | LOGIC_TESTED | NOT_WIRED | EARN-005 TESTED, SAVE-019 TESTED | benefits-portal-write |
@@ -576,7 +576,6 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | INS-004 | CLAIMED | C143, C144, C148, C183 |
 | INS-005 | CLAIMED | C143, C144, C148, C183 |
 | INS-007 | CLAIMED | C82, C173 |
-| INV-006 | CLAIMED | C22, C63 |
 | INV-008 | CLAIMED | C21, C26, C27, C35, C36, C44, C45, C55 |
 | INV-010 | CLAIMED | C17, C20 |
 | INV-013 | CLAIMED | C48, C60 |

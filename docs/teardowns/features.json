@@ -2029,8 +2029,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "portfolios compared on one scale (51)",
-   "upmore_today": "NOT_BUILT",
-   "upmore_today_row": "NOT_BUILT"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -2052,8 +2052,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a copy's return (51, 64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -2074,8 +2074,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "total return of the account (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -2096,8 +2096,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "each copy's daily and total performance (51)",
-   "upmore_today": "NOT_BUILT",
-   "upmore_today_row": "NOT_BUILT"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -2138,8 +2138,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fees paid (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -4167,8 +4167,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "portfolio return (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -6162,8 +6162,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "the value of the copied positions (51)",
-   "upmore_today": "NOT_BUILT",
-   "upmore_today_row": "NOT_BUILT"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -6184,8 +6184,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "how the copy performed (51)",
-   "upmore_today": "NOT_BUILT",
-   "upmore_today_row": "NOT_BUILT"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -6229,7 +6229,7 @@
    ],
    "capability_coverage": "part",
    "capability_note": "rebalance and performance notices (42, 51); market-news alerts are the rest",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -8293,8 +8293,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "portfolio performance over time (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -8315,8 +8315,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "return against a benchmark (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -13444,8 +13444,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "performance across Albert and outside accounts (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -20862,8 +20862,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "each holding's cost and value, the basis of return (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -20928,8 +20928,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "return against a benchmark (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -21183,8 +21183,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "gains and losses against cost (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -27676,8 +27676,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "returns or balances over time (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -27740,8 +27740,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "return against a benchmark (64); the crypto benchmarks stay off",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -27782,8 +27782,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "time-weighted return (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -27826,8 +27826,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "each account's return (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -27956,8 +27956,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "average cost and total return (64)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,

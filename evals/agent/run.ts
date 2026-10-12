@@ -28,6 +28,7 @@ import { guardPlan, ENVELOPE_CENTS, ORDER_CAP_CENTS } from "./live_guard.ts";
 import { guardMoneyClaim } from "../../supabase/functions/_shared/claim_guard.ts";
 import { chatInput } from "../../supabase/functions/agent-chat/_shared/chat_input.ts";
 import { moneyReply } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
+import { goalReply } from "../../supabase/functions/agent-chat/_shared/goal_answer.ts";
 import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 import { ConnectCards, BrokerAccounts } from "../../supabase/functions/_shared/router_core.js";
 
@@ -329,6 +330,28 @@ async function flow() {
   // Item 134 (105-iou-log.js): the IOU log through the settings path the handler calls, saved in the person's row
   // (MOCK db), settled in part, and the net with one person; nothing is paid, requested or sent.
   const iouDb = () => ({ settings: { ious: [] } as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } });
+  // Today's reachable reads and settings (2026-10-12): the trade flow's performance and dividends answers through the chat
+  // replay (no history or activities in this world, so each says what it can't read, never a number), and the settings
+  // path for scheduled sends, their cancel, and savings goals with their progress.
+  ex["INV-005"] = () => one(["compare my portfolio to the S&P"], r => r.actual[0].outcome === "answer" && /won't show a return|gained|lost/.test(r.actual[0].reply || "") && r.mock_orders === 0);
+  ex["INV-006"] = () => one(["what dividends did I get"], r => r.actual[0].outcome === "answer" && /dividends/i.test(r.actual[0].reply || "") && r.mock_orders === 0);
+  const sdb = () => ({ settings: { time_zone: "America/New_York" } as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } });
+  ex["PAY-007"] = async () => {
+    const db = sdb(), r = await settingsMessage("pay maya 40 tomorrow at 9", db, NOW);
+    const p = plan({ accounts: mapAccounts(accountRows()), transactions: mapTransactions(txRows()), settings: db.settings, sent: [] } as any, NOW + 23 * 3600000 + 7 * 60000);
+    const m = p.messages.find((x: any) => String(x.key).startsWith("ssend:"));
+    return [!!r?.changed && /^Scheduled: tomorrow/.test(r.reply) && !!m && (m as any).offer?.command === "pay maya 40", `${r?.reply.slice(0, 70)} / ${m ? m.text.slice(0, 60) : "no question at 9:07"}`];
+  };
+  ex["PAY-008"] = async () => {
+    const db = sdb(); await settingsMessage("pay maya 40 tomorrow at 9", db, NOW);
+    const c = await settingsMessage("cancel the scheduled send to maya", db, NOW);
+    return [!!c?.changed && /^Cancelled: send Maya \$40\.00/.test(c.reply) && (db.settings.watches || []).length === 0, c?.reply.slice(0, 90) || "no reply"];
+  };
+  ex["ANL-016"] = async () => {
+    const db = sdb(); const s0 = await settingsMessage("set a $3000 vacation goal by june in everyday checking", db, NOW);
+    const a = await goalReply("how's my vacation fund", db.settings.watches, async () => accountRows() as any, { tz: "America/New_York", now: NOW });
+    return [!!s0?.changed && !!a && /^Vacation: \$[\d,]+\.\d\d of \$3,000\.00/.test(a), `${s0?.reply.slice(0, 60)} / ${String(a).split("\n")[0].slice(0, 80)}`];
+  };
   ex["PAY-017"] = async () => {
     const db = iouDb(), out: string[] = [];
     for (const m of ["jake owes me 20", "log that I owe mom 200", "jake paid me 5", "what do I owe people"]) out.push(String((await settingsMessage(m, db, NOW))?.reply || "none"));

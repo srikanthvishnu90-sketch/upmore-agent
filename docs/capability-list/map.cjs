@@ -37,6 +37,11 @@ const REACHABLE = {
   "CORE-002": "chat: honest capability answers",
   "CORE-009": "chat: confirmation cards",
   "CORE-014": "app: delete-account function",
+  "INV-005": "chat: trade flow, \"how are my investments doing this year\", \"compare my portfolio to the S&P\" (performanceAnswer, 66-agent-trade.js)",
+  "INV-006": "chat: trade flow, \"what dividends did I get\" (dividendsAnswer, 66-agent-trade.js, from Alpaca account activities)",
+  "PAY-007": "chat: \"pay maya 40 tomorrow at 9\" (113-scheduled-send.js) and \"pay maya 40 when my paycheck lands\" (115-paycheck-send.js): at that time the hourly run asks for the send card, which needs its own yes",
+  "PAY-008": "chat: \"cancel the scheduled send to maya\", \"cancel the paycheck send to maya\" (_shared/proactive.ts parseCommand)",
+  "ANL-016": "chat: savings goals tied to an account's balance, \"how's my vacation fund\" (114-savings-goals.js, agent-chat/_shared/goal_answer.ts)",
   // Section 2 wiring (2026-10-11): the hourly agent-proactive run (pg_cron, scheduled by go-live) delivers into the
   // person's "Updates from Upmore" chat thread; settings are said in chat (supabase/functions/_shared/proactive.ts).
   // Evidence: tests/edge/proactive.test.ts, tests/proactive-wiring.test.cjs, tests/db/proactive.test.sql.
@@ -140,7 +145,7 @@ const MAP = [
   [33, "TXN-009 ALRT-003", "part", "new merchant at a large amount wired; duplicate charges reach the chat (planner) and the save engine's fee scan, not a standalone alert", null],
   [34, "ALRT-002", "full", "wired", null],
   [35, "INV-009 INV-010", "part", "price alerts are a module; earnings-date alerts not built", null],
-  [36, "INV-006 EARN-018", "full", "", null],
+  [36, "INV-006 EARN-018", "part", "asked in chat: dividends paid (G15) and savings interest (M04); a message on its own when one is paid is not built", null],
   [37, "CRDT-001 CRDT-006 CRDT-007", "part", "modules over a credit feed that is not connected", null],
   [38, "TXN-013 EARN-015 ALRT-010", "part", "chat: \"tell me if my $45.99 Amazon refund doesn't arrive by Oct 20\" (or \"within 7 business days\", \"by Friday\") is the person's own watch: the refund posting is said once to the cent, another credit from that merchant is said with the watch kept, and the day after the deadline with no matching credit it says so once with what was checked; the promised window is what the person says (a pasted merchant email is not read for it yet), and settlement payouts (EARN-015) are not watched this way; \"did my refund arrive?\" / \"did amazon refund me\" is answered from the person's rows (98-refund-check.js), none found offering the watch", null],
   [39, "TAX-010 TAX-003 INS-009 EARN-008 SAVE-020", "part", "federal tax dates (estimated tax only for people who said they pay it), Medicare and HealthCare.gov enrollment, and the FSA and work open-enrollment dates the person gives are said 14 and 2 days before and on ask, from dated official sources with their checked date (99-deadlines.js); class-action claim dates are not built (no verified settlement list on file); FSA and HSA contribution maximums (SAVE-020's max reminder) not built", null],
@@ -156,14 +161,14 @@ const MAP = [
   [48, "", "none", "not built (the stale-data warning exists in the refusal text)", null],
   [49, "", "none", "not built", CAP_COPY],
   [50, "", "none", "not built; theme baskets choose positions for the person", NO_ADVICE],
-  [51, "INV-005", "part", "benchmark comparison not built", null],
+  [51, "INV-005", "part", "the account's own return against the S&P 500 is built (G14); a copy's performance is not, since copy trading is not built", null],
   // buy, sell, manage
   [52, "INV-011 INV-012", "full", "live in the person's own Alpaca account, fresh approval, $5 cap; 0 live orders so far", null],
   [53, "INV-013", "full", "not built; the chat says so", FRESH],
   [54, "SAVE-001", "part", "round-up rules are a module for savings, not investing", FRESH],
   [55, "SAVE-022 INV-013", "part", "not built", FRESH],
   [56, "INV-014", "full", "module only (rebalance on approval); not wired to chat", null],
-  [57, "INV-006", "part", "dividend tracking is claimed, not built; reinvesting is not built", FRESH],
+  [57, "INV-006", "part", "dividends received are read in chat (G15); reinvesting is not built (\"reinvest my dividends\" says so)", FRESH],
   [58, "INV-011 INV-012", "full", "limit, stop and trailing orders in the trade flow (Rail 2); '10%' stops need a holding", null],
   [59, "EARN-018", "part", "idle-cash audit claimed, not built; sweeping is not built", null],
   [60, "INV-015 INV-016", "part", "candidates and wash-sale checks are modules; selling is the normal trade flow", null],
@@ -171,7 +176,7 @@ const MAP = [
   [62, "", "none", "crypto refused plainly today; no licensed crypto partner", null],
   // understand
   [63, "NEWS-005 INV-001", "part", "holdings read reachable; a one-paragraph 'why it moved' is not built", null],
-  [64, "INV-005 INV-017", "part", "cost basis report is a module; benchmark and fees not built", null],
+  [64, "INV-005 INV-017", "part", "return over a period and against the S&P 500 in chat (G02, G14); fees paid are not built", null],
   [65, "INV-003", "full", "module only", null],
   [66, "NEWS-002 NEWS-003 NEWS-007", "part", "holding-linked news ranking is a module (news-feed function); earnings previews not built", null],
   [67, "INV-004", "part", "index overlap module; fund-vs-fund fees not built", null],
@@ -188,9 +193,9 @@ const MAP = [
   [76, "PAY-006", "part", "not built", null],
   [77, "SAVE-006 PAY-009", "part", "overdraft-prevention move is a module; moving money is not built", null],
   [78, "PAY-006", "part", "not built (photos are read, no payment)", null],
-  [79, "PAY-007", "part", "scheduled payments are a module; the chat says scheduling is not built", null],
+  [79, "PAY-007", "part", "a send at a set time or when the paycheck lands asks for the card then (A08, A15); timing around payday to avoid overdrafts is not built", null],
   [80, "", "none", "not built", null],
-  [81, "SAVE-005", "part", "fee refund request drafts are a module; late-fee waiver asks are not sent", null],
+  [81, "SAVE-005", "part", "a late fee is caught and said once by the late-fee alert (D15, 112-late-fee-watch.js); the waiver ask is not drafted or sent from chat", null],
   [82, "HOUS-003", "full", "gated on a reporting partner", null],
   [83, "BILL-009", "part", "autopay audit claimed, not built", null],
   // BNPL

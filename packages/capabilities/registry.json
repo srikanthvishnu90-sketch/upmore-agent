@@ -3872,12 +3872,15 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/depth-RAIL-2.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/66-agent-trade.js",
+    "packages/domain/71-alpaca.js"
+   ],
+   "note": "The account's return over a period (this year, this month, the last 12 months, since it started) from the live account's equity and Alpaca's daily history, used only when it matches the account's own last close; deposits and withdrawals taken out, money-weighted (Modified Dietz); SPY over the same days with dividends counted (megadoc G02, G14; RAIL-2 S32). A copy's performance against its original is not built (no copy trading).",
    "description": "performance vs benchmark"
   },
   {
@@ -3887,12 +3890,15 @@
    "domain": "investing",
    "tier": "T0",
    "owner_doc": "09",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/depth-PORTFOLIO-Q.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/66-agent-trade.js",
+    "packages/domain/71-alpaca.js"
+   ],
+   "note": "Dividends received, read from the broker's account activities (DIV and the withholding kinds), by holding or one ticker, for the period asked, with what was withheld (megadoc G15; PORTFOLIO-Q S25-S28, RAIL-2 S31). A dividend forecast is not built; reinvesting is not built.",
    "description": "dividend tracking and forecast"
   },
   {

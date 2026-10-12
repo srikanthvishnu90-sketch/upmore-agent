@@ -1,1706 +1,1724 @@
 {
- "NEWS-002": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "Entity resolution against holdings, watchlist, private holdings, employer and screen sectors, by ticker, name and alias."
- },
- "NEWS-003": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js",
-   "evals/news/benchmark.cjs"
-  ],
-  "note": "Owned names outrank everything; watchlist, sector (only with a deal, filing, listing, results or an ingest tag), learned topics, freshness and source authority follow; market noise near zero; muted zero. On the labeled week (evals/data/labeled/news-relevance.json, evals/news/benchmark.cjs): brief precision over 0.93 for all five personas vs under 0.10 for the raw feed."
- },
- "NEWS-004": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "5 to 8 items ordered by personal relevance, two-sentence summaries with links, one broadly material item outside the usual topics; ingestion is a fixture feed until the edge poller exists."
- },
- "NEWS-005": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js",
-   "packages/domain/45-advice-guard.js"
-  ],
-  "note": "Owned name plus material event (earnings, acquisition, regulator, executive, dividend) interrupts; the text passes the advice guard; quiet hours defer it. Labeled week: every material owned-name event alerts exactly once (recall 1.0, 0 false, 0 duplicate interruptions) while a generic app pings on every syndicated copy."
- },
- "NEWS-006": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "Acquisition clusters with size and any overlap with holdings or watchlist."
- },
- "NEWS-010": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "Taps, expands, follow-ups and dismisses move capped topic weights; mute zeroes a topic; weights decay with a 30-day half-life; 'why am I seeing this' is answerable from the weights."
- },
- "NEWS-013": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "Sector roundup from the user's chosen sectors."
- },
- "NEWS-014": {
-  "status": "TESTED",
-  "test_ref": "tests/news.test.cjs",
-  "implementation": [
-   "packages/domain/55-agent-news.js"
-  ],
-  "note": "The brief keeps one broadly material item outside the user's usual topics; weights narrow but never blind."
- },
- "CORE-002": {
-  "status": "TESTED",
-  "test_ref": "tests/capabilities.test.cjs",
-  "implementation": [
-   "packages/capabilities/registry.js"
-  ],
-  "note": "Status phrases come from the registry, never from the model's impression."
- },
- "SEC-004": {
-  "status": "TESTED",
-  "test_ref": "tests/compliance.test.cjs",
-  "implementation": [
-   "packages/domain/53-compliance.js"
-  ],
-  "note": "Breach, unauthorized-transaction, agent-error and partner-outage playbooks as step lists executed against fixtures; stop on a failed step."
- },
- "SEC-012": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "A large first send asks a verification question the user answers in person terms; scam-pattern phrases stop the send outright."
- },
- "ACCT-005": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js"
-  ],
-  "note": "HEALTHY, STALE, NEEDS_REAUTH, BROKEN, REVOKED per connector with the age of the last good sync; one calm relink message, one escalation, then quiet."
- },
- "ACCT-010": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Every synced datum carries source, auth class and as-of; the loop labels stale reads in the same sentence."
- },
- "ACCT-008": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js"
-  ],
-  "note": "Revoke destroys the vault handle, stops syncs and writes the retention note; proven against the fake aggregator, not a live provider."
- },
- "SEC-009": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Connector audit log with secrets redacted plus the loop's event log; the user-inspectable surface is the data, the screen is not built."
- },
- "PAY-004": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js",
-   "packages/domain/48-money-math.js"
-  ],
-  "note": "Equal and itemized shares on exact cents with shared costs by weight; IOUs created; requests are T3 messages the user reviews."
- },
- "PAY-017": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Running balances per person from explicit IOUs, splits and settled entries."
- },
- "PAY-019": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Settle-up prompts per person and the minimal transfer set for a group."
- },
- "PAY-020": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Daily and weekly velocity limits from the user's envelope; a message cannot raise them."
- },
- "PAY-021": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "A first send is T5 with the recipient read back; a large first send adds a verification question; ambiguous names ask."
- },
- "PAY-022": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "A receipt needs a rail confirmation id or a posting record and carries the rail's reversal contract."
- },
- "PAY-024": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Per-rail reversal contracts and mitigation paths as data; every receipt ends with 'reply wrong' and the real path."
- },
- "SOC-003": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Shares PAY-017's ledger."
- },
- "HOUS-001": {
-  "status": "TESTED",
-  "test_ref": "tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ],
-  "note": "Rent as a T2 commitment with amount, due day, method, late fee and grace; the cycle checks the lease amount and pays two business days early once the standing instruction is approved."
- },
- "PAY-005": {
-  "status": "GATED",
-  "gate_reason": "the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ]
- },
- "PAY-010": {
-  "status": "GATED",
-  "gate_reason": "no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs",
-  "implementation": [
-   "packages/domain/54-agent-money.js",
-   "packages/domain/43-agent-loop.js"
-  ]
- },
- "PAY-011": {
-  "status": "GATED",
-  "gate_reason": "wires need the same partner rail and stay T5 always",
-  "implementation": [
-   "packages/domain/54-agent-money.js"
-  ]
- },
- "CORE-015": {
-  "status": "TESTED",
-  "test_ref": "tests/harness.test.cjs",
-  "implementation": [
-   "evals/runner.cjs",
-   "evals/scenarios/operating-model.cjs",
-   "evals/mutations.cjs",
-   "evals/gates/release.json"
-  ],
-  "note": "Five-layer harness with hard gates; results versioned under evals/results; ten planted mutations are caught and attributed; the naive baseline fails 22 of 25 scenarios."
- },
- "INV-024": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/45-advice-guard.js",
-   "evals/data/labeled/advice-boundary.json"
-  ],
-  "note": "Request classifier and response linter; 40 red-team + 20 held-out blocked, 40 legitimate allowed, run as a hard gate in evals/data/run-adversarial.cjs. Rule set awaits US securities counsel review before launch."
- },
- "INV-002": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Consolidation across accounts in integer cents with shares in basis points; carries sources and the latest as-of."
- },
- "INV-003": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Threshold-based, decision-free statements: 'NVDA is 20.9 percent of your invested assets'."
- },
- "INV-004": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Overlap by look-through weights the caller supplies; constituent data is an input, not fetched."
- },
- "INV-007": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Runs only user-defined criteria over a supplied universe and states them in the result; no criteria, no screen."
- },
- "INV-011": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-INV-011.test.cjs",
-  "implementation": [
-   "packages/domain/66-agent-trade.js",
-   "packages/domain/50-agent-invest.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "connectors": [],
-  "note": "Depth protocol docs/depth/INV-011.md: 15 sub-capabilities, each proven to fail under its planted defect. Execution is closed by the compliance gate until a broker-dealer partner is live (doc 14); the logic is proven against a fake rail that fills, queues, partially fills, rejects and times out."
- },
- "INV-012": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-RAIL-2.test.cjs",
-  "implementation": [
-   "packages/domain/66-agent-trade.js",
-   "packages/domain/71-alpaca.js",
-   "packages/domain/73-broker-accounts.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Rail 2 (docs/depth/RAIL-2.md) and Brokerage connect (docs/depth/BROKER-CONNECT.md): sells from a text (shares, dollars, half, all, a percent) with the position read before staging, every order type (market, limit, stop, stop limit, trailing stop), a fresh single-use yes, the fill read back. Since 2026-10-11 LIVE only, in the person's OWN Alpaca account connected through OAuth (no shared account, no paper), $5.00 per-order cap until the owner raises it. Proven against a MOCK Alpaca Trading API server and stubbed OAuth only; 0 live connections and 0 live orders."
- },
- "INV-014": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Drift from the user's own target with the trade list computed; execution of the list is a gated T3 order (INV-011)."
- },
- "INV-015": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Unrealized losses by lot, offset total outside wash-sale windows, stated as math the user directs."
- },
- "INV-016": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "30 days either side of the sale; substantially identical securities are labeled by the caller."
- },
- "INV-017": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Lot-level basis and realized gains by year, short and long term."
- },
- "INV-018": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "Room against limits the caller supplies for the year; the code never remembers a limit."
- },
- "EARN-002": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Requirement checklist as data (direct deposit, debit count, minimum balance) checked against the bonus account's own transactions after the open date; fees and transfers never count as debits; the payout is verified only when the bonus credit posts."
- },
- "EARN-003": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Inventory of stated referral programs and payouts; sharing is user-initiated with a reviewed message, contacts are never touched."
- },
- "EARN-004": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Pending referrals tracked to the expected payout date; verified by the referral credit in the transactions."
- },
- "EARN-005": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Match gap, HSA seed and unused stipends as arithmetic on stated plan terms; the terms are user-supplied until a payroll connector exists."
- },
- "EARN-006": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "ESPP discount valued as salary x max percent x discount with the enrollment window as a deadline alert."
- },
- "EARN-008": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Matches open settlements on the user's own merchants and states lived; wrong state or merchant alone never matches. Likely, not certain; the user files. Settlement rows come from class_action_settlements."
- },
- "EARN-011": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Points valued at the stated real redemption rate, with the marketing rate shown as not the number."
- },
- "EARN-012": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Transfer partner above the cash rate surfaced as a sweet spot; expiring balances within 60 days carry a deadline."
- },
- "EARN-015": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Recall refunds matched to a purchase at the recall's merchant in its window or amount; verified when the refund posts."
- },
- "SAVE-019": {
-  "status": "TESTED",
-  "test_ref": "tests/earn.test.cjs",
-  "implementation": [
-   "packages/domain/44-agent-earn.js"
-  ],
-  "note": "Employer match gap in dollars a year from stated terms; a draft election change the user submits."
- },
- "BILL-001": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js",
-   "packages/domain/33-agent-monitors.js"
-  ],
-  "note": "Inventory from repeating charges across accounts; rent, loans, utilities, telecom and bank fees are listed as recurring bills, not subscriptions. Twelve-subscription household and 40 synthetic lives; no usage signal, so unused detection (BILL-013) is not claimed."
- },
- "BILL-002": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Three or more charges, earlier price steady, latest at least 5 percent and $0.50 higher within 45 days; the delta is surfaced, the saving depends on the user's choice."
- },
- "BILL-011": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Yearly repeating charges surfaced 14 days before the next date."
- },
- "BILL-012": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Two services doing one job (music, cloud storage, meal kits, password managers, VPN); video needs three or more (monitors' overlap rule). The cheaper service is the number surfaced; the user picks."
- },
- "SAVE-002": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Checking cash above two months of payroll income, rate gap to the user's own high-yield account or a stated reference rate; T0 arithmetic, the transfer is a separate confirmed action (PAY-009)."
- },
- "SAVE-007": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "A negotiation books only when the next bill is lower; the delta is what posts, never the script's promise."
- },
- "SAVE-015": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Avalanche vs snowball as a first-month interest number for a stated extra payment; a plan, never a lecture, never auto-executed."
- },
- "SAVE-017": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Consolidation savings are the duplicate-service play (BILL-012) quantified at the cheaper service's monthly cost."
- },
- "CRDT-013": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Detects an unenrolled autopay discount on a loan and quantifies it; enrollment is a confirmed action on the servicer, verified when the rate drops."
- },
- "ANL-008": {
-  "status": "TESTED",
-  "test_ref": "tests/save.test.cjs",
-  "implementation": [
-   "packages/domain/49-agent-save.js"
-  ],
-  "note": "Run-rate is the sum of the subscription inventory's monthly cost, in cents."
- },
- "TXN-009": {
-  "status": "TESTED",
-  "test_ref": "tests/recovery.test.cjs",
-  "implementation": [
-   "packages/domain/41-agent-recovery.js"
-  ],
-  "note": "Same account, merchant identity and amount within three days; two identical charges can be legitimate, so the user confirms before any refund request."
- },
- "TXN-013": {
-  "status": "TESTED",
-  "test_ref": "tests/recovery.test.cjs",
-  "implementation": [
-   "packages/domain/41-agent-recovery.js"
-  ],
-  "note": "A later credit is reported as a possible refund with unverified linkage until a trusted link to the original charge exists."
- },
- "TXN-018": {
-  "status": "TESTED",
-  "test_ref": "tests/recovery.test.cjs",
-  "implementation": [
-   "packages/domain/41-agent-recovery.js"
-  ],
-  "note": "Overdraft, NSF, maintenance, ATM, foreign transaction, late and paper statement fees on retained posted USD facts; fee wording over $500 is not trusted as a fee."
- },
- "SAVE-004": {
-  "status": "TESTED",
-  "test_ref": "tests/recovery.test.cjs",
-  "implementation": [
-   "packages/domain/41-agent-recovery.js"
-  ],
-  "note": "Shares the TXN-018 detector; covers only connected accounts with retained history."
- },
- "SAVE-005": {
-  "status": "TESTED",
-  "test_ref": "tests/recovery.test.cjs",
-  "implementation": [
-   "packages/domain/41-agent-recovery.js"
-  ],
-  "note": "Drafts the refund request; the user sends it. Recovery counts only after an observed reversal credit. No automated bank chat yet (spec tier T3; current behavior is T2)."
- },
- "BILL-003": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-BILL-003.test.cjs",
-  "implementation": [
-   "packages/domain/68-agent-cancel.js",
-   "packages/domain/67-agent-cards.js",
-   "supabase/functions/agent-exec/execution-guards.ts",
-   "supabase/functions/agent-exec/index.ts",
-   "supabase/functions/agent-exec/merchant-catalog.ts"
-  ],
-  "connectors": [],
-  "note": "Depth protocol docs/depth/BILL-003.md (real-world C73): 15 sub-capabilities, each proven to fail under its planted defect: resolution from the user's own charges, route by purchase channel, terms read before the card, one card per cancellation through the loop, done only when the merchant's record says cancelled, tripwire on plan changes, OTP as a bounded continuation, feed-verified claims (BILL-017/018), refund tracked separately, failure without blind retry, undo, savings honesty. The real-browser sandbox (node tests/execution/live-local/run-live-local.js) still proves the Chromium runner against a merchant that keeps state; all 29 merchant playbooks remain verified:false, so real merchants fall back to guided steps until one live authenticated run succeeds."
- },
- "BILL-017": {
-  "status": "TESTED",
-  "test_ref": "tests/execution/watcher-match.js",
-  "implementation": [
-   "supabase/functions/cancel-watcher/index.ts"
-  ],
-  "note": "A cancellation is confirmed only when no charge appears after the expected billing date plus grace."
- },
- "BILL-018": {
-  "status": "TESTED",
-  "test_ref": "tests/execution/watcher-match.js",
-  "implementation": [
-   "supabase/functions/cancel-watcher/index.ts"
-  ],
-  "note": "A charge after a cancel claim marks the claim zombie and reverses the avoided-spend entry."
- },
- "PAY-006": {
-  "status": "GATED",
-  "gate_reason": "A local payment engine exists (supabase/functions/_shared/payment_service.ts) but no registered payment provider or owner launch approval; see docs/implementation/workstreams.md.",
-  "implementation": [
-   "supabase/functions/_shared/payment_service.ts",
-   "supabase/functions/_shared/workflow_service.ts"
-  ]
- },
- "CORE-007": {
-  "status": "TESTED",
-  "test_ref": "tests/agent-loop.test.cjs",
-  "implementation": [
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Follow-up wakes reconcile an unknown write by reading back from the connector; they never re-execute it."
- },
- "CORE-010": {
-  "status": "TESTED",
-  "test_ref": "tests/agent-loop.test.cjs",
-  "implementation": [
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Receipts state the rail reference and whether the source of truth confirmed the action; unconfirmed is never reported as done."
- },
- "ALRT-012": {
-  "status": "TESTED",
-  "test_ref": "tests/agent-loop.test.cjs",
-  "implementation": [
-   "packages/domain/43-agent-loop.js",
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Proactive budget: one non-urgent message per day, four per week; urgent, requested cadence and real deadlines bypass it; suppressed items are reported. At the alert layer, three or more non-safety items at once become one bundle, highest severity first (tests/alerts.test.cjs)."
- },
- "CORE-009": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-CORE-009.test.cjs",
-  "implementation": [
-   "packages/domain/67-agent-cards.js",
-   "packages/domain/46-voice.js",
-   "evals/voice/gold"
-  ],
-  "connectors": [],
-  "note": "Depth protocol docs/depth/CORE-009.md (spec 16 confirmation card): 15 sub-capabilities, each proven to fail under its planted defect: fixed anatomy, 10-minute expiry, single use, context binding with supersession, read-back, plain-text degradation per channel, reply understanding, never mind, correction, new request mid-card, undo terms before and after, channel switch, duplicate delivery, transcript. Doc 11 composition and the 12 gold conversations remain in tests/voice.test.cjs."
- },
- "CORE-001": {
-  "status": "TESTED",
-  "test_ref": "tests/capabilities.test.cjs",
-  "implementation": [
-   "packages/capabilities/registry.js",
-   "packages/capabilities/registry.json"
-  ]
- },
- "CORE-012": {
-  "status": "TESTED",
-  "test_ref": "tests/proactive.test.cjs",
-  "implementation": [
-   "packages/domain/56-agent-proactive.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Engine findings become loop inputs with a stated reason; the loop's budget allows one proactive item a day, suppresses the rest with the reason daily_budget, and lets only a money-losing deadline within two days bypass it. A new subscription's next charge is not a deadline."
- },
- "ANL-020": {
-  "status": "TESTED",
-  "test_ref": "tests/proactive.test.cjs",
-  "implementation": [
-   "packages/domain/56-agent-proactive.js"
-  ],
-  "note": "Weekly money minute: verified savings and earnings first, estimates labeled as not yet booked, deadlines coming due, then news; an empty week says so."
- },
- "ACCT-001": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "balance(account): balance with the connector as source and its as-of stamp; stale flag passed through."
- },
- "ACCT-002": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Available vs current with the held or pending difference explained in one sentence."
- },
- "ACCT-003": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "listAccounts: every visible account grouped by institution; hidden ids reported as excluded."
- },
- "ACCT-004": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "netWorth: assets by group minus liabilities, hidden accounts out, duplicates counted once after dedupe."
- },
- "ACCT-011": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Foreign balances convert only with a dated rate; without one the account is listed as unconverted, never guessed."
- },
- "ACCT-013": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Hidden accounts leave every total and list unless include_hidden is asked for."
- },
- "ACCT-014": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Owner filter: the partner's view holds only accounts they own (joint), totals follow."
- },
- "ACCT-015": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "closedCandidates: connector-closed, or zero balance with no activity in 90 days; action is confirm-and-hide."
- },
- "ACCT-016": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "duplicates/dedupe: same institution, kind and last digits across connectors count once."
- },
- "ACCT-017": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "balanceHistory from dated snapshots with a 30-day trend (delta and direction)."
- },
- "ACCT-018": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "cashPosition: liquid USD accounts only, balance and available, ids listed."
- },
- "TXN-001": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "list: account, date window, category, min/max cents, pending, merchant filters over enriched rows."
- },
- "TXN-002": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "search: merchant, exact amount, month or day, note and category in one query; dates never read as amounts."
- },
- "TXN-003": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "categorize: per-transaction override, then the user's rules, then defaults; the reason is returned with the category."
- },
- "TXN-004": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "normalizeMerchant: AMZN MKTP to Amazon via a display map over the monitors' merchant key; title-case fallback."
- },
- "TXN-005": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "recurring: debits and credits, cadence weekly to yearly incl. semimonthly pay, next expected date, overdue flag; coffee and groceries excluded by the three-occurrence rule."
- },
- "TXN-011": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "pendingVsPosted: what pending means for the available balance and why the amount can still change."
- },
- "TXN-012": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "csv: RFC 4180 quoting, dollars with two decimals from integer cents."
- },
- "TXN-017": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "transfers: opposite amounts across two own accounts within three days, paired once; excluded from spending."
- },
- "TXN-020": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "explainLarge: the charge against the merchant's own history and the category's typical amount; pending noted."
- },
- "TXN-021": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "monthOverMonth: totals and per-category deltas against the prior month."
- },
- "TXN-022": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "merchantHistory: count, total, first and last date, average, rows."
- },
- "ANL-001": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "spendingByCategory over any window with shares in basis points; transfers and debt payments are not spending."
- },
- "ANL-002": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "incomeVsSpend per month with the savings rate."
- },
- "ANL-003": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "budgets per category from the user's numbers; spent, fixed, variable and remaining."
- },
- "ANL-004": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Pacing: fixed recurring bills count once plus the ones still expected this month; only variable spend scales with the days elapsed; alert above 115 percent pace and over budget."
- },
- "ANL-005": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "safeToSpend: available cash minus recurring debits due before the next expected income minus card statements due minus a buffer, every component in the sentence."
- },
- "ANL-006": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "cashflowForecast 30/60/90: recurring income and debits on their cadence plus trailing discretionary per day; low point and negative warning; assumptions stated."
- },
- "ANL-007": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "recurringCalendar: dated expected debits and credits over the horizon."
- },
- "ANL-009": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "categoryTrends: this month vs the trailing three-month average; flag at 30 percent."
- },
- "ANL-010": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "paycheckAllocation: per paycheck, bills, transfers to savings, discretionary and what was left."
- },
- "ANL-011": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "savingsRate per month and the average."
- },
- "ANL-012": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "annualReport: income, spend, saved, rate, categories, top merchants, months covered."
- },
- "ANL-013": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "merchantLeaderboard over a window."
- },
- "ANL-014": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "anomalyExplain: how far above the trailing average, which categories explain it, the largest charges."
- },
- "ANL-016": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "goals: progress from the funding account, needed per month, pace from inbound transfers, ETA, on-track."
- },
- "ANL-017": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "netWorthHistory from snapshots with liabilities signed."
- },
- "ANL-018": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "debtPayoffProjection: amortized avalanche schedule with months, interest and payoff month per debt."
- },
- "ANL-019": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "whatIf: a category cut capped at its three-month average, yearly saving and goal acceleration; arithmetic, not advice."
- },
- "CARD-001": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "cards: inventory with network, issuer, mask, limits, APR, fee, statement and due dates."
- },
- "CARD-004": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "Per-card and total utilization in basis points."
- },
- "CARD-005": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "utilizationAlerts above 30 percent naming the statement close date and the exact pay-down."
- },
- "CARD-006": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "dueDates within a window with statement balance, minimum and autopay state."
- },
- "CARD-007": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "minVsFull: this month's interest at the APR, months and total interest paying only the minimum, the minimum-does-not-cover-interest trap."
- },
- "CARD-008": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "annualFeeAudit: fee vs rewards and benefits used, verdict and the retention or downgrade path."
- },
- "CRDT-008": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "debtInventory across cards and loans with minimums and monthly interest."
- },
- "CRDT-009": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "payoffPlans: avalanche vs snowball amortized month by month, minimums rolling forward, interest difference stated."
- },
- "CRDT-010": {
-  "status": "TESTED",
-  "test_ref": "tests/ledger.test.cjs",
-  "implementation": [
-   "packages/domain/57-agent-ledger.js"
-  ],
-  "note": "extraPaymentImpact: months and interest saved by an extra monthly amount."
- },
- "CORE-003": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Onboarding interview: five questions (accounts, goals, people, quiet hours, autonomy) one at a time, validated, never asked twice; answers become preferences."
- },
- "CORE-004": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Standing instructions: created with a cadence or trigger, restated in plain words with limit and expiry; due() fires once per period with an idempotency key; pause, resume, revoke; never widens authority and fires nothing while paused."
- },
- "CORE-005": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-CORE-005.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Depth protocol (docs/depth/CORE-005.md): 15 user-observable sub-capabilities, each with a test proven to fail under a planted defect (evals/depth/run.cjs CORE-005, 15/15). Grants need the user's words and every limit and are restated; offered only after the trust ladder's three clean confirmations; T4 only; inside: no question and a receipt that says so; limits against the written params; weekly cap; recipient-bound; first-time never; expiry resets the ladder; revoke by text; paused means none; instructions cannot widen; audit of what ran alone; a surprise suspends; the thread always knows."
- },
- "CORE-006": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Corrections stored verbatim with the action corrected; field-level fixes applied to later requests so the same wrong value is never proposed twice."
- },
- "CORE-011": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Undo and mitigation contracts per capability family (subscriptions, own transfers, scheduled payments, P2P, ACH, wire, orders, card freeze, disputes); undoPlan says whether the window is still open and the step."
- },
- "CORE-013": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Export bundle: control state, memory, event log, accounts, transactions as CSV, people, with a manifest; every key that looks like a credential or identity number is removed and counted."
- },
- "CORE-014": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Deletion plan with ordered steps (revoke connectors, cancel instructions and envelopes, delete stores, what a partner rail keeps by law), a confirmation phrase and a 7-day window; confirming revokes everything at once."
- },
- "CORE-016": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Version and changelog awareness from CHANGELOG.md: current version, what changed, what is new since a version."
- },
- "SEC-006": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Credit freeze status per bureau recorded by the user (never a PIN), all-frozen check."
- },
- "SEC-007": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js"
-  ],
-  "note": "Credential rotation reminders from connector rotation dates and intervals; the agent never sees the credential."
- },
- "SEC-010": {
-  "status": "TESTED",
-  "test_ref": "tests/control.test.cjs",
-  "implementation": [
-   "packages/domain/58-agent-control.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Kill switch: pause with a reason and optional end; the loop's gate blocks every tier above T1 while paused, standing instructions do not fire, envelopes are empty; resume restores."
- },
- "ALRT-001": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Low balance ahead from the cash flow forecast's low point under the buffer before the next income; urgent when negative; deadline is the day it happens."
- },
- "ALRT-002": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Large transaction: over the user's line, or three times the category's typical charge with at least five prior rows."
- },
- "ALRT-003": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Unusual pattern: a first-time merchant at a large amount, or a category's 7-day spend at three times its trailing weekly average; several first-time merchants or a probe-then-large shape in one day is safety (SEC-001)."
- },
- "ALRT-004": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Bill increase: a steady recurring debit posted today 5 percent or more above its usual amount, with the yearly cost."
- },
- "ALRT-005": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Renewal: a yearly or quarterly recurring charge or a flagged renewal due within 7 days, with keep, cancel or switch to monthly."
- },
- "ALRT-006": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Payment failed: a connector event or a returned-payment descriptor today; urgent, with the retry-by date as a deadline."
- },
- "ALRT-007": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Deposit received: a credit today at or above 80 percent of a recurring income amount."
- },
- "ALRT-008": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Fee charged today, with the reversal request offered."
- },
- "ALRT-009": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Security sign-in: a connector sign-in from a new device or place is safety; the agent never asks for the password."
- },
- "ALRT-010": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Watch-specific: the user's words parsed into one of six conditions (balance below, charge over, merchant charges, deposit lands, category over per month, bill goes up), restated, refused when unparseable, evaluated over the same rows."
- },
- "ALRT-011": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Quiet hours: everything but safety is held until the window ends, with the time it will be delivered."
- },
- "PAY-003": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "requestMoney: staged on the person's own request rail (the user taps Request), refused for anyone not in the list; settled when the matching credit lands."
- },
- "PAY-007": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "schedulePayment: date after today, saved recipient, rail-aware cutoff (business day before for ACH); the due request goes through the loop with a confirmation and one idempotency key per schedule."
- },
- "PAY-008": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "cancelScheduled: cancels until the cutoff; after it, says the payment is in flight and offers the recall or return request."
- },
- "PAY-009": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "ownTransfer: both accounts named in the confirm fields, never overdraws the source (available balance checked), asks for the person's yes on every run (envelope autonomy is off in shipped code, CLAUDE.md automations rule), with a receipt."
- },
- "PAY-023": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "triageFailed: the bank's reason classifies the cause (insufficient funds, closed account, wrong details, limit, rail down, declined, unknown); only a fixable cause gets a retry, as a new key naming the original, confirmed like any send; never a blind resend."
- },
- "PAY-025": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "allowance: saved person, fixed amount, weekly/biweekly/monthly on a day, optional monthly cap; first-time recipients ask; one request per period under its own key, cadence_requested for the budget."
- },
- "SAVE-001": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "autosave: round-ups on card spend since the last run, a payday sweep (percent or fixed) on the day the paycheck lands, a threshold sweep above a line; every move keeps the source above its floor and carries the rows that justify it."
- },
- "SAVE-006": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "overdraftPrevention: from the forecast's first day under the buffer, the smallest move from savings that keeps checking above it, due the day before, urgent when the low point is negative; says when savings cannot cover it."
- },
- "SOC-002": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "Group expenses: per-expense exact splits (MoneyMath), net balances per member, settle-up with the fewest transfers (AgentMoney.settleGroup)."
- },
- "SOC-005": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "Shared goal: target, by-date, contributions, what is left per member per month; a contribution is a SOC-005 loop request."
- },
- "SOC-006": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "Household roles (owner, partner, viewer, teen with a limit): what each member sees and may act on, applied to accounts and requests."
- },
- "SOC-008": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "gift: saved person, occasion required and carried in the memo, today or a later date confirmed that morning."
- },
- "SOC-009": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "Request reminders in the tone asked for (friendly, plain, firm) on a cadence that respects it; settled requests stop."
- },
- "SOC-010": {
-  "status": "TESTED",
-  "test_ref": "tests/money-plans.test.cjs",
-  "implementation": [
-   "packages/domain/60-agent-money-plans.js"
-  ],
-  "note": "Settled-debts feed: off unless the preference is explicitly true; nothing shared otherwise."
- },
- "CRDT-001": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "scoreMonitor over a score history: FICO bands, change since last, 30/90-day deltas, alert on a ten-point drop or a band change; source and as-of from the feed."
- },
- "CRDT-002": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "walkthrough of a report snapshot: accounts and ages, utilization from open cards, lates, inquiries, records; flags unknown accounts (fraud, not credit), closed accounts still reporting a balance, unexplained inquiries."
- },
- "CRDT-003": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "factors: standard reason codes explained with the user's own numbers; a code the bureau did not explain is not guessed."
- },
- "CRDT-004": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "disputeDraft: a bureau dispute letter naming the item by its last four digits and the reason, with the 30-day investigation step; never an identity number."
- },
- "CRDT-005": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "utilizationPlan: the cheapest pay-downs per card and in total to get under the target before statements close; says when cash does not cover it."
- },
- "CRDT-006": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "newAccountImpact: inquiry, average-age drop and utilization change computed from the report, stated as directions and mechanisms, never exact points."
- },
- "CRDT-007": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "inquiryAlerts: hard inquiries matching no known application (14-day window, lender name when given), with the date each leaves the report."
- },
- "CRDT-011": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "refinanceWatch: amortized payment per offer, monthly saving, breakeven on closing costs, total cost difference over the term; the best only when it pays back inside the term."
- },
- "CRDT-012": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "studentLoanEligibility: structural checks (loan type, employer kind, payment count, plan) against a dated rules table with its source; likely, on track or unlikely, servicer decides."
- },
- "CRDT-014": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "freezeGuidance: the three bureaus' freeze pages, what a freeze does and does not do, which are done; PINs never stored."
- },
- "CRDT-015": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "authorizedUserExplainer: the trade-offs against the user's own file thickness."
- },
- "CRDT-016": {
-  "status": "TESTED",
-  "test_ref": "tests/credit.test.cjs",
-  "implementation": [
-   "packages/domain/61-agent-credit.js"
-  ],
-  "note": "collectorResponse: validation, cease, pay-for-delete and not-mine letters under the FDCPA with the 30-day timing; no identity number in any of them."
- },
- "INS-001": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "policies: the inventory from the vault's policy documents (line, issuer, premium, deductible, coverage, renewal) with the lines that have nothing on file named as a records gap, not a cover gap."
- },
- "INS-003": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "renewals: policies renewing within the lead time, days left, premium, and the rebid reminder with a deadline."
- },
- "INS-008": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "beneficiaryAudit: life, disability and retirement documents whose beneficiary is missing, never reviewed, older than a year, or predates a life event."
- },
- "INS-009": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "enrollmentWindows: the public marketplace and Medicare windows by their usual dates plus the user's own, with opens-in/open/closed state and a caveat that the year's official page decides."
- },
- "INS-010": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "vault: a metadata index (kind, issuer, dates, amounts, location, hash) that refuses any text with an identity or account number; list, find and remove."
- },
- "TAX-002": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "Tax forms as typed vault documents (W-2, 1099 family, 1098, 1095-A, K-1) by year and issuer, found by any field."
- },
- "TAX-003": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "estimatedTax: quarterly dates ahead with the amount from the user's expected tax divided by four, what is paid and what remains."
- },
- "TAX-005": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "donationLog: gifts in the year to the charities the user named, matched to vault acknowledgments; gifts of $250 or more without one are listed."
- },
- "TAX-010": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "taxCalendar: the usual federal filing, extension and contribution dates ahead, with the weekend-and-state caveat."
- },
- "TAX-012": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "refundTracker: filed date, typical e-file or paper window, state from the IRS status the user pastes; the tracker is named as the source."
- },
- "TXN-010": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "triageCharge: descriptor mapping, recurrence, history, pending, household card sharing and trial conversion in order; unexplained charges get lock-then-dispute with the draft offered."
- },
- "TXN-015": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "parseReceipt + matchReceipt: merchant, total, order number and date from a receipt email, matched to one charge by amount, date and merchant; ambiguity and no-match are reported, never guessed."
- },
- "TXN-016": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "attachPhoto: a photo receipt is attached by the total and merchant the user states, matched the same way; the agent does not claim to read the image."
- },
- "SEC-008": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "sessionAudit: the agent's own sessions by device and place, active ones, new-this-week ones called out; revokeSession ends any but the current."
- },
- "SEC-011": {
-  "status": "TESTED",
-  "test_ref": "tests/documents.test.cjs",
-  "implementation": [
-   "packages/domain/62-agent-documents.js"
-  ],
-  "note": "phishing: nine weighted signals (credential asks, urgency, link mismatch, look-alike domains, generic greeting, attachment lures, gift cards or crypto, reply-to and sender domain mismatches); verdicts phishing, suspicious, or no signals found, never safe."
- },
- "EARN-013": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "sideIncomeMatch: a dated catalog of twelve surfaces matched to the user's skills, gear and hours, rated by effective hourly rate after fees, unpaid time, vehicle and cash-out cost; earn apps rated honestly under the floor; a benefits screening surfaced as not-work."
- },
- "EARN-001": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "bonusFinder: a dated bonus catalog filtered by state, the new-customer rule, direct-deposit size and movable cash; forgone interest netted; rated per hour of chores; early-closure window stated."
- },
- "EARN-009": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "portalEarnings: pending, confirmed and actually-landed kept apart from portal statements and the user's own credits; pending named as the portal's number, not money."
- },
- "EARN-010": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "activateOffer: a card-linked offer becomes a T3 loop request restating card, merchant, rate and expiry; already-active offers say so; the agent never clicks."
- },
- "EARN-017": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "complaintDraft: a dated, specific, polite complaint asking for a named remedy, with the follow-up date."
- },
- "SAVE-012": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "routePurchase: the best portal for a purchase from a dated rate table, stacked with the best card offer, with the coupon-code caveat."
- },
- "SAVE-013": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "offersForPlan: planned purchases matched to portal rates and card-linked offers (minimums and expiry honored)."
- },
- "CARD-002": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "bestCard: the user's own reward table, rotating windows, caps, activation state and foreign fees; the ranked list with the runner-up named."
- },
- "CARD-010": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "disputePacket: issuer reason codes, the merchant-first and lock-first ladders, evidence listed, as a T3 request the user files; no provider call."
- },
- "HOUS-010": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "moveBudget: line by line from the user's answers with typical figures marked as such and a 10 percent contingency; the old deposit netted."
- },
- "TAX-007": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "cryptoExport: a generic tax-tool CSV from the user's lots; a sale without a cost basis is listed, never invented."
- },
- "SAVE-009": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "energyPlans: yearly cost of each plan on the user's own usage, the saving against the current plan, term and exit fee stated."
- },
- "BILL-007": {
-  "status": "TESTED",
-  "test_ref": "tests/surfaces.test.cjs",
-  "implementation": [
-   "packages/domain/63-agent-surfaces.js"
-  ],
-  "note": "billCalendar: recurring bill-category debits from the ledger plus bills the user told me about, with autopay state and the manual ones counted."
- },
- "INV-001": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "portfolio: each brokerage account with its source and as-of, positions consolidated with the per-account breakdown, stale sources named."
- },
- "INV-009": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "priceAlerts: above, below and percent-move alerts against quotes with their own as-of; a stale or missing quote never fires."
- },
- "INV-019": {
-  "status": "TESTED",
-  "test_ref": "tests/invest.test.cjs",
-  "implementation": [
-   "packages/domain/50-agent-invest.js"
-  ],
-  "note": "rolloverStatus: the stages, the 60-day clock on an indirect rollover with the withholding trap, what is next and who owes it."
- },
- "SEC-001": {
-  "status": "TESTED",
-  "test_ref": "tests/alerts.test.cjs",
-  "implementation": [
-   "packages/domain/59-agent-alerts.js"
-  ],
-  "note": "Fraud patterns on transactions: a probe-then-large pair or several first-time merchants in a day, a burst of charges within ten minutes, a double charge within minutes, impossible travel between card-present charges; safety severity, evidence rows named."
- },
- "PAY-001": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-PAY-001.test.cjs",
-  "implementation": [
-   "packages/domain/64-agent-send.js",
-   "packages/domain/54-agent-money.js",
-   "packages/domain/43-agent-loop.js"
-  ],
-  "note": "Depth protocol (docs/depth/PAY-001.md): 15 user-observable sub-capabilities, each with a test that is proven to fail under a planted defect (evals/depth/run.cjs PAY-001, 15/15). Amount and recipient from the user's words only; ambiguity asks; look-alike handles named; free rail first; five-field confirmation with zero writes before yes; qualified yes corrects; expiry; one write per instruction per day across duplicates, crashes and timeouts; scam and injection stops; limits and the kill switch; receipts only after the rail confirms, handoffs staged then landed. The live rail stays gated on a partner."
- },
- "ACCT-006": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js"
-  ],
-  "note": "connect through the aggregator adapter with a consent record in plain words and scopes; sync into the canonical schema with freshness stamps."
- },
- "ACCT-007": {
-  "status": "TESTED",
-  "test_ref": "tests/connectors.test.cjs",
-  "implementation": [
-   "packages/domain/51-connectors.js"
-  ],
-  "note": "The manual CSV adapter: accounts and transactions typed or uploaded by the user, synced and normalized like any connector, ranked below aggregators as a source."
- },
- "PAY-002": {
-  "status": "TESTED",
-  "test_ref": "tests/depth-RAIL-1.test.cjs",
-  "implementation": [
-   "packages/domain/42-agent-recipients.js",
-   "packages/domain/64-agent-send.js",
-   "packages/domain/54-agent-money.js",
-   "supabase/migrations/20261011020000_saved_recipients.sql"
-  ],
-  "note": "Rail 1 (docs/depth/RAIL-1.md): a stranger is never staged until the person names the app and handle, types the handle back exactly, and approves the full first-send card (T5, every time). Handoff only: staged for the person to send; no partner rail is live. Saved to public.saved_recipients only when the debit posts or on an explicit SAVE after the read-back."
- },
- "BILL-010": {
-  "status": "TESTED",
-  "test_ref": "tests/edge/proactive.test.ts",
-  "implementation": [
-   "packages/domain/33-agent-monitors.js",
-   "supabase/functions/_shared/proactive.ts"
-  ],
-  "note": "Trials the person tracks in the app (save_subscriptions, interval 'trial') warn within 7 days of the first charge, through the hourly proactive run; within 2 days the warning is a deadline and skips the daily budget. Trials nobody tracked are not detected (no trial signal in bank rows)."
- }
+  "NEWS-002": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "Entity resolution against holdings, watchlist, private holdings, employer and screen sectors, by ticker, name and alias."
+  },
+  "NEWS-003": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js",
+      "evals/news/benchmark.cjs"
+    ],
+    "note": "Owned names outrank everything; watchlist, sector (only with a deal, filing, listing, results or an ingest tag), learned topics, freshness and source authority follow; market noise near zero; muted zero. On the labeled week (evals/data/labeled/news-relevance.json, evals/news/benchmark.cjs): brief precision over 0.93 for all five personas vs under 0.10 for the raw feed."
+  },
+  "NEWS-004": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "5 to 8 items ordered by personal relevance, two-sentence summaries with links, one broadly material item outside the usual topics; ingestion is a fixture feed until the edge poller exists."
+  },
+  "NEWS-005": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js",
+      "packages/domain/45-advice-guard.js"
+    ],
+    "note": "Owned name plus material event (earnings, acquisition, regulator, executive, dividend) interrupts; the text passes the advice guard; quiet hours defer it. Labeled week: every material owned-name event alerts exactly once (recall 1.0, 0 false, 0 duplicate interruptions) while a generic app pings on every syndicated copy."
+  },
+  "NEWS-006": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "Acquisition clusters with size and any overlap with holdings or watchlist."
+  },
+  "NEWS-010": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "Taps, expands, follow-ups and dismisses move capped topic weights; mute zeroes a topic; weights decay with a 30-day half-life; 'why am I seeing this' is answerable from the weights."
+  },
+  "NEWS-013": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "Sector roundup from the user's chosen sectors."
+  },
+  "NEWS-014": {
+    "status": "TESTED",
+    "test_ref": "tests/news.test.cjs",
+    "implementation": [
+      "packages/domain/55-agent-news.js"
+    ],
+    "note": "The brief keeps one broadly material item outside the user's usual topics; weights narrow but never blind."
+  },
+  "CORE-002": {
+    "status": "TESTED",
+    "test_ref": "tests/capabilities.test.cjs",
+    "implementation": [
+      "packages/capabilities/registry.js"
+    ],
+    "note": "Status phrases come from the registry, never from the model's impression."
+  },
+  "SEC-004": {
+    "status": "TESTED",
+    "test_ref": "tests/compliance.test.cjs",
+    "implementation": [
+      "packages/domain/53-compliance.js"
+    ],
+    "note": "Breach, unauthorized-transaction, agent-error and partner-outage playbooks as step lists executed against fixtures; stop on a failed step."
+  },
+  "SEC-012": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "A large first send asks a verification question the user answers in person terms; scam-pattern phrases stop the send outright."
+  },
+  "ACCT-005": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "HEALTHY, STALE, NEEDS_REAUTH, BROKEN, REVOKED per connector with the age of the last good sync; one calm relink message, one escalation, then quiet."
+  },
+  "ACCT-010": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Every synced datum carries source, auth class and as-of; the loop labels stale reads in the same sentence."
+  },
+  "ACCT-008": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "Revoke destroys the vault handle, stops syncs and writes the retention note; proven against the fake aggregator, not a live provider."
+  },
+  "SEC-009": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Connector audit log with secrets redacted plus the loop's event log; the user-inspectable surface is the data, the screen is not built."
+  },
+  "PAY-004": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js",
+      "packages/domain/48-money-math.js"
+    ],
+    "note": "Equal and itemized shares on exact cents with shared costs by weight; IOUs created; requests are T3 messages the user reviews."
+  },
+  "PAY-017": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Running balances per person from explicit IOUs, splits and settled entries."
+  },
+  "PAY-019": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Settle-up prompts per person and the minimal transfer set for a group."
+  },
+  "PAY-020": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Daily and weekly velocity limits from the user's envelope; a message cannot raise them."
+  },
+  "PAY-021": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "A first send is T5 with the recipient read back; a large first send adds a verification question; ambiguous names ask."
+  },
+  "PAY-022": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "A receipt needs a rail confirmation id or a posting record and carries the rail's reversal contract."
+  },
+  "PAY-024": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Per-rail reversal contracts and mitigation paths as data; every receipt ends with 'reply wrong' and the real path."
+  },
+  "SOC-003": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Shares PAY-017's ledger."
+  },
+  "HOUS-001": {
+    "status": "TESTED",
+    "test_ref": "tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ],
+    "note": "Rent as a T2 commitment with amount, due day, method, late fee and grace; the cycle checks the lease amount and pays two business days early once the standing instruction is approved."
+  },
+  "PAY-005": {
+    "status": "GATED",
+    "gate_reason": "the rent cycle is built and tested; paying needs a live partner rail (ACH or bank bill pay) or the handoff pattern, and no partner is signed",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ]
+  },
+  "PAY-010": {
+    "status": "GATED",
+    "gate_reason": "no money-movement partner (Dwolla, Modern Treasury, Unit, Column class) with KYC; the send lifecycle is proven against a fake rail in tests/money.test.cjs",
+    "implementation": [
+      "packages/domain/54-agent-money.js",
+      "packages/domain/43-agent-loop.js"
+    ]
+  },
+  "PAY-011": {
+    "status": "GATED",
+    "gate_reason": "wires need the same partner rail and stay T5 always",
+    "implementation": [
+      "packages/domain/54-agent-money.js"
+    ]
+  },
+  "CORE-015": {
+    "status": "TESTED",
+    "test_ref": "tests/harness.test.cjs",
+    "implementation": [
+      "evals/runner.cjs",
+      "evals/scenarios/operating-model.cjs",
+      "evals/mutations.cjs",
+      "evals/gates/release.json"
+    ],
+    "note": "Five-layer harness with hard gates; results versioned under evals/results; ten planted mutations are caught and attributed; the naive baseline fails 22 of 25 scenarios."
+  },
+  "INV-024": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/45-advice-guard.js",
+      "evals/data/labeled/advice-boundary.json"
+    ],
+    "note": "Request classifier and response linter; 40 red-team + 20 held-out blocked, 40 legitimate allowed, run as a hard gate in evals/data/run-adversarial.cjs. Rule set awaits US securities counsel review before launch."
+  },
+  "INV-002": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Consolidation across accounts in integer cents with shares in basis points; carries sources and the latest as-of."
+  },
+  "INV-003": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Threshold-based, decision-free statements: 'NVDA is 20.9 percent of your invested assets'."
+  },
+  "INV-004": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Overlap by look-through weights the caller supplies; constituent data is an input, not fetched."
+  },
+  "INV-007": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Runs only user-defined criteria over a supplied universe and states them in the result; no criteria, no screen."
+  },
+  "INV-011": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-INV-011.test.cjs",
+    "implementation": [
+      "packages/domain/66-agent-trade.js",
+      "packages/domain/50-agent-invest.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "connectors": [],
+    "note": "Depth protocol docs/depth/INV-011.md: 15 sub-capabilities, each proven to fail under its planted defect. Execution is closed by the compliance gate until a broker-dealer partner is live (doc 14); the logic is proven against a fake rail that fills, queues, partially fills, rejects and times out."
+  },
+  "INV-012": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-RAIL-2.test.cjs",
+    "implementation": [
+      "packages/domain/66-agent-trade.js",
+      "packages/domain/71-alpaca.js",
+      "packages/domain/73-broker-accounts.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Rail 2 (docs/depth/RAIL-2.md) and Brokerage connect (docs/depth/BROKER-CONNECT.md): sells from a text (shares, dollars, half, all, a percent) with the position read before staging, every order type (market, limit, stop, stop limit, trailing stop), a fresh single-use yes, the fill read back. Since 2026-10-11 LIVE only, in the person's OWN Alpaca account connected through OAuth (no shared account, no paper), $5.00 per-order cap until the owner raises it. Proven against a MOCK Alpaca Trading API server and stubbed OAuth only; 0 live connections and 0 live orders."
+  },
+  "INV-014": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Drift from the user's own target with the trade list computed; execution of the list is a gated T3 order (INV-011)."
+  },
+  "INV-015": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Unrealized losses by lot, offset total outside wash-sale windows, stated as math the user directs."
+  },
+  "INV-016": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "30 days either side of the sale; substantially identical securities are labeled by the caller."
+  },
+  "INV-017": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Lot-level basis and realized gains by year, short and long term."
+  },
+  "INV-018": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "Room against limits the caller supplies for the year; the code never remembers a limit."
+  },
+  "EARN-002": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Requirement checklist as data (direct deposit, debit count, minimum balance) checked against the bonus account's own transactions after the open date; fees and transfers never count as debits; the payout is verified only when the bonus credit posts."
+  },
+  "EARN-003": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Inventory of stated referral programs and payouts; sharing is user-initiated with a reviewed message, contacts are never touched."
+  },
+  "EARN-004": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Pending referrals tracked to the expected payout date; verified by the referral credit in the transactions."
+  },
+  "EARN-005": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Match gap, HSA seed and unused stipends as arithmetic on stated plan terms; the terms are user-supplied until a payroll connector exists."
+  },
+  "EARN-006": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "ESPP discount valued as salary x max percent x discount with the enrollment window as a deadline alert."
+  },
+  "EARN-008": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Matches open settlements on the user's own merchants and states lived; wrong state or merchant alone never matches. Likely, not certain; the user files. Settlement rows come from class_action_settlements."
+  },
+  "EARN-011": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Points valued at the stated real redemption rate, with the marketing rate shown as not the number."
+  },
+  "EARN-012": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Transfer partner above the cash rate surfaced as a sweet spot; expiring balances within 60 days carry a deadline."
+  },
+  "EARN-015": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Recall refunds matched to a purchase at the recall's merchant in its window or amount; verified when the refund posts."
+  },
+  "SAVE-019": {
+    "status": "TESTED",
+    "test_ref": "tests/earn.test.cjs",
+    "implementation": [
+      "packages/domain/44-agent-earn.js"
+    ],
+    "note": "Employer match gap in dollars a year from stated terms; a draft election change the user submits."
+  },
+  "BILL-001": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js",
+      "packages/domain/33-agent-monitors.js"
+    ],
+    "note": "Inventory from repeating charges across accounts; rent, loans, utilities, telecom and bank fees are listed as recurring bills, not subscriptions. Twelve-subscription household and 40 synthetic lives; no usage signal, so unused detection (BILL-013) is not claimed."
+  },
+  "BILL-002": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Three or more charges, earlier price steady, latest at least 5 percent and $0.50 higher within 45 days; the delta is surfaced, the saving depends on the user's choice."
+  },
+  "BILL-011": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Yearly repeating charges surfaced 14 days before the next date."
+  },
+  "BILL-012": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Two services doing one job (music, cloud storage, meal kits, password managers, VPN); video needs three or more (monitors' overlap rule). The cheaper service is the number surfaced; the user picks."
+  },
+  "SAVE-002": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Checking cash above two months of payroll income, rate gap to the user's own high-yield account or a stated reference rate; T0 arithmetic, the transfer is a separate confirmed action (PAY-009)."
+  },
+  "SAVE-007": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "A negotiation books only when the next bill is lower; the delta is what posts, never the script's promise."
+  },
+  "SAVE-015": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Avalanche vs snowball as a first-month interest number for a stated extra payment; a plan, never a lecture, never auto-executed."
+  },
+  "SAVE-017": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Consolidation savings are the duplicate-service play (BILL-012) quantified at the cheaper service's monthly cost."
+  },
+  "CRDT-013": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Detects an unenrolled autopay discount on a loan and quantifies it; enrollment is a confirmed action on the servicer, verified when the rate drops."
+  },
+  "ANL-008": {
+    "status": "TESTED",
+    "test_ref": "tests/save.test.cjs",
+    "implementation": [
+      "packages/domain/49-agent-save.js"
+    ],
+    "note": "Run-rate is the sum of the subscription inventory's monthly cost, in cents."
+  },
+  "TXN-009": {
+    "status": "TESTED",
+    "test_ref": "tests/recovery.test.cjs",
+    "implementation": [
+      "packages/domain/41-agent-recovery.js"
+    ],
+    "note": "Same account, merchant identity and amount within three days; two identical charges can be legitimate, so the user confirms before any refund request."
+  },
+  "TXN-013": {
+    "status": "TESTED",
+    "test_ref": "tests/recovery.test.cjs",
+    "implementation": [
+      "packages/domain/41-agent-recovery.js"
+    ],
+    "note": "A later credit is reported as a possible refund with unverified linkage until a trusted link to the original charge exists."
+  },
+  "TXN-018": {
+    "status": "TESTED",
+    "test_ref": "tests/recovery.test.cjs",
+    "implementation": [
+      "packages/domain/41-agent-recovery.js"
+    ],
+    "note": "Overdraft, NSF, maintenance, ATM, foreign transaction, late and paper statement fees on retained posted USD facts; fee wording over $500 is not trusted as a fee."
+  },
+  "SAVE-004": {
+    "status": "TESTED",
+    "test_ref": "tests/recovery.test.cjs",
+    "implementation": [
+      "packages/domain/41-agent-recovery.js"
+    ],
+    "note": "Shares the TXN-018 detector; covers only connected accounts with retained history."
+  },
+  "SAVE-005": {
+    "status": "TESTED",
+    "test_ref": "tests/recovery.test.cjs",
+    "implementation": [
+      "packages/domain/41-agent-recovery.js"
+    ],
+    "note": "Drafts the refund request; the user sends it. Recovery counts only after an observed reversal credit. No automated bank chat yet (spec tier T3; current behavior is T2)."
+  },
+  "BILL-003": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-BILL-003.test.cjs",
+    "implementation": [
+      "packages/domain/68-agent-cancel.js",
+      "packages/domain/67-agent-cards.js",
+      "supabase/functions/agent-exec/execution-guards.ts",
+      "supabase/functions/agent-exec/index.ts",
+      "supabase/functions/agent-exec/merchant-catalog.ts"
+    ],
+    "connectors": [],
+    "note": "Depth protocol docs/depth/BILL-003.md (real-world C73): 15 sub-capabilities, each proven to fail under its planted defect: resolution from the user's own charges, route by purchase channel, terms read before the card, one card per cancellation through the loop, done only when the merchant's record says cancelled, tripwire on plan changes, OTP as a bounded continuation, feed-verified claims (BILL-017/018), refund tracked separately, failure without blind retry, undo, savings honesty. The real-browser sandbox (node tests/execution/live-local/run-live-local.js) still proves the Chromium runner against a merchant that keeps state; all 29 merchant playbooks remain verified:false, so real merchants fall back to guided steps until one live authenticated run succeeds."
+  },
+  "BILL-017": {
+    "status": "TESTED",
+    "test_ref": "tests/execution/watcher-match.js",
+    "implementation": [
+      "supabase/functions/cancel-watcher/index.ts"
+    ],
+    "note": "A cancellation is confirmed only when no charge appears after the expected billing date plus grace."
+  },
+  "BILL-018": {
+    "status": "TESTED",
+    "test_ref": "tests/execution/watcher-match.js",
+    "implementation": [
+      "supabase/functions/cancel-watcher/index.ts"
+    ],
+    "note": "A charge after a cancel claim marks the claim zombie and reverses the avoided-spend entry."
+  },
+  "PAY-006": {
+    "status": "GATED",
+    "gate_reason": "A local payment engine exists (supabase/functions/_shared/payment_service.ts) but no registered payment provider or owner launch approval; see docs/implementation/workstreams.md.",
+    "implementation": [
+      "supabase/functions/_shared/payment_service.ts",
+      "supabase/functions/_shared/workflow_service.ts"
+    ]
+  },
+  "CORE-007": {
+    "status": "TESTED",
+    "test_ref": "tests/agent-loop.test.cjs",
+    "implementation": [
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Follow-up wakes reconcile an unknown write by reading back from the connector; they never re-execute it."
+  },
+  "CORE-010": {
+    "status": "TESTED",
+    "test_ref": "tests/agent-loop.test.cjs",
+    "implementation": [
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Receipts state the rail reference and whether the source of truth confirmed the action; unconfirmed is never reported as done."
+  },
+  "ALRT-012": {
+    "status": "TESTED",
+    "test_ref": "tests/agent-loop.test.cjs",
+    "implementation": [
+      "packages/domain/43-agent-loop.js",
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Proactive budget: one non-urgent message per day, four per week; urgent, requested cadence and real deadlines bypass it; suppressed items are reported. At the alert layer, three or more non-safety items at once become one bundle, highest severity first (tests/alerts.test.cjs)."
+  },
+  "CORE-009": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-CORE-009.test.cjs",
+    "implementation": [
+      "packages/domain/67-agent-cards.js",
+      "packages/domain/46-voice.js",
+      "evals/voice/gold"
+    ],
+    "connectors": [],
+    "note": "Depth protocol docs/depth/CORE-009.md (spec 16 confirmation card): 15 sub-capabilities, each proven to fail under its planted defect: fixed anatomy, 10-minute expiry, single use, context binding with supersession, read-back, plain-text degradation per channel, reply understanding, never mind, correction, new request mid-card, undo terms before and after, channel switch, duplicate delivery, transcript. Doc 11 composition and the 12 gold conversations remain in tests/voice.test.cjs."
+  },
+  "CORE-001": {
+    "status": "TESTED",
+    "test_ref": "tests/capabilities.test.cjs",
+    "implementation": [
+      "packages/capabilities/registry.js",
+      "packages/capabilities/registry.json"
+    ]
+  },
+  "CORE-012": {
+    "status": "TESTED",
+    "test_ref": "tests/proactive.test.cjs",
+    "implementation": [
+      "packages/domain/56-agent-proactive.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Engine findings become loop inputs with a stated reason; the loop's budget allows one proactive item a day, suppresses the rest with the reason daily_budget, and lets only a money-losing deadline within two days bypass it. A new subscription's next charge is not a deadline."
+  },
+  "ANL-020": {
+    "status": "TESTED",
+    "test_ref": "tests/proactive.test.cjs",
+    "implementation": [
+      "packages/domain/56-agent-proactive.js"
+    ],
+    "note": "Weekly money minute: verified savings and earnings first, estimates labeled as not yet booked, deadlines coming due, then news; an empty week says so."
+  },
+  "ACCT-001": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "balance(account): balance with the connector as source and its as-of stamp; stale flag passed through."
+  },
+  "ACCT-002": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Available vs current with the held or pending difference explained in one sentence."
+  },
+  "ACCT-003": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "listAccounts: every visible account grouped by institution; hidden ids reported as excluded."
+  },
+  "ACCT-004": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "netWorth: assets by group minus liabilities, hidden accounts out, duplicates counted once after dedupe."
+  },
+  "ACCT-011": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Foreign balances convert only with a dated rate; without one the account is listed as unconverted, never guessed."
+  },
+  "ACCT-013": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Hidden accounts leave every total and list unless include_hidden is asked for."
+  },
+  "ACCT-014": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Owner filter: the partner's view holds only accounts they own (joint), totals follow."
+  },
+  "ACCT-015": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "closedCandidates: connector-closed, or zero balance with no activity in 90 days; action is confirm-and-hide."
+  },
+  "ACCT-016": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "duplicates/dedupe: same institution, kind and last digits across connectors count once."
+  },
+  "ACCT-017": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "balanceHistory from dated snapshots with a 30-day trend (delta and direction)."
+  },
+  "ACCT-018": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "cashPosition: liquid USD accounts only, balance and available, ids listed."
+  },
+  "TXN-001": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "list: account, date window, category, min/max cents, pending, merchant filters over enriched rows."
+  },
+  "TXN-002": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "search: merchant, exact amount, month or day, note and category in one query; dates never read as amounts."
+  },
+  "TXN-003": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "categorize: per-transaction override, then the user's rules, then defaults; the reason is returned with the category."
+  },
+  "TXN-004": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "normalizeMerchant: AMZN MKTP to Amazon via a display map over the monitors' merchant key; title-case fallback."
+  },
+  "TXN-005": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "recurring: debits and credits, cadence weekly to yearly incl. semimonthly pay, next expected date, overdue flag; coffee and groceries excluded by the three-occurrence rule."
+  },
+  "TXN-011": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "pendingVsPosted: what pending means for the available balance and why the amount can still change."
+  },
+  "TXN-012": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "csv: RFC 4180 quoting, dollars with two decimals from integer cents."
+  },
+  "TXN-017": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "transfers: opposite amounts across two own accounts within three days, paired once; excluded from spending."
+  },
+  "TXN-020": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "explainLarge: the charge against the merchant's own history and the category's typical amount; pending noted."
+  },
+  "TXN-021": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "monthOverMonth: totals and per-category deltas against the prior month."
+  },
+  "TXN-022": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "merchantHistory: count, total, first and last date, average, rows."
+  },
+  "ANL-001": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "spendingByCategory over any window with shares in basis points; transfers and debt payments are not spending."
+  },
+  "ANL-002": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "incomeVsSpend per month with the savings rate."
+  },
+  "ANL-003": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "budgets per category from the user's numbers; spent, fixed, variable and remaining."
+  },
+  "ANL-004": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Pacing: fixed recurring bills count once plus the ones still expected this month; only variable spend scales with the days elapsed; alert above 115 percent pace and over budget."
+  },
+  "ANL-005": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "safeToSpend: available cash minus recurring debits due before the next expected income minus card statements due minus a buffer, every component in the sentence."
+  },
+  "ANL-006": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "cashflowForecast 30/60/90: recurring income and debits on their cadence plus trailing discretionary per day; low point and negative warning; assumptions stated."
+  },
+  "ANL-007": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "recurringCalendar: dated expected debits and credits over the horizon."
+  },
+  "ANL-009": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "categoryTrends: this month vs the trailing three-month average; flag at 30 percent."
+  },
+  "ANL-010": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "paycheckAllocation: per paycheck, bills, transfers to savings, discretionary and what was left."
+  },
+  "ANL-011": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "savingsRate per month and the average."
+  },
+  "ANL-012": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "annualReport: income, spend, saved, rate, categories, top merchants, months covered."
+  },
+  "ANL-013": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "merchantLeaderboard over a window."
+  },
+  "ANL-014": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "anomalyExplain: how far above the trailing average, which categories explain it, the largest charges."
+  },
+  "ANL-016": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "goals: progress from the funding account, needed per month, pace from inbound transfers, ETA, on-track."
+  },
+  "ANL-017": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "netWorthHistory from snapshots with liabilities signed."
+  },
+  "ANL-018": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "debtPayoffProjection: amortized avalanche schedule with months, interest and payoff month per debt."
+  },
+  "ANL-019": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "whatIf: a category cut capped at its three-month average, yearly saving and goal acceleration; arithmetic, not advice."
+  },
+  "CARD-001": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "cards: inventory with network, issuer, mask, limits, APR, fee, statement and due dates."
+  },
+  "CARD-004": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "Per-card and total utilization in basis points."
+  },
+  "CARD-005": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "utilizationAlerts above 30 percent naming the statement close date and the exact pay-down."
+  },
+  "CARD-006": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "dueDates within a window with statement balance, minimum and autopay state."
+  },
+  "CARD-007": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "minVsFull: this month's interest at the APR, months and total interest paying only the minimum, the minimum-does-not-cover-interest trap."
+  },
+  "CARD-008": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "annualFeeAudit: fee vs rewards and benefits used, verdict and the retention or downgrade path."
+  },
+  "CRDT-008": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "debtInventory across cards and loans with minimums and monthly interest."
+  },
+  "CRDT-009": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "payoffPlans: avalanche vs snowball amortized month by month, minimums rolling forward, interest difference stated."
+  },
+  "CRDT-010": {
+    "status": "TESTED",
+    "test_ref": "tests/ledger.test.cjs",
+    "implementation": [
+      "packages/domain/57-agent-ledger.js"
+    ],
+    "note": "extraPaymentImpact: months and interest saved by an extra monthly amount."
+  },
+  "CORE-003": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Onboarding interview: five questions (accounts, goals, people, quiet hours, autonomy) one at a time, validated, never asked twice; answers become preferences."
+  },
+  "CORE-004": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Standing instructions: created with a cadence or trigger, restated in plain words with limit and expiry; due() fires once per period with an idempotency key; pause, resume, revoke; never widens authority and fires nothing while paused."
+  },
+  "CORE-005": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-CORE-005.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Depth protocol (docs/depth/CORE-005.md): 15 user-observable sub-capabilities, each with a test proven to fail under a planted defect (evals/depth/run.cjs CORE-005, 15/15). Grants need the user's words and every limit and are restated; offered only after the trust ladder's three clean confirmations; T4 only; inside: no question and a receipt that says so; limits against the written params; weekly cap; recipient-bound; first-time never; expiry resets the ladder; revoke by text; paused means none; instructions cannot widen; audit of what ran alone; a surprise suspends; the thread always knows."
+  },
+  "CORE-006": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Corrections stored verbatim with the action corrected; field-level fixes applied to later requests so the same wrong value is never proposed twice."
+  },
+  "CORE-011": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Undo and mitigation contracts per capability family (subscriptions, own transfers, scheduled payments, P2P, ACH, wire, orders, card freeze, disputes); undoPlan says whether the window is still open and the step."
+  },
+  "CORE-013": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Export bundle: control state, memory, event log, accounts, transactions as CSV, people, with a manifest; every key that looks like a credential or identity number is removed and counted."
+  },
+  "CORE-014": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Deletion plan with ordered steps (revoke connectors, cancel instructions and envelopes, delete stores, what a partner rail keeps by law), a confirmation phrase and a 7-day window; confirming revokes everything at once."
+  },
+  "CORE-016": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Version and changelog awareness from CHANGELOG.md: current version, what changed, what is new since a version."
+  },
+  "SEC-006": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Credit freeze status per bureau recorded by the user (never a PIN), all-frozen check."
+  },
+  "SEC-007": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js"
+    ],
+    "note": "Credential rotation reminders from connector rotation dates and intervals; the agent never sees the credential."
+  },
+  "SEC-010": {
+    "status": "TESTED",
+    "test_ref": "tests/control.test.cjs",
+    "implementation": [
+      "packages/domain/58-agent-control.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Kill switch: pause with a reason and optional end; the loop's gate blocks every tier above T1 while paused, standing instructions do not fire, envelopes are empty; resume restores."
+  },
+  "ALRT-001": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Low balance ahead from the cash flow forecast's low point under the buffer before the next income; urgent when negative; deadline is the day it happens."
+  },
+  "ALRT-002": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Large transaction: over the user's line, or three times the category's typical charge with at least five prior rows."
+  },
+  "ALRT-003": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Unusual pattern: a first-time merchant at a large amount, or a category's 7-day spend at three times its trailing weekly average; several first-time merchants or a probe-then-large shape in one day is safety (SEC-001)."
+  },
+  "ALRT-004": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Bill increase: a steady recurring debit posted today 5 percent or more above its usual amount, with the yearly cost."
+  },
+  "ALRT-005": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Renewal: a yearly or quarterly recurring charge or a flagged renewal due within 7 days, with keep, cancel or switch to monthly."
+  },
+  "ALRT-006": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Payment failed: a connector event or a returned-payment descriptor today; urgent, with the retry-by date as a deadline."
+  },
+  "ALRT-007": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Deposit received: a credit today at or above 80 percent of a recurring income amount."
+  },
+  "ALRT-008": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Fee charged today, with the reversal request offered."
+  },
+  "ALRT-009": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Security sign-in: a connector sign-in from a new device or place is safety; the agent never asks for the password."
+  },
+  "ALRT-010": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Watch-specific: the user's words parsed into one of six conditions (balance below, charge over, merchant charges, deposit lands, category over per month, bill goes up), restated, refused when unparseable, evaluated over the same rows."
+  },
+  "ALRT-011": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Quiet hours: everything but safety is held until the window ends, with the time it will be delivered."
+  },
+  "PAY-003": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "requestMoney: staged on the person's own request rail (the user taps Request), refused for anyone not in the list; settled when the matching credit lands."
+  },
+  "PAY-007": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "schedulePayment: date after today, saved recipient, rail-aware cutoff (business day before for ACH); the due request goes through the loop with a confirmation and one idempotency key per schedule."
+  },
+  "PAY-008": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "cancelScheduled: cancels until the cutoff; after it, says the payment is in flight and offers the recall or return request."
+  },
+  "PAY-009": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "ownTransfer: both accounts named in the confirm fields, never overdraws the source (available balance checked), asks for the person's yes on every run (envelope autonomy is off in shipped code, CLAUDE.md automations rule), with a receipt."
+  },
+  "PAY-023": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "triageFailed: the bank's reason classifies the cause (insufficient funds, closed account, wrong details, limit, rail down, declined, unknown); only a fixable cause gets a retry, as a new key naming the original, confirmed like any send; never a blind resend."
+  },
+  "PAY-025": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "allowance: saved person, fixed amount, weekly/biweekly/monthly on a day, optional monthly cap; first-time recipients ask; one request per period under its own key, cadence_requested for the budget."
+  },
+  "SAVE-001": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "autosave: round-ups on card spend since the last run, a payday sweep (percent or fixed) on the day the paycheck lands, a threshold sweep above a line; every move keeps the source above its floor and carries the rows that justify it."
+  },
+  "SAVE-006": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "overdraftPrevention: from the forecast's first day under the buffer, the smallest move from savings that keeps checking above it, due the day before, urgent when the low point is negative; says when savings cannot cover it."
+  },
+  "SOC-002": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Group expenses: per-expense exact splits (MoneyMath), net balances per member, settle-up with the fewest transfers (AgentMoney.settleGroup)."
+  },
+  "SOC-005": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Shared goal: target, by-date, contributions, what is left per member per month; a contribution is a SOC-005 loop request."
+  },
+  "SOC-006": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Household roles (owner, partner, viewer, teen with a limit): what each member sees and may act on, applied to accounts and requests."
+  },
+  "SOC-008": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "gift: saved person, occasion required and carried in the memo, today or a later date confirmed that morning."
+  },
+  "SOC-009": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Request reminders in the tone asked for (friendly, plain, firm) on a cadence that respects it; settled requests stop."
+  },
+  "SOC-010": {
+    "status": "TESTED",
+    "test_ref": "tests/money-plans.test.cjs",
+    "implementation": [
+      "packages/domain/60-agent-money-plans.js"
+    ],
+    "note": "Settled-debts feed: off unless the preference is explicitly true; nothing shared otherwise."
+  },
+  "CRDT-001": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "scoreMonitor over a score history: FICO bands, change since last, 30/90-day deltas, alert on a ten-point drop or a band change; source and as-of from the feed."
+  },
+  "CRDT-002": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "walkthrough of a report snapshot: accounts and ages, utilization from open cards, lates, inquiries, records; flags unknown accounts (fraud, not credit), closed accounts still reporting a balance, unexplained inquiries."
+  },
+  "CRDT-003": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "factors: standard reason codes explained with the user's own numbers; a code the bureau did not explain is not guessed."
+  },
+  "CRDT-004": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "disputeDraft: a bureau dispute letter naming the item by its last four digits and the reason, with the 30-day investigation step; never an identity number."
+  },
+  "CRDT-005": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "utilizationPlan: the cheapest pay-downs per card and in total to get under the target before statements close; says when cash does not cover it."
+  },
+  "CRDT-006": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "newAccountImpact: inquiry, average-age drop and utilization change computed from the report, stated as directions and mechanisms, never exact points."
+  },
+  "CRDT-007": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "inquiryAlerts: hard inquiries matching no known application (14-day window, lender name when given), with the date each leaves the report."
+  },
+  "CRDT-011": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "refinanceWatch: amortized payment per offer, monthly saving, breakeven on closing costs, total cost difference over the term; the best only when it pays back inside the term."
+  },
+  "CRDT-012": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "studentLoanEligibility: structural checks (loan type, employer kind, payment count, plan) against a dated rules table with its source; likely, on track or unlikely, servicer decides."
+  },
+  "CRDT-014": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "freezeGuidance: the three bureaus' freeze pages, what a freeze does and does not do, which are done; PINs never stored."
+  },
+  "CRDT-015": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "authorizedUserExplainer: the trade-offs against the user's own file thickness."
+  },
+  "CRDT-016": {
+    "status": "TESTED",
+    "test_ref": "tests/credit.test.cjs",
+    "implementation": [
+      "packages/domain/61-agent-credit.js"
+    ],
+    "note": "collectorResponse: validation, cease, pay-for-delete and not-mine letters under the FDCPA with the 30-day timing; no identity number in any of them."
+  },
+  "INS-001": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "policies: the inventory from the vault's policy documents (line, issuer, premium, deductible, coverage, renewal) with the lines that have nothing on file named as a records gap, not a cover gap."
+  },
+  "INS-003": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "renewals: policies renewing within the lead time, days left, premium, and the rebid reminder with a deadline."
+  },
+  "INS-008": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "beneficiaryAudit: life, disability and retirement documents whose beneficiary is missing, never reviewed, older than a year, or predates a life event."
+  },
+  "INS-009": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "enrollmentWindows: the public marketplace and Medicare windows by their usual dates plus the user's own, with opens-in/open/closed state and a caveat that the year's official page decides."
+  },
+  "INS-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "vault: a metadata index (kind, issuer, dates, amounts, location, hash) that refuses any text with an identity or account number; list, find and remove."
+  },
+  "TAX-002": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "Tax forms as typed vault documents (W-2, 1099 family, 1098, 1095-A, K-1) by year and issuer, found by any field."
+  },
+  "TAX-003": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "estimatedTax: quarterly dates ahead with the amount from the user's expected tax divided by four, what is paid and what remains."
+  },
+  "TAX-005": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "donationLog: gifts in the year to the charities the user named, matched to vault acknowledgments; gifts of $250 or more without one are listed."
+  },
+  "TAX-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "taxCalendar: the usual federal filing, extension and contribution dates ahead, with the weekend-and-state caveat."
+  },
+  "TAX-012": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "refundTracker: filed date, typical e-file or paper window, state from the IRS status the user pastes; the tracker is named as the source."
+  },
+  "TXN-010": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "triageCharge: descriptor mapping, recurrence, history, pending, household card sharing and trial conversion in order; unexplained charges get lock-then-dispute with the draft offered."
+  },
+  "TXN-015": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "parseReceipt + matchReceipt: merchant, total, order number and date from a receipt email, matched to one charge by amount, date and merchant; ambiguity and no-match are reported, never guessed."
+  },
+  "TXN-016": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "attachPhoto: a photo receipt is attached by the total and merchant the user states, matched the same way; the agent does not claim to read the image."
+  },
+  "SEC-008": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "sessionAudit: the agent's own sessions by device and place, active ones, new-this-week ones called out; revokeSession ends any but the current."
+  },
+  "SEC-011": {
+    "status": "TESTED",
+    "test_ref": "tests/documents.test.cjs",
+    "implementation": [
+      "packages/domain/62-agent-documents.js"
+    ],
+    "note": "phishing: nine weighted signals (credential asks, urgency, link mismatch, look-alike domains, generic greeting, attachment lures, gift cards or crypto, reply-to and sender domain mismatches); verdicts phishing, suspicious, or no signals found, never safe."
+  },
+  "EARN-013": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "sideIncomeMatch: a dated catalog of twelve surfaces matched to the user's skills, gear and hours, rated by effective hourly rate after fees, unpaid time, vehicle and cash-out cost; earn apps rated honestly under the floor; a benefits screening surfaced as not-work."
+  },
+  "EARN-001": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "bonusFinder: a dated bonus catalog filtered by state, the new-customer rule, direct-deposit size and movable cash; forgone interest netted; rated per hour of chores; early-closure window stated."
+  },
+  "EARN-009": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "portalEarnings: pending, confirmed and actually-landed kept apart from portal statements and the user's own credits; pending named as the portal's number, not money."
+  },
+  "EARN-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "activateOffer: a card-linked offer becomes a T3 loop request restating card, merchant, rate and expiry; already-active offers say so; the agent never clicks."
+  },
+  "EARN-017": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "complaintDraft: a dated, specific, polite complaint asking for a named remedy, with the follow-up date."
+  },
+  "SAVE-012": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "routePurchase: the best portal for a purchase from a dated rate table, stacked with the best card offer, with the coupon-code caveat."
+  },
+  "SAVE-013": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "offersForPlan: planned purchases matched to portal rates and card-linked offers (minimums and expiry honored)."
+  },
+  "CARD-002": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "bestCard: the user's own reward table, rotating windows, caps, activation state and foreign fees; the ranked list with the runner-up named."
+  },
+  "CARD-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "disputePacket: issuer reason codes, the merchant-first and lock-first ladders, evidence listed, as a T3 request the user files; no provider call."
+  },
+  "HOUS-010": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "moveBudget: line by line from the user's answers with typical figures marked as such and a 10 percent contingency; the old deposit netted."
+  },
+  "TAX-007": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "cryptoExport: a generic tax-tool CSV from the user's lots; a sale without a cost basis is listed, never invented."
+  },
+  "SAVE-009": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "energyPlans: yearly cost of each plan on the user's own usage, the saving against the current plan, term and exit fee stated."
+  },
+  "BILL-007": {
+    "status": "TESTED",
+    "test_ref": "tests/surfaces.test.cjs",
+    "implementation": [
+      "packages/domain/63-agent-surfaces.js"
+    ],
+    "note": "billCalendar: recurring bill-category debits from the ledger plus bills the user told me about, with autopay state and the manual ones counted."
+  },
+  "INV-001": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "portfolio: each brokerage account with its source and as-of, positions consolidated with the per-account breakdown, stale sources named."
+  },
+  "INV-009": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "priceAlerts: above, below and percent-move alerts against quotes with their own as-of; a stale or missing quote never fires."
+  },
+  "INV-019": {
+    "status": "TESTED",
+    "test_ref": "tests/invest.test.cjs",
+    "implementation": [
+      "packages/domain/50-agent-invest.js"
+    ],
+    "note": "rolloverStatus: the stages, the 60-day clock on an indirect rollover with the withholding trap, what is next and who owes it."
+  },
+  "SEC-001": {
+    "status": "TESTED",
+    "test_ref": "tests/alerts.test.cjs",
+    "implementation": [
+      "packages/domain/59-agent-alerts.js"
+    ],
+    "note": "Fraud patterns on transactions: a probe-then-large pair or several first-time merchants in a day, a burst of charges within ten minutes, a double charge within minutes, impossible travel between card-present charges; safety severity, evidence rows named."
+  },
+  "PAY-001": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-PAY-001.test.cjs",
+    "implementation": [
+      "packages/domain/64-agent-send.js",
+      "packages/domain/54-agent-money.js",
+      "packages/domain/43-agent-loop.js"
+    ],
+    "note": "Depth protocol (docs/depth/PAY-001.md): 15 user-observable sub-capabilities, each with a test that is proven to fail under a planted defect (evals/depth/run.cjs PAY-001, 15/15). Amount and recipient from the user's words only; ambiguity asks; look-alike handles named; free rail first; five-field confirmation with zero writes before yes; qualified yes corrects; expiry; one write per instruction per day across duplicates, crashes and timeouts; scam and injection stops; limits and the kill switch; receipts only after the rail confirms, handoffs staged then landed. The live rail stays gated on a partner."
+  },
+  "ACCT-006": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "connect through the aggregator adapter with a consent record in plain words and scopes; sync into the canonical schema with freshness stamps."
+  },
+  "ACCT-007": {
+    "status": "TESTED",
+    "test_ref": "tests/connectors.test.cjs",
+    "implementation": [
+      "packages/domain/51-connectors.js"
+    ],
+    "note": "The manual CSV adapter: accounts and transactions typed or uploaded by the user, synced and normalized like any connector, ranked below aggregators as a source."
+  },
+  "PAY-002": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-RAIL-1.test.cjs",
+    "implementation": [
+      "packages/domain/42-agent-recipients.js",
+      "packages/domain/64-agent-send.js",
+      "packages/domain/54-agent-money.js",
+      "supabase/migrations/20261011020000_saved_recipients.sql"
+    ],
+    "note": "Rail 1 (docs/depth/RAIL-1.md): a stranger is never staged until the person names the app and handle, types the handle back exactly, and approves the full first-send card (T5, every time). Handoff only: staged for the person to send; no partner rail is live. Saved to public.saved_recipients only when the debit posts or on an explicit SAVE after the read-back."
+  },
+  "BILL-010": {
+    "status": "TESTED",
+    "test_ref": "tests/edge/proactive.test.ts",
+    "implementation": [
+      "packages/domain/33-agent-monitors.js",
+      "supabase/functions/_shared/proactive.ts"
+    ],
+    "note": "Trials the person tracks in the app (save_subscriptions, interval 'trial') warn within 7 days of the first charge, through the hourly proactive run; within 2 days the warning is a deadline and skips the daily budget. Trials nobody tracked are not detected (no trial signal in bank rows)."
+  },
+  "INV-005": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-RAIL-2.test.cjs",
+    "implementation": [
+      "packages/domain/66-agent-trade.js",
+      "packages/domain/71-alpaca.js"
+    ],
+    "note": "The account's return over a period (this year, this month, the last 12 months, since it started) from the live account's equity and Alpaca's daily history, used only when it matches the account's own last close; deposits and withdrawals taken out, money-weighted (Modified Dietz); SPY over the same days with dividends counted (megadoc G02, G14; RAIL-2 S32). A copy's performance against its original is not built (no copy trading)."
+  },
+  "INV-006": {
+    "status": "TESTED",
+    "test_ref": "tests/depth-PORTFOLIO-Q.test.cjs",
+    "implementation": [
+      "packages/domain/66-agent-trade.js",
+      "packages/domain/71-alpaca.js"
+    ],
+    "note": "Dividends received, read from the broker's account activities (DIV and the withholding kinds), by holding or one ticker, for the period asked, with what was withheld (megadoc G15; PORTFOLIO-Q S25-S28, RAIL-2 S31). A dividend forecast is not built; reinvesting is not built."
+  }
 }

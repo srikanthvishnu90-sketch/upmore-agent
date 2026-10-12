@@ -36,8 +36,9 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";
+import { connectReply, rentReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
+import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
@@ -226,24 +227,55 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
 
     // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
     // connector matrix, "pay my rent" (not built, said plainly), "find me money" from the person's own transactions, and
-    // balance or spending with nothing linked in one plain line, and "dispute this charge" as a pre-filled draft the
-    // person sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model).
+    // balance or spending with nothing linked in one plain line, "dispute this charge" as a pre-filled draft the person
+    // sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model), and balance,
+    // spending, "how am i doing" and "did it go through" from the person's own rows (_shared/money_answers.ts).
     {
       let direct: string | null = connectReply(message) ?? rentReply(message);
-      if (!direct && NEEDS_ACCOUNTS.test(message)) {
+      let linkedCount = 0;
+      if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");
-        if (!linked.error) direct = noDataReply(message, linked.count ?? 0);
+        if (!linked.error) {
+          linkedCount = linked.count ?? 0;
+          direct = noDataReply(message, linkedCount) ?? (linkedCount === 0 && moneyKind(message) ? NO_ACCOUNTS : null);
+        }
       }
+      // One read of the person's transactions per turn, shared by every answer below: observed rows from the last 400
+      // days plus pending rows with no posted date, newest first in pages (a long history never cuts off this month; an
+      // oldest-first limit did), up to 5,000.
+      let txCache: Promise<any[]> | null = null;
+      const readTx = () => txCache ??= (async () => {
+        const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10), rows: any[] = [];
+        for (let from = 0; from < 5000; from += 1000) {
+          const r = await supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,currency,amount_cents,posted_on,merchant_raw,is_pending,is_transfer,fetched_at")
+            .eq("user_id", user.id).eq("presence", "observed").or(`posted_on.gte.${since},posted_on.is.null`)
+            .order("posted_on", { ascending: false, nullsFirst: true }).order("provider_transaction_id", { ascending: true }).range(from, from + 999);
+          if (r.error) throw new Error("Transactions unavailable.");
+          rows.push(...(r.data || []));
+          if ((r.data || []).length < 1000) break;
+        }
+        return rows;
+      })();
+      const oldestFirst = async () => (await readTx()).slice().reverse();
+      // See-everything numbers (_shared/money_answers.ts): balance, spending, "how am i doing", "did rent go through",
+      // every number from the person's own rows (RLS client) with its source and as-of time.
+      if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
+        accounts: async () => {
+          const [a, p] = await Promise.all([
+            supabase.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", user.id).eq("status", "active"),
+            supabase.from("agent_account_preferences").select("account_id,account_kind").eq("user_id", user.id),
+          ]);
+          if (a.error) throw new Error("Accounts unavailable.");
+          return mergeKinds(a.data || [], p.error ? [] : p.data || []);
+        },
+        transactions: readTx,
+      });
+      // "dispute this charge" and "find me money": a failed read says so plainly instead of failing the whole turn.
       const today = new Date().toISOString().slice(0, 10);
-      const readTx = async () => {
-        const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
-        const r = await supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
-          .eq("user_id", user.id).eq("presence", "observed").gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000);
-        if (r.error) throw new Error("Transactions unavailable.");
-        return r.data || [];
-      };
-      if (!direct) direct = await disputeReply(message, today, readTx, { hasPhoto: imageBlocks.length > 0 });
-      if (!direct) direct = await findMoneyReply(message, today, readTx);
+      try {
+        if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
+        if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
+      } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([
           { thread_id: tid, role: "user", content: userContent },

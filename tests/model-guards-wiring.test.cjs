@@ -35,19 +35,35 @@ test('both model paths drop any sentence that asks for a password, a code or a f
 });
 
 test('the direct answers (connect my X, pay my rent, find me money, nothing linked) run after the safety guards and before the flows and the model',()=>{
-  assert.ok(h.includes('import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";'));
+  assert.ok(h.includes('import { connectReply, rentReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";'));
   const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
   assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');
   assert.ok(h.includes('meta: { capability: true, direct: true }'));
   assert.ok(h.includes('.eq("presence", "observed")'),'find me money reads only observed rows');
 });
 
-test('dispute this charge (S16-17) is answered inside the direct block: after connect and rent, before find me money, from observed rows',()=>{
-  assert.ok(h.includes('import { disputeReply } from "./_shared/dispute_answer.ts";'));
+test('one shared, newest-first transaction read per turn (a long history never drops this month), used by every direct answer',()=>{
   const start=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), end=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
-  const dispute=h.indexOf('if (!direct) direct = await disputeReply(message, today, readTx, { hasPhoto: imageBlocks.length > 0 });'), money=h.indexOf('if (!direct) direct = await findMoneyReply(message, today, readTx);');
-  assert.ok(start>0 && start<dispute && dispute<money && money<end,'connect/rent, then dispute, then find me money, all before the direct reply is returned');
   const block=h.slice(start,end);
-  assert.ok(block.includes('.eq("presence", "observed").gte("posted_on", since)'),'the dispute reads the same observed rows');
-  assert.ok(block.includes('Date.now() - 400 * 86400000'),'last 400 days');
+  assert.ok(block.includes('txCache ??='),'read once and shared');
+  assert.ok(block.includes('.order("posted_on", { ascending: false, nullsFirst: true })') && block.includes('.range(from, from + 999)'),'newest first, in pages');
+  assert.ok(!block.includes('ascending: true }).limit('),'no oldest-first limit, which cut off the newest rows');
+  assert.ok(block.includes('.eq("presence", "observed")') && block.includes('400 * 86400000') && block.includes('posted_on.is.null'),'observed rows, last 400 days, plus pending with no posted date');
+  assert.ok(!block.includes('admin.'),'reads use the person\'s RLS client, never the service role');
+});
+
+test('see-everything numbers, then dispute (S16-17), then find me money, in the direct block; a failed read is said plainly, never a 500',()=>{
+  assert.ok(h.includes('import { disputeReply } from "./_shared/dispute_answer.ts";'));
+  assert.ok(h.includes('import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";'));
+  const block=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), noData=h.indexOf('direct = noDataReply(message, linkedCount)'),
+    money=h.indexOf('if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {'),
+    dispute=h.indexOf('if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });'),
+    find=h.indexOf('if (!direct) direct = await findMoneyReply(message, today, oldestFirst);'),
+    caught=h.indexOf('} catch { direct = MONEY_UNAVAILABLE; }'),
+    reply=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
+  assert.ok(block>0 && block<noData && noData<money && money<dispute && dispute<find && find<caught && caught<reply,'connect/rent, nothing linked, money answers, dispute, find me money, the plain failure line, then the one stored reply');
+  const body=h.slice(money,dispute);
+  assert.ok(body.includes('supabase.from("agent_financial_accounts")') && body.includes('.eq("status", "active")'),'active accounts only');
+  assert.ok(body.includes('supabase.from("agent_account_preferences")') && body.includes('mergeKinds('),'the person\'s own account types win');
+  assert.ok(h.includes('(NEEDS_ACCOUNTS.test(message) || moneyKind(message))'),'the linked count is read for every money ask');
 });

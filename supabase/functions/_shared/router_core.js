@@ -3513,15 +3513,69 @@
       { re: /^(?:my )?([a-z ]+?) spending (?:goes|is|gets) (?:over|above) \$?([\d,]+(?:\.\d{1,2})?)(?: (?:this|a|per) month)?/i, make: m => ({ kind: "category_month_over", category: m[1].trim(), threshold_cents: toCents(m[2]) }) },
       { re: /^(?:my )?([\w .'&-]+?) (?:bill|subscription|price) (?:goes up|increases|rises|changes)/i, make: m => ({ kind: "bill_increase", merchant: m[1].trim() }) }
     ];
+    // Item 38, a refund the person was promised: "tell me if my $45.99 Amazon refund doesn't arrive by Oct 20", "let me
+    // know when the refund from Best Buy posts", "alert me if my Delta refund hasn't come in within 7 business days". The
+    // merchant is required (the words name it, never guessed); the amount and the deadline are optional. The deadline is
+    // kept as said and resolved against the day the watch was set (dueOf), so "within 7 business days" counts from then.
+    const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const DOWS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const REFUND_VERB = /\b(?:arrives?|arrived|come(?:s)? (?:in|through|back)|came (?:in|through|back)|posts?|posted|shows? up|showed up|shown up|lands?|landed|hits?|clears?|cleared|goes through|went through|(?:is|isn't|isnt|is not|gets?|got) here)\b/;
+    function refundWatch(cond) {
+      const c = String(cond || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?]+$/, "").trim();
+      if (!/\brefund\b/.test(c) || !REFUND_VERB.test(c)) return null;
+      const subject = c.split(REFUND_VERB)[0];
+      const amt = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)/.exec(subject) || /\b(\d[\d,]*\.\d{2})\b/.exec(subject) || /\b(?:refund|credit) (?:of|for) (\d[\d,]*(?:\.\d{1,2})?)\b/.exec(subject) || /\b(\d[\d,]*(?:\.\d{1,2})?) (?:dollars? |bucks? )?refund\b/.exec(subject);
+      const words = subject.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?/g, " ").replace(/\b\d[\d,]*(?:\.\d{1,2})?\b(?: dollars?| bucks?)?/g, " ").replace(/\s+/g, " ").trim();
+      const from = /\brefund (?:of |for )?(?:\S+ )?from ([a-z][\w .'&-]*?)(?: (?:for|on|of)\b.*)?\s*(?:doesn't|does not|hasn't|has not|isn't|is not|never|won't|will not|still)?\s*$/.exec(words);
+      const before = /^(?:(?:my|the|our|that|this)\s+)?([a-z][\w .'&-]*?)\s+refund\b/.exec(words);
+      const merchant = ((from && from[1]) || (before && before[1]) || "").replace(/\s+(?:order|purchase|return)$/, "").trim();
+      if (!merchant || /^(?:my|the|a|an|our|that|this|tax|irs|federal|state)$/.test(merchant) || /\b(?:tax|irs)\b/.test(merchant)) return null;
+      // The merchant as the person typed it ("REI", "Best Buy"), found again in their own words.
+      const at = String(cond || "").toLowerCase().replace(/[’‘]/g, "'").indexOf(merchant), typed = at >= 0 ? String(cond).slice(at, at + merchant.length) : merchant;
+      // The deadline, after the verb: a date (Oct 20, October 20th, 10/20, 10/20/2026), a weekday, or N (business) days.
+      const tail = c.slice(c.search(REFUND_VERB));
+      let due = null, m;
+      if ((m = /\b(?:by|before|until|on)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/.exec(tail))) due = { kind: "date", m: MONTHS.indexOf(m[1].slice(0, 3)) + 1, d: +m[2], y: m[3] ? +m[3] : null };
+      else if ((m = /\b(?:by|before|until|on)\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(tail))) due = { kind: "date", m: +m[1], d: +m[2], y: m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : null };
+      else if ((m = /\b(?:by|before|until|on)\s+(?:this |next )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/.exec(tail))) due = { kind: "dow", dow: DOWS.indexOf(m[1]) };
+      else if ((m = /\b(?:in|within|after)\s+(\d{1,2})(?:\s*(?:-|to)\s*(\d{1,2}))?\s+(business |working )?days?\b/.exec(tail))) due = { kind: "days", n: +(m[2] || m[1]), business: !!m[3] };
+      if (due && due.kind === "date" && (due.m < 1 || due.m > 12 || due.d < 1 || due.d > 31)) return null;
+      return { kind: "refund_expected", merchant: typed, amount_cents: amt ? toCents(amt[1]) : null, due };
+    }
+    // The deadline as a date (YYYY-MM-DD), counted from the day the watch was set; null when none was said.
+    function dueOf(w) {
+      const due = w && w.due, base = typeof w.created_on === "string" ? w.created_on : typeof w.created_at === "string" ? w.created_at.slice(0, 10) : null;
+      if (!due || !base) return null;
+      const b = dayMs(base), iso = ms => new Date(ms).toISOString().slice(0, 10);
+      if (due.kind === "days") { if (!due.business) return iso(b + due.n * DAY); let ms = b, left = due.n; while (left > 0) { ms += DAY; const wd = new Date(ms).getUTCDay(); if (wd !== 0 && wd !== 6) left--; } return iso(ms); }
+      if (due.kind === "dow") { let ms = b + DAY; while (new Date(ms).getUTCDay() !== due.dow) ms += DAY; return iso(ms); }
+      if (due.kind === "date") {
+        const y0 = +base.slice(0, 4), mk = y => `${y}-${String(due.m).padStart(2, "0")}-${String(due.d).padStart(2, "0")}`;
+        const ok = y => { const d = new Date(Date.UTC(y, due.m - 1, due.d)); return d.getUTCMonth() === due.m - 1 ? mk(y) : null; };
+        if (due.y) return ok(due.y);
+        const same = ok(y0);
+        return same && same >= base ? same : ok(y0 + 1);
+      }
+      return null;
+    }
+    const dateWords = ymdS => { const [y, m, d] = ymdS.split("-").map(Number); return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]} ${d}, ${y}`; };
+    // A name typed all in lower case gets capitals; one typed with its own capitals ("REI", "eBay") is kept as typed.
+    const titleCase = s => (/[A-Z]/.test(String(s)) ? String(s) : String(s).replace(/(^|[\s\-&.])([a-z])/g, (_, a, b) => a + b.toUpperCase()));
     // "Tell me when", "let me know if", "ping me whenever": the preamble is stripped so the condition is what gets parsed.
     const PREAMBLE = /^(?:please )?(?:(?:tell|let|ping|warn|notify|alert|text|message) me(?: know)?|alert|watch)\s*(?:about|for)?\s*(?:when|if|whenever|once)?\s*/i;
     const toCents = s => Math.round(Number(String(s).replace(/,/g, "")) * 100);
     function parseWatch(text, now) {
       const t = String(text || "").trim(), cond = t.replace(PREAMBLE, "").replace(/^(?:when|if|whenever)\s+/i, "").trim();
+      const refund = refundWatch(cond);
+      if (refund) { const w = Object.assign({ id: null, text: t, created_at: now, status: "active" }, refund); w.restated = restateWatch(w); return { ok: true, watch: w }; }
       for (const p of WATCH_PATTERNS) { const m = cond.match(p.re); if (m) { const w = Object.assign({ id: null, text: t, created_at: now, status: "active" }, p.make(m)); w.restated = restateWatch(w); return { ok: true, watch: w }; } }
-      return { ok: false, text: "I can watch a balance below an amount, a charge over an amount, a merchant charging you, a deposit landing, a category's monthly spending over an amount, or a bill going up. Which one, and what number?" };
+      return { ok: false, text: "I can watch a balance below an amount, a charge over an amount, a merchant charging you, a deposit landing, a category's monthly spending over an amount, a bill going up, or a refund you're owed arriving. Which one, and what number?" };
     }
     function restateWatch(w) {
+      if (w.kind === "refund_expected") {
+        const due = dueOf(w), what = `the ${w.amount_cents != null ? `${money(w.amount_cents)} ` : ""}refund from ${titleCase(w.merchant)}`;
+        return `I'll tell you when ${what} posts${due ? `, and if it hasn't by ${dateWords(due)}${w.due && w.due.kind === "days" && w.due.business ? ` (${w.due.n} business days, weekends skipped; bank holidays aren't counted)` : ""}` : w.due ? "" : ""}.`;
+      }
       return { balance_below: `I'll tell you when ${w.account} drops below ${money(w.threshold_cents)}.`, amount_over: `I'll tell you about any charge over ${money(w.threshold_cents)}.`, merchant_charge: `I'll tell you when ${w.merchant} charges you.`, deposit: `I'll tell you when ${w.from} lands.`, category_month_over: `I'll tell you when ${w.category} spending passes ${money(w.threshold_cents)} in a month.`, bill_increase: `I'll tell you when the ${w.merchant} bill goes up.` }[w.kind];
     }
 
@@ -3593,6 +3647,20 @@
         if (w.kind === "amount_over") for (const t of todays.filter(t => t.amount_cents < 0 && -t.amount_cents > w.threshold_cents)) fire(`${t.merchant_display} ${money(-t.amount_cents)}`, `${t.merchant_display} charged ${money(-t.amount_cents)}${on(t)}, over your ${money(w.threshold_cents)} line.`, { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:${t.id}`, amount_cents: -t.amount_cents });
         if (w.kind === "merchant_charge") for (const t of todays.filter(t => t.amount_cents < 0 && (t.merchant_key.includes(w.merchant.toLowerCase()) || t.merchant_display.toLowerCase().includes(w.merchant.toLowerCase())))) fire(`${t.merchant_display} charged ${money(-t.amount_cents)}`, `${t.merchant_display} charged ${money(-t.amount_cents)}${on(t) || " today"}.`, { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:${t.id}`, amount_cents: -t.amount_cents });
         if (w.kind === "deposit") for (const t of todays.filter(t => t.amount_cents > 0 && (/^(paycheck|payroll|salary)$/i.test(w.from) ? t.category === "income" : t.merchant_key.includes(w.from.toLowerCase()) || t.merchant_display.toLowerCase().includes(w.from.toLowerCase())))) fire(`${t.merchant_display} landed`, `${t.merchant_display} landed${on(t)}: ${money(t.amount_cents)}.`, { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:${t.id}`, amount_cents: t.amount_cents });
+        if (w.kind === "refund_expected") {
+          // A credit from the merchant, from 3 days before the watch was set (the refund may have posted while the bank
+          // was syncing). The expected amount matches to the cent; another credit is said, and the watch stays. Overdue
+          // once the day after the deadline has come with no matching credit, said once, with what was checked.
+          const name = titleCase(w.merchant), mk = String(w.merchant).toLowerCase(), base = typeof w.created_on === "string" ? w.created_on : ymd(w.created_at);
+          const since = base ? new Date(dayMs(base) - LATE_DAYS * DAY).toISOString().slice(0, 10) : "";
+          const credits = all.filter(t => t.amount_cents > 0 && !t.is_pending && t.posted_at >= since && t.posted_at <= today && (t.merchant_key.includes(mk) || String(t.merchant_display).toLowerCase().includes(mk)));
+          const exact = credits.filter(t => w.amount_cents == null || t.amount_cents === w.amount_cents);
+          const what = `${w.amount_cents != null ? `${money(w.amount_cents)} ` : ""}refund from ${name}`;
+          for (const t of exact) fire(`${name} refund posted`, `The ${what} posted on ${dateWords(t.posted_at)}: ${money(t.amount_cents)} from ${t.merchant_display}.`, { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:posted:${t.id}`, amount_cents: t.amount_cents });
+          if (!exact.length) for (const t of credits) fire(`${name} credit, not the refund`, `A ${money(t.amount_cents)} credit from ${t.merchant_display} posted on ${dateWords(t.posted_at)}. That isn't the ${what} you're expecting, so I'm still watching for it.`, { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:other:${t.id}`, amount_cents: t.amount_cents });
+          const due = dueOf(w), through = all.filter(t => !t.is_pending).map(t => t.posted_at).sort().slice(-1)[0] || null;
+          if (due && today > due && !exact.length) fire(`${name} refund is late`, `The ${what} hasn't posted: it was due by ${dateWords(due)}, and I see no matching credit from ${name} in your linked accounts${through ? `, transactions through ${dateWords(through)}` : ""}. If ${name} doesn't sort it out, say "dispute a charge" and I'll help you take it to your card company. Nothing was sent.`, { rows: [], computed: { due_on: due }, source: "your transactions", as_of: through }, { key: `watch:${w.id || w.kind}:overdue`, amount_cents: w.amount_cents || 0 });
+        }
         if (w.kind === "category_month_over") { const m = today.slice(0, 7), v = all.filter(t => t.amount_cents < 0 && t.category === w.category && t.posted_at.startsWith(m)).reduce((s, t) => s + -t.amount_cents, 0); if (v > w.threshold_cents) fire(`${w.category} passed ${money(w.threshold_cents)} this month`, `${w.category} is at ${money(v)} this month, past your ${money(w.threshold_cents)} line.`, { rows: all.filter(t => t.category === w.category && t.posted_at.startsWith(m)).map(t => t.id), computed: { month_cents: v }, source: "your transactions", as_of: today }, { key: `watch:${w.id || w.kind}:${m}`, amount_cents: v - w.threshold_cents }); }
         if (w.kind === "bill_increase" && L()) { const r = L().recurring(input.transactions, today, input.rules).find(r => r.direction === "debit" && (r.key.includes(w.merchant.toLowerCase()) || r.merchant.toLowerCase().includes(w.merchant.toLowerCase()))); const t = r && todays.find(x => x.merchant_key === r.key && x.amount_cents < 0); if (r && t && -t.amount_cents > r.amount_cents) fire(`${r.merchant} went up`, `${r.merchant} charged ${money(-t.amount_cents)} today, up from ${money(r.amount_cents)}.`, { rows: [t.id], computed: { was_cents: r.amount_cents }, source: "your transactions", as_of: t.posted_at }, { key: `watch:${w.id || w.kind}:${t.id}`, amount_cents: -t.amount_cents - r.amount_cents }); }
       }
@@ -3627,7 +3695,7 @@
       return out;
     }
     const REASONS = { low_balance: "your balance is heading under your buffer", large_transaction: "a charge far above your usual", unusual_spending: "spending unlike your pattern", bill_increase: "a bill went up", renewal: "a renewal is coming", payment_failed: "a payment did not go through", deposit_received: "money landed", fee_charged: "a fee hit", bundle: "several things at once" };
-    return { parseWatch, restateWatch, detect, evaluateWatches, deliver, bundle, run, inQuiet, quietEnds, REASONS };
+    return { parseWatch, restateWatch, dueOf, detect, evaluateWatches, deliver, bundle, run, inQuiet, quietEnds, REASONS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentAlerts;
 

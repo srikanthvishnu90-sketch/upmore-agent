@@ -19,6 +19,15 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 - S03 (found building LEDGER): an ATM cash withdrawal fired "Fee: Atm Withdrawal $200.00 ... Banks often reverse a fee
   when asked". The fee rule now matches the word; D03 plants the old rule back.
 
+Item 38 (2026-10-12): a refund the person was promised is a watch ("tell me if my $45.99 Amazon refund doesn't arrive
+by Oct 20", "text me when my $120 refund from REI shows up", "alert me if my Delta refund hasn't come in within 7
+business days"): the merchant as typed (required, never guessed; a tax refund is not this), the amount when said, the
+deadline counted from the day the watch was set (business days skip weekends; bank holidays are not counted and the
+restatement says so). It says the refund posting once, to the cent (a credit up to 3 days before the watch counts, since
+banks sync late); another credit from that merchant is said and the watch stays; the day after the deadline with no
+matching credit it says so once, with the transactions it checked through and the dispute flow named, nothing sent.
+Pending credits are never the refund. S17-S22, D17-D22.
+
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -38,4 +47,12 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S14 | Three first-time merchants is safety | three new shops in a day go out as safety | `S14` in tests/depth-ALERTS.test.cjs | four are needed | proven |
 | S15 | The person's buffer | under a $500 buffer on Oct 15 | `S15` in tests/depth-ALERTS.test.cjs | the default $100 buffer is always used | proven |
 | S16 | One thing means one charge, nothing more (megadoc L09) | 'spend over 100 on one thing at target' is refused | `S16` in tests/depth-ALERTS.test.cjs | the end anchor is dropped, so a merchant after 'one thing' is ignored and a charge-over watch is guessed | proven |
+| S17 | No merchant, no refund watch | 'tell me when my refund posts' is not a refund watch | `S17` in tests/depth-ALERTS.test.cjs | a refund with no merchant is watched as merchant "my" | proven |
+| S17 | The merchant as typed | REI stays REI | `S17` in tests/depth-ALERTS.test.cjs | the merchant is kept lower-cased and title-cased, so REI becomes Rei | proven |
+| S18 | Business days skip weekends | 7 business days from Mon Oct 12 is Wed Oct 21 | `S18` in tests/depth-ALERTS.test.cjs | business days are counted as calendar days | proven |
+| S18 | No impossible date | Feb 30 is no deadline | `S18` in tests/depth-ALERTS.test.cjs | Feb 30 rolls over to Mar 2 | proven |
+| S19 | The refund to the cent | a $45.99 credit is the $45.99 refund | `S19` in tests/depth-ALERTS.test.cjs | any credit from the merchant is taken as the refund | proven (also fails S20) |
+| S20 | Another credit is said, not swallowed | a $12.00 credit is said with the watch still on | `S20` in tests/depth-ALERTS.test.cjs | other credits from the merchant are ignored | proven |
+| S21 | Late is the day after | on the deadline day nothing is late | `S21` in tests/depth-ALERTS.test.cjs | the deadline day itself is called late | proven |
+| S22 | Pending is not posted | a pending $45.99 credit is not the refund | `S22` in tests/depth-ALERTS.test.cjs | a pending credit is said as posted | proven |
 <!-- results:end -->

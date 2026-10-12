@@ -1,9 +1,9 @@
 {
  "capability": "ALERTS",
- "run_at": "2026-10-12T07:53:57.821Z",
+ "run_at": "2026-10-12T08:38:00.394Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 22,
+ "proven": 24,
  "problems": [],
  "rows": [
   {
@@ -185,6 +185,96 @@
    "title": "One thing means one charge, nothing more (megadoc L09)",
    "defect": "the end anchor is dropped, so a merchant after 'one thing' is ignored and a charge-over watch is guessed",
    "test": "'spend over 100 on one thing at target' is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "No merchant, no refund watch",
+   "defect": "a refund with no merchant is watched as merchant \"my\"",
+   "test": "'tell me when my refund posts' is not a refund watch",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17b",
+   "title": "The merchant as typed",
+   "defect": "the merchant is kept lower-cased and title-cased, so REI becomes Rei",
+   "test": "REI stays REI",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "Business days skip weekends",
+   "defect": "business days are counted as calendar days",
+   "test": "7 business days from Mon Oct 12 is Wed Oct 21",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18b",
+   "title": "No impossible date",
+   "defect": "Feb 30 rolls over to Mar 2",
+   "test": "Feb 30 is no deadline",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "The refund to the cent",
+   "defect": "any credit from the merchant is taken as the refund",
+   "test": "a $45.99 credit is the $45.99 refund",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S20"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "Another credit is said, not swallowed",
+   "defect": "other credits from the merchant are ignored",
+   "test": "a $12.00 credit is said with the watch still on",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Late is the day after",
+   "defect": "the deadline day itself is called late",
+   "test": "on the deadline day nothing is late",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "Pending is not posted",
+   "defect": "a pending credit is said as posted",
+   "test": "a pending $45.99 credit is not the refund",
    "bites": true,
    "applied": true,
    "collateral": [],

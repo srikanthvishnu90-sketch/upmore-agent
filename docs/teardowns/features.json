@@ -28641,7 +28641,7 @@
    ],
    "capability_coverage": "part",
    "capability_note": "matching a refund to its purchase (38); the promised-window watch is the rest",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {

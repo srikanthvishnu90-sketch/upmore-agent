@@ -236,7 +236,7 @@ Every row counted PART above, each placed on its own with the half the list does
 | T2-COPILOT-158 | Copilot Money | Free to Spend | 14 | IN_PRODUCT | money left to spend this month (14); Copilot counts it against the month's budget, 14 counts to payday |
 | T2-COPILOT-220 | Copilot Money | Daily briefings | 9 | IN_PRODUCT | unusual charges and spending patterns (9); budgets running hot have no item |
 | T2-COPILOT-224 | Copilot Money | Proactive suggestions | 8 | IN_PRODUCT | category changes (8); budget changes have no item |
-| T2-COPILOT-226 | Copilot Money | Refund matching | 38 | MODULE_ONLY | matching a refund to its purchase (38); the promised-window watch is the rest |
+| T2-COPILOT-226 | Copilot Money | Refund matching | 38 | IN_PRODUCT | matching a refund to its purchase (38); the promised-window watch is the rest |
 | T2-COPILOT-229 | Copilot Money | Idle cash guidance | 59 | NOT_BUILT | idle cash (59); suggesting where it goes is advice |
 | T2-COPILOT-230 | Copilot Money | Assistant edits with approval | 8, 10 | IN_PRODUCT | transaction, recurring and rule fixes (8, 10); category scheme and budget edits have no item |
 | T2-COPILOT-248 | Copilot Money | Credit Utilization alert | 90 | MODULE_ONLY | the utilization signal behind paying early (90) |

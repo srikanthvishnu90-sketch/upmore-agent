@@ -260,7 +260,9 @@ async function flow() {
   ex["ALRT-001"] = async () => has(base(), /low_balance/);
   ex["ALRT-002"] = async () => has(base([tx("2026-10-11", -48000, "DELTA AIR LINES", "d1")], { large_threshold_cents: 40000 }), /large:/);
   ex["ALRT-003"] = async () => has(base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1")]), /unusual:/);
-  ex["ALRT-004"] = async () => has(base([tx("2026-10-15", -155000, "OAK PROPERTY MGMT RENT", "r1")], null, Date.UTC(2026, 9, 15, 14)), /bill_increase:oak property mgmt rent:2026-10-15/);
+  // Said once: the alerts' bill_increase and the monitors' price_rise cite the same charge, and the feed keeps the
+  // longer-lived one so the next day does not say it again (56-agent-proactive.js, tests/depth-PROACTIVE.test.cjs S14).
+  ex["ALRT-004"] = async () => { const p = base([tx("2026-10-15", -155000, "OAK PROPERTY MGMT RENT", "r1")], null, Date.UTC(2026, 9, 15, 14)); const keys = p.messages.map((m: any) => m.key).concat(p.suppressed.map((s: any) => "held:" + s.key)); return [keys.filter((k: string) => /(?:bill_increase|price_rise):oak property mgmt rent:2026-10-15$/.test(k)).length === 1, JSON.stringify(keys)]; };
   ex["ALRT-007"] = async () => has(base([tx("2026-10-11", 180000, "ACME CORP PAYROLL DIR DEP", "p1")]), /deposit/);
   ex["ALRT-008"] = async () => has(base([tx("2026-10-11", -3500, "OVERDRAFT FEE", "f1")]), /fee/);
   ex["ALRT-010"] = async () => has(base([], { watches: [{ kind: "balance_below", account: "checking", threshold_cents: 50000, id: "w1", status: "active" }] }), /watch|balance_below/);

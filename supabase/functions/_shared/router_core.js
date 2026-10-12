@@ -3643,19 +3643,35 @@
         out.brief = News.brief(r);
       }
       // Alerts (doc 02 ALRT): today's detectors and the user's own watches, already quiet-hours filtered and bundled; safety stays safety.
-      const Alerts = mod("AgentAlerts");
+      const Alerts = mod("AgentAlerts"), fromAlerts = new Set();
       if (Alerts && input.transactions) {
         const a = Alerts.run({ today: input.today, transactions: input.transactions, accounts: input.accounts_live || input.accounts, rules: input.rules, buffer_cents: input.buffer_cents, large_threshold_cents: input.large_threshold_cents, events: input.events, renewals: input.renewals, watches: input.watches, quiet: input.quiet }, { now });
         out.sources.alerts = { firings: a.firings, held: a.held.length, quiet: a.quiet };
         for (const s of a.safety) out.safety.push(s);
         for (const w of a.watches) out.watches.push(w);
-        for (const p of a.proactive) out.proactive.push(Object.assign({ priority: 2 }, p));
+        for (const p of a.proactive) { fromAlerts.add(p.key); out.proactive.push(Object.assign({ priority: 2 }, p)); }
         out.held = a.held;
       }
-      // Fraud and scam shapes are safety: they beat everything (doc 01 decision order).
+      // Fraud and scam shapes are safety: they beat everything (doc 01 decision order). The shape is the rule that fired
+      // (its reason), never the finding's words: those carry the merchant's descriptor, and a merchant named
+      // "UNAUTHORIZED ..." must not turn a new-subscription note into a safety alert that skips quiet hours and the budget.
       for (const s of input.safety || []) out.safety.push(s);
-      for (const p of out.proactive) { if (p.text && typeof p.text === "string" && /possible fraud|unauthorized|card-skimming/i.test(p.text)) { out.safety.push({ text: p.text, key: p.key }); p.suppressed_as_safety = true; } }
-      out.proactive = out.proactive.filter(p => !p.suppressed_as_safety).sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || (a.priority || 3) - (b.priority || 3) || (a.deadline || Infinity) - (b.deadline || Infinity) || (b.amount_cents || 0) - (a.amount_cents || 0) || a.key.localeCompare(b.key));
+      for (const p of out.proactive) { if (typeof p.reason === "string" && /possible fraud|unauthorized|card-skimming/i.test(p.reason)) { out.safety.push({ text: p.text, key: p.key }); p.suppressed_as_safety = true; } }
+      // One charge is one finding: an overdraft fee is a monitor finding, a save-engine refund and (on the day) an alert,
+      // and the budget would spend three days saying it. A finding whose charges are all cited by one already kept is
+      // dropped. The longest-lived source is kept (the save queue reads every row on file, a monitor 60 days, an alert
+      // today only), so the key the person was told under is the one that comes back the next day. A second finding
+      // under a key already kept is never said (plan sends a key once), so it claims no charge.
+      const rowIds = p => ((p.evidence && p.evidence.rows) || []).map(r => r == null ? "" : typeof r === "object" ? String(r.id != null ? r.id : r.transaction_id != null ? r.transaction_id : "") : String(r)).filter(Boolean);
+      const lives = p => /^save:/.test(p.key) ? 0 : fromAlerts.has(p.key) ? 2 : 1;
+      const cited = new Set(), kept = new Set();
+      out.proactive = out.proactive.map((p, i) => ({ p, i })).sort((a, b) => lives(a.p) - lives(b.p) || a.i - b.i).filter(({ p }) => {
+        if (p.suppressed_as_safety || kept.has(p.key)) return false;
+        const ids = rowIds(p);
+        if (ids.length && ids.every(id => cited.has(id))) return false;
+        kept.add(p.key); ids.forEach(id => cited.add(id)); return true;
+      }).map(x => x.p);
+      out.proactive = out.proactive.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || (a.priority || 3) - (b.priority || 3) || (a.deadline || Infinity) - (b.deadline || Infinity) || (b.amount_cents || 0) - (a.amount_cents || 0) || a.key.localeCompare(b.key));
       out.commitments.sort((a, b) => a.due_at - b.due_at);
       return out;
     }

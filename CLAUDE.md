@@ -5,7 +5,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 ## Commands (all verified on a clean clone; no root package.json, no pnpm)
 - App build: `python3 src/build-app.py` (edit `src/upmore-app-template.html`, never `index.html`; commit generated files)
 - Domain + registry tests: `node --test tests/*.cjs`
-- Edge function tests: `deno test -A --no-check tests/edge/`
+- Edge function tests: `deno test --no-check tests/edge/` (no permissions: the suite reads files only through JSON and text imports, because the evidence recorder and CI run it with none; `deno test tests/edge/` for the typed run)
 - SQL migrations + tests: `bash tests/db/run.sh` (needs Postgres binaries on PATH or `PGBIN=`; must not run as root)
 - Agent100 dry run: `cd tests/agent100 && node harness/runner.js --mode dry --all` (must stay 103/103)
 - Cancel outcome tests, real Chromium: `node tests/execution/live-local/run-live-local.js`

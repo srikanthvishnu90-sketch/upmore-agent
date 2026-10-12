@@ -3,6 +3,8 @@
 // with its source and as-of time. Accounts and transactions here are MOCK fixtures.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { moneyKind, moneyReply, MONEY_UNAVAILABLE, type AccountRow, type MoneyTxRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const NOW = new Date("2026-10-12T15:05:00Z");
 const SYNC = "2026-10-12T08:00:00Z";
@@ -114,7 +116,7 @@ Deno.test("show me the math explains the last answer in the thread, line by line
 });
 
 Deno.test("handler wiring: the thread's last messages are read for the math; a bare math ask never gets the nothing-linked line", () => {
-  const src = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const src = SRC_HANDLER;
   // One shared thread reader (also used by "what's new"), passed as previous().
   assert(src.includes('const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid)') && src.includes("previous: readPrevious,"), "previous() reads this thread through the RLS client");
   assert(src.includes('linkedCount === 0 && moneyKind(message) && moneyKind(message) !== "explain" ? NO_ACCOUNTS : null'), "bare 'show me the math' goes on to the model when nothing is linked");

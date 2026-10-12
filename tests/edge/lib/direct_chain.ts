@@ -14,6 +14,8 @@ import { unclaimedReply } from "../../../supabase/functions/agent-chat/_shared/u
 import { whatsNewReply } from "../../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 export const NOW = new Date("2026-10-12T15:05:00Z"), TODAY = "2026-10-12";
 const ACCOUNTS = [
@@ -47,5 +49,5 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   unclaimedReply: (m) => unclaimedReply(m, TODAY, oldest, accounts),
   whatsNewReply: (m) => whatsNewReply(m, TODAY, async () => TX as any[], async () => []),
 };
-const handler = Deno.readTextFileSync(new URL("../../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+const handler = SRC_HANDLER;
 export const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);

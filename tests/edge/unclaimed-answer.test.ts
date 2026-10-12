@@ -3,6 +3,8 @@
 // bank. Accounts and rows are MOCK; the readers are injected the way the handler injects its RLS-client reads.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { unclaimedKind, unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const TODAY = "2026-10-12";
 function readers(accounts: any[], rows: any[]) {
@@ -35,7 +37,7 @@ Deno.test("'do I have money at a failed bank' reads the person's accounts (close
 });
 
 Deno.test("the handler asks after the airline rules and before money owed, inside the plain-failure catch", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const h = SRC_HANDLER;
   const air = h.indexOf("if (!direct) direct = await airlineReply(");
   const unc = h.indexOf("if (!direct) direct = await unclaimedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));");
   const owed = h.indexOf("if (!direct) direct = await moneyOwedReply(");

@@ -3,6 +3,8 @@
 // records and emails are MOCK fixtures.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { winBackReply, readCancellations, serviceDomains } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const TODAY = "2026-10-12";
 const ROWS = [
@@ -57,7 +59,7 @@ Deno.test("cancellation records come from every thread's flow state through the 
 });
 
 Deno.test("the handler asks win-back before the savings answer, inside the plain-failure catch", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const h = SRC_HANDLER;
   const wb = h.indexOf("if (!direct) direct = await winBackReply(message, today, oldestFirst, () => readCancellations(supabase, user.id));");
   const subs = h.indexOf("if (!direct) direct = await subscriptionReply(message, today, oldestFirst);");
   const caught = h.indexOf("} catch { direct = MONEY_UNAVAILABLE; }");

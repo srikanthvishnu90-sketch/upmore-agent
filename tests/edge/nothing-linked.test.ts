@@ -15,6 +15,9 @@ import { whatsNewReply } from "../../supabase/functions/agent-chat/_shared/whats
 import { cardOffersReply } from "../../supabase/functions/agent-chat/_shared/card_offers_answer.ts";
 import { winBackReply } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const T = "2026-10-12", NOW = new Date("2026-10-12T15:00:00Z"), none = async () => [] as any[];
 const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
@@ -23,7 +26,7 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["price drop", (m) => priceDropReply(m, T, none)], ["airline", (m) => airlineReply(m, T, none)], ["unclaimed", (m) => unclaimedReply(m, T, none, none)],
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],
 ];
-const corpus = JSON.parse(Deno.readTextFileSync(new URL("./fixtures/direct-asks.json", import.meta.url)));
+const corpus = JSON.parse(SRC_DIRECT_ASKS);
 const LOOKED = /\b(?:in|through|from|among|or|and) your linked (?:accounts|cards|history|transactions)\b|\byour linked (?:cards|accounts), whose history\b/i;
 const SAYS_NONE = /\b(?:nothing is linked|no (?:card|account|bank)[a-z ]* (?:is )?linked|don't see a (?:connected|linked)|not linked)\b/i;
 
@@ -42,6 +45,6 @@ Deno.test("with nothing linked, no direct reply claims to have looked through th
 });
 
 Deno.test("this sweep covers every direct answer the handler has", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const h = SRC_HANDLER;
   assert([...h.matchAll(/direct = await (\w+)\(/g)].length === ANSWERS.length, "add the new answer to this sweep");
 });

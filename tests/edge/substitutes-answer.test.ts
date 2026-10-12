@@ -2,6 +2,8 @@
 // read only for a library-streaming ask (a pasted receipt reads nothing). Rows are MOCK.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const TODAY = "2026-10-12";
 const ROWS = [
@@ -34,7 +36,7 @@ Deno.test("other messages read nothing", async () => {
 });
 
 Deno.test("the handler asks substitutes after the savings answer and before find-me-money, inside the plain-failure catch", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const h = SRC_HANDLER;
   const subs = h.indexOf("if (!direct) direct = await subscriptionReply(message, today, oldestFirst);");
   const sub = h.indexOf("if (!direct) direct = await substitutesReply(message, today, oldestFirst);");
   const find = h.indexOf("if (!direct) direct = await findMoneyReply(message, today, oldestFirst);");

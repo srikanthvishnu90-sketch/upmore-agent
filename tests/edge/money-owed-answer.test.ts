@@ -5,6 +5,8 @@ import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { moneyOwedKind, moneyOwedReply, readOwedAccounts } from "../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import type { TxRow } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import type { AccountRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
+// Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
+import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
 const TODAY = "2026-10-12";
 const CANT = "I can't confirm this is real; never pay a fee or give a password to claim a refund.";
@@ -97,7 +99,7 @@ Deno.test("the account read uses the person's RLS client and keeps closed cards"
 });
 
 Deno.test("the handler asks after dispute and find-me-money, through the shared reader, inside the plain-failure catch", () => {
-  const h = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
+  const h = SRC_HANDLER;
   const find = h.indexOf("if (!direct) direct = await findMoneyReply(message, today, oldestFirst);");
   const owed = h.indexOf("if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));");
   const caught = h.indexOf("} catch { direct = MONEY_UNAVAILABLE; }");

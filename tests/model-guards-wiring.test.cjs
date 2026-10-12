@@ -72,3 +72,13 @@ test('see-everything numbers, then dispute (S16-17), then find me money, in the 
   assert.ok(find<rewards && rewards<caught,'rewards math after find me money, inside the plain-failure guard');
   assert.ok(h.includes('(NEEDS_ACCOUNTS.test(message) || moneyKind(message))'),'the linked count is read for every money ask');
 });
+
+test('subscription savings (Methods 3 D1-D6, read-only) answer after dispute and before find me money, inside the same plain-failure catch',()=>{
+  assert.ok(h.includes('import { subscriptionReply } from "./_shared/subscription_answer.ts";'));
+  const dispute=h.indexOf('if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });'),
+    subs=h.indexOf('if (!direct) direct = await subscriptionReply(message, today, oldestFirst);'),
+    find=h.indexOf('if (!direct) direct = await findMoneyReply(message, today, oldestFirst);'),
+    caught=h.indexOf('} catch { direct = MONEY_UNAVAILABLE; }');
+  assert.ok(dispute>0 && dispute<subs && subs<find && find<caught);
+  assert.equal(h.split('subscriptionReply(').length-1,1,'one call, in the direct block');
+});

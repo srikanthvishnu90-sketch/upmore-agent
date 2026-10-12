@@ -84,19 +84,19 @@ is filed, sent or paid by Upmore.
 
 ## Block D: subscriptions and spending (Methods 3, ungated)
 
-- [ ] **D1. Cheaper tier and annual switch.** From the charge amount and a dated price table: ad tier (Netflix $19.99
+- [x] **D1. Cheaper tier and annual switch.** From the charge amount and a dated price table: ad tier (Netflix $19.99
   -> $8.99), annual plan when billed 10+ months in a row (Peacock, Prime). Yearly saving, the trade-off said plainly.
-- [ ] **D2. Perk overlap.** Paying for something a plan already includes: carrier plans (T-Mobile Experience Beyond ->
+- [x] **D2. Perk overlap.** Paying for something a plan already includes: carrier plans (T-Mobile Experience Beyond ->
   Netflix with ads, Hulu promo with its end date), Walmart+ (Peacock or Paramount+), card credits (Amex Blue Cash
   Preferred streaming credit). A perks table with sources; "activate the perk, then cancel the paid one" as one card
   per cancellation (one yes each).
-- [ ] **D3. Rotation rule.** Three or more streaming services at once -> a rotation plan as a per-person toggle; every
+- [x] **D3. Rotation rule.** Three or more streaming services at once -> a rotation plan as a per-person toggle; every
   cancel or restart still asks its own yes.
 - [ ] **D4. Win-back watch.** After a cancel, offer emails from that service (fixtures) shown with the price and the
   promo end date.
-- [ ] **D5. Warehouse club math.** 12 months of club spend vs tier fees (Costco $65 / $130, 2% to $1,250): upgrade,
+- [x] **D5. Warehouse club math.** 12 months of club spend vs tier fees (Costco $65 / $130, 2% to $1,250): upgrade,
   downgrade or cancel, the break-even shown.
-- [ ] **D6. Subscribe and Save stack.** Repeat Amazon staples -> five on one date for 15%, the extra saving shown.
+- [x] **D6. Subscribe and Save stack.** Repeat Amazon staples -> five on one date for 15%, the extra saving shown.
 - [ ] **D7. Free substitutes.** Library streaming (Kanopy) and store-brand swaps from itemized receipts, as [Read]
   suggestions with the dollar gap.
 

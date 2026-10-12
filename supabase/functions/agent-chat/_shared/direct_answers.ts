@@ -6,10 +6,12 @@
 //   routed by AgentRouter through _shared/flow_router.ts, so nothing here intercepts it.)
 //   - "find me money": the model's answer was swapped for a dispute fallback (S16-18). Now the save engine reads the
 //     person's own transactions and ranks what it finds, every number from their rows, with the source and as-of date.
+//     The subscription and shopping savings (packages/domain/85-subscription-savings.js: cheaper tier, annual switch, perk
+//     overlap, rotation, Costco tier, Subscribe and Save) rank alongside, each title citing its offer-book term.
 //   - balance and spending with nothing linked: the planner's fallback spoke in internal terms ("retained USD posted
 //     records"). Now one plain line says nothing is connected and how to connect it.
 // Pure apart from the injected readers, so tests/edge/direct-answers.test.ts drives them with fixtures.
-import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave } from "../../_shared/router_core.js";
+import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON } from "../../_shared/router_core.js";
 
 const CONNECT_EMAIL = /^\s*(?:please |pls |can you |could you |can u )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+)?(?:gmail|google mail|email|inbox)\b/i;
 
@@ -38,7 +40,8 @@ export async function findMoneyReply(message: string, today: string, readTx: () 
   const tx = rows.map((r) => ({ id: r.provider_transaction_id, account_id: r.account_id, posted_at: r.posted_on, amount: (r.amount_cents as number) / 100, merchant_raw: r.merchant_raw, is_pending: false, is_transfer: !!r.is_transfer }));
   const through = rows.map((r) => r.posted_on as string).sort().slice(-1)[0];
   const found = AgentSave.detect({ today, transactions: tx, accounts: [], bills: [], debts: [] });
-  const ranked = AgentSave.rank(found.opportunities, null).slice(0, 3);
+  const subsOpps = SubscriptionSavings.opportunities(SubscriptionSavings.find({ today, book: OfferBook.create(OFFER_TERMS_JSON), transactions: rows }));
+  const ranked = AgentSave.rank(found.opportunities.concat(subsOpps), null).slice(0, 3);
   const source = `From your linked accounts, transactions through ${through}. Estimates, not savings yet: nothing counts as saved until your next statements show it.`;
   if (ranked.length) {
     return [`Here's where your money is going that you could cut, biggest first:`, ...ranked.map((o: any, i: number) => `${i + 1}. ${o.title}: ${o.reason}`), "Tell me which one and I'll start on it.", source].join("\n");

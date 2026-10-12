@@ -38,6 +38,7 @@ import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
 import { connectReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
+import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
@@ -230,7 +231,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
     // connector matrix, "find me money" from the person's own transactions, and
     // balance or spending with nothing linked in one plain line, "dispute this charge" as a pre-filled draft the person
-    // sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model), and balance,
+    // sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model), "am i overpaying
+    // for streaming", "should i switch to annual" and "is costco executive worth it" from the person's own charges and
+    // dated offer-book prices (_shared/subscription_answer.ts, read-only), and balance,
     // spending, "how am i doing" and "did it go through" from the person's own rows (_shared/money_answers.ts). "pay my
     // rent" is not answered here: it is the standing rent flow (flow router, below).
     {
@@ -264,6 +267,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const today = new Date().toISOString().slice(0, 10);
       try {
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
+        if (!direct) direct = await subscriptionReply(message, today, oldestFirst);
         if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
         // Rewards math on cards the person holds (_shared/rewards_answer.ts): rotating categories, a stated bonus target, the annual fee.
         if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);

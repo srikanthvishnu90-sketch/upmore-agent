@@ -357,6 +357,8 @@ Owner sequence (the manual steps that go-live.sh automates):
 
 - Data `packages/connectors/platforms.json` (100 researched rows + Alpaca as 101), contract `packages/domain/77-brokerage-connectors.js`, report `docs/connector-matrix/README.md` (generated; `--check` in CI), tests `tests/brokerage-connectors.test.cjs`, `tests/connector-matrix.test.cjs`.
 - Owner's 100: 16 trade + track by route, 64 track only, 15 off (prediction markets under decision 2, crypto under the shipped crypto rule), 5 can't connect. Today: Alpaca is the only live trading connector; 12 Plaid rows connect now (coverage researched), 29 are a try (Plaid coverage unverified), 4 track through a fallback, 35 not built. Verified live with a real account: 0.
+- Guided manual connect (read-only, session-only, decision 1): policy `packages/domain/78-manual-connect.js` (consent, read-only, health, status line, log scrubber), template + 3 playbooks (Cash App Investing, Fundrise, Yieldstreet; all unverified), design `docs/connector-matrix/guided-manual-connect.md`. Live window and session store not built.
+- No password storage anywhere (decision 1): vault refuses passwords, cancel runs never type one, chat redacts passwords and codes, model replies never ask for them (`tests/no-password-storage.test.cjs`).
 - BUILT, not VERIFIED. What remains is owner-gated: SnapTrade account and keys, partner approvals (Schwab, E*TRADE, IBKR, Saxo), guided manual connect (live browser login, not built), and decision 2.
 
 ## Requests between agents

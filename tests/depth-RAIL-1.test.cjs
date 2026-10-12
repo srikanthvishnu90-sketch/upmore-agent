@@ -154,7 +154,7 @@ test('[S13] split resolves every name through the same layer: the same question,
   await split.reply('venmo @dana-k');const c=await split.reply('@dana-k');assert.equal(c.outcome,'confirm');assert.match(c.text,/Request \$33\.33 each from Sarah M \(@sarah_m\) and Dana \(@dana-k, new\) in Venmo: \$100\.00 split 3 ways, yours \$33\.34/);
   // A person saved through pay resolves by name in split: one book.
   const w=world();await w.send.start('venmo dana 25');await w.send.reply('@dana-k');await w.send.reply('@dana-k');await w.send.reply('yes');await w.send.reply('SAVE');
-  const d=await w.split.start('split $50 with dana');assert.equal(d.outcome,'confirm');assert.match(d.text,/\$25\.00 each from Dana \(@dana-k\) in Venmo/);
+  const d=await w.split.start('split $50 with dana');assert.equal(d.outcome,'confirm');assert.match(d.text,/\$25\.00 from Dana \(@dana-k\) in Venmo/);
 });
 
 test('[S14] when saved recipients cannot be read, pay and split say so and call nobody a stranger',async()=>{
@@ -205,14 +205,31 @@ test('[S18] the people named after the memo are read as people, and a split clau
 });
 
 test('[S19] "..., i pay 50", "and ill cover 60", "my share is 40" are the person\'s own share, never a person to request from',async()=>{
-  for(const [m,re] of [['split 100 with marcus l and sarah, i pay 50',/^Request \$25\.00 each from Marcus L \(@marcus\) and Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$50\.00\./],['split 100 with sarah and ill cover 60',/^Request \$40\.00 each from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$60\.00\./],['split 100 with sarah, my share is 40',/^Request \$60\.00 each from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$40\.00\./]]){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,re,m);}
+  for(const [m,re] of [['split 100 with marcus l and sarah, i pay 50',/^Request \$25\.00 each from Marcus L \(@marcus\) and Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$50\.00\./],['split 100 with sarah and ill cover 60',/^Request \$40\.00 from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$60\.00\./],['split 100 with sarah, my share is 40',/^Request \$60\.00 from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$40\.00\./]]){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,re,m);}
 });
 
 test('[S20] splits as people type them: "w sarah", "sarah and i split 90", "with sarah thx" name Sarah; "the 90 dollar dinner" is a dinner',async()=>{
-  for(const m of ['split 90 w sarah','sarah and i split 90','split 90 with sarah thx','split 90 with sarah lol','split 90 bucks with sarah']){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^Request \$45\.00 each from Sarah M \(@sarah_m\) in Venmo: \$90\.00 split 2 ways/,m);}
+  for(const m of ['split 90 w sarah','sarah and i split 90','split 90 with sarah thx','split 90 with sarah lol','split 90 bucks with sarah']){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^Request \$45\.00 from Sarah M \(@sarah_m\) in Venmo: \$90\.00 split 2 ways/,m);}
   const w=world();assert.match((await w.split.start('split the 90 dollar dinner with sarah')).text,/ in Venmo for dinner: /);
   assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with willa').names)),['willa']);
   assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with ty').names)),['ty'],'Ty is a name');assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with sam k').names)),['sam k'],'K is an initial');
+});
+
+test('[S21] splits by percentage: "i pay 60%" and "sarah pays 40%" go straight to the card; "60/40" with one person asks who pays which; DETAILS says the share, never "equal shares"; other uneven forms are said not built',async()=>{
+  for(const m of ['split 2400 with sarah, i pay 60%','split 2400 with sarah, sarah pays 40%']){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^Request \$960\.00 from Sarah M \(@sarah_m\) in Venmo: \$2,400\.00 total, yours \$1,440\.00\./,m);}
+  const w=world();const a=await w.split.start('split rent 2400 with sarah unevenly 60/40');assert.equal(a.reason,'which_share');assert.equal(a.text,'Who pays the 60% ($1,440.00): you or Sarah? The other pays 40% ($960.00).');assert.equal(confirmations(w.split).length,0);
+  const b=await w.split.reply('sarah');assert.equal(b.outcome,'confirm');assert.match(b.text,/^Request \$1,440\.00 from Sarah M .* yours \$960\.00\./);
+  const d=await w.split.reply('details');assert.match(d.text,/^Split \$2,400\.00: you pay \$960\.00 \(40%\), and the rest, \$1,440\.00, is split evenly/);assert.doesNotMatch(d.text,/equal shares/);
+  const w2=world();await w2.split.start('split 2400 with sarah 60/40');assert.match((await w2.split.reply('me')).text,/yours \$1,440\.00/);
+  // A percentage is never the amount, and the share clause never sticks to a name (probed, 2026-10-12).
+  assert.match((await world().split.start('i pay 70% of 2400 split with sarah')).text,/^Request \$720\.00 from Sarah M .*\$2,400\.00 total, yours \$1,680\.00\./);
+  assert.equal((await world().split.start('split 60/40 2400 with sarah')).reason,'which_share');
+  assert.match((await world().split.start('split $2,400.50 with sarah i take 60%')).text,/^Request \$960\.20 from Sarah M .* yours \$1,440\.30\./);
+  assert.match((await world().split.start('split 2400 with sarah she pays 40%')).text,/^Request \$960\.00 from Sarah M /);
+  assert.equal((await world().split.start('split 2400 with sarah, marcus pays 40%')).outcome,'not_built','Marcus is not in the split; never read as Sarah\'s share');
+  // The megadoc's own words (C11): the roommate is asked for, then who pays which.
+  const c=world();assert.equal((await c.split.start('split rent 2400 with my roommate unevenly 60/40')).reason,'who_group');assert.equal((await c.split.reply('sarah')).reason,'which_share');assert.match((await c.split.reply('me')).text,/^Request \$960\.00 from Sarah M .* yours \$1,440\.00\./);
+  const n=await world().split.start('split 100 with sarah and marcus l 50/25/25');assert.equal(n.outcome,'not_built');assert.match(n.text,/I can do your own share as a percentage/);
 });
 
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{

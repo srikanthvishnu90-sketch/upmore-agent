@@ -365,8 +365,8 @@
    "id": "C11",
    "typed": "split rent 2400 with my roommate unevenly 60/40",
    "flow": "split",
-   "outcome": "not_built",
-   "reply": "Splits by percentage aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\").",
+   "outcome": "ask",
+   "reply": "Upmore doesn't keep groups, so I don't know who \"my roommate\" means. Who are they? Name each person, like \"Sam and Maya\".",
    "executed": false,
    "mock_orders": 0
   },

@@ -51,7 +51,7 @@ set("C06", "NOT_BUILT", "itemized splits; says so", "tests/edge/megadoc-sim.test
 set("C07", "NOT_BUILT", "group-chat member lists");
 set("C09", "NOT_BUILT", "reminders sent to other people");
 set("C10", "NOT_BUILT", "marking a request settled offline");
-set("C11", "NOT_BUILT", "percentage splits; says so", "tests/edge/megadoc-sim.test.ts");
+set("C11", "LIMITED", "asks who the roommate is (groups aren't kept), then who pays the 60% ($1,440.00) and the 40% ($960.00), then one card for the $960.00 request; the megadoc assumes the person pays the 60%, Upmore asks; requests are made by the person in their app (handoff)", "tests/depth-RAIL-1.test.cjs");
 set("C13", "NOT_BUILT", "requests by SMS link to people not on an app");
 set("C14", "NOT_BUILT", "canceling sent requests; says to cancel in the app", "tests/edge/megadoc-sim.test.ts");
 set("C15", "DIVERGES", "asks which Sam first; the tax amount question comes after, not first");

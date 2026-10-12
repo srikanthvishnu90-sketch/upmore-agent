@@ -32,7 +32,10 @@ Deno.test("megadoc sim: no request is dropped (P09 three asks, J11 two cancels)"
 Deno.test("megadoc sim: nothing for later, on a condition, in another currency or by percentage is staged as a send now", () => {
   for (const id of ["A08", "A15"]) { eqOutcome(id, "not_built"); assert(/nothing was set up/.test(rows[id].reply), rows[id].reply); }
   eqOutcome("B09", "refuse"); assert(/US dollars only/.test(rows.B09.reply));
-  for (const id of ["C06", "C11"]) eqOutcome(id, "not_built");
+  eqOutcome("C06", "not_built");
+  // C11 "split rent 2400 with my roommate unevenly 60/40": the roommate is asked for (groups aren't kept); who pays which
+  // comes next, then the card (tests/depth-RAIL-1.test.cjs S21). Nothing is requested on the first message.
+  eqOutcome("C11", "ask"); assert(/I don't know who "my roommate" means/.test(rows.C11.reply), rows.C11.reply);
 });
 Deno.test("megadoc sim: odd amounts ask instead of rounding or joining (A13 40.555, B08 '4 0'); words are read (A12)", () => {
   assertEquals(rows.A13.reply, "Dollars and cents only. Did you mean $40.55 or $40.56?");

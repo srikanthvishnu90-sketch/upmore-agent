@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-1",
- "run_at": "2026-10-12T15:14:52.297Z",
+ "run_at": "2026-10-12T20:05:07.157Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 20,
+ "sub_capabilities": 21,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -65,7 +65,8 @@
     "S17",
     "S18",
     "S19",
-    "S20"
+    "S20",
+    "S21"
    ],
    "status": "proven"
   },
@@ -247,7 +248,9 @@
    "test": "split with my roommates asks who they are",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S21"
+   ],
    "status": "proven"
   },
   {
@@ -267,11 +270,13 @@
    "sub": "S19",
    "id": "D19",
    "title": "The person's own share is not a name",
-   "defect": "the own-share clause stays in the names, so 'I Pay 50' is asked for a Venmo handle",
+   "defect": "the own-share clause stays in the names, so 'I Pay 50' is asked for a Venmo handle (both layers: the clause cut before the names split, and the filter after)",
    "test": "split 100 with sarah, i pay 50 requests from Sarah only",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S21"
+   ],
    "status": "proven"
   },
   {
@@ -280,6 +285,28 @@
    "title": "Splits as people type them",
    "defect": "chat filler at the end stays in the name, so 'Sarah Thx' is a stranger",
    "test": "split 90 with sarah thx names Sarah",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Splits by percentage",
+   "defect": "a percentage share is still refused as not built",
+   "test": "i pay 60% cards your 60% share",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D22",
+   "title": "Splits by percentage",
+   "defect": "a percentage is read as the amount (\"i pay 70% of 2400\" splits $70.00)",
+   "test": "i pay 70% of 2400 requests from $2,400.00",
    "bites": true,
    "applied": true,
    "collateral": [],

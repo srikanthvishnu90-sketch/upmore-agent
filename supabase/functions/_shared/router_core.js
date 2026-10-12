@@ -8633,14 +8633,22 @@
                      money out), posted_on, merchant_raw, is_pending, is_transfer, currency, fetched_at
      Six answers, each { kind, text, math, ...numbers }; text ends with its source and as-of line, math is the inputs and
      arithmetic line by line ("show me the math", E7):
-       safeToSpend(accounts, tx, now)         E1 cash now minus the bills due on or before the next payday, total and per
+       safeToSpend(accounts, tx, now)         E1 cash now minus the bills due on or before the next payday, minus any
+                                              scheduled transfers due by then (opts.scheduled_transfers: { on, amount_cents,
+                                              name }) and minus the person's buffer (opts.buffer_cents), total and per
                                               day; the payday is read from the person's own deposits; none found: 30 days,
-                                              said so
+                                              said so. Callers that pass neither get the old bills-only figure.
        upcoming(accounts, tx, now)            E2 every bill, payday and renewal in the next 30 days on one dated list
        runway(accounts, tx, now)              E3 days of cash at the average daily outflow over the last 90 days
-       afford(accounts, tx, words, now)       E4 "can I afford $X (by when)": yes with what is left, or the earliest day
+       afford(accounts, tx, words, now)       E4 "can I afford $X (by when)": yes with what is left, or the earliest day;
+                                              goal impact from opts.goals ({ name, target_cents, saved_cents,
+                                              monthly_cents, target_date } or a savings_goal watch { name, target_cents,
+                                              by, account }, saved read from its account, monthly derived from its date)
        netWorth(accounts, now)                E5 what is owned minus what is owed; unknown types and other currencies apart
-       forecast(accounts, tx, now)            E6 90 days ahead on repeating bills and paychecks only, assumptions listed
+       forecast(accounts, tx, now)            E6 90 days ahead on repeating bills, paychecks and scheduled transfers,
+                                              assumptions listed; below zero (or below opts.buffer_cents) it offers one
+                                              specific fix: delay a named bill by exact days to a named date, or move an
+                                              exact amount from a named savings account to checking, in trigger words
      Repeating bills come from AgentLedger.recurring (57-agent-ledger.js); money formatting and as-of times from
      MoneyAnswers. Paydays are fitted here: weekly, every 14 days, twice a month (two days of the month, paid early when
      the day falls on a weekend or a holiday) or monthly. All money is integer cents; other currencies are never added
@@ -8910,6 +8918,22 @@
     }
 
     // ---- shared inputs ----
+    // The person's buffer (a settings value, cents) and their scheduled transfers ({ on, amount_cents, name } — money
+    // already committed to leave the cash pool on a date, not yet in any balance). Both are optional inputs: a caller
+    // that passes neither gets the bills-only figures this module has always produced. A bad value is ignored, never
+    // guessed: a non-finite or negative buffer is no buffer; a transfer with no readable date or amount is left out.
+    const bufferOf = (opts) => { const b = Math.round(Number(opts && opts.buffer_cents)); return Number.isFinite(b) && b > 0 ? b : 0; };
+    function scheduledOf(opts, today) {
+      const raw = (opts && (opts.scheduled_transfers || opts.scheduledTransfers)) || [];
+      const out = [];
+      for (const s of Array.isArray(raw) ? raw : []) {
+        if (!s || typeof s !== "object") continue;
+        const on = String(s.on || s.due_on || s.date || s.posted_on || "").slice(0, 10), amt = Math.round(Number(s.amount_cents != null ? s.amount_cents : s.amount));
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(on) || on < today || !Number.isFinite(amt) || amt === 0) continue;
+        out.push({ on, amount_cents: Math.abs(amt), name: String(s.name || s.label || s.merchant || "Scheduled transfer").trim() || "Scheduled transfer" });
+      }
+      return out.sort((a, b) => a.on.localeCompare(b.on) || b.amount_cents - a.amount_cents || a.name.localeCompare(b.name));
+    }
     function inputs(accounts, transactions, now, opts) {
       const tz = (opts && opts.tz) || "UTC", today = todayIn(now, tz), rows = posted(transactions, today);
       const cash = cashOf(accounts), streams = payStreams(rows, today), { bills, stopped } = billsOf(rows, transactions, today);
@@ -8918,8 +8942,10 @@
       const payday = nextPays[0] || null;
       const cardLinked = active(accounts).some((a) => kindOf(a) === "credit");
       const synced = (transactions || []).map((r) => ms(r && r.fetched_at)).filter(Number.isFinite).sort((a, b) => b - a)[0];
-      return { tz, today, now, rows, cash, streams, bills, stopped, payday, cardLinked, synced, fresh: freshness(cash.rows.map((r) => r.account), now), foreignTx: foreignTx(transactions) };
+      return { tz, today, now, opts: opts || {}, accounts: active(accounts), rows, cash, streams, bills, stopped, payday, cardLinked, synced, fresh: freshness(cash.rows.map((r) => r.account), now), foreignTx: foreignTx(transactions), buffer_cents: bufferOf(opts), scheduled: scheduledOf(opts, today) };
     }
+    const scheduledDue = (I, to) => I.scheduled.filter((s) => s.on <= to);
+    const scheduledLine = (s, today) => `${s.name} ${money(s.amount_cents)} (${dateLabel(s.on, today)})`;
     function txThrough(I) {
       const d = I.rows.map((r) => r.posted_at).sort().slice(-1)[0], synced = I.synced;
       return `${d ? `transactions through ${dateLabel(d)}, ${d.slice(0, 4)}` : "no posted transactions yet"}${Number.isFinite(synced) ? `, synced ${MA.timeLabel(synced, I.tz)}` : ""}`;
@@ -8947,24 +8973,35 @@
       const I = inputs(accounts, transactions, now, opts), t = I.today;
       if (!I.cash.rows.length) return { kind: "safe", text: `Safe to spend: I can't work it out. ${NO_CASH}\n${sourceLine(I, active(accounts), true)}`, math: [NO_CASH], safe_cents: null };
       const end = I.payday ? I.payday.on : addDays(t, FALLBACK_DAYS), days = Math.max(1, daysBetween(t, end));
-      const due = occurrences(I.bills, t, end), billsCents = sum(due.map((o) => o.amount_cents)), safe = I.cash.cents - billsCents;
+      const due = occurrences(I.bills, t, end), billsCents = sum(due.map((o) => o.amount_cents));
+      const sched = scheduledDue(I, end), schedCents = sum(sched.map((s) => s.amount_cents)), buffer = I.buffer_cents;
+      const safe = I.cash.cents - billsCents - schedCents - buffer;
       const perDay = safe > 0 ? Math.floor(safe / days) : 0;
       const until = I.payday ? `until payday (${dateLabel(end, t)})` : `over the next ${FALLBACK_DAYS} days (to ${dateLabel(end, t)})`;
       const lines = [];
       if (safe > 0) lines.push(`Safe to spend ${until}: ${money(safe)}, about ${money(perDay)} a day for ${plural(days, "day")}.`);
+      else if (schedCents || buffer) lines.push(`Safe to spend ${until}: ${money(0)}. Bills due by then come to ${money(billsCents)}${schedCents ? `, scheduled transfers due by then come to ${money(schedCents)}` : ""}${buffer ? `, and your buffer is ${money(buffer)}` : ""} — ${money(billsCents + schedCents + buffer)} in all, ${money(-safe)} more than your ${money(I.cash.cents)} in cash.`);
       else lines.push(`Safe to spend ${until}: ${money(0)}. Bills due by then come to ${money(billsCents)}, ${money(-safe)} more than your ${money(I.cash.cents)} in cash.`);
-      if (safe > 0) lines.push(due.length ? `That's ${money(I.cash.cents)} in cash minus ${money(billsCents)} of bills due by then: ${due.map((o) => `${o.name} ${money(o.amount_cents)} (${dateLabel(o.on, t)})`).join(", ")}.` : `That's your ${money(I.cash.cents)} in cash; no repeating bill is due before then.`);
+      if (safe > 0) {
+        const parts = [due.length ? `${money(I.cash.cents)} in cash minus ${money(billsCents)} of bills due by then: ${due.map((o) => `${o.name} ${money(o.amount_cents)} (${dateLabel(o.on, t)})`).join(", ")}` : `your ${money(I.cash.cents)} in cash; no repeating bill is due before then`];
+        if (schedCents) parts.push(`minus ${money(schedCents)} of scheduled transfers due by then: ${sched.map((s) => scheduledLine(s, t)).join(", ")}`);
+        if (buffer) parts.push(`minus your ${money(buffer)} buffer`);
+        lines.push(`That's ${parts.join(", ")}.`);
+      }
       if (!I.payday) lines.push(`I couldn't find a regular paycheck in your deposits, so this counts the next ${FALLBACK_DAYS} days instead of until payday.`);
       else lines.push(`Pay: ${streamText(I.payday.s, t)}.`);
       const cards = active(accounts).filter((a) => kindOf(a) === "credit" && hasBal(a) && !foreign(a) && bal(a) < 0);
       if (cards.length) lines.push(`Card balances (${money(-sum(cards.map(bal)))} owed) aren't subtracted; a card payment counts only when it repeats from your accounts.`);
       lines.push(...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, null, true));
+      const subtractions = [money(billsCents), ...(schedCents ? [money(schedCents)] : []), ...(buffer ? [money(buffer)] : [])];
       const math = [`Cash now: ${money(I.cash.cents)}`, ...I.cash.rows.map((r) => `  + ${r.name}: ${money(r.used_cents)} (${r.basis === "available" ? `available; balance ${money(r.balance_cents)}` : "balance"})`),
         `Bills due on or before ${dateLabel(end, t)}: ${money(billsCents)}`, ...due.map((o) => `  - ${billLine(o, t)}`),
-        `${money(I.cash.cents)} - ${money(billsCents)} = ${money(safe)}${safe > 0 ? "" : ` (below zero, so ${money(0)} is safe to spend)`}`,
+        ...(schedCents ? [`Scheduled transfers due on or before ${dateLabel(end, t)}: ${money(schedCents)}`, ...sched.map((s) => `  - ${scheduledLine(s, t)}`)] : []),
+        ...(buffer ? [`Buffer: ${money(buffer)}`] : []),
+        `${money(I.cash.cents)} - ${subtractions.join(" - ")} = ${money(safe)}${safe > 0 ? "" : ` (below zero, so ${money(0)} is safe to spend)`}`,
         safe > 0 ? `${money(safe)} / ${plural(days, "day")} = ${money(perDay)} a day (rounded down to the cent; ${money(safe - perDay * days)} left over)` : `Per day: ${money(0)}`,
         I.payday ? `Payday: ${streamText(I.payday.s, t)}; next expected ${dateLabel(end, t)}.` : `Payday: none found in your deposits, so ${FALLBACK_DAYS} days is used.`];
-      return { kind: "safe", text: lines.join("\n"), math, safe_cents: Math.max(0, safe), raw_cents: safe, cash_cents: I.cash.cents, bills_cents: billsCents, bills: due, per_day_cents: perDay, days, until: end, payday_found: !!I.payday, payday: I.payday ? I.payday.on : null, today: t };
+      return { kind: "safe", text: lines.join("\n"), math, safe_cents: Math.max(0, safe), raw_cents: safe, cash_cents: I.cash.cents, bills_cents: billsCents, bills: due, scheduled: sched, scheduled_cents: schedCents, buffer_cents: buffer, per_day_cents: perDay, days, until: end, payday_found: !!I.payday, payday: I.payday ? I.payday.on : null, today: t };
     }
 
     // ---- E2 upcoming ----
@@ -9014,31 +9051,69 @@
     }
 
     // ---- E6 forecast (and the engine E4 reads) ----
-    function project(I, days) {
-      const t = I.today, to = addDays(t, days);
-      const bills = occurrences(I.bills, t, to), pays = I.streams.flatMap((s) => payDates(s, t, to).map((on) => ({ on, s })));
-      const daily = []; let b = I.cash.cents;
+    // mod.shift moves one bill occurrence ({ key, from_on, to_on }); mod.add_cents adds money in from today (a transfer
+    // into the pool the bills are paid from). Both exist so a forecast fix is verified on this same projection, never
+    // asserted from different arithmetic.
+    function project(I, days, mod) {
+      const t = I.today, to = addDays(t, days), m = mod || {};
+      let bills = occurrences(I.bills, t, to);
+      if (m.shift) bills = bills.map((o) => (o.key === m.shift.key && o.on === m.shift.from_on ? { ...o, on: m.shift.to_on, expected: o.on, shifted: true } : o));
+      const sched = scheduledDue(I, to), pays = I.streams.flatMap((s) => payDates(s, t, to).map((on) => ({ on, s })));
+      const daily = []; let b = I.cash.cents + (m.add_cents || 0);
       for (let d = 0; d <= days; d++) {
-        const on = addDays(t, d), outC = sum(bills.filter((o) => o.on === on).map((o) => o.amount_cents)), inC = sum(pays.filter((p) => p.on === on).map((p) => p.s.amount_cents));
+        const on = addDays(t, d), outC = sum(bills.filter((o) => o.on === on).map((o) => o.amount_cents)) + sum(sched.filter((s) => s.on === on).map((s) => s.amount_cents)), inC = sum(pays.filter((p) => p.on === on).map((p) => p.s.amount_cents));
         b += inC - outC; daily.push({ on, d, balance_cents: b, in_cents: inC, out_cents: outC });
       }
-      return { daily, bills, pays, in_cents: sum(pays.map((p) => p.s.amount_cents)), out_cents: sum(bills.map((o) => o.amount_cents)) };
+      return { daily, bills, pays, scheduled: sched, in_cents: sum(pays.map((p) => p.s.amount_cents)), out_cents: sum(bills.map((o) => o.amount_cents)) + sum(sched.map((s) => s.amount_cents)) };
+    }
+    const lowOf = (daily) => daily.reduce((m, x) => (x.balance_cents < m.balance_cents ? x : m), daily[0]);
+    // One specific fix for a projection whose low point is under the line (zero, or the person's buffer): first a bill
+    // delay — the smallest delay of one bill due on or before the low day whose shifted projection never goes under
+    // the line; failing that, a transfer of exactly the shortfall from the person's fullest savings account to their
+    // checking, in the words that trigger it. Null when neither single move gets back to the line.
+    function forecastFix(I, P, threshold) {
+      const low = lowOf(P.daily);
+      if (low.balance_cents >= threshold) return null;
+      const cands = P.bills.filter((o) => o.on <= low.on).sort((a, b) => b.amount_cents - a.amount_cents || a.on.localeCompare(b.on) || a.name.localeCompare(b.name));
+      const seen = new Set();
+      for (let delay = 1; delay <= 30; delay++) for (const o of cands) {
+        const k = `${o.key}|${o.on}`;
+        if (delay === 1) { if (seen.has(k)) continue; seen.add(k); }
+        const toOn = addDays(o.on, delay), P2 = project(I, HORIZON, { shift: { key: o.key, from_on: o.on, to_on: toOn } }), low2 = lowOf(P2.daily);
+        if (low2.balance_cents >= threshold) return { type: "delay_bill", name: o.name, key: o.key, amount_cents: o.amount_cents, from_on: o.on, to_on: toOn, delay_days: delay, new_low_cents: low2.balance_cents, new_low_on: low2.on, threshold_cents: threshold };
+      }
+      const need = threshold - low.balance_cents;
+      const savings = I.cash.rows.filter((r) => kindOf(r.account) === "savings").sort((a, b) => b.used_cents - a.used_cents)[0];
+      const checking = I.cash.rows.filter((r) => kindOf(r.account) === "checking")[0];
+      if (savings && checking && savings.used_cents >= need) {
+        const P2 = project(I, HORIZON, { add_cents: need }), low2 = lowOf(P2.daily);
+        if (low2.balance_cents >= threshold) return { type: "transfer", amount_cents: need, from_account: savings.name, to_account: checking.name, from_account_id: savings.account.account_id, to_account_id: checking.account.account_id, instruction: `move ${money(need)} from ${savings.name} to ${checking.name}`, new_low_cents: low2.balance_cents, new_low_on: low2.on, threshold_cents: threshold };
+      }
+      return null;
+    }
+    function fixLine(fix, t, threshold) {
+      const line = threshold > 0 ? `your ${money(threshold)} buffer` : "zero";
+      if (fix.type === "delay_bill") return `Fix: delay ${fix.name} (${money(fix.amount_cents)}) by ${plural(fix.delay_days, "day")}, from ${dateLabel(fix.from_on, t)} to ${dateLabel(fix.to_on, t)}. With that change the lowest point is ${money(fix.new_low_cents)} on ${dateLabel(fix.new_low_on, t)}, at or above ${line}.`;
+      return `Fix: ${fix.instruction} — send "${fix.instruction}" to do it. With that move the lowest point is ${money(fix.new_low_cents)} on ${dateLabel(fix.new_low_on, t)}, at or above ${line}.`;
     }
     function forecast(accounts, transactions, now, opts) {
       if (!active(accounts).length) return null;
       const I = inputs(accounts, transactions, now, opts), t = I.today;
       if (!I.cash.rows.length) return { kind: "forecast", text: `90-day forecast: I can't work it out. ${NO_CASH}\n${sourceLine(I, active(accounts), true)}`, math: [NO_CASH], points: [] };
-      const P = project(I, HORIZON), pts = [30, 60, 90].map((d) => P.daily[d]), low = P.daily.reduce((m, x) => (x.balance_cents < m.balance_cents ? x : m), P.daily[0]);
+      const P = project(I, HORIZON), pts = [30, 60, 90].map((d) => P.daily[d]), low = lowOf(P.daily), threshold = I.buffer_cents, fix = forecastFix(I, P, threshold);
       const ev = outflow(I, new Set(I.bills.map((b) => b.key))), evDay = ev.enough && ev.basis ? Math.round(ev.total / ev.basis) : null;
-      const lines = [`90-day forecast, from your repeating bills and paychecks only: ${pts.map((p) => `${money(p.balance_cents)} on ${dateLabel(p.on, t)} (${p.d} days)`).join(", ")}. Lowest: ${money(low.balance_cents)} on ${dateLabel(low.on, t)}${low.balance_cents < 0 ? ", below zero" : ""}.`, "Assumptions:",
+      const lines = [`90-day forecast, from your repeating bills and paychecks only: ${pts.map((p) => `${money(p.balance_cents)} on ${dateLabel(p.on, t)} (${p.d} days)`).join(", ")}. Lowest: ${money(low.balance_cents)} on ${dateLabel(low.on, t)}${low.balance_cents < 0 ? ", below zero" : threshold && low.balance_cents < threshold ? `, below your ${money(threshold)} buffer` : ""}.`,
+        ...(fix ? [fixLine(fix, t, threshold)] : low.balance_cents < threshold ? [`Fix: no single bill delay of up to 30 days and no savings transfer I can name from these rows gets the balance back to ${threshold ? `your ${money(threshold)} buffer` : "zero"} on its own.`] : []), "Assumptions:",
         `- Starts from ${money(I.cash.cents)} in cash (${I.cash.rows.map((r) => r.name).join(", ")}).`,
         I.streams.length ? `- Paychecks: ${I.streams.map((s) => streamText(s, t)).join("; ")}.` : "- Paychecks: none found in your deposits, so no money comes in.",
         I.bills.length ? `- Bills: ${I.bills.map((b) => `${b.name} ${b.steady ? "" : "about "}${money(b.amount_cents)} ${CADENCE_WORD[b.cadence]}`).join("; ")}.` : "- Bills: no repeating bill found.",
+        ...(P.scheduled.length ? [`- Scheduled transfers: ${P.scheduled.map((s) => scheduledLine(s, t)).join("; ")}.`] : []),
+        ...(threshold ? [`- Your buffer: ${money(threshold)} — the forecast fix is measured against it.`] : []),
         evDay !== null ? `- Not included: everyday spending that doesn't repeat (it averaged ${money(evDay)} a day ${ev.short ? `since ${dateLabel(ev.from, t)}` : `over the last ${BASIS_DAYS} days`}, about ${money(evDay * HORIZON)} over 90 days), one-off bills, and anything new.` : "- Not included: everyday spending (not enough history to average it), one-off bills, and anything new."];
       lines.push(...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, null, true));
       const math = [`Start: ${money(I.cash.cents)} cash on ${dateLabel(t, t)}`, ...P.pays.map((p) => `  + ${dateLabel(p.on, t)}: ${p.s.payer} ${money(p.s.amount_cents)}`), ...P.bills.map((o) => `  - ${dateLabel(o.on, t)}: ${o.name} ${money(o.amount_cents)}`),
         `${money(I.cash.cents)} + ${money(P.in_cents)} in - ${money(P.out_cents)} out = ${money(P.daily[HORIZON].balance_cents)} on ${dateLabel(P.daily[HORIZON].on, t)}`, ...pts.map((p) => `Day ${p.d} (${dateLabel(p.on, t)}): ${money(p.balance_cents)}`), `Lowest: ${money(low.balance_cents)} on ${dateLabel(low.on, t)}`];
-      return { kind: "forecast", text: lines.join("\n"), math, start_cents: I.cash.cents, in_cents: P.in_cents, out_cents: P.out_cents, points: pts.map((p) => ({ days: p.d, on: p.on, balance_cents: p.balance_cents })), low: { on: low.on, balance_cents: low.balance_cents }, daily: P.daily, everyday_per_day_cents: evDay };
+      return { kind: "forecast", text: lines.join("\n"), math: [...math, ...(fix ? [`Fix: ${fix.type === "delay_bill" ? `delay ${fix.name} ${money(fix.amount_cents)} by ${plural(fix.delay_days, "day")} (${dateLabel(fix.from_on, t)} -> ${dateLabel(fix.to_on, t)}); the shifted projection's lowest point is ${money(fix.new_low_cents)} on ${dateLabel(fix.new_low_on, t)}` : `${fix.instruction}; ${money(low.balance_cents)} + ${money(fix.amount_cents)} = ${money(low.balance_cents + fix.amount_cents)} at the low point, and the shifted projection's lowest point is ${money(fix.new_low_cents)} on ${dateLabel(fix.new_low_on, t)}`}`] : [])], start_cents: I.cash.cents, in_cents: P.in_cents, out_cents: P.out_cents, points: pts.map((p) => ({ days: p.d, on: p.on, balance_cents: p.balance_cents })), low: { on: low.on, balance_cents: low.balance_cents }, daily: P.daily, everyday_per_day_cents: evDay, threshold_cents: threshold, fix };
     }
 
     // The inputs another read-only check builds on (97-bnpl.js, capability list item 87): cash now, the repeating bills and
@@ -9102,6 +9177,54 @@
       }
       return { from: today, to: today, label: "today" };
     }
+    // ---- goal impact (C9) ----
+    // A goal as the caller supplies it: { name, target_cents, saved_cents, monthly_cents, target_date } or the person's
+    // stored savings_goal watch { kind, name, target_cents, by, account } — saved is then that account's balance, and
+    // the monthly amount is what reaching the target by its date takes (the goal answer's own arithmetic, 114).
+    // Contributions land monthly, so a purchase pushes completion by whole monthly steps: the time to re-save the
+    // amount at the goal's monthly rate, rounded up to the next contribution.
+    const centsField = (g, keys) => { for (const k of keys) { const v = Math.round(Number(g[k])); if (Number.isFinite(v)) return v; } return null; };
+    const monthsBetween = (a, b) => (+b.slice(0, 4) * 12 + +b.slice(5, 7)) - (+a.slice(0, 4) * 12 + +a.slice(5, 7));
+    function normalizeGoals(I, opts) {
+      const raw = (opts && (opts.goals || opts.savings_goals)) || [];
+      const out = [];
+      for (const g of Array.isArray(raw) ? raw : []) {
+        if (!g || typeof g !== "object" || !String(g.name || "").trim()) continue;
+        const target = centsField(g, ["target_cents", "target"]);
+        if (target === null || target <= 0) continue;
+        let saved = centsField(g, ["saved_cents", "saved", "saved_so_far_cents"]);
+        if (saved === null && g.account) {
+          const want = String(g.account).trim().toLowerCase();
+          const hit = I.accounts.filter((a) => { const nm = acctName(a).toLowerCase(), bare = String(a.name || "").toLowerCase(); return nm === want || bare === want || nm.includes(want) || bare.includes(want) || want.includes(bare); });
+          if (hit.length === 1 && hasBal(hit[0])) saved = bal(hit[0]);
+        }
+        if (saved === null) saved = g.account ? null : 0;
+        if (saved === null) continue; // a tied account that cannot be read: no saved figure, no guessed impact
+        const targetDate = String(g.target_date || g.by || g.target_on || g.date || "").slice(0, 10);
+        const by = /^\d{4}-\d{2}-\d{2}$/.test(targetDate) ? targetDate : null;
+        let monthly = centsField(g, ["monthly_cents", "monthly_contribution_cents", "monthly", "contribution_cents"]);
+        if ((monthly === null || monthly <= 0) && by && target > saved) { const m = monthsBetween(I.today, by); if (m >= 1) monthly = Math.ceil((target - saved) / m); }
+        out.push({ name: String(g.name).trim(), target_cents: target, saved_cents: saved, monthly_cents: monthly, target_date: by, same_pool: !(g.from_same_pool === false || g.same_pool === false || g.pool === "separate") });
+      }
+      return out;
+    }
+    function goalImpacts(I, opts, amount) {
+      const goals = normalizeGoals(I, opts), impacts = [];
+      for (const g of goals) {
+        if (!g.same_pool || g.target_cents <= g.saved_cents || !g.monthly_cents || g.monthly_cents <= 0) continue;
+        let oldDate, newDate, slip;
+        if (g.target_date) { slip = Math.ceil(amount / g.monthly_cents); oldDate = g.target_date; newDate = addMonths(oldDate, slip); }
+        else {
+          const monthsOld = Math.ceil((g.target_cents - g.saved_cents) / g.monthly_cents), monthsNew = Math.ceil((g.target_cents - g.saved_cents + amount) / g.monthly_cents);
+          slip = monthsNew - monthsOld; oldDate = addMonths(I.today, monthsOld); newDate = addMonths(I.today, monthsNew);
+        }
+        if (slip <= 0) continue; // the amount fits in the slack before the goal's next monthly step: it does not slip
+        impacts.push({ name: g.name, target_cents: g.target_cents, saved_cents: g.saved_cents, monthly_cents: g.monthly_cents, amount_cents: amount, slip_months: slip, old_date: oldDate, new_date: newDate });
+      }
+      return { goals, impacts };
+    }
+    const goalLine = (g, t) => `Goal impact: buying this delays your ${g.name} goal — it would finish ${dateLabel(g.new_date, t)} instead of ${dateLabel(g.old_date, t)}, ${plural(g.slip_months, "month")} later. That is the time to re-save ${money(g.amount_cents)} at ${money(g.monthly_cents)} a month, on top of the ${money(g.target_cents - g.saved_cents)} still to save toward ${money(g.target_cents)} (you have ${money(g.saved_cents)} saved).`;
+
     function afford(accounts, transactions, words, now, opts) {
       if (!active(accounts).length) return null;
       const amount = parseAmount(words);
@@ -9114,9 +9237,10 @@
       const S = safeToSpend(accounts, transactions, now, opts);
       const P = project(I, HORIZON), ev = outflow(I, new Set(I.bills.map((b) => b.key))), evTotal = ev.enough ? ev.total : 0, evBasis = ev.enough ? ev.basis : 1;
       // What could go on day d and leave the balance at or above $0 every day after it through the forecast, once
-      // everyday spending at its 90-day average is taken out day by day.
+      // everyday spending at its 90-day average is taken out day by day. Scheduled transfers are already out of P's
+      // daily balances; the room is then measured above the person's buffer (the same line safeToSpend holds).
       const net = P.daily.map((x) => x.balance_cents - Math.round(evTotal * x.d / evBasis));
-      const room = new Array(net.length); for (let d = net.length - 1, lo = Infinity; d >= 0; d--) { lo = Math.min(lo, net[d]); room[d] = lo; }
+      const room = new Array(net.length); for (let d = net.length - 1, lo = Infinity; d >= 0; d--) { lo = Math.min(lo, net[d]); room[d] = lo - I.buffer_cents; }
       const evNote = ev.enough ? `everyday spending at your ${ev.short ? "" : `${BASIS_DAYS}-day `}average (${money(Math.round(ev.total / ev.basis))} a day)` : "no everyday spending (not enough history to average it)";
       const lines = [], fromD = daysBetween(t, win.from), toD = Math.min(HORIZON, daysBetween(t, win.to));
       let yes = null;
@@ -9131,13 +9255,19 @@
         lines.push(`${head}: not on these numbers.${fromD === 0 ? ` Your safe to spend ${S.payday_found ? `until payday (${dateLabel(S.until, t)})` : `over the next ${FALLBACK_DAYS} days`} is ${money(S.safe_cents)}.` : ""}`);
         lines.push(later ? `The earliest day it fits is ${dateLabel(P.daily[later].on, t)}, counting your repeating bills and paychecks and ${evNote}.` : `It doesn't fit on any day in the next ${HORIZON} days, counting your repeating bills and paychecks and ${evNote}.`);
       }
+      const G = goalImpacts(I, opts, amount);
+      if (G.impacts.length) for (const g of G.impacts) lines.push(goalLine(g, t));
+      else if (G.goals.length) lines.push(`Goal impact: no goal slips — none of the ${plural(G.goals.length, "goal")} supplied (${G.goals.map((g) => g.name).join(", ")}) is set back by this amount on its monthly contribution (already funded, not funded from this pool, or the amount fits in the slack before its next monthly step).`);
+      else lines.push("Goal impact: none stated — no savings goals were supplied with this ask, so no goal slip is counted.");
       lines.push(...src);
       const pick = yes ? yes.d : later;
-      const math = [`Amount: ${money(amount)}; window: ${win.label}`, `Safe to spend now: ${money(S.safe_cents)} (${money(S.cash_cents)} cash - ${money(S.bills_cents)} bills due by ${dateLabel(S.until, t)})`,
+      const safeParts = `${money(S.cash_cents)} cash - ${money(S.bills_cents)} bills${S.scheduled_cents ? ` - ${money(S.scheduled_cents)} scheduled transfers` : ""}${S.buffer_cents ? ` - ${money(S.buffer_cents)} buffer` : ""} due by ${dateLabel(S.until, t)}`;
+      const math = [`Amount: ${money(amount)}; window: ${win.label}`, `Safe to spend now: ${money(S.safe_cents)} (${safeParts})`,
         ...(yes && yes.now ? [`${money(S.safe_cents)} - ${money(amount)} = ${money(yes.left)} left; / ${plural(S.days, "day")} = ${money(per)} a day`] : [
           `Projected balance each day = cash + paychecks - bills - everyday spending (${money(evTotal)} over ${plural(evBasis, "day")}, spread by day)`,
-          ...(pick !== null && pick !== undefined ? [`On ${dateLabel(P.daily[pick].on, t)}: the lowest projected balance from then through ${dateLabel(horizonEnd, t)} is ${money(room[pick])}; ${money(room[pick])} - ${money(amount)} = ${money(room[pick] - amount)}`] : [`The most room on any day through ${dateLabel(horizonEnd, t)}: ${money(Math.max(...room.slice(1)))}, less than ${money(amount)}`])])];
-      return { kind: "afford", text: lines.join("\n"), math, amount_cents: amount, window: win, answer: yes ? "yes" : "no", on: pick !== null && pick !== undefined ? P.daily[pick].on : null, left_cents: yes ? yes.left : null, safe_cents: S.safe_cents };
+          ...(pick !== null && pick !== undefined ? [`On ${dateLabel(P.daily[pick].on, t)}: the lowest projected balance from then through ${dateLabel(horizonEnd, t)} is ${money(room[pick])}; ${money(room[pick])} - ${money(amount)} = ${money(room[pick] - amount)}`] : [`The most room on any day through ${dateLabel(horizonEnd, t)}: ${money(Math.max(...room.slice(1)))}, less than ${money(amount)}`])]),
+        ...G.impacts.map((g) => `Goal ${g.name}: ${money(g.target_cents)} - ${money(g.saved_cents)} = ${money(g.target_cents - g.saved_cents)} to save at ${money(g.monthly_cents)} a month; re-saving ${money(g.amount_cents)} takes ${plural(g.slip_months, "month")} of monthly steps: ${dateLabel(g.old_date, t)} -> ${dateLabel(g.new_date, t)}`)];
+      return { kind: "afford", text: lines.join("\n"), math, amount_cents: amount, window: win, answer: yes ? "yes" : "no", on: pick !== null && pick !== undefined ? P.daily[pick].on : null, left_cents: yes ? yes.left : null, safe_cents: S.safe_cents, goal_impacts: G.impacts, goals_supplied: G.goals.length };
     }
 
     // ---- E5 net worth ----

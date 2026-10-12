@@ -7,7 +7,7 @@ const AgentClassifiedLedger = (() => {
   function report(rows,reviews,from,to,accountId) {
     if(AgentWorkflows.date(from)!==from || AgentWorkflows.date(to)!==to || from>to)throw new Error("A real inclusive date range is required.");
     if(!Array.isArray(rows)||!Array.isArray(reviews)||rows.length>100000||reviews.length>100000)throw new Error("Ledger history exceeds the processing limit.");
-    const transactions=new Map(),latest=new Map(),groups=new Map(),references=[];
+    const transactions=new Map(),latest=new Map(),groups=new Map(),references=[],fetches=[];
     for(const row of rows){
       if(!row.account_id||!row.provider_transaction_id)throw new Error("Transaction identity is missing.");
       const id=key(row),prior=transactions.get(id);
@@ -79,6 +79,8 @@ const AgentClassifiedLedger = (() => {
         if(c.kind==="expense")group.expense-=BigInt(row.amount_cents);else group.refund+=BigInt(row.amount_cents);
         groups.set(category,group);
       }
+      // The totals' as-of is the bank fetch of the rows they count (the oldest one), never the time of this report.
+      fetches.push(row.fetched_at&&Number.isFinite(Date.parse(row.fetched_at))?new Date(row.fetched_at).toISOString():null);
       references.push({account_id:row.account_id,transaction_id:row.provider_transaction_id,fact_hash:row.fact_hash||null,
         fetched_at:row.fetched_at||null,kind:c.kind,reason:c.reason||null,category:c.category||null,review_revision:c.review?.review_revision||null,
         linked_fact_hash:c.review?.linked_fact_hash||null});
@@ -88,6 +90,7 @@ const AgentClassifiedLedger = (() => {
       spending_cents:complete?safe(expense-refund):null,income_cents:complete?safe(income):null,
       known_expenses_cents:safe(expense),known_refunds_cents:safe(refund),known_net_spending_cents:safe(expense-refund),
       known_income_cents:safe(income),loan_proceeds_cents:safe(loans),classification_complete:complete,coverage_complete:false,
+      oldest_receipt_at:count&&fetches.every(Boolean)?fetches.sort()[0]:null,
       unclassified_records:unknown,invalidated_reviews:stale,transfer_records:transfers,credit_payment_records:cards,other_records:other,excluded,
       excluded_count_scope:"Pending and unavailable counts cover retained account-scoped history; their posting dates may be unknown. Unsupported-currency counts use the requested period.",
       categories:[...groups.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([category,g])=>({category,expenses_cents:safe(g.expense),refunds_cents:safe(g.refund),net_spending_cents:safe(g.expense-g.refund)})),

@@ -105,7 +105,7 @@ export class FinancialToolSession {
       const s=c.summary;
       const cash_sources=c.accounts.filter((a:any)=>s.cash_account_ids.includes(a.account_id)).map((a:any)=>({account_id:a.account_id,observed_at:a.balance_as_of}));
       const oldest=cash_sources.map((a:any)=>a.observed_at).sort()[0]||null;
-      return {facts:[this.add(`Linked USD cash available: ${moneyText(s.available_cents)}${oldest?", oldest included bank observation "+oldest:"; no eligible cash observation"}. Recorded verified bill amounts: ${moneyText(s.known_due_cents)}; these amounts may need a biller refresh. ${s.unverified_obligations} recorded bills need verification. Coverage is incomplete; this is not spending authorization.`,"linked cash calculation","cash-summary",oldest,{...s,calculated_at:this.now(),cash_sources,obligation_sources:c.obligation_sources})]};
+      return {facts:[this.add(`Linked USD cash available: ${moneyText(s.available_cents)}${oldest?", oldest included bank observation "+oldest:"; no eligible cash observation"}. Recorded verified bill amounts: ${moneyText(s.known_due_cents)}; these amounts may need a biller refresh. ${s.unverified_obligations} recorded bills need verification.${s.unsupported_currency_obligations?` ${s.unsupported_currency_obligations} recorded bill${s.unsupported_currency_obligations===1?"":"s"} in another currency ${s.unsupported_currency_obligations===1?"is":"are"} not included in the dollar amounts.`:""} Coverage is incomplete; this is not spending authorization.`,"linked cash calculation","cash-summary",oldest,{...s,calculated_at:this.now(),cash_sources,obligation_sources:c.obligation_sources})]};
     }
     if(name==="get_posted_flow_report") {
       const r=await postedFlowReport(this.userId,this.reader,args.date_from,args.date_to,args.account_id);
@@ -116,7 +116,7 @@ export class FinancialToolSession {
     if(name==="get_spending_income_report") {
       const r=await classifiedLedgerReport(this.userId,this.reader,args.date_from,args.date_to,args.account_id);
       const text=`${r.date_from} through ${r.date_to}: ${r.record_count} retained USD posted records. Spending ${moneyText(r.spending_cents)}, income ${moneyText(r.income_cents)}. Known user-classified expenses ${moneyText(r.known_expenses_cents)}, refunds ${moneyText(r.known_refunds_cents)}, income subtotal ${moneyText(r.known_income_cents)}. ${r.unclassified_records} records still need classification; ${r.invalidated_reviews} reviews need renewed evidence or linked-leg reconciliation. ${r.transfer_records} transfer records and ${r.credit_payment_records} card-payment records are excluded from spending/income. Loan proceeds ${moneyText(r.loan_proceeds_cents)} are not earned income. User classifications are assertions; account/history coverage is incomplete.`;
-      return {facts:[this.add(text,"user-reviewed ledger calculation","classified-ledger:"+r.reference_hash,null,r)]};
+      return {facts:[this.add(text,"user-reviewed ledger calculation","classified-ledger:"+r.reference_hash,r.oldest_receipt_at,r)]};
     }
     if(name==="get_recovery_report") {
       const r=await recoveryReport(this.userId,this.reader,args,this.now());

@@ -79,6 +79,8 @@ Deno.test("typed financial tool renders calculated classifications and cannot wr
  const a=tx("a",-10000),f=fixture({agent_financial_transactions:[a],agent_transaction_reviews:[review(a,"expense")]});
  const result=await f.session.run("get_spending_income_report",{date_from:from,date_to:to});
  assert(result.facts[0].text.includes("Spending $100.00") && result.facts[0].text.includes("User classifications are assertions"));
+ // The money statement carries its as-of: the bank fetch of the counted rows (docs/depth/CLASSIFIED-LEDGER.md S21).
+ assert(result.facts[0].source.observed_at==="2026-10-10T12:00:00.000Z","ledger source as-of");
  await rejects(()=>f.session.run("classify_transaction",{}),"not registered");
  assert(f.calls.length===0);
 });

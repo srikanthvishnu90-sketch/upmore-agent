@@ -48,4 +48,10 @@ Deno.test("cash source time is the oldest included provider observation, not cal
  const now=Date.now(),old=new Date(now-3600000).toISOString(),fresh=new Date(now-1000).toISOString();const a=(id:string,stamp:string)=>({user_id:user,account_id:id,account_kind:"checking",currency:"USD",status:"active",available_cents:10000,balance_as_of:stamp});
  const f=fixture({agent_financial_accounts:[a("a",old),a("b",fresh)]});const result=await f.session.run("get_cash_position",{});const fact=result.facts[0];assert(fact.source.observed_at===old&&fact.data.available_cents===20000&&fact.data.cash_sources.length===2);assert(fact.data.calculated_at!==old);
 });
+Deno.test("a bill in another currency is named as not included, never added to dollars",async()=>{
+ const stamp=new Date(Date.now()-1000).toISOString(),ob=(id:string,currency:string,cents:number)=>({user_id:user,id,currency,direction:"payable",status:"verified",amount_due_cents:cents,source_type:"biller",observed_at:stamp,revision:1});
+ const f=fixture({agent_obligations:[ob("o1","USD",8432),ob("o2","CAD",150000)]});const r=await f.session.run("get_cash_position",{});
+ assert(r.facts[0].text.includes("Recorded verified bill amounts: $84.32")&&r.facts[0].text.includes("1 recorded bill in another currency is not included in the dollar amounts."),r.facts[0].text);
+ const usd=await fixture({agent_obligations:[ob("o1","USD",8432)]}).session.run("get_cash_position",{});assert(!usd.facts[0].text.includes("another currency"));
+});
 Deno.test("no eligible cash balance is unknown instead of zero",async()=>{const f=fixture();const r=await f.session.run("get_cash_position",{});assert(r.facts[0].data.available_cents===null&&r.facts[0].source.observed_at===null&&r.facts[0].text.includes("amount unknown"));});

@@ -67,7 +67,9 @@
           pending_provider_id:identity(raw.pending_transaction_id),fetched_at:fetched,
         });
       }
-      const providerErrors = Array.isArray(p.errlist) ? p.errlist.map(x=>String(x).slice(0,200)) : ["provider_error_status_unknown"];
+      // SimpleFIN protocol 2 lists errors as objects ({code, msg}); older bridges send strings. Keep both readable.
+      const providerError = x => x && typeof x === "object" ? [x.code, x.msg || x.message].filter(v=>typeof v === "string" && v).join(": ") || "provider_error_unreadable" : String(x);
+      const providerErrors = Array.isArray(p.errlist) ? p.errlist.map(x=>providerError(x).slice(0,200)) : ["provider_error_status_unknown"];
       return {ok:true,accounts,transactions,errors:errors.concat(providerErrors),fetched_at:fetched,
         requested_start:date(m.requested_start),requested_end:date(m.requested_end),
         // A successful response is not proof of complete current bill/history coverage.
@@ -134,7 +136,9 @@
         if (!Number.isSafeInteger(a.available_cents)) { unknown++; continue; }
         available+=BigInt(a.available_cents); cash.push(a.account_id);
       }
-      const payable=(obligations || []).filter(o=>o.currency==="USD" && o.direction==="payable" && !["settled","waived","invalid"].includes(o.status));
+      const open=(obligations || []).filter(o=>o.direction==="payable" && !["settled","waived","invalid"].includes(o.status));
+      // A bill in another currency is never added to dollars, and never silently dropped either: it is counted.
+      const payable=open.filter(o=>o.currency==="USD"), otherCurrency=open.length-payable.length;
       let knownDue=0n,unverified=0;
       payable.forEach(o=>{
         if (["verified","partially_paid"].includes(o.status) && Number.isSafeInteger(o.amount_due_cents)) knownDue+=BigInt(o.amount_due_cents);
@@ -144,7 +148,7 @@
       return {currency:"USD",available_cents:cash.length ? safe(available) : null,
         known_due_cents:safe(knownDue),cash_account_ids:cash,
         unclassified_or_unavailable_accounts:unknown,stale_accounts:stale,unverified_obligations:unverified,
-        coverage_complete:false,description:"Linked cash and recorded bills only; missing accounts or bills may change the picture."};
+        unsupported_currency_obligations:otherCurrency,coverage_complete:false,description:"Linked cash and recorded bills only; missing accounts or bills may change the picture."};
     }
     return {signedCents,normalizeSimplefin,pendingLinks,inferObligations,cashSummary,kinds};
   })();

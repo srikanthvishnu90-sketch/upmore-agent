@@ -15,6 +15,8 @@
           errors.push("invalid_biller_identity_or_version"); continue;
         }
         seen.add(raw.external_id);
+        // A biller's amount is in the currency the biller states; a record without one is never read as dollars.
+        if (typeof raw.currency!=="string" || !raw.currency.trim()) {errors.push("biller_currency_required");continue;}
         const observed=Date.parse(raw.observed_at || "");
         if (!isFinite(observed) || observed>at) {errors.push("invalid_source_timestamp");continue;}
         // Provider status 'paid' must have allocation evidence. A successful

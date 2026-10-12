@@ -236,3 +236,16 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
 - Still for the owner (not changed): shared-goal contributions are recorded before money moves; estimated-tax
   payments are summed across years (which tax year a January payment belongs to is a design call); the transfer stop
   line "checking has $X available" has no source or as-of because the account row carries none.
+## Depth packets for the bank-fact core (2026-10-12)
+
+Found building the FINANCIAL-MODEL, BILLER-MODEL, POSTED-FLOW and CLASSIFIED-LEDGER depth packets (modules 37-40, the
+financial core bundle; `docs/depth/FINANCIAL-MODEL.md`, `BILLER-MODEL.md`, `POSTED-FLOW.md`, `CLASSIFIED-LEDGER.md`).
+Each was a failing test first (red on the original module), fixed minimally, and a planted defect puts the old behavior
+back. POSTED-FLOW found nothing to fix. Each line: what the doc or code said, what is true now, and the source.
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `supabase/functions/simplefin-proxy/index.ts` ("surface errlist") and `37-agent-financial-model.js` | The bank's error list is kept with the sync | The proxy asks the bridge for protocol version 2, whose `errlist` entries are objects; each was stringified, so "Reauthenticate with Mock Bank" was stored and returned as "[object Object]". Fixed: an object reads "con.auth: Reauthenticate with Mock Bank"; strings are unchanged | `tests/depth-FINANCIAL-MODEL.test.cjs` S10 (red first); D10 |
+| `37-agent-financial-model.js` `cashSummary` ("Linked cash and recorded bills only") and `financial_tools.ts` get_cash_position | Recorded bills are summed (USD) or counted as needing verification | A bill in another currency was neither: a verified CAD bill next to a verified $84.32 bill gave "Recorded verified bill amounts: $84.32. 0 recorded bills need verification." with no word of it. Fixed: counted (`unsupported_currency_obligations`), never added to dollars, and chat adds "1 recorded bill in another currency is not included in the dollar amounts." only when there is one | `tests/depth-FINANCIAL-MODEL.test.cjs` S23 (red first); D23; `tests/edge/financial-tools.test.ts` |
+| `38-agent-biller-model.js` header ("validates server-fetched biller facts") | A biller record's facts are the biller's | A record without a currency became USD (`AgentWorkflows.normalize` defaults it), so a Canadian biller's C$1,500.00 would be a verified $1,500.00 bill in the amount due. Fixed: a biller record must state its currency (`biller_currency_required`). No adapter is verified yet (`BILLER_ADAPTERS` is empty), so no real record was affected | `tests/depth-BILLER-MODEL.test.cjs` S14 (red first); D14 |
+| CLAUDE.md "Every user-facing money statement cites its data source and as-of time"; `40-agent-classified-ledger.js` and `financial_tools.ts` get_spending_income_report | "Spending $X, income $Y" is a calculation over retained rows | The report had no as-of and the chat fact's source said `observed_at: null`. Fixed: `oldest_receipt_at`, the oldest bank fetch of a counted row (unknown when any counted row has none, as in the posted-flow report), is the fact's as-of | `tests/depth-CLASSIFIED-LEDGER.test.cjs` S21 (red first); D21, D21b; `tests/edge/classified-ledger.test.ts` |

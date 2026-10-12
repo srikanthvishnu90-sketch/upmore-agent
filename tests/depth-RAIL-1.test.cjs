@@ -204,6 +204,10 @@ test('[S18] the people named after the memo are read as people, and a split clau
   assert.equal(P.parse('split 40 for the cab').memo,'the cab');
 });
 
+test('[S19] "..., i pay 50", "and ill cover 60", "my share is 40" are the person\'s own share, never a person to request from',async()=>{
+  for(const [m,re] of [['split 100 with marcus l and sarah, i pay 50',/^Request \$25\.00 each from Marcus L \(@marcus\) and Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$50\.00\./],['split 100 with sarah and ill cover 60',/^Request \$40\.00 each from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$60\.00\./],['split 100 with sarah, my share is 40',/^Request \$60\.00 each from Sarah M \(@sarah_m\) in Venmo: \$100\.00 total, yours \$40\.00\./]]){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,re,m);}
+});
+
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{
   const {send,book}=world();
   assert.equal((await send.start('send $40 to marcus')).text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');

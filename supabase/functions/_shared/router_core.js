@@ -6160,13 +6160,15 @@
       // "between me and 3 friends": a count, not a name (response-style corpus 2.01).
       if (out.ways && !out.names.length) out.others = out.ways - 1;
       if (out.names.length === 1) { const n = /^(\d+|two|three|four|five|six|seven|eight)\s+(?:friends|people|others|of (?:them|us)|roommates|guys|coworkers|colleagues)$/i.exec(out.names[0]); if (n) { out.others = WORDS[n[1].toLowerCase()] || Number(n[1]); out.names = []; out.ways = out.others + 1; } }
+      // "..., i pay 50" or "and I'll cover 30" is the person's own share (read below), never a name (found by probing).
+      out.names = out.names.filter(n => !/^(?:i(?:'ll|ll| will|'m|m)?\s+(?:pay|cover|paying|covering)|ill\s+(?:pay|cover)|(?:my\s+)?(?:share|part|half|portion) is)\b/i.test(n));
       // "With my roommates", "the guys", "family": a group, never a person's name (megadoc C04). Groups aren't kept, so the
       // people in it are asked for; "Roommates" was being asked for a Venmo handle as if it were someone.
       const GROUP = /^(?:all|both|everyone|everybody|the group|group|the gang|gang|squad|crew|them|roommates?|room ?mates?|housemates?|flatmates?|friends|the guys|guys|the girls|girls|family|the family|fam|coworkers|co-workers|colleagues|team|the team|everyone (?:here|else)|my (?:roommates?|friends|family|coworkers))$/i;
       const g = out.names.find(n => GROUP.test(n));
       if (g) { out.group = (/\b(?:with|between|among)\s+((?:my|the|our)\s+)?/i.exec(head) || [])[1] ? `${/\b(?:with|between|among)\s+((?:my|the|our))\s+/i.exec(head)[1].toLowerCase()} ${g.toLowerCase()}` : g.toLowerCase(); out.names = []; }
       // "I pay 50", "my share is 50": the person's own fixed share; the rest is split (corpus 2.02).
-      const mine = /\b(?:i(?:'ll| will)?\s+(?:pay|cover)|my (?:share|part|half) is)\s+\$?\s?(\d+(?:\.\d{1,2})?)/i.exec(t);
+      const mine = /\b(?:i(?:'ll| will)?\s+(?:pay|cover)|ill\s+(?:pay|cover)|my (?:share|part|half) is)\s+\$?\s?(\d+(?:\.\d{1,2})?)/i.exec(t);
       if (mine) { const c = Math.round(Number(mine[1]) * 100); if (c > 0 && (!out.amount_cents || c < out.amount_cents)) out.mine_cents = c; }
       return out;
     }

@@ -60,7 +60,11 @@ export interface WindfallOffer { kind: "windfall_sweep"; key: string; transactio
 // The exact preventive transfer for a low-balance warning (SAVE-006, real-world C29): the warning names the
 // move, and a yes stages it through the same transfer flow as the windfall sweep (PAY-009's card).
 export interface PreventiveOffer { kind: "preventive_transfer"; key: string; amount_cents: number; from_account_id: string; to_account_id: string; from_name: string; to_name: string; first_below_on: string; land_by: string }
-export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer | WindfallOffer | PreventiveOffer;
+// A statement anomaly the person is asked about (C15): a large charge, a first-time merchant over the limit, or an
+// international charge, with the exact transaction reference the alert computed. "Yes" (it was me) closes it with
+// no action; "no" runs the dispute flow for that exact charge with the case opened (see anomalyOfferAnswer).
+export interface AnomalyOffer { kind: "anomaly_check"; key: string; transaction_id: string; merchant: string; amount_cents: number; currency: string; posted_on: string | null }
+export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer | WindfallOffer | PreventiveOffer | AnomalyOffer;
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
 // standing: the person's active rows of public.standing_payments (their rent rule).
@@ -95,7 +99,7 @@ export function mapAccounts(rows: any[]) {
 export function mapTransactions(rows: any[]) {
   return (rows || []).filter(r => r && r.presence !== "superseded" && Number.isSafeInteger(r.amount_cents) && (r.currency || "USD") === "USD" && r.posted_on).map(r => ({
     id: `${r.account_id}:${r.provider_transaction_id}`, account_id: r.account_id, amount_cents: r.amount_cents, amount: r.amount_cents / 100,
-    posted_at: String(r.posted_on).slice(0, 10), merchant_raw: r.merchant_raw, is_pending: !!r.is_pending, is_transfer: !!r.is_transfer,
+    posted_at: String(r.posted_on).slice(0, 10), merchant_raw: r.merchant_raw, is_pending: !!r.is_pending, is_transfer: !!r.is_transfer, currency: r.currency || "USD",
   }));
 }
 
@@ -215,12 +219,12 @@ export function plan(input: ProactiveInput, now: number) {
       if (!b.allowed) { out.suppressed.push({ key: p.key, reason: b.reason }); continue; }
       // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
       const exempt = b.reason !== "budget";
-      const offer = trialOffer(p, input.subscriptions || []) || windfallOffer(p, accounts) || preventiveOffer(p, { accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
+      const offer = trialOffer(p, input.subscriptions || []) || windfallOffer(p, accounts) || preventiveOffer(p, { accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined }) || anomalyOffer(p);
       // One offer per run, so one yes answers exactly one question; this one waits for the next hour.
       if (offer && out.messages.some(m => m.offer)) { out.suppressed.push({ key: p.key, reason: "one_offer_at_a_time" }); continue; }
       // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
       // A windfall finding already ends with its own question ("Sweep $X to savings? Reply yes…"), so no suffix.
-      const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : offer && offer.kind === "preventive_transfer" ? `${p.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.` : p.text;
+      const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : offer && offer.kind === "preventive_transfer" ? `${p.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.` : offer && offer.kind === "anomaly_check" ? `${p.text} Was this you? Reply YES or NO — if it wasn't, I'll open the dispute case for this charge.` : p.text;
       if (push({ key, kind: "finding", text, capability_id: offer && offer.kind === "cancel_trial" ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
     }
     // C29: the checking-level dip the total-cash warning (ALRT-001) cannot see — checking goes under the
@@ -415,6 +419,16 @@ function preventiveOffer(p: any, ctx: { accounts: any[]; transactions: any[]; to
   return pv ? Object.assign({}, pv.offer, { key: p.key }) : null;
 }
 
+// The anomaly finding's offer, built from the alert's own computed evidence (59-agent-alerts.js): the large,
+// first-time-merchant and international detectors each carry the transaction reference (id, merchant, amount,
+// date, currency) in evidence.computed. No reference computed, no offer.
+function anomalyOffer(p: any): AnomalyOffer | null {
+  if (!p || typeof p.key !== "string" || !/^(?:large|unusual|international):/.test(p.key)) return null;
+  const c = p.evidence && p.evidence.computed;
+  if (!c || !c.transaction_id || !Number.isInteger(c.amount_cents) || !(c.amount_cents > 0)) return null;
+  return { kind: "anomaly_check", key: p.key, transaction_id: String(c.transaction_id), merchant: String(c.merchant || ""), amount_cents: c.amount_cents, currency: String(c.currency || "USD").toUpperCase(), posted_on: c.posted_on || null };
+}
+
 // ---- The answer to an offer: "yes" starts the cancellation (its own card is the one explicit approval), "no" keeps
 // it, and a yes after the trial has ended fires nothing. A live card in the thread always wins: its own yes is its own.
 const OFFER_YES = /^\s*(?:y|yes|yeah|yep|yup|ya|sure|ok|okay|do it|please do|cancel it|yes,? cancel(?: it)?|go ahead)\s*[.!]*\s*$/i;
@@ -422,12 +436,13 @@ const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now
 export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
 export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
   const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
-  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send", "windfall_sweep", "preventive_transfer"].includes(d.offer.kind)) return null;
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send", "windfall_sweep", "preventive_transfer", "anomaly_check"].includes(d.offer.kind)) return null;
   if (await d.liveCard()) return null;
   if (d.offer.kind === "rent_month") return rentOfferAnswer(yes, d, now);
   if (d.offer.kind === "scheduled_send") return scheduledSendAnswer(yes, d, now);
   if (d.offer.kind === "windfall_sweep") return windfallOfferAnswer(yes, d, now);
   if (d.offer.kind === "preventive_transfer") return preventiveOfferAnswer(yes, d, now);
+  if (d.offer.kind === "anomaly_check") return anomalyOfferAnswer(yes, d, now);
   const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
   await d.clear();
   if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
@@ -494,6 +509,22 @@ async function preventiveOfferAnswer(yes: boolean, d: OfferDeps, now: number): P
   const flow = await d.runFlow(restated);
   if (flow && !(flow as any).fallthrough && flow.reply) return { reply: flow.reply, route: flow.route };
   return { reply: `I couldn't put up that move right now, so nothing moved. Say "${restated}" and I'll put up the card.` };
+}
+
+// The answer to "… Was this you?" on an anomaly charge (C15). The offer's yes means "yes, it was me": the offer is
+// consumed and no action is taken — no dispute is staged. A no routes straight into the dispute capability with
+// the case already opened for that exact charge: the dispute flow is run on the restatement built from the offer's
+// transaction reference (merchant, amount, currency, date), the way a trial yes runs `cancel <name>`, and the
+// reply states the case is opened for that charge, with the flow's own reply after it.
+async function anomalyOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
+  const o = d.offer;
+  await d.clear();
+  const cur = o.currency && o.currency !== "USD" ? ` ${o.currency}` : "", amt = `${money(o.amount_cents)}${cur}`;
+  if (yes) return { reply: `Okay, that was you — the ${o.merchant} charge of ${amt} stands, and no dispute was opened. Nothing else was done.` };
+  const when = o.posted_on ? ` on ${fmtDay(o.posted_on)}` : "";
+  const flow = await d.runFlow(`dispute the ${o.merchant} charge for ${amt}${when}`);
+  if (flow && flow.reply) return { reply: `Dispute case opened for the ${o.merchant} charge of ${amt}${when}: ${flow.reply}`, route: flow.route };
+  return { reply: `That wasn't you, but I couldn't put up the dispute for the ${o.merchant} charge of ${amt} from here right now, so no case was opened. Say "dispute the ${o.merchant} charge" and I'll draft it.` };
 }
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----

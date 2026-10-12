@@ -1719,7 +1719,7 @@
    "packages/domain/66-agent-trade.js",
    "packages/domain/71-alpaca.js"
   ],
-  "note": "Dividends received, read from the broker's account activities (DIV and the withholding kinds), by holding or one ticker, for the period asked, with what was withheld (megadoc G15; PORTFOLIO-Q S25-S28, RAIL-2 S31). A dividend forecast is not built; reinvesting is not built."
+  "note": "Dividends received, read from the broker's account activities (DIV and the withholding kinds), by holding or one ticker, for the period asked, with what was withheld (megadoc G15; PORTFOLIO-Q S25-S28, RAIL-2 S31). C22 surface (tests/dividend-tracker.test.cjs): announced dividends for the person's holdings from a dividends/calendar read (declared per-share amount, ex-date, payment date), each received payment verified against the account's cash activity to the cent on its payment date with a mismatch stated, and a named month's dividend income total. Reinvesting is not built."
  },
  "TXN-019": {
   "status": "TESTED",

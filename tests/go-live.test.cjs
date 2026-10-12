@@ -32,3 +32,12 @@ test('dry run without an OpenAI key: an already-set secret is left alone, and a 
   assert.match(out,/skipped: no OPENAI_API_KEY given \(an already-set secret stays as it is\)/);
   assert.match(out,/apply-rails-and-seed\.sh --pending/);assert.doesNotMatch(out,/--all/);
 });
+
+test('dry run: the no-password functions are deployed, and the security checks run before the gauntlet and stop it on a FAIL',()=>{
+  const out=run();
+  const order=['== 3. deploy','DRY: supabase functions deploy exec-vault-store --project-ref mrwngntwmnaqrqhupvlt','DRY: supabase functions deploy agent-exec --project-ref mrwngntwmnaqrqhupvlt','== 5. live gauntlet','run scripts/launch/verify-security-live.cjs','STOP on a FAIL','then run spec16, sloppy, l3'];
+  let at=-1;for(const step of order){const i=out.indexOf(step);assert.ok(i>at,`${step} comes next`);at=i;}
+  const src=require('node:fs').readFileSync(path.join(root,'scripts/launch/go-live.sh'),'utf8');
+  assert.ok(src.indexOf('node scripts/launch/verify-security-live.cjs ||')<src.indexOf('for s in spec16 sloppy l3'),'the checks gate the gauntlet');
+  assert.ok(!/--no-verify-jwt/.test(src.split('\n').filter(l=>/deploy (exec-vault-store|agent-exec)/.test(l)).join('\n')),'both keep JWT verification, as they run live today');
+});

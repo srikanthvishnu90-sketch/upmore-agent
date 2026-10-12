@@ -238,3 +238,12 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   numbers only. Added: passwords ("my password is ..."), labeled one-time codes and card security codes, with a note
   saying where they go instead; and `guardSecretAsk` drops any model sentence asking for a password, code or full number
   (both model paths). A bare code still answers a paused cancellation once and is withheld from storage.
+- **go-live.sh vs the no-password change (found 2026-10-12).** BUILD-STATUS and the last report implied the go-live run
+  would put the no-password vault and cancel agent live. True: go-live.sh deployed only agent-chat, the two broker
+  OAuth functions, model-health and agent-proactive; exec-vault-store (live v25, still storing `{ username, password }`,
+  read-only check via the Supabase API) and agent-exec (live v55) were never in it. Fixed: both are deployed by step 3,
+  and step 5 runs `scripts/launch/verify-security-live.cjs` before the gauntlet. Also noted, not in scope:
+  simplefin-proxy has a repo change (2026-10-10) newer than its live v23.
+- **Matrix wording vs "unverified until a real account connects" (owner, 2026-10-12).** The README showed "researched"
+  beside "unverified", which reads like a verification level. Now every row reads "unverified (researched)" or
+  "unverified (unconfirmed)" until a real account connects through it, and the summary shows verified vs unverified.

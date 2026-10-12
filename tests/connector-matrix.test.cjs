@@ -70,3 +70,11 @@ test('the connector catalog agrees with the matrix on how each brokerage signs i
     assert.ok(want.includes(c.auth_method), `${c.provider}: catalog says ${c.auth_method}, the matrix says ${r.auth}`);
   }
 });
+
+test('every update shows verified vs unverified, and a row is unverified until a real account connects through it', () => {
+  const readme = fs.readFileSync(path.join(root, 'docs/connector-matrix/README.md'), 'utf8');
+  assert.match(readme, /\| \*\*Verified with a real account\*\* \| \*\*0\*\* \| \*\*0\*\* \|/);
+  assert.match(readme, /\| \*\*Unverified\*\* \(researched with sources \/ research could not confirm\) \| \*\*100\*\* \(52 \/ 48\) \| \*\*101\*\* \(53 \/ 48\) \|/);
+  assert.ok(!/\| researched \|/.test(readme), 'researched is never shown as if it were verified');
+  for (const r of rows) assert.ok(r.verification !== 'verified_live', `${r.id}: verified only after a real account connects (none has yet)`);
+});

@@ -17,6 +17,11 @@ const esc = s => String(s == null ? "" : s).replace(/\|/g, "/").replace(/\n/g, "
 const autoInvest = r => BC.capability(r).trade ? (BC.today(r, rows).state === "connect" ? "yes, each run asks for a yes" : "once built, each run asks for a yes") : "no";
 const AUTH_WORDS = { oauth: "OAuth on the company's site", partner_oauth: "OAuth after the company approves Upmore", personal_api_key: "the person's own API key, through the secure link into the vault", aggregator: "logs in on the company's site through the aggregator", manual_session: "logs in themselves in a live browser window; only the encrypted session is kept", none: "-" };
 
+// Owner, 2026-10-12: every row stays unverified until a real account connects through it, and every update shows the
+// verified and unverified counts. Researched means the route is documented with sources, not that it was proven.
+const vcount = l => { const verified = l.filter(r => r.verification === "verified_live").length, researched = l.filter(r => r.verification === "researched").length; return { verified, unverified: l.length - verified, researched, unconfirmed: l.length - verified - researched }; };
+const VERIFY_WORDS = { verified_live: "verified (real account)", researched: "unverified (researched)", unverified: "unverified (unconfirmed)" };
+
 function render() {
   const s = BC.summary(rows);
   const routeName = k => (BC.ROUTES[k] || { name: k }).name;
@@ -47,9 +52,11 @@ function render() {
     `| Off: owner decision (route could trade: ${s.route_trade - s.trade}) | ${so.blocked} | ${s.blocked} |`,
     `| Can't connect | ${so.none} | ${s.none} |`,
     `| Shares an account with another row | ${so.shared} | ${s.shared} |`,
+    `| **Verified with a real account** | **${vcount(owner).verified}** | **${vcount(rows).verified}** |`,
+    `| **Unverified** (researched with sources / research could not confirm) | **${vcount(owner).unverified}** (${vcount(owner).researched} / ${vcount(owner).unconfirmed}) | **${vcount(rows).unverified}** (${vcount(rows).researched} / ${vcount(rows).unconfirmed}) |`,
     "",
     `**Today:** ${t.connect || 0} connect now (${rows.filter(r => BC.today(r, rows).state === "connect" && BC.capability(r).trade).map(r => r.platform).join(", ") || "none"} with trading; the rest track only, through Plaid), ${t.try || 0} worth a try through Plaid (coverage unverified), ${t.fallback || 0} track now through a fallback while the direct route waits, ${t.not_built || 0} not built, ${t.blocked || 0} off, ${t.none || 0} can't connect.`,
-    `Adapters: ${s.live || 0} rows on a live adapter, ${s.built || 0} built (tested, not live), ${s.not_built || 0} not built. Verified live with a real account: **${verified} of ${s.total}**.`,
+    `Adapters: ${s.live || 0} rows on a live adapter, ${s.built || 0} built (tested, not live), ${s.not_built || 0} not built. Verified with a real account: **${verified} of ${s.total}**; every other row is unverified until one connects through it.`,
     "Live adapter means the code path is deployed (Plaid's production function, Alpaca's OAuth functions); it does not mean",
     "that platform has been connected end to end. Plaid coverage of each institution is the verification column.",
     "",
@@ -70,7 +77,7 @@ function render() {
     "",
     "| # | Platform | Category | Region | Route | Route can do | Today | Auto-invest | Sign-in | Needs | Verification | Notes | Sources |",
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ...rows.map(r => `| ${r.n} | ${esc(r.platform)} | ${esc(r.category)} | ${esc(r.region)} | ${routeName(r.route)} | ${BC.capability(r, { route: true }).label} | ${BC.today(r, rows).label} | ${autoInvest(r)} | ${AUTH_WORDS[r.auth] || "-"} | ${esc(r.needs || "-")} | ${r.verification.replace("_", " ")} | ${esc(r.notes)}${r.same_account_as ? ` (same account as ${esc((rows.find(x => x.id === r.same_account_as) || {}).platform)})` : ""} | ${(r.sources || []).map((u, i) => `[${i + 1}](${u})`).join(" ")} |`),
+    ...rows.map(r => `| ${r.n} | ${esc(r.platform)} | ${esc(r.category)} | ${esc(r.region)} | ${routeName(r.route)} | ${BC.capability(r, { route: true }).label} | ${BC.today(r, rows).label} | ${autoInvest(r)} | ${AUTH_WORDS[r.auth] || "-"} | ${esc(r.needs || "-")} | ${VERIFY_WORDS[r.verification]} | ${esc(r.notes)}${r.same_account_as ? ` (same account as ${esc((rows.find(x => x.id === r.same_account_as) || {}).platform)})` : ""} | ${(r.sources || []).map((u, i) => `[${i + 1}](${u})`).join(" ")} |`),
     "",
   ];
   return L.join("\n");

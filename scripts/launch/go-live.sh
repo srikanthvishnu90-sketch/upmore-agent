@@ -16,13 +16,15 @@
 #   1. migrations: only those not yet in the live ledger (--pending), ONE transaction; a re-run applies nothing
 #   2. secrets: the OpenAI key, the health token and the Alpaca OAuth pair, each only if given (values via a 0600 temp
 #      file, never echoed)
-#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback, model-health and agent-proactive (the last three
+#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback, model-health, agent-proactive, exec-vault-store and
+#      agent-exec (no password storage, decision 1); broker-oauth-callback, model-health and agent-proactive are
 #      --no-verify-jwt: a browser redirect, an uptime monitor and pg_cron carry no JWT; the latter two check their own
-#      secret), then schedule agent-proactive hourly with pg_cron (the secret in Vault, read at call time)
+#      secret); then schedule agent-proactive hourly with pg_cron (the secret in Vault, read at call time)
 #   4. smoke: unauthenticated calls answer 401, the callback answers with the NEW code (proves the deploy took), and ONE
 #      live model call through model-health answers; if it does not, the provider's exact error is printed and the run
 #      STOPS before the gauntlet (nothing is built around a dead model)
-#   5. gauntlet against the live handler: spec16, sloppy, l3 (--no-wait reports the timed turns NOT RUN instead of
+#   5. security checks against the live project (scripts/launch/verify-security-live.cjs; a FAIL stops the run), then the
+#      gauntlet against the live handler: spec16, sloppy, l3 (--no-wait reports the timed turns NOT RUN instead of
 #      waiting 11 minutes); raw replies in evals/gauntlet/results/<label>*.json
 #   6. prints the rollback command
 # GO_LIVE_DRY_RUN=1 prints every step without touching anything (tested in tests/go-live.test.cjs).
@@ -81,6 +83,9 @@ do_ supabase functions deploy broker-oauth-start --project-ref "$REF"
 do_ supabase functions deploy broker-oauth-callback --project-ref "$REF" --no-verify-jwt
 do_ supabase functions deploy model-health --project-ref "$REF" --no-verify-jwt
 do_ supabase functions deploy agent-proactive --project-ref "$REF" --no-verify-jwt
+# No password storage (owner decision 1): the vault that refuses passwords and the cancel agent that never types one.
+do_ supabase functions deploy exec-vault-store --project-ref "$REF"
+do_ supabase functions deploy agent-exec --project-ref "$REF"
 # Hourly, at minute 7: pg_cron -> pg_net -> agent-proactive with the secret read from Vault at call time.
 if [[ -n "$DRY" ]]; then echo "DRY: psql <SUPABASE_DB_URL> -v url=$BASE/functions/v1/agent-proactive -f scripts/launch/schedule-proactive.sql (secret from Vault, never printed)"
 else psql "$SUPABASE_DB_URL" -q -v url="$BASE/functions/v1/agent-proactive" -f scripts/launch/schedule-proactive.sql; fi
@@ -102,13 +107,15 @@ else
 fi
 
 say "5. live gauntlet on $SHA"
-if [[ -n "$DRY" ]]; then echo "DRY: mint a 1-hour JWT for gauntlet-test@upmore.test (password grant, anon key from index.html), then run spec16, sloppy, l3 against $BASE/functions/v1/agent-chat"
+if [[ -n "$DRY" ]]; then echo "DRY: mint a 1-hour JWT for gauntlet-test@upmore.test (password grant, anon key from index.html), run scripts/launch/verify-security-live.cjs (vault refuses a password, chat removes one, no reply asks for one; STOP on a FAIL), then run spec16, sloppy, l3 against $BASE/functions/v1/agent-chat"
 else
   ANON="$(grep -o 'UPMORE_ANON_KEY = "[^"]*"' index.html | head -1 | sed 's/.*= "//;s/"$//')"
   UPMORE_TEST_JWT="$(curl -s -X POST "$BASE/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'content-type: application/json' \
     -d "$(jq -n --arg e gauntlet-test@upmore.test --arg p "$GAUNTLET_PASSWORD" '{email:$e,password:$p}')" | jq -r .access_token)"
   [[ -n "$UPMORE_TEST_JWT" && "$UPMORE_TEST_JWT" != "null" ]] || { echo "FAIL: could not sign in as gauntlet-test@upmore.test"; exit 1; }
   export UPMORE_TEST_JWT UPMORE_CHAT_URL="$BASE/functions/v1/agent-chat"
+  # The security changes are what answers: the vault refuses a password, chat removes one, no reply asks for one.
+  UPMORE_BASE="$BASE" node scripts/launch/verify-security-live.cjs || { echo "FAIL: the live project does not run the security changes; stopped before the gauntlet"; unset UPMORE_TEST_JWT; exit 1; }
   for s in spec16 sloppy l3; do node evals/gauntlet/run-live.cjs --suite "$s" --label "go-live-$SHA-$s" $NOWAIT || true; done
   unset UPMORE_TEST_JWT
 fi

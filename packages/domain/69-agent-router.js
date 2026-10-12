@@ -312,6 +312,24 @@
         memo.queue = null;
         return done({ route: "card_reply", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "declined", text: dropped ? "Okay, dropped. Nothing was sent, bought or cancelled." : "Okay. Nothing is waiting on you, and nothing was changed." } });
       }
+      // A follow-up with nothing open (megadoc B05 "make it 50 dollars", C12 "split it", P14 "the other one"): asked
+      // back, never guessed and never sent to the model, which has no card to change either. Only when no flow is waiting
+      // on an answer ("How much?" takes "make it 50" as its answer).
+      const waiting = Object.keys(sessions).some((k) => sessions[k] && sessions[k].awaiting_input);
+      // The answer to "Make what $50?" is a person's name (corpus 1.03: "priya"): a send of that amount to them, on a card
+      // that still needs its own yes. Within 10 minutes, and only a bare name.
+      const amt = memo.amount_ask;
+      if (amt && !live.length && !waiting) {
+        memo.amount_ask = null;
+        if (now - amt.at < 10 * 60000 && /^\s*@?[a-z][\w.'-]*(?:\s+[a-z][\w.'-]*)?\s*[.!]*\s*$/i.test(text) && !YES_ONLY.test(text) && !NO_ONLY.test(text) && !MAYBE.test(text) && !QUESTION.test(text)) return handle(`send ${text.trim().replace(/[.!]+$/, "")} ${usd(amt.cents)}`, c);
+      }
+      if (!live.length && !waiting && !memo.pair) {
+        const mk = /^\s*(?:make|change)\s+(?:it|that|this)(?:\s+to)?\s+\$?(\d[\d,]*(?:\.\d{1,2})?)\s*(?:dollars|bucks|usd)?\s*[.!]*\s*$/i.exec(text);
+        if (mk) memo.amount_ask = { cents: Math.round(Number(mk[1].replace(/,/g, "")) * 100), at: now };
+        if (mk) return done({ route: "fallthrough_ask", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "ask", reason: "nothing_open", text: `Make what ${usd(Math.round(Number(mk[1].replace(/,/g, "")) * 100))}? ${st && since < 30 * 60000 ? `The last one, ${st.summary}, is already done; say a new one in full, like "send Maya $50".` : `Nothing is open; say it in full, like "send Maya $50".`}` } });
+        if (/^\s*split\s+(?:it|this|that|the bill|the check|the tab)(?:\s+(?:evenly|in half|50\/50|three ways|two ways))?\s*[.!?]*\s*$/i.test(text)) return done({ route: "fallthrough_ask", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "ask", reason: "nothing_open", text: "Split what? Say what, how much and with whom, like \"split dinner $90 with Sam\"." } });
+        if (/^\s*(?:the\s+)?(?:other|second|first|last|2nd|1st)\s+one\s*[.!?]*\s*$/i.test(text)) return done({ route: "fallthrough_ask", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "ask", reason: "nothing_open", text: "Which one? I don't have a list open; say what you want in full." } });
+      }
       // Rent is a standing flow (81-standing-rent.js, real-world C110, spec 16 item S16-15): "pay my rent", "rent is 1500
       // now", "stop rent". Read from the words alone, with no model call, so a bill never reaches the person-to-person send
       // ("pay sam 900 for rent" is still a send to Sam: there the rent word is the memo). Other flows' live cards are
@@ -414,7 +432,10 @@
     }
     // Nickname messages are read by the recipient layer (42-agent-recipients.js), loaded before this module.
     const NICK = typeof AgentRecipients !== "undefined" && AgentRecipients && typeof AgentRecipients.parseNickname === "function" ? AgentRecipients : null;
-    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
+    // Follow-ups that only make sense against an open card or list ("make it 50", "the other one") reach the router so it
+    // can say nothing is open, instead of the model guessing at one.
+    const FOLLOW_UP = /^\s*(?:(?:make|change)\s+(?:it|that|this)(?:\s+to)?\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:dollars|bucks|usd)?|(?:the\s+)?(?:other|second|first|last|2nd|1st)\s+one)\s*[.!?]*\s*$/i;
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || FOLLOW_UP.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();

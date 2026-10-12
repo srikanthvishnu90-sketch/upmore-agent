@@ -67,9 +67,27 @@
    "id": "1.03",
    "file": 1,
    "title": "Ambiguous amount",
-   "status": "NEEDS_MODEL",
+   "status": "PASS",
    "failed": [],
-   "variants": null
+   "triage": null,
+   "mock_orders": 0,
+   "variants": {
+    "total": 2,
+    "pass": 2,
+    "failed": []
+   },
+   "turns": [
+    {
+     "user": "make it 50 dollars",
+     "reply": "Make what $50.00? Nothing is open; say it in full, like \"send Maya $50\".",
+     "outcome": "ask"
+    },
+    {
+     "user": "priya",
+     "reply": "Set up $50.00 to Priya Nair (@priyan) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+     "outcome": "confirm"
+    }
+   ]
   },
   {
    "id": "1.04",

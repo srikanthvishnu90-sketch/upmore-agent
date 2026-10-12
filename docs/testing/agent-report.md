@@ -18,21 +18,21 @@ Nothing.
 
 ## Not run (and what they need)
 
-- **R-01m** style corpus: 30 examples answered by the chat model: graded only live: deno run -A evals/corpus/run.ts --live (needs the deployed handler and a key)
+- **R-01m** style corpus: 29 examples answered by the chat model: graded only live: deno run -A evals/corpus/run.ts --live (needs the deployed handler and a key)
 - **L-01** one live $5 buy, card and receipt, in the person's own account: explicit trigger only: deno run -A evals/agent/live.ts --spend-real-money (needs the deployed handler, a test JWT and a connected live Alpaca account). Spent $0.00 of $200 in 0 orders.
 
 ## Labeled gaps
 
 - R-01:1.02 corpus 1.02 Stranger, no history: DIVERGES: A first send to a new handle asks the person to type the handle back (PAY-002, confirmed in full) before the card; the corpus shows the card at once with a can't-verify line. Kept deliberately: it is the stronger check on a first, irreversible send to a stranger. Owner can overrule.
 - R-01:2.04 corpus 2.04 Rent: DIVERGES: The corpus shows rent already on file and paid by ACH on one yes. Upmore never moves rent itself (owner rule: it stages each month for the person to send in Zelle, Venmo, Cash App or PayPal; no ACH rail is live), and the corpus world has no rent rule saved, so 'pay rent' first asks the one
-- O-02s megadoc states: PROVEN 0, BUILT 97, LIMITED 27, DIVERGES 13, MODEL 36, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
+- O-02s megadoc states: PROVEN 0, BUILT 100, LIMITED 27, DIVERGES 13, MODEL 33, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
 
 ## Every check
 
 | Family | ID | Check | Status |
 | --- | --- | --- | --- |
 | response | R-01 | style corpus: no example breaks a rule without a written reason | PASS |
-| response | R-01m | style corpus: 30 examples answered by the chat model | NOT_RUN |
+| response | R-01m | style corpus: 29 examples answered by the chat model | NOT_RUN |
 | response | R-02 | no reply claims an action that was not recorded (megadoc 240 + corpus) | PASS |
 | response | R-03a | weekly recap: money in and out to the cent | PASS |
 | response | R-03b | monthly close: money in and out to the cent | PASS |

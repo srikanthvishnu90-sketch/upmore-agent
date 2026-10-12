@@ -30,7 +30,7 @@
   {
    "family": "response",
    "id": "R-01m",
-   "title": "style corpus: 30 examples answered by the chat model",
+   "title": "style corpus: 29 examples answered by the chat model",
    "status": "NOT_RUN",
    "actual": "graded only live: deno run -A evals/corpus/run.ts --live (needs the deployed handler and a key)"
   },
@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 97, LIMITED 27, DIVERGES 13, MODEL 36, NOT_BUILT 67",
+   "title": "megadoc states: PROVEN 0, BUILT 100, LIMITED 27, DIVERGES 13, MODEL 33, NOT_BUILT 67",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },

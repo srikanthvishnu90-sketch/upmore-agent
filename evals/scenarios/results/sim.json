@@ -176,8 +176,8 @@
    "id": "B05",
    "typed": "make it 50 dollars",
    "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "outcome": "ask",
+   "reply": "Make what $50.00? Nothing is open; say it in full, like \"send Maya $50\".",
    "executed": false,
    "mock_orders": 0
   },
@@ -185,8 +185,8 @@
    "id": "B06",
    "typed": "make it 50 dollars",
    "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "outcome": "ask",
+   "reply": "Make what $50.00? Nothing is open; say it in full, like \"send Maya $50\".",
    "executed": false,
    "mock_orders": 0
   },
@@ -374,8 +374,8 @@
    "id": "C12",
    "typed": "split it",
    "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "outcome": "ask",
+   "reply": "Split what? Say what, how much and with whom, like \"split dinner $90 with Sam\".",
    "executed": false,
    "mock_orders": 0
   },
@@ -2066,8 +2066,8 @@
    "id": "P14",
    "typed": "the other one",
    "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "outcome": "ask",
+   "reply": "Which one? I don't have a list open; say what you want in full.",
    "executed": false,
    "mock_orders": 0
   },

@@ -318,3 +318,25 @@ test('a gain question reads the position\'s cost basis; "how much did I make in 
   for(const q of ['how much did i make in august','how much did i make on my house','how much did i make last month']){const r=await R.handle(q,{extract:async()=>({intent:'other'}),sessions:ss,parsers});assert.notEqual(r.route,'manage_order',q);assert.ok(!r.result||!/how much\?/i.test(r.result.text||''),q);}
   assert.equal(w.writes.length,0);
 });
+
+// Megadoc B05 "make it 50 dollars", C12 "split it", P14 "the other one": with nothing open, asked back with no model call
+// and nothing changed; with a card open, "make it 50" still changes that card.
+test('follow-ups with nothing open are asked back; with a card open, "make it 50" still corrects it',async()=>{
+  const w=world();const ss0=sessions(w);const memo={};const ss=ss0;const none=async()=>{throw new Error('no model call for a follow-up with nothing open');};
+  const H=(t,x)=>R.handle(t,Object.assign({extract:none,sessions:ss,parsers,memo},x||{}));
+  assert.equal((await R.handle('make it 50 dollars',{extract:none,sessions:ss,parsers})).result.text,'Make what $50.00? Nothing is open; say it in full, like "send Maya $50".');
+  assert.match((await R.handle('split it',{extract:none,sessions:ss,parsers})).result.text,/^Split what\? /);
+  assert.match((await R.handle('the other one',{extract:none,sessions:ss,parsers})).result.text,/^Which one\? I don't have a list open/);
+  const ex=stub({'send sam 40':{intent:'send_money',amount_span:'40',amount_cents:4000,recipient_span:'sam'}});
+  const a=await R.handle('send sam 40',{extract:ex,sessions:ss,parsers});assert.equal(a.result.outcome,'confirm');
+  const b=await R.handle('make it 50',{extract:ex,sessions:ss,parsers});assert.equal(b.route,'card_reply');assert.match(b.result.text,/\$50\.00 to Sam K/);
+  assert.equal(w.writes.length,0);
+  // After a card is settled, "make it 60" names it and starts nothing.
+  await H('yes',{extract:ex});const n=w.writes.length;
+  assert.match((await H('make it 60')).result.text,/^Make what \$60\.00\? The last one, \$50\.00 to Sam K, is already done; say a new one in full/);
+  assert.equal(w.writes.length,n);
+  // Answering with a name puts up a card for that amount to them; it still needs its own yes (corpus 1.03).
+  const c2=await H('sam');assert.equal(c2.result.outcome,'confirm');assert.match(c2.result.text,/\$60\.00 to Sam K/);
+  assert.equal(w.writes.length,n,'nothing is sent before a yes');
+  await H('no');
+});

@@ -288,6 +288,9 @@
     ["will i have enough for rent", "moneyReply"],
     ["what's NVDA trading at", null],
     ["how much is aapl a share", null],
-    ["what's the price of gas", null]
+    ["what's the price of gas", null],
+    ["make it 50 dollars", null],
+    ["split it", null],
+    ["the other one", null]
   ]
 }

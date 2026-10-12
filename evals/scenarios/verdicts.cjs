@@ -31,7 +31,7 @@ set("A15", "NOT_BUILT", "payments on a condition (paycheck landed); says so", "t
 set("B01 B02 B13", "BUILT", "new recipient: asks the app or handle, then read-back confirm in full before any card", "tests/depth-RAIL-1.test.cjs");
 set("B03", "BUILT", "two saved Johns: 'Which John' with handles (the sim world has no Johns; the path is the 'Which Marcus' test)", "tests/depth-RAIL-1.test.cjs");
 set("B04", "BUILT", "look-alike handle named next to the saved one", "tests/depth-RAIL-1.test.cjs");
-set("B05", "MODEL", "'make it 50' with nothing open goes to the chat model");
+set("B05", "BUILT", "with nothing open, asked back: \"Make what $50.00? There's no payment or order open\", no model call, nothing changed; with a card open it corrects that card", "tests/router.test.cjs");
 set("B06", "BUILT", "an amount change on a live card voids it and puts up a new card", "tests/depth-PAY-001.test.cjs");
 set("B07", "DIVERGES", "DO asks '$50 or $5?'; Upmore takes the last number and shows it on the card ('Using 5, your last number'), which still needs a yes", "tests/edge/megadoc-sim.test.ts");
 set("B08", "BUILT", "asks $40.00 or $4.00", "tests/edge/megadoc-sim.test.ts");
@@ -44,7 +44,8 @@ set("B14", "MODEL", "a mistaken send to a look-alike: the chat model answers; no
 set("C01", "LIMITED", "asks which Sam, then one card for the three requests; requests are made by the person in their app (handoff)", "tests/depth-PAY-001.test.cjs");
 set("C02 C03", "BUILT", "odd cent named ($33.34 is yours), asks who the others are", "tests/money.test.cjs");
 set("C04", "NOT_BUILT", "named groups ('roommates'); asks who");
-set("C08 C12", "MODEL", "answered by the chat model (request status reads are not flows)");
+set("C08", "MODEL", "answered by the chat model (request status reads are not flows)");
+set("C12", "BUILT", "\"split it\" with nothing open is asked back (what, how much, with whom), no model call, nothing requested", "tests/router.test.cjs");
 set("C05", "BUILT", "logged in the IOU log from the person's words (IouLog, 105-iou-log.js, the settings path): restated exactly as a note; nothing is requested from Jake or sent; no amount is asked, never guessed", "tests/edge/iou.test.ts");
 set("C06", "NOT_BUILT", "itemized splits; says so", "tests/edge/megadoc-sim.test.ts");
 set("C07", "NOT_BUILT", "group-chat member lists");
@@ -160,7 +161,7 @@ set("P10", "BUILT", "a message that is not about the card drops it and says so",
 set("P11", "BUILT", "a decline on a live sell card places nothing", "tests/depth-RAIL-2.test.cjs");
 set("P12", "BUILT", "'yes but ...' is a correction, never an approval", "tests/depth-PAY-001.test.cjs");
 set("P13", "DIVERGES", "'ok' counts as a yes on a card; the DO prefers an explicit yes only", "tests/voice.test.cjs");
-set("P14", "MODEL", "'the other one' with no list goes to the chat model");
+set("P14", "BUILT", "with no list open, asked back with no model call and nothing changed; with a pair of choices open it picks from them", "tests/router.test.cjs");
 // Q. misc
 set("Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09", "MODEL", "the chat model and the app's own settings flows");
 set("Q10", "BUILT", "a bank or card connect ask gets the app's real path in plain words (Home, Connect bank, SimpleFIN Bridge, read-only, the bank signs you in, never a password in chat); that the bank is on SimpleFIN's list is never promised; a brokerage keeps the connector matrix answer", "tests/edge/direct-answers.test.ts");

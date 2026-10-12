@@ -3938,10 +3938,11 @@
       // "40.555" and "4 0" are never rounded or joined silently (megadoc A13, B08).
       const extraDigits = /(?:^|[\s$])(\d+)\.(\d{3,})\b/.exec(head2), spaced = /(?:^|\s)\$?(\d)\s(\d)(?:\s|$)/.exec(head2);
       let recipient = null, recipient_raw = null;
-      const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
+      // The amount is a wall: a name never runs across it ("send sam 40 lol" is Sam, not "Sam Lol"; found by probing).
+      const bare = head2.replace(AMOUNT, " \u00a6 ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
-      else { const verb = /(?:^|[,.;:!?]\s*|\b(?:to|please|pls|plz|you|u)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire|give)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
+      else { const verb = /(?:^|[,.;:!?\u00a6]\s*|\b(?:to|please|pls|plz|you|u|gotta|gonna|wanna|need to|i'?ll|i will|let me|lemme|ok|okay|yeah|yes|yep|just|also|then|and|i|go ahead and)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire|give)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
       if (phone) recipient_raw = recipient = phone;
       else if (recipient_raw) {
         // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",

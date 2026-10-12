@@ -189,3 +189,8 @@ test('[S19] the way people ask: "can you send sarah 40?", "give sarah 15", "send
   assert.equal(S.parse('give me 40').recipient,null);assert.equal((await s.start('give me 40')).text,'Who should I send it to?');
   assert.equal(r.writes.length,0);
 });
+
+test('[S20] the amount is a wall the name never crosses ("send sarah 40 lol", "send sarah 40 real quick"), and a lead-in ("gotta", "ok", "i need to") never hides the verb',async()=>{
+  for(const m of ['send sarah 40 lol','send sarah 40 real quick','gotta pay sarah 40 for dinner','ok send sarah 40','yeah venmo sarah 40','i need to send sarah 40']){const p=S.parse(m);assert.equal(p.recipient,'sarah',m);assert.equal(p.amount_cents,4000,m);}
+  assert.equal(S.parse('send $40 to sarah').recipient,'sarah');assert.equal(S.parse('send 40 to sarah m please').recipient,'sarah m');
+});

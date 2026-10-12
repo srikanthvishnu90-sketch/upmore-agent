@@ -466,3 +466,16 @@ in the modules.
   it, no yearly send); ANL-012 is on the REACHABLE list with a flow check in `evals/agent/run.ts`.
 - Found, not fixed (for the owner): a confirmed savings figure needs a record the client cannot write (for example the
   cancel watcher writing to a service-role-only table, or `action_ledger` inserts restricted to the service role).
+
+## Buy now, pay later: parity notes that claimed tracking, and a stale testing-agent count (2026-10-12, items 85 and 87)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `evals/parity/registry-map.json` CA-023 (Afterpay), PP-018 (Pay in 4), and the generated `evals/parity/matrix.json`, `apps/cash-app.md`, `apps/paypal.md` | "BNPL plans are tracked as debt with stacking warnings" (CRDT-008) | Before this commit nothing read a BNPL plan (CRDT-008 is `debtInventory` over linked liability accounts; no BNPL account is ever linked) and no code warned on stacking. Now plans are read from the person's bank and card rows in chat, what is left only where the Pay in 4 shape makes it certain, and the newest plan's effect on the next 30 days is said when asked and on the list; no BNPL connector, nothing warns on its own. The notes say that | `packages/domain/97-bnpl.js`, `tests/depth-BNPL.test.cjs`, `tests/edge/bnpl-answer.test.ts` |
+| `evals/parity/registry-map.json` PP-019 (Pay Monthly), CH-010 (Pay Over Time) | "tracked as debt" | Pay Monthly payments are read as a monthly plan with the total unknown (not in the rows); Chase Pay Over Time plans sit inside the card balance, so no row shows them apart and they are not tracked | same; `packages/domain/57-agent-ledger.js` |
+| `docs/instinct-spec-series/BUILD-STATUS.md` testing-agent rows | GREEN 75/75 | The report said 79/79 before this commit (the spending-views and category-rules flow checks); 80/80 with the CRDT-008 flow check added here | `docs/testing/agent-report.md` |
+
+Found, not fixed (for the owner): "what bills are coming up" (`TheNumbers.upcoming`, 86-the-numbers.js) lists a pay-later
+plan's equal payments as a repeating bill every 2 weeks past the plan's end; only the pay-later check takes them out. The
+older proactive monitor `33-agent-monitors.js` (`payLaterPlans`) keeps its own BNPL pattern (Sezzle, Shop Pay
+Installments, "pay in 4" without a provider) separate from the dated provider file.

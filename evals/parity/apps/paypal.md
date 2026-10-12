@@ -23,8 +23,8 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | PP-015 Debit-card access | CARD-001 | TESTED | PayPal debit card is inventoried and recommended per purchase (CARD-002). |
 | PP-016 Savings access | SAVE-002 | TESTED |  |
 | PP-017 Crypto management | non-parity: investment-platform | n/a | Buying, selling, holding custody of or transferring crypto inside a P2P app is an investment-platform surface; investing is handled on Upmore's own terms in doc 09. |
-| PP-018 Pay in 4 loans | CRDT-008 | TESTED | Doc 03: Pay in 4 is tracked as debt with stacking warnings; Upmore never initiates BNPL. |
-| PP-019 Pay Monthly loans | CRDT-008 | TESTED | Pay Monthly loans are tracked as debt; Upmore never initiates BNPL. |
+| PP-018 Pay in 4 loans | CRDT-008 | TESTED | Doc 03 intends Pay in 4 tracked as debt with stacking warnings. Today: PayPal Pay in 4 payments are read from the person's bank and card rows in chat when the row says Pay in 4 (97-bnpl.js; PAYPAL INST XFER is never read as one) and the newest plan's effect on the next 30 days is said when asked; no PayPal connector, nothing warns on its own. Upmore never initiates BNPL. |
+| PP-019 Pay Monthly loans | CRDT-008 | TESTED | Pay Monthly payments are read from the person's rows as a monthly plan (97-bnpl.js); the loan's balance and term are not in the rows, so what is owed is said as unknown. Upmore never initiates BNPL. |
 | PP-020 Loan and state eligibility | non-parity: regulated-origination | n/a | Loan and state eligibility checks exist to originate BNPL credit, which Upmore never initiates (doc 03, doc 14). |
 | PP-021 Credit and repayment disclosures | CRDT-010 | TESTED | Credit and repayment disclosures are explained via the extra payment impact calculator on tracked debt. |
 | PP-022 Total financing cost | ANL-018 | TESTED | Total financing cost is a debt payoff projection on the tracked plan. |

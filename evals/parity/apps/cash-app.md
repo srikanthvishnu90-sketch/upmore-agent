@@ -28,7 +28,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CA-020 Stock holdings and performance | INV-001 | TESTED | Reading existing holdings is portfolio read (doc 09); buying is excluded. |
 | CA-021 Bitcoin positions | INV-001 | TESTED | Reading an existing bitcoin position is portfolio read; buying/selling is excluded. |
 | CA-022 Borrow eligibility and total fee | CRDT-009 | TESTED | Doc 03: Upmore surfaces cheaper alternatives to Borrow via payoff planning and never originates loans itself. |
-| CA-023 Afterpay financing | CRDT-008 | TESTED | Doc 03: BNPL plans are tracked as debt with stacking warnings; Upmore never initiates BNPL. |
+| CA-023 Afterpay financing | CRDT-008 | TESTED | Doc 03 intends BNPL plans tracked as debt with stacking warnings. Today: Afterpay plans are read from the person's bank and card rows in chat (97-bnpl.js; what is left only when the Pay in 4 shape makes it certain) and the newest plan's effect on the next 30 days is said when asked and on the list; no BNPL connector, nothing warns on its own. Upmore never initiates BNPL. |
 | CA-024 Sponsored child and teen accounts | SOC-007 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CA-025 Guardian visibility and controls | SOC-006 | TESTED |  |
 | CA-026 Automatic allowance | PAY-025 | TESTED |  |

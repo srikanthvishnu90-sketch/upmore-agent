@@ -12,10 +12,15 @@
 // This month against last month and the person's own average ("am i spending more than usual", "this month vs last
 // month") and spending by card ("spending by card", "how much did i put on my amex") come from
 // packages/domain/94-spending-views.js (SpendingViews; capability list items 12 and 13). tests/edge/spending-views.test.ts.
+// Buy now, pay later (capability list items 85 and 87): "show my buy now pay later plans", "what do i owe klarna", "my
+// afterpay payments", "bnpl" list every plan read from the person's rows; "would a $400 afterpay plan push me negative"
+// projects the next 30 days with them. packages/domain/97-bnpl.js (Bnpl) over the dated provider file
+// (packages/offers/bnpl-providers.json, BNPL_PROVIDERS_JSON in the bundle). Read-only: paying, paying off and rescheduling
+// are not built and go on. tests/edge/bnpl-answer.test.ts.
 // The year in money ("my year in money", "year in review", "how did 2026 go", "annual review"; capability list item 26)
 // comes from packages/domain/96-year-in-money.js (YearInMoney): this year so far in the person's zone, or a named past
 // year read through the optional history() reader, which reaches back to that year's Jan 1. tests/edge/year-in-money.test.ts.
-import { MoneyAnswers, SpendingViews, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
+import { Bnpl, BNPL_PROVIDERS_JSON, MoneyAnswers, SpendingViews, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -31,7 +36,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -79,6 +84,9 @@ export function moneyKind(message: string): MoneyKind | null {
   if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m)) return "through";
   // "my year in money", "year in review", "how did 2026 go": a whole year. "how much did i spend this year" is spend's.
   if (YearInMoney.ask(m)) return "year";
+  // Before the spending views and "can i afford": "can i afford a $200 klarna pay in 4" is a pay-later check.
+  const later = Bnpl.ask(m) as "list" | "check" | null;
+  if (later) return later === "list" ? "bnpl" : "bnplcheck";
   // Before spend: "how much did i spend on my amex" is a card, "did i spend more on food than last month" a comparison.
   const view = SpendingViews.ask(m) as "compare" | "cards" | null;
   if (view) return view;
@@ -115,6 +123,8 @@ export async function moneyReply(message: string, now: Date | number | string, r
   }
   try { tx = (await read.transactions()) || []; } catch { return MONEY_UNAVAILABLE; }
   if (kind === "spend") return MoneyAnswers.spend(tx, message, now, { tz, rules });
+  if (kind === "bnpl") return Bnpl.list(tx, message, now, { tz, providers: BNPL_PROVIDERS_JSON, accounts });
+  if (kind === "bnplcheck") return Bnpl.check(accounts, tx, message, now, { tz, providers: BNPL_PROVIDERS_JSON });
   if (kind === "compare") return SpendingViews.compare(tx, message, now, { tz, rules });
   if (kind === "cards") return SpendingViews.byCard(accounts, tx, message, now, { tz, rules });
   if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz, rules });

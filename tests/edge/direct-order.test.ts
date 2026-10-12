@@ -129,6 +129,17 @@ const OWNER: [string, string | null][] = [
   ["how can i do better next year", null],
   ["how did this year go", null],
   ["is my sapphire annual fee worth it", "rewardsReply"],
+  // Buy now, pay later (capability list items 85 and 87; 97-bnpl.js): money answers, ahead of "can i afford" and the
+  // spending views; paying, paying off early and advice go on (money movement is not built).
+  ["show my buy now pay later plans", "moneyReply"],
+  ["what do i owe klarna", "moneyReply"],
+  ["my afterpay payments", "moneyReply"],
+  ["bnpl", "moneyReply"],
+  ["would a $400 afterpay plan push me negative", "moneyReply"],
+  ["can i afford a $200 klarna pay in 4", "moneyReply"],
+  ["pay my klarna", null],
+  ["pay off my affirm early", null],
+  ["should i use afterpay for a $400 tv", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

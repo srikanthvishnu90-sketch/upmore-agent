@@ -414,6 +414,17 @@
       return { kind: "forecast", text: lines.join("\n"), math, start_cents: I.cash.cents, in_cents: P.in_cents, out_cents: P.out_cents, points: pts.map((p) => ({ days: p.d, on: p.on, balance_cents: p.balance_cents })), low: { on: low.on, balance_cents: low.balance_cents }, daily: P.daily, everyday_per_day_cents: evDay };
     }
 
+    // The inputs another read-only check builds on (97-bnpl.js, capability list item 87): cash now, the repeating bills and
+    // paydays dated over the next `days`, and this module's own source and stale lines, so a check over the same rows
+    // never derives them a second way. Null with no linked account.
+    function projection(accounts, transactions, now, opts, days) {
+      if (!active(accounts).length) return null;
+      const I = inputs(accounts, transactions, now, opts), to = addDays(I.today, days);
+      return { today: I.today, to, tz: I.tz, cash_cents: I.cash.cents, cash_rows: I.cash.rows, has_cash: I.cash.rows.length > 0, bills: occurrences(I.bills, I.today, to),
+        pays: I.streams.flatMap((s) => payDates(s, I.today, to).map((on) => ({ on, payer: s.payer, amount_cents: s.amount_cents }))),
+        notes: [...notCounted(I), ...staleLines(I.fresh, now, I.tz)], source: sourceLine(I, I.cash.rows.length ? null : active(accounts), true) };
+    }
+
     // ---- E4 affordability ----
     // "$600", "$1,250.50", "$2k", "600 dollars". Null when no amount is named.
     function parseAmount(words) {
@@ -585,6 +596,6 @@
       return [`The math for ${LABEL[kind]}:`, ...r.math, lastLine].join("\n");
     }
 
-    return { safeToSpend, upcoming, runway, afford, netWorth, forecast, answer, showMath, topicOf, kindOfReply, parseAmount, parseWindow, fitCadence, payStreams, payDates, todayIn, LABEL, MATH_MENU, HORIZON, STALE_MS };
+    return { safeToSpend, upcoming, runway, afford, netWorth, forecast, projection, answer, showMath, topicOf, kindOfReply, parseAmount, parseWindow, fitCadence, payStreams, payDates, todayIn, LABEL, MATH_MENU, HORIZON, STALE_MS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = TheNumbers;

@@ -299,6 +299,15 @@ async function flow() {
   };
   // Item 5: a bank whose own date stopped 5 days ago while the read is fresh gets one connection note.
   ex["ACCT-005"] = async () => { const p = plan({ accounts: mapAccounts(accountRows().map((a: any) => ({ ...a, balance_as_of: "2026-10-06T12:00:00Z" }))), transactions: mapTransactions(txRows()), settings: null, sent: [] } as any, NOW); const n = p.messages.filter((m: any) => /^finding:connection:/.test(m.key)); return [n.length === 1 && /SimpleFIN Bridge/.test(n[0].text), n.map((m: any) => m.key).join(",") || "no note"]; };
+  // Items 85 and 87 (97-bnpl.js): a Klarna Pay in 4 in the fixture's own rows (MOCK), listed with what is left, then the
+  // next 30 days with it, through the function the handler calls.
+  ex["CRDT-008"] = async () => {
+    const k = (on: string, id: string) => ({ account_id: "chk-1", provider_transaction_id: id, currency: "USD", amount_cents: -2500, posted_on: on, merchant_raw: "KLARNA*TARGET", is_pending: false, is_transfer: false, presence: "observed" });
+    const rd = { accounts: async () => accountRows() as any, transactions: async () => txRows([k("2026-09-27", "kl1"), k("2026-10-11", "kl2")]) as any };
+    const a = await moneyReply("show my buy now pay later plans", NOW, rd), c = await moneyReply("will my bnpl payments push me negative", NOW, rd);
+    const ok = !!a && /\n- Klarna, Target: \$25\.00 every 2 weeks, 2 (?:of 4 )?payments seen \(Sep 27, Oct 11\)\. Next expected Oct 25\./.test(a) && /\nFrom your linked accounts\b[^\n]*\.$/.test(a) && !!c && /^Next 30 days \(Oct 11-Nov 10\), from your cash, repeating bills, paychecks and pay-later payments: lowest -?\$[\d,]+\.\d\d on /.test(c);
+    return [ok, `${String(a).split("\n")[1]} / ${String(c).split("\n")[0]}`];
+  };
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

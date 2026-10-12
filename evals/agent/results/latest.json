@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 81,
-  "total": 81
+  "pass": 82,
+  "total": 82
  },
  "results": [
   {
@@ -399,6 +399,12 @@
    "family": "flow",
    "id": "F:CORE-014",
    "title": "CORE-014: app: delete-account function",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:CRDT-008",
+   "title": "CRDT-008: chat: \"show my buy now pay later plans\", every Klarna, Affirm, Afterpay, Zip and PayPal Pay in 4 plan in the person's rows, what is left where the plan's shape makes it certain (Bnpl); cards and loans are not in it",
    "status": "PASS"
   },
   {

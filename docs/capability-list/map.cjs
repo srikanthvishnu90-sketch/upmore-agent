@@ -76,6 +76,11 @@ const REACHABLE = {
   // (YearInMoney, 96-year-in-money.js). Evidence: tests/edge/year-in-money.test.ts (through moneyReply),
   // tests/year-in-money.test.cjs, tests/depth-YEAR.test.cjs (docs/depth/YEAR.md).
   "ANL-012": "chat: \"my year in money\", \"how did 2026 go\": this year so far or a named year from the person's own rows; dollars Upmore saved only from a confirmed record, and none is on record yet (YearInMoney)",
+  // Items 85 and 87 (2026-10-12): buy now, pay later read from the person's own rows (97-bnpl.js, dated provider terms in
+  // packages/offers/bnpl-providers.json) through agent-chat/_shared/money_answers.ts. CRDT-008 is reachable for pay-later
+  // plans only; cards and loans are not in this answer. Evidence: tests/edge/bnpl-answer.test.ts (through moneyReply),
+  // tests/bnpl.test.cjs, tests/depth-BNPL.test.cjs (docs/depth/BNPL.md).
+  "CRDT-008": "chat: \"show my buy now pay later plans\", every Klarna, Affirm, Afterpay, Zip and PayPal Pay in 4 plan in the person's rows, what is left where the plan's shape makes it certain (Bnpl); cards and loans are not in it",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -181,9 +186,9 @@ const MAP = [
   [83, "BILL-009", "part", "autopay audit claimed, not built", null],
   // BNPL
   [84, "", "none", "BNPL payments not built", null],
-  [85, "", "none", "BNPL accounts not aggregated", null],
+  [85, "CRDT-008", "part", "chat: \"show my buy now pay later plans\", \"what do I owe klarna\": every Klarna, Affirm, Afterpay, Zip and PayPal Pay in 4 plan read from the person's bank and card rows (provider from the descriptor, the store only when it names one), payments seen, the next date, and what is left only where the plan's shape makes it certain (a Pay in 4 whose first payment is in the rows); a monthly plan's total, a plan paid from an unlinked account and a provider's own balance are not in the rows, said as unknown; no provider connector", null],
   [86, "", "none", "not built", null],
-  [87, "", "none", "no capability warns about a BNPL plan; the 90-day forecast it would build on (ANL-006) is in chat, but BNPL plans are not in it and nothing warns before a new plan", null],
+  [87, "CRDT-008 ANL-006", "part", "chat, when asked (\"would a $400 afterpay plan push me negative\", \"will my bnpl payments push me negative\") and as a heads-up line on the plan list: the next 30 days from cash, the forecast's repeating bills and paychecks and the pay-later payments, lowest point and date, a new plan laid out on the provider's Pay in 4 terms; nothing warns on its own when a new plan starts (the scheduler does not run it)", null],
   [88, "", "none", "not built", null],
   // credit cards and debt
   [89, "CARD-006 CARD-007", "part", "due dates and guidance are modules; paying cards is not built", null],

@@ -15,7 +15,7 @@ Audit source for doc 03, generated from the catalog and the registry; edit docs/
 | CH-007 Zelle sending | PAY-012 | GATED | Spec doc 02 marks this capability as needing a partner or license. |
 | CH-008 Zelle receiving | ALRT-007 | TESTED | Receiving Zelle is a deposit-received alert; sending is PAY-012. |
 | CH-009 Digital-wallet card provisioning | non-parity: hardware-bound | n/a | Tokenizing a card into the phone's secure element and tapping at a terminal is NFC hardware the agent cannot hold or replace (doc 03 App 4, doc 14). |
-| CH-010 Eligible Pay Over Time plans | CRDT-008 | TESTED | Pay Over Time plans are tracked as debt; Upmore never initiates BNPL (doc 03). |
+| CH-010 Eligible Pay Over Time plans | CRDT-008 | TESTED | Pay Over Time plans sit inside the card balance, so no row shows them apart; the card balance is in the debt inventory module (57-agent-ledger.js), the plans are not tracked. Upmore never initiates BNPL (doc 03). |
 | CH-011 Plan fees and schedule | ANL-018 | TESTED | Plan fees and schedule are delivered as a debt payoff projection on the tracked plan. |
 | CH-012 Offers discovery and activation | EARN-010 | TESTED |  |
 | CH-013 Rewards balances | EARN-011 | TESTED |  |

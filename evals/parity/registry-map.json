@@ -104,7 +104,7 @@
     "CA-023": {
       "registry_id": "CRDT-008",
       "confidence": "high",
-      "note": "Doc 03: BNPL plans are tracked as debt with stacking warnings; Upmore never initiates BNPL."
+      "note": "Doc 03 intends BNPL plans tracked as debt with stacking warnings. Today: Afterpay plans are read from the person's bank and card rows in chat (97-bnpl.js; what is left only when the Pay in 4 shape makes it certain) and the newest plan's effect on the next 30 days is said when asked and on the list; no BNPL connector, nothing warns on its own. Upmore never initiates BNPL."
     },
     "CA-024": {
       "registry_id": "SOC-007",
@@ -286,7 +286,7 @@
     "CH-010": {
       "registry_id": "CRDT-008",
       "confidence": "high",
-      "note": "Pay Over Time plans are tracked as debt; Upmore never initiates BNPL (doc 03)."
+      "note": "Pay Over Time plans sit inside the card balance, so no row shows them apart; the card balance is in the debt inventory module (57-agent-ledger.js), the plans are not tracked. Upmore never initiates BNPL (doc 03)."
     },
     "CH-011": {
       "registry_id": "ANL-018",
@@ -759,12 +759,12 @@
     "PP-018": {
       "registry_id": "CRDT-008",
       "confidence": "high",
-      "note": "Doc 03: Pay in 4 is tracked as debt with stacking warnings; Upmore never initiates BNPL."
+      "note": "Doc 03 intends Pay in 4 tracked as debt with stacking warnings. Today: PayPal Pay in 4 payments are read from the person's bank and card rows in chat when the row says Pay in 4 (97-bnpl.js; PAYPAL INST XFER is never read as one) and the newest plan's effect on the next 30 days is said when asked; no PayPal connector, nothing warns on its own. Upmore never initiates BNPL."
     },
     "PP-019": {
       "registry_id": "CRDT-008",
       "confidence": "high",
-      "note": "Pay Monthly loans are tracked as debt; Upmore never initiates BNPL."
+      "note": "Pay Monthly payments are read from the person's rows as a monthly plan (97-bnpl.js); the loan's balance and term are not in the rows, so what is owed is said as unknown. Upmore never initiates BNPL."
     },
     "PP-020": {
       "non_parity": "regulated-origination",

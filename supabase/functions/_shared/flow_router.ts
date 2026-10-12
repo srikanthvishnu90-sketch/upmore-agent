@@ -209,6 +209,7 @@ export function needsRouter(saved: any, now: number): boolean {
   if (saved && saved.split && saved.split.waiting_names) return true;
   // "Make what $50?" waits on a name for 10 minutes (corpus 1.03): the bare name that answers it goes to the router.
   if (saved && saved.router && saved.router.amount_ask && now - saved.router.amount_ask.at < 10 * 60000) return true;
+  if (saved && saved.router && saved.router.amount_choice && now - saved.router.amount_choice.at < 10 * 60000) return true;
   return !!(saved && saved.router && saved.router.settled && now - saved.router.settled.at < 30 * 60000);
 }
 export function hasLiveCard(saved: any): boolean {

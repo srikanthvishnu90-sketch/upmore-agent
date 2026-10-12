@@ -1,9 +1,9 @@
 {
  "capability": "INV-011",
- "run_at": "2026-10-12T06:33:08.899Z",
+ "run_at": "2026-10-12T11:25:25.805Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 17,
+ "sub_capabilities": 18,
+ "proven": 19,
  "problems": [],
  "rows": [
   {
@@ -194,6 +194,28 @@
    "title": "Stop-on-change",
    "defect": "the re-verification result is ignored, so a moved price still places the order",
    "test": "a price, fee, cash or session move between yes and order stops it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Hits follows the quote",
+   "defect": "every hit is a limit",
+   "test": "above the price is a limit, below a stop",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "A store order is not a stock order",
+   "defect": "store orders read as missing stock orders",
+   "test": "Uber Eats cancel is said, not read as an order",
    "bites": true,
    "applied": true,
    "collateral": [],

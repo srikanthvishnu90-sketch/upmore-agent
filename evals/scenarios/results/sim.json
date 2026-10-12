@@ -193,9 +193,9 @@
   {
    "id": "B07",
    "typed": "send maya 50 and make it 5",
-   "flow": "send",
-   "outcome": "confirm",
-   "reply": "Using 5, your last number. Set up $5.00 to Maya K (@maya-k) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "flow": null,
+   "outcome": "ask",
+   "reply": "$50.00 or $5.00?",
    "executed": false,
    "mock_orders": 0
   },
@@ -1446,7 +1446,7 @@
    "typed": "cancel the order from uber eats",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "I don't see an open order that I placed, so there is nothing to cancel.",
+   "reply": "That Uber Eats order isn't one Upmore placed, so I can't cancel it here. Cancel it in the Uber Eats app or with Uber Eats directly; for a charge you want back, say \"dispute this charge\". Nothing changed.",
    "executed": false,
    "mock_orders": 0
   },

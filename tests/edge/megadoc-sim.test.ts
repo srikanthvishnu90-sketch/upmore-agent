@@ -18,10 +18,11 @@ Deno.test("megadoc sim: the committed evidence is what the code does now, and no
   assertEquals(strip(now), strip(was), "stale evals/scenarios/results/sim.json: run deno run -A evals/scenarios/sim.ts");
   assert(S.every(s => !rows[s.id].executed && rows[s.id].mock_orders === 0), "a first message never executes or places an order");
 });
-Deno.test("megadoc sim: amounts are never wrong on a card (A07 $4,000; A14 $40 is Maya's, not Jake's; B07/E19 the last number)", () => {
+Deno.test("megadoc sim: amounts are never wrong on a card (A07 $4,000; A14 $40 is Maya's, not Jake's; B07 two amounts asked; E19 a correction takes the last number)", () => {
   assert(!/\$4\.00\b/.test(rows.A07.reply), rows.A07.reply); assert(/\$4,000\.00/.test(rows.A07.reply), rows.A07.reply);
   assert(/^Two things, one at a time\. First: Set up \$40\.00 to Maya K/.test(rows.A14.reply), rows.A14.reply); assert(/Then I'll do: send 25 to jake\.$/.test(rows.A14.reply), rows.A14.reply);
-  assert(/^Using 5, your last number\. Set up \$5\.00 to Maya K/.test(rows.B07.reply), rows.B07.reply);
+  // "and make it 5" names two amounts with no correction word: asked, no card (megadoc B07).
+  assertEquals(rows.B07.outcome, "ask"); assertEquals(rows.B07.reply, "$50.00 or $5.00?");
   assert(/^Using 10, your last number\./.test(rows.E19.reply) && !/\$5\.00 of AAPL/.test(rows.E19.reply), rows.E19.reply);
 });
 Deno.test("megadoc sim: no request is dropped (P09 three asks, J11 two cancels)", () => {

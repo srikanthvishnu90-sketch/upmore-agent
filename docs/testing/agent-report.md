@@ -25,7 +25,7 @@ Nothing.
 
 - R-01:1.02 corpus 1.02 Stranger, no history: DIVERGES: A first send to a new handle asks the person to type the handle back (PAY-002, confirmed in full) before the card; the corpus shows the card at once with a can't-verify line. Kept deliberately: it is the stronger check on a first, irreversible send to a stranger. Owner can overrule.
 - R-01:2.04 corpus 2.04 Rent: DIVERGES: The corpus shows rent already on file and paid by ACH on one yes. Upmore never moves rent itself (owner rule: it stages each month for the person to send in Zelle, Venmo, Cash App or PayPal; no ACH rail is live), and the corpus world has no rent rule saved, so 'pay rent' first asks the one
-- O-02s megadoc states: PROVEN 0, BUILT 101, LIMITED 28, DIVERGES 13, MODEL 31, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
+- O-02s megadoc states: PROVEN 0, BUILT 103, LIMITED 29, DIVERGES 10, MODEL 31, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
 
 ## Every check
 
@@ -56,7 +56,7 @@ Nothing.
 | outcome | O-18 | automations: none of the 85 capabilities that act runs without that person's yes, even inside an envelope | PASS |
 | outcome | O-19 | no phone calls: no telephony call API anywhere in shipped code | PASS |
 | outcome | O-20 | identity digits: removed from the message before storage or a model, the rest still answered, and refused by the tables | PASS |
-| design | D-01 | approval prompts: one message, at most 2 SMS segments, ending in a yes/no ask (14 cards) | PASS |
+| design | D-01 | approval prompts: one message, at most 2 SMS segments, ending in a yes/no ask (13 cards) | PASS |
 | design | D-02 | receipts carry the amount and the record (order id; the handle and app for a staged send) | PASS |
 | design | D-03 | copy: no placeholder text on any screen | PASS |
 | design | D-04 | every button has a visible label or an aria-label | PASS |

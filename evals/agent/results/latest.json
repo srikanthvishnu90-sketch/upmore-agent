@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 101, LIMITED 28, DIVERGES 13, MODEL 31, NOT_BUILT 67",
+   "title": "megadoc states: PROVEN 0, BUILT 103, LIMITED 29, DIVERGES 10, MODEL 31, NOT_BUILT 67",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },
@@ -182,7 +182,7 @@
   {
    "family": "design",
    "id": "D-01",
-   "title": "approval prompts: one message, at most 2 SMS segments, ending in a yes/no ask (14 cards)",
+   "title": "approval prompts: one message, at most 2 SMS segments, ending in a yes/no ask (13 cards)",
    "status": "PASS"
   },
   {

@@ -698,7 +698,7 @@
    "turns": [
     {
      "user": "buy 5 shares of amd if it drops to 140",
-     "reply": "That's about $776.73; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.",
+     "reply": "That's about $700.00; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.",
      "outcome": "stop"
     }
    ]

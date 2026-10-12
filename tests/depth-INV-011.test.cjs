@@ -234,6 +234,23 @@ test('[S16] stop-on-change: price, fee, buying power and market session are re-v
   const same=session();keep(await same.s.start('buy $500 of VOO'));assert.equal(keep(await same.s.reply('yes')).outcome,'filled','nothing moved, the order goes');
 });
 
+test('[S17] "when it hits $X" waits for the price the way the quote says: above it now is a limit, below it a stop; the card says which',async()=>{
+  const {s}=session();
+  const a=keep(await s.start('buy 2 VOO when it hits 500'));assert.equal(a.outcome,'confirm',a.text);assert.match(a.text,/at a \$500\.00 limit/);assert.equal(a.order.type,'limit');assert.equal(a.order.limit_cents,50000);assert.match(a.details,/limit order/);await s.reply('no');
+  const b=keep(await s.start('buy 2 VOO when it hits $600'));assert.equal(b.order.type,'stop');assert.equal(b.order.stop_cents,60000);await s.reply('no');
+  assert.equal(b.text.slice(0,70),'Buy 2 shares of VOO if it rises to $600.00 (stop), about $1,200.00, in');
+  assert.equal(T.parse('sell 2 VOO once it reaches 600').trigger_cents,60000);
+  const d=keep(await s.start('buy $500 of VOO when it hits 500'));assert.equal(d.outcome,'ask');assert.equal(d.text,'An order that waits for $500.00 needs a share count, not dollars. How many shares?');
+});
+
+test('[S18] a store or delivery order is not a brokerage order: said, with where to cancel it, nothing read as a stock order',async()=>{
+  const {s,r}=session();
+  const a=keep(await s.start('cancel the order from uber eats'));
+  assert.equal(a.text,'That Uber Eats order isn\'t one Upmore placed, so I can\'t cancel it here. Cancel it in the Uber Eats app or with Uber Eats directly; for a charge you want back, say "dispute this charge". Nothing changed.');
+  assert.equal(r.writes.length,0);
+  assert.match(keep(await s.start('cancel my VOO order')).text,/^I don't see an open order for VOO that I placed/);
+});
+
 test('[ADV] adversarial log: stale quote, size ambiguity, look-alike symbol, decision words, duplicate text, stale yes, cross-order yes, timeout after send, rejection, no partner, sell, crypto, limit, injection',async()=>{
   const stale=session({},{quote_age_ms:2*3600000});assert.equal((await stale.s.start('buy $500 of VOO')).reason,'stale_quote');
   const {s,r,t}=session();

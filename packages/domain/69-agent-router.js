@@ -244,6 +244,13 @@
         // A number changed in the same text ("buy 5 AAPL no wait 10", "send maya 50 and make it 5"): the last number wins
         // and the card shows it; nothing runs without a yes on that card (megadoc B07, E19).
         const fix = CORRECTED.exec(text);
+        // "send maya 50 and make it 5" says two amounts with no correction word: asked, no card (megadoc B07). "No wait,
+        // make it 5", "actually 5", "I mean 5" correct the first and take the last.
+        if (fix && /\b(?:and|&)\s*$/i.test(fix[3]) && /^\s*(?:make it|make that)\b/i.test(text.slice(fix.index + fix[1].length + fix[2].length + fix[3].length))) {
+          const a = Math.round(Number(fix[2].replace(/[$,]/g, "")) * 100), b = Math.round(Number(fix[4].replace(/[$,]/g, "")) * 100);
+          memo.amount_choice = { base: `${fix[1]}{N}${fix[3].replace(/[\s,;]*(?:and|&)\s*$/i, "")}`.replace(/\s+/g, " ").trim(), a, b, at: now };
+          return done({ route: "fallthrough_ask", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "ask", reason: "two_amounts", text: `${usd(a)} or ${usd(b)}?` } });
+        }
         if (fix) {
           const out = await handle(`${fix[1]}${fix[4]}${fix[3].replace(/[\s,;]*(?:and|but|,)?\s*$/i, "")}`.replace(/\s+/g, " ").trim(), Object.assign({}, c, { memo }));
           if (out && out.result && typeof out.result.text === "string") out.result = Object.assign({}, out.result, { text: `Using ${fix[4]}, your last number. ${out.result.text}` });
@@ -316,6 +323,14 @@
       // back, never guessed and never sent to the model, which has no card to change either. Only when no flow is waiting
       // on an answer ("How much?" takes "make it 50" as its answer).
       const waiting = Object.keys(sessions).some((k) => sessions[k] && sessions[k].awaiting_input);
+      // The answer to "$50.00 or $5.00?": one of the two amounts starts that request (its card still needs a yes).
+      const ch = memo.amount_choice;
+      if (ch && !live.length) {
+        memo.amount_choice = null;
+        const pick = /^\s*\$?(\d[\d,]*(?:\.\d{1,2})?)\s*(?:dollars|bucks)?\s*[.!]*\s*$/i.exec(text);
+        const v = pick ? Math.round(Number(pick[1].replace(/,/g, "")) * 100) : null;
+        if (now - ch.at < 10 * 60000 && (v === ch.a || v === ch.b)) return handle(ch.base.replace("{N}", (v / 100).toFixed(v % 100 ? 2 : 0)), c);
+      }
       // The answer to "Make what $50?" is a person's name (corpus 1.03: "priya"): a send of that amount to them, on a card
       // that still needs its own yes. Within 10 minutes, and only a bare name.
       const amt = memo.amount_ask;

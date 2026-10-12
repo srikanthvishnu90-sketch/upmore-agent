@@ -40,10 +40,13 @@
     // Rail 2: every order type and both sides. Prices are read from the words that carry them; nothing is guessed.
     const PX = "\\$\\s?(\\d[\\d,]*)(?:\\.(\\d{1,2}))?";
     const cents = (w, f) => Number(String(w).replace(/,/g, "")) * 100 + Number(((f || "") + "00").slice(0, 2));
-    const DIP = "dips|drops|falls|goes down|comes down|gets down|sinks", RISE = "hits|reaches|rises|goes up|gets to|climbs|breaks";
+    // "Dips to" and "rises to" say the direction; "hits" and "reaches" don't, so their order type follows the live quote at
+    // staging (megadoc E06 "buy NVDA when it hits 100": a limit when NVDA is above 100, a stop when below).
+    const DIP = "dips|drops|falls|goes down|comes down|gets down|sinks", RISE = "rises|goes up|climbs|breaks", HIT = "hits|reaches|gets to|touches";
+    const PXO = "\\$?\\s?(\\d[\\d,]*)(?:\\.(\\d{1,2}))?";
     const WEEKDAY = /\b(?:cancel|expire|expires|good|valid|keep it)\w*\s+(?:it\s+)?(?:by|on|until|till|through|thru)\s+(mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?\b|\bby\s+(monday|tuesday|wednesday|thursday|friday|tomorrow|next week|end of (?:the )?week)\b/i;
     function orderTerms(t, side) {
-      const out = { type: "market", limit_cents: null, stop_cents: null, trail_percent: null, trail_cents: null, stop_pct_below: null, time_in_force: null, expiry_words: null, consumed: [] };
+      const out = { type: "market", limit_cents: null, stop_cents: null, trigger_cents: null, trail_percent: null, trail_cents: null, stop_pct_below: null, time_in_force: null, expiry_words: null, consumed: [] };
       const take = m => { if (m) out.consumed.push(m[0]); return m; };
       if (/\btrailing\b/i.test(t)) {
         out.type = "trailing_stop";
@@ -53,8 +56,10 @@
         const stopAt = take(new RegExp(`\\bstop(?:[- ]?loss)?(?:\\s+(?:order|price))?\\s*(?:at|@|of|to)?\\s*${PX}`, "i").exec(t));
         const stopPct = !stopAt && /\bstop\b/i.test(t) ? take(/(\d+(?:\.\d+)?)\s*%\s*(?:below|under|down)/i.exec(t)) : null;
         const limAt = take(new RegExp(`\\b(?:limit(?:\\s+price)?(?:\\s+of)?|at|@)\\s*${PX}`, "i").exec(t.replace(stopAt ? stopAt[0] : "\u0000", " ")));
-        const dip = take(new RegExp(`\\bif (?:it|the price|price)\\s+(?:${DIP})\\s+(?:to|below|under)\\s*${PX}`, "i").exec(t));
-        const rise = take(new RegExp(`\\bif (?:it|the price|price)\\s+(?:${RISE})\\s+(?:to\\s+|above\\s+|over\\s+)?${PX}`, "i").exec(t));
+        const dip = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${DIP})\\s+(?:to|below|under)\\s*${PXO}\\b`, "i").exec(t));
+        const rise = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${RISE})\\s+(?:to\\s+|above\\s+|over\\s+)?${PXO}\\b`, "i").exec(t));
+        const hit = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${HIT})\\s+${PXO}\\b`, "i").exec(t));
+        if (hit) out.trigger_cents = cents(hit[1], hit[2]);
         if (stopAt) out.stop_cents = cents(stopAt[1], stopAt[2]);
         if (stopPct) out.stop_pct_below = Number(stopPct[1]);
         if (limAt) out.limit_cents = cents(limAt[1], limAt[2]);
@@ -63,7 +68,7 @@
         if (dip) { if (side === "sell") out.stop_cents = cents(dip[1], dip[2]); else out.limit_cents = cents(dip[1], dip[2]); }
         if (rise) { if (side === "sell") out.limit_cents = cents(rise[1], rise[2]); else out.stop_cents = cents(rise[1], rise[2]); }
         const hasStop = out.stop_cents !== null || out.stop_pct_below !== null;
-        out.type = hasStop && out.limit_cents !== null ? "stop_limit" : hasStop ? "stop" : out.limit_cents !== null ? "limit" : "market";
+        out.type = hasStop && out.limit_cents !== null ? "stop_limit" : hasStop ? "stop" : out.limit_cents !== null || out.trigger_cents ? "limit" : "market";
       }
       if (/\b(gtc|good[\s-]*(?:'?til|till|until)[\s-]*(?:cancel(?:l)?ed|canceled)|until i cancel(?: it)?|till i cancel(?: it)?)\b/i.test(t)) out.time_in_force = "gtc";
       else if (/\b(day order|today only|for today|expires? (?:at|by) (?:the )?close)\b/i.test(t)) out.time_in_force = "day";
@@ -123,7 +128,7 @@
       const bareDollars = !!amount.ambiguous && terms.type === "market" && side === "buy";
       const ambiguous = bareDollars || (amount.ambiguous && terms.type !== "market") ? null : amount.ambiguous || null;
       const quantity = amount.quantity || (amount.ambiguous && terms.type !== "market" ? amount.ambiguous : null);
-      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query: gain_symbol || quote_symbol || query, account: acct ? acct[1].trim() : null };
+      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, trigger_cents: terms.trigger_cents, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query: gain_symbol || quote_symbol || query, account: acct ? acct[1].trim() : null };
     }
 
     // S02: the symbol resolves against real instruments the caller supplies ({symbol, name, type, tradable_at: [account ids] | undefined}); a look-alike one edit away asks.
@@ -323,7 +328,8 @@
           if (priv) return say("refuse", `${priv[1].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Spacex$/, "SpaceX").replace(/^Openai$/, "OpenAI")} isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.`, { reason: "private_unsupported" });
           if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
         if (/\b(a|per|each|every)\s+(week|month|day|paycheck|quarter)\b|\b(weekly|monthly|recurring|auto[- ]?invest|automatically|dca|dollar[- ]cost)\b/i.test(tx)) return say("not_built", "Recurring investments aren't built yet, so nothing was scheduled or placed. I can put up a card for a one-time order if you name the amount.", { reason: "recurring_not_built" });
-        const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY, type = parsed.type || "market";
+        const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY;
+        let type = parsed.type || "market";
         // S03: decision words are refused before anything is read or staged. The guard catches the advice shapes; the local
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
         const DECIDE = /\b(whatever|whichever|best|good one|the dip|dipped|just dropped|hot|winner|winning|pick|choose|recommend|should i|would you|what (do|would) you|pelosi|buffett|congress)\b/i;
@@ -345,7 +351,7 @@
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");
         if (parsed.vague) return ask("size", `How much exactly: a dollar amount or a share count? I don't size orders myself.`);
         if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
-        if (parsed.notional_cents && type !== "market") return ask("size", `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
+        if (parsed.notional_cents && type !== "market") return ask("size", parsed.trigger_cents ? `An order that waits for ${money(parsed.trigger_cents)} needs a share count, not dollars. How many shares?` : `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
         const res = await instrument(parsed.query, side);
         if (res.unreachable) return ask("broker_unreachable", `I can't reach the broker right now, so I can't look up ${String(parsed.query).toUpperCase()}. Nothing was placed.`);
@@ -400,9 +406,13 @@
         if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents)) return ask("no_quote", `I have no quote for ${inst.symbol}, so I can't estimate the order. Ask again in a moment.`);
         if (now - q.as_of > freshness) return ask("stale_quote", `The ${inst.symbol} quote I have is ${Math.round((now - q.as_of) / 60000)} minutes old, too old to price an order on. Ask again and I'll refresh it.`);
         const price = q.value.price_cents;
+        // "When it hits $100": a buy above $100 now waits for it to come down (a limit), below it waits for it to rise (a
+        // stop); a sell the other way round. Decided from this quote and said on the card as the order type.
+        let hitLim = null, hitStop = null;
+        if (Number.isSafeInteger(parsed.trigger_cents)) { if (side === "buy" ? price >= parsed.trigger_cents : price <= parsed.trigger_cents) { type = "limit"; hitLim = parsed.trigger_cents; } else { type = "stop"; hitStop = parsed.trigger_cents; } }
         // Order terms in cents; a stop "15% below" is computed from this quote and shown as a price.
-        const stop = parsed.stop_pct_below !== null && parsed.stop_pct_below !== undefined ? Math.round(price * (100 - parsed.stop_pct_below) / 100) : parsed.stop_cents;
-        const lim = parsed.limit_cents;
+        const stop = hitStop !== null ? hitStop : parsed.stop_pct_below !== null && parsed.stop_pct_below !== undefined ? Math.round(price * (100 - parsed.stop_pct_below) / 100) : parsed.stop_cents;
+        const lim = hitLim !== null ? hitLim : parsed.limit_cents;
         if (type === "stop" || type === "stop_limit") { if (side === "sell" && stop >= price) return ask("stop_triggers_now", `A sell stop at ${money(stop)} is at or above the current ${money(price)}, so it would trigger right away. Did you mean a limit to sell at ${money(stop)} or better? Nothing was placed.`); if (side === "buy" && stop <= price) return ask("stop_triggers_now", `A buy stop at ${money(stop)} is at or below the current ${money(price)}, so it would trigger right away. Did you mean a limit? Nothing was placed.`); }
         if (type === "trailing_stop" && !(parsed.trail_percent > 0) && !(parsed.trail_cents > 0)) return ask("trail", "How far should it trail: a percent (like 5%) or a dollar amount?");
         const tif = type === "market" ? "day" : parsed.time_in_force || "day";
@@ -516,9 +526,14 @@
         for (const x of fromSession) { const rb = await readOr("order", { order_id: x.order_id }); const s = rb && rb.value ? canon(JSON.parse(JSON.stringify(rb.value))) : null; if (s) { x.readback = s; if (["working", "queued", "partial"].includes(s.status)) live.push(x); } }
         return live;
       }
+      const SHOPS = /\b(?:uber eats|ubereats|doordash|door dash|grubhub|postmates|instacart|seamless|caviar|gopuff|amazon|walmart|target|costco|best buy|ebay|etsy|wayfair|shein|temu|starbucks|chipotle|domino'?s|pizza hut|mcdonald'?s|apple store|nike|zara|sephora|ulta|chewy)\b/i;
       async function manage(parsed) {
         const sym = parsed.query && /^[A-Za-z]{1,5}$/.test(parsed.query) ? parsed.query.toUpperCase() : null;
         const open = await openOrders(sym);
+        // A store or delivery order is not a brokerage order (megadoc K06 "cancel the order from uber eats"): said, with
+        // where it can be cancelled. An open stock order for the same word (UBER) is checked first.
+        const shop = SHOPS.exec(String(parsed.text || ""));
+        if (!open.length && shop) { const name = shop[0].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Doordash$/, "DoorDash").replace(/^Grubhub$/, "Grubhub").replace(/^Ebay$/, "eBay"); return say("answer", `That ${name} order isn't one Upmore placed, so I can't cancel it here. Cancel it in the ${name} app or with ${name} directly; for a charge you want back, say "dispute this charge". Nothing changed.`); }
         if (!open.length) return say("answer", `I don't see an open order${sym ? ` for ${sym}` : ""} that I placed, so there is nothing to ${parsed.action === "cancel" ? "cancel" : "change"}.`);
         if (open.length > 1) return ask("order_which", `Which order: ${open.map(x => `${x.side === "sell" ? "sell" : "buy"} ${qty(x.quantity)} ${x.symbol}${terms(x).head} (order ${x.order_id})`).join(" or ")}?`);
         const target = open[0], P = MODE(target.account);

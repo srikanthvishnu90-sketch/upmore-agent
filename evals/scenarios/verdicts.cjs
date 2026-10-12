@@ -33,7 +33,7 @@ set("B03", "BUILT", "two saved Johns: 'Which John' with handles (the sim world h
 set("B04", "BUILT", "look-alike handle named next to the saved one", "tests/depth-RAIL-1.test.cjs");
 set("B05", "BUILT", "with nothing open, asked back: \"Make what $50.00? There's no payment or order open\", no model call, nothing changed; with a card open it corrects that card", "tests/router.test.cjs");
 set("B06", "BUILT", "an amount change on a live card voids it and puts up a new card", "tests/depth-PAY-001.test.cjs");
-set("B07", "DIVERGES", "DO asks '$50 or $5?'; Upmore takes the last number and shows it on the card ('Using 5, your last number'), which still needs a yes", "tests/edge/megadoc-sim.test.ts");
+set("B07", "BUILT", "two amounts with no correction word are asked (\"$50.00 or $5.00?\"), no card; the answer starts that send, which still needs a yes; a self-correction (\"no wait, make it 5\") takes the last number", "tests/router.test.cjs");
 set("B08", "BUILT", "asks $40.00 or $4.00", "tests/edge/megadoc-sim.test.ts");
 set("B09", "BUILT", "no FX: says US dollars only, nothing set up", "tests/edge/megadoc-sim.test.ts");
 set("B10", "DIVERGES", "asks 'How much?' instead of 'Your share of what?' and offers no recent bills");
@@ -78,7 +78,7 @@ set("D15", "NOT_BUILT", "alert rules");
 set("E01 E02 E05 E07 E14 E19 F01 F02", "LIMITED", CAP, "tests/depth-BROKER-CONNECT.test.cjs");
 set("E03", "LIMITED", "BRK.A resolves as a ticker (class shares kept whole); in a live account it is over the $5 cap; the mock world does not list it", "tests/edge/megadoc-sim.test.ts");
 set("E04 E12 E23", "BUILT", "asks the missing size or ticker; never guesses", "tests/depth-INV-011.test.cjs");
-set("E06", "DIVERGES", "'when it hits 100' without a $ is not read as a limit price; asks the size only");
+set("E06", "LIMITED", "\"when it hits 100\" (with or without $) waits for that price the way the live quote says: a limit when the stock is above it, a stop when below; the size is asked; the card defaults to a day order and says so (good till canceled on request) instead of asking", "tests/depth-INV-011.test.cjs");
 set("E08 E26 F12 F15", "DIVERGES", "the message describes a situation (a limit already below, earnings, a halt, a restricted account); the flow asks the size instead of naming the situation");
 set("E09 E10 E11", "BUILT", "sell reads the live position first; with none held says so, nothing placed", "tests/depth-RAIL-2.test.cjs");
 set("E13", "NOT_BUILT", "stops on every holding at once; says so", "tests/edge/megadoc-sim.test.ts");
@@ -130,7 +130,7 @@ set("K01 K02 K05", "BUILT", "the charge found in the person's rows by its text o
 set("K07", "BUILT", "answered from the person's own rows: credits that look like refunds in the last 90 days listed to the cent (a named merchant's credit is a yes; pay, Zelle, interest and transfers never count; pending said as pending); none found is said with the days checked and the refund watch offered, no date made up", "tests/edge/refund-check.test.ts");
 set("K03", "BUILT", "no charge named: lists the recent charges (merchant, amount, date, source) and asks which; the next message gets a pre-filled dispute with the ask-the-merchant step and the Fair Credit Billing Act and Regulation E timelines, which the person files with their issuer (no issuer filing rail); nothing is filed or sent", "tests/edge/dispute-answer.test.ts");
 set("K04 K08 K09 K10 K11", "NOT_BUILT", "refund requests and card controls");
-set("K06", "DIVERGES", "routed to brokerage orders ('no open order that I placed'); a food order is not Upmore's to cancel and the reply should say that");
+set("K06", "BUILT", "a store or delivery order is not a brokerage order: said, with where to cancel it (the store's app) and the dispute flow named; an open stock order for the same word is checked first", "tests/depth-INV-011.test.cjs");
 // L. budgets, M. savings
 set("L01 L02 L05 L08 L11 L12", "MODEL", "the chat model over transactions");
 set("L06", "BUILT", "the spending answer just given is rechecked from the rows by the same filters: the total and its charges largest first with dates, pending and transfers said as not counted, how a store is counted and the rule that moves it, new rows since said; with no total just given it asks which number", "tests/edge/megadoc-money-asks.test.ts");

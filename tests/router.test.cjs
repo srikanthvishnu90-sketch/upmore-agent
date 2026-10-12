@@ -340,3 +340,14 @@ test('follow-ups with nothing open are asked back; with a card open, "make it 50
   assert.equal(w.writes.length,n,'nothing is sent before a yes');
   await H('no');
 });
+
+// Megadoc B07 "send maya 50 and make it 5": two amounts with no correction word are asked, no card; the answer starts that
+// send. A self-correction ("no wait, make it 5") still takes the last number.
+test('two amounts in one message are asked; the answer picks one; a correction still takes the last',async()=>{
+  const w=world();const ss=sessions(w);const memo={};const ex=async(t)=>({intent:'send_money',amount_span:(/\d+/.exec(t)||[''])[0],recipient_span:'sam'});
+  const H=t=>R.handle(t,{extract:ex,sessions:ss,parsers,memo});
+  const a=await H('send sam 50 and make it 5');assert.equal(a.result.outcome,'ask');assert.equal(a.result.text,'$50.00 or $5.00?');assert.equal(w.writes.length,0);
+  const b=await H('5');assert.equal(b.result.outcome,'confirm');assert.match(b.result.text,/\$5\.00 to Sam K/);await H('no');
+  const c=await H('send sam 50 no wait make it 5');assert.match(c.result.text,/^Using 5, your last number\. /);await H('no');
+  assert.equal(w.writes.length,0);
+});

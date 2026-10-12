@@ -1,9 +1,9 @@
 {
  "capability": "PAY-001",
- "run_at": "2026-10-12T14:49:18.682Z",
+ "run_at": "2026-10-12T15:09:03.652Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 21,
+ "sub_capabilities": 21,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -261,6 +261,17 @@
    "title": "The amount is a wall",
    "defect": "words after the amount are glued onto the name ('Sarah Lol')",
    "test": "send sarah 40 lol names Sarah",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D22",
+   "title": "No memo goes out unseen",
+   "defect": "a memo over 40 characters is dropped from the card and DETAILS",
+   "test": "a long memo is named on the card and quoted in DETAILS",
    "bites": true,
    "applied": true,
    "collateral": [],

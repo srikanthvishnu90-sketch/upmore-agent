@@ -61,7 +61,7 @@ test('[S06] the confirmation restates action, exact amount, recipient with handl
   const {s,r}=session();
   const a=await s.start('send $85 to Sarah for airbnb');assert.equal(a.outcome,'confirm');
   assert.equal(a.text,"Set up $85.00 to Sarah M (@sarah-m) in Venmo from checking, memo \"airbnb\", for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.");assert.ok(a.text.length<=306,'two SMS segments at most');
-  assert.equal(a.details,'Stage $85.00 to Sarah M on Venmo $85.00 to Sarah M (@sarah-m) from checking? No fee, lands in minutes (Venmo balance), 1-3 days to a bank. Irreversible once received; instant cash-out to a bank costs the recipient a fee. Reply yes or no.');
+  assert.equal(a.details,'Stage $85.00 to Sarah M on Venmo $85.00 to Sarah M (@sarah-m) from checking? No fee, lands in minutes (Venmo balance), 1-3 days to a bank. Irreversible once received; instant cash-out to a bank costs the recipient a fee. Memo: "airbnb". Reply yes or no.');
   const det=await s.reply('details');assert.equal(det.outcome,'details');assert.equal(det.text,a.details);assert.ok(s.pending,'DETAILS does not consume the card');
   assert.equal(r.writes.length,0);assert.ok(s.pending&&s.pending.amount_cents===8500);
   await s.reply('no');const b=await s.start('send $1,800 to Landlord LLC from savings');assert.equal(b.text,'Send $1,800.00 to Landlord LLC by ACH from savings. No fee. Reply YES or NO within 10 min, or DETAILS.');assert.match(b.details,/^Send \$1,800\.00 to Landlord LLC by ACH \$1,800\.00 to Landlord LLC from savings\? No fee, lands in 1-3 business days\./);assert.equal(r.writes.length,0);
@@ -193,4 +193,11 @@ test('[S19] the way people ask: "can you send sarah 40?", "give sarah 15", "send
 test('[S20] the amount is a wall the name never crosses ("send sarah 40 lol", "send sarah 40 real quick"), and a lead-in ("gotta", "ok", "i need to") never hides the verb',async()=>{
   for(const m of ['send sarah 40 lol','send sarah 40 real quick','gotta pay sarah 40 for dinner','ok send sarah 40','yeah venmo sarah 40','i need to send sarah 40']){const p=S.parse(m);assert.equal(p.recipient,'sarah',m);assert.equal(p.amount_cents,4000,m);}
   assert.equal(S.parse('send $40 to sarah').recipient,'sarah');assert.equal(S.parse('send 40 to sarah m please').recipient,'sarah m');
+});
+
+test('[S21] a memo too long for the card is named on it, and DETAILS quotes it whole: no memo goes out unseen',async()=>{
+  const {s}=session();const memo='the really long dinner at the italian place downtown with everyone from work';
+  const a=await s.start(`send sarah 40 for ${memo}`);assert.equal(a.outcome,'confirm');assert.match(a.text,/, with a memo \(DETAILS shows it\),/);
+  const d=await s.reply('details');assert.ok(d.text.includes(`Memo: "${memo}".`),d.text);
+  const {s:s2}=session();assert.match((await s2.start('send sarah 40 for pizza')).text,/, memo "pizza",/);
 });

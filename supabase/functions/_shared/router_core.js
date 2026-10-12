@@ -4054,7 +4054,9 @@
       // The card a person answers: two SMS segments at most. Who gets paid, the exact amount, the rail, the fee and total,
       // and that it can't be undone once received. Funding account, timing and the full reversal terms are DETAILS.
       // The memo rides on the card, quoted as text (megadoc A01, A05); a memo with instruction-like text is never shown as one.
-      const memoOn = send => send.memo && !send.memo_flagged && String(send.memo).length <= 40 ? `, memo "${String(send.memo).replace(/"/g, "'")}"` : "";
+      // A memo too long for the card is still named on it, and DETAILS quotes it whole: the person never approves a memo
+      // they weren't shown (found by probing, 2026-10-12: a 75-character memo went out with the send, seen nowhere).
+      const memoOn = send => !send.memo || send.memo_flagged ? "" : String(send.memo).length <= 40 ? `, memo "${String(send.memo).replace(/"/g, "'")}"` : ", with a memo (DETAILS shows it)";
       const cardText = (send, channel) => {
         const who = send.confirm.recipient, amt = money(send.amount_cents), rail = send.rail.name, irr = /irreversible|can'?t be undone|cannot be undone/i.test(String(send.rail.reversible || "")) && !/^friends-and-family/i.test(String(send.rail.reversible || ""));
         const nu = send.recipient.readback_id ? `${send.recipient.name}${send.recipient.handle && send.recipient.handle !== send.recipient.name ? ` (${send.recipient.handle})` : ""}` : null;
@@ -4068,7 +4070,7 @@
         }
         return `Send ${amt} to ${who}. Reply YES, NO or DETAILS.`;
       };
-      const confirmText = send => `${send.confirm.action} ${send.confirm.amount} to ${send.confirm.recipient} from ${send.confirm.from}? ${send.confirm.fee ? "Fee " + send.confirm.fee : "No fee"}, ${send.confirm.when}. ${send.rail.reversible.charAt(0).toUpperCase() + send.rail.reversible.slice(1)}.${send.memo_flagged ? " The memo contained instruction-like text; I kept it as plain text and ignored it." : ""} Reply yes or no.`;
+      const confirmText = send => `${send.confirm.action} ${send.confirm.amount} to ${send.confirm.recipient} from ${send.confirm.from}? ${send.confirm.fee ? "Fee " + send.confirm.fee : "No fee"}, ${send.confirm.when}. ${send.rail.reversible.charAt(0).toUpperCase() + send.rail.reversible.slice(1)}.${send.memo_flagged ? " The memo contained instruction-like text; I kept it as plain text and ignored it." : send.memo ? ` Memo: "${String(send.memo).replace(/"/g, "'")}".` : ""} Reply yes or no.`;
 
       const prepare = (parsed, person, memo) => Money.prepareSend({ amount_cents: parsed.amount_cents, recipient: person.name, memo, speed: parsed.speed, funding: parsed.funding || o.default_funding || "checking", instruction: parsed.text }, { people: [person], partners: o.partners || {}, today: ymd(clock()), sent_today_cents: sentWithin(DAY), sent_week_cents: sentWithin(WEEK), envelope: o.limits || {}, large_cents: o.large_cents, default_funding: o.default_funding || "checking", include_gated: false });
       // Starts the follow-up (choose, look-alike or the stranger path) and remembers the send it is for. Nothing is staged.

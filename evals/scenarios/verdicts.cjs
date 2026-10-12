@@ -106,7 +106,7 @@ set("G06", "BUILT", "the biggest position by the read's own market value and its
 set("G02 G03 G05 G07 G10 G11 G14 G15", "NOT_BUILT", "performance, cost basis, sector weights, movers, tax estimates, benchmarks and dividends are not built");
 set("G04 G13", "DIVERGES", "shows the live holdings and buying power; no movers, report or reasons");
 set("G08", "BUILT", "no advice; offers the person's own holdings", "tests/depth-INV-011.test.cjs");
-set("G09", "NOT_BUILT", "a quote-only answer (quotes are read only inside an order card)");
+set("G09", "BUILT", "the broker's own quote with its source and time, said as what a buy pays, through the trade flow with no model call; nothing staged; an unknown ticker or no quote is said; a word is a ticker only with stock words or in capitals", "tests/router.test.cjs");
 set("G12", "NOT_BUILT", "scheduled stock messages");
 // H. copy trading, I. IPO
 for (const id of "H01 H02 H03 H04 H05 H06 H07 H08 H09 H10 H11 H12 H13 H14 H15".split(" ")) V[id] = { state: "NOT_BUILT", note: "copy trading; where routed it says so plainly with the disclosure lag, nothing placed", test: null };

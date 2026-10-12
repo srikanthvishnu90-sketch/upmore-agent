@@ -1,4 +1,4 @@
-# PORTFOLIO-Q: portfolio questions and order status in the trade flow (megadoc G01, G06, E16, E18)
+# PORTFOLIO-Q: portfolio questions, quotes and order status in the trade flow (megadoc G01, G06, G09, E16, E18)
 
 `packages/domain/66-agent-trade.js` answers "what do I own", "what's my biggest (or smallest) position", "what's my order
 status" and "did my buy fill?" from the broker's own reads, with no model call and nothing placed. The portfolio lists
@@ -8,6 +8,9 @@ value; a single position is said as the only one; a holding the read gives no va
 Order status reads the latest order this chat placed, or the one named by its ticker, back from the broker now: filled
 (price, total, fill time), partly filled, working or queued (with how to cancel), canceled, rejected (the broker's
 reason), replaced; a failed read says the last status read; none placed says so and points to the brokerage app.
+"What's NVDA trading at" (G09) gives the broker's own quote with its source and time, said as what a buy pays; a ticker
+is read only with stock words ("trading at", "stock", "a share") or in capitals ("price of gas" is not GAS); an unknown
+ticker, no quote, or an asset record without a symbol is said, never a number.
 
 Where it runs: the trade flow through the router (`69-agent-router.js`: the gate, the question rule and the order words
 let these questions reach it). Router tests 17 and 18 in `tests/router.test.cjs`.
@@ -36,4 +39,8 @@ first "said once" check was a substring match that dropped a source ("Mock Broke
 | S14 | The named ticker | VOO picks ord-1 | `S14` in tests/depth-PORTFOLIO-Q.test.cjs | the ticker is ignored | proven |
 | S15 | Nothing placed by a question | writes stay at 1 | `S15` in tests/depth-PORTFOLIO-Q.test.cjs | a status ask goes on to a new order | proven (also fails S07, S08, S09, S10, S11, S12, S13, S14) |
 | S16 | Status asks read as status | did my buy fill is status | `S16` in tests/depth-PORTFOLIO-Q.test.cjs | the status words are not read | proven (also fails S07, S08, S09, S10, S11, S12, S13, S14, S15) |
+| S17 | The quote with its source | VOO $500.00 (Mock Quotes, 13:59 UTC) | `S17` in tests/depth-PORTFOLIO-Q.test.cjs | the source and time are dropped | proven |
+| S18 | No quote is said | no quote for VOO | `S18` in tests/depth-PORTFOLIO-Q.test.cjs | a missing quote reads as $0.00 | proven |
+| S19 | Stock words or capitals | price of gas is not GAS | `S19` in tests/depth-PORTFOLIO-Q.test.cjs | any word after 'price of' is a ticker | proven |
+| S20 | A symbol-less asset is no instrument | nothing quoted for a record without a symbol | `S20` in tests/depth-PORTFOLIO-Q.test.cjs | the asset record is trusted without a symbol | proven |
 <!-- results:end -->

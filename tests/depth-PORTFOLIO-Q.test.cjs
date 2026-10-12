@@ -120,3 +120,39 @@ test("[S16] the ways people ask; a cancel stays a cancel", () => {
   assert.equal(a("cancel my VOO order"), "cancel");
   assert.equal(a("buy $5 of VOO"), "new");
 });
+
+test("[S17] a quote: the broker's own price with its source and time, said as what a buy pays; nothing staged", async () => {
+  const w = world(ROWS);
+  assert.equal(await say(w, "what's VOO trading at"), "VOO (Vanguard S&P 500 ETF): $500.00 (Mock Quotes, 13:59 UTC). That's the price a buy would pay right now; it moves while the market is open.");
+  assert.equal(w.writes.length, 0);
+});
+
+test("[S18] an unknown ticker or no quote is said, never a number", async () => {
+  const w = world(ROWS);
+  w.conn.read = ((base) => async (k, p) => (k === "asset" ? { value: null, source: "Mock", as_of: w.now } : k === "assets" ? { value: [], source: "Mock", as_of: w.now } : base(k, p)))(w.conn.read);
+  assert.match(await say(w, "what's ZZZZ trading at"), /^I don't know the ticker "ZZZZ"\./);
+  const v = world(ROWS); v.conn.read = ((base) => async (k, p) => (k === "quote" ? null : base(k, p)))(v.conn.read);
+  assert.equal(await say(v, "what's VOO trading at"), "I have no quote for VOO right now. Ask again in a moment.");
+  const u = world(ROWS); u.conn.read = ((base) => async (k, p) => (k === "quote" ? { value: {}, source: "Mock Quotes", as_of: u.now } : base(k, p)))(u.conn.read);
+  assert.equal(await say(u, "what's VOO trading at"), "I have no quote for VOO right now. Ask again in a moment.");
+});
+
+test("[S19] a ticker is a ticker only with stock words or in capitals: 'price of gas' is not GAS", () => {
+  assert.equal(T.parse("price of VOO").action, "quote");
+  assert.equal(T.parse("how much is aapl a share").action, "quote");
+  assert.notEqual(T.parse("what's the price of gas").action, "quote");
+  assert.notEqual(T.parse("price of eggs").action, "quote");
+});
+
+test("[S20] an asset record without a symbol is no instrument: nothing is quoted or carded for it", async () => {
+  const w = world(ROWS);
+  w.conn.read = ((base) => async (k, p) => (k === "asset" ? { value: { name: "Mystery" }, source: "Mock", as_of: w.now } : k === "assets" ? { value: 1, source: "Mock", as_of: w.now } : base(k, p)))(w.conn.read);
+  const t = await say(w, "what's ZZZZ trading at");
+  assert.match(t, /^I don't know the ticker "ZZZZ"\./);
+  assert.doesNotMatch(t, /undefined/i);
+  // The buy path reads the same record: no card for "undefined", nothing staged.
+  const b = await w.s.start("buy $5 of ZZZZ");
+  assert.notEqual(b.outcome, "confirm", b.text);
+  assert.doesNotMatch(b.text, /undefined/i);
+  assert.equal(w.writes.length, 0);
+});

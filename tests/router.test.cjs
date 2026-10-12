@@ -291,3 +291,18 @@ test('order status: the order this chat placed, read back now (filled, working, 
   assert.match(c.result.text,/^I can't read order ref-1 \(buy [\d.]+ VOO\) back right now\. When I last read it, it was working\. Try again in a minute, or check your brokerage app\.$/);
   assert.equal(w.writes.length,1,'a status question places nothing');
 });
+
+// Megadoc G09 "what's NVDA trading at": the broker's own quote, with its source and time, nothing staged, no model call.
+test('a quote question reads the broker quote and stages nothing; an unknown ticker or no quote is said; "price of gas" is not a ticker',async()=>{
+  const w=world();const ss=sessions(w);const none=async()=>{throw new Error('no model call for a quote');};
+  const a=await R.handle("what's VOO trading at",{extract:none,sessions:ss,parsers});
+  assert.equal(a.result.outcome,'answer');
+  assert.match(a.result.text,/^VOO \(Vanguard S&P 500 ETF\): \$512\.10 \(Example Quotes, \d\d:\d\d UTC\)\. That's the price a buy would pay right now; it moves while the market is open\.$/);
+  const b=await R.handle('how much is vti a share',{extract:none,sessions:ss,parsers});assert.match(b.result.text,/^VTI \(Vanguard Total Stock Market ETF\): \$512\.10 /);
+  const c=await R.handle("what's ZZZZ trading at",{extract:none,sessions:ss,parsers});assert.match(c.result.text,/^I don't know the ticker "ZZZZ"\./);
+  const base=w.conn.read;w.conn.read=async(k,p)=>k==='quote'?null:base(k,p);
+  const d=await R.handle("what's VOO trading at",{extract:none,sessions:ss,parsers});assert.equal(d.result.text,'I have no quote for VOO right now. Ask again in a moment.');
+  w.conn.read=base;
+  assert.equal(w.writes.length,0,'a quote stages and places nothing');
+  assert.notEqual((await R.handle("what's the price of gas",{extract:none,sessions:ss,parsers})).route,'manage_order');
+});

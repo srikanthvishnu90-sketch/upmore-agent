@@ -4352,10 +4352,18 @@
       const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
       // "What's my order status", "did my buy fill?", "is my VOO order filled" (megadoc E16, E18): a read of the order.
       const STATUS = /\b(?:order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|where(?:'s| is) my (?:\w+ )?(?:order|buy|sell))\b/i;
-      const action = STATUS.test(t) && !/\bcancel\b/i.test(t) ? "status"
+      // "What's NVDA trading at", "price of VOO", "how much is AAPL a share" (megadoc G09): a quote read, nothing staged.
+      const QUOTE = /\b(?:what(?:'s| is| are)\s+([a-z][a-z.]{0,5})(?:\s+stock|\s+shares?)?\s+(?:trading at|at right now|going for|selling for|(?:stock |share )?price(?: right now| now| today)?)|(?:stock |share )?(?:price|quote) (?:of|for|on) ([a-z][a-z.]{0,5})(?: stock| shares?)?(?: right now| now| today)?|how much is ([a-z][a-z.]{0,5}) (?:stock |trading |a share|per share|right now|now|today))\s*[?.!]*\s*$/i;
+      // A ticker is a ticker when the words say stock ("trading at", "stock", "a share") or it is written in capitals:
+      // "what's the price of gas" is not GAS.
+      const qm0 = !/\b(buy|sell|order|should|portfolio|holdings?)\b/i.test(t) ? QUOTE.exec(t) : null;
+      const qm = qm0 && (/\b(?:trading at|going for|selling for|stock|shares?|per share)\b/i.test(t) || /^[A-Z][A-Z.]{0,5}$/.test(String(qm0[1] || qm0[2] || qm0[3]))) ? qm0 : null;
+      const action = qm ? "quote"
+        : STATUS.test(t) && !/\bcancel\b/i.test(t) ? "status"
         : /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
         : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage)|(?:biggest|largest|top|smallest) (?:position|holding|stock))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
+      const quote_symbol = qm ? String(qm[1] || qm[2] || qm[3]).replace(/\.$/, "") : null;
       const terms = orderTerms(t, side);
       const limit = terms.limit_cents !== null ? { 0: "" } : null; // kept for the scope check below
       const another = /\b(another|again|one more|a second)\b/i.test(t);
@@ -4382,7 +4390,7 @@
       const bareDollars = !!amount.ambiguous && terms.type === "market" && side === "buy";
       const ambiguous = bareDollars || (amount.ambiguous && terms.type !== "market") ? null : amount.ambiguous || null;
       const quantity = amount.quantity || (amount.ambiguous && terms.type !== "market" ? amount.ambiguous : null);
-      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query, account: acct ? acct[1].trim() : null };
+      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query: quote_symbol || query, account: acct ? acct[1].trim() : null };
     }
 
     // S02: the symbol resolves against real instruments the caller supplies ({symbol, name, type, tradable_at: [account ids] | undefined}); a look-alike one edit away asks.
@@ -4496,7 +4504,8 @@
         if (/^[A-Za-z][A-Za-z0-9.]{0,5}$/.test(String(query || ""))) {
           // "Not found" and "could not ask" are different answers: a broker that is down never makes a ticker unknown.
           let a = null; try { a = await conn.read("asset", { symbol: String(query).toUpperCase() }); } catch (e) { if (notWired(e)) return res; return { unreachable: true }; }
-          if (a && a.value) {
+          // A record without a symbol is no instrument (a malformed read never becomes a card for "undefined").
+          if (a && a.value && a.value.symbol) {
             if (a.value.tradable === false) return { exact: { symbol: a.value.symbol, name: a.value.name, not_tradable: true } };
             return { exact: { symbol: a.value.symbol, name: a.value.name, fractionable: a.value.fractionable } };
           }
@@ -4505,7 +4514,7 @@
         // active instrument matches; several are listed back and asked. A sell never comes here: it names a holding.
         if (side !== "buy" || !query) return res;
         let list = null; try { list = await conn.read("assets", { name: String(query) }); } catch (e) { if (notWired(e)) return res; return { unreachable: true }; }
-        const hits = nameMatch(query, ((list && list.value) || []).filter(x => x && x.symbol && x.tradable !== false && (!x.status || x.status === "active")));
+        const hits = nameMatch(query, (Array.isArray(list && list.value) ? list.value : []).filter(x => x && x.symbol && x.tradable !== false && (!x.status || x.status === "active")));
         if (hits.length === 1) return { exact: { symbol: hits[0].symbol, name: hits[0].name, fractionable: hits[0].fractionable }, by_name: true };
         if (hits.length > 1) return { ambiguous: hits.slice(0, 4), total: hits.length, by_name: true };
         return res;
@@ -4565,6 +4574,7 @@
         if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "status") return orderStatus(parsed.text);
+        if (parsed.action === "quote") { const c = connectStop(); if (c) return c; return quoteOnly(parsed.query); }
         if (parsed.action === "portfolio") return portfolio(parsed.text);
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
@@ -4863,6 +4873,20 @@
         if (st.status === "rejected") return say("answer", `The broker rejected order ${x.order_id} (${what}): ${st.reason || "no reason given"}, ${per}. Nothing was placed.${others}`, { order_id: x.order_id, status: st.status });
         if (st.status === "replaced") return say("answer", `Order ${x.order_id} (${what}) was replaced${st.replaced_by ? ` by order ${st.replaced_by}` : ""}, ${per}.${others}`, { order_id: x.order_id, status: st.status });
         return say("answer", `Order ${x.order_id} (${what}) reads ${String(st.status || "unknown").replace(/_/g, " ")}, ${per}.${others}`, { order_id: x.order_id, status: st.status });
+      }
+
+      // A quote, nothing else (megadoc G09): the broker's own quote for the ticker, with its source and time; the ask, the
+      // price a buy pays, said as such. An unknown ticker or an unreadable quote is said; nothing is staged, nothing advised.
+      async function quoteOnly(query) {
+        const inst = await instrument(query, "buy");
+        if (inst.unreachable) return ask("broker_unreachable", "I can't reach your broker right now, so I don't have a quote. Try again in a minute.");
+        const hit = inst.exact || (inst.ambiguous && inst.ambiguous.length === 1 ? inst.ambiguous[0] : null);
+        // An asset record without a symbol is no instrument: nothing is quoted from it.
+        if (!hit || !hit.symbol) return ask("symbol_unknown", `I don't know the ticker "${String(query || "").toUpperCase()}". Say it like "what's VOO trading at".`);
+        const q = await readOr("quote", { symbol: hit.symbol, side: "buy" }), now = clock();
+        if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents)) return ask("no_quote", `I have no quote for ${hit.symbol} right now. Ask again in a moment.`);
+        const age = Math.round((now - q.as_of) / 60000);
+        return say("answer", `${hit.symbol}${hit.name ? ` (${hit.name})` : ""}: ${money(q.value.price_cents)} (${q.source}, ${hhmm(q.as_of)}${age > 15 ? `, ${age} minutes old` : ""}). That's the price a buy would pay right now; it moves while the market is open.`, { symbol: hit.symbol });
       }
 
       async function recheck(ord) {
@@ -5652,7 +5676,7 @@
     // Questions a flow answers from its own records stay with the flow: a cancellation's terms or state (cancel), the
     // live portfolio (trade). "Did anyone pay me back?" is read from transactions by the assistant, not a send.
     // "What do I own" and "what's my biggest position" are the live portfolio's too (megadoc G01, G06).
-    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill)\b/i;
+    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|trading at|stock price|share price|price per share|how much is [a-z.]{1,6} a share|(?:price|quote) (?:of|for|on) [a-z.]{1,6} (?:stock|shares?))\b/i;
     const ASK_TO_DO = /^\s*(?:can|could|would|will) you\b|\b(?:send|pay|buy|sell|cancel|split|request)\s+(?:@?[a-z]+\s+)?\$?\d/i;
     const INJECTION = /\b(?:ignore (?:all |any )?(?:previous|prior|above|earlier|your) (?:instructions|rules|prompts?)|disregard (?:all |the )?(?:previous|prior|above) (?:instructions|rules)|system prompt|you are now|new instructions:|developer mode)\b/i;
     const SECRET_SEND = /\b(?:send|text|email|share|give|forward)\b.{0,30}\b(?:account (?:number|#)|routing (?:number|#)|card (?:number|#)|social security|ssn|password|passcode|pin\b|one[- ]time code|verification code|otp)\b/i;
@@ -5660,7 +5684,7 @@
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const NO_ONLY = /^\s*(n|no|nope|nah|no thanks|no thank you|never ?mind|nvm|forget it|scratch that)\s*[.!]*\s*$/i;
-    const ORDER_WORDS = /\b(orders?|portfolio|holdings?|positions?|shares?|stocks?|limit|stop|trailing|what do i own|what am i holding|brokerage|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill)\b/i;
+    const ORDER_WORDS = /\b(orders?|portfolio|holdings?|positions?|shares?|stocks?|limit|stop|trailing|what do i own|what am i holding|brokerage|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|trading at|stock price|share price|price per share|how much is [a-z.]{1,6} a share|(?:price|quote) (?:of|for|on) [a-z.]{1,6} (?:stock|shares?))\b/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
     const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "working", "partial", "declined", "expired"]);
     // An order still working at the broker is settled as a card (the yes was used) but not final: it can still be canceled.
@@ -5834,7 +5858,7 @@
       if (!e) {
         // Safety net: the regex parsers route alone, and the result says so.
         source = "regex_net";
-        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill)\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) && !BILL_NOT_PERSON.test(text.split(/\bfor\b/i)[0]) ? "send_money" : "other";
+        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|trading at|stock price|share price|price per share|how much is [a-z.]{1,6} a share|(?:price|quote) (?:of|for|on) [a-z.]{1,6} (?:stock|shares?))\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) && !BILL_NOT_PERSON.test(text.split(/\bfor\b/i)[0]) ? "send_money" : "other";
         e = { intent: guess };
       }
       if (e.intent === "card_reply") {
@@ -5883,7 +5907,7 @@
     // Cheap pre-filter so ordinary chat does not pay for an extra model call: a message is sent to the extractor only when
     // it could be one of the flows (or answers a live card, which the host checks from saved state). Broad on
     // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
-    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|(?:limit|stop|trailing) order|my \w+ order)\b/i;
+    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|trading at|stock price|share price|price per share|how much is [a-z.]{1,6} a share|(?:price|quote) (?:of|for|on) [a-z.]{1,6} (?:stock|shares?)|(?:limit|stop|trailing) order|my \w+ order)\b/i;
     // How people text, cleaned before any parser or the model sees it (corpus variants: "cancle netflix", "buy 100 of nvda
     // rn pls", "3 friends!!"): a misspelled leading verb, trailing filler and trailing ! or . are not part of the request.
     // A trailing ? is kept (it can make a question). Nothing else is rewritten.

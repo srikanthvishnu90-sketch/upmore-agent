@@ -1,9 +1,9 @@
 {
  "capability": "PORTFOLIO-Q",
- "run_at": "2026-10-12T10:36:53.314Z",
+ "run_at": "2026-10-12T10:50:06.516Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 20,
+ "proven": 20,
  "problems": [],
  "rows": [
   {
@@ -201,6 +201,50 @@
     "S14",
     "S15"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "The quote with its source",
+   "defect": "the source and time are dropped",
+   "test": "VOO $500.00 (Mock Quotes, 13:59 UTC)",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "No quote is said",
+   "defect": "a missing quote reads as $0.00",
+   "test": "no quote for VOO",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "Stock words or capitals",
+   "defect": "any word after 'price of' is a ticker",
+   "test": "price of gas is not GAS",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "A symbol-less asset is no instrument",
+   "defect": "the asset record is trusted without a symbol",
+   "test": "nothing quoted for a record without a symbol",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

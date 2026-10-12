@@ -285,6 +285,9 @@
     ["what's my biggest position", null],
     ["rent is due and I only have 1900", "moneyReply"],
     ["i can't pay rent this month", "moneyReply"],
-    ["will i have enough for rent", "moneyReply"]
+    ["will i have enough for rent", "moneyReply"],
+    ["what's NVDA trading at", null],
+    ["how much is aapl a share", null],
+    ["what's the price of gas", null]
   ]
 }

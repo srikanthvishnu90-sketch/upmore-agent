@@ -985,9 +985,9 @@
   {
    "id": "G09",
    "typed": "what's NVDA trading at",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "answer",
+   "reply": "NVDA (NVIDIA Corp): $182.40 (your Alpaca account, IEX ask, 19:13 UTC). That's the price a buy would pay right now; it moves while the market is open.",
    "executed": false,
    "mock_orders": 0
   },

@@ -116,8 +116,22 @@ export const PHONE_NONE =
   "There's no phone number on your Upmore account to change: you sign in with your email (or Google), and texting Upmore from your phone isn't open yet. If you meant the email you sign in with, that can't be changed in the app yet; email vishnusrikanth8@gmail.com from your current account email to ask, and Upmore confirms the account is yours first. Nothing was changed.";
 export const EMAIL_NONE =
   "Changing the email you sign in with isn't in the app yet. Email vishnusrikanth8@gmail.com from your current account email to ask, and Upmore confirms the account is yours first. Nothing was changed.";
+// "what are your fees" (megadoc Q05): the Terms of Service's own price (terms.html v1.0, section 4) and the app's own
+// cancel path; no fee of Upmore's on an order, payment or cancellation, and the broker's pass-through sale fees named.
+const FEES = [
+  /\b(?:what are|what'?s|whats|what is|tell me) (?:your|upmore'?s|the app'?s) (?:fees?|pricing|prices?|costs?|charges?)\b/i,
+  /^\s*(?:what are|what'?s|whats|what is) the (?:fees?|pricing|price|cost)\s*\??\s*$/i,
+  /\bhow much (?:is|does|do|will) (?:upmore|this app|the app|you)(?: cost| charge| take)?\b(?! (?:me )?(?:to|for|on|at)\b)/i,
+  /\b(?:do|will|does) (?:you|upmore) (?:charge|take a (?:cut|fee)|make money|have fees)\b/i,
+  /\bis (?:upmore|this app|the app|this) free\b/i,
+  /^\s*(?:are there |any )(?:any )?(?:hidden )?fees\s*\??\s*$/i,
+  /\bupmore(?:'s)? (?:fees?|pricing|price|cost|subscription price)\b/i,
+];
+export const FEES_REPLY =
+  "Upmore costs $10 a month once billing launches; billing isn't live yet, so nothing is charged today. Cancel anytime from You, then Upmore subscription. Upmore adds no fee of its own to an order, a payment or a cancellation; anything a broker or payment service charges is on the card before you say yes (on a sale in your Alpaca account, the SEC and FINRA fees Alpaca passes through). Referral credits only lower your Upmore bill; they aren't cash.\nFrom Upmore's Terms of Service (v1.0, Sep 27, 2026), section 4.";
 export function accountPrivacyReply(message: string, provider: "openai" | "anthropic"): string | null {
   const m = String(message || "");
+  if (FEES.some((re) => re.test(m))) return FEES_REPLY;
   if (ACCOUNT_NUMBER.some((re) => re.test(m))) return ACCOUNT_NUMBER_NONE;
   if (DELETE_ASK.test(m)) return DELETE_DATA_STEPS;
   if (WHO_SEES.some((re) => re.test(m))) return whoSeesReply(provider);

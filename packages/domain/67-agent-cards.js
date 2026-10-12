@@ -50,7 +50,8 @@
       const ch = CHANNELS[channel] || CHANNELS.sms, parts = [];
       if (f.supersedes_cents !== undefined && f.supersedes_cents !== null) parts.push(`Replaces the ${money(f.supersedes_cents)} card.`);
       parts.push(String(f.head).replace(/[.\s]+$/, "") + ".");
-      parts.push(f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee.");
+      // fee_text: a fee the card cannot price but must not hide (a broker's pass-through fees on a sale), said instead of "No fee."
+      parts.push(f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : f.fee_text ? String(f.fee_text).replace(/[.\s]+$/, "") + "." : "No fee.");
       if (f.when) parts.push(String(f.when).replace(/[.\s]+$/, "") + ".");
       if (f.irreversible) parts.push(f.irreversible_text || "Can't be undone.");
       const m = Math.max(1, Math.round((f.expiry_ms || DEFAULT_EXPIRY_MS) / 60000));

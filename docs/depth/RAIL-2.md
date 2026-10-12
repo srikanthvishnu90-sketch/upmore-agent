@@ -44,6 +44,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S19 | The token is read for this person and this row | The Vault read is keyed by the caller's id and the row id. A row whose reference names another person's secret opens nothing. A missing token gives Reconnect, and an unreadable Vault says so. |
 | S20 | LIVE ONLY at the account layer | A paper row is never opened. A person whose only row is paper is asked to connect. The partner is live and never paper. The table also refuses a paper row (`brokerage_accounts_live_only`). |
 | S21 | Only built providers are opened | Alpaca is built. Schwab, E*TRADE and Tradier are designed but not wired, and are said to be unavailable; a Schwab token is never sent to Alpaca. Fidelity, Vanguard, Robinhood and SoFi have no public trading API and are said so plainly. |
+| S22 | A sale is never carded "No fee." | Alpaca passes the SEC and FINRA fees on every sale through to the account, rounded up to the cent on the day's total (docs.alpaca.markets/docs/regulatory-fees, checked 2026-10-12). The fee isn't known to the cent before the fill, so the sell card, its shortest form and DETAILS say it in words; a buy stays "No fee." Found 2026-10-12: every live sell card said "No fee." |
 
 ## The three worst failures with real money or trust, and what guards each
 
@@ -91,4 +92,5 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S19 | The token reference is the person's own | a row pointing at another person's secret opens nothing | `S19` in tests/depth-RAIL-2.test.cjs | the row's vault reference is trusted without checking it names this person and this row | proven |
 | S20 | LIVE ONLY at the account layer | a paper row is never opened | `S20` in tests/depth-RAIL-2.test.cjs | a paper row counts as live | proven |
 | S21 | Only built providers are opened | a Schwab row is never sent to Alpaca | `S21` in tests/depth-RAIL-2.test.cjs | a designed-but-unbuilt provider is opened with the Alpaca adapter | proven |
+| S22 | A sale is never carded "No fee." | an Alpaca sell card says SEC and FINRA fees come out | `S22` in tests/depth-RAIL-2.test.cjs | the adapter stops declaring Alpaca's pass-through sale fees, so a sale is carded "No fee." | proven |
 <!-- results:end -->

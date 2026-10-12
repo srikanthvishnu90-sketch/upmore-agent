@@ -263,6 +263,17 @@ test('[S21] only built providers are opened: Alpaca today; Schwab, E*TRADE and T
   assert.equal((await session(w,UA,[])).r.code,'connect');
 });
 
+test('[S22] a sale is never carded "No fee.": Alpaca passes SEC and FINRA fees through on every sale, so the card, its shortest form and DETAILS say so; a buy stays "No fee."',async()=>{
+  const w=await world({mock:{positions:{AAPL:7}}});
+  const a=await w.s.start('sell 1 share of AAPL');assert.equal(a.outcome,'confirm');
+  assert.match(a.text,/No Upmore fee; SEC and FINRA fees on a sale, a cent or more, come out at day's end\./);assert.doesNotMatch(a.text,/No fee\./);
+  assert.ok(a.text.length<=306,'still two SMS segments');
+  const d=await w.s.reply('details');assert.match(d.text,/Alpaca passes the SEC and FINRA fees on a sale through to your account, rounded up to the cent on the day's total; Upmore adds no fee\./);
+  await w.s.reply('no');
+  const b=await w.s.start('buy $4 of VOO');assert.equal(b.outcome,'confirm');assert.match(b.text,/ No fee\. /);assert.doesNotMatch(b.text,/SEC and FINRA/);
+  assert.equal(posts(w.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

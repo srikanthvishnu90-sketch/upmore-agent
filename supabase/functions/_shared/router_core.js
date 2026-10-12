@@ -4477,6 +4477,10 @@
       // mode, label or fallback anywhere. A paper account is refused at account selection.
       const MODE = acct => acct && acct.live ? "LIVE: " : "";
       const verb = ord => ord.side === "sell" ? "Sell" : "Buy";
+      // A sale on an account whose broker passes regulatory fees through (Alpaca: SEC and FINRA, rounded up to the cent on
+      // the day's total) is never carded "No fee."; the fee isn't known to the cent before the fill, so it is said in words.
+      const SALE_FEES = "No Upmore fee; SEC and FINRA fees on a sale, a cent or more, come out at day's end";
+      const saleFees = ord => ord.side === "sell" && ord.account && ord.account.sale_fees === "regulatory" && !(ord.fee_cents > 0);
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
         const L = ord.limit_cents !== null && ord.limit_cents !== undefined ? money(ord.limit_cents) : null, S = ord.stop_cents !== null && ord.stop_cents !== undefined ? money(ord.stop_cents) : null;
@@ -4500,17 +4504,17 @@
         const timing = ord.market_open ? null : ord.type === "market" ? `Queued until ${ord.when}` : `Works from ${ord.when}`;
         const whens = [[quote, T.note, tif && tif[0].toUpperCase() + tif.slice(1), timing], [quote, T.note, tif === "good till canceled" ? "GTC" : tif ? "Day order" : null, timing], [quote, T.note, timing]];
         for (const w of whens) for (const head of heads) {
-          const f = { head, fee_cents: ord.fee_cents || 0, total_cents: ord.estimated_cents + (ord.fee_cents || 0), when: w.filter(Boolean).join(". "), irreversible: true, irreversible_text: "Can't be undone once filled.", expiry_ms: o.confirm_ttl_ms || 10 * 60000 };
-          const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee."} ${f.when}. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil((head.length + f.when.length + 80) / 153) } };
+          const f = { head, fee_cents: ord.fee_cents || 0, fee_text: saleFees(ord) ? SALE_FEES : null, total_cents: ord.estimated_cents + (ord.fee_cents || 0), when: w.filter(Boolean).join(". "), irreversible: true, irreversible_text: "Can't be undone once filled.", expiry_ms: o.confirm_ttl_ms || 10 * 60000 };
+          const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : f.fee_text ? `${f.fee_text}.` : "No fee."} ${f.when}. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil((head.length + f.when.length + 80) / 153) } };
           if (r.segments.segments <= 2) return r.text;
         }
-        return `${MODE(ord.account)}${V} ${ord.symbol}: ${money(ord.estimated_cents)}. ${quote}. Reply YES, NO or DETAILS.`;
+        return `${MODE(ord.account)}${V} ${ord.symbol}: ${money(ord.estimated_cents)}${saleFees(ord) ? ", less SEC and FINRA fees" : ""}. ${quote}. Reply YES, NO or DETAILS.`;
       }
       function confirmText(ord) {
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = ord.notional_cents ? `about ${qty(ord.quantity)} shares at ${money(ord.price_cents)}` : `about ${money(ord.estimated_cents)} at ${money(ord.price_cents)}`;
         const T = terms(ord), tif = tifWords(ord);
-        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ""}Reply yes or no.`;
+        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${saleFees(ord) ? "Alpaca passes the SEC and FINRA fees on a sale through to your account, rounded up to the cent on the day's total; Upmore adds no fee. " : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ""}Reply yes or no.`;
       }
 
       // The instrument, from the caller's list, or (when the broker can answer) the broker's own asset record for a ticker.
@@ -5066,7 +5070,8 @@
       const ch = CHANNELS[channel] || CHANNELS.sms, parts = [];
       if (f.supersedes_cents !== undefined && f.supersedes_cents !== null) parts.push(`Replaces the ${money(f.supersedes_cents)} card.`);
       parts.push(String(f.head).replace(/[.\s]+$/, "") + ".");
-      parts.push(f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : "No fee.");
+      // fee_text: a fee the card cannot price but must not hide (a broker's pass-through fees on a sale), said instead of "No fee."
+      parts.push(f.fee_cents > 0 ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : f.fee_text ? String(f.fee_text).replace(/[.\s]+$/, "") + "." : "No fee.");
       if (f.when) parts.push(String(f.when).replace(/[.\s]+$/, "") + ".");
       if (f.irreversible) parts.push(f.irreversible_text || "Can't be undone.");
       const m = Math.max(1, Math.round((f.expiry_ms || DEFAULT_EXPIRY_MS) / 60000));
@@ -6507,7 +6512,10 @@
       const name = o.account_name || "your Alpaca account";
       async function read(kind, p) {
         const q = p || {};
-        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
+        // Alpaca charges no commission it can quote here, but passes the SEC and FINRA fees on every sale through to the
+        // account, rounded up to the cent on the day's total (docs.alpaca.markets/docs/regulatory-fees, checked 2026-10-12):
+        // a sell card says so instead of "No fee." (sale_fees).
+        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
         if (kind === "quote") return adapter.quote(q.symbol, q.side || "buy");
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);

@@ -81,7 +81,9 @@ Deno.test("find me money with only ordinary subscriptions lists them with their 
 // renamed button or a changed policy fails this test instead of the chat quoting something that isn't there.
 import SRC_APP from "../../src/upmore-app-template.html" with { type: "text" };
 import SRC_PRIVACY from "../../privacy.html" with { type: "text" };
-const { accountPrivacyReply, whoSeesReply, ACCOUNT_NUMBER_NONE, DELETE_DATA_STEPS, PHONE_NONE, EMAIL_NONE } = DirectAnswers;
+const { accountPrivacyReply, whoSeesReply, ACCOUNT_NUMBER_NONE, DELETE_DATA_STEPS, PHONE_NONE, EMAIL_NONE, FEES_REPLY } = DirectAnswers;
+import SRC_TERMS from "../../terms.html" with { type: "text" };
+import SRC_TRADE from "../../packages/domain/66-agent-trade.js" with { type: "text" };
 
 Deno.test("show my full account number: none is held or shown; the brokerage's last four only (Q03)", () => {
   for (const t of ["show my full account number", "whats my account number", "can you give me my routing number", "send me my full card number", "what is my checking account number?", "i need my full account number"]) assertEquals(accountPrivacyReply(t, "openai"), ACCOUNT_NUMBER_NONE, t);
@@ -135,4 +137,17 @@ Deno.test("change my phone number or email: no phone on the account; email chang
   assertMatch(PHONE_NONE, /Nothing was changed\.$/);
   // Sign-up really is email + password or Google: no phone field.
   assert(!/type="tel"/.test(SRC_APP), "the app has no phone input");
+});
+
+Deno.test("what are your fees: the Terms' own price, billing not live, no Upmore fee on actions, the sale fees named (Q05)", () => {
+  for (const t of ["what are your fees", "what's the pricing", "how much does upmore cost", "do you charge anything", "is upmore free?", "any fees?", "does upmore take a cut", "how much is the app"]) assertEquals(accountPrivacyReply(t, "openai"), FEES_REPLY, t);
+  for (const t of ["what are the fees on my chase card", "how much is it to send $40", "any fees on this transfer", "what fees did i pay last month", "netflix price", "how much do i owe", "is this charge free", "how much will it cost me to cancel netflix"]) assertEquals(accountPrivacyReply(t, "openai"), null, t);
+  // Every fact is the Terms' or the app's own.
+  const plain = SRC_TERMS.replace(/<[^>]*>/g, "");
+  assertMatch(plain, /Upmore costs \$10 per month when subscriptions are live \(billing is not live yet — nothing is charged today\)/);
+  assertMatch(plain, /Version 1\.0 — September 27, 2026/);
+  assertMatch(plain, /apply only toward Upmore subscription charges/);
+  assertMatch(SRC_APP, /Cancel anytime from You → Upmore subscription/);
+  // The sale fees are the ones the trade card says (66-agent-trade.js SALE_FEES).
+  assertMatch(SRC_TRADE, /SEC and FINRA fees on a sale/);
 });

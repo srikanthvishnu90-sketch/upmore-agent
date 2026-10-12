@@ -312,6 +312,9 @@
     ["change my phone number", "accountPrivacyReply"],
     ["i got a new number", "accountPrivacyReply"],
     ["change my phone plan", null],
-    ["can i update my email", "accountPrivacyReply"]
+    ["can i update my email", "accountPrivacyReply"],
+    ["what are your fees", "accountPrivacyReply"],
+    ["is upmore free?", "accountPrivacyReply"],
+    ["what are the fees on my chase card", null]
   ]
 }

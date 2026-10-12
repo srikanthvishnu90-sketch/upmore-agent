@@ -12043,7 +12043,7 @@
     }
     const NOT_MONTHLY = /\b(?:a|per|each|every|\/)\s*(?:week|wk|day|year|yr|quarter)\b|\/(?:wk|week|day|yr|year)\b|\bweekly\b|\bbi-?weekly\b|\bdaily\b|\byearly\b|\bannual(?:ly)?\b|\bquarterly\b|\bfortnight(?:ly)?\b|\bthis week\b|\bnext week\b/;
     const QUESTION = /^(?:how|what|why|when|where|which|who|should|could|would|is|are|do|does|did|can i|am i|if)\b/;
-    const SET = /^(?:set|make|create|start|add|put|setup|give me|i want|i'd like|i would like|let'?s do|let'?s set|lets set|lets do|track)\b.*\bbudget\b|^budget\b|^(?:my|our|the)?\s*[a-z' -]{0,30}\bbudget\b\s*(?:is|=|:|should be|will be|to|at|of|now|now is|for)?\s*(?:-|minus\s+|negative\s+)?\$?\s?-?\d/;
+    const SET = /^(?:set|make|create|start|add|put|setup|give me|i want|i'd like|i would like|let'?s do|let'?s set|lets set|lets do|track)\b.*\bbudget\b|^budget\b|^(?:my|our|the)?\s*[a-z' -]{0,30}\bbudget\b\s*(?:is|=|:|should be|will be|to|at|of|now|now is|for)?\s*(?:-|minus\s+|negative\s+)?\$?\s?-?\d|^(?:my|our|the)\s+(?:monthly\s+)?budget (?:for|on) [a-z' -]{1,30}?\s+(?:is|=|should be|will be|is now)\s+\$?\s?\d/;
     const STOP = /^(?:stop|delete|remove|cancel|clear|end|drop|turn off|get rid of|kill|forget|reset|erase|no more)\s+(?:(all)\s+(?:of\s+)?)?(?:my|the|our)?\s*(.*?)\s*\bbudget(s)?(?:\s+(?:too|please|pls|now))?$|^stop budgeting(?:\s+(?:for|on))?\s*(.*)$/;
     const SKIP_WORDS = /^(?:a|an|the|my|our|monthly|month|total|overall|whole|entire|current|new|this|that|me|up|set|budget)$/;
     // The word(s) a message used for a category that isn't one, so the reply can name it instead of guessing.

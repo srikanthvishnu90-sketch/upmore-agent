@@ -62,4 +62,5 @@ Check: `node --test tests/depth-BUDGETS.test.cjs && node evals/depth/run.cjs BUD
 | S21 | Over means over | exactly at the budget is not over | `S21` in tests/depth-BUDGETS.test.cjs | a budget spent exactly is called over | proven |
 | S22 | Bare means bare (megadoc L04) | 'am i on track' is a budget ask; 'am i on track to retire' is not | `S22` in tests/depth-BUDGETS.test.cjs | the end anchor is dropped, so 'on track to retire' is taken as a budget ask | proven (also fails S23) |
 | S23 | No budget, no answer to a bare ask | 'am i on track' with no budget gives nothing (the model answers) | `S23` in tests/depth-BUDGETS.test.cjs | a bare ask with no budget gets 'You don't have any budgets set' | proven |
+| S24 | The way people set it | my budget for food is 500 sets it | `S24` in tests/depth-BUDGETS.test.cjs | 'my budget for X is N' is not read as a set, so it goes to the model | proven |
 <!-- results:end -->

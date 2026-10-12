@@ -1,9 +1,9 @@
 {
  "capability": "BUDGETS",
- "run_at": "2026-10-12T13:14:54.892Z",
+ "run_at": "2026-10-12T14:41:32.079Z",
  "baseline_all_green": true,
- "sub_capabilities": 23,
- "proven": 23,
+ "sub_capabilities": 24,
+ "proven": 24,
  "problems": [],
  "rows": [
   {
@@ -266,6 +266,17 @@
    "title": "No budget, no answer to a bare ask",
    "defect": "a bare ask with no budget gets 'You don't have any budgets set'",
    "test": "'am i on track' with no budget gives nothing (the model answers)",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S24",
+   "id": "D24",
+   "title": "The way people set it",
+   "defect": "'my budget for X is N' is not read as a set, so it goes to the model",
+   "test": "my budget for food is 500 sets it",
    "bites": true,
    "applied": true,
    "collateral": [],

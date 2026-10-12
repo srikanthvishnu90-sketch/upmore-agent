@@ -215,3 +215,9 @@ test("[ADV] merchant names and category words carrying instructions stay data", 
   assert.equal(c.watches, null);
   assert.doesNotMatch(c.reply, /\bsent\b|\bmoved\b/);
 });
+
+test("[S24] \"my budget for food is 500\" sets it, the way people say it; \"my budget for food is too high\" sets nothing", () => {
+  assert.match(B.command("my budget for food is 500", [], NOW, TZ).reply, /^Budget set: food, \$500\.00 a month\./);
+  assert.match(B.command("our budget on eating out is $300", [], NOW, TZ).reply, /^Budget set: restaurants, \$300\.00 a month\./);
+  assert.equal(B.command("my budget for food is too high", [], NOW, TZ), null);
+});

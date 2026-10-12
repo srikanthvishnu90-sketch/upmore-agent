@@ -50,3 +50,15 @@ Deno.test("refresh invokes authenticated bank proxy and surfaces its failure",as
  let invoked="";const reader:any=client({});reader.functions={async invoke(name:string){invoked=name;return {data:{error:"unconnected"}};}};
  const service=admin();await rejects(()=>syncFinancialEvidence(user,reader,service),"Bank refresh failed");assert(invoked==="simplefin-proxy");assert(service.calls.length===0);
 });
+// A balance the bank stamps while the proxy call is running is current, not "from the future" (overnight 2026-10-12,
+// from the FINANCIAL-MODEL packet's notes). fetched_at was taken before the call, so such a balance was dropped and its
+// future_balance_timestamp error set sync_error on every account, making the whole cash position unknown.
+Deno.test("a balance stamped during the bank call is kept, and the sync carries no error for it",async()=>{
+ const reader:any=client({});const service=admin();
+ reader.functions={async invoke(){await new Promise(r=>setTimeout(r,30));return {data:{accounts:[{id:"a",currency:"USD",balance:"100",available_balance:"90",balance_date:new Date().toISOString()}],transactions:[],errlist:[]}};}};
+ await syncFinancialEvidence(user,reader,service);
+ const batch=service.calls.find((c:any)=>c.name==="agent_financial_ingest")?.args?.p_batch;
+ assert(batch,JSON.stringify(service.calls.map((c:any)=>c.name)));
+ assert(batch.accounts[0].balance_as_of!==null,JSON.stringify(batch.accounts[0]));
+ assert(!(batch.errors||[]).some((e:string)=>/future_balance_timestamp/.test(e)),JSON.stringify(batch.errors));
+});

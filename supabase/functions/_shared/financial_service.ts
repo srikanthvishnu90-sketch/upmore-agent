@@ -67,13 +67,16 @@ export async function postedFlowReport(userId:string,client:any,from:string,to:s
   throw new Error("Financial history exceeds this version's processing limit.");
 }
 export async function syncFinancialEvidence(userId: string, userClient: any, admin: any): Promise<any> {
-  const now = new Date(), fetchedAt = now.toISOString();
-  const startDate = new Date(now.getTime()-90*86400000).toISOString().slice(0,10), endDate=fetchedAt.slice(0,10);
+  const now = new Date();
+  const startDate = new Date(now.getTime()-90*86400000).toISOString().slice(0,10), endDate=now.toISOString().slice(0,10);
   // Only the authenticated proxy fetch supplies bank facts. Client body data
   // cannot inject balances, account IDs, payment authority or transactions.
   const response = await userClient.functions.invoke("simplefin-proxy",{body:{startDate,endDate}});
   const payload = checked(response);
   if (!payload || payload.error) throw new Error("Bank refresh failed. Reconnect or try again.");
+  // Stamped when the bank's answer arrived: a balance the bank dated during the call is current, not "from the future"
+  // (taken before the call, it was dropped and its error marked every account's sync as failed).
+  const fetchedAt = new Date().toISOString();
   return await persistFinancialEvidence(userId,userClient,admin,payload,{fetched_at:fetchedAt,requested_start:startDate,requested_end:endDate});
 }
 export async function persistFinancialEvidence(userId: string, reader: any, admin: any, payload: any, metadata: any): Promise<any> {

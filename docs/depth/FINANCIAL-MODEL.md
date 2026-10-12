@@ -46,9 +46,9 @@ Noted, not changed (for the owner):
   UTC date as `today`, and `agent_obligation_expire_candidates` expires candidates due before that UTC date, so in US
   evenings a bank-pattern bill due that day is dropped (and an existing candidate expired). The pipeline is consistently
   UTC, so the fix belongs in the caller and the SQL together; S15 pins today's rule (due today counts, yesterday does not).
-- A balance whose bank as-of is even one second after `fetched_at` is discarded (`future_balance_timestamp`), and
-  `fetched_at` is taken before the proxy call starts, while the ingest SQL allows one minute of skew. Not seen in any
-  fixture; worth a tolerance if a live bridge ever stamps balances during the request.
+- Fixed after merge: `fetched_at` was taken before the proxy call, so a balance the bank stamped during the call was
+  discarded (`future_balance_timestamp`) and that error marked every account's sync as failed. The service now stamps
+  `fetched_at` when the answer arrives (tests/edge/financial-service.test.ts); this module's rule is unchanged.
 - An account whose currency is not a three-letter code (SimpleFIN allows a URL for custom currencies such as points)
   fails the whole batch (S06), because the table requires `^[A-Z]{3}$`. A missing `available-balance` (optional in
   SimpleFIN) leaves that account out of cash rather than falling back to the ledger balance (S24).

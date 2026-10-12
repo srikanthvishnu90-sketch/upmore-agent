@@ -338,3 +338,13 @@ the source.
 - Now: the handler passes the zone; the model is told "Today in the person's time zone (<zone>) is <local date>; the
   UTC date is <utc date>" and that bank rows are dated by calendar day. With no zone, the old UTC-only line stays.
   tests/edge/financial-planner.test.ts (red first).
+
+## A balance the bank stamped during the refresh was dropped, and hid all cash (2026-10-12, morning; FINANCIAL-MODEL notes)
+
+- Said: a refresh stores the bank's balances with their as-of time.
+- True (financial_service.ts syncFinancialEvidence): fetched_at was taken before the proxy call, so a balance the bank
+  dated during the call (even one second later) was "future_balance_timestamp", dropped, and that error set sync_error
+  on every account, so the whole cash position read as unknown.
+- Now: fetched_at is stamped when the bank's answer arrives; the request window still starts from the time before the
+  call. Red first in tests/edge/financial-service.test.ts. The module's own rule (a balance dated after the fetch is not
+  current) is unchanged.

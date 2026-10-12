@@ -23,7 +23,7 @@ const PB = {
     { kind: "clickText", pattern: "Confirm cancellation" },
   ],
 };
-const CTX = { username: "user", password: "pass" };
+const CTX = { username: "user" }; // never a password (owner decision 1)
 
 export async function run() {
   section("stop-guard: tripwire mid-run halts the execution");

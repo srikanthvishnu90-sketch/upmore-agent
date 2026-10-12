@@ -226,3 +226,15 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
 - **Crypto rows vs the shipped crypto guard.** The owner's list has 12 crypto platforms; the chat's shipped hard rule
   (`tryCryptoGuard`) refuses crypto outright. The matrix keeps them switched off (`blocked_reason`) until the owner lifts
   that rule in writing, alongside the prediction markets under the gambling guard (decision 2).
+- **Merchant logins vs "never store passwords" (CLAUDE.md) and decision 1.** `exec-vault-store` stored
+  `{ username, password }` in Vault, the app's cancel sheet required a password, and `agent-exec` typed a stored Google
+  password for MyClaw's SSO fallback; the declarative runner typed `credential: "password"` steps. True now: the vault
+  refuses a password and keeps only the sign-in email, the sheet asks for the email only, no run context carries a
+  password, and a playbook that reaches a password field stops with "Nothing was changed" (proven in real Chromium by
+  `tests/execution/live-local/run-live-local.js`). Live project checked read-only on 2026-10-12: `exec_credential_refs`
+  has 0 rows, so no stored password needs purging. Only Devin's playbook is verified, and it is passwordless; the
+  unverified password playbooks (Spotify and the rest) now need the live sign-in window before they can ever run.
+- **Chat input and model replies vs "secrets never travel through chat".** Redaction covered SSNs, card and account
+  numbers only. Added: passwords ("my password is ..."), labeled one-time codes and card security codes, with a note
+  saying where they go instead; and `guardSecretAsk` drops any model sentence asking for a password, code or full number
+  (both model paths). A bare code still answers a paused cancellation once and is withheld from storage.

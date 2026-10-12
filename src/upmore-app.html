@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-F/3MqT8FDCqlot1gYbsURGU4HHCruhVfOGqxjMkD/hc=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-ZlqNA3sqvNv3lWQGnW0UsdMr18biCAm1Ez0b5D1dWEw=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -1919,11 +1919,11 @@
           <button class="ghostbtn" id="agentSheetClose1" style="margin-top:8px">Not now</button>
         </div>
         <div id="agentCredView" hidden>
-          <p class="psub" style="text-align:left;margin-bottom:12px">The agent needs your <b id="agentCredMerchant">Devin</b> login. It's stored encrypted in your Upmore vault — only the agent can use it, and only after you approve each action.</p>
+          <p class="psub" style="text-align:left;margin-bottom:12px">The agent needs the email you sign in to <b id="agentCredMerchant">Devin</b> with. It's stored encrypted in your Upmore vault — only the agent can use it, and only after you approve each action.</p>
           <div class="svform" style="margin-top:0;text-align:left">
             <label class="f"><span>Username or email</span><input id="agentCredUser" autocomplete="username"></label>
-            <label class="f"><span>Password</span><input id="agentCredPass" type="password" autocomplete="current-password"></label>
-            <button class="go" id="agentCredSaveBtn" style="height:44px">Save login &amp; continue</button>
+            <p class="fine" style="margin:0 0 8px">Upmore never asks for or stores your password. Any code the merchant sends comes from you.</p>
+            <button class="go" id="agentCredSaveBtn" style="height:44px">Save email &amp; continue</button>
           </div>
           <button class="ghostbtn" id="agentSheetClose2" style="margin-top:8px">Not now</button>
         </div>
@@ -5964,7 +5964,7 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
       twelve_month_projection: yearly,
       reversibility: "You keep access until the end of the current billing period. You can re-subscribe anytime from the merchant's site.",
       retention_known: null,
-      agent_mechanics: "The agent signs in to your account as you, using the login you saved in your Upmore vault. Some merchants' terms discourage automated access.",
+      agent_mechanics: "The agent signs in to your account as you, with the email you saved in your Upmore vault and the code the merchant sends you. Upmore never stores your password. Some merchants' terms discourage automated access.",
       agent_will_not: "The agent will not change your plan, add or change payment methods, accept offers or terms, or touch anything except the cancellation.",
       failure_path: "If it can't complete, nothing is changed — you'll get the direct link and steps to do it yourself.",
       shown_at: new Date().toISOString(),
@@ -5987,17 +5987,17 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
       () => { $("agentSheet").hidden = true; };
   }
   async function agentSaveCred(sub, mkey) {
-    const u = $("agentCredUser").value.trim(), p = $("agentCredPass").value;
-    if (!u || !p) { toast("Enter both username and password"); return; }
+    // Email only: Upmore never stores a password (owner decision 1).
+    const u = $("agentCredUser").value.trim();
+    if (!u) { toast("Enter the email you sign in with"); return; }
     $("agentCredSaveBtn").disabled = true;
     try {
       const { data, error } = await supa.functions.invoke("exec-vault-store", {
-        body: { merchant_key: mkey, username: u, password: p, label: sub.merchant },
+        body: { merchant_key: mkey, username: u, label: sub.merchant },
       });
       if (error || !data || !data.ok) throw error || new Error("save failed");
-      $("agentCredPass").value = "";
       agentShowView("agentApproveView");
-      toast("Login saved — approve to continue");
+      toast("Email saved — approve to continue");
     } catch (e) { toast("Couldn't save login — try again"); }
     $("agentCredSaveBtn").disabled = false;
   }

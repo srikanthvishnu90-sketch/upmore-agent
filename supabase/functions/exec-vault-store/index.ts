@@ -1,6 +1,6 @@
 // Upmore exec-vault-store edge function.
-// Stores a merchant login in Supabase Vault (server-side only).
-// POST /functions/v1/exec-vault-store  { merchant_key, username, password, label? }
+// Stores the email a person signs in to a merchant with, in Supabase Vault (server-side only). Never a password.
+// POST /functions/v1/exec-vault-store  { merchant_key, username, label? }
 // Auth: Supabase JWT. The client never sees the secret after storing.
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -61,13 +61,18 @@ serve(async (req) => {
         .eq("user_id", user.id).eq("merchant_key", merchant_key);
       return json({ ok: true, merchant_key, deleted: true });
     }
+    // No password storage (owner, 2026-10-11, decision 1): a password sent here is refused, never stored. The agent
+    // signs in with the email alone (the merchant's code or link comes from the person); a merchant that wants a
+    // password is signed into by the person themselves.
+    if (password !== undefined && password !== null && String(password) !== "") {
+      return json({ error: "Upmore never stores passwords. Save only the email you sign in with; any code the merchant sends comes from you." }, 400);
+    }
     if (!username || String(username).length < 1) {
       return json({ error: "Username required" }, 400);
     }
-    // Password optional: some merchants (Cluely's Stripe portal) are email-only.
 
     const vaultName = `exec_cred_${user.id}_${merchant_key}`;
-    const secret = JSON.stringify({ username: String(username), password: String(password) });
+    const secret = JSON.stringify({ username: String(username) });
 
     const { error: verr } = await admin.rpc("exec_vault_store", {
       p_name: vaultName,

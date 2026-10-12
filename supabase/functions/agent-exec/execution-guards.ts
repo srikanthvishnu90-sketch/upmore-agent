@@ -96,7 +96,7 @@ export function scanTripwiresText(text: string): string | null {
 // drive the REAL step loop (with the REAL stop-guard) against a fake page.
 // index.ts imports and calls this — the deployed path is unchanged.
 export async function runDeclarative(
-  ctx: { username: string; password: string }, page: GuardPage,
+  ctx: { username: string }, page: GuardPage,
   pb: { steps: DriverAction[]; display_name: string },
   ev: Record<string, unknown>, fromIndex: number, otp: string | null,
 ): Promise<BrowserOutcome> {
@@ -149,9 +149,13 @@ export async function runDeclarative(
         break;
       }
       case "typeInto": {
-        const text = a.credential === "username" ? ctx.username
-          : a.credential === "password" ? ctx.password
-          : a.text ?? "";
+        // No password storage (owner, 2026-10-11, decision 1): the agent never types a password. A site that signs in
+        // with one stops here; the person signs in themselves (the live sign-in window is not built yet).
+        if (a.credential === "password") {
+          ev.stopped_at = "password";
+          return fail(`${pb.display_name} signs in with a password, and Upmore never stores or types passwords. Nothing was changed: sign in yourself and cancel there.`);
+        }
+        const text = a.credential === "username" ? ctx.username : a.text ?? "";
         const typed = await page.typeInto(a.selectors, text);
         if (!typed) return fail("Could not find the sign-in field — the site layout may have changed. Nothing was changed.");
         break;

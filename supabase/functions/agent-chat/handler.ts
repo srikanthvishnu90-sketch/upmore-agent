@@ -4,7 +4,7 @@
 // Flow: load profile + thread + relevant verified routes → Anthropic →
 // grounding post-check → save + return reply.
 
-import { guardMoneyClaim } from "../_shared/claim_guard.ts";
+import { guardMoneyClaim, guardSecretAsk } from "../_shared/claim_guard.ts";
 import { redactionNote } from "../_shared/identity_redact.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import {
@@ -294,7 +294,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
         plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse());
       // A planner reply that stages nothing may not claim a money action (testing agent O-15).
-      const reply = result.action ? result.reply : guardMoneyClaim(result.reply).reply;
+      // Nor ask for a password, code or full number in a message (secrets never travel through chat, owner decision 1).
+      const reply = guardSecretAsk(result.action ? result.reply : guardMoneyClaim(result.reply).reply).reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},
         {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null,model_error:result.model_error||null}},
@@ -950,6 +951,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url })));
     // No model reply may claim a money action: those only run through a card and a yes (testing agent O-15).
     reply = guardMoneyClaim(reply).reply;
+    // No model reply may ask for a password, a code or a full number in a message (owner decision 1).
+    reply = guardSecretAsk(reply).reply;
 
     // Persist
     await supabase.from("agent_messages").insert([

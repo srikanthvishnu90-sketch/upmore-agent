@@ -16,8 +16,20 @@ test('identity digits are redacted inside chatInput, before the text is stored o
 });
 
 test('both model paths run the money-claim guard before the reply is stored', () => {
-  assert.ok(h.includes('import { guardMoneyClaim } from "../_shared/claim_guard.ts";'));
+  assert.ok(h.includes('import { guardMoneyClaim, guardSecretAsk } from "../_shared/claim_guard.ts";'));
   const g = h.indexOf('reply = guardMoneyClaim(reply).reply;'), store = h.indexOf('{ thread_id: tid, role: "assistant", content: reply, meta: { action, violations');
   assert.ok(g > 0 && g < store);
-  assert.ok(h.includes('const reply = result.action ? result.reply : guardMoneyClaim(result.reply).reply;'));
+  assert.ok(h.includes('result.action ? result.reply : guardMoneyClaim(result.reply).reply'));
+});
+
+test('both model paths drop any sentence that asks for a password, a code or a full number (secrets never travel through chat)', () => {
+  assert.ok(h.includes('import { guardMoneyClaim, guardSecretAsk } from "../_shared/claim_guard.ts";'));
+  const g = h.indexOf('reply = guardSecretAsk(reply).reply;'), store = h.indexOf('{ thread_id: tid, role: "assistant", content: reply, meta: { action, violations');
+  assert.ok(g > h.indexOf('reply = guardMoneyClaim(reply).reply;') && g < store);
+  assert.ok(h.includes('const reply = guardSecretAsk(result.action ? result.reply : guardMoneyClaim(result.reply).reply).reply;'));
+  for (const f of ['supabase/functions/agent-chat/_shared/agent.ts', 'supabase/functions/_shared/agent.ts']) {
+    const p = fs.readFileSync(path.join(root, f), 'utf8');
+    assert.ok(p.includes('Secrets never travel through chat: never ask for a password, a one-time'), f);
+    assert.ok(p.includes('Prediction markets (Kalshi, Polymarket): never encourage a position;'), f);
+  }
 });

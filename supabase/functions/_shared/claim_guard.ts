@@ -22,3 +22,36 @@ export function guardMoneyClaim(reply: string): { reply: string; caught: boolean
   if (!CLAIM.test(text) || text.includes(CORRECTION)) return { reply: text, caught: false };
   return { reply: `${text}\n\n${CORRECTION}`, caught: true };
 }
+
+// Secrets never travel through chat (owner, 2026-10-11, decision 1). A model reply that asks the person to send a
+// password, a one-time code, a PIN, a card's security code, a full card, account or Social Security number, an API key
+// or a seed phrase in a message is wrong by construction: sign-ins happen on the company's own page, and anything else
+// sensitive goes on Upmore's secure link into the encrypted vault. The asking sentence is removed (a warning such as
+// "never share your password" stays) and the right way is said instead.
+const SECRET = String.raw`(?:password|passcode|pin\b|one[- ]time code|verification code|sign[- ]?in code|login code|2fa code|security code|cvv|cvc|social security(?: number)?|ssn|(?:full |whole )?card number|account number|routing number|api (?:key|secret)|secret key|private key|seed phrase|recovery phrase)`;
+const SECRET_ASK = new RegExp(
+  [
+    String.raw`\b(?:send|text|share|give|tell|reply with|respond with|type|enter|provide|paste|drop|dm)\b(?:\s+me)?[^.?!\n]{0,40}?\b${SECRET}`,
+    String.raw`\bwhat(?:'s| is| are)\s+your\s+(?:\w+\s+){0,2}${SECRET}`,
+    String.raw`\bI(?:'ll| will)?\s+need\s+your\s+(?:\w+\s+){0,2}${SECRET}`,
+  ].join("|"),
+  "i",
+);
+const NEGATED = /\b(?:never|don't|do not|won't|will not|no need to|not|shouldn't|should not|avoid)\b/i;
+export const SECRET_SAFE = "I never need a password, a code, or a full card or account number in a message, so please don't send one here. Sign-ins happen on the company's own page, and anything else sensitive goes on Upmore's secure link, straight into the encrypted vault.";
+
+export function guardSecretAsk(reply: string): { reply: string; caught: boolean } {
+  const text = String(reply ?? "");
+  if (text.includes(SECRET_SAFE)) return { reply: text, caught: false };
+  let caught = false;
+  const kept = text.split(/(?<=[.?!])\s+|\n/).filter((sentence) => {
+    const m = SECRET_ASK.exec(sentence);
+    if (!m) return true;
+    if (NEGATED.test(sentence.slice(0, m.index + m[0].length))) return true;
+    caught = true;
+    return false;
+  });
+  if (!caught) return { reply: text, caught: false };
+  const rest = kept.join(" ").trim();
+  return { reply: rest ? `${rest}\n\n${SECRET_SAFE}` : SECRET_SAFE, caught: true };
+}

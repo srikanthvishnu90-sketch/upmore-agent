@@ -2,7 +2,9 @@
 //
 // Drives the production runDeclarative (execution-guards.ts) and the
 // production Spotify playbook steps (merchant-catalog.ts, unchanged except
-// the account URL is pointed at a local merchant) through a Playwright page
+// the account URL is pointed at a local merchant and, for the outcome checks,
+// the password step removed: Upmore never stores or types a password, owner
+// decision 1, so the local merchant signs in by email) through a Playwright page
 // whose methods run the same in-page JavaScript as BbPage in
 // agent-exec/index.ts. The local merchant keeps real subscription state, so
 // each check asserts the OUTCOME (the merchant's own record), not only what
@@ -31,7 +33,7 @@ if (!chromium) { console.error("Playwright not found: npm i -D playwright, or se
 // ---------------- local merchant with real state ----------------
 // Variants: "normal" | "retention" (offer screen asking to switch plans
 // before the confirm dialog) | "silent" (confirm does nothing server-side
-// and shows no confirmation) | "wrong_password".
+// and shows no confirmation). A wrong email fails the login.
 function merchant(variant, offerText = "Wait! Special offer. Switch plan to Premium Lite for $4.99 instead.") {
   const state = { subscription: "active", logins: 0, cancel_posts: 0 };
   const page = (body, script = "") => `<!doctype html><html><head><title>Local Music</title></head><body>${body}<script>${script}</script></body></html>`;
@@ -43,9 +45,9 @@ function merchant(variant, offerText = "Wait! Special offer. Switch plan to Prem
       let body = ""; req.on("data", c => body += c); req.on("end", () => {
         const f = new URLSearchParams(body);
         state.logins++;
-        if (f.get("email") === "owner@example.test" && f.get("password") === "correct-horse") {
+        if (f.get("email") === "owner@example.test") {
           res.writeHead(303, { "set-cookie": "session=ok; Path=/", location: "/account/subscription/" }); res.end();
-        } else send(page(`<p>Incorrect email or password.</p><form method=post action=/login><input type=email name=email><input type=password name=password><button>Log in</button></form>`), 401);
+        } else send(page(`<p>Incorrect email.</p><form method=post action=/login><input type=email name=email><button>Log in</button></form>`), 401);
       });
       return;
     }
@@ -114,9 +116,11 @@ class PwPage {
 }
 
 const spotify = playbookRegistry.spotify;
-function localPlaybook(base) {
+// The production steps pointed at the local merchant; withPassword keeps the password step, which must stop the run.
+function localPlaybook(base, withPassword = false) {
   return { display_name: spotify.display_name,
-    steps: spotify.steps.map(s => s.kind === "goto" ? { ...s, url: base + "/account/subscription/" } : s) };
+    steps: spotify.steps.filter(s => withPassword || s.credential !== "password")
+      .map(s => s.kind === "goto" ? { ...s, url: base + "/account/subscription/" } : s) };
 }
 const approval = {
   id: "appr-1", status: "approved", action: "cancel_subscription", merchant: "Spotify", merchant_key: "spotify",
@@ -124,13 +128,13 @@ const approval = {
     subscription_id: "sub-1", disclosed_at: "2026-10-10T16:00:00Z" },
 };
 
-async function attempt(browser, variant, password = "correct-horse", offerText, playbook) {
+async function attempt(browser, variant, email = "owner@example.test", offerText, playbook) {
   const m = await merchant(variant, offerText);
   const ctxB = await browser.newContext();
   const page = new PwPage(await ctxB.newPage());
   const ev = {};
   let outcome;
-  try { outcome = await runDeclarative({ username: "owner@example.test", password }, page, (playbook || localPlaybook)(m.base), ev, 0, null); }
+  try { outcome = await runDeclarative({ username: email }, page, (playbook || localPlaybook)(m.base), ev, 0, null); }
   finally { await ctxB.close(); m.server.close(); }
   return { outcome, ev, state: m.state, page };
 }
@@ -150,7 +154,7 @@ try {
   check("exactly one cancel request reached the merchant", ok.state.cancel_posts === 1, String(ok.state.cancel_posts));
   check("confirmation text captured as evidence", /won't be charged again|cancell?ed/i.test(String(ok.ev.confirmation_text)), String(ok.ev.confirmation_text));
   check("account + confirmation screenshots captured", (ok.ev.shots || []).map(s => s.label).join() === "account,confirmation");
-  check("no credential appears in evidence", !JSON.stringify(ok.ev).includes("correct-horse"));
+  check("no password exists to leak: nothing typed one", !/password/i.test(JSON.stringify(ok.ev)));
   const claim = buildCancelClaimRow(approval, "user-1", "run-1", "spotify", Date.parse("2026-10-10T16:00:00Z"));
   check("success is recorded as an open claim to verify at next billing, not as savings", claim.status === "open" && claim.expected_billing_date === "2026-11-01" && claim.grace_days === 2);
 
@@ -166,15 +170,20 @@ try {
   check("failure says no confirmation, not success", /no confirmation|confirmation text/i.test(silent.outcome.error || ""), silent.outcome.error);
   check("OUTCOME: merchant record still active", silent.state.subscription === "active");
 
-  section("real browser: wrong password fails without touching the subscription");
-  const bad = await attempt(browser, "normal", "wrong");
+  section("real browser: the production playbook's password step stops the run; nothing is typed, nothing changes");
+  const pw = await attempt(browser, "normal", "owner@example.test", undefined, base => localPlaybook(base, true));
+  check("run fails at the password step", pw.outcome.ok === false && /never stores or types passwords/.test(pw.outcome.error || "") && pw.ev.stopped_at === "password", JSON.stringify(pw.outcome));
+  check("OUTCOME: no login, no cancel request, still active", pw.state.logins === 0 && pw.state.cancel_posts === 0 && pw.state.subscription === "active");
+
+  section("real browser: a wrong email fails without touching the subscription");
+  const bad = await attempt(browser, "normal", "wrong@example.test");
   check("run fails", bad.outcome.ok === false, JSON.stringify(bad.outcome));
   check("OUTCOME: no cancel request and still active", bad.state.cancel_posts === 0 && bad.state.subscription === "active");
   section("real browser: each retention phrase alone stops the run");
   for (const [phrase, text] of [["special offer", "Before you go, a special offer just for you."],
       ["switch plan", "You could switch your plan to Lite."], ["stay for", "Stay for 3 more months at 50% off."],
       ["downgrade", "Downgrade to Lite instead?"]]) {
-    const r = await attempt(browser, "retention", "correct-horse", text);
+    const r = await attempt(browser, "retention", "owner@example.test", text);
     check(`"${phrase}" trips plan_change and leaves the subscription active`,
       r.ev.stopped_at_tripwire === "plan_change" && r.state.subscription === "active" && r.state.cancel_posts === 0,
       `${r.ev.stopped_at_tripwire} ${r.state.subscription}`);
@@ -182,7 +191,7 @@ try {
 
   section("real browser: a playbook without a confirmation step still cannot claim success");
   const noConfirm = base => ({ display_name: "Spotify", steps: localPlaybook(base).steps.filter(s => s.kind !== "requireText") });
-  const nc = await attempt(browser, "silent", "correct-horse", undefined, noConfirm);
+  const nc = await attempt(browser, "silent", "owner@example.test", undefined, noConfirm);
   check("run fails without visible confirmation", nc.outcome.ok === false && /No visible confirmation/i.test(nc.outcome.error || ""), JSON.stringify(nc.outcome));
   check("OUTCOME: merchant record still active", nc.state.subscription === "active");
 } finally {

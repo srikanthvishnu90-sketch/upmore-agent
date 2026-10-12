@@ -15,7 +15,10 @@ update public.manual_connections set state='connected',vault_name='manual_000000
 update public.manual_connections set state='connected',vault_name='manual_00000000-0000-0000-0000-0000000000e2_fundrise',last_checked=now() where user_id='00000000-0000-0000-0000-0000000000e2';
 select t.ok(public.manual_vault_read('manual_00000000-0000-0000-0000-0000000000e1_fundrise') like '%cookie-e1%','the service role reads it back');
 select public.manual_vault_store('manual_00000000-0000-0000-0000-0000000000e1_fundrise','{"cookies":[{"name":"sid","value":"cookie-e1-new"}]}');
+-- The Vault table itself is out of the service role's reach (only the security-definer functions touch it): look as the owner.
+reset role;
 select t.ok((select count(*)=1 from vault.secrets where name='manual_00000000-0000-0000-0000-0000000000e1_fundrise'),'storing again replaces the session, never a second copy');
+set role service_role;
 select t.must_fail($$select public.manual_vault_store('exec_cred_00000000-0000-0000-0000-0000000000e1_devin','x1')$$,'invalid vault name','another kind of Vault entry is out of reach');
 select t.must_fail($$select public.manual_vault_read('upmore_proactive_secret')$$,'invalid vault name','the scheduler secret cannot be read through it');
 select t.must_fail($$select public.manual_vault_delete('manual_%')$$,'invalid vault name','no wildcard delete');

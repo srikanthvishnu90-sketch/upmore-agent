@@ -51,12 +51,15 @@ export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" 
 export const TX_READ_CAP = 5000;
 
 const LEAD = String.raw`^\s*(?:hey|hi|ok|okay|so|yo|pls|please|quick q:?)?[,\s]*`;
-const END = String.raw`(?:\s+(?:now|right now|today|pls|please))?\s*[?.!]*\s*$`;
+const END = String.raw`(?:\s+(?:now|right now|rn|today|pls|please))?\s*[?.!]*\s*$`;
 const BALANCE = new RegExp(LEAD + String.raw`(?:(?:what'?s|whats|what is|what are|show me|check|tell me|give me|get me)\s+)?(?:my\s+)?(?:(?:total|current|bank|account|checking|savings|cash|credit card|card)\s+)*(?:balances?|bal)` + END, "i");
-const HAVE = new RegExp(LEAD + String.raw`how much (?:money |cash )?(?:do i have|have i got|is in my (?:account|accounts|bank|checking|savings))(?:\s+(?:in|at)\s+(?:the bank|my (?:account|accounts|bank|checking|savings)))?` + END, "i");
+const HAVE = new RegExp(LEAD + String.raw`how much (?:money |cash )?(?:do i have|have i got|is in my (?:account|accounts|bank|checking|savings))(?:\s+(?:in|at)\s+(?:the bank|(?:my )?(?:account|accounts|bank|checking|savings)))?` + END, "i");
+// "what's in savings", "what's in my checking", "how much do i owe on my card" (found by probing, 2026-10-12): the same
+// balances answer, every account with its source and as-of.
+const HAVE_IN = new RegExp(LEAD + String.raw`(?:(?:what'?s|whats|what is|how much is|how much'?s) in (?:my )?(?:checking|savings|account|accounts|bank)|how much (?:do i owe|is owed|is due) on (?:my )?(?:credit )?cards?)` + END, "i");
 // "what's my cash", "how much cash do i have" (megadoc G16): the cash balance.
 const CASH = new RegExp(LEAD + String.raw`(?:what'?s|whats|what is|how much is|show me|tell me)\s+(?:my\s+)?(?:total\s+|current\s+)?cash(?:\s+on hand|\s+balance)?` + END, "i");
-const CHECKUP = new RegExp(LEAD + String.raw`(?:how am i doing|how'?m i doing|how are my finances(?: doing| looking)?|how'?s my money(?: looking)?|how are things looking|am i doing ok(?:ay)?)(?:\s+(?:financially|money-?wise|with money|with my money|this month|overall|lately|so far))*\s*[?.!]*\s*$`, "i");
+const CHECKUP = new RegExp(LEAD + String.raw`(?:how am i doing|how'?m i doing|how are my finances(?: doing| looking)?|how'?s my money(?: looking)?|how are things looking|am i doing ok(?:ay)?|am i broke)(?:\s+(?:financially|money-?wise|with money|with my money|this month|overall|lately|so far))*\s*[?.!]*\s*$`, "i");
 // Also "where is my money going" (megadoc L02) and "what's my biggest expense" (L08): this month's spending with its top
 // places, the same answer.
 const SPEND = /\b(?:how much|what)\s+(?:did|have|do)\s+i\s+(?:spend|spent)\b|\bhow much i(?:'ve| have)? spent\b|\bwhat(?:'s| is| was)? (?:my )?spending\b|\bshow (?:me )?my spending\b|^\s*my spending\b|^\s*(?:hey|ok|so)?[,\s]*where(?:'s| is| does| did| has)? (?:all )?(?:my|the) money (?:go|going|gone|been going)\b|^\s*(?:hey|ok|so)?[,\s]*(?:what'?s|whats|what is|what are) (?:my )?(?:biggest|largest|top) (?:expenses?|spending|costs?|charges?)\b/i;
@@ -122,7 +125,7 @@ export function moneyKind(message: string): MoneyKind | null {
   const view = SpendingViews.ask(m) as "compare" | "cards" | null;
   if (view) return view;
   if (SPEND.test(m) && !ADVICE.test(m)) return "spend";
-  if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m) || CASH.test(m)) return "balance";
+  if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m) || HAVE_IN.test(m) || CASH.test(m)) return "balance";
   return numbersKind(m);
 }
 

@@ -28,6 +28,9 @@ Deno.test("routing: the four asks fire, in the person's own words", () => {
     ["what's my spending this month", "spend"],
     ["how am i doing", "checkup"], ["how am i doing financially?", "checkup"], ["hey how am i doing this month", "checkup"], ["how's my money looking", "checkup"],
     ["did rent go through", "through"], ["did my netflix payment go through", "through"], ["has my paycheck come in", "through"], ["did the comcast bill post", "through"],
+    // Found by probing 2026-10-12: each went to the model.
+    ["how much do i have in checking", "balance"], ["whats in savings", "balance"], ["what's in my checking?", "balance"], ["how much is in my account rn", "balance"],
+    ["how much do i owe on my card", "balance"], ["how much do i owe on my credit cards?", "balance"], ["am i broke", "checkup"], ["am i broke?", "checkup"],
   ];
   for (const [m, k] of cases) assertEquals(moneyKind(m), k, m);
 });
@@ -37,6 +40,7 @@ Deno.test("routing: near misses go on to the flows and the model", () => {
     "what's a good minimum balance for a savings account", "transfer my balance to savings", "balance transfer card", "how much should i spend on rent",
     "how do i cut my spending", "help me budget my spending", "how am i doing on my emergency fund goal", "how is the market doing", "send sam 40",
     "cancel netflix", "did it go through", "what is rent", "pay my rent", "connect my chase", "find me money", "what's a roth ira",
+    "how much do i owe on my car", "what's in my account settings", "am i broke if i buy this", "whats in a savings account",
   ]) assertEquals(moneyKind(m), null, m);
 });
 

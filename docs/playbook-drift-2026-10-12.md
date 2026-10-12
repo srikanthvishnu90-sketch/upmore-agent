@@ -261,3 +261,46 @@ back. POSTED-FLOW found nothing to fix. Each line: what the doc or code said, wh
   the monthly-fee offer. Red first through plan() (tests/edge/fee-offer-keys.test.ts) and PROACTIVE S17 (D17; 20/20).
   Tests and the eval benchmark that compared keys exactly now compare fee refunds by kind (the labeled lives are
   unchanged).
+## Depth packets for earn, connectors, the connector catalog and surfaces (2026-10-12)
+
+Found building the EARN, CONNECTORS, CONNECTOR-CATALOG and SURFACES depth packets (`docs/depth/EARN.md`,
+`CONNECTORS.md`, `CONNECTOR-CATALOG.md`, `SURFACES.md`). None of the four modules is loaded by any edge function or
+app path (the connector catalog only by the developer CLI `scripts/connectors`), so no live reply said these words and
+no money moved through them. Each was written as a failing test first (35 tests red on the original modules), fixed
+minimally, and a planted defect puts the old behavior back. Each line: what the doc or code said, what is true now, and
+the source.
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| registry note EARN-002 ("requirement checklist ... against transactions") | The debit-count rule dropped any descriptor with the letters "fee": "STARBUCKS COFFEE" and "PEETS COFFEE" were not purchases (1 of 3 debits) | The word fee(s) only; coffee counts, "MONTHLY SERVICE FEE" and "ATM FEES" still do not | `tests/depth-EARN.test.cjs` S02; D02 |
+| registry note EARN-002 | A $2,000 paycheck on Oct 5 met a Sep 30 deadline: "Mock Bank $300.00 bonus: earned awaiting payout", $300 expected | Rows after a requirement's deadline do not count; unmet past its deadline the bonus is "missed", $0 expected, nothing to chase | S03; D03, D03b, D03c |
+| `44-agent-earn.js` minimum balance | Two balance readings on one day were two days | Days are distinct dates | S06; D06 |
+| `44-agent-earn.js` queue ("expected dollars ... a year") | The $1,350 match gap's reason read "$2,700.00 a year estimated" (yearly plus twelve months of its monthly figure) | "$1,350.00 a year estimated"; a year is said once | S08; D08 |
+| registry note EARN-005 (stipends) | "$1,000.00 of the Learning stipend unused" after the stipend expired | Expired stipends are not offered; the expiry day still is | S09; D09 |
+| registry note EARN-015 (recalls) | "Mock Tread recall: refund of $129.99 available" after the refund deadline (settlements already skipped a past deadline) | A recall past its deadline is not offered | S11; D11 |
+| registry note EARN-011 ("points at the real rate") | Points that expired Oct 1 were "worth $100.00" | Expired points are not valued | S12; D12 |
+| registry note EARN-004 ("verified by the referral credit") | One $50 referral credit was the payout for two referrals (`paid_seen: 2`) | One credit pays one referral | S14; D14 |
+| `44-agent-earn.js` verify ("the credit itself") | Another bank's $300 bonus credit verified this bank's bonus | The credit must post to the bonus account | S17; D17 |
+| `44-agent-earn.js` ledger ("Nothing is booked until a verify step confirms the credit posted") | Raising the 401(k) election booked the year's match, $1,350.00, as found and verified | The election verifies with $0 booked: "contribution raised; the match verifies as it posts on payroll" | S18; D18 |
+| `44-agent-earn.js` ledger | The same $300 credit verified on three days was booked three times ("$600.00 found" after two) | A credit is booked once, by its row id | S19; D19 |
+| `51-connectors.js` header ("one canonical schema ... a freshness stamp on every datum") | `available: null` (Plaid's value for most cards) read as $0.00 available; `cost_basis: null` as a $0.00 basis; a missing balance, price or bill amount as $0.00 | Missing or non-numeric is null (unknown); a real 0 stays 0 | `tests/depth-CONNECTORS.test.cjs` S05; D05, D05b |
+| `51-connectors.js` canonical transaction | A 45.00 EUR charge became `amount_cents: -4500` with no currency | Transactions carry `currency` (or Plaid's `iso_currency_code`; USD only when neither is given) | S06; D06 |
+| registry note ACCT-007 ("typed or uploaded by the user, synced and normalized like any connector"), `51-connectors.js` manualCsv ("always available as the floor") | The CSV given at connect was dropped, and sync said HEALTHY with zero rows (the old test set `_csv` by hand) | The upload is what the sync reads | S07; D07 |
+| `51-connectors.js` CSV reader | `"STARBUCKS, SEATTLE WA",-5.40` split into a broken description and a NaN amount; `"-1,850.00"` and `$3250.00` were NaN | CSV quoting is honored and the amount drops `$`, commas and spaces; unquoted rows read as before | S08; D08 |
+| `51-connectors.js` header ("act() passes the autonomy gate and the compliance gate before any adapter call") | With `53-compliance.js` not loaded, a confirmed transfer skipped the compliance gate and reached the adapter | No compliance gate fails closed (`no_compliance_gate`) | S14; D14 |
+| consent text ("each time you confirm"), CLAUDE.md fresh approval per order | A capability labeled T1, or a caller's own gate returning `confirm: false`, moved money with no yes; a T5 passed with a lax gate reached the adapter | Every write needs `confirmed: true`; a T5 is refused by its own tier. A confirmed T3 with a live partner and verified KYC still reaches the adapter | S15; D15, D15b |
+| CLAUDE.md ("no password or code in chat or logs") vs `51-connectors.js` audit redaction | `mfa_code`, `verification_code`, `card_pin`, `passcode`, `cvv`, `card_number`, `account_number` in an action were written to the audit log verbatim | Redacted; `currency_code`, `amount_cents`, `recipient` stay readable | S17; D17 |
+| `52-connector-catalog.js` header ("write actions never promised beyond what an adapter can do") | An ungated write on "not live: awaiting partner", "delivery partner contract pending" or "live sandbox only" passed (the state only had to contain the letters "live") | Live means the state starts with "live" and names no sandbox, mock, test or paper | `tests/depth-CONNECTOR-CATALOG.test.cjs` S11; D11, D11b |
+| `52-connector-catalog.js` ("a live session must be labeled the least reliable class") | "high (follows the bank's own app)", "slow but steady" passed (the letters "low") | The label starts with "low" or says "least reliable"; all 58 live-session rows still pass | S13; D13 |
+| `52-connector-catalog.js` header ("never aspirational") | Plaid, SimpleFIN and Gmail (edge functions not wrapped in the five verbs) were a plain "yes, via aggregator (high)" | "...; adapter not live yet (<the row's state>)" | S15; D15 |
+| `52-connector-catalog.js` gap answer, and `tests/catalog.test.cjs`, which pinned it | "CSV import always works as the floor" (no app or edge path offers a CSV import; the adapter is a reference adapter) | The floor sentence is said only when the catalog's `manual-csv` row is live; the old test is corrected | S16; D16 |
+| `52-connector-catalog.js` answer | A blank question matched all 126 rows as "yes" | "Which service? Name the bank, app or company you want to connect." | S17; D17 |
+| `63-agent-surfaces.js` side income | "With 0 hours a week and no stated skills: . Also worth ten minutes: ..." | "Nothing in the catalog fits the skills, gear and hours you gave me. Still worth ten minutes: a benefits screening, which is not work." | `tests/depth-SURFACES.test.cjs` S03; D03 |
+| registry note EARN-001 ("filtered by what the user can meet") | "tx" was told "only in TX, OK"; $3,000 a month was "needs $5,000.00 of direct deposit within 60 days" | States compare in capitals; the window's whole months of pay count | S04, S05; D04, D05 |
+| registry note CARD-002 ("rotating windows, caps") | A category ending Sep 30 (no start date) still paid 5 percent in October; with $200 of a cap left a $1,000 purchase was "$50.00 back" and beat a flat 2 percent card | Either end bounds the window; the bonus rate applies to what is left of the cap and the base rate to the rest ($18.00; the flat card's $20.00 wins) | S10, S11; D10, D11 |
+| `63-agent-surfaces.js` best card | "5 percent on undefined needs activating first"; a stated 0 base rate became 1 percent | The merchant is named; a stated 0 is 0 | S12, S13; D12, D13 |
+| `63-agent-surfaces.js` complaint draft, and `tests/surfaces.test.cjs`, which pinned it | "I need what_happened, on to write it." | "I need what happened and the date to write it."; the old test is corrected | S15; D15 |
+| registry note SAVE-009 ("from the user's own usage") | No usage: "On your 0 kWh a year: Mock A costs about $0.00"; a month with no reading counted as 0 kWh (9,000 kWh a year for 12,000) | Months with a number only; none asks for a month of usage | S16; D16, D16b |
+| registry note HOUS-010 (move budget) | `deposit_months: 0` added a $2,000.00 deposit line | A stated 0 is no deposit line | S17; D17 |
+| registry note TAX-007 (crypto CSV) | A quantity of 0.00000012 was written "1.2e-7" | "0.00000012" | S18; D18 |
+| `63-agent-surfaces.js` bill calendar | "1 bills in the next 30 days ... 1 need a manual payment." | "1 bill ... 1 needs a manual payment." | S19; D19c |

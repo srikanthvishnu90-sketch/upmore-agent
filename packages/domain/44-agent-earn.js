@@ -32,19 +32,20 @@
         const acct = txs.filter(t => t.accountId === b.account_id && t.date >= ymd(b.opened_on));
         const paid = acct.find(t => t.amount > 0 && BONUS_RE.test(t.merchant) && cents(t.amount) === b.amount_cents);
         const reqs = (b.requirements || []).map(r => {
-          if (r.kind === "direct_deposit") { const rows = acct.filter(t => t.amount > 0 && PAYROLL_RE.test(t.merchant) && (!r.min_each_cents || cents(t.amount) >= r.min_each_cents)); const got = rows.reduce((s, t) => s + cents(t.amount), 0); return { kind: r.kind, need_cents: r.amount_cents, have_cents: got, met: got >= r.amount_cents, by: ymd(r.by), rows: rows.map(proof) }; }
-          if (r.kind === "debit_count") { const rows = acct.filter(t => t.amount < 0 && !t.transfer && !/fee/i.test(t.merchant)); return { kind: r.kind, need: r.count, have: rows.length, met: rows.length >= r.count, by: ymd(r.by), rows: rows.map(proof) }; }
-          if (r.kind === "min_balance") { const hist = (input.balance_history || []).filter(h => h.account_id === b.account_id && h.date >= ymd(b.opened_on)); const ok = hist.filter(h => h.balance_cents >= r.amount_cents).length; return { kind: r.kind, need_cents: r.amount_cents, need_days: r.days, have_days: ok, met: hist.length ? ok >= r.days : null, by: ymd(r.by), rows: [], note: hist.length ? null : "no balance history for this account; cannot verify" }; }
+          const inTime = t => !r.by || t.date <= ymd(r.by); // a deposit or purchase after the requirement's deadline does not meet it
+          if (r.kind === "direct_deposit") { const rows = acct.filter(t => t.amount > 0 && inTime(t) && PAYROLL_RE.test(t.merchant) && (!r.min_each_cents || cents(t.amount) >= r.min_each_cents)); const got = rows.reduce((s, t) => s + cents(t.amount), 0); return { kind: r.kind, need_cents: r.amount_cents, have_cents: got, met: got >= r.amount_cents, by: ymd(r.by), rows: rows.map(proof) }; }
+          if (r.kind === "debit_count") { const rows = acct.filter(t => t.amount < 0 && inTime(t) && !t.transfer && !/\bfees?\b/i.test(t.merchant)); return { kind: r.kind, need: r.count, have: rows.length, met: rows.length >= r.count, by: ymd(r.by), rows: rows.map(proof) }; }
+          if (r.kind === "min_balance") { const hist = (input.balance_history || []).filter(h => h.account_id === b.account_id && h.date >= ymd(b.opened_on)); const ok = new Set(hist.filter(h => h.balance_cents >= r.amount_cents).map(h => ymd(h.date))).size; return { kind: r.kind, need_cents: r.amount_cents, need_days: r.days, have_days: ok, met: hist.length ? ok >= r.days : null, by: ymd(r.by), rows: [], note: hist.length ? null : "no balance history for this account; cannot verify" }; }
           return { kind: r.kind, met: null, by: ymd(r.by), note: "unknown requirement kind" };
         });
-        const allMet = reqs.length > 0 && reqs.every(r => r.met === true), unknown = reqs.some(r => r.met === null);
+        const allMet = reqs.length > 0 && reqs.every(r => r.met === true), unknown = reqs.some(r => r.met === null), missed = reqs.some(r => r.met === false && r.by && r.by < input.today);
         const deposit = reqs.filter(r => r.kind === "direct_deposit" || r.kind === "min_balance").reduce((s, r) => s + (r.need_cents || 0), 0);
         const deadlines = reqs.filter(r => !r.met && r.by).map(r => ({ what: `${b.bank} bonus: ${r.kind.replace(/_/g, " ")}`, on: r.by }));
         if (b.early_closure_until) deadlines.push({ what: `${b.bank}: keep the account open (early-closure fee)`, on: M().addDays(ymd(b.early_closure_until), -30), note: "30 days before the early-closure window ends" });
-        const status = paid ? "paid" : allMet ? (b.payout_expected_by && ymd(b.payout_expected_by) < input.today ? "overdue" : "earned_awaiting_payout") : unknown ? "unknown" : "in_progress";
-        out.push(opp("E1_bonus", `bank_bonus:${b.id}`, { title: `${b.bank} ${money(b.amount_cents)} bonus: ${status.replace(/_/g, " ")}`, capability_id: "EARN-002", tier: "T1", status, expected_cents: paid ? 0 : b.amount_cents, confidence: allMet ? "high" : "medium",
+        const status = paid ? "paid" : allMet ? (b.payout_expected_by && ymd(b.payout_expected_by) < input.today ? "overdue" : "earned_awaiting_payout") : missed ? "missed" : unknown ? "unknown" : "in_progress";
+        out.push(opp("E1_bonus", `bank_bonus:${b.id}`, { title: `${b.bank} ${money(b.amount_cents)} bonus: ${status.replace(/_/g, " ")}`, capability_id: "EARN-002", tier: "T1", status, account_id: b.account_id || null, expected_cents: paid || status === "missed" ? 0 : b.amount_cents, confidence: allMet ? "high" : "medium",
           requirements: reqs, time_minutes: b.time_minutes || 30, effective_return_bps: deposit > 0 ? divRound(b.amount_cents * 10000, deposit) : null, deadlines,
-          action: paid ? null : status === "overdue" ? { type: "chase_payout", capability_id: "EARN-002", note: "Requirements met and the payout date passed; the user contacts the bank with this evidence." } : { type: "track", capability_id: "EARN-002" },
+          action: paid || status === "missed" ? null : status === "overdue" ? { type: "chase_payout", capability_id: "EARN-002", note: "Requirements met and the payout date passed; the user contacts the bank with this evidence." } : { type: "track", capability_id: "EARN-002" },
           evidence: { rule: "Requirements checked against the account's own transactions after the open date.", rows: reqs.flatMap(r => r.rows), computed: { paid: paid ? proof(paid) : null, deposit_required_cents: deposit } },
           verify: { how: "a bonus credit of the stated amount posts to the account" } }));
       }
@@ -69,7 +70,7 @@
           evidence: { rule: "Salary times the maximum contribution percent times the purchase discount; an estimate of the discount alone.", rows: [], computed: { salary_cents: salary, max_pct: b.espp.max_pct, discount_pct: b.espp.discount_pct } }, verify: { how: "enrollment confirmed and the first purchase posts" } }));
       }
       if (b.hsa_seed_cents > 0 && b.hsa_enrolled !== true) out.push(opp("E2_benefits", "hsa_seed_unclaimed", { title: `${money(b.hsa_seed_cents)} HSA employer seed not claimed`, capability_id: "EARN-005", tier: "T1", expected_cents: b.hsa_seed_cents, confidence: "high", time_minutes: 10, action: { type: "enroll_reminder", capability_id: "SAVE-020" }, evidence: { rule: "Stated employer HSA contribution with no HSA enrollment.", rows: [], computed: {} }, verify: { how: "the HSA shows the employer deposit" } }));
-      for (const s of b.stipends || []) { const left = (s.amount_cents || 0) - (s.used_cents || 0); if (left > 0) out.push(opp("E2_benefits", `stipend_unused:${key(s.name)}`, { title: `${money(left)} of the ${s.name} stipend unused`, capability_id: "EARN-005", tier: "T1", expected_cents: left, confidence: "high", time_minutes: 15, deadlines: s.expires_on ? [{ what: `${s.name} stipend expires`, on: ymd(s.expires_on) }] : [], action: { type: "claim_reminder", capability_id: "EARN-005" }, evidence: { rule: "Stipend amount minus what was reimbursed.", rows: [], computed: { amount_cents: s.amount_cents, used_cents: s.used_cents || 0 } }, verify: { how: "the reimbursement posts" } })); }
+      for (const s of b.stipends || []) { const left = (s.amount_cents || 0) - (s.used_cents || 0); if (left > 0 && !(s.expires_on && ymd(s.expires_on) < input.today)) out.push(opp("E2_benefits", `stipend_unused:${key(s.name)}`, { title: `${money(left)} of the ${s.name} stipend unused`, capability_id: "EARN-005", tier: "T1", expected_cents: left, confidence: "high", time_minutes: 15, deadlines: s.expires_on ? [{ what: `${s.name} stipend expires`, on: ymd(s.expires_on) }] : [], action: { type: "claim_reminder", capability_id: "EARN-005" }, evidence: { rule: "Stipend amount minus what was reimbursed.", rows: [], computed: { amount_cents: s.amount_cents, used_cents: s.used_cents || 0 } }, verify: { how: "the reimbursement posts" } })); }
       return out;
     }
 
@@ -92,6 +93,7 @@
           evidence: { rule: "Purchases at a named merchant in the eligibility window and a state in the eligible list.", rows, computed: { merchants_matched: hits, states_ok: stateOk } }, verify: { how: "the settlement payment posts" } }));
       }
       for (const r of input.recalls || []) {
+        if (r.deadline && ymd(r.deadline) < input.today) continue; // a refund window that closed is not money available
         const k = key(r.merchant || ""), rows = txs.filter(t => k && (t.key === k || t.key.startsWith(k + " ")) && (!r.purchased_after || t.date >= ymd(r.purchased_after)) && (!r.amount_cents || Math.abs(cents(t.amount)) === r.amount_cents)).map(proof);
         if (!rows.length) continue;
         out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: refund of ${money(r.refund_cents || 0)} available`, capability_id: "EARN-015", tier: "T3", expected_cents: r.refund_cents || 0, confidence: "medium", time_minutes: 20, deadlines: r.deadline ? [{ what: `${r.product} recall refund deadline`, on: ymd(r.deadline) }] : [],
@@ -104,7 +106,7 @@
     function rewards(input) {
       const out = [];
       for (const p of input.rewards || []) {
-        if (!(p.points > 0)) continue;
+        if (!(p.points > 0) || (p.expires_on && days(input.today, p.expires_on) < 0)) continue; // expired points are worth nothing
         const real = divRound(p.points * (p.real_cents_per_point_x100 || 0), 100), marketing = p.marketing_cents_per_point_x100 ? divRound(p.points * p.marketing_cents_per_point_x100, 100) : null;
         const fields = { capability_id: "EARN-011", tier: "T0", expected_cents: real, confidence: "high", time_minutes: 5, points: p.points, real_cents: real, marketing_cents: marketing, program: p.program };
         const best = (p.transfer_partners || []).filter(t => t.cents_per_point_x100 > (p.real_cents_per_point_x100 || 0)).sort((a, b) => b.cents_per_point_x100 - a.cents_per_point_x100)[0];
@@ -121,7 +123,7 @@
       const txs = M().clean(input.transactions || []), out = [];
       for (const r of input.referrals || []) {
         const pending = (r.referred || []).filter(x => x.status === "signed_up" || x.status === "qualified");
-        const paidRows = (r.referred || []).filter(x => x.status === "paid").map(x => txs.find(t => t.amount > 0 && /referral|refer/i.test(t.merchant) && cents(t.amount) === (r.payout_cents || 0) && t.date >= ymd(x.signed_up_on))).filter(Boolean).map(proof);
+        const used = new Set(), paidRows = (r.referred || []).filter(x => x.status === "paid").map(x => { const hit = txs.find(t => !used.has(t) && t.amount > 0 && /referral|refer/i.test(t.merchant) && cents(t.amount) === (r.payout_cents || 0) && t.date >= ymd(x.signed_up_on)); if (hit) used.add(hit); return hit; }).filter(Boolean).map(proof); // one credit pays one referral
         out.push(opp("E5_referrals", `referral:${key(r.account)}`, { title: `${r.account} pays ${money(r.payout_cents || 0)} per referral${pending.length ? `; ${pending.length} pending` : ""}`, capability_id: pending.length ? "EARN-004" : "EARN-003", tier: "T3", expected_cents: pending.length * (r.payout_cents || 0), confidence: pending.length ? "medium" : "low", time_minutes: 5, link: r.link || null, pending: pending.map(x => ({ name: x.name, status: x.status, since: ymd(x.signed_up_on), expected_by: x.payout_expected_by ? ymd(x.payout_expected_by) : null })),
           deadlines: pending.filter(x => x.payout_expected_by).map(x => ({ what: `${r.account} referral payout for ${x.name} expected`, on: ymd(x.payout_expected_by) })),
           action: { type: "share_link_reviewed", capability_id: "EARN-003", note: "User-initiated only; the agent drafts, the user sends to people they choose." }, evidence: { rule: "Program terms as stated; payouts matched to referral credits in the transactions.", rows: paidRows, computed: { paid_seen: paidRows.length } }, verify: { how: "a referral credit of the stated amount posts" } }));
@@ -164,15 +166,15 @@
     function verify(o, later) {
       const l = later || {}, txs = M().clean(l.transactions || []).filter(t => !t.pending && t.amount > 0 && (!l.since || t.date >= ymd(l.since)));
       const no = reason => ({ verified: false, reason });
-      const find = (re, amount) => txs.find(t => re.test(t.merchant) && (amount == null || cents(t.amount) === amount));
+      const find = (re, amount, account) => txs.find(t => re.test(t.merchant) && (amount == null || cents(t.amount) === amount) && (!account || t.accountId === account));
       let hit = null;
-      if (o.play === "E1_bonus") hit = find(BONUS_RE, o.expected_cents || (o.evidence && o.evidence.computed && o.evidence.computed.paid ? cents(o.evidence.computed.paid.amount) : null));
+      if (o.play === "E1_bonus") hit = find(BONUS_RE, o.expected_cents || (o.evidence && o.evidence.computed && o.evidence.computed.paid ? cents(o.evidence.computed.paid.amount) : null), o.account_id);
       else if (o.play === "E3_found" && o.key.startsWith("settlement:")) hit = find(/settlement|class action|claims? admin/i, null);
       else if (o.play === "E3_found" && o.key.startsWith("recall:")) hit = find(/recall|refund/i, o.expected_cents || null);
       else if (o.play === "E3_found") hit = find(/unclaimed|state treasur|comptroller/i, null);
       else if (o.play === "E5_referrals") hit = find(/referral|refer/i, null);
       else if (o.play === "E6_side_income") hit = find(new RegExp(o.key.split(":")[1].replace(/\s+/g, ".*"), "i"), null);
-      else if (o.play === "E2_benefits") { const p = l.benefits; if (!p) return no("no later benefits data"); if (o.key === "employer_match_gap") return p.contribution_pct >= o.evidence.computed.match_up_to_pct ? { verified: true, verified_cents: o.expected_cents, evidence: { contribution_pct: p.contribution_pct } } : no("contribution election unchanged"); if (o.key === "espp_not_enrolled") return p.espp && p.espp.enrolled === true ? { verified: true, verified_cents: 0, evidence: { enrolled: true }, note: "enrolled; dollars verify as purchases post" } : no("not enrolled"); return no("no verify step for this benefit"); }
+      else if (o.play === "E2_benefits") { const p = l.benefits; if (!p) return no("no later benefits data"); if (o.key === "employer_match_gap") return p.contribution_pct >= o.evidence.computed.match_up_to_pct ? { verified: true, verified_cents: 0, evidence: { contribution_pct: p.contribution_pct }, note: "contribution raised; the match verifies as it posts on payroll" } : no("contribution election unchanged"); if (o.key === "espp_not_enrolled") return p.espp && p.espp.enrolled === true ? { verified: true, verified_cents: 0, evidence: { enrolled: true }, note: "enrolled; dollars verify as purchases post" } : no("not enrolled"); return no("no verify step for this benefit"); }
       else if (o.play === "E4_rewards") return l.redeemed_cents > 0 ? { verified: true, verified_cents: l.redeemed_cents, evidence: { redeemed_cents: l.redeemed_cents } } : no("no redemption recorded");
       else return no("no verify step for this play");
       return hit ? { verified: true, verified_cents: cents(hit.amount), evidence: proof(hit) } : no("no matching credit has posted");
@@ -185,7 +187,8 @@
         entries,
         book(o, v, at) {
           if (!v || v.verified !== true) throw new Error("The earnings ledger books verified credits only.");
-          const existing = entries.find(e => e.key === o.key && e.verified_at === ymd(at)); if (existing) return existing;
+          const id = v.evidence && v.evidence.id != null ? v.evidence.id : null; // one credit is booked once, whichever day it is verified again
+          const existing = entries.find(e => (id !== null && e.evidence && e.evidence.id === id) || (e.key === o.key && e.verified_at === ymd(at))); if (existing) return existing;
           const e = { play: o.play, key: o.key, expected_cents: o.expected_cents || 0, verified_cents: v.verified_cents || 0, time_minutes: o.time_minutes || 0, verified_at: ymd(at), evidence: v.evidence || null }; entries.push(e); return e;
         },
         summary(from, to) { const rows = entries.filter(e => (!from || e.verified_at >= ymd(from)) && (!to || e.verified_at <= ymd(to))); return { verified_cents: rows.reduce((s, e) => s + e.verified_cents, 0), time_minutes: rows.reduce((s, e) => s + e.time_minutes, 0), count: rows.length }; },
@@ -195,10 +198,11 @@
 
     // Queue: verified first, then expected dollars weighted by confidence and divided by time, so a $5 play that costs an hour sinks.
     const WEIGHT = { high: 1, medium: 0.6, low: 0.3 };
+    const yearly = o => (o.expected_cents || 0) || (o.expected_monthly_cents || 0) * 12; // a play stating both is one year, not two
     function rank(opportunities, book) {
       const verified = new Map((book && book.entries || []).map(e => [e.key, e]));
-      const score = o => { const v = verified.get(o.key); if (v) return 1e12 + v.verified_cents; const dollars = (o.expected_cents || 0) + (o.expected_monthly_cents || 0) * 12; return dollars * (WEIGHT[o.confidence] || 0.3) / (1 + (o.time_minutes || 0) / 60); };
-      return opportunities.slice().sort((a, b) => score(b) - score(a) || a.key.localeCompare(b.key)).map(o => { const v = verified.get(o.key); return Object.assign({}, o, { verified: !!v, score: score(o), estimate: !v, reason: v ? `verified: ${money(v.verified_cents)}` : `${money((o.expected_cents || 0) + (o.expected_monthly_cents || 0) * 12)} a year estimated, about ${o.time_minutes || 0} minutes (${o.confidence} confidence)` }); });
+      const score = o => { const v = verified.get(o.key); if (v) return 1e12 + v.verified_cents; const dollars = yearly(o); return dollars * (WEIGHT[o.confidence] || 0.3) / (1 + (o.time_minutes || 0) / 60); };
+      return opportunities.slice().sort((a, b) => score(b) - score(a) || a.key.localeCompare(b.key)).map(o => { const v = verified.get(o.key); return Object.assign({}, o, { verified: !!v, score: score(o), estimate: !v, reason: v ? `verified: ${money(v.verified_cents)}` : `${money(yearly(o))} a year estimated, about ${o.time_minutes || 0} minutes (${o.confidence} confidence)` }); });
     }
     return { detect, deadlines, verify, ledger, rank, bonuses, benefits, foundMoney, rewards, referrals, sideIncome, money };
   })();

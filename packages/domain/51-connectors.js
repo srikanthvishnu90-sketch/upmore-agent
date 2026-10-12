@@ -27,6 +27,8 @@
     // Source-of-truth ranking per datum: lower is better. Conflicts are reported, never merged.
     const RANKING = Object.freeze({ balance: ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL"], transaction: ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL"], holding: ["OAUTH", "PERSONAL_API_KEY", "AGGREGATOR", "LIVE_SESSION", "MANUAL"], bill: ["OAUTH", "LIVE_SESSION", "AGGREGATOR", "PERSONAL_API_KEY", "MANUAL"] });
     const merchantKey = raw => typeof AgentMonitors !== "undefined" ? AgentMonitors.merchantKey(raw) : String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    // Keys whose values never reach the audit log: secrets, one-time and verification codes, PINs, passcodes, card and account numbers.
+    const SECRET_KEY = /secret|pass(word|code|phrase)|token|credential|otp|ssn|(^|_)pin($|_)|mfa|2fa|(verification|security|auth|one_time)_?code|cvv|cvc|card_?number|account_?number/i;
     const need = (o, keys, what) => { for (const k of keys) if (o[k] === undefined || o[k] === null || o[k] === "") throw new Error(`${what} needs ${k}`); };
 
     // Adapter validation: the five verbs, nothing less. Write verbs only where the adapter declares write scopes.
@@ -50,7 +52,7 @@
       const clock = o.clock || (() => Date.now());
       let seq = 0;
       const log = (kind, detail) => { audit.push(Object.assign({ at: clock(), kind }, redact(detail))); return audit[audit.length - 1]; };
-      const redact = d => JSON.parse(JSON.stringify(d || {}, (k, v) => /secret|password|token|credential|otp|ssn/i.test(k) ? "[redacted]" : v));
+      const redact = d => JSON.parse(JSON.stringify(d || {}, (k, v) => SECRET_KEY.test(k) ? "[redacted]" : v));
       function register(adapter) { validateAdapter(adapter); adapters.set(adapter.provider, adapter); return adapter.provider; }
       // connect: the adapter may hand off (OAuth, aggregator UI); the record stores a vault handle, never the secret.
       async function connect(provider, user, credentials, scopes, consentOpts) {
@@ -62,6 +64,7 @@
         const id = `conn_${String(++seq).padStart(3, "0")}`;
         const handle = session.token ? vault.put(id, session.token).handle : null;
         const rec = { id, provider, user, authMethod: a.authMethod, scopes: asked, consent, status: session.handoff ? "NEEDS_REAUTH" : "HEALTHY", handoff: session.handoff || null, lastSyncAt: null, lastSuccessAt: null, capabilities: a.capabilities || [], token_handle: handle, reliability: RELIABILITY[a.authMethod], reauth_messages: 0, retention_note: null };
+        if (typeof session.csv === "string") rec._csv = session.csv; // the manual adapter's upload, read by its sync
         records.set(id, rec); log("connect", { connector: id, provider, scopes: asked, handoff: !!session.handoff });
         return rec;
       }
@@ -90,8 +93,11 @@
         const ag = auto(capability, action, g.envelopes || [], clock());
         // The autonomy gate decides: blocked never passes; T5 ("always") never passes here (the loop asks every time and re-enters with the user's answer recorded); T3/T4-outside-envelope pass only with the user's confirmation recorded on the action.
         if (!ag.allowed) return refuse(id, ag.reason, `the autonomy gate blocked it (${ag.reason})`);
-        if (ag.always || (ag.confirm && action.confirmed !== true)) return refuse(id, ag.always ? "t5_never_autonomous" : "needs_confirmation", ag.always ? "this is T5: the user confirms every time through the loop, with the recipient read back; act() is never the place that decides" : "this action needs the user's confirmation first; the loop asks, then calls act() with confirmed: true");
-        const comp = g.compliance || (typeof Compliance !== "undefined" ? Compliance : null); if (comp) { const cg = comp.gate(capability, g.partners || {}, { executes: true, kyc: g.kyc || null }); if (cg.allowed === false) return refuse(id, "compliance:" + (cg.reason || cg.requirement), cg.message); }
+        // Every write needs the person's yes (the consent says "each time you confirm"), whatever tier or gate the caller brought.
+        const t5 = ag.always || (capability && capability.tier === "T5");
+        if (t5 || action.confirmed !== true) return refuse(id, t5 ? "t5_never_autonomous" : "needs_confirmation", t5 ? "this is T5: the user confirms every time through the loop, with the recipient read back; act() is never the place that decides" : "this action needs the user's confirmation first; the loop asks, then calls act() with confirmed: true");
+        const comp = g.compliance || (typeof Compliance !== "undefined" ? Compliance : null); if (!comp) return refuse(id, "no_compliance_gate", "no compliance gate available"); // fails closed, like the autonomy gate
+        const cg = comp.gate(capability, g.partners || {}, { executes: true, kyc: g.kyc || null }); if (cg.allowed === false) return refuse(id, "compliance:" + (cg.reason || cg.requirement), cg.message);
         if (rec.status !== "HEALTHY") return refuse(id, "connector_" + rec.status.toLowerCase(), `the connection is ${rec.status}`);
         log("act", { connector: id, capability: capability.id, action: redact(action) });
         const result = await a.act(rec, action, { token_handle: rec.token_handle });
@@ -133,11 +139,13 @@
       return { register, connect, sync, act, health, revoke, describe, records, audit, events, adapters };
     }
     function classify(err) { const m = String(err && err.message || err); if (/reauth|login required|mfa|invalid_grant|token expired|ITEM_LOGIN_REQUIRED/i.test(m)) return { status: "NEEDS_REAUTH" }; if (/timeout|unavailable|5\d\d|killed|died/i.test(m)) return { status: "STALE" }; return { status: "BROKEN" }; }
-    // Canonical schema.
-    const normalizeAccount = x => ({ account_id: String(x.id || x.account_id), name: String(x.name || ""), kind: String(x.type || x.kind || "unknown").toLowerCase(), mask: x.mask ? String(x.mask).slice(-4) : null, balance_cents: Number.isSafeInteger(x.balance_cents) ? x.balance_cents : Math.round(Number(x.balance || 0) * 100), available_cents: Number.isSafeInteger(x.available_cents) ? x.available_cents : (x.available === undefined ? null : Math.round(Number(x.available) * 100)), currency: x.currency || "USD" });
-    const normalizeTransaction = x => ({ transaction_id: String(x.id || x.transaction_id), account_id: String(x.account_id), posted_on: String(x.date || x.posted_on || "").slice(0, 10), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : Math.round(Number(x.amount) * 100), merchant_raw: String(x.name || x.merchant_raw || ""), merchant_key: merchantKey(x.name || x.merchant_raw || ""), is_pending: !!x.pending, is_transfer: !!x.is_transfer || /transfer/i.test(String(x.name || "")), category: x.category || null });
-    const normalizeHolding = x => ({ account_id: String(x.account_id), symbol: String(x.symbol || x.ticker || ""), quantity: Number(x.quantity || 0), price_cents: Number.isSafeInteger(x.price_cents) ? x.price_cents : Math.round(Number(x.price || 0) * 100), cost_cents: Number.isSafeInteger(x.cost_cents) ? x.cost_cents : (x.cost_basis === undefined ? null : Math.round(Number(x.cost_basis) * 100)) });
-    const normalizeBill = x => ({ bill_id: String(x.id || x.bill_id), payee: String(x.payee || x.name || ""), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : Math.round(Number(x.amount || 0) * 100), due_on: String(x.due || x.due_on || "").slice(0, 10), autopay: !!x.autopay });
+    // Canonical schema. A money field that is missing or not a number is unknown (null), never $0.00.
+    const toCents = v => v === undefined || v === null || v === "" || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 100);
+    const currencyOf = x => String(x.currency || x.iso_currency_code || "USD").toUpperCase();
+    const normalizeAccount = x => ({ account_id: String(x.id || x.account_id), name: String(x.name || ""), kind: String(x.type || x.kind || "unknown").toLowerCase(), mask: x.mask ? String(x.mask).slice(-4) : null, balance_cents: Number.isSafeInteger(x.balance_cents) ? x.balance_cents : toCents(x.balance), available_cents: Number.isSafeInteger(x.available_cents) ? x.available_cents : toCents(x.available), currency: currencyOf(x) });
+    const normalizeTransaction = x => ({ transaction_id: String(x.id || x.transaction_id), account_id: String(x.account_id), posted_on: String(x.date || x.posted_on || "").slice(0, 10), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : toCents(x.amount), currency: currencyOf(x), merchant_raw: String(x.name || x.merchant_raw || ""), merchant_key: merchantKey(x.name || x.merchant_raw || ""), is_pending: !!x.pending, is_transfer: !!x.is_transfer || /transfer/i.test(String(x.name || "")), category: x.category || null });
+    const normalizeHolding = x => ({ account_id: String(x.account_id), symbol: String(x.symbol || x.ticker || ""), quantity: Number(x.quantity || 0), price_cents: Number.isSafeInteger(x.price_cents) ? x.price_cents : toCents(x.price), cost_cents: Number.isSafeInteger(x.cost_cents) ? x.cost_cents : toCents(x.cost_basis) });
+    const normalizeBill = x => ({ bill_id: String(x.id || x.bill_id), payee: String(x.payee || x.name || ""), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : toCents(x.amount), due_on: String(x.due || x.due_on || "").slice(0, 10), autopay: !!x.autopay });
     // Conflict resolution per datum: the better-ranked class wins; the losing readings are reported, never merged.
     function resolve(kind, readings) {
       const order = RANKING[kind]; if (!order) throw new Error(`no ranking for ${kind}`);
@@ -160,11 +168,12 @@
         health: async rec => (fail === "expired" ? (fail = null, { status: "NEEDS_REAUTH" }) : { status: "HEALTHY", latency_ms: 120 }),
         revoke: async rec => ({ revoked: true }) };
     }
-    // 2: manual CSV adapter, always available as the floor.
+    // 2: manual CSV adapter, always available as the floor. Cells follow RFC 4180 quoting: "STARBUCKS, SEATTLE" is one cell, "" is a quote.
+    const cells = line => { const out = []; let cur = "", q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; } else if (ch === '"') q = true; else if (ch === ",") { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out; };
     function manualCsv() {
       return { provider: "manual-csv", authMethod: "MANUAL", scopes: ["READ_TRANSACTIONS"], cadence: "banking", capabilities: ["TXN-014", "TXN-001"],
         connect: async (user, csv) => ({ token: null, csv: String(csv || "") }),
-        sync: async (rec, since) => { const lines = String(rec.handoff || rec._csv || "").split(/\r?\n/).filter(Boolean); const [head, ...rows] = lines; const cols = (head || "").split(",").map(s => s.trim().toLowerCase()); return { transactions: rows.map((r, i) => { const v = r.split(","); const o = {}; cols.forEach((c, j) => o[c] = (v[j] || "").trim()); return { id: "csv-" + (i + 1), account_id: o.account || "manual", date: o.date, amount: Number(o.amount), name: o.description || o.name || "" }; }).filter(t => !since || t.date >= since) }; },
+        sync: async (rec, since) => { const lines = String(rec.handoff || rec._csv || "").split(/\r?\n/).filter(Boolean); const [head, ...rows] = lines; const cols = cells(head || "").map(s => s.trim().toLowerCase()); return { transactions: rows.map((r, i) => { const v = cells(r); const o = {}; cols.forEach((c, j) => o[c] = (v[j] || "").trim()); return { id: "csv-" + (i + 1), account_id: o.account || "manual", date: o.date, amount: Number(String(o.amount).replace(/[$,\s]/g, "")), name: o.description || o.name || "" }; }).filter(t => !since || t.date >= since) }; },
         act: async () => { throw new Error("manual connector has no write surface"); },
         health: async () => ({ status: "HEALTHY", latency_ms: 0 }),
         revoke: async () => ({ revoked: true }) };

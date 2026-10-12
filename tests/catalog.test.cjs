@@ -28,7 +28,10 @@ test('the validator rejects a bad auth method, an unknown capability, a write ac
 test('"what can you connect" is generated from the table and says honest gaps as gaps',()=>{
   const g=Cat.answer(catalog,'Gusto');assert.equal(g.covered,true);assert.match(g.text,/^Gusto payroll: yes, via oauth \(high\); adapter not built yet/);
   const z=Cat.answer(catalog,'Zelle');assert.match(z.text,/gated: bank partnership required; handoff pattern/);
-  const no=Cat.answer(catalog,'Venezuelan bolivar wallet');assert.equal(no.covered,false);assert.match(no.text,/isn't in the connector catalog\. CSV import always works as the floor/);
+  // The CSV floor is offered only when the catalog's manual-csv adapter is live; today it is a reference adapter in
+  // 51-connectors.js that no app or edge path loads, so "CSV import always works as the floor" was a promise of a
+  // connector that is not live (CONNECTOR-CATALOG depth packet S16, 2026-10-12).
+  const no=Cat.answer(catalog,'Venezuelan bolivar wallet');assert.equal(no.covered,false);assert.equal(no.text,"I can't connect Venezuelan bolivar wallet yet; it isn't in the connector catalog.");
   const ck=Cat.answer(catalog,'credit karma');assert.match(ck.text,/gated: FCRA permissible purpose/);
 });
 

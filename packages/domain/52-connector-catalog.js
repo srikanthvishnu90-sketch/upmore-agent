@@ -8,6 +8,8 @@
   const ConnectorCatalog = (() => {
     const AUTH = ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL", "PUBLIC_DATA"]; // LIVE_SESSION replaced vaulted credentials (owner decision 1: no password storage)
     const ID = /^[A-Z]{3,4}-\d{3}$/;
+    // Live means the adapter state says so first ("live", "live since ..."): "not live", "delivery ..." and a sandbox are not live.
+    const isLive = state => /^live\b/i.test(String(state || "")) && !/\b(sandbox|mock|test|paper)\b/i.test(String(state || ""));
     function validate(catalog, registry) {
       const errors = [], ids = new Set((registry && registry.capabilities || []).map(c => c.id)), seen = new Set();
       for (const c of catalog && catalog.connectors || []) {
@@ -19,18 +21,20 @@
         if (!/^\d{4}-\d{2}-\d{2}$/.test(String(c.last_checked || ""))) errors.push(`${tag}: last_checked date missing`);
         if (!Array.isArray(c.capabilities) || !c.capabilities.length) errors.push(`${tag}: no capabilities`);
         for (const id of c.capabilities || []) if (!ID.test(id) || !ids.has(id)) errors.push(`${tag}: capability ${id} is not in the registry`);
-        for (const w of c.write_actions || []) { if (!w.capability || !ids.has(w.capability)) errors.push(`${tag}: write action cites unknown capability ${w.capability}`); if (!/^T[3-5]$/.test(w.tier || "")) errors.push(`${tag}: write action ${w.action} must be T3 or above`); if (!w.gated && !(c.adapter_state && /live/.test(c.adapter_state))) errors.push(`${tag}: write action ${w.action} promised without a live adapter and no gated reason`); }
+        for (const w of c.write_actions || []) { if (!w.capability || !ids.has(w.capability)) errors.push(`${tag}: write action cites unknown capability ${w.capability}`); if (!/^T[3-5]$/.test(w.tier || "")) errors.push(`${tag}: write action ${w.action} must be T3 or above`); if (!w.gated && !isLive(c.adapter_state)) errors.push(`${tag}: write action ${w.action} promised without a live adapter and no gated reason`); }
         if (c.gated_reason === "" ) errors.push(`${tag}: empty gated reason`);
-        if (c.auth_method === "LIVE_SESSION" && !/low/.test(c.reliability_class)) errors.push(`${tag}: a live session must be labeled the least reliable class`);
+        if (c.auth_method === "LIVE_SESSION" && !/^low\b|least reliable/i.test(String(c.reliability_class || ""))) errors.push(`${tag}: a live session must be labeled the least reliable class`);
       }
       return errors;
     }
     // "What can you connect": generated from the table. A surface the catalog does not cover is an honest gap, said as such.
     function answer(catalog, surface) {
       const s = String(surface || "").toLowerCase().trim();
+      if (!s) return { covered: false, text: "Which service? Name the bank, app or company you want to connect.", rows: [] }; // a blank question matches every row
       const hits = (catalog.connectors || []).filter(c => c.display_name.toLowerCase().includes(s) || c.provider.includes(s.replace(/\s+/g, "-")) || c.domain.toLowerCase().includes(s));
-      if (!hits.length) return { covered: false, text: `I can't connect ${surface} yet; it isn't in the connector catalog. CSV import always works as the floor.`, rows: [] };
-      return { covered: true, rows: hits, text: hits.map(c => `${c.display_name}: yes, via ${c.auth_method.toLowerCase().replace(/_/g, " ")} (${c.reliability_class})${c.adapter_state === "none" ? "; adapter not built yet" : ""}${c.gated_reason ? "; gated: " + c.gated_reason : ""}${(c.write_actions || []).filter(w => w.gated).map(w => `; ${w.action} gated: ${w.gated}`).join("")}`).join(". ") };
+      // The CSV floor is offered only when the table says its adapter is live.
+      if (!hits.length) return { covered: false, text: `I can't connect ${String(surface).trim()} yet; it isn't in the connector catalog.${(catalog.connectors || []).some(c => c.provider === "manual-csv" && isLive(c.adapter_state)) ? " CSV import works as the floor." : ""}`, rows: [] };
+      return { covered: true, rows: hits, text: hits.map(c => `${c.display_name}: yes, via ${c.auth_method.toLowerCase().replace(/_/g, " ")} (${c.reliability_class})${c.adapter_state === "none" ? "; adapter not built yet" : !isLive(c.adapter_state) ? `; adapter not live yet (${c.adapter_state})` : ""}${c.gated_reason ? "; gated: " + c.gated_reason : ""}${(c.write_actions || []).filter(w => w.gated).map(w => `; ${w.action} gated: ${w.gated}`).join("")}`).join(". ") };
     }
     // Coverage: for a life described as surfaces, every surface answers yes via a connector or is an unlabeled gap.
     function coverage(catalog, lives) {
@@ -39,6 +43,6 @@
       return { lives: out, ok: out.every(l => !l.gaps.length), gaps: out.flatMap(l => l.gaps.map(g => `${l.id}: ${g}`)) };
     }
     const byWave = catalog => [1, 2, 3].map(w => ({ wave: w, connectors: (catalog.connectors || []).filter(c => c.wave === w).map(c => c.provider) }));
-    return { AUTH, validate, answer, coverage, byWave };
+    return { AUTH, validate, answer, coverage, byWave, isLive };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = ConnectorCatalog;

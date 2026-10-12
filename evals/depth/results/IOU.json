@@ -1,9 +1,9 @@
 {
  "capability": "IOU",
- "run_at": "2026-10-12T13:39:38.634Z",
+ "run_at": "2026-10-12T14:35:26.306Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 18,
+ "sub_capabilities": 19,
+ "proven": 21,
  "problems": [],
  "rows": [
   {
@@ -39,7 +39,10 @@
     "S08",
     "S09",
     "S10",
-    "S16"
+    "S16",
+    "S17",
+    "S18",
+    "S19"
    ],
    "status": "proven"
   },
@@ -179,7 +182,9 @@
    "test": "only Maya's is forgotten",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S18"
+   ],
    "status": "proven"
   },
   {
@@ -221,6 +226,39 @@
    "title": "Paid offline, as people say it",
    "defect": "a relayed or cash payment is not read",
    "test": "sam says he already paid cash settles it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Who is never a name",
+   "defect": "\"who owes me money\" is not read as the list ask, so it falls to the name forms",
+   "test": "who owes me money lists the log",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "Forget one person, never the log",
+   "defect": "the name from the new forms is not read, so the whole log is forgotten",
+   "test": "forget what sam owes me forgets Sam's only",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "Still owes is a restatement",
+   "defect": "'still owes' logs a second IOU on top",
+   "test": "sam still owes me 40 is not logged twice",
    "bites": true,
    "applied": true,
    "collateral": [],

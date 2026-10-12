@@ -21,7 +21,7 @@
     const NAME = "([a-z][a-z'.-]*(?:\\s[a-z][a-z'.-]*){0,2}?)";
     // A name is a person's: never a pronoun, a preposition or a thing ("in taxes", "it to myself", "the irs").
     const BAD_WORD = /\b(?:it|to|in|on|at|of|by|you|u|him|her|them|us|myself|yourself|taxes?|money|anything|everything|nothing|rent|interest|the bank|my card|credit|loan|loans)\b/;
-    const NOT_A_NAME = /^(?:it|that|this|them|they|he|she|you|u|me|myself|someone|somebody|anyone|everyone|people|money|cash|taxes|the irs|irs|rent|my rent|my card|the bank|my bank|on|for|in|back|a|an|the)$/;
+    const NOT_A_NAME = /^(?:it|that|this|them|they|he|she|you|u|me|myself|someone|somebody|anyone|anybody|everyone|everybody|nobody|who|whom|what|people|money|cash|taxes|the irs|irs|rent|my rent|my card|the bank|my bank|on|for|in|back|a|an|the)$/;
     const LOG_WORDS = "(?:log(?: that)?|note(?: that| down that)?|remember(?: that)?|write down(?: that)?|track(?: that)?|keep track(?: that)?|record(?: that)?|fyi)\\s+";
     // Each form: [regex, direction, name group, amount group, note group]
     const FORMS = [
@@ -76,12 +76,14 @@
       if ((m = new RegExp(`^${NAME} (?:settled up|paid up|squared up|is paid up)(?: with me)?$`).exec(t))) return { direction: "owes_me", name: m[1], amount_cents: null };
       return null;
     }
-    const LIST_ALL = /^(?:show|list|what are)(?: me)? my (?:ious|i\.o\.u\.s|debts to people|iou log)$|^who owes who$|^what do i owe people$|^what do i owe everyone$|^do i owe anyone(?: money)?$|^who do i owe(?: money)?$|^what do i owe(?: anyone| friends| my friends)?$|^who owes me$|^does anyone owe me(?: money)?$|^who still owes me(?: money)?$/;
+    const LIST_ALL = /^(?:show|list|what are)(?: me)? my (?:ious|i\.o\.u\.s|debts to people|iou log)$|^who owes who$|^what do i owe people$|^what do i owe everyone$|^do i owe anyone(?: money)?$|^who do i owe(?: money)?$|^what do i owe(?: anyone| friends| my friends)?$|^who owes me(?: money| anything)?$|^does anyone owe me(?: money| anything)?$|^who still owes me(?: money| anything)?$/;
     const ONE = new RegExp(`^how much (?:does|do) ${NAME} owe me$|^how much do i owe ${NAME}$|^does ${NAME} (?:still )?owe me(?: money| anything)?$|^do i (?:still )?owe ${NAME}(?: money| anything)?$`);
-    const FORGET = new RegExp(`^(?:forget|delete|remove|clear|erase)(?: the| my)? (?:iou|ious|debt)s?(?: (?:with|from|to|for) ${NAME})?$|^(?:forget|delete|remove) ${NAME}'s (?:iou|debt)$|^(?:clear|delete) (?:all )?my ious$`);
+    const FORGET = new RegExp(`^(?:forget|delete|remove|clear|erase)(?: the| my)? (?:iou|ious|debt)s?(?: (?:with|from|to|for) ${NAME})?$|^(?:forget|delete|remove) ${NAME}'s (?:iou|debt)$|^(?:forget|delete|remove|clear|erase) (?:what|that) ${NAME} owes me$|^(?:forget|delete|remove|clear|erase) what i owe ${NAME}$|^(?:clear|delete) (?:all )?my ious$`);
 
     function command(words, ious, now) {
-      const t = clean(words), list = (ious || []).filter((x) => x && typeof x === "object"), today = dayOf(now);
+      // "sam still owes me 40", "i already owe mom 200": the adverb is never part of the name (found by probing, 2026-10-12).
+      const still = /\b(?:still|already)\s+(?:owes?)\b/.test(clean(words));
+      const t = clean(words).replace(/\b(?:still|already|also|now|actually|really|just)\s+(?=(?:owes?|lent|borrowed)\b)/g, ""), list = (ious || []).filter((x) => x && typeof x === "object"), today = dayOf(now);
       if (!t || t.length > 160) return null;
       if (LIST_ALL.test(t)) {
         const o = open(list);
@@ -111,8 +113,9 @@
       }
       m = FORGET.exec(t);
       if (m) {
-        const who = m[1] || m[2];
-        const hit = who ? list.filter((x) => keyOf(x.name) === keyOf(who)) : list;
+        // The name is whichever form matched; "forget what sam owes me" forgets Sam's only, never the whole log.
+        const who = m.slice(1).find(Boolean), dir = /owes me$/.test(t) ? "owes_me" : /^\w+ what i owe /.test(t) ? "i_owe" : null;
+        const hit = who ? list.filter((x) => keyOf(x.name) === keyOf(who) && (!dir || x.direction === dir)) : list;
         if (!hit.length) return { ious: null, reply: `I don't have an IOU${who ? ` with ${cap(who)}` : ""}, so nothing changed.` };
         return { ious: list.filter((x) => !hit.includes(x)), reply: `Forgot ${hit.length === 1 ? "the IOU" : `${hit.length} IOUs`}: ${hit.map(line).join("; ")}. Nothing else changed.` };
       }
@@ -145,6 +148,12 @@
           if (!settled.length) return { ious: null, reply: `Your IOU log is full (${MAX} open IOUs). Mark one paid or say "forget the IOU with ..." first. Nothing was saved.` };
           kept = kept.filter((x) => x !== settled[0]);
         }
+        // "Sam still owes me 40" restates an open IOU of that amount; it is confirmed, never logged twice.
+        const same = still ? open(kept).find((x) => keyOf(x.name) === keyOf(name) && x.direction === log.direction && x.amount_cents === log.amount_cents) : null;
+        if (same) return { ious: null, reply: `That's in your log already: ${line(same)}, logged ${same.created_on}. Nothing was added.` };
+        // A different amount after "still" may be what's left or a new IOU: asked, never added on top.
+        const prior = still ? open(kept).filter((x) => keyOf(x.name) === keyOf(name) && x.direction === log.direction) : [];
+        if (prior.length) { const was = prior.reduce((a, x) => a + x.amount_cents, 0), diff = was - log.amount_cents; return { ious: null, reply: `Your log has: ${prior.map(line).join("; ")}. Is ${money(log.amount_cents)} what's left, or a new IOU on top? ${log.direction === "owes_me" && diff > 0 ? `Say "${cap(name)} paid me ${plain(diff)}" for what's left` : log.direction === "i_owe" && diff > 0 ? `Say "I paid ${cap(name)} ${plain(diff)}" for what's left` : "Say what was paid"}, or "${log.direction === "owes_me" ? `${cap(name)} owes me ${plain(log.amount_cents)}` : `I owe ${cap(name)} ${plain(log.amount_cents)}`}" for a new one. Nothing was changed.` }; }
         const others = open(kept).filter((x) => keyOf(x.name) === keyOf(name) && x.direction === log.direction);
         const total = others.reduce((a, x) => a + x.amount_cents, 0) + log.amount_cents;
         return { ious: kept.concat([entry]), reply: `Logged: ${line(entry)}.${others.length ? ` With the earlier ${others.length === 1 ? "one" : `${others.length}`}, that's ${money(total)} in all.` : ""}${NOTE}${log.direction === "i_owe" ? ` Say "pay ${name} ${plain(log.amount_cents)}" when you want to send it.` : ""}` };

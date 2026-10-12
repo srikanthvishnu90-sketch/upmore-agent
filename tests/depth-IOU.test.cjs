@@ -128,3 +128,26 @@ test("[S16] paid offline, as people say it: 'sam paid me back in cash', 'sam say
   // Still a note about the person's own log: someone saying they paid never settles what the person owes them.
   assert.notEqual(run(["i owe sam 37", "sam says he already paid cash"]).log[0].status, "settled");
 });
+
+test("[S17] \"who owes me money\" lists the log; \"who\" and \"what\" are never a name", () => {
+  const { replies } = run(["sam owes me 40", "who owes me money"]);
+  assert.match(replies[1], /^Owed to you: Sam \$40\.00\. \$40\.00 in all\./);
+  for (const m of ["who owes me money", "who owes me anything", "does anyone owe me anything"]) { const r = I.command(m, [], NOW); assert.ok(r && !/How much\?/.test(r.reply), m); }
+});
+
+test("[S18] \"forget what sam owes me\" forgets Sam's IOU only, never the whole log; someone not in the log changes nothing", () => {
+  const start = run(["sam owes me 40", "i owe mom 200", "jake owes me 15"]).log;
+  const a = I.command("forget what sam owes me", start, NOW);
+  assert.equal(a.reply, "Forgot the IOU: Sam owes you $40.00. Nothing else changed.");
+  assert.deepEqual(a.ious.map((x) => x.name).sort(), ["jake", "mom"]);
+  assert.equal(I.command("forget what i owe mom", start, NOW).ious.length, 2);
+  const none = I.command("forget what dana owes me", start, NOW); assert.equal(none.ious, null); assert.match(none.reply, /I don't have an IOU with Dana, so nothing changed\./);
+});
+
+test("[S19] \"sam still owes me 40\" restates the open IOU, never logs it twice; a different amount asks what's left or new; \"still\" is never part of the name", () => {
+  const start = run(["sam owes me 40"]).log;
+  const same = I.command("sam still owes me 40 from last week", start, NOW); assert.equal(same.ious, null); assert.match(same.reply, /^That's in your log already: Sam owes you \$40\.00, logged \d{4}-\d\d-\d\d\. Nothing was added\.$/);
+  const diff = I.command("sam still owes me 25", start, NOW); assert.equal(diff.ious, null);
+  assert.equal(diff.reply, 'Your log has: Sam owes you $40.00. Is $25.00 what\'s left, or a new IOU on top? Say "Sam paid me 15" for what\'s left, or "Sam owes me 25" for a new one. Nothing was changed.');
+  const fresh = I.command("jake still owes me 20", start, NOW); assert.equal(fresh.ious[fresh.ious.length - 1].name, "jake");
+});

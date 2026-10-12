@@ -21,7 +21,7 @@ Check: `node --test tests/depth-IOU.test.cjs && node evals/depth/run.cjs IOU`.
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
 | S01 | Restated with the note | you owe Mom $200.00, nothing paid | `S01` in tests/depth-IOU.test.cjs | the note that nothing moved is dropped | proven (also fails S02, S08, S09, S10, S15, S16) |
-| S02 | Owed to the person | Jake owes you $20.00 | `S02` in tests/depth-IOU.test.cjs | owes-me is stored as i-owe | proven (also fails S05, S06, S07, S08, S09, S10, S16) |
+| S02 | Owed to the person | Jake owes you $20.00 | `S02` in tests/depth-IOU.test.cjs | owes-me is stored as i-owe | proven (also fails S05, S06, S07, S08, S09, S10, S16, S17, S18, S19) |
 | S03 | Other I-owe forms | I borrowed 50 from Dad | `S03` in tests/depth-IOU.test.cjs | the borrowed form is not read | proven |
 | S04 | No amount is asked | 'jake owes me money' asks how much | `S04` in tests/depth-IOU.test.cjs | no amount is taken as $20 | proven |
 | S05 | What I owe, totaled | $215.00 in all | `S05` in tests/depth-IOU.test.cjs | the total counts both sides | proven (also fails S06) |
@@ -33,9 +33,12 @@ Check: `node --test tests/depth-IOU.test.cjs && node evals/depth/run.cjs IOU`.
 | S10 | Which one is asked | two with Sam: asked | `S10` in tests/depth-IOU.test.cjs | the first is settled | proven |
 | S11 | Direction must match | Jake paid me back never settles what I owe Jake | `S11` in tests/depth-IOU.test.cjs | the direction is ignored | proven (also fails S16) |
 | S12 | Not a person | 'i owe you one' is not an IOU | `S12` in tests/depth-IOU.test.cjs | pronouns pass as names | proven |
-| S13 | Forget one person | only Maya's is forgotten | `S13` in tests/depth-IOU.test.cjs | forget takes every IOU | proven |
+| S13 | Forget one person | only Maya's is forgotten | `S13` in tests/depth-IOU.test.cjs | forget takes every IOU | proven (also fails S18) |
 | S14 | Bounded | a full open log refuses | `S14` in tests/depth-IOU.test.cjs | the cap is not checked | proven |
 | S14 | No long digit run | an order number is masked | `S14` in tests/depth-IOU.test.cjs | the note keeps digits | proven |
 | S15 | The person's relation | my sister is your sister | `S15` in tests/depth-IOU.test.cjs | my is kept | proven |
 | S16 | Paid offline, as people say it | sam says he already paid cash settles it | `S16` in tests/depth-IOU.test.cjs | a relayed or cash payment is not read | proven |
+| S17 | Who is never a name | who owes me money lists the log | `S17` in tests/depth-IOU.test.cjs | "who owes me money" is not read as the list ask, so it falls to the name forms | proven |
+| S18 | Forget one person, never the log | forget what sam owes me forgets Sam's only | `S18` in tests/depth-IOU.test.cjs | the name from the new forms is not read, so the whole log is forgotten | proven |
+| S19 | Still owes is a restatement | sam still owes me 40 is not logged twice | `S19` in tests/depth-IOU.test.cjs | 'still owes' logs a second IOU on top | proven |
 <!-- results:end -->

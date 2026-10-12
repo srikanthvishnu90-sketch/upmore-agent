@@ -60,6 +60,18 @@ test('a nickname that is also someone else\'s name asks which, never picks',()=>
   assert.equal(r.status,'ambiguous');assert.match(r.ask,/Jess Tran/);assert.match(r.ask,/Sam Okafor/);
 });
 
+// Megadoc A02 "pay my brother 120", exactly as the owner wrote it: one saved "brother" is a card with the real name, the
+// handle and $120.00; with none saved it asks for the handle and offers no look-alike.
+test('megadoc A02: "pay my brother 120" goes to the card for the saved brother; none saved asks, nothing guessed',async()=>{
+  const w=world(MOCK_ROWS.concat([{id:'mock-r6',handle:'@devs',display_name:'Dev Srikanth',channel:'sms',source:'completed_send',rail:'venmo',last_used_at:'2026-10-02T00:00:00Z',nickname:'brother'}]));
+  const out=await route(w,'pay my brother 120');
+  assert.equal(out.result.outcome,'confirm');
+  assert.match(out.result.text,/\$120\.00 to Dev Srikanth \(brother, @devs\)/);
+  const bare=world();
+  const ask=await bare.send.start('pay my brother 120');
+  assert.equal(ask.outcome,'ask');assert.doesNotMatch(ask.text,/Dev|Anita|Mike|Tom|Sam/);
+});
+
 test('split resolves the nickname too, and its card names the real person',async()=>{
   const w=world();
   const out=await w.split.start('split 60 with mom and mike');

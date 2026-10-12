@@ -5,8 +5,9 @@
        parse(words)                             what a message asks: set, stop, a status ask, or null (anything else)
        command(words, watches, now, tz)         set or stop, as a new watch list and the restating reply (null otherwise)
        answer(words, { budgets, transactions, now, tz })   "how am i doing on my grocery budget", "how are my budgets",
-                                                "am i over budget": spent this month so far, left, the day of the month
-                                                and the pace, top 3 merchants, uncategorized spending said apart
+                                                "am i over budget", a bare "am i on track" (nothing with no
+                                                budget, so it goes on to the model): spent this month so far,
+                                                left, the day of the month and the pace, top 3 merchants, uncategorized spending said apart
        alerts(budgets, transactions, now, { tz, sent })    the 80% and 100% messages the agent sends on its own, once per
                                                 budget per month per threshold (the key says which)
      A budget is stored as a person-set watch of kind "category_budget" in agent_proactive_settings.watches (no migration):
@@ -74,8 +75,13 @@
       const w = m[1].trim().replace(/\s+(?:a|per|each|every)\s+month$/, "").replace(/\s+monthly$/, "").trim();
       return w && !SKIP_WORDS.test(w) ? w : null;
     }
+    // Megadoc L04: "am I on track", said after setting a budget. Only the bare words (and "this month", "so far"): "on
+    // track to retire" or "with my savings goal" is about something else. A bare ask is the status of every budget for a
+    // person who has one; with none, answer() gives nothing and the message goes on to the model (bare: true says so).
+    const BARE = /^(?:am i|are we) (?:on track|on pace|doing ok(?:ay)?)(?: this month| so far| right now)?$/;
     function parse(words) {
       const t = clean(words);
+      if (BARE.test(t)) return { kind: "status", category: null, all: true, over: false, unknown: null, bare: true };
       if (!/\bbudget(?:s|ing)?\b/.test(t) || t.length > 200) return null;
       let m;
       if ((m = STOP.exec(t))) {
@@ -219,6 +225,7 @@
       const p = typeof words === "string" ? parse(words) : words;
       if (!p || p.kind !== "status") return null;
       const i = input || {}, tz = i.tz || "UTC", have = budgetsIn(i.budgets);
+      if (!have.length && p.bare) return null;
       if (!have.length) return { text: `You don't have any budgets set. Say "set a grocery budget of 400" (any category and amount, by the month) and I'll track it. Categories I can budget: ${LIST}.` };
       let pick = have;
       if (!p.all) {

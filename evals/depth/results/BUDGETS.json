@@ -1,9 +1,9 @@
 {
  "capability": "BUDGETS",
- "run_at": "2026-10-12T07:29:41.512Z",
+ "run_at": "2026-10-12T07:53:33.745Z",
  "baseline_all_green": true,
- "sub_capabilities": 21,
- "proven": 21,
+ "sub_capabilities": 23,
+ "proven": 23,
  "problems": [],
  "rows": [
   {
@@ -242,6 +242,30 @@
    "title": "Over means over",
    "defect": "a budget spent exactly is called over",
    "test": "exactly at the budget is not over",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "Bare means bare (megadoc L04)",
+   "defect": "the end anchor is dropped, so 'on track to retire' is taken as a budget ask",
+   "test": "'am i on track' is a budget ask; 'am i on track to retire' is not",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S23"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23",
+   "title": "No budget, no answer to a bare ask",
+   "defect": "a bare ask with no budget gets 'You don't have any budgets set'",
+   "test": "'am i on track' with no budget gives nothing (the model answers)",
    "bites": true,
    "applied": true,
    "collateral": [],

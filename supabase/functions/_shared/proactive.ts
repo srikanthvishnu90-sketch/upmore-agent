@@ -280,6 +280,16 @@ async function rentOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise
 export interface SettingsChange { settings: Partial<ProactiveSettings>; reply: string }
 const ZONES: Record<string, string> = { eastern: "America/New_York", et: "America/New_York", est: "America/New_York", edt: "America/New_York", central: "America/Chicago", ct: "America/Chicago", cst: "America/Chicago", cdt: "America/Chicago", mountain: "America/Denver", mt: "America/Denver", mst: "America/Denver", arizona: "America/Phoenix", pacific: "America/Los_Angeles", pt: "America/Los_Angeles", pst: "America/Los_Angeles", pdt: "America/Los_Angeles", alaska: "America/Anchorage", hawaii: "Pacific/Honolulu", utc: "UTC", gmt: "UTC", london: "Europe/London", uk: "Europe/London" };
 const hourOf = (h: string, ap?: string) => { let n = Number(h) % 12; if (/p/i.test(ap || "")) n += 12; if (!ap && Number(h) >= 13) n = Number(h); return n; };
+// Free trials in general, never a named one: "tell me when free trials are about to convert", "let me know before my
+// free trials charge me", "alert me when my free trials end".
+const TRIAL_ALERT_ASK = /^\s*(?:(?:please|pls|hey|ok|okay|can you|could you)[,\s]+)*(?:tell me|let me know|alert me|text me|ping me|notify me|message me)\s+(?:when|if|before|whenever)\s+(?:(?:any|all|my|the|all my|all of my|any of my)\s+)?(?:free\s+)?trials?\s+(?:(?:are|is)\s+)?(?:(?:about to|going to|gonna|set to|close to|starting to|start to)\s+)?(?:convert(?:s|ing)?|end(?:s|ing)?|expir(?:e|es|ing)|charg(?:e|es|ing)|bill(?:s|ing)?|renew(?:s|ing)?|run(?:s|ning)? out|turn(?:s|ing)? (?:into )?paid|go(?:es|ing)? paid|become(?:s)? paid)(?:\s+(?:me|us))?(?:\s+(?:to|into)\s+paid(?:\s+(?:plans?|subscriptions?))?)?\s*[.!?]*$/i;
+const TRIAL_HOW = "In the week before one turns into a paid charge, I message you with the date and the amount and ask \"Should I cancel it for you?\"; nothing is cancelled without your yes.";
+const TRIAL_ADD = "A trial doesn't show in your transactions until it charges, so I only track the ones you add: in the app, Add a subscription, choose Free trial under \"Bills every\" and enter the trial-end date. These messages go to people with a linked bank or card. Nothing changed.";
+export function trialAlertReply(alertsOn: boolean): string {
+  return alertsOn
+    ? `That's on for the free trials I track. ${TRIAL_HOW} ${TRIAL_ADD}`
+    : `Alerts are off, so I'm not sending trial messages right now. Say "turn alerts back on" to start them. With alerts on: ${TRIAL_HOW.charAt(0).toLowerCase()}${TRIAL_HOW.slice(1)} ${TRIAL_ADD}`;
+}
 export function parseCommand(text: string, current: Partial<ProactiveSettings> | null, now: number): SettingsChange | null {
   const t = String(text || "").trim(), s = Object.assign({}, DEFAULT_SETTINGS, current || {});
   if (t.length > 200) return null;
@@ -291,11 +301,13 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   }
   if (/^\s*(?:turn on|start|send me|give me)(?: the| a| my)? morning (?:brief|summary|update)s?\b/i.test(t)) return { settings: { morning_brief: true }, reply: "I'll send a morning brief from 8 a.m. your time: cash, safe to spend, and anything due that day. Say \"stop the morning brief\" to end it." };
   if (/^\s*(?:turn off|stop|no more|cancel)(?: the| my)? morning (?:brief|summary|update)s?\b/i.test(t)) return { settings: { morning_brief: false }, reply: "Morning brief stopped. Nothing else changed." };
-  if ((m = /^\s*(?:send me |give me |i want )?(?:a |the |my )?weekly (?:recap|summary|update|money summary)(?: (?:on|every) (sun|mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?)(?:day)?s?)?\s*[.!]?$/i.exec(t))) {
+  // The weekly recap (money in, money out and where most of it went, what's coming up), also asked for as a "weekly
+  // spending summary every Sunday" (megadoc L10) or a weekly money or spend report.
+  if ((m = /^\s*(?:send me |give me |i want )?(?:a |the |my )?weekly (?:(?:spending|spend|money) )?(?:recap|summary|update|report)(?: (?:on|every) (sun|mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?)(?:day)?s?)?\s*[.!]?$/i.exec(t))) {
     const d = m[1] ? ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].findIndex(x => m![1].toLowerCase().startsWith(x)) : (s.weekly_recap_dow ?? 0);
     return { settings: { weekly_recap_dow: d }, reply: `I'll send your weekly recap every ${DOW[d]} from 8 a.m.: money in, money out, and what's coming up.` };
   }
-  if (/^\s*(?:turn off|stop|no more|cancel)(?: the| my)? weekly (?:recap|summary|update)s?\b/i.test(t)) return { settings: { weekly_recap_dow: null }, reply: "Weekly recap stopped. Nothing else changed." };
+  if (/^\s*(?:turn off|stop|no more|cancel)(?: the| my)? weekly (?:(?:spending|spend|money) )?(?:recap|summary|update|report)s?\b/i.test(t)) return { settings: { weekly_recap_dow: null }, reply: "Weekly recap stopped. Nothing else changed." };
   if (/^\s*(?:turn off|stop|no more|pause|mute)(?: the| my| all)? (?:alerts|notifications|updates|messages from you)\b/i.test(t)) return { settings: { alerts: false }, reply: "Alerts are off. Anything you asked me to watch still comes through; reports you set up still arrive. Say \"turn alerts back on\" anytime." };
   if (/^\s*(?:turn|switch)(?: my)? (?:alerts|notifications) (?:back )?on\b|^\s*(?:resume|restart) (?:alerts|notifications)\b/i.test(t)) return { settings: { alerts: true }, reply: "Alerts are back on." };
   if ((m = /^\s*(?:set )?quiet hours?(?: (?:from|are|is))?\s+(\d{1,2})(?::00)?\s*(am|pm)?\s*(?:to|-|until)\s*(\d{1,2})(?::00)?\s*(am|pm)?\s*[.!]?$/i.exec(t))) {
@@ -308,6 +320,12 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   const zone = validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone;
   const bc: any = (Budgets as any).command(t, s.watches || [], now, zone);
   if (bc) return { settings: bc.watches ? { watches: capWatches(bc.watches) } : {}, reply: bc.reply };
+  // "Tell me when free trials are about to convert" (megadoc J15): said as it is, nothing saved. plan() asks "Should I
+  // cancel it for you?" before a trial the person tracks in the app bills (save_subscriptions, billing "trial" with its
+  // end date, within the 7 days before; AgentMonitors.trialsConverting), with alerts on, for people the hourly run
+  // reads (a linked bank or card). Trials are never found on their own: none shows in transactions before it charges.
+  // A named trial with a date ("Hulu free trial ends Oct 20, remind me") is the chat trial tracker's; this leaves it.
+  if (TRIAL_ALERT_ASK.test(t) && !/\d/.test(t)) return { settings: {}, reply: trialAlertReply(s.alerts !== false) };
   if ((m = /^\s*(?:tell me|let me know|alert me|text me|warn me|ping me)\s+(?:when|if)\s+(.+?)\s*[.!]?$/i.exec(t))) {
     const w: any = (AgentAlerts as any).parseWatch(t, now); // it strips the "tell me when" itself
     // "Tell me when my rent is due" is usually a question: an unreadable "tell me when" goes to the normal chat; an

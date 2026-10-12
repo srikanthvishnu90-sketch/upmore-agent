@@ -420,3 +420,27 @@ in the modules.
 | registry note EARN-002 (minimum balance) | Days at or above the amount were counted across dips: Oct 1 and Oct 3 with $14,999.99 on Oct 2 were "2 days, met" | A dip resets the count (a day with any reading below it); a day with no reading neither counts nor resets; a run that reached the days stays met. S06's two old values ([1, false] and [2, true] across the dip) were that bug and are corrected | S06; D06c (D06 re-planted on the per-day map) |
 | registry note EARN-015 (recalls) | A recall naming only a merchant matched any purchase there: a bare "PELOTON" row was "Mock Tread recall: refund of $129.99 available" (T3 claim, refund alert) | The purchase must name every word of the product beyond the merchant's name; otherwise "Mock Tread recall: 2 purchases at Peloton may be the recalled product, but the record does not name it; check before claiming", $0, no action, no deadline alert. S11 and `tests/earn.test.cjs` now buy "PELOTON MOCK TREAD" / "PELOTON TREAD" (their expectations are unchanged) | S24, S11; D24, D24b |
 | `44-agent-earn.js` settlements (evidence rule "in the eligibility window") | No class-period check: "you likely qualify" for any purchase at the merchant, whenever | With `class_period` ({from, to}) only purchases inside it count, and outside it nothing is offered; with none on file: "you may qualify (claim by ...); no class period on file, so check your purchase dates", confidence low. S10's title (no period on file) is corrected | S23, S10; D23, D10c |
+## Megadoc verdicts that were stale, and owner phrasings that fell through (2026-10-12, evening)
+
+- Said (`evals/scenarios/verdicts.cjs`, so `docs/scenarios/README.md`): L03 "set a 400 food budget", L04 "am I on track",
+  L09, L10 "budgets, recategorization rules, alerts and scheduled summaries" NOT_BUILT; K03 "dispute the charge"
+  NOT_BUILT; J15 "trial alerts" NOT_BUILT; A02 "pay my brother 120" NOT_BUILT because "saved_recipients has no alias
+  column"; D14 "did my rent go through?" NOT_BUILT, "answered from transactions by the chat model".
+- True: L03 is set by `parseCommand` (category budgets, `packages/domain/93-budgets.js`) and K03 is answered by
+  `disputeReply` (the recent charges to pick from) with no change needed; A02 resolves through the saved nickname
+  column (migration 20261012020000, `tests/recipient-nicknames.test.cjs`); D14 is answered from code by
+  `money_answers.ts` (posted, or pending with the day first seen). L04, L09, L10 fell through and are fixed here: a bare
+  "am I on track" is the budgets' status for a person who has one (`bare: true` in `93-budgets.js`; null with none, so
+  the model answers), "spend over 100 on one thing" is the charge-over watch (`59-agent-alerts.js`), "weekly spending
+  summary" is the weekly recap. J15 had no code reply; it now says what is true (on for trials added in the app's
+  subscriptions as Free trial with an end date, asked about in the week before the first charge, alerts on, people with a
+  linked bank or card; trials are never found on their own) and saves nothing, so its verdict is DIVERGES (no new rule).
+- Now: L03, L04, L09, L10, K03, D14 BUILT; A02 LIMITED (the send is a handoff); J15 DIVERGES; each names its test
+  (red first where code changed). Megadoc PROVEN 0, BUILT 68, LIMITED 26, DIVERGES 13, MODEL 59, NOT_BUILT 74.
+- Also stale and fixed in BUILD-STATUS: the megadoc line still said BUILT 61 / NOT_BUILT 86 (the report already said
+  62 / 82), and the testing-agent rows said GREEN 71/71 with 4 gaps (`docs/testing/agent-report.md`: 75/75, 3 gaps).
+- Found, not fixed (code, for the owner): the older chat trial tracker (`tryTrialTracker`, `capabilities.ts`) asks
+  "Which free trials do you have ... (e.g. "Hulu ends Oct 3, Paramount+ ends Oct 10")", but its own parser only reads
+  "<service> free trial ends <date>", so the example answer does not parse and goes to the model; and "track my Hulu
+  free trial ends Oct 20" is saved under the service name "track my Hulu". Its reminders (route_reminders) are only
+  mentioned by the model when the person next writes; they do not ask "Should I cancel it for you?".

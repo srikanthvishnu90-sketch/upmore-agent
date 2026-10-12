@@ -23,6 +23,11 @@
     const WATCH_PATTERNS = [
       { re: /^(?:my )?([\w ]+?) (?:drops|falls|goes|is|gets) (?:below|under) \$?([\d,]+(?:\.\d{1,2})?)/i, make: m => ({ kind: "balance_below", account: m[1].trim(), threshold_cents: toCents(m[2]) }) },
       { re: /(?:charge|transaction|purchase)s? (?:over|above|more than) \$?([\d,]+(?:\.\d{1,2})?)/i, make: m => ({ kind: "amount_over", threshold_cents: toCents(m[1]) }) },
+      // The same watch in spending words (megadoc L09): "I spend over 100 on one thing", "in one purchase", "at once",
+      // "anything over $100 (posts)". The whole condition must be that: a category or a merchant in the words ("on
+      // food", "at target") is not one charge over an amount, so it is refused like any other unknown phrasing.
+      { re: /^(?:i|we) (?:spend|spent|pay|paid) (?:over|above|more than) \$?([\d,]+(?:\.\d{1,2})?)(?: dollars| bucks)?(?: (?:on|in|for) (?:one|a single|any one|any single|a|1) (?:thing|item|purchase|charge|transaction|order)| at once| in one go)\s*[.!?]*$/i, make: m => ({ kind: "amount_over", threshold_cents: toCents(m[1]) }) },
+      { re: /^anything (?:over|above|more than) \$?([\d,]+(?:\.\d{1,2})?)(?: dollars| bucks)?(?: (?:posts|hits|goes through|comes through|shows up|gets charged|is charged)(?: (?:on |to )?my (?:card|cards|account|accounts|bank))?)?\s*[.!?]*$/i, make: m => ({ kind: "amount_over", threshold_cents: toCents(m[1]) }) },
       { re: /^([\w .'&-]+?) charges? (?:me|us)\b/i, make: m => ({ kind: "merchant_charge", merchant: m[1].trim() }) },
       { re: /^(?:my )?(paycheck|payroll|salary|deposit from [\w .'&-]+?|[\w .'&-]+? deposit) (?:lands|arrives|comes in|posts|hits)/i, make: m => ({ kind: "deposit", from: m[1].replace(/^deposit from /i, "").replace(/ deposit$/i, "").trim() }) },
       { re: /^(?:my )?([a-z ]+?) spending (?:goes|is|gets) (?:over|above) \$?([\d,]+(?:\.\d{1,2})?)(?: (?:this|a|per) month)?/i, make: m => ({ kind: "category_month_over", category: m[1].trim(), threshold_cents: toCents(m[2]) }) },

@@ -92,6 +92,20 @@ const OWNER: [string, string | null][] = [
   ["stop my grocery budget", null],
   ["delete my budgets", null],
   ["how do i make a budget", null],
+  // Megadoc asks (2026-10-12): a bare "am I on track" is the budgets' (L04; the chain's person has a groceries budget);
+  // on track to anything else is not; "am i doing ok" stays the checkup's, which runs first. "dispute the charge" (K03)
+  // lists charges to pick from. Setting a budget (L03), a charge watch (L09), the weekly recap (L10) and the trial
+  // alert ask (J15) are settings commands, so no direct answer may take them.
+  ["am I on track", "budgetReply"],
+  ["am i on pace", "budgetReply"],
+  ["am i on track to retire", null],
+  ["am i on track with my savings goal", null],
+  ["am i doing ok", "moneyReply"],
+  ["dispute the charge", "disputeReply"],
+  ["set a 400 food budget", null],
+  ["text me when I spend over 100 on one thing", null],
+  ["weekly spending summary every Sunday", null],
+  ["tell me when free trials are about to convert", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

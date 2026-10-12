@@ -1,9 +1,9 @@
 {
  "capability": "ALERTS",
- "run_at": "2026-10-12T06:07:22.715Z",
+ "run_at": "2026-10-12T07:53:57.821Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 16,
+ "proven": 16,
  "problems": [],
  "rows": [
   {
@@ -108,7 +108,9 @@
    "test": "$1,250.50 is 125050 cents",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -172,6 +174,17 @@
    "title": "The person's buffer",
    "defect": "the default $100 buffer is always used",
    "test": "under a $500 buffer on Oct 15",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "One thing means one charge, nothing more (megadoc L09)",
+   "defect": "the end anchor is dropped, so a merchant after 'one thing' is ignored and a charge-over watch is guessed",
+   "test": "'spend over 100 on one thing at target' is refused",
    "bites": true,
    "applied": true,
    "collateral": [],

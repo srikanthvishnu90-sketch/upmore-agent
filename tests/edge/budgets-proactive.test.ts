@@ -39,6 +39,23 @@ Deno.test("set and stop in chat: read, saved through the person's session, resta
   assertEquals(reads, 0);
 });
 
+// Megadoc L03 "set a 400 food budget", exactly as the owner wrote it: monthly $400.00 for food (groceries, restaurants
+// and delivery together), restated, with the 80% and 100% messages named, saved as the person's own row.
+Deno.test("megadoc L03: 'set a 400 food budget' saves a monthly $400.00 food budget and names the 80% and 100% messages", async () => {
+  const saves: any[] = [];
+  const r = await settingsMessage("set a 400 food budget", { async read() { return { ok: true, settings: { time_zone: "America/New_York", watches: [] } }; }, async save(c: any) { saves.push(c); return true; } }, NOW);
+  assertEquals(r!.changed, true);
+  assertEquals(r!.reply.split("\n"), [
+    "Budget set: food, $400.00 a month.",
+    "I'll count posted spending at groceries, restaurants and food delivery together, each calendar month in America/New York time, with refunds taken off. Transfers don't count; pending charges and charges in other currencies are mentioned, not added; anything I can't place in a category is shown apart, never guessed in.",
+    "It only tracks: it never moves money or blocks a payment. I'll message you once at 80% and once at 100% each month.",
+    "Say \"stop my food budget\" to turn it off.",
+  ]);
+  assertEquals(saves.length, 1);
+  const w = saves[0].watches;
+  assertEquals(w.map((x: any) => [x.kind, x.category, x.amount_cents, x.period, x.status]), [["category_budget", "food", 40000, "month", "active"]]);
+});
+
 Deno.test("plan: 80% of a budget is said once, as a watch, with the numbers and the source; the 100% later; never again that month", () => {
   // October so far in the fixture: Whole Foods $64.00 (Oct 4) in groceries; Chipotle 3 x $23.50 in restaurants.
   const w = stored(["set a $70 grocery budget"]);

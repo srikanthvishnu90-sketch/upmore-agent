@@ -67,6 +67,28 @@ Deno.test("a settings read that fails says so; set and stop are not this answer'
   for (const m of ["how am i doing on my grocery budget", "how are my budgets", "am i over budget", "what's left in my dining budget"]) assert(isBudgetAsk(m), m);
 });
 
+// Megadoc L04: "am I on track", said after setting a budget. The bare words are a budget ask only for a person who has a
+// budget; with none (or when the budgets can't be read) nothing is said here and the model answers, never a "you don't
+// have any budgets" to someone asking about something else. "On track to retire" is never this answer's.
+Deno.test("megadoc L04: a bare 'am I on track' is the budgets' status when the person has one; otherwise it goes on", async () => {
+  const all = (await reply("am I on track"))!;
+  assertEquals(all.split("\n").slice(0, 3), [
+    "Your budgets for October, day 12 of 31:",
+    "- Groceries: $187.43 of $400.00 spent, $212.57 left; $32.59 ahead of pace (top: Kroger $95.00, Trader Joe's $50.43, Whole Foods $25.00).",
+    "- Restaurants: $310.00 of $250.00 spent, $60.00 over (top: Chipotle $310.00).",
+  ]);
+  assert(all.endsWith("A budget only tracks: it never moves money or blocks a payment."), all);
+  assertEquals((await reply("am i on pace", settings(["set a $400 grocery budget"])))!.split("\n")[0], "Groceries budget for October: $187.43 spent of $400.00, $212.57 left.");
+  let reads = 0;
+  const none = { budgets: async () => [], transactions: async () => { reads++; return ROWS; } };
+  for (const m of ["am I on track", "am i on pace", "am i doing ok"]) assertEquals(await budgetReply(m, NOW, none, { tz: TZ }), null, m);
+  assertEquals(reads, 0, "with no budget the transactions are never read");
+  assertEquals(await budgetReply("am I on track", NOW, { budgets: async () => { throw new Error("down"); }, transactions: async () => ROWS }, { tz: TZ }), null, "an unreadable settings row: the bare ask goes on, never a budgets claim");
+  assertEquals(await budgetReply("how are my budgets", NOW, { budgets: async () => { throw new Error("down"); }, transactions: async () => ROWS }, { tz: TZ }), BUDGETS_UNAVAILABLE, "an ask that names budgets still says it can't read them");
+  for (const m of ["am i on track to retire", "am i on track with my savings goal", "am i on pace to pay off my card", "am i doing ok with my debt"]) assertEquals(await reply(m), null, m);
+  assert(isBudgetAsk("am I on track"));
+});
+
 Deno.test("the budgets are read through the person's own session from their settings row; a failed read throws", async () => {
   const calls: string[] = [];
   const sb = (res: any) => ({ from(t: string) { calls.push(t); return { select(c: string) { calls.push(c); return { eq(k: string, v: string) { calls.push(`${k}=${v}`); return { maybeSingle: async () => res }; } }; } }; } });

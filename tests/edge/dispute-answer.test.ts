@@ -63,6 +63,25 @@ Deno.test("a photo with nothing in the text goes on to the photo reader (null), 
   assertMatch((await disputeReply("dispute this charge", TODAY, reader(ROWS).f))!, /^Which charge do you want to dispute\?/);
 });
 
+// Megadoc K03 "dispute the charge", exactly as the owner wrote it: no charge named, so the person's recent charges come
+// back to pick from, each with merchant, amount and date, and the source; nothing is filed or sent.
+Deno.test("megadoc K03: 'dispute the charge' lists the recent charges and asks which; nothing filed", async () => {
+  const r = reader(ROWS);
+  const reply = (await disputeReply("dispute the charge", TODAY, r.f))!;
+  assertEquals(reply, [
+    "Which charge do you want to dispute?",
+    "1. Trader Joes, $64.00, posted Oct 8, 2026",
+    "2. Uber, $12.50, posted Oct 5, 2026",
+    "3. Streamflix, $48.20, posted Oct 3, 2026",
+    "4. Streamflix, $48.20, posted Sep 3, 2026",
+    "Say \"dispute\" with the amount and date of the one you mean, like \"dispute Trader Joes $64.00 on Oct 8\".",
+    SOURCE,
+  ].join("\n"));
+  assert(!/Done:|[Ff]iled\b|[Ss]ent\b/.test(reply), reply);
+  assertEquals(r.calls(), 1);
+  assert(isDisputeAsk("Dispute the charge."));
+});
+
 Deno.test("photo fields: matched to a linked charge, or drafted from the photo and said so", async () => {
   const matched = await disputePhotoReply({ merchant: "STREAMFLIX", amount_cents: 4820, date: "2026-10-03" }, TODAY, reader(ROWS).f);
   assertMatch(matched, /Matched to your photo\.\nFrom your linked accounts, as of 2026-10-08\.$/);

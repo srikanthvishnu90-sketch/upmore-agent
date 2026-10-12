@@ -83,6 +83,63 @@ Deno.test("chat commands: a watch in the person's words becomes a condition that
   assertEquals(parseCommand("tell me when my rent is due", null, NOW), null, "a question goes to the normal chat");
   assert(/Nothing was set up/.test(parseCommand("alert me when the moon is full", null, NOW)!.reply));
 });
+// Megadoc L09 "text me when I spend over 100 on one thing": a single charge over the amount is the existing "charge
+// over an amount" watch; a category or a merchant in the words is never dropped into it (it is refused, as before).
+Deno.test("megadoc L09: spending over an amount on one thing is the charge-over watch, and it fires on one charge", () => {
+  const c = parseCommand("text me when I spend over 100 on one thing", null, NOW)!;
+  assertEquals(c.reply, "I'll tell you about any charge over $100.00. Say \"show my alerts\" to see them.");
+  const w = (c.settings.watches || [])[0] as any;
+  assertEquals([w.kind, w.threshold_cents, c.settings.watches!.length], ["amount_over", 10000, 1]);
+  for (const [m, cents] of [["text me when i spend more than $250 in one purchase", 25000], ["alert me if I spend over $50 on a single purchase", 5000], ["warn me if I spend over $1,200.50 in a single transaction", 120050], ["ping me when i spend over $100 at once", 10000], ["tell me if anything over $100 posts", 10000], ["text me if anything over 100 posts", 10000], ["tell me when anything over $20 hits my card", 2000], ["let me know if any purchase over $75 hits", 7500]] as [string, number][]) {
+    const x = parseCommand(m, null, NOW)!;
+    assertEquals([(x.settings.watches || [])[0]?.kind, (x.settings.watches || [])[0]?.threshold_cents], ["amount_over", cents], `${m}: ${x && x.reply}`);
+  }
+  // Words that name a category, a merchant or no single purchase are not this watch: refused with the list, never guessed.
+  for (const m of ["alert me when i spend over 400 on food", "alert me when i spend over 100 on one thing at target", "text me when i spend over 100", "alert me when spending goes over 500"]) {
+    const x = parseCommand(m, null, NOW)!;
+    assertEquals(x.settings, {}, m);
+    assert(/^I can watch a balance below an amount, a charge over an amount/.test(x.reply) && /Nothing was set up\.$/.test(x.reply), x.reply);
+  }
+  assertEquals(parseCommand("tell me when my balance is anything over 100", null, NOW), null, "a balance question is not a charge watch");
+  // It fires on one charge over the line, not on several smaller ones.
+  const big = today("2026-10-11", -10001, "BEST BUY 00123", "one"), small = today("2026-10-11", -9000, "TARGET 00012345", "two");
+  const p = plan(input({ settings: c.settings, extra: [big, small] }), NOW);
+  assertEquals(p.messages.filter(m => m.kind === "watch" && /over your \$100\.00 line/.test(m.text)).map(m => m.text.split(" (")[0]), ["Best Buy charged $100.01, over your $100.00 line."]);
+});
+// Megadoc L10 "weekly spending summary every Sunday": the weekly recap (money in, money out, where most of it went,
+// what's coming up), on the day named; the same reply as "weekly recap".
+Deno.test("megadoc L10: a weekly spending summary is the weekly recap, on the day named", () => {
+  const c = parseCommand("weekly spending summary every Sunday", { weekly_recap_dow: null } as any, NOW)!;
+  assertEquals(c, { settings: { weekly_recap_dow: 0 }, reply: "I'll send your weekly recap every Sunday from 8 a.m.: money in, money out, and what's coming up." });
+  for (const [m, d] of [["send me a weekly spending report on fridays", 5], ["weekly spending recap every monday", 1], ["give me a weekly spend summary on saturdays", 6], ["i want a weekly spending update", 0], ["weekly money summary every thursday", 4], ["send me a weekly recap on fridays", 5], ["weekly summary", 0]] as [string, number][]) {
+    assertEquals(parseCommand(m, null, NOW)!.settings, { weekly_recap_dow: d }, m);
+  }
+  assertEquals(parseCommand("stop my weekly spending summary", null, NOW)!.settings, { weekly_recap_dow: null });
+  for (const m of ["what was my weekly spending", "how much did i spend this week", "weekly spending summary for groceries every sunday"]) assertEquals(parseCommand(m, null, NOW), null, m);
+  // The recap it turns on says what was spent: money out and where most of it went.
+  const sun = plan(input({ settings: c.settings }), NOW).messages.find(m => m.kind === "weekly_recap")!;
+  assert(/^Your week \(2026-10-04 to 2026-10-10\): \$[\d,]+\.\d\d in, \$[\d,]+\.\d\d out; most went to /.test(sun.text), sun.text);
+});
+// Megadoc J15 "tell me when free trials are about to convert": what is true, from code. The proactive run asks before a
+// trial the person tracks in the app (save_subscriptions, billing "trial" with its end date) bills, within the 7 days
+// before; trials are not found on their own (nothing shows in transactions before the first charge). Nothing is saved.
+Deno.test("megadoc J15: trial alerts are on for the trials it tracks, said truthfully, with how to add one; nothing changes", () => {
+  const on = parseCommand("tell me when free trials are about to convert", null, NOW)!;
+  assertEquals(on.settings, {});
+  assertEquals(on.reply, "That's on for the free trials I track. In the week before one turns into a paid charge, I message you with the date and the amount and ask \"Should I cancel it for you?\"; nothing is cancelled without your yes. A trial doesn't show in your transactions until it charges, so I only track the ones you add: in the app, Add a subscription, choose Free trial under \"Bills every\" and enter the trial-end date. These messages go to people with a linked bank or card. Nothing changed.");
+  const off = parseCommand("let me know before my free trials charge me", { alerts: false } as any, NOW)!;
+  assertEquals(off.settings, {});
+  assert(off.reply.startsWith("Alerts are off, so I'm not sending trial messages right now. Say \"turn alerts back on\" to start them."), off.reply);
+  assert(off.reply.endsWith("Nothing changed."), off.reply);
+  for (const m of ["alert me when my free trials end", "text me before any free trial bills me", "notify me when trials are about to convert to paid", "Tell me when free trials are about to convert."]) assertEquals(parseCommand(m, null, NOW)?.reply, on.reply, m);
+  // A named trial with its date is the trial tracker's (it saves that one); a question about trials goes to the chat.
+  for (const m of ["tell me when my hulu trial ends", "tell me when my free trial ends oct 20", "what free trials do i have", "remind me before my free trials charge"]) assertEquals(parseCommand(m, null, NOW), null, m);
+  // The promise matches the run: a tracked trial 3 days out gets the ask; nothing is asked for a trial that isn't tracked.
+  const trial = { id: "sub-j15", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active", cancel_url: null, cancel_steps: null };
+  const asked = plan(Object.assign(input(), { subscriptions: [trial] }), NOW).messages.find(m => m.offer);
+  assert(asked && /Should I cancel it for you\? Reply YES or NO\./.test(asked.text), asked ? asked.text : "no ask");
+  assert(!plan(input(), NOW).messages.some(m => m.offer), "no tracked trial, no ask");
+});
 Deno.test("chat commands: a standing report fires on its day, once per period, and can be stopped", () => {
   const friday = Date.UTC(2026, 9, 16, 14, 0, 0);
   const c = parseCommand("every friday tell me my food spend", null, NOW)!;

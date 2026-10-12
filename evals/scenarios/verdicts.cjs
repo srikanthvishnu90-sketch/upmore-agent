@@ -20,7 +20,7 @@ set("A04", "LIMITED", HANDOFF + "; no new-balance preview on the card", "tests/d
 set("A11", "LIMITED", HANDOFF + "; savings withdrawal limits are not checked", "tests/depth-PAY-001.test.cjs");
 set("A14 B15", "LIMITED", HANDOFF + "; two asks run one card at a time", "tests/edge/megadoc-sim.test.ts");
 set("A07", "LIMITED", "the daily send limit ($1,000) stops it before a card; no 'larger than usual' card", "tests/depth-PAY-001.test.cjs");
-set("A02", "NOT_BUILT", "saved nicknames/aliases ('brother'): saved_recipients has no alias column; it asks for the handle");
+set("A02", "LIMITED", HANDOFF + "; a saved nickname ('brother', saved_recipients.nickname) goes to the card with the real name and handle, two matches ask which, none saved asks for the handle (the sim world has no 'brother', so it asks)", "tests/recipient-nicknames.test.cjs");
 set("A03", "BUILT", "asks Sarah's Venmo handle; never claims a Venmo connection (Venmo is a handoff)", "tests/depth-RAIL-1.test.cjs");
 set("A08", "NOT_BUILT", "scheduled sends; says so and offers a send now", "tests/edge/megadoc-sim.test.ts");
 set("A09", "NOT_BUILT", "Upmore does not execute transfers, so none to cancel; says where to stop one", "tests/edge/megadoc-sim.test.ts");
@@ -62,7 +62,8 @@ set("D01", "LIMITED", RENT, "tests/standing-rent.test.cjs");
 set("D02", "LIMITED", RENT + "; no separate 'paying early' note, the card shows the due date", "tests/standing-rent.test.cjs");
 set("D03", "LIMITED", "the setup card restates the exact terms (amount, day each month, account, app); per the owner's automation rule every month still asks for a yes and the person sends it, so it is never autopay", "tests/standing-rent.test.cjs");
 set("D04", "BUILT", "with rent on file, a card restates the new amount and nothing changes without a yes; with nothing on file it says so and asks the rest", "tests/standing-rent.test.cjs");
-set("D06 D07 D14", "NOT_BUILT", "bill pay end to end is not built (no bill-pay rail; 'did my rent go through' is answered from transactions by the chat model)");
+set("D06 D07", "NOT_BUILT", "bill pay end to end is not built (no bill-pay rail)");
+set("D14", "BUILT", "answered from code over the person's own rows (money_answers.ts, not the model): posted with the date and account, or pending with the day it was first seen, with the source and as-of", "tests/edge/money-answers.test.ts");
 set("D12", "NOT_BUILT", "splitting rent across two accounts; the rent flow says rent comes from one account a month and asks which", "tests/standing-rent.test.cjs");
 set("D13", "NOT_BUILT", "a rent shortfall plan (balance vs rent due) is not built; the message is not a rent command and goes to the chat model");
 set("D05", "NOT_BUILT", "saved landlord payee change from text: never taken from text; a payee change is a new rent setup card the person confirms");
@@ -113,15 +114,21 @@ set("J01 J04 J06", "LIMITED", "finds the charge, then stops honestly: the mercha
 set("J02", "BUILT", "no usage data: asks which, one card each", "tests/depth-BILL-003.test.cjs");
 set("J03 J08", "MODEL", "the chat model over transactions");
 set("J05 J07 J10 J11 J13", "BUILT", "no matching charge on file: says what it does see and asks; never invents a merchant", "tests/depth-BILL-003.test.cjs");
-set("J09 J14 J15", "NOT_BUILT", "pause, downgrade and trial alerts");
+set("J09 J14", "NOT_BUILT", "pause and downgrade");
+set("J15", "DIVERGES", "no new rule is made: the trial ask is already on (with alerts on) for trials the person adds in the app (Add a subscription, Free trial, end date): in the week before the first charge it says the date and amount and asks 'Should I cancel it for you?'. The code reply says exactly that and how to add one; trials are never found on their own (nothing shows in transactions before the first charge)", "tests/edge/proactive.test.ts");
 set("J12", "BUILT", "finds the subscription by amount; none at $9.99 says so with the amounts it sees", "tests/edge/megadoc-sim.test.ts");
 // K. merchants, disputes
 set("K01 K02 K05 K07 K12", "MODEL", "the chat model over transactions; no dispute or merchant-identity tool");
-set("K03 K04 K08 K09 K10 K11", "NOT_BUILT", "disputes, refund requests and card controls");
+set("K03", "BUILT", "no charge named: lists the recent charges (merchant, amount, date, source) and asks which; the next message gets a pre-filled dispute with the ask-the-merchant step and the Fair Credit Billing Act and Regulation E timelines, which the person files with their issuer (no issuer filing rail); nothing is filed or sent", "tests/edge/dispute-answer.test.ts");
+set("K04 K08 K09 K10 K11", "NOT_BUILT", "refund requests and card controls");
 set("K06", "DIVERGES", "routed to brokerage orders ('no open order that I placed'); a food order is not Upmore's to cancel and the reply should say that");
 // L. budgets, M. savings
 set("L01 L02 L05 L06 L08 L11 L12", "MODEL", "the chat model over transactions");
-set("L03 L04 L07 L09 L10", "NOT_BUILT", "budgets, recategorization rules, alerts and scheduled summaries");
+set("L03", "BUILT", "set on the message and restated (food is groceries, restaurants and delivery together; $400.00 a calendar month; the 80% and 100% messages named) as the person's own budget row (agent_proactive_settings.watches); tracking only, so no yes card; the hourly run that sends the 80%/100% messages is not deployed", "tests/edge/budgets-proactive.test.ts");
+set("L04", "BUILT", "a bare 'am I on track' from a person with a budget is every budget's status pro rata (spent, left, an even pace for the day of the month), from their own rows with source and as-of; with no budget it goes on to the chat model; 'on track to retire' is never a budget ask", "tests/edge/budgets-answer.test.ts");
+set("L07", "NOT_BUILT", "recategorization rules");
+set("L09", "BUILT", "'spend over 100 on one thing' is the charge-over watch ($100.00), restated and saved as the person's watch row; it fires on one charge over the line; a category or merchant in the words is refused, never guessed", "tests/edge/proactive.test.ts");
+set("L10", "BUILT", "the weekly recap on Sundays (money in, money out and where most of it went, what's coming up), restated and saved as the person's setting; the hourly run that sends it is not deployed", "tests/edge/proactive.test.ts");
 set("M01 M02 M03 M07 M08 M12", "NOT_BUILT", "goals, transfers between accounts, round-ups and account opening");
 set("M04 M05 M06", "MODEL", "the chat model");
 set("M09 M10 M11", "NOT_BUILT", "savings automation; said plainly, nothing moved", "tests/edge/megadoc-sim.test.ts");

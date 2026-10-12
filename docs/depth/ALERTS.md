@@ -12,6 +12,10 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   "Only safety alerts and things you asked me to watch come through then". A "tell me when my checking drops below $500"
   that fired at 11 p.m. was held; a charge watch held past midnight was never said at all (watches read today's charges).
   Watches now come through quiet hours; findings and urgent items still wait. D05 plants the old hold back.
+- S16 (megadoc L09, 2026-10-12): "text me when I spend over 100 on one thing" got the list of watch kinds back and
+  nothing was set. Spending words for one charge ("on one thing", "in one purchase", "at once", "anything over $100")
+  are now the existing charge-over watch; the whole condition must be that, so "on food" or "at target" is still refused.
+  D16 drops the end anchor, which would guess a charge-over watch from "over 100 on one thing at target".
 - S03 (found building LEDGER): an ATM cash withdrawal fired "Fee: Atm Withdrawal $200.00 ... Banks often reverse a fee
   when asked". The fee rule now matches the word; D03 plants the old rule back.
 
@@ -26,11 +30,12 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S06 | Held until 7 a.m. local | held until 11:00 UTC in New York | `S06` in tests/depth-ALERTS.test.cjs | the end hour is taken as UTC | proven |
 | S07 | Watches are never bundled | a watch stays its own message beside a bundle | `S07` in tests/depth-ALERTS.test.cjs | a watch is folded into the bundle | proven |
 | S08 | Two are said one by one | two ordinary items are not bundled | `S08` in tests/depth-ALERTS.test.cjs | two items make a bundle | proven |
-| S09 | The exact number | $1,250.50 is 125050 cents | `S09` in tests/depth-ALERTS.test.cjs | the thousands comma is not removed | proven |
+| S09 | The exact number | $1,250.50 is 125050 cents | `S09` in tests/depth-ALERTS.test.cjs | the thousands comma is not removed | proven (also fails S16) |
 | S10 | Refused, never guessed | 'gas prices go below $3' is not a balance watch | `S10` in tests/depth-ALERTS.test.cjs | 'go below' is read as a balance falling | proven |
 | S11 | Available, not the books | $600 with $400 available is below $500 | `S11` in tests/depth-ALERTS.test.cjs | the watch compares the ledger balance | proven |
 | S12 | The last 3 days, from the watch's own day | a charge from before the watch was set does not fire; one 5 days old does not either | `S12` in tests/depth-ALERTS.test.cjs | every charge in the rows is read | proven |
 | S13 | Usual needs five past charges | two $15 dinners do not make $60 large | `S13` in tests/depth-ALERTS.test.cjs | one past charge sets the usual | proven |
 | S14 | Three first-time merchants is safety | three new shops in a day go out as safety | `S14` in tests/depth-ALERTS.test.cjs | four are needed | proven |
 | S15 | The person's buffer | under a $500 buffer on Oct 15 | `S15` in tests/depth-ALERTS.test.cjs | the default $100 buffer is always used | proven |
+| S16 | One thing means one charge, nothing more (megadoc L09) | 'spend over 100 on one thing at target' is refused | `S16` in tests/depth-ALERTS.test.cjs | the end anchor is dropped, so a merchant after 'one thing' is ignored and a charge-over watch is guessed | proven |
 <!-- results:end -->

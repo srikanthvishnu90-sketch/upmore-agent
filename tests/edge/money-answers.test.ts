@@ -68,6 +68,17 @@ Deno.test("spend, checkup and did-it-go-through read both and cite the source (S
   assertMatch(pending, /^It's pending: \$1,850\.00 to Mock Rent/);
 });
 
+// Megadoc D14 "did my rent go through?", exactly as the owner wrote it: answered from the person's own rows (posted with
+// its date and account, or pending), with the source; never a model's guess.
+Deno.test("megadoc D14: 'did my rent go through?' is answered from the rows: posted with the date, or pending", async () => {
+  assertEquals(moneyKind("did my rent go through?"), "through");
+  assertMatch((await moneyReply("did my rent go through?", NOW, readers().read))!, /^Yes, it posted: \$1,850\.00 to Mock Property Management Rent on Oct 1 \(Mock Bank Everyday Checking\)\./);
+  const pending = (await moneyReply("did my rent go through?", NOW, readers(ACCOUNTS, [tx(null, -185000, "MOCK RENT", true)]).read))!;
+  assertMatch(pending, /^It's pending: \$1,850\.00 to Mock Rent/);
+  assertMatch(pending, /, first seen [A-Z][a-z]{2} \d{1,2}\. It hasn't posted yet, so the money may not have moved\./);
+  assertMatch(pending, /as of /);
+});
+
 Deno.test("nothing linked returns null (noDataReply says it); a message that isn't a money ask reads nothing", async () => {
   const none = readers([], []);
   assertEquals(await moneyReply("what's my balance", NOW, none.read), null);

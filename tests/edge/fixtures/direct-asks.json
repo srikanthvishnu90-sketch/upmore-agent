@@ -131,6 +131,22 @@
     ["delete all my budgets", null],
     ["whats a good grocery budget for 2 people", null],
     ["help me make a budget", null],
-    ["how much can i spend on groceries", null]
+    ["how much can i spend on groceries", null],
+    ["am I on track", "budgetReply"],
+    ["am i on track this month?", "budgetReply"],
+    ["ok am i on pace", "budgetReply"],
+    ["am i on track to retire", null],
+    ["am i on track with my savings goal", null],
+    ["am i on pace to pay off my card by june", null],
+    ["am i doing ok", "moneyReply"],
+    ["dispute the charge", "disputeReply"],
+    ["did my rent go through?", "moneyReply"],
+    ["set a 400 food budget", null],
+    ["text me when I spend over 100 on one thing", null],
+    ["alert me if i spend more than $250 in one purchase", null],
+    ["weekly spending summary every Sunday", null],
+    ["send me a weekly spending report on fridays", null],
+    ["tell me when free trials are about to convert", null],
+    ["let me know before my free trials charge me", null]
   ]
 }

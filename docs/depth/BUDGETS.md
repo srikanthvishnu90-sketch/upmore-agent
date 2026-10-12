@@ -13,7 +13,8 @@ What a person can say, all in chat:
   category; setting it again replaces it and says the old amount. Monthly only: a weekly, daily or yearly ask sets
   nothing; zero, negative or over $100,000.00 sets nothing; a category it doesn't track is named back with the list.
 - Ask: "how am i doing on my grocery budget", "how are my budgets", "am i over budget", "what's left in my dining
-  budget": spent this month so far, left (or over), the day of the month and the pace against an even spread, the top 3
+  budget", and a bare "am i on track" / "am i on pace" (megadoc L04; only the bare words, so "on track to retire" is
+  not a budget ask; from a person with no budget it gets nothing here and goes on to the model): spent this month so far, left (or over), the day of the month and the pace against an even spread, the top 3
   places, refunds, pending and other-currency charges said, uncategorized spending as its own total, and the source
   and as-of line.
 - The agent speaks first: once at 80% and once at 100% of each budget per month (log key
@@ -59,4 +60,6 @@ Check: `node --test tests/depth-BUDGETS.test.cjs && node evals/depth/run.cjs BUD
 | S19 | Once per month, no 80% after 100% | a refund under 100% brings no 80% alert | `S19` in tests/depth-BUDGETS.test.cjs | the 80% alert follows the 100% one | proven |
 | S20 | Storable: no long digit runs | the stored budget has no 9-digit run | `S20` in tests/depth-BUDGETS.test.cjs | the id carries the raw millisecond time | proven (also fails S02) |
 | S21 | Over means over | exactly at the budget is not over | `S21` in tests/depth-BUDGETS.test.cjs | a budget spent exactly is called over | proven |
+| S22 | Bare means bare (megadoc L04) | 'am i on track' is a budget ask; 'am i on track to retire' is not | `S22` in tests/depth-BUDGETS.test.cjs | the end anchor is dropped, so 'on track to retire' is taken as a budget ask | proven (also fails S23) |
+| S23 | No budget, no answer to a bare ask | 'am i on track' with no budget gives nothing (the model answers) | `S23` in tests/depth-BUDGETS.test.cjs | a bare ask with no budget gets 'You don't have any budgets set' | proven |
 <!-- results:end -->

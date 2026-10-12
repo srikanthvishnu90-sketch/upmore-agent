@@ -29,7 +29,7 @@
 // payment from a person, from the person's own rows (packages/domain/101-money-in.js).
 // "What's this charge?" (megadoc K01, K02, K05): the charge found by its text or amount, what the statement shows, its
 // history and a possible double charge; dispute asks stay with the dispute answer (packages/domain/102-charge-check.js).
-import { Bnpl, BNPL_PROVIDERS_JSON, CancelledCharge, ChargeCheck, RentShort, SaveGoal, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
+import { Bnpl, BNPL_PROVIDERS_JSON, CancelledCharge, ChargeCheck, RentShort, SaveGoal, SpendRecheck, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -45,7 +45,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | "savegoal" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | "savegoal" | "recheck" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -100,6 +100,8 @@ export function moneyKind(message: string): MoneyKind | null {
   if (RentShort.ask(m)) return "rentshort";
   // "I want to save 10000 by June" (107-save-goal.js): the monthly amount against what the person keeps a month.
   if (SaveGoal.ask(m)) return "savegoal";
+  // "I spent less than that", "that's wrong", "break it down" (108-spend-recheck.js): the last spending answer rechecked.
+  if (SpendRecheck.ask(m)) return "recheck";
   // Before "did it go through": "did the refund go through" is about money coming back, not a charge.
   if (RefundCheck.ask(m)) return "refund";
   if (SubscriptionList.ask(m)) return "subs";
@@ -167,11 +169,19 @@ export async function moneyReply(message: string, now: Date | number | string, r
     return CancelledCharge.answer({ message, now: typeof now === "number" ? now : Date.parse(String(now instanceof Date ? now.toISOString() : now)), tz, transactions: tx, cancellations });
   }
   if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
+  if (kind === "recheck") {
+    // The answer just given in this thread, newest first; without it a "that's wrong" goes on to the model.
+    let previous: { role: string; content: string }[] = [];
+    try { previous = (read.previous ? await read.previous() : []) || []; } catch { previous = []; }
+    return SpendRecheck.answer(tx, message, now, { tz, rules, previous });
+  }
   if (kind === "math" || kind === "explain") {
     // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed
     // read only loses that context: a bare ask then goes on to the model, a named one is still answered.
     let previous: { role: string; content: string }[] = [];
     try { previous = (read.previous ? await read.previous() : []) || []; } catch { previous = []; }
+    // "Show me the math" right after a spending total: the charges behind it (the numbers' math has no spending answer).
+    if (SpendRecheck.lastSpend(previous)) return SpendRecheck.answer(tx, { kind: "where" }, now, { tz, rules, previous });
     return TheNumbers.showMath(accounts, tx, message, now, { tz, previous });
   }
   return TheNumbers.answer(kind, accounts, tx, message, now, { tz })?.text ?? null;

@@ -297,6 +297,18 @@
       if (d === 0) return `That's the same as ${p.prior.label}: ${money(prior$)}.${caveat}`;
       return `That's ${money(Math.abs(d))} ${d > 0 ? "more" : "less"} than ${p.prior.label}, when it was ${money(prior$)}.${caveat}`;
     }
+    // The rows behind a spending answer, by the same filters spend() uses (tests/money-answers.test.cjs holds the two to
+    // the same total): the period, what was counted, the pending charges left out, and for a category, the charges in
+    // the period that matched no category. Used to recheck a total the person disputes (108-spend-recheck.js).
+    function spendRows(transactions, words, now, opts) {
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions);
+      const out = all.filter(isSpend), cur = out.filter((r) => inRange(r, p)), tg = target(words);
+      let rows = cur, unmatched = [];
+      if (tg.kind === "category") { rows = cur.filter((r) => { const k = classify(r.merchant_raw, rules); return !!k && tg.cat.groups.includes(k.group); }); unmatched = cur.filter((r) => !classify(r.merchant_raw, rules)); }
+      else if (tg.kind === "merchant") rows = cur.filter((r) => termMatch(r.merchant_raw, tg.term));
+      const pending = (transactions || []).filter((r) => r && r.is_pending && cents(r) < 0 && typeof r.posted_on === "string" && inRange(r, p) && (tg.kind !== "merchant" || termMatch(r.merchant_raw, tg.term)) && (tg.kind !== "category" || ((c) => c && tg.cat.groups.includes(c.group))(classify(r.merchant_raw, rules))));
+      return { period: p, target: tg, rows, total: sum(rows), pending, unmatched, start: earliest(transactions) };
+    }
     function spend(transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
       const extra = "Transfers, card payments and pending charges are left out.";
@@ -421,6 +433,6 @@
     // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries". The same ones,
     // plus isIncome (a credit that is not a transfer or card payment), termMatch, acctName and kindOf, are shared with
     // the month comparison and spending by card (94-spending-views.js).
-    return { money, period, classify, ruleFor, ruleLine, MERCHANT_NAMES: MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
+    return { money, period, spendRows, classify, ruleFor, ruleLine, MERCHANT_NAMES: MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;

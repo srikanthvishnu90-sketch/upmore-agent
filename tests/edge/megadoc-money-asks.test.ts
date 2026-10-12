@@ -108,3 +108,21 @@ Deno.test("M06: a savings target's monthly amount against what the person keeps,
   assertMatch(r, SRC);
   assertEquals((await first("help me save money"))[0], "findMoneyReply");
 });
+
+Deno.test("L06: a disputed spending total is rechecked from the thread's last answer, with the charges behind it", async () => {
+  const { moneyReply } = await import("../../supabase/functions/agent-chat/_shared/money_answers.ts");
+  const acc = [{ account_id: "chk", name: "Everyday Checking", institution: "Mock Bank", account_kind: "checking", balance_cents: 100000, available_cents: 100000, balance_as_of: "2026-10-12T12:00:00Z", fetched_at: "2026-10-12T12:00:00Z", status: "active", currency: "USD" }];
+  const t = (d: string, c: number, m: string) => ({ account_id: "chk", provider_transaction_id: `${d}-${m}`, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T12:00:00Z" });
+  const rows = [t("2026-08-02", -500, "X"), t("2026-09-03", -9000, "TRADER JOE S #552"), t("2026-09-11", -6000, "WHOLEFDS MKT 10230")];
+  const now = new Date("2026-10-12T15:00:00Z"), ask = "how much did i spend on groceries in september";
+  const rd = (thread: any[]) => ({ accounts: async () => acc as any, transactions: async () => rows as any, previous: async () => thread });
+  const answer = await moneyReply(ask, now, rd([]), { tz: "America/New_York" });
+  assertMatch(answer!, /^You spent \$150\.00 on groceries in September/);
+  const thread = [{ role: "assistant", content: answer }, { role: "user", content: ask }];
+  const r = await moneyReply("i spent less than that", now, rd(thread), { tz: "America/New_York" });
+  assertMatch(r!, /^Rechecked from your rows: \$150\.00 on groceries in September \(Sep 1-30\), from 2 charges\.\nThe charges: Trader Joe's \$90\.00 on Sep 3; Whole Foods \$60\.00 on Sep 11\.\n/);
+  // "Show me the math" right after a spending total gives the same recheck.
+  assertMatch((await moneyReply("show me the math", now, rd(thread), { tz: "America/New_York" }))!, /^Rechecked from your rows: \$150\.00/);
+  // A bare "that's wrong" with no spending answer just given goes on to the model.
+  assertEquals(await moneyReply("that's wrong", now, rd([]), { tz: "America/New_York" }), null);
+});

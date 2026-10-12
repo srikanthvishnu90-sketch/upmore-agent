@@ -293,6 +293,9 @@
     ["split it", null],
     ["the other one", null],
     ["I want to save 10000 by June", "moneyReply"],
-    ["help me save money", "findMoneyReply"]
+    ["help me save money", "findMoneyReply"],
+    ["i spent less than that", "moneyReply"],
+    ["that's wrong", null],
+    ["break it down", null]
   ]
 }

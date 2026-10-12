@@ -269,3 +269,17 @@ test("a refund follow-up looks for the credit, never a charge (the follow-up the
   assert.equal(MA.goThroughTarget("did my credit card payment go through").refund, undefined);
   assert.equal(MA.goThroughTarget("did my credit union transfer go through").refund, undefined);
 });
+
+// spendRows (the rows behind a total, used to recheck one the person disputes) and spend() must never disagree: the same
+// period, filters and category rules give the same total for every kind of ask.
+test('spendRows gives the same total spend() reports, for categories, merchants, all spending and category rules', () => {
+  const asks = ['how much did i spend on groceries last month', 'how much did i spend on food in september', 'what did i spend at trader joes in september', 'how much have i spent this month', 'how much did i spend on gas in october', 'how much did i spend at netflix this month', 'how much did i spend on groceries in august'];
+  const rules = [{ term: 'blue heron hardware', group: 'groceries' }];
+  for (const r of [null, rules]) for (const a of asks) {
+    const said = /^You spent (\$[\d,]+\.\d\d)/.exec(M.spend(TX, a, NOW, { tz: 'America/New_York', rules: r }));
+    const d = M.spendRows(TX, a, NOW, { tz: 'America/New_York', rules: r });
+    assert.ok(said, a);
+    assert.equal(M.money(d.total), said[1], `${a} ${r ? '(with a rule)' : ''}`);
+    assert.equal(d.rows.reduce((s, x) => s - x.amount_cents, 0), d.total, a);
+  }
+});

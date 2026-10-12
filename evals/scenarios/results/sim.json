@@ -222,7 +222,7 @@
    "typed": "send maya my share",
    "flow": "send",
    "outcome": "ask",
-   "reply": "How much?",
+   "reply": "Your share of what? Say the amount, like \"send Maya $40 for dinner\".",
    "executed": false,
    "mock_orders": 0
   },

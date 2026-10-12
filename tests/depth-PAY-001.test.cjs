@@ -168,3 +168,10 @@ test('[ADV] the adversarial log in docs/depth/PAY-001.md, every row',async()=>{
   {const {s:f,r:fr}=session();const w=await f.start('send forty to Sarah');assert.equal(w.outcome,'confirm');assert.match(w.text,/\$40\.00 to Sarah M/);await f.reply('no');assert.equal(fr.writes.length,0);}
   assert.equal(r.writes.length,0,'nothing in the adversarial log ever reached a rail');
 });
+
+test('[S17] "send Maya my share" with no amount asks "Your share of what?" and stages nothing',async()=>{
+  const {s,r}=session();
+  const a=await s.start('send sam my share');assert.equal(a.outcome,'ask');assert.equal(a.text,'Your share of what? Say the amount, like "send Sam $40 for dinner".');
+  assert.equal(r.writes.length,0);assert.equal(s.pending,null);
+  assert.equal((await s.start('send sam')).text,'How much?');
+});

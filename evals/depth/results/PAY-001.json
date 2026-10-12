@@ -1,9 +1,9 @@
 {
  "capability": "PAY-001",
- "run_at": "2026-10-11T22:12:54.051Z",
+ "run_at": "2026-10-12T11:34:47.876Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 17,
+ "sub_capabilities": 17,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -14,7 +14,9 @@
    "test": "a send without an amount asks and stages nothing",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S17"
+   ],
    "status": "proven"
   },
   {
@@ -214,6 +216,17 @@
    "title": "Stop-on-change",
    "defect": "the re-verification result is ignored, so a changed rail still sends",
    "test": "a changed rail, fee or limit between yes and send stops it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D18",
+   "title": "A share of what",
+   "defect": "the share words are not read",
+   "test": "send Sam my share asks share of what",
    "bites": true,
    "applied": true,
    "collateral": [],

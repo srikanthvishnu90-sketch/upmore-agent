@@ -36,7 +36,7 @@ set("B06", "BUILT", "an amount change on a live card voids it and puts up a new 
 set("B07", "BUILT", "two amounts with no correction word are asked (\"$50.00 or $5.00?\"), no card; the answer starts that send, which still needs a yes; a self-correction (\"no wait, make it 5\") takes the last number", "tests/router.test.cjs");
 set("B08", "BUILT", "asks $40.00 or $4.00", "tests/edge/megadoc-sim.test.ts");
 set("B09", "BUILT", "no FX: says US dollars only, nothing set up", "tests/edge/megadoc-sim.test.ts");
-set("B10", "DIVERGES", "asks 'How much?' instead of 'Your share of what?' and offers no recent bills");
+set("B10", "LIMITED", "asks \"Your share of what? Say the amount\" and stages nothing; recent bills are not offered (no record of a recent shared bill is read)", "tests/depth-PAY-001.test.cjs");
 set("B11", "BUILT", "balance-to-zero warning and asks the amount (no live balance figure in the warning)", "tests/edge/megadoc-sim.test.ts");
 set("B12", "BUILT", "marketplace scam warning, protected-payment hint, asks the handle; does not refuse", "tests/edge/megadoc-sim.test.ts");
 set("B14", "MODEL", "a mistaken send to a look-alike: the chat model answers; no reversal request is built");

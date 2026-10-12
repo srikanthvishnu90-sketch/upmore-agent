@@ -2012,6 +2012,8 @@
 <!--__CHAT_CONTROLLER__-->
 <script>
 /*__CONNECT_CARDS__*/
+/*__MANUAL_CONNECT__*/
+/*__MANUAL_PLAYBOOKS__*/
   /* Phone frame on larger screens */
   (function () {
     if (new URLSearchParams(location.search).has("noanim")) document.documentElement.classList.add("noanim");
@@ -10708,10 +10710,11 @@
         investAccts.map(a => `<div class="mrow"><div><b>${esc(a.name)}</b><i>balance only — holdings unavailable</i></div><span>${bm0(a.balance)}</span></div>`).join("") +
         `</div><p class="psub" style="margin-top:8px">Connect Plaid or add positions manually to X-ray these.</p>` : "";
 
-    body.innerHTML = `${connHtml}${mainHtml}${balHtml}
+    body.innerHTML = `${connHtml}${mainHtml}${balHtml}${signedIn ? `<div id="manualConnectBox" style="margin-top:14px"></div>` : ""}
       <p class="fine" style="margin:18px 0 4px">Read-only X-ray. Upmore shows what you hold, what it costs, where it's concentrated, and what it pays — facts only, never buy/sell advice.</p>`;
 
     // wiring
+    if (signedIn && typeof refreshManualConnect === "function") refreshManualConnect();
     const pc = $("invPlaidConnect"); if (pc) pc.onclick = () => maybeConsent("plaid", plaidConnectFlow);
     // CONNECT-ONCE 2026-09-28: the reconnect banner's button reuses the same
     // Plaid Link flow — re-auth is always the user's own tap.
@@ -13187,6 +13190,87 @@ async function refreshBrokerRow() {
     desc.textContent = "Not connected.";
     btn.textContent = "Connect"; btn.hidden = false; btn.onclick = connect;
   }
+}
+/* Guided manual connect (owner addendum 2026-10-11; decision 1: no password storage, session-only), in Investments.
+   For platforms no API or aggregator reaches. The person reads the consent (ManualConnect.consentText; the
+   manual-connect function records the same words), opens the platform's own sign-in page in a live window and logs in
+   THEMSELVES there, doing their own two-step check; then taps "I'm signed in". Upmore types nothing, and there is no
+   password or code field here. Only the encrypted session is kept (Vault). Read-only. The status line is
+   ManualConnect.statusLine, the same words everywhere. The client reads its own rows (RLS), never a session. */
+const MC_FMT = ms => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+async function mcInvoke(body) {
+  try {
+    const { data, error } = await supa.functions.invoke("manual-connect", { body });
+    if (data) return data;
+    if (error && error.context && typeof error.context.json === "function") return await error.context.json().catch(() => ({ ok: false }));
+  } catch (e) {}
+  return { ok: false, text: "Couldn't reach Upmore right now. Nothing was changed; try again." };
+}
+const mcSession = r => r ? { state: r.state, last_checked: r.last_checked ? Date.parse(r.last_checked) : null } : null;
+async function refreshManualConnect(openId) {
+  const box = $("manualConnectBox");
+  if (!box || !supa || !session || !session.user || typeof ManualConnect === "undefined") return;
+  let rows = null;
+  try {
+    const { data, error } = await supa.from("manual_connections").select("platform_id,state,last_checked,consent_version").eq("user_id", session.user.id);
+    if (!error) rows = data || [];
+  } catch (e) {}
+  box.innerHTML = `<h2 class="sec">Platforms with no connection</h2>
+    <p class="psub" style="margin-bottom:8px">No API or aggregator reaches these. You log in yourself in a live window, and Upmore reads your balances and holdings there. Read-only.</p>
+    <div class="bcard">` + MANUAL_PLAYBOOKS.map(p => {
+      const r = rows && rows.find(x => x.platform_id === p.platform_id);
+      const line = rows === null ? "Can't check this connection right now." : ManualConnect.statusLine(p.display_name, mcSession(r), Date.now(), MC_FMT);
+      const label = r && ["connected", "needs_login", "broken"].includes(r.state) ? "Manage" : "Connect";
+      return `<div class="mrow"><div><b>${esc(p.display_name)}</b><i>${esc(line)}${p.verified ? "" : " · unverified playbook"}</i></div><button class="ghostbtn" data-mc="${esc(p.platform_id)}" style="width:auto;margin:0;padding:6px 12px">${label}</button></div>`;
+    }).join("") + `</div><div id="mcPanel"></div>`;
+  box.querySelectorAll("[data-mc]").forEach(b => { b.onclick = () => openManualPanel(b.getAttribute("data-mc"), rows); });
+  if (openId) openManualPanel(openId, rows);
+}
+function openManualPanel(id, rows) {
+  const p = MANUAL_PLAYBOOKS.find(x => x.platform_id === id), panel = $("mcPanel");
+  if (!p || !panel) return;
+  const r = (rows || []).find(x => x.platform_id === id) || null;
+  const agreed = !!(r && r.state !== "revoked" && r.consent_version === ManualConnect.CONSENT_VERSION);
+  const live = !!(r && ["connected", "needs_login", "broken"].includes(r.state));
+  panel.innerHTML = `<div class="pcard" style="margin-top:12px;flex-direction:column;align-items:stretch">
+    <p class="bsum" style="font-size:14px"><b>Connect ${esc(p.display_name)}, read-only</b></p>
+    ${ManualConnect.consentText(p.display_name).map(t => `<p class="psub" style="margin-top:6px">${esc(t)}</p>`).join("")}
+    ${p.verified ? "" : `<p class="fine" style="margin-top:8px">Unverified playbook: ${esc(p.display_name)}'s pages haven't been confirmed on a live run yet, so this is a try, not a promise.</p>`}
+    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${agreed ? `<button class="cta" id="mcOpen" style="flex:1;margin:0">Open the sign-in window</button>
+      <button class="ghostbtn" id="mcSigned" style="flex:1;margin:0">I'm signed in</button>` : `<button class="cta" id="mcAgree" style="flex:1;margin:0">I agree</button>`}
+      ${live ? `<button class="ghostbtn" id="mcRead" style="flex:1;margin:0">Read balances</button>
+      <button class="ghostbtn" id="mcOff" style="flex:1;margin:0">Disconnect</button>` : ""}
+    </div>
+    <p class="fine" id="mcStatus" style="margin-top:8px;white-space:pre-line">${esc(ManualConnect.statusLine(p.display_name, mcSession(r), Date.now(), MC_FMT))}</p>
+  </div>`;
+  const st = $("mcStatus");
+  const say = res => { if (st) st.textContent = [res.text || res.message || (res.ok ? "" : "That didn't work. Nothing was changed."), res.status_line].filter(Boolean).join("\n"); };
+  const busy = (b, fn) => async () => { b.disabled = true; try { await fn(); } finally { b.disabled = false; } };
+  const ag = $("mcAgree");
+  if (ag) ag.onclick = busy(ag, async () => {
+    const res = await mcInvoke({ action: "consent", platform_id: id, accepted: true, consent_version: ManualConnect.CONSENT_VERSION });
+    if (res.ok) refreshManualConnect(id); else say(res);
+  });
+  const op = $("mcOpen");
+  if (op) op.onclick = busy(op, async () => {
+    // The tab opens on the tap (popup blockers), then goes to the live window once it exists.
+    const win = window.open("", "_blank");
+    const res = await mcInvoke({ action: "start", platform_id: id });
+    if (res.ok && /^https:\/\//.test(res.live_view_url || "")) {
+      if (win) { win.opener = null; win.location.href = res.live_view_url; } else window.open(res.live_view_url, "_blank", "noopener");
+    } else if (win) win.close();
+    say(res);
+  });
+  const sg = $("mcSigned");
+  if (sg) sg.onclick = busy(sg, async () => { const res = await mcInvoke({ action: "check", platform_id: id }); say(res); if (res.ok) setTimeout(() => refreshManualConnect(id), 1200); });
+  const rd = $("mcRead");
+  if (rd) rd.onclick = busy(rd, async () => say(await mcInvoke({ action: "read", platform_id: id, verb: "read_balances" })));
+  const off = $("mcOff");
+  if (off) off.onclick = busy(off, async () => {
+    if (!confirm(`Disconnect ${p.display_name}? Upmore deletes the session right away.`)) return;
+    const res = await mcInvoke({ action: "disconnect", platform_id: id }); say(res); if (res.ok) setTimeout(() => refreshManualConnect(id), 1200);
+  });
 }
 /* Gmail connection (2026-09-28): read-only OAuth so the cancellation agent
    can fetch sign-in codes itself. Tokens stay server-side in the vault —

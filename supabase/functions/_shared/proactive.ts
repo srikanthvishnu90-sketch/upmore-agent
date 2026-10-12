@@ -346,7 +346,9 @@ async function ensureThread(admin: any, userId: string): Promise<string> {
 // ---- The scheduled entry point (POST /functions/v1/agent-proactive, called hourly by pg_cron) ----
 // Authenticated by PROACTIVE_SECRET in the x-upmore-proactive-secret header (constant-time compare); never a user
 // JWT, never public. The response carries counts only, never message text or a person's numbers.
-export async function handleProactive(req: Request, d: { env: { get(k: string): string | undefined }; store: ProactiveStore; now?: () => number }): Promise<Response> {
+// `extra` runs after the main pass inside the same authenticated call (guided manual connect's session health check,
+// _shared/manual_connect.ts runManualHealth); it returns counts only, and its failure never fails the main run.
+export async function handleProactive(req: Request, d: { env: { get(k: string): string | undefined }; store: ProactiveStore; now?: () => number; extra?: (now: number) => Promise<Record<string, unknown>> }): Promise<Response> {
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
   const want = d.env.get("PROACTIVE_SECRET") || "", got = req.headers.get("x-upmore-proactive-secret") || "";
@@ -354,7 +356,11 @@ export async function handleProactive(req: Request, d: { env: { get(k: string): 
   let limit = 200;
   try { const raw = await req.text(); if (raw.length > 200) return json({ error: "request too large" }, 413); if (raw) { const b = JSON.parse(raw); if (b.limit !== undefined) limit = b.limit; } } catch { return json({ error: "invalid request" }, 400); }
   if (!Number.isInteger(limit) || limit < 1 || limit > 500) return json({ error: "invalid limit" }, 400);
-  try { return json(Object.assign({ ok: true }, await runAll(d.store, (d.now || Date.now)(), limit))); }
+  try {
+    const now = (d.now || Date.now)(), out: Record<string, unknown> = Object.assign({ ok: true }, await runAll(d.store, now, limit));
+    if (d.extra) { try { out.manual_connect = await d.extra(now); } catch (e) { console.error(`[proactive] manual connect health failed: ${e instanceof Error ? e.message : String(e)}`); out.manual_connect = { failed: true }; } }
+    return json(out);
+  }
   catch (e) { console.error(`[proactive] run failed: ${e instanceof Error ? e.message : String(e)}`); return json({ ok: false, error: "run failed" }, 503); }
 }
 function sameSecret(a: string, b: string) { if (a.length !== b.length) return false; let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i); return x === 0; }

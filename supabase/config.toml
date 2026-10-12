@@ -29,3 +29,7 @@ verify_jwt = false
 
 [functions.model-health]
 verify_jwt = false
+
+# Guided manual connect: every action is the signed-in person's own (consent, the live sign-in window, read, disconnect).
+[functions.manual-connect]
+verify_jwt = true

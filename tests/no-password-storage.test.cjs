@@ -35,6 +35,25 @@ test('the connector model has no stored-login method: a login is a live session 
   assert.ok(require('../packages/domain/51-connectors.js').AUTH.includes('LIVE_SESSION'));
 });
 
+test('guided manual connect: the person signs in themselves in the live window; nothing types, takes or keeps a password or code', () => {
+  const files = ['supabase/functions/manual-connect/index.ts', 'supabase/functions/_shared/manual_connect.ts', 'supabase/functions/_shared/manual_browser.ts'];
+  for (const f of files) {
+    const s = read(f);
+    assert.ok(!/type\s*=\s*["']?password|input\[type/i.test(s), `${f}: no password field`);
+    assert.ok(!/Input\.insertText|Input\.dispatchKeyEvent|\.value\s*=|typeInto|sendKeys/.test(s), `${f}: nothing is typed into the page`);
+    assert.ok(!/body\.(password|otp|code|username|credential)/.test(s), `${f}: no credential read from a request`);
+    assert.ok(!/password\s*:/i.test(s), `${f}: no password key anywhere`);
+  }
+  const h = read('supabase/functions/_shared/manual_connect.ts');
+  const refuse = h.indexOf('if (Object.keys(body).some((k) => SECRET_FIELD.test(k)))'), act = h.indexOf('const action = String(body.action || "");');
+  assert.ok(refuse > 0 && refuse < act, 'a password or code in a request is refused before anything else');
+  assert.ok(h.includes('await deps.db.vaultStore(vaultName(user.id, pb.platform_id), JSON.stringify(st));'), 'only the browser session goes to Vault');
+  assert.ok(h.includes('(sink || console.log)(JSON.stringify(MC.scrub('), 'every log line is scrubbed');
+  assert.ok(!/console\.(log|error|warn)\(/.test(h.replace('(sink || console.log)(JSON.stringify(MC.scrub(', '')), 'no other log path');
+  const sql = read('supabase/migrations/20261012010000_manual_connections.sql');
+  assert.ok(!/password|otp|cookie\s+text|session\s+text/i.test(sql.split('\n').filter(l => !l.trim().startsWith('--')).join('\n')), 'the table has no column for a password, a code or the session');
+});
+
 test('a cancel playbook that reaches a password field stops there: nothing typed, nothing changed', () => {
   const g = read('supabase/functions/agent-exec/execution-guards.ts');
   assert.ok(g.includes('ctx: { username: string }, page: GuardPage,'));

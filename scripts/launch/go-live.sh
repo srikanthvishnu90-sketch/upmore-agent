@@ -16,8 +16,8 @@
 #   1. migrations: only those not yet in the live ledger (--pending), ONE transaction; a re-run applies nothing
 #   2. secrets: the OpenAI key, the health token and the Alpaca OAuth pair, each only if given (values via a 0600 temp
 #      file, never echoed)
-#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback, model-health, agent-proactive, exec-vault-store and
-#      agent-exec (no password storage, decision 1); broker-oauth-callback, model-health and agent-proactive are
+#   3. deploy: agent-chat, broker-oauth-start, broker-oauth-callback, model-health, agent-proactive, exec-vault-store,
+#      agent-exec (no password storage, decision 1) and manual-connect (the live sign-in window, JWT on); broker-oauth-callback, model-health and agent-proactive are
 #      --no-verify-jwt: a browser redirect, an uptime monitor and pg_cron carry no JWT; the latter two check their own
 #      secret); then schedule agent-proactive hourly with pg_cron (the secret in Vault, read at call time)
 #   4. smoke: unauthenticated calls answer 401, the callback answers with the NEW code (proves the deploy took), and ONE
@@ -86,17 +86,21 @@ do_ supabase functions deploy agent-proactive --project-ref "$REF" --no-verify-j
 # No password storage (owner decision 1): the vault that refuses passwords and the cancel agent that never types one.
 do_ supabase functions deploy exec-vault-store --project-ref "$REF"
 do_ supabase functions deploy agent-exec --project-ref "$REF"
+# Guided manual connect (decision 1, session-only): the live sign-in window and the Vault session store. JWT on: every
+# action is the signed-in person's own. Without BROWSERBASE_API_KEY/BROWSERBASE_PROJECT_ID it answers 503 NOT_WIRED.
+do_ supabase functions deploy manual-connect --project-ref "$REF"
 # Hourly, at minute 7: pg_cron -> pg_net -> agent-proactive with the secret read from Vault at call time.
 if [[ -n "$DRY" ]]; then echo "DRY: psql <SUPABASE_DB_URL> -v url=$BASE/functions/v1/agent-proactive -f scripts/launch/schedule-proactive.sql (secret from Vault, never printed)"
 else psql "$SUPABASE_DB_URL" -q -v url="$BASE/functions/v1/agent-proactive" -f scripts/launch/schedule-proactive.sql; fi
 
 say "4. smoke (the new code is what answers)"
 expect() { local want="$1" got="$2" what="$3"; if [[ "$got" == "$want" ]]; then echo "ok   $what ($got)"; else echo "FAIL $what: wanted $want, got $got"; exit 1; fi; }
-if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; POST agent-proactive with no secret -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid; GET model-health?probe=1 (token header) -> 200 or STOP with the provider's error"
+if [[ -n "$DRY" ]]; then echo "DRY: POST agent-chat with no JWT -> 401; POST broker-oauth-start with no JWT -> 401; POST agent-proactive with no secret -> 401; POST manual-connect with no JWT -> 401; GET broker-oauth-callback?state=x -> 302 to #you?broker=error&reason=state_invalid; GET model-health?probe=1 (token header) -> 200 or STOP with the provider's error"
 else
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/agent-chat")" "agent-chat refuses a call with no JWT"
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/broker-oauth-start")" "broker-oauth-start refuses a call with no JWT"
   expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/agent-proactive")" "agent-proactive refuses a call without its secret"
+  expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/functions/v1/manual-connect")" "manual-connect refuses a call with no JWT"
   LOC="$(curl -s -o /dev/null -w '%{redirect_url}' "$BASE/functions/v1/broker-oauth-callback?state=x&code=y")"
   [[ "$LOC" == *"#you?broker=error&reason=state_invalid" ]] && echo "ok   broker-oauth-callback is the new code ($LOC)" || { echo "FAIL broker-oauth-callback answered '$LOC'"; exit 1; }
   # Step 1 of v3: one live model call. A dead model stops the run here with the provider's own words (key redacted).

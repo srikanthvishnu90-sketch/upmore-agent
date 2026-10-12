@@ -8,7 +8,7 @@ test('chat handler: settings commands run after the safety guards and before the
   const guard=h.indexOf('if (earlyGuard)'),offer=h.indexOf('if (mayAnswerOffer(message))'),settings=h.indexOf('await settingsMessage(message, supabaseSettingsDb(supabase, user.id)'),flows=h.indexOf('flow = await routeFlows(');
   assert.ok(guard>0&&offer>guard&&settings>offer&&flows>settings,'guards, then the answer to an offer, then settings, then flows');
   assert.ok(h.includes('liveCard: async () => { try { return hasLiveCard(await flowDb.loadState()); } catch { return true; } }'),'an unreadable flow state counts as a live card: the offer never steals a card\'s yes');
-  assert.match(h,/import \{ settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps \} from "\.\.\/_shared\/proactive\.ts";/);
+  assert.match(h,/import \{ settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps(?:, [A-Za-z_]+)* \} from "\.\.\/_shared\/proactive\.ts";/);
 });
 test('scheduler: the function exists, CI type-checks it, go-live deploys and schedules it',()=>{
   assert.match(read('supabase/functions/agent-proactive/index.ts'),/handleProactive\(req, \{ env: Deno\.env, store: supabaseProactiveStore\(/);

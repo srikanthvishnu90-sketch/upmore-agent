@@ -52,7 +52,7 @@ import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
-import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
+import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -273,15 +273,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The thread's last messages, newest first: "show me the math" explains the answer just given, and "what's new"
       // reads its own last "reviewed through" date (_shared/whats_new_answer.ts).
       const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20); return h.error ? [] : h.data || []; };
+      // The person's own day: their time zone from their settings (the morning brief's default when none is set), so a
+      // window's days, a due date or "this month" are counted in their day, not UTC's (a 9 p.m. New York question is
+      // still that day). One column, read once per turn.
+      const tzRead = await supabase.from("agent_proactive_settings").select("time_zone").eq("user_id", user.id).maybeSingle();
+      const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,
         // "show me the math" explains the answer just given in this thread.
         previous: readPrevious,
-      });
+      }, { tz });
       // "dispute this charge", "find me money" and an airline refund (_shared/airline_answer.ts, DOT rules from the offer
       // book): a failed read says so plainly instead of failing the whole turn.
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localClock(Date.now(), tz).date;
       try {
         // "what's new": the review inbox in chat, since the person last asked (_shared/whats_new_answer.ts).
         if (!direct) direct = await whatsNewReply(message, today, readTx, readPrevious);

@@ -23,6 +23,17 @@ const SCREENS = ["splash", "login", "welcome", "time", "about", "situation", "pl
 const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 const VIEWPORTS = { phone: { viewport: { width: 390, height: 844 }, userAgent: IPHONE_UA, isMobile: true, hasTouch: true }, desktop: { viewport: { width: 1280, height: 800 } } };
 const UPDATE = process.argv.includes("--update"), TOLERANCE = 0.005;
+// What a run renders: the app page, the images and fonts it loads, and the baselines it compares with. The testing agent
+// (evals/agent/run.ts, D-06) computes the same fingerprint.
+const VISUAL_INPUTS = ["index.html", "img", "fonts", "connect", "evals/agent/visual-baseline"];
+function visualInputsHash(root) {
+  const crypto = require("crypto"), files = [];
+  const walk = rel => { const abs = path.join(root, rel); if (!fs.existsSync(abs)) return; if (fs.statSync(abs).isDirectory()) for (const n of fs.readdirSync(abs)) walk(rel + "/" + n); else files.push(rel); };
+  VISUAL_INPUTS.forEach(walk);
+  const h = crypto.createHash("sha256");
+  for (const f of files.sort()) h.update(f + "\n" + crypto.createHash("sha256").update(fs.readFileSync(path.join(root, f))).digest("hex") + "\n");
+  return h.digest("hex");
+}
 // Runs in the page: the share of pixels that differ between two PNG data URLs (1 when the sizes differ).
 const diffPixels = async ([a, b]) => {
   const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
@@ -124,5 +135,11 @@ const diffPixels = async ([a, b]) => {
   const bad = results.filter(r => r.status === "FAIL");
   for (const r of results.filter(r => r.status !== "PASS")) console.log(`  ${r.status} ${r.id}: ${r.why}`);
   console.log(`visual: ${bad.length ? "RED" : "GREEN"}; ${results.filter(r => r.status === "PASS").length} screens match, ${results.filter(r => r.status === "BASELINE").length} baselines written, ${bad.length} failures; ${checked} visible controls checked, ${bad.filter(r => r.id.startsWith("dead:")).length} dead`);
+  // A full comparison (no baseline written) is recorded with a fingerprint of everything it rendered, so the testing
+  // agent counts D-06 only while the app, its images, fonts and baselines are exactly what this run saw.
+  if (!results.some(r => r.status === "BASELINE")) {
+    fs.writeFileSync(path.join(__dirname, "visual-result.json"), JSON.stringify({ status: bad.length ? "RED" : "GREEN", screens: results.filter(r => r.status === "PASS").length,
+      failures: bad.map(r => r.id), controls_checked: checked, browser: browser.version(), run_at: new Date().toISOString(), inputs_sha256: visualInputsHash(ROOT) }, null, 1) + "\n");
+  }
   process.exit(bad.length ? 1 : 0);
 })().catch(e => { console.error("visual: NOT RUN:", e.message); process.exit(2); });

@@ -162,6 +162,17 @@ async function outcome() {
   const migr = read("supabase/migrations/20261011010000_flow_state.sql") + read("supabase/migrations/20261011020000_saved_recipients.sql") + read("supabase/migrations/20261011060000_proactive.sql");
   rec(F, "O-20", "identity digits: removed from the message before storage or a model, the rest still answered, and refused by the tables", /\\d\{9,\}|\\d\{13,\}/.test(migr) && !leaked && inp.redacted?.includes("ssn") && ssn.actual[0].outcome === "confirm", { critical: true, expected: "redacted; send card for the rest; no digits in text, reply or saved state; table checks present", actual: `redacted ${JSON.stringify(inp.redacted)}, leaked ${leaked}, reply ${ssn.actual[0].outcome}: ${String(ssn.actual[0].reply).slice(0, 80)}`, path: "_shared/identity_redact.ts, chat_input.ts" });
 }
+// The fingerprint evals/agent/visual.cjs records with its result (same files, same order, same hashing).
+async function visualInputsHash() {
+  const files: string[] = [];
+  const walk = (rel: string) => { let st; try { st = Deno.statSync(new URL(rel, root)); } catch { return; } if (st.isDirectory) for (const e of Deno.readDirSync(new URL(rel + "/", root))) walk(rel + "/" + e.name); else files.push(rel); };
+  ["index.html", "img", "fonts", "connect", "evals/agent/visual-baseline"].forEach(walk);
+  const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+  let acc = "";
+  for (const f of files.sort()) acc += f + "\n" + hex(await crypto.subtle.digest("SHA-256", Deno.readFileSync(new URL(f, root)))) + "\n";
+  return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(acc)));
+}
+
 function scan(dirs: string[], re: RegExp) {
   const hits: string[] = [];
   const walk = (p: string) => { for (const e of Deno.readDirSync(new URL(p, root))) { const q = `${p}/${e.name}`; if (e.isDirectory) walk(q); else if (/\.(ts|js|cjs|html)$/.test(e.name) && !/router_core\.js$/.test(e.name)) { const t = read(q); const m = re.exec(t); if (m) hits.push(`${q}: ${m[0]}`); } } };
@@ -207,7 +218,13 @@ async function design() {
   const missing = brands.filter(b => { try { Deno.statSync(new URL(b.file, root)); return false; } catch { return true; } }).map(b => b.file);
   const tiles = /charAt\(0\)|hsl\(/.test(iconFn) || /id="(sub|promo)SheetIcon">[A-Z]</.test(tpl);
   rec(F, "D-08", `real company icons only: ${brands.length} real logos on file, no letter tiles or stand-ins`, !tiles && !missing.length, { critical: true, expected: "a real logo or no icon", actual: `letter tiles ${tiles}; missing ${missing.join(", ")}`, path: "src/upmore-app-template.html appIcon, img/brands" });
-  results.push({ family: F, id: "D-06", title: "pixel regression of the signed-out screens", status: "NOT_RUN", actual: "on demand: node evals/agent/visual.cjs (real Chromium, phone and desktop: pixel regression against evals/agent/visual-baseline, clipped or covered copy, dead controls read through DevTools). Fonts differ across machines, so it does not gate CI. Signed-in screens need a live login." });
+  // D-06 runs on demand in real Chromium (fonts differ across machines, so CI never runs it). Its recorded result counts
+  // only while everything it rendered is unchanged: the same fingerprint visual.cjs wrote.
+  const how = "node evals/agent/visual.cjs (real Chromium, phone and desktop: pixel regression against evals/agent/visual-baseline, clipped or covered copy, dead controls read through DevTools). Signed-in screens need a live login.";
+  let shot: any = null; try { shot = JSON.parse(read("evals/agent/visual-result.json")); } catch { /* never run here */ }
+  const fresh = shot && shot.inputs_sha256 === await visualInputsHash();
+  if (!shot || !fresh) results.push({ family: F, id: "D-06", title: "pixel regression of the signed-out screens", status: "NOT_RUN", actual: `${shot ? `last run ${shot.run_at} saw a different app, images, fonts or baselines; run again` : "never run"}: ${how}` });
+  else rec(F, "D-06", `pixel regression of the signed-out screens (real Chromium ${shot.browser}, run ${shot.run_at.slice(0, 10)}, recorded with a fingerprint of what it rendered)`, shot.status === "GREEN", { expected: "every screen within 0.5% of its baseline, no dead control", actual: `${shot.screens} screens match; ${shot.controls_checked} controls checked; failures: ${(shot.failures || []).join(", ") || "none"}`, path: "evals/agent/visual.cjs, evals/agent/visual-result.json" });
 }
 
 // ---------------- FLOW (self-extending from the capability map) ----------------

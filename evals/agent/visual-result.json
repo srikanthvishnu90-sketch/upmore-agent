@@ -1,0 +1,9 @@
+{
+ "status": "GREEN",
+ "screens": 21,
+ "failures": [],
+ "controls_checked": 34,
+ "browser": "141.0.7390.37",
+ "run_at": "2026-10-12T03:50:04.340Z",
+ "inputs_sha256": "284892f281893181face7b7d4c81574996f9a88288e4a3a54e65518d0720bbc3"
+}

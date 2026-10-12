@@ -178,3 +178,35 @@
 - Megadoc BUILT 103 -> 116, MODEL 31 -> 12; mutation coverage 80/80 modules.
 - Evidence overnight-wave-8: 22 pass; the 7 function type-checks fail only fetching deno.land/esm.sh through the proxy.
 - CI: runs 138-149 green; 150 pending at this check-in.
+
+## 2026-10-12 overnight, wave 9 (12:35-14:55 UTC)
+- Model-only and misread asks moved to code, each red first with a planted defect:
+  - a2c98a1 9f09036 2823914 a48a44e a0c9b05: not-built money actions said plainly (NOT-YET), and what-ifs, questions,
+    reports, negations ("don't send Sam 40", "don't cancel Netflix") never become cards; "should I sell" refused.
+  - 8f0a87c copy trading from code with the disclosure lag corrected (Congress up to 45 days after a trade; 13F 45 days
+    after each quarter); 2d802d5 portfolio analytics said not built; 3c47b13 "buy a laptop" asks which ticker.
+  - a1fea84 "stop the alerts for Netflix" no longer turns every alert off; b0f34b6 a planted defect that stopped
+    applying no longer counts (tests/depth-patches-current.test.cjs).
+  - 460d0cf hard moments; ef5a4de merchant terms from the page on file; 1be692d accredited investor from SEC terms in
+    the offer book; 8e4fb4f N14 scam, B14 wrong person; 38721a6 ten more not-built asks; e9c7005 IOU settled in cash.
+  - cd8ca8f "sell VTI buy VOO" is two orders (one was silently dropped).
+  - c83df75 a restricted Alpaca account (trading_blocked, account_blocked, trade_suspended_by_user, non-ACTIVE) is said
+    before any card (was carded, then refused after the yes); earnings and halts said first ("NVDA before earnings" was
+    read as the company name).
+  - 095feca 99913d7 "why is my portfolio down today" and the report: Alpaca's own unrealized_intraday_pl per position,
+    total value and allocation; no reason guessed. The NotYet reply promised a per-holding gain that never existed.
+  - 2c2534c "my landlord changed where to send rent": payment-redirection warning from code (SCAM-CHECK 16/16).
+- Probing the flows as people type found real misreads, all fixed with tests and defects:
+  - ed03a28 split: "with my roommates" asked Roommates for a Venmo handle; names after "for dinner" were lost.
+  - e461e91 9573980 send: "can you send sarah 40?", "give sarah 15", "sarah like 40", "send sam 40 lol" (Sam Lol),
+    "gotta pay sam 40"; "send sarah 40 and marcus l 20" carded only Sarah (Marcus dropped).
+  - 1c927fb trade sizes in words; 3ba19c9 99f08eb cancel ("unsubscribe me from", "cancel my gym");
+    de57ae8 balances ("whats in savings", "how much do i owe on my card", "am i broke"); 9d37e45 IOU ("who owes me money"
+    asked how much; "sam still owes me 40" logged twice; a first fix to "forget what sam owes me" forgot the whole log
+    and was caught by its own probe before commit); 05b7b9d reminders in hours; d41b1a9 budgets; ff7c7e3 rent payee.
+  - 60d7a88 "send Maya the usual" says no record of past sends exists (still NOT_BUILT).
+- Megadoc BUILT 116 -> 128, LIMITED 42, DIVERGES 3, MODEL 3, NOT_BUILT 64. Depth packets touched: RAIL-2 26/26,
+  RAIL-1 18/18, PAY-001 21/21, BILL-003 20/20, IOU 21/21, REMINDERS 22/22, BUDGETS 24/24, RENT 16/16, SCAM-CHECK 16/16.
+- Suites now: node 2069/2069 (start of night at 4ea437d, re-measured: 531/531), edge 526 (start 283), Agent100 103/103,
+  testing agent 87/87 (start 70/70), mutation coverage 81/81 modules.
+- CI: runs 150-183 green through d41b1a9; 183+ pending at this entry.

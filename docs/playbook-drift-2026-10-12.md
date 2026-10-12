@@ -50,3 +50,20 @@ said, what is true, and the source.
   an optional "ok", "no", "please"); a request survives if any clause that names it is not negated. The payment rule
   needs the payment, transfer, order or trade to be what is cancelled ("cancel my payment to mike", "cancel all pending
   payments"). Red first on the packet's version (S14, S15), green after; tests/depth-INTENTS.test.cjs.
+
+## Buy and cancel counted days in UTC (2026-10-12, morning; same class as rent's month)
+
+- Said: the cancel card's undo window ("Reply \"undo\" before 2026-11-03"), a merchant's "full refund within 7 days",
+  and "what did you buy today" are about the person's days.
+- True (66-agent-trade.js, 68-agent-cancel.js): all three were counted on the UTC day. In New York after 8 p.m. (7 p.m.
+  in winter) that is already tomorrow: "what did I buy today" at 8:30 p.m. ET said "Nothing bought today." for a 3:30 p.m.
+  fill; an undo at 10 p.m. ET on the window's last day was refused as past the window; a cancel at 9 p.m. ET on day 7 of
+  a 7-day refund window lost the refund request.
+- Now: both sessions take the person's zone (`tz`, read once per turn in handler.ts from agent_proactive_settings and
+  passed by flow_router.ts buildSessions), and count today, the refund days, the undo window, claim dates and the
+  refund-credit search in it. An unknown or absent zone is UTC, as before. Idempotency keys stay on the UTC day (a key
+  only has to be the same for a retry of the same ask; its day boundary does not reach the person). Red first in
+  tests/depth-INV-011.test.cjs S15 and tests/depth-BILL-003.test.cjs S12/S14 (planted defects D15b, D12b, D14b now prove
+  them); the router's hand-over in tests/edge/rent-timezone.test.ts.
+- Seen, not changed (owner wording call): the card says "Reply \"undo\" before 2026-11-03" but the code allows the undo
+  on 2026-11-03 itself; "until" or "by" would match the code.

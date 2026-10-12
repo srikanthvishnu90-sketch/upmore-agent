@@ -4122,6 +4122,8 @@
     const CAPABILITY = "INV-011", DAY = 86400000; // buys; sells are INV-012
     const money = c => { const s = Math.abs(Math.round(c)); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
     const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+    // The person's own calendar day for a time zone (opts.tz, e.g. "America/New_York"); an absent or unknown zone is UTC.
+    const localYmd = (ms, tz) => { if (tz) { try { return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms)); } catch (e) { /* unknown zone: UTC */ } } return ymd(ms); };
     const qty = q => String(Math.round(q * 10000) / 10000);
 
     // S01: dollars or shares, exactly. A bare integer next to a symbol is ambiguous (500 dollars or 500 shares?) and asks.
@@ -4254,6 +4256,7 @@
 
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now());
+      const day = ms => localYmd(ms, o.tz); // "today" as the person counts it; idempotency keys stay on the UTC day
       const Invest = typeof AgentInvest !== "undefined" ? AgentInvest : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Comp = o.compliance !== undefined ? o.compliance : (typeof Compliance !== "undefined" ? Compliance : null);
       if (!Invest || !Loop) throw new Error("AgentTrade needs AgentInvest and AgentLoop loaded.");
       const conn = o.connectors; if (!conn || typeof conn.read !== "function") throw new Error("AgentTrade needs connectors with read, write and verify.");
@@ -4727,7 +4730,7 @@
       }
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
-      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
+      function today(now) { const d = day(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && day(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
@@ -4965,6 +4968,8 @@
     const CAPABILITY = "BILL-003", DAY = 86400000, OTP_TTL_MS = 30 * 60000, GRACE_DAYS = 2;
     const money = c => { const s = Math.abs(Math.round(c)); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
     const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+    // The person's own calendar day for a time zone (opts.tz, e.g. "America/New_York"); an absent or unknown zone is UTC.
+    const localYmd = (ms, tz) => { if (tz) { try { return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms)); } catch (e) { /* unknown zone: UTC */ } } return ymd(ms); };
     const addDays = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * DAY).toISOString().slice(0, 10);
     const MONTHS = { monthly: 1, quarterly: 3, yearly: 12 };
     const addMonths = (d, n) => { const x = new Date(d + "T00:00:00Z"); const day = x.getUTCDate(); x.setUTCDate(1); x.setUTCMonth(x.getUTCMonth() + n); x.setUTCDate(Math.min(day, new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth() + 1, 0)).getUTCDate())); return x.toISOString().slice(0, 10); };
@@ -4989,6 +4994,7 @@
     }
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now());
+      const day = ms => localYmd(ms, o.tz); // the person's day: refund windows, the undo window and claims count in it
       const Save = typeof AgentSave !== "undefined" ? AgentSave : null, Mon = typeof AgentMonitors !== "undefined" ? AgentMonitors : null, Cards = typeof AgentCards !== "undefined" ? AgentCards : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
       if (!Save || !Mon || !Cards || !Loop) throw new Error("AgentCancel needs AgentSave, AgentMonitors, AgentCards and AgentLoop loaded.");
       const conn = o.connectors; if (!conn || typeof conn.read !== "function") throw new Error("AgentCancel needs connectors with read, write, verify and resume.");
@@ -5012,7 +5018,7 @@
       // The save engine's inventory, plus store-billed subscriptions (Apple, Google, marketplace descriptors) that the
       // merchant-level detector does not list but that bill every month all the same.
       function inventory() {
-        const inv = Save.subscriptions({ transactions: o.transactions || [], today: ymd(clock()) }).inventory.slice();
+        const inv = Save.subscriptions({ transactions: o.transactions || [], today: day(clock()) }).inventory.slice();
         const by = {};
         for (const tx of o.transactions || []) { const raw = String(tx.merchant_raw || tx.merchant || ""); if (channelOf(raw) === "vendor" || !(Number(tx.amount) < 0)) continue; (by[raw] = by[raw] || []).push(tx); }
         for (const [raw, rows] of Object.entries(by)) {
@@ -5203,7 +5209,7 @@
         return say("cancelled", `${kase.name || kase.merchant} cancelled${kase.reference ? `, confirmation ${kase.reference}` : ""} (${rec.source}, as of ${new Date(rec.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC). You keep access until ${kase.terms.access_until}; the ${kase.sub.next} charge is gone from their record. ${refund ? refund.text + " " : ""}${undoText(kase.terms)} I'll confirm from your statement on ${addDays(kase.sub.next, GRACE_DAYS + 1)}.`, { reference: kase.reference, claim: kase.claim, refund: refund ? refund.request : null, access_until: kase.terms.access_until });
       }
       const lastRun = kase => runs[kase.key] || null;
-      const claimFor = kase => ({ merchant: kase.merchant, merchant_key: keyOf(kase.merchant), amount_cents: kase.sub.amount_cents, billing_interval: kase.sub.interval, expected_billing_date: kase.sub.next, grace_days: GRACE_DAYS, status: "open", created_at: ymd(clock()), reference: kase.reference || null, route: kase.route.kind });
+      const claimFor = kase => ({ merchant: kase.merchant, merchant_key: keyOf(kase.merchant), amount_cents: kase.sub.amount_cents, billing_interval: kase.sub.interval, expected_billing_date: kase.sub.next, grace_days: GRACE_DAYS, status: "open", created_at: day(clock()), reference: kase.reference || null, route: kase.route.kind });
       const quoted = s => { const v = Guard ? String(Guard.wrap(String(s)).value) : String(s); return v.replace(/^["\u201c]+|["\u201d]+$/g, ""); };
       function tripwire(kase, run) { kase.state = "tripwire"; return say("tripwire", `I stopped before changing anything: ${kase.name || kase.merchant} offered "${quoted(run.offer || run.stopped_at_tripwire)}" instead of cancelling, and I don't accept plan changes for you. ${kase.name || kase.merchant} is still active and nothing changed. Do you want that offer, or should I go on to cancel?`, { offer: run.offer || null, tripwire: run.stopped_at_tripwire }); }
       function otpAsk(kase, run) { kase.state = "otp"; kase.otp = { run_id: run.run_id, expires_at: clock() + OTP_TTL_MS, asked_at: clock() }; pending = null; return say("otp", `${kase.name || kase.merchant} sent a one-time code to ${run.hint || "you"}. Reply with just the code; I use it once for this run and never keep it. It is good for 30 minutes.`, { run_id: run.run_id }); }
@@ -5227,7 +5233,7 @@
       }
       // S12: refund where the policy allows and a charge just posted. Its credit is tracked, never counted as savings.
       async function maybeRefund(kase) {
-        const pol = String(kase.terms.refund_policy || "").toLowerCase(), lastCharge = kase.sub.last, days = Math.round((Date.parse(ymd(clock()) + "T00:00:00Z") - Date.parse(lastCharge + "T00:00:00Z")) / DAY);
+        const pol = String(kase.terms.refund_policy || "").toLowerCase(), lastCharge = kase.sub.last, days = Math.round((Date.parse(day(clock()) + "T00:00:00Z") - Date.parse(lastCharge + "T00:00:00Z")) / DAY);
         const m = /within (\d+) days?/.exec(pol); const eligible = /prorat|pro-rat/.test(pol) || (m && days <= Number(m[1]));
         if (!eligible) return null;
         const req = { merchant: kase.merchant, charge_date: lastCharge, amount_cents: kase.sub.amount_cents, requested_at: clock(), reference: null, status: "requested" };
@@ -5241,11 +5247,11 @@
         const out = [];
         for (const kase of cases) {
           if (!kase.claim || kase.claim.status === "verified" || kase.claim.status === "zombie") continue;
-          const v = Mon.cancelClaimVerdict(kase.claim, transactions || [], today || ymd(clock()), dataThrough || today || ymd(clock()));
+          const v = Mon.cancelClaimVerdict(kase.claim, transactions || [], today || day(clock()), dataThrough || today || day(clock()));
           if (v.status === "charged") { kase.claim.status = "zombie"; kase.state = "charged_after"; out.push({ merchant: kase.merchant, status: "zombie", text: `${String(v.reason).split(kase.merchant).join(kase.name || kase.merchant)} That cancellation did not hold: I've reversed the avoided-charge entry${kase.reference ? ` and have confirmation ${kase.reference} to dispute it with` : ""}. Want me to open the dispute?`, charge: v.charges[0] }); }
           else if (v.status === "confirmed" || v.status === "verified") { kase.claim.status = "verified"; kase.claim.verified_on = today; kase.state = "verified"; out.push({ merchant: kase.merchant, status: "verified", text: `${kase.name || kase.merchant} is confirmed cancelled: no charge on ${kase.claim.expected_billing_date} through ${dataThrough || today} (your statement, as of ${dataThrough || today}). ${money(kase.sub.amount_cents)} per ${kase.sub.interval === "monthly" ? "month" : kase.sub.interval} now counts as saved.` }); }
           else out.push({ merchant: kase.merchant, status: v.status, text: String(v.reason).split(kase.merchant).join(kase.name || kase.merchant) });
-          if (kase.refund && kase.refund.status !== "posted") { const credit = (transactions || []).find(t => t.posted_at >= ymd(kase.refund.requested_at) && Math.round(Number(t.amount || 0) * 100) === kase.refund.amount_cents && keyOf(t.merchant_raw || t.merchant).includes(keyOf(kase.merchant).split(" ")[0])); if (credit) { kase.refund.status = "posted"; kase.refund.posted_on = credit.posted_at; out.push({ merchant: kase.merchant, status: "refund_posted", text: `The ${money(kase.refund.amount_cents)} refund from ${kase.name || kase.merchant} posted on ${credit.posted_at}.` }); } }
+          if (kase.refund && kase.refund.status !== "posted") { const credit = (transactions || []).find(t => t.posted_at >= day(kase.refund.requested_at) && Math.round(Number(t.amount || 0) * 100) === kase.refund.amount_cents && keyOf(t.merchant_raw || t.merchant).includes(keyOf(kase.merchant).split(" ")[0])); if (credit) { kase.refund.status = "posted"; kase.refund.posted_on = credit.posted_at; out.push({ merchant: kase.merchant, status: "refund_posted", text: `The ${money(kase.refund.amount_cents)} refund from ${kase.name || kase.merchant} posted on ${credit.posted_at}.` }); } }
         }
         return out;
       }
@@ -5259,7 +5265,7 @@
       // S14: undo inside the access period is a resubscribe card; after it, honesty.
       async function undo(ctx) {
         const kase = cases.filter(c => c.state === "cancelled" || c.state === "verified").pop(); if (!kase) return say("nothing_to_undo", "Nothing recent to undo.");
-        const until = kase.terms.resubscribe_until; const today = ymd(clock());
+        const until = kase.terms.resubscribe_until; const today = day(clock());
         if (!until) return say("cannot_undo", `${kase.name || kase.merchant} can't be reinstated from here; a new signup would be at the current price.`);
         if (today > until) return say("past_window", `${kase.name || kase.merchant}'s reinstatement window ended ${until}; a new signup would be at the current price.`);
         const card = cards.issue({ action: `Resubscribe to ${kase.name || kase.merchant} (${kase.terms.plan})`, amount_cents: kase.sub.amount_cents, counterparty: kase.name || kase.merchant, direction: "to", fee_cents: 0, total_cents: kase.sub.amount_cents, timing: `Same ${money(kase.sub.amount_cents)}/${kase.sub.interval === "monthly" ? "mo" : kase.sub.interval} rate, billing resumes ${kase.sub.next}`, undo: `You can cancel again any time; the same terms apply.` }, { conversation: (ctx && ctx.conversation) || "default", channel: (ctx && ctx.channel) || "in_app" });

@@ -1,9 +1,9 @@
 {
  "capability": "INV-011",
- "run_at": "2026-10-12T04:14:05.432Z",
+ "run_at": "2026-10-12T06:33:08.899Z",
  "baseline_all_green": true,
  "sub_capabilities": 16,
- "proven": 16,
+ "proven": 17,
  "problems": [],
  "rows": [
   {
@@ -175,6 +175,17 @@
    "collateral": [
     "S07"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15b",
+   "title": "Today is the person's day",
+   "defect": "today's fills are counted on the UTC day, so an evening ask says nothing was bought",
+   "test": "a 3:30 p.m. ET fill asked about at 8:30 p.m. ET is still today's",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   },
   {

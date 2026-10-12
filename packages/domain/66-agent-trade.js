@@ -11,6 +11,8 @@
     const CAPABILITY = "INV-011", DAY = 86400000; // buys; sells are INV-012
     const money = c => { const s = Math.abs(Math.round(c)); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
     const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+    // The person's own calendar day for a time zone (opts.tz, e.g. "America/New_York"); an absent or unknown zone is UTC.
+    const localYmd = (ms, tz) => { if (tz) { try { return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms)); } catch (e) { /* unknown zone: UTC */ } } return ymd(ms); };
     const qty = q => String(Math.round(q * 10000) / 10000);
 
     // S01: dollars or shares, exactly. A bare integer next to a symbol is ambiguous (500 dollars or 500 shares?) and asks.
@@ -143,6 +145,7 @@
 
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now());
+      const day = ms => localYmd(ms, o.tz); // "today" as the person counts it; idempotency keys stay on the UTC day
       const Invest = typeof AgentInvest !== "undefined" ? AgentInvest : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Comp = o.compliance !== undefined ? o.compliance : (typeof Compliance !== "undefined" ? Compliance : null);
       if (!Invest || !Loop) throw new Error("AgentTrade needs AgentInvest and AgentLoop loaded.");
       const conn = o.connectors; if (!conn || typeof conn.read !== "function") throw new Error("AgentTrade needs connectors with read, write and verify.");
@@ -616,7 +619,7 @@
       }
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
-      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
+      function today(now) { const d = day(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && day(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };

@@ -20,3 +20,17 @@ Deno.test("at 11:30 p.m. Oct 31 in New York the unpaid October rent is offered, 
   const utc = buildSessions(data, {}, () => AT, "in-app", null, null, null).rent.start("pay my rent");
   assertMatch(utc.text, /^Rent for November/);
 });
+
+// Buy and cancel get the same zone (overnight 2026-10-12): "what did I buy today" at 8:30 p.m. ET lists a 3:30 p.m. ET
+// fill (00:30 UTC is already tomorrow). The behavior is proven in tests/depth-INV-011 S15 and tests/depth-BILL-003 S12/S14;
+// this checks the router hands the zone over. The fill is MOCK.
+Deno.test("the flow router gives buy and cancel the person's zone", () => {
+  const evening = Date.UTC(2026, 9, 13, 0, 30), fill = Date.UTC(2026, 9, 12, 19, 30);
+  const today = (tz: string | null) => {
+    const s = buildSessions(data, {}, () => evening, "in-app", null, null, tz);
+    s.trade.loop.memory.facts.push({ capability_id: "INV-011", source: "MOCK broker", recorded_at: fill, value: { order_id: "MOCK-ord-1", side: "buy", quantity: 1, symbol: "VOO", fill_price_cents: 400, total_cents: 400, account: "MOCK-acct" } });
+    return s.trade.today(evening).text;
+  };
+  assertMatch(today("America/New_York"), /^1 VOO at \$4\.00/);
+  assertEquals(today(null), "Nothing bought today.");
+});

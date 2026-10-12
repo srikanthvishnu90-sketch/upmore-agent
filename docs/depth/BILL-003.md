@@ -73,8 +73,10 @@ Check: `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BI
 | S10 | The receipt carries the proof | the receipt names the confirmation reference | `S10` in tests/depth-BILL-003.test.cjs | the receipt drops the confirmation reference | proven |
 | S11 | The feed verifies the claim | a charge after the claim makes it a zombie | `S11` in tests/depth-BILL-003.test.cjs | a charge after the cancellation is reported but the claim stays open and the savings stand | proven |
 | S12 | Refund where eligible | no refund is requested under a no-refund policy | `S12` in tests/depth-BILL-003.test.cjs | refund eligibility is ignored and every cancellation requests one | proven (also fails S10) |
+| S12 | Refund days count in the person's day | day 7 of "within 7 days" at 9 p.m. ET is still eligible | `S12` in tests/depth-BILL-003.test.cjs | refund-window days are counted from the UTC day, so an evening request on the last day loses the refund | proven |
 | S13 | Failure in one message, no blind retry | the second failure at the same merchant stops retries | `S13` in tests/depth-BILL-003.test.cjs | the failure memory never accumulates | proven |
 | S14 | Undo and reactivation | undo after the reinstatement window is refused honestly | `S14` in tests/depth-BILL-003.test.cjs | the reinstatement window is not checked | proven |
+| S14 | The undo window ends on the person's day | 10 p.m. ET on the window's last day is still inside it | `S14` in tests/depth-BILL-003.test.cjs | the undo window is checked on the UTC day, so an evening undo on the last day is refused | proven |
 | S15 | Savings honesty | savings the day after are projected, not verified | `S15` in tests/depth-BILL-003.test.cjs | projected savings are counted as verified | proven (also fails S12) |
 | S16 | Stop-on-change | a changed fee or access date between yes and run stops it | `S16` in tests/depth-BILL-003.test.cjs | the re-verification result is ignored, so a new cancellation fee still runs | proven |
 <!-- results:end -->

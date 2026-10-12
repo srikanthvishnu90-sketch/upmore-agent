@@ -1,9 +1,9 @@
 {
  "capability": "BILL-003",
- "run_at": "2026-10-11T22:13:39.995Z",
+ "run_at": "2026-10-12T06:33:15.362Z",
  "baseline_all_green": true,
  "sub_capabilities": 16,
- "proven": 16,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -141,6 +141,17 @@
    "status": "proven"
   },
   {
+   "sub": "S12",
+   "id": "D12b",
+   "title": "Refund days count in the person's day",
+   "defect": "refund-window days are counted from the UTC day, so an evening request on the last day loses the refund",
+   "test": "day 7 of \"within 7 days\" at 9 p.m. ET is still eligible",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
    "sub": "S13",
    "id": "D13",
    "title": "Failure in one message, no blind retry",
@@ -157,6 +168,17 @@
    "title": "Undo and reactivation",
    "defect": "the reinstatement window is not checked",
    "test": "undo after the reinstatement window is refused honestly",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14b",
+   "title": "The undo window ends on the person's day",
+   "defect": "the undo window is checked on the UTC day, so an evening undo on the last day is refused",
+   "test": "10 p.m. ET on the window's last day is still inside it",
    "bites": true,
    "applied": true,
    "collateral": [],

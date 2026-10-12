@@ -185,8 +185,9 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
   return {
-    trade: AgentTrade.create({ registry, connectors: broker && broker.connectors ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker && broker.partners ? broker.partners : LIVE_PARTNERS, connect: broker && broker.connect ? broker.connect : null, compliance: Compliance, state: s.trade }),
-    cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
+    // Buy and cancel count "today", refund windows and the undo window in the person's own day (their time zone).
+    trade: AgentTrade.create({ registry, connectors: broker && broker.connectors ? broker.connectors : c.trade, clock: now, tz, instruments: data.instruments, partners: broker && broker.partners ? broker.partners : LIVE_PARTNERS, connect: broker && broker.connect ? broker.connect : null, compliance: Compliance, state: s.trade }),
+    cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, tz, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send, balances: () => data.bankAccounts ?? null }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
     // Saved nicknames ("mom is Anita Srikanth"): restated, then saved on a yes, only for someone already saved.

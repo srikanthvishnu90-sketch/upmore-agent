@@ -173,6 +173,8 @@ test('[S12] refund where eligible: requested as part of the flow with its own re
   const credited=transactions().concat([{id:'r1',account_id:'visa',posted_at:'2026-10-14',amount:14.99,merchant_raw:'HULU REFUND',is_pending:false,is_transfer:false}]);
   const c=s.check(credited,'2026-10-15','2026-10-15');assert.ok(c.some(x=>x.status==='refund_posted'&&/\$14\.99 refund from Hulu posted on 2026-10-14/.test(x.text)));
   const after=s.savings();assert.match(after.text,/Refunds received: \$14\.99, counted separately from savings\.$/);assert.equal(after.verified_cents,0);
+  // Seven days is counted in the person's day: 9 p.m. ET on Oct 18 (01:00 UTC Oct 19) is day 7 of "within 7 days".
+  const late=session({tz:'America/New_York',now:Date.UTC(2026,9,19,1)});await late.s.start('cancel hulu');const l=await late.s.reply('yes');assert.equal(l.refund&&l.refund.status,'requested',l.text);
   const nf=session();await nf.s.start('cancel netflix');const b=await nf.s.reply('yes');assert.equal(b.refund,null,'no refund under a no-refund policy');assert.equal(nf.r.refunds.length,0);
 });
 
@@ -189,6 +191,8 @@ test('[S14] undo inside the access period issues the resubscribe card with the t
   await s.start('cancel netflix');await s.reply('yes');
   const u=await s.start('undo');assert.equal(u.outcome,'undo_card');assert.match(u.text,/^Resubscribe to Netflix \(Standard\): \$17\.99 to Netflix\. No fee\./);assert.match(u.details,/Same \$17\.99\/mo rate, billing resumes 2026-11-03\./);
   t.now=Date.UTC(2026,10,5);const late=await s.start('undo');assert.equal(late.outcome,'past_window');assert.equal(late.text,"Netflix's reinstatement window ended 2026-11-03; a new signup would be at the current price.");
+  // The window's last day is the person's own: 10 p.m. ET on Nov 3 (03:00 UTC Nov 4) is still inside it.
+  const ny=session({tz:'America/New_York'});await ny.s.start('cancel netflix');await ny.s.reply('yes');ny.t.now=Date.UTC(2026,10,4,3);assert.equal((await ny.s.start('undo')).outcome,'undo_card');
   const h=session();await h.s.start('cancel hulu');await h.s.reply('yes');assert.equal((await h.s.start('undo')).outcome,'cannot_undo');
   const none=session();assert.equal((await none.s.start('undo')).outcome,'nothing_to_undo');
 });

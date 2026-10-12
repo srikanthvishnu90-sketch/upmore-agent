@@ -213,6 +213,10 @@ test('[S15] the receipt and the memory tell the truth: order id, total, source a
   const fact=s.loop.memory.facts.filter(f=>f.capability_id==='INV-011').pop();assert.equal(fact.source,'Example Broker');assert.equal(fact.value.total_cents,50001);
   const td=keep(s.today(t.now));assert.equal(td.text,'0.9764 VOO at $512.10 ($500.01) in schwab-1, order ord-1, per Example Broker.');
   assert.equal(keep(session().s.today(OPEN)).text,'Nothing bought today.');
+  // "Today" is the person's own day: a 3:30 p.m. ET fill asked about at 8:30 p.m. ET (00:30 UTC the next day) is still today's.
+  const late=session({tz:'America/New_York',now:Date.UTC(2026,9,12,19,30)});keep(await late.s.start('buy $500 of VOO'));keep(await late.s.reply('yes'));
+  assert.match(keep(late.s.today(Date.UTC(2026,9,13,0,30))).text,/^0\.9764 VOO at \$512\.10/);
+  assert.equal(keep(late.s.today(Date.UTC(2026,9,13,14))).text,'Nothing bought today.');
   for(const x of all)if(x&&x.text)assert.equal(x.lint_ok,true,`lint: ${x.text} ${JSON.stringify(x.lint)}`);
   assert.ok(all.length>40);
 });

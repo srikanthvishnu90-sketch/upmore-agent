@@ -69,11 +69,11 @@ is filed, sent or paid by Upmore.
   international and declined -> full fare owed; bag over 12 hours domestic (15-30 international) late with a report ->
   bag fee owed; paid extras not delivered (Wi-Fi, seat) -> fee owed. Warns before a voucher is accepted. Tracks the card
   credit 7 business days; drafts the DOT complaint text if late. Involuntary bump compensation table (200% / 400%, caps).
-- [ ] **C2. Closed-card credit balance (12 CFR 1026.11).** A negative statement balance over $1 -> the written request
+- [x] **C2. Closed-card credit balance (12 CFR 1026.11).** A negative statement balance over $1 -> the written request
   text and the 7-business-day watch.
-- [ ] **C3. Escrow surplus (12 CFR 1024.17).** From the escrow analysis: surplus of $50 or more owed within 30 days; a
+- [x] **C3. Escrow surplus (12 CFR 1024.17).** From the escrow analysis: surplus of $50 or more owed within 30 days; a
   cushion above one sixth of yearly bills flagged. Request text and the deposit watch.
-- [ ] **C4. FTC and reissued refunds.** Match charges (e.g. Prime fees) to the FTC refund list kept as dated data; spot
+- [x] **C4. FTC and reissued refunds.** Match charges (e.g. Prime fees) to the FTC refund list kept as dated data; spot
   PayPal, Venmo or Zelle refund notices, check the sender against the official administrator before calling it real,
   and say the expiry date.
 - [x] **C5. Price-drop claims.** Target 14 days, Best Buy return window, Costco 30 days: receipts in, current price in

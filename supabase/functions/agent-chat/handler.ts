@@ -39,6 +39,7 @@ import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
 import { connectReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
+import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
@@ -274,6 +275,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);
         // A store's own price drop inside its window (_shared/price_drop_answer.ts): a draft the person sends.
         if (!direct) direct = await priceDropReply(message, today, oldestFirst);
+        if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([

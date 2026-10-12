@@ -1039,9 +1039,9 @@
   {
    "id": "G15",
    "typed": "what dividends did I get",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "answer",
+   "reply": "No dividends were paid into your Alpaca account (****4417) this year (Jan 1 to Oct 14). From your Alpaca account's activity, as of 19:14 UTC.",
    "executed": false,
    "mock_orders": 0
   },

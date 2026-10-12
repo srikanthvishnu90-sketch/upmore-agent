@@ -50,4 +50,8 @@ first "said once" check was a substring match that dropped a source ("Mock Broke
 | S22 | A loss is down | PLTR down $164.65 | `S22` in tests/depth-PORTFOLIO-Q.test.cjs | every result is said as up | proven |
 | S23 | No basis: said | F has no cost basis | `S23` in tests/depth-PORTFOLIO-Q.test.cjs | a missing basis is taken as zero | proven |
 | S24 | Never a month | in august is not a ticker | `S24` in tests/depth-PORTFOLIO-Q.test.cjs | the stoplist is dropped | proven |
+| S25 | Withholding counted | $0.49 withheld leaves $7.30 | `S25` in tests/depth-PORTFOLIO-Q.test.cjs | withholding is ignored, so the gross is said as what landed | proven |
+| S26 | Last year is last year | VOO dividends last year is 2025 | `S26` in tests/depth-PORTFOLIO-Q.test.cjs | every period is read as this year | proven |
+| S27 | Unreadable is said | a failed read gives no number | `S27` in tests/depth-PORTFOLIO-Q.test.cjs | a failed dividends read is answered as none paid | proven |
+| S28 | A period is never a ticker | in 2026 has no ticker | `S28` in tests/depth-PORTFOLIO-Q.test.cjs | the parse's general query fills in when no ticker was named | proven (also fails S26) |
 <!-- results:end -->

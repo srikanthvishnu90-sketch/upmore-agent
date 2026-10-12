@@ -1,9 +1,9 @@
 {
  "capability": "PORTFOLIO-Q",
- "run_at": "2026-10-12T10:55:24.915Z",
+ "run_at": "2026-10-12T20:21:46.699Z",
  "baseline_all_green": true,
- "sub_capabilities": 24,
- "proven": 24,
+ "sub_capabilities": 28,
+ "proven": 28,
  "problems": [],
  "rows": [
   {
@@ -291,6 +291,52 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S25",
+   "id": "D25",
+   "title": "Withholding counted",
+   "defect": "withholding is ignored, so the gross is said as what landed",
+   "test": "$0.49 withheld leaves $7.30",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S26",
+   "id": "D26",
+   "title": "Last year is last year",
+   "defect": "every period is read as this year",
+   "test": "VOO dividends last year is 2025",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S27",
+   "id": "D27",
+   "title": "Unreadable is said",
+   "defect": "a failed dividends read is answered as none paid",
+   "test": "a failed read gives no number",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S28",
+   "id": "D28",
+   "title": "A period is never a ticker",
+   "defect": "the parse's general query fills in when no ticker was named",
+   "test": "in 2026 has no ticker",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S26"
+   ],
    "status": "proven"
   }
  ]

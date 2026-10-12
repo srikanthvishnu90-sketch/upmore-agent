@@ -30,8 +30,8 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIV
 |---|---|---|---|---|
 | 1 | ~~Splits by percentage ("60/40", "70%")~~ **done** | C11 | the person's words | LIMITED: asks who the roommate is, then who pays which; RAIL-1 S21 |
 | 2 | ~~Itemized splits ("sam only had a salad (12) of 96")~~ **done** | C06 | the person's words | LIMITED: asks who else is in; RAIL-1 S22 |
-| 3 | Dividends received | G15 | Alpaca account activities (DIV), read-only | amounts from the broker with source and as-of |
-| 4 | Performance over a period, and against the S&P 500 | G02, G14 | Alpaca portfolio history; SPY bars | numbers only, no advice, period stated |
+| 3 | ~~Dividends received~~ **done** | G15 | Alpaca account activities (DIV + withholding kinds), read-only | BUILT; PORTFOLIO-Q S25-S28, RAIL-2 S31 |
+| 4 | Performance over a period, and against the S&P 500 | G02, G14 | Alpaca portfolio history; SPY bars | numbers only, no advice, period stated. Alpaca's own docs warn that Portfolio History can return wrong equity and P&L, so its numbers need a cross-check before they are shown |
 | 5 | Movers this week or month among the person's holdings | G10, G07 | Alpaca bars | "why" is never guessed |
 | 6 | Late-fee alert | D15 | the person's rows; recovery fee names | a watch, said once per fee |
 | 7 | One stop per holding, one card at a time | E13 | positions | every order its own yes, $5 cap |

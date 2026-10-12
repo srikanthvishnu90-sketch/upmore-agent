@@ -21,6 +21,7 @@ function world(holdings) {
   const read = async (kind, p) => {
     if (kind === "brokerage_accounts") return { value: [{ id: "acct-1", name: "Mock brokerage", fractional: true, cash_cents: 100000 }], source: "Mock Broker", as_of: w.now };
     if (kind === "holdings") return { value: w.holdings, source: "Mock Broker", as_of: w.now };
+    if (kind === "dividends") { w.divFrom = p.from; if (!w.divs) throw new Error("down"); return { value: w.divs.filter((r) => !p.from || r.date >= p.from), unread: w.unread || [], truncated: false, source: "Mock Broker", as_of: w.now }; }
     if (kind === "quote") return { value: { price_cents: 50000 }, source: "Mock Quotes", as_of: w.now - 60000 };
     if (kind === "order") { if (w.failOrder) throw new Error("down"); return { value: w.records[p.order_id], source: "Mock Broker", as_of: w.now }; }
     return { value: 1, source: "x", as_of: w.now };
@@ -176,3 +177,34 @@ test("[S24] a month or a common word is never a ticker for a gain", () => {
   for (const m of ["how much did i make in august", "how much did i make on my house", "how much did i make on uber", "how much did i make this year"]) assert.notEqual(T.parse(m).action, "gain", m);
   assert.equal(T.parse("how much did I make on NVDA").action, "gain");
 });
+
+// Dividends received (megadoc G15): from the broker's activity rows, read-only.
+const DV = (date, cents, symbol, extra) => Object.assign({ id: `${symbol}-${date}`, type: "DIV", date, cents, symbol, qty: 2, per_share_cents: Math.round(cents / 2), withheld: false }, extra || {});
+const DIVS = [DV("2026-09-30", 324, "VOO"), DV("2026-06-30", 310, "VOO"), DV("2026-03-28", 105, "SCHD"), DV("2026-09-30", -49, "VOO", { type: "DIVNRA", withheld: true }), DV("2026-07-15", 40, "VNQ", { type: "DIVROC" }), DV("2025-12-22", 290, "VOO")];
+const dw = (divs) => { const w = world(ROWS); w.divs = divs; return w; };
+test("[S25] what dividends did I get: this year by default, to the cent, by holding, withholding and return of capital said, the source and as-of", async () => {
+  const w = dw(DIVS);
+  assert.equal(await say(w, "what dividends did I get"), "Dividends this year (Jan 1 to Oct 12): $7.79 from 4 payments in Mock brokerage. VOO $6.34 (2 payments, last Sep 30), SCHD $1.05 (Mar 28), VNQ $0.40 (Jul 15). $0.49 was withheld or charged against them, so $7.30 landed. $0.40 of it the broker labels return of capital. From Mock Broker's activity, as of 14:00 UTC.");
+  assert.equal(w.divFrom, "2026-01-01");
+  assert.equal(w.writes.length, 0);
+});
+test("[S26] one holding and a named period: each payment with its date, shares and per-share amount; last year is last year", async () => {
+  assert.equal(await say(dw(DIVS), "VOO dividends last year"), "VOO paid you $2.90 last year (2025) in Mock brokerage, 1 payment: $2.90 on Dec 22 (2 shares at $1.45 a share). From Mock Broker's activity, as of 14:00 UTC.");
+  assert.match(await say(dw(DIVS), "did VOO pay a dividend"), /^VOO paid you \$6\.34 this year \(Jan 1 to Oct 12\) in Mock brokerage, 2 payments: \$3\.24 on Sep 30 .*, \$3\.10 on Jun 30 /);
+  assert.match(await say(dw(DIVS), "how much did I get in dividends in 2025"), /^Dividends in 2025: \$2\.90 from 1 payment/);
+});
+test("[S27] none, unreadable, or a kind not read: said, never a number made up", async () => {
+  assert.equal(await say(dw([]), "any dividends this month"), "No dividends were paid into Mock brokerage this month (Oct 1 to Oct 12). From Mock Broker's activity, as of 14:00 UTC.");
+  const u = await world(ROWS).s.start("what dividends did I get"); assert.equal(u.reason, "dividends_unreadable"); assert.doesNotMatch(u.text, /\$\d/);
+  const w = dw(DIVS); w.unread = ["DIVWH"]; assert.match(await say(w, "what dividends did I get"), /Some dividend kinds \(DIVWH\) couldn't be read from the broker, so they aren't counted here\.$/);
+});
+test("[S28] the ways people ask: a savings 'dividend' is the bank's interest, reinvesting is not built, picking dividend stocks is advice", async () => {
+  for (const t of ["what dividends did I get", "how much in dividends did i get this year", "did VOO pay a dividend", "my dividends", "VOO dividends last year"]) assert.equal(T.parse(t).action, "dividends", t);
+  assert.equal(T.parse("what dividends did I get").query, null);
+  assert.equal(T.parse("how much in dividends did i get in 2026").query, null, "a period is never a ticker");
+  assert.equal(T.parse("did i get any dividends from schd").query, "SCHD");
+  assert.match(await say(dw(DIVS), "how much dividend did my savings pay"), /^That sounds like your savings account's dividend: credit unions call the interest they pay a dividend\./);
+  const d = await dw(DIVS).s.start("reinvest my dividends"); assert.equal(d.outcome, "not_built"); assert.match(d.text, /^Reinvesting dividends isn't built in Upmore yet, so nothing was set up\./);
+  assert.notEqual(T.parse("best dividend stocks to buy").action, "dividends");
+});
+

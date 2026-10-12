@@ -86,10 +86,11 @@ test("[S15] the way people type it: lead words, curly apostrophes, capitals", ()
   assert.equal(kind("ok please pay the electric bill"), "bill_pay");
 });
 
-test("[S16] portfolio analytics: benchmarks, sectors, period returns, movers, tax on a sale, dividends are said not built; holdings offered", () => {
-  for (const t of ["compare my portfolio to the S&P", "am I too concentrated in tech", "which of my stocks are up over 6 months and why", "what stocks are up the most this week", "how much tax if I sell all TSLA", "what dividends did I get", "what's my ytd return", "is my portfolio beating the market"]) assert.equal(kind(t), "portfolio_analytics", t);
+test("[S16] portfolio analytics: benchmarks, sectors, period returns, movers, tax on a sale are said not built; holdings, gains and dividends offered; dividends received are the trade flow's (G15), never caught here", () => {
+  for (const t of ["compare my portfolio to the S&P", "am I too concentrated in tech", "which of my stocks are up over 6 months and why", "what stocks are up the most this week", "how much tax if I sell all TSLA", "what's my ytd return", "is my portfolio beating the market"]) assert.equal(kind(t), "portfolio_analytics", t);
   for (const t of ["how's my portfolio", "what's my biggest holding", "how much did i make on VOO", "what's the price of VOO", "am i up on tesla", "how am I doing this year"]) assert.equal(kind(t), null, t);
-  assert.match(N.answer("compare my portfolio to the S&P"), /^That isn't built yet: comparisons with the market, sector weights, returns over a period, movers, tax estimates on a sale and dividends aren't in Upmore, so I won't guess at them\. What I can show is your holdings with their values and today's change \(say "how's my portfolio today"\), and the gain on one since you bought \("how much have I made on NVDA"\)\.$/);
+  assert.match(N.answer("compare my portfolio to the S&P"), /^That isn't built yet: comparisons with the market, sector weights, returns over a period, movers and tax estimates on a sale aren't in Upmore, so I won't guess at them\. What I can show is your holdings with their values and today's change \(say "how's my portfolio today"\), the gain on one since you bought \("how much have I made on NVDA"\), and the dividends paid in \("what dividends did I get"\)\.$/);
+  for (const t of ["what dividends did I get", "how much in dividends did I get this year", "did VOO pay a dividend"]) assert.equal(kind(t), null, t);
 });
 
 test("[S17] everything to a new account: the scam warning first, nothing moved, the bank's own app for a real new account", () => {

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T15:18:50.153Z",
+ "run_at": "2026-10-12T20:21:10.464Z",
  "baseline_all_green": true,
- "sub_capabilities": 30,
- "proven": 30,
+ "sub_capabilities": 31,
+ "proven": 33,
  "problems": [],
  "rows": [
   {
@@ -365,6 +365,39 @@
    "title": "Filler is never a ticker",
    "defect": "trailing chat filler stays in the query, so 'VOO thx' is looked up",
    "test": "buy $4 of VOO thx cards VOO",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S31",
+   "id": "D31",
+   "title": "Dividends paged",
+   "defect": "only the first page is read, so the 101st dividend on is missing",
+   "test": "105 dividends read in two pages",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S31",
+   "id": "D32",
+   "title": "A refused kind is said",
+   "defect": "a refused withholding kind is swallowed silently, as if it were $0.00",
+   "test": "DIVWH refused is said as not counted",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S31",
+   "id": "D33",
+   "title": "Canceled dividends dropped",
+   "defect": "canceled activities are counted",
+   "test": "a canceled $5.00 is not counted",
    "bites": true,
    "applied": true,
    "collateral": [],

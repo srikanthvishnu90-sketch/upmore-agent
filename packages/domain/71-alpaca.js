@@ -15,6 +15,10 @@
        GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
        GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
               OAuth "data" scope)
+       GET    /v2/account/activities/{type}      dividends: DIV, DIVCGL, DIVCGS, DIVROC, DIVTXEX paid in; DIVNRA, DIVFT, DIVTW,
+              DIVWH, DIVFEE withheld (negative net_amount). NonTradeActivity fields per Alpaca's SDK (alpaca-py 0.44.0,
+              alpaca/trading/models.py): id, activity_type, date, net_amount, description, status, symbol, qty,
+              per_share_amount; paged by page_token (the last id) at page_size 100, direction desc (account-activities.md)
      "Authorization: Bearer <token>" with the person's own OAuth token, read from the Vault for that person on every request
      (BrokerAccounts, 73-broker-accounts.js); nothing here reads the environment, logs a token or an Authorization header.
      Only api.alpaca.markets and data.alpaca.markets are accepted: the paper hosts and the Broker API are refused, so this
@@ -187,6 +191,34 @@
         assetList = { value: (Array.isArray(r.json) ? r.json : []).map(j => ({ symbol: j.symbol, name: j.name || j.symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null })), source, as_of: clock() };
         return assetList;
       }
+      // Dividends paid into the account on or after `from` (YYYY-MM-DD), each type read on its own, newest first, at most 10
+      // pages of 100 a type. A withholding type the broker refuses is listed in `unread`, never counted as $0.00; the
+      // main DIV read failing throws, so no answer is built without it. Canceled rows are dropped.
+      const DIV_PAID = ["DIV", "DIVCGL", "DIVCGS", "DIVROC", "DIVTXEX"], DIV_HELD = ["DIVNRA", "DIVFT", "DIVTW", "DIVWH", "DIVFEE"];
+      async function dividends(from) {
+        const after = from ? new Date(Date.parse(`${from}T00:00:00Z`) - 86400000).toISOString().slice(0, 10) : null, rows = [], unread = [];
+        let truncated = false;
+        const readType = async type => {
+          let token = null;
+          for (let page = 0; page < 10; page++) {
+            const qs = [`direction=desc`, `page_size=100`].concat(after ? [`after=${after}`] : [], token ? [`page_token=${encodeURIComponent(token)}`] : []).join("&");
+            const r = await call("GET", P(`/account/activities/${type}?${qs}`), null, `activities ${type}`);
+            const list = Array.isArray(r.json) ? r.json : [];
+            for (const j of list) {
+              const date = String(j.date || "").slice(0, 10), cents = strToCents(j.net_amount, "round");
+              if (String(j.status || "").toLowerCase() === "canceled" || !Number.isSafeInteger(cents) || (from && date < from)) continue;
+              rows.push({ id: j.id || null, type: j.activity_type || type, date, cents, symbol: j.symbol || null, qty: num(j.qty), per_share_cents: strToCents(j.per_share_amount, "round"), description: j.description || "", withheld: DIV_HELD.includes(j.activity_type || type) });
+            }
+            if (list.length < 100) return;
+            token = list[list.length - 1].id;
+            if (page === 9) truncated = true;
+          }
+        };
+        await readType("DIV");
+        for (const type of DIV_PAID.slice(1).concat(DIV_HELD)) { try { await readType(type); } catch (e) { if (e && e.kind === "auth") throw e; unread.push(type); } }
+        const seen = new Set();
+        return { value: rows.filter(x => !x.id || (seen.has(x.id) ? false : seen.add(x.id))).sort((a, b) => b.date.localeCompare(a.date)), unread, truncated, from: from || null, source, as_of: clock() };
+      }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
       const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), today_pl_cents: strToCents(j.unrealized_intraday_pl, "round"), today_pct: Number.isFinite(num(j.unrealized_intraday_plpc)) ? num(j.unrealized_intraday_plpc) : null, paper: false, live: true });
@@ -247,7 +279,7 @@
       // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
       // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
       return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
-        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, dividends, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -268,6 +300,7 @@
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);
         if (kind === "holdings") return adapter.positions();
+        if (kind === "dividends") return adapter.dividends(q.from || null);
         if (kind === "asset") { const a = await adapter.asset(q.symbol); return a ? { value: a, source: adapter.source, as_of: now() } : null; }
         if (kind === "assets") return adapter.assets();
         if (kind === "order") { const r = await adapter.getOrder(q.order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }

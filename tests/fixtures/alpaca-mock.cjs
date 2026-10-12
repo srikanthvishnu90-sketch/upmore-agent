@@ -20,6 +20,9 @@ function start(opts) {
     status: o.status || "ACTIVE", flags: Object.assign({}, o.flags || {}),
     positions: Object.assign({}, o.positions || {}), // SYMBOL -> qty (number)
     quotes: {}, assets: Object.assign({ VOO: { name: "Vanguard S&P 500 ETF", fractionable: true, tradable: true }, VT: { name: "Vanguard Total World Stock ETF", fractionable: true, tradable: true }, NVDA: { name: "NVIDIA Corporation Common Stock", fractionable: true, tradable: true }, TSLA: { name: "Tesla, Inc. Common Stock", fractionable: true, tradable: true }, AAPL: { name: "Apple Inc. Common Stock", fractionable: true, tradable: true } }, o.assets || {}),
+    // Non-trade activities (Trading API GET /v2/account/activities/{type}; fields per alpaca-py NonTradeActivity): id,
+    // activity_type, date, net_amount (string), description, status, symbol, qty, per_share_amount. refuse_types answer 422.
+    activities: (o.activities || []).slice(), refuse_types: (o.refuse_types || []).slice(),
     orders: [], requests: [], tokens: Object.assign({}, o.tokens || {}), faults: { drop_next_create_response: false, fail_next_create: null, partial_next: null, reject_next: null, cancel_pending: false },
   };
   for (const [sym, q] of Object.entries(o.quotes || { VOO: [51200, 51210], VT: [11800, 11810], NVDA: [10600, 10610], TSLA: [25000, 25010], AAPL: [22000, 22010] })) st.quotes[sym] = { bid: q[0], ask: q[1], t: st.now() - 30000 };
@@ -27,7 +30,7 @@ function start(opts) {
   // (Broker API); an OAuth Bearer token reaches exactly one account under /v2 (Trading API). The default account keeps
   // its fields on st so single-account tests read st.orders and st.positions as before.
   const accts = { [st.account]: st };
-  for (const [id, a] of Object.entries(o.accounts || {})) accts[id] = { account: id, buying_power_cents: a.buying_power_cents !== undefined ? a.buying_power_cents : 1000000, positions: Object.assign({}, a.positions || {}), orders: [] };
+  for (const [id, a] of Object.entries(o.accounts || {})) accts[id] = { account: id, activities: (a.activities || []).slice(), buying_power_cents: a.buying_power_cents !== undefined ? a.buying_power_cents : 1000000, positions: Object.assign({}, a.positions || {}), orders: [] };
   let ac = st;
   const fillAll = () => { for (const a of Object.values(accts)) { ac = a; for (const x of a.orders) fillOne(x); } ac = st; };
   const str = c => `${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`;
@@ -113,6 +116,13 @@ function start(opts) {
         ac = accts[tokenAccount]; sub = path.slice(3); trading = true;
       } else return send(res, 404, { message: "not found" });
       st.requests[st.requests.length - 1].account = ac.account;
+      if (req.method === "GET" && (m = /^\/account\/activities\/([A-Z]+)$/.exec(sub))) {
+        const type = m[1]; if ((ac.refuse_types || st.refuse_types).includes(type)) return send(res, 422, { code: 42210000, message: `invalid activity type ${type}` });
+        const after = url.searchParams.get("after"), size = Math.min(Number(url.searchParams.get("page_size") || 100), 100), token = url.searchParams.get("page_token");
+        let list = (ac.activities || []).filter(a => a.activity_type === type && (!after || a.date > after)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+        if (token) { const i = list.findIndex(a => a.id === token); list = i >= 0 ? list.slice(i + 1) : []; }
+        return send(res, 200, list.slice(0, size));
+      }
       if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: ac.status || "ACTIVE", trading_blocked: false, account_blocked: false, trade_suspended_by_user: false, ...(ac.flags || {}), currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents) });
       if (req.method === "GET" && sub === "/positions") return send(res, 200, Object.entries(ac.positions).map(([s, q]) => pos(s, q)));
       if (req.method === "GET" && (m = /^\/positions\/([^/]+)$/.exec(sub))) { const s = decodeURIComponent(m[1]); return ac.positions[s] ? send(res, 200, pos(s, ac.positions[s])) : send(res, 404, { code: 40410000, message: "position does not exist" }); }

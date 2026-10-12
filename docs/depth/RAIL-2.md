@@ -102,4 +102,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S28 | A sell card keeps its terms | sell 1 AAPL at $250 says 1 share and the limit | `S28` in tests/depth-RAIL-2.test.cjs | only the long fee line is tried, so a limit sell falls to the last-resort line | proven (also fails S27) |
 | S29 | A closed market is always said | a short-form card says Works from the open | `S29` in tests/depth-RAIL-2.test.cjs | the shortest card drops the timing, so a closed-market order reads as if it fills now | proven |
 | S30 | Filler is never a ticker | buy $4 of VOO thx cards VOO | `S30` in tests/depth-RAIL-2.test.cjs | trailing chat filler stays in the query, so 'VOO thx' is looked up | proven |
+| S31 | Dividends paged | 105 dividends read in two pages | `S31` in tests/depth-RAIL-2.test.cjs | only the first page is read, so the 101st dividend on is missing | proven |
+| S31 | A refused kind is said | DIVWH refused is said as not counted | `S31` in tests/depth-RAIL-2.test.cjs | a refused withholding kind is swallowed silently, as if it were $0.00 | proven |
+| S31 | Canceled dividends dropped | a canceled $5.00 is not counted | `S31` in tests/depth-RAIL-2.test.cjs | canceled activities are counted | proven |
 <!-- results:end -->

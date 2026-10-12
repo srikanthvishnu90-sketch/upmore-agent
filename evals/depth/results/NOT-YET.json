@@ -1,6 +1,6 @@
 {
  "capability": "NOT-YET",
- "run_at": "2026-10-12T13:36:19.548Z",
+ "run_at": "2026-10-12T20:25:40.623Z",
  "baseline_all_green": true,
  "sub_capabilities": 25,
  "proven": 25,
@@ -189,11 +189,13 @@
    "sub": "S16",
    "id": "D16",
    "title": "Portfolio analytics",
-   "defect": "analytics asks are not caught",
-   "test": "benchmarks, sectors, returns, dividends said not built",
+   "defect": "analytics asks are not caught (the rule is renamed, so it never answers as analytics)",
+   "test": "benchmarks, sectors, returns said not built",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S14"
+   ],
    "status": "proven"
   },
   {

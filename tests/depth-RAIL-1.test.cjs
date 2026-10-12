@@ -186,6 +186,24 @@ test('[S16] follow-up replies go to the flow that asked, through the router, wit
   assert.equal(calls,0,'no follow-up reached the model');
 });
 
+test('[S17] a group ("my roommates", "the guys", "family") is never a person: groups are not kept, so the people are asked for, and the answer continues the split',async()=>{
+  for(const [m,label] of [['split 90 with my roommates','my roommates'],['I paid 90 for groceries, split with roommates','roommates'],['split 60 with the guys','the guys'],['split $40 with family','family'],['split 120 for lunch with the team','the team']]){
+    const w=world();const a=await w.split.start(m);assert.equal(a.outcome,'ask',m);assert.equal(a.reason,'who_group',m);
+    assert.equal(a.text,`Upmore doesn't keep groups, so I don't know who "${label}" means. Who are they? Name each person, like "Sam and Maya".`,m);
+    assert.equal(confirmations(w.split).length,0);
+  }
+  const w=world();await w.split.start('split $90 with my roommates');const b=await w.split.reply('marcus l and sarah');assert.equal(b.outcome,'confirm');assert.match(b.text,/\$30\.00 each from Marcus L \(@marcus\) and Sarah M \(@sarah_m\)/);
+  const c=await world().split.start('split 60 with 2 roommates');assert.equal(c.reason,'who','a count is still a count');assert.match(c.text,/\$20\.00 each across 3 people/);
+});
+
+test('[S18] the people named after the memo are read as people, and a split clause after "for ..." never becomes the memo',async()=>{
+  assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split $90 for dinner with marcus'))).names,['marcus']);
+  assert.equal(P.parse('split $90 for dinner with marcus').memo,'dinner');
+  const g=P.parse('I paid 60 for dinner, split with sarah');assert.deepEqual(JSON.parse(JSON.stringify(g.names)),['sarah']);assert.equal(g.memo,'dinner');
+  const w=world();const a=await w.split.start('I paid 60 for dinner, split with sarah');assert.equal(a.outcome,'confirm');assert.match(a.text,/Sarah M \(@sarah_m\).* for dinner/);
+  assert.equal(P.parse('split 40 for the cab').memo,'the cab');
+});
+
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{
   const {send,book}=world();
   assert.equal((await send.start('send $40 to marcus')).text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');

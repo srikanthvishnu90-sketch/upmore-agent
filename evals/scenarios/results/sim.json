@@ -303,7 +303,7 @@
    "typed": "I paid 90 for groceries, split with roommates",
    "flow": "split",
    "outcome": "ask",
-   "reply": "Who are you splitting it with?",
+   "reply": "Upmore doesn't keep groups, so I don't know who \"roommates\" means. Who are they? Name each person, like \"Sam and Maya\".",
    "executed": false,
    "mock_orders": 0
   },

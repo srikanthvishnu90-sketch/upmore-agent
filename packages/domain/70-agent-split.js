@@ -20,6 +20,11 @@
       const lower = t.toLowerCase(), forIdx = lower.search(/\bfor\b/);
       let head = forIdx >= 0 ? t.slice(0, forIdx) : t;
       out.memo = forIdx >= 0 ? t.slice(forIdx + 3).trim().replace(/^[\s:,-]+/, "").replace(/[.!?]+$/, "") || null : null;
+      // "I paid 90 for groceries, split with sam": the memo ends where the split clause starts; the clause (and its names)
+      // goes back to the head, never into the memo (megadoc C04).
+      if (out.memo) { const k = /[,;]?\s*(?:and\s+|so\s+|pls\s+|please\s+)?\bsplit\b/i.exec(out.memo); if (k) { head = `${head} ${out.memo.slice(k.index).replace(/^[,;\s]+/, "")}`; out.memo = out.memo.slice(0, k.index).trim() || null; } }
+      // "split $90 for dinner with marcus": the people come after the memo; "with ..." is moved back to the head.
+      if (out.memo && !/\b(?:with|between|among|w\/)\s+/i.test(head)) { const k = /\s+\b(?:with|between|among|w\/)\s+/i.exec(out.memo); if (k) { head = `${head} ${out.memo.slice(k.index).trim()}`; out.memo = out.memo.slice(0, k.index).trim() || null; } }
       const w = /\b(\d+|two|three|four|five|six|seven|eight)\s+ways?\b/i.exec(head);
       if (w) { out.ways = WORDS[w[1].toLowerCase()] || Number(w[1]); head = head.replace(w[0], " "); }
       const m = AMOUNT.exec(head);
@@ -40,6 +45,11 @@
       // "between me and 3 friends": a count, not a name (response-style corpus 2.01).
       if (out.ways && !out.names.length) out.others = out.ways - 1;
       if (out.names.length === 1) { const n = /^(\d+|two|three|four|five|six|seven|eight)\s+(?:friends|people|others|of (?:them|us)|roommates|guys|coworkers|colleagues)$/i.exec(out.names[0]); if (n) { out.others = WORDS[n[1].toLowerCase()] || Number(n[1]); out.names = []; out.ways = out.others + 1; } }
+      // "With my roommates", "the guys", "family": a group, never a person's name (megadoc C04). Groups aren't kept, so the
+      // people in it are asked for; "Roommates" was being asked for a Venmo handle as if it were someone.
+      const GROUP = /^(?:all|both|everyone|everybody|the group|group|the gang|gang|squad|crew|them|roommates?|room ?mates?|housemates?|flatmates?|friends|the guys|guys|the girls|girls|family|the family|fam|coworkers|co-workers|colleagues|team|the team|everyone (?:here|else)|my (?:roommates?|friends|family|coworkers))$/i;
+      const g = out.names.find(n => GROUP.test(n));
+      if (g) { out.group = (/\b(?:with|between|among)\s+((?:my|the|our)\s+)?/i.exec(head) || [])[1] ? `${/\b(?:with|between|among)\s+((?:my|the|our))\s+/i.exec(head)[1].toLowerCase()} ${g.toLowerCase()}` : g.toLowerCase(); out.names = []; }
       // "I pay 50", "my share is 50": the person's own fixed share; the rest is split (corpus 2.02).
       const mine = /\b(?:i(?:'ll| will)?\s+(?:pay|cover)|my (?:share|part|half) is)\s+\$?\s?(\d+(?:\.\d{1,2})?)/i.exec(t);
       if (mine) { const c = Math.round(Number(mine[1]) * 100); if (c > 0 && (!out.amount_cents || c < out.amount_cents)) out.mine_cents = c; }
@@ -85,6 +95,7 @@
         if (parsed.uneven && !resolvedSoFar) return { outcome: "not_built", reason: "uneven_not_built", text: "Splits by percentage aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
         if (parsed.itemized && !resolvedSoFar) return { outcome: "not_built", reason: "itemized_not_built", text: "Itemized splits aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
         if (!parsed.amount_cents) return { outcome: "ask", text: "How much was it?" };
+        if (parsed.group && !resolvedSoFar) { waitingNames = Object.assign({}, parsed, { group: null, names: [] }); return { outcome: "ask", reason: "who_group", text: `Upmore doesn't keep groups, so I don't know who "${parsed.group}" means. Who are they? Name each person, like "Sam and Maya".` }; }
         if (!parsed.names.length) {
           // The question keeps the split, so the answer ("dave priya and sam", "just alex") continues it.
           waitingNames = parsed;

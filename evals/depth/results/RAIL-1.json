@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-1",
- "run_at": "2026-10-12T04:18:06.148Z",
+ "run_at": "2026-10-12T14:13:00.784Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 18,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -42,7 +42,8 @@
     "S12",
     "S13",
     "S15",
-    "S16"
+    "S16",
+    "S17"
    ],
    "status": "proven"
   },
@@ -59,7 +60,9 @@
     "S04",
     "S11",
     "S13",
-    "S16"
+    "S16",
+    "S17",
+    "S18"
    ],
    "status": "proven"
   },
@@ -231,6 +234,30 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "A group is never a person",
+   "defect": "group words are read as names, so 'Roommates' is asked for a Venmo handle",
+   "test": "split with my roommates asks who they are",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "Names after the memo are people",
+   "defect": "everything after 'for' is the memo, so the names are lost and a bare 'who' is asked",
+   "test": "split $90 for dinner with marcus names Marcus",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S17"
+   ],
    "status": "proven"
   }
  ]

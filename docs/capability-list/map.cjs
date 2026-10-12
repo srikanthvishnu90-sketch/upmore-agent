@@ -145,7 +145,7 @@ const MAP = [
   [72, "INV-019", "part", "rollover status module; finding old plans and executing a rollover not built", null],
   [73, "INV-018 TAX-009", "part", "contribution tracking module", null],
   // 4. bills and rent
-  [74, "PAY-005 HOUS-002", "full", "rent payment execution is not built (C110); 'pay rent' reaches the bill review, which pays nothing", null],
+  [74, "PAY-005 HOUS-002", "full", "rent is a standing flow (C110, 81-standing-rent.js): each month's card, on the person's yes, is staged for them to send in Zelle, Venmo, Cash App or PayPal; Upmore never pays rent itself (no portal, ACH or check rail)", null],
   [75, "PAY-006 BILL-008", "full", "bill pay is gated: the planner can preview a payment for a recorded bill, nothing is sent", null],
   [76, "PAY-006", "part", "not built", null],
   [77, "SAVE-006 PAY-009", "part", "overdraft-prevention move is a module; moving money is not built", null],

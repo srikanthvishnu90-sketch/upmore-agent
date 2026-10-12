@@ -34,16 +34,17 @@ test('both model paths drop any sentence that asks for a password, a code or a f
   }
 });
 
-test('the direct answers (connect my X, pay my rent, find me money, nothing linked) run after the safety guards and before the flows and the model',()=>{
-  assert.ok(h.includes('import { connectReply, rentReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";'));
-  const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
+test('the direct answers (connect my X, find me money, nothing linked) run after the safety guards and before the flows and the model; "pay my rent" is left to the standing rent flow',()=>{
+  assert.ok(h.includes('import { connectReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";'));
+  assert.ok(!/rentReply|RENT_NOT_BUILT/.test(h),'no "not built" rent answer intercepts the rent flow');
+  const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
   assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');
   assert.ok(h.includes('meta: { capability: true, direct: true }'));
   assert.ok(h.includes('.eq("presence", "observed")'),'find me money reads only observed rows');
 });
 
 test('one shared, newest-first transaction read per turn (a long history never drops this month), used by every direct answer',()=>{
-  const start=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), end=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
+  const start=h.indexOf('let direct: string | null = connectReply(message);'), end=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
   const block=h.slice(start,end);
   assert.ok(block.includes('txCache ??='),'read once and shared');
   assert.ok(block.includes('.order("posted_on", { ascending: false, nullsFirst: true })') && block.includes('.range(from, from + 999)'),'newest first, in pages');
@@ -55,7 +56,7 @@ test('one shared, newest-first transaction read per turn (a long history never d
 test('see-everything numbers, then dispute (S16-17), then find me money, in the direct block; a failed read is said plainly, never a 500',()=>{
   assert.ok(h.includes('import { disputeReply } from "./_shared/dispute_answer.ts";'));
   assert.ok(h.includes('import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";'));
-  const block=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), noData=h.indexOf('direct = noDataReply(message, linkedCount)'),
+  const block=h.indexOf('let direct: string | null = connectReply(message);'), noData=h.indexOf('direct = noDataReply(message, linkedCount)'),
     money=h.indexOf('if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {'),
     dispute=h.indexOf('if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });'),
     find=h.indexOf('if (!direct) direct = await findMoneyReply(message, today, oldestFirst);'),

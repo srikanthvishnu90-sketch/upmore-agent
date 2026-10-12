@@ -71,7 +71,7 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 
 | Suite | Bar | Known blockers today |
 | --- | --- | --- |
-| spec16 (20 texts in one thread, incl. 3 photos and an 11-minute wait) | 100% of money texts; every reply read by a person | S16-03 needs a real Netflix charge on the test account (connect a bank); S16-10 needs a connected brokerage (step 4); S16-15 needs the rent flow (C110), which is **not built** |
+| spec16 (20 texts in one thread, incl. 3 photos and an 11-minute wait) | 100% of money texts; every reply read by a person | S16-03 needs a real Netflix charge on the test account (connect a bank); S16-10 needs a connected brokerage (step 4); S16-15 needs the standing_payments migration applied and a rent rule the test user saved on their own yes (the flow is built: `packages/domain/81-standing-rent.js`) |
 | sloppy-20 | understood >= 95% on the first message | not run live yet |
 | L3 adversarial (stale yes, double yes, interrupts) | 100% | not run live yet; the 3-hours-late case finishes with `--resume <label>` |
 
@@ -88,8 +88,10 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 - [ ] **Browserbase or your own browser infra** for cancellations. The executor still calls Browserbase, and the keys
       checklist says drop it. Until decided, cancellations hand off a pre-filled guided path; nothing is cancelled for the
       person. Only 1 merchant playbook (devin) is verified.
-- [ ] **Rent (C110):** build it before the beta, or ship the beta with "pay my rent" going to the bill review, which asks
-      what's owed and pays nothing. Today it is not built.
+- [ ] **Rent (C110):** built as a standing flow (2026-10-12): the person sets it up on one restated card, each month
+      gets that month's card (offered by the scheduler a few days before the due day), and the yes stages it for them to
+      send in Zelle, Venmo, Cash App or PayPal; Upmore never pays rent itself (no ACH, portal or check rail). Needs the
+      `20261012020000_standing_payments.sql` migration applied by the owner.
 - [ ] **Privacy policy:** updated on the branch to match the code (OpenAI as the AI provider, Alpaca with trading
       permission, stored transactions deleted with the account). **Have a lawyer read it before the first outside tester.**
 - [ ] **Securities review** before anyone but you places a trade (playbook Part 18).
@@ -165,7 +167,8 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 | Any successful live model call | **None yet.** OpenAI is wired but never called from the live project. gpt-5-nano is smaller than the Haiku the prompts were written for; the gauntlet decides whether its answers are good enough. If not, `OPENAI_MODEL=gpt-5-mini` costs about 5x more and is one secret. |
 | Brokerage trading | Built, live-only, $5 cap; **0 live orders**; gated on Alpaca's approval and the OAuth secrets |
 | Cancellations | Guided handoff for all but 1 verified merchant; executor provider undecided |
-| Rent (C110), disputes, bill pay to billers, sweeps | Not built |
+| Rent (C110) | Standing flow built: staged each month for the person to send, on their yes; table not applied live |
+| Disputes, bill pay to billers, sweeps | Not built |
 | Person-to-person sends | Staged for the person to send in Venmo/Zelle; Upmore never moves the money itself |
 | Permission tiers, action ledger feed, stop everything | Tables live; not deployed end to end |
 | SMS / WhatsApp | Not built (in-app chat and a test-only iMessage bridge) |

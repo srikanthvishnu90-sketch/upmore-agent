@@ -310,6 +310,21 @@
         memo.queue = null;
         return done({ route: "card_reply", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "declined", text: dropped ? "Okay, dropped. Nothing was sent, bought or cancelled." : "Okay. Nothing is waiting on you, and nothing was changed." } });
       }
+      // Rent is a standing flow (81-standing-rent.js, real-world C110, spec 16 item S16-15): "pay my rent", "rent is 1500
+      // now", "stop rent". Read from the words alone, with no model call, so a bill never reaches the person-to-person send
+      // ("pay sam 900 for rent" is still a send to Sam: there the rent word is the memo). Other flows' live cards are
+      // dropped first, as for any new flow.
+      const Rent = typeof StandingRent !== "undefined" ? StandingRent : null;
+      if (Rent && sessions.rent && Rent.intent(text)) {
+        if (memo.queue && memo.queue.text !== text) memo.queue = null;
+        const dropped = [];
+        for (const k of live) if (k !== "rent") { await sessions[k].reply("never mind"); dropped.push(k); }
+        for (const k of Object.keys(sessions)) if (k !== "rent" && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+        const result = await sessions.rent.start(text);
+        if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+        // Asking who, how much and which day is a data gap (no rent on file), not a misunderstanding.
+        return { route: "pay_rent", source: "deterministic", flow: "rent", capability: Rent.CAPABILITY, canonical: text, result, understood: true, understood_first: true, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -381,7 +396,7 @@
       for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
       return t;
     }
-    const maybeFlow = text => MAYBE.test(tidy(text));
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();

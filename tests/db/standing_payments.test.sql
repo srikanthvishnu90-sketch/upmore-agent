@@ -1,0 +1,47 @@
+begin;
+reset role;
+insert into auth.users(id,email) values('00000000-0000-0000-0000-0000000000b1','rent1@example.com'),('00000000-0000-0000-0000-0000000000b2','rent2@example.com');
+select t.as_user('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
+insert into public.standing_payments(user_id,kind,payee_name,payee_handle,rail,amount_cents,day_of_month,funding)
+  values('00000000-0000-0000-0000-0000000000b1','rent','Mike','mike@example.com','zelle',145000,1,'checking');
+select t.ok((select count(*)=1 and bool_and(status='active') and bool_and(last_staged_month is null) from public.standing_payments),'the owner saves a rent rule, active, nothing staged yet');
+update public.standing_payments set last_staged_month='2026-11', updated_at=now() where payee_name='Mike';
+select t.ok((select last_staged_month='2026-11' from public.standing_payments where payee_name='Mike'),'the owner records the month staged on their yes');
+update public.standing_payments set amount_cents=150000 where payee_name='Mike';
+select t.ok((select amount_cents=150000 from public.standing_payments where payee_name='Mike'),'the owner changes the amount');
+select t.must_fail($$insert into public.standing_payments(user_id,kind,payee_name,rail,amount_cents,day_of_month) values('00000000-0000-0000-0000-0000000000b1','rent','Dana','venmo',150000,5)$$,'unique','one active rent rule per person');
+select t.must_fail($$update public.standing_payments set amount_cents=0 where payee_name='Mike'$$,'check constraint','the amount is more than zero');
+select t.must_fail($$update public.standing_payments set day_of_month=31 where payee_name='Mike'$$,'check constraint','the day is the 1st to the 28th, so it falls in every month');
+select t.must_fail($$update public.standing_payments set rail='ach' where payee_name='Mike'$$,'check constraint','only the handoff apps: Upmore never sends rent itself');
+select t.must_fail($$update public.standing_payments set status='paused' where payee_name='Mike'$$,'check constraint','status is active or stopped');
+select t.must_fail($$update public.standing_payments set last_staged_month='2026-13' where payee_name='Mike'$$,'check constraint','a staged month is YYYY-MM');
+select t.must_fail($$update public.standing_payments set payee_handle='4111111111111111' where payee_name='Mike'$$,'check constraint','a card number is refused as a handle');
+select t.must_fail($$update public.standing_payments set kind='bill' where payee_name='Mike'$$,'check constraint','rent only for now');
+update public.standing_payments set status='stopped', updated_at=now() where payee_name='Mike';
+insert into public.standing_payments(user_id,kind,payee_name,rail,amount_cents,day_of_month)
+  values('00000000-0000-0000-0000-0000000000b1','rent','Dana','venmo',150000,5);
+select t.ok((select count(*)=2 and count(*) filter (where status='active')=1 from public.standing_payments),'one message turns it off; a new setup after a stop is a new active row');
+select t.must_fail($$insert into public.standing_payments(user_id,kind,payee_name,rail,amount_cents,day_of_month) values('00000000-0000-0000-0000-0000000000b2','rent','X','zelle',100,1)$$,'row-level security','a user cannot save a rule for another owner');
+reset role;
+select t.as_user('00000000-0000-0000-0000-0000000000b2');
+set role authenticated;
+select t.ok((select count(*)=0 from public.standing_payments),'another owner cannot read the rules');
+update public.standing_payments set amount_cents=1 where payee_name='Dana';
+delete from public.standing_payments where payee_name='Dana';
+reset role;
+select t.ok((select count(*)=2 and bool_and(amount_cents>1) from public.standing_payments),'another owner cannot change or delete them either');
+select t.as_user('');
+set role anon;
+select t.must_fail($$select * from public.standing_payments$$,'permission denied','anonymous callers cannot read rent rules');
+reset role;
+set role service_role;
+insert into public.standing_payments(user_id,kind,payee_name,rail,amount_cents,day_of_month)
+  values('00000000-0000-0000-0000-0000000000b2','rent','Pat','paypal',90000,3);
+select t.ok((select count(*)=3 from public.standing_payments),'the scheduler (service_role) reads every active rule');
+insert into public.agent_proactive_log(user_id,key,kind,capability_id,cadence) values('00000000-0000-0000-0000-0000000000b2','rent:x:2026-11','standing_payment','PAY-005',true);
+select t.must_fail($$insert into public.agent_proactive_log(user_id,key,kind,capability_id,cadence) values('00000000-0000-0000-0000-0000000000b2','rent:x:2026-11','standing_payment','PAY-005',true)$$,'duplicate key','the month''s rent offer is logged once per person and month');
+reset role;
+delete from auth.users where id='00000000-0000-0000-0000-0000000000b1';
+select t.ok((select count(*)=1 from public.standing_payments),'deleting the user deletes their rules');
+rollback;

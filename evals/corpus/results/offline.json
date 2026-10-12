@@ -428,9 +428,33 @@
    "id": "2.04",
    "file": 2,
    "title": "Rent",
-   "status": "NEEDS_MODEL",
-   "failed": [],
-   "variants": null
+   "status": "DIVERGES",
+   "failed": [
+    "\"pay rent\": card (expected a confirmation card, got outcome ask)"
+   ],
+   "triage": "The corpus shows rent already on file and paid by ACH on one yes. Upmore never moves rent itself (owner rule: it stages each month for the person to send in Zelle, Venmo, Cash App or PayPal; no ACH rail is live), and the corpus world has no rent rule saved, so 'pay rent' first asks the one blocking question (who, how much, which day). With a rule on file the monthly card goes up and its yes stages it (packages/domain/81-standing-rent.js, tests/standing-rent.test.cjs). Owner can overrule.",
+   "mock_orders": 0,
+   "variants": {
+    "total": 3,
+    "pass": 0,
+    "failed": [
+     "typo: \"pya rent\": card (expected a confirmation card, got outcome ask)",
+     "case_punct: \"Pay rent!!\": card (expected a confirmation card, got outcome ask)",
+     "slang: \"pay rent rn pls\": card (expected a confirmation card, got outcome ask)"
+    ]
+   },
+   "turns": [
+    {
+     "user": "pay rent",
+     "reply": "Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'",
+     "outcome": "ask"
+    },
+    {
+     "user": "yes",
+     "reply": "",
+     "outcome": "needs_model"
+    }
+   ]
   },
   {
    "id": "2.05",

@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, rentReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
@@ -226,12 +226,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     }
 
     // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
-    // connector matrix, "pay my rent" (not built, said plainly), "find me money" from the person's own transactions, and
+    // connector matrix, "find me money" from the person's own transactions, and
     // balance or spending with nothing linked in one plain line, "dispute this charge" as a pre-filled draft the person
     // sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model), and balance,
-    // spending, "how am i doing" and "did it go through" from the person's own rows (_shared/money_answers.ts).
+    // spending, "how am i doing" and "did it go through" from the person's own rows (_shared/money_answers.ts). "pay my
+    // rent" is not answered here: it is the standing rent flow (flow router, below).
     {
-      let direct: string | null = connectReply(message) ?? rentReply(message);
+      let direct: string | null = connectReply(message);
       let linkedCount = 0;
       if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");

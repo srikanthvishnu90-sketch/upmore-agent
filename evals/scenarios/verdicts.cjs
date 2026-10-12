@@ -54,8 +54,18 @@ set("C13", "NOT_BUILT", "requests by SMS link to people not on an app");
 set("C14", "NOT_BUILT", "canceling sent requests; says to cancel in the app", "tests/edge/megadoc-sim.test.ts");
 set("C15", "DIVERGES", "asks which Sam first; the tax amount question comes after, not first");
 // D. rent, bills, IOUs
-set("D01 D02 D03 D06 D07 D12 D13 D14", "NOT_BUILT", "rent and bill pay end to end (C110) is not built; 'pay rent' reaches the bill workflow, which cannot pay");
-set("D04 D05", "NOT_BUILT", "saved landlord payee management; a payee change is never taken from text (no path to change it at all)");
+// Rent is a standing flow (81-standing-rent.js, C110): with rent on file, "pay rent" is that month's card (amount, month,
+// payee, due date restated) and its yes stages it for the person to send in their app; the sim's world has no rent on
+// file, so the first move there is the one blocking question (who, how much, which day of the month).
+const RENT = "standing rent flow: with rent on file the month's card restates amount, month and payee, and its yes stages it for the person to send in their app (no ACH or bill-pay rail; proof is the bank debit); with nothing on file it asks who, how much and which day";
+set("D01", "LIMITED", RENT, "tests/standing-rent.test.cjs");
+set("D02", "LIMITED", RENT + "; no separate 'paying early' note, the card shows the due date", "tests/standing-rent.test.cjs");
+set("D03", "LIMITED", "the setup card restates the exact terms (amount, day each month, account, app); per the owner's automation rule every month still asks for a yes and the person sends it, so it is never autopay", "tests/standing-rent.test.cjs");
+set("D04", "BUILT", "with rent on file, a card restates the new amount and nothing changes without a yes; with nothing on file it says so and asks the rest", "tests/standing-rent.test.cjs");
+set("D06 D07 D14", "NOT_BUILT", "bill pay end to end is not built (no bill-pay rail; 'did my rent go through' is answered from transactions by the chat model)");
+set("D12", "NOT_BUILT", "splitting rent across two accounts; the rent flow says rent comes from one account a month and asks which", "tests/standing-rent.test.cjs");
+set("D13", "NOT_BUILT", "a rent shortfall plan (balance vs rent due) is not built; the message is not a rent command and goes to the chat model");
+set("D05", "NOT_BUILT", "saved landlord payee change from text: never taken from text; a payee change is a new rent setup card the person confirms");
 set("D08", "NOT_BUILT", "IOU log; says so and moves nothing", "tests/edge/megadoc-sim.test.ts");
 set("D09 D10", "NOT_BUILT", "IOU log");
 set("D11", "MODEL", "the handler's reminder path (not the flow router); graded live");

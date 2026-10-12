@@ -10,8 +10,8 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const ctx=vm.createContext({setTimeout,clearTimeout});
-vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','41-agent-recovery.js','42-agent-recipients.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','49-agent-save.js','50-agent-invest.js','53-compliance.js','54-agent-money.js','64-agent-send.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js','68-agent-cancel.js','69-agent-router.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.R=AgentRouter;this.T=AgentTrade;this.X=AgentCancel;this.S=AgentSend;this.C=Compliance;',ctx);
-const {R,T,X,S,C}=ctx;
+vm.runInContext(['33-agent-monitors.js','35-agent-intents.js','41-agent-recovery.js','42-agent-recipients.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','49-agent-save.js','50-agent-invest.js','53-compliance.js','54-agent-money.js','64-agent-send.js','65-agent-realworld.js','66-agent-trade.js','67-agent-cards.js','68-agent-cancel.js','69-agent-router.js','81-standing-rent.js'].map(f=>fs.readFileSync(path.join(root,'packages/domain',f),'utf8')).join('\n')+'\nthis.R=AgentRouter;this.T=AgentTrade;this.X=AgentCancel;this.S=AgentSend;this.C=Compliance;this.SR=StandingRent;this.Rec=AgentRecipients;',ctx);
+const {R,T,X,S,C,SR,Rec}=ctx;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
 const T0=Date.UTC(2026,9,12,14,0,0),MIN=60000;
@@ -201,4 +201,53 @@ test('live 2026-10-12: a bare "no" with no live card drops what was asked and sa
   const again=await R.handle('nope',{extract,sessions:ss,parsers});
   assert.equal(again.result.text,'Okay. Nothing is waiting on you, and nothing was changed.');
   assert.equal(w.writes.length,0);
+});
+
+// Monthly rent as a standing flow (81-standing-rent.js; real-world C110; spec 16 item S16-15). "pay my rent" goes to the
+// rent flow from the words alone (no model call, whatever the model would have said); "pay sam 900 for rent" stays a send
+// to Sam; the card's yes goes to the rent flow's own classifier; a second yes stages nothing again.
+const RENT_RULE={id:'sp-1',kind:'rent',payee_name:'Sam K',payee_handle:'@samk',rail:'venmo',amount_cents:90000,day_of_month:1,funding:'checking',status:'active',created_at:'2026-09-01T00:00:00Z',last_staged_month:null};
+function withRent(w,rule,state){const ss=sessions(w,state);ss.rent=SR.create({clock:()=>w.clock.now,rule,recipients:Rec.book({people,clock:()=>w.clock.now}),state:state&&state.rent});return ss;}
+test('rent: "pay my rent" routes to the standing rent flow with no model call; "pay sam 900 for rent" stays a send to Sam',async()=>{
+  let calls=0;const model=async raw=>{calls++;return raw==='pay sam 900 for rent'?{intent:'send_money',amount_span:'900',amount_cents:90000,recipient_span:'sam',memo_span:'rent'}:{intent:'send_money',recipient_span:'rent'};};
+  for(const t of ['pay my rent','pls pay the rent','stop rent','rent is 1500 now']){
+    const r=await R.handle(t,{extract:model,sessions:withRent(world(),null),parsers});
+    assert.equal(r.route,'pay_rent',t);assert.equal(r.flow,'rent',t);assert.equal(r.source,'deterministic',t);
+  }
+  assert.equal(calls,0,'rent never costs a model call and never reaches the person-to-person send');
+  const ask=await R.handle('pay my rent',{extract:model,sessions:withRent(world(),null),parsers});
+  assert.equal(ask.result.text,"Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'");
+  assert.equal(ask.understood_first,true,'no rent on file is a data gap, not a misunderstanding');
+  const send=await R.handle('pay sam 900 for rent',{extract:model,sessions:withRent(world(),null),parsers});
+  assert.equal(send.route,'send_money');assert.equal(send.flow,'send');assert.match(send.result.text,/\$900\.00 to Sam K/);
+  const down=async()=>{throw new Error('router model HTTP 400');};
+  const net=await R.handle('pay sam 900 for rent',{extract:down,sessions:withRent(world(),null),parsers});
+  assert.equal(net.route,'send_money','with the model down too');
+  assert.ok(R.maybeFlow('rent is 1500 now')&&R.maybeFlow('stop rent'),'the pre-filter lets rent commands reach the router');
+});
+test('rent: the answer, the card and the yes stay in the rent flow; the month is staged for the person to send, once; a live send card is dropped',async()=>{
+  const w=world();w.clock.now=Date.UTC(2026,9,29,14);const extract=async()=>({intent:'other'});
+  let ss=withRent(w,null);
+  await R.handle('pay my rent',{extract,sessions:ss,parsers});
+  const card=await R.handle('Sam K $900 on the 1st',{extract,sessions:ss,parsers});
+  assert.equal(card.route,'card_reply');assert.equal(card.flow,'rent');assert.equal(card.note,'follow-up');
+  assert.match(card.result.text,/^Set up rent: \$900\.00 to Sam K on Venmo, monthly on the 1st, from checking, for you to send each month\./);
+  const yes=await R.handle('yes',{extract,sessions:ss,parsers});
+  assert.equal(yes.flow,'rent');assert.equal(yes.result.outcome,'rent_set');
+  // While the rent question is open, a new request is that request, never the rent answer.
+  const open=withRent(w,null);await R.handle('pay my rent',{extract,sessions:open,parsers});
+  const other=await R.handle('send sam $40',{extract:stub({'send sam $40':{intent:'send_money',amount_span:'$40',amount_cents:4000,recipient_span:'sam'}}),sessions:open,parsers});
+  assert.equal(other.flow,'send');assert.match(other.result.text,/\$40\.00 to Sam K/);assert.equal(open.rent.pending,null,'no rent card from a send');
+  assert.equal(JSON.parse(JSON.stringify(ss.rent.drain()))[0].op,'insert');
+  // Rent on file (as the host reloads it), with a send card live: "pay my rent" drops the send card and puts up November's.
+  const memo={};ss=withRent(w,RENT_RULE);
+  await R.handle('send sam $40',{extract:stub({'send sam $40':{intent:'send_money',amount_span:'$40',amount_cents:4000,recipient_span:'sam'}}),sessions:ss,parsers,memo});
+  assert.ok(ss.send.pending,'a send card is live');
+  const month=await R.handle('pay my rent',{extract,sessions:ss,parsers,memo});
+  assert.equal(ss.send.pending,null);assert.match(month.result.text,/^I dropped the earlier card\. Rent for November: \$900\.00 to Sam K on Venmo, due Nov 1/);
+  const staged=await R.handle('yes',{extract,sessions:ss,parsers,memo});
+  assert.equal(staged.flow,'rent');assert.equal(staged.result.outcome,'staged');assert.match(staged.result.text,/Staged, not sent\. In Venmo:/);
+  assert.equal(w.writes.length,0,'no rail was written: the person sends it');
+  const second=await R.handle('yes',{extract,sessions:ss,parsers,memo:staged.memo});
+  assert.equal(second.result.outcome,'already_done');assert.match(second.result.text,/^That's already staged: \$900\.00 to Sam K for you to send in Venmo\. A second yes doesn't stage it again\./);
 });

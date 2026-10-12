@@ -1,7 +1,8 @@
 // Direct answers from code (agent-chat/_shared/direct_answers.ts), each from a live gauntlet failure, 2026-10-12.
 // Transactions here are MOCK fixtures.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
-import { connectReply, rentReply, RENT_NOT_BUILT, noDataReply, NO_ACCOUNTS, findMoneyReply, type TxRow } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
+import * as DirectAnswers from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
+import { connectReply, noDataReply, NO_ACCOUNTS, findMoneyReply, type TxRow } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 
 Deno.test("connect my X answers from the connector matrix, never invented app steps (S16-19)", () => {
   assertMatch(connectReply("connect my fidelity")!, /^Fidelity doesn't let apps place trades, so Upmore tracks it read-only through Plaid .*Connect investments/);
@@ -16,11 +17,16 @@ Deno.test("connect my X answers from the connector matrix, never invented app st
   for (const t of ["connect my fidelity", "connect my webull", "connect my cash app", "connect my empower 401k"]) assert(!/SnapTrade|owner|keys/.test(connectReply(t)!), `${t}: no internal words`);
 });
 
-Deno.test("pay my rent says plainly it isn't built (S16-15); paying a person for rent still goes to the send flow", () => {
-  assertEquals(rentReply("pay my rent"), RENT_NOT_BUILT);
-  assertEquals(rentReply("pls pay the rent"), RENT_NOT_BUILT);
-  assertEquals(rentReply("pay sam 900 for rent"), null);
-  assertEquals(rentReply("did rent go through"), null);
+// S16-15 "pay my rent" is the standing rent flow now (packages/domain/81-standing-rent.js through the flow router;
+// tests/standing-rent.test.cjs, tests/edge/flow-router.test.ts). No direct answer may intercept it with "not built".
+Deno.test("pay my rent is not answered from here: no direct answer intercepts it, so the standing rent flow does (S16-15)", async () => {
+  for (const t of ["pay my rent", "pls pay the rent", "rent is 1500 now", "stop rent", "pay sam 900 for rent"]) {
+    assertEquals(connectReply(t), null, t);
+    assertEquals(noDataReply(t, 0), null, t);
+    assertEquals(await findMoneyReply(t, "2026-10-12", async () => { throw new Error("no read for a rent message"); }), null, t);
+  }
+  const mod: Record<string, unknown> = DirectAnswers;
+  assert(!("rentReply" in mod) && !("RENT_NOT_BUILT" in mod), "the not-built rent answer is gone");
 });
 
 Deno.test("with nothing linked, balance and spending get one plain line, not internal terms (S16-01, 02, 14, 16)", () => {

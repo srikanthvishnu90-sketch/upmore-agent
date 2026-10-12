@@ -87,6 +87,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011050000_broker_vault_cascade.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261011060000_proactive.sql"
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012010000_manual_connections.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012020000_standing_payments.sql"
+# Idempotent: the standing payments migration applies cleanly a second time (the ledger below replays it once more).
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012020000_standing_payments.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

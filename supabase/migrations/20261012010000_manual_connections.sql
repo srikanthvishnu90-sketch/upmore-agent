@@ -114,6 +114,6 @@ begin
   if to_regclass('public.agent_proactive_log') is not null then
     alter table public.agent_proactive_log drop constraint if exists agent_proactive_log_kind_check;
     alter table public.agent_proactive_log add constraint agent_proactive_log_kind_check
-      check (kind in ('safety','watch','finding','morning_brief','weekly_recap','monthly_close','standing_report','connection'));
+      check (kind in ('safety','watch','finding','morning_brief','weekly_recap','monthly_close','standing_report','connection','standing_payment')); -- standing_payment comes with 20261012020000; listed here too so re-running this file never drops it
   end if;
 end $$;

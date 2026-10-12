@@ -37,6 +37,14 @@
   },
   {
    "family": "response",
+   "id": "R-01:2.04",
+   "title": "corpus 2.04 Rent",
+   "status": "GAP",
+   "actual": "DIVERGES: The corpus shows rent already on file and paid by ACH on one yes. Upmore never moves rent itself (owner rule: it stages each month for the person to send in Zelle, Venmo, Cash App or PayPal; no ACH rail is live), and the corpus world has no rent rule saved, so 'pay rent' first asks the one",
+   "path": "evals/corpus/triage.json"
+  },
+  {
+   "family": "response",
    "id": "R-01:3.05",
    "title": "corpus 3.05 Sell",
    "status": "GAP",
@@ -46,7 +54,7 @@
   {
    "family": "response",
    "id": "R-01m",
-   "title": "style corpus: 31 examples answered by the chat model",
+   "title": "style corpus: 30 examples answered by the chat model",
    "status": "NOT_RUN",
    "actual": "graded only live: deno run -A evals/corpus/run.ts --live (needs the deployed handler and a key)"
   },
@@ -125,7 +133,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 61, LIMITED 22, DIVERGES 12, MODEL 59, NOT_BUILT 86",
+   "title": "megadoc states: PROVEN 0, BUILT 62, LIMITED 25, DIVERGES 12, MODEL 59, NOT_BUILT 82",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },

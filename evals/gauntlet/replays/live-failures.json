@@ -448,10 +448,10 @@
    "last_seen": "2026-10-11T19:13:36.292Z",
    "times": 1,
    "triage": {
-    "verdict": "not_built",
-    "note": "Routing fixed in this commit (tests/router.test.cjs, a bill is not a person): 'pay my rent' now reaches the bill workflow instead of a person-to-person send. A monthly rent card still needs a live model, a rent bill on file, and the standing rent flow (real-world C110), which is not built.",
-    "by": "Claude Code session, 2026-10-11",
-    "test_ref": "tests/router.test.cjs"
+    "verdict": "precondition",
+    "note": "The standing rent flow is built (packages/domain/81-standing-rent.js, routed with no model call through _shared/flow_router.ts). The live test user has no rent on file, so 'pay my rent' correctly asks the one blocking question (who, how much, which day of the month) instead of guessing; the monthly card with 'Reply YES' needs a rent rule the person saved on their own yes (public.standing_payments, the standing_payments migration, not applied live). With a rule on file the card passes all three checks (tests/standing-rent.test.cjs, tests/edge/flow-router.test.ts).",
+    "by": "Claude Code session, 2026-10-12",
+    "test_ref": "tests/standing-rent.test.cjs"
    }
   },
   {

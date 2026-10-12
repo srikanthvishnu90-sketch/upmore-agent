@@ -409,36 +409,36 @@
   {
    "id": "D01",
    "typed": "pay rent",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "rent",
+   "outcome": "ask",
+   "reply": "Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'",
    "executed": false,
    "mock_orders": 0
   },
   {
    "id": "D02",
    "typed": "pay rent early",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "rent",
+   "outcome": "ask",
+   "reply": "Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'",
    "executed": false,
    "mock_orders": 0
   },
   {
    "id": "D03",
    "typed": "set rent on autopay",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "rent",
+   "outcome": "ask",
+   "reply": "Rent never pays itself here: each month I put up the card, you say yes, and you send it in your app. Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'",
    "executed": false,
    "mock_orders": 0
   },
   {
    "id": "D04",
    "typed": "rent is 2,450 now",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "rent",
+   "outcome": "ask",
+   "reply": "You don't have rent set up yet. Got $2,450.00. Tell me who you pay it to and which day of the month for rent, e.g. 'Mike $1,450 on the 1st via Zelle'.",
    "executed": false,
    "mock_orders": 0
   },
@@ -508,9 +508,9 @@
   {
    "id": "D12",
    "typed": "pay rent from savings and checking half each",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "rent",
+   "outcome": "ask",
+   "reply": "Rent comes from one account each month, not two, so nothing was set up. Which one: checking or savings? And who do you pay, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle from checking'",
    "executed": false,
    "mock_orders": 0
   },
@@ -618,7 +618,7 @@
    "typed": "sell all my TSLA",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no TSLA available to sell (your Alpaca account, as of 21:29 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no TSLA available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -627,7 +627,7 @@
    "typed": "sell half my NVDA",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no NVDA available to sell (your Alpaca account, as of 21:29 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no NVDA available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -636,7 +636,7 @@
    "typed": "sell 100 dollars of AAPL",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no AAPL available to sell (your Alpaca account, as of 21:29 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no AAPL available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -942,7 +942,7 @@
    "typed": "why is my portfolio down today",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 21:29 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1023,7 +1023,7 @@
    "typed": "give me my portfolio report",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 21:29 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1032,7 +1032,7 @@
    "typed": "compare my portfolio to the S&P",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 21:29 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },

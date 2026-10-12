@@ -2,7 +2,7 @@
 // flows and the model, and that it reads only what the answer needs. Accounts and transactions here are MOCK fixtures.
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1";
 import { moneyKind, moneyReply, mergeKinds, MONEY_UNAVAILABLE, type AccountRow, type MoneyTxRow } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
-import { connectReply, rentReply, findMoneyReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
+import { connectReply, findMoneyReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 
 const NOW = new Date("2026-10-12T15:05:00Z");
 const ACCOUNTS: AccountRow[] = [
@@ -40,10 +40,9 @@ Deno.test("routing: near misses go on to the flows and the model", () => {
   ]) assertEquals(moneyKind(m), null, m);
 });
 
-Deno.test("direct answers that come first keep their asks: rent, connect and find me money are not money answers", () => {
-  assertEquals(moneyKind("pay my rent"), null);
-  assert(rentReply("pay my rent"));
-  assertEquals(rentReply("did rent go through"), null, "the rent-not-built line never answers a did-it-go-through");
+Deno.test("asks that belong elsewhere keep their place: paying rent is the standing rent flow, connect and find me money come first", () => {
+  assertEquals(moneyKind("pay my rent"), null, "the rent flow takes it");
+  assertEquals(moneyKind("did rent go through"), "through", "checking a rent payment is a money answer, not the rent flow");
   assertEquals(connectReply("did rent go through"), null);
   assertEquals(connectReply("what's my balance"), null);
 });

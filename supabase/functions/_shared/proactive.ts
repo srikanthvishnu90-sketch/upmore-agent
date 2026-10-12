@@ -9,7 +9,12 @@
 // (user, key) first, so a second run, a retry or two schedulers racing can never send it twice; then it lands in the
 // person's "Updates from Upmore" chat thread. Every message ends with its data source and as-of time. Nothing here moves
 // money, contacts anyone or changes an account: it reads and reports.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts } from "./router_core.js";
+//
+// Monthly rent (a standing flow the person turned on, packages/domain/81-standing-rent.js): a few days before each due
+// date the person is OFFERED that month's card ("Want this month's card to send it? Reply YES or NO"). The offer never
+// stages anything: a yes puts up the rent flow's own card, which restates the amount, month and recipient and needs its
+// own yes; a no skips the month.
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -28,10 +33,14 @@ export interface ProactiveSettings {
 // "today", "Sunday" and quiet hours mean, never a number.
 export const DEFAULT_SETTINGS: ProactiveSettings = { alerts: true, morning_brief: false, weekly_recap_dow: 0, monthly_close: true, quiet_start: 22, quiet_end: 7, time_zone: "America/New_York", buffer_cents: null, large_threshold_cents: null, watches: [], control: null };
 
-export interface ProactiveOffer { kind: "cancel_trial"; merchant: string; subscription_id: string; ends_on: string; amount_cents: number | null; cancel_url: string | null; cancel_steps: string | null }
+export interface TrialOffer { kind: "cancel_trial"; merchant: string; subscription_id: string; ends_on: string; amount_cents: number | null; cancel_url: string | null; cancel_steps: string | null }
+// The month's rent card, offered: what the person would be asked to say yes to. Nothing here is staged.
+export interface RentOffer { kind: "rent_month"; standing_id: string; month: string; due_on: string; amount_cents: number; payee_name: string; rail: string }
+export type ProactiveOffer = TrialOffer | RentOffer;
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
-export interface ProactiveInput { accounts: any[]; transactions: any[]; settings: Partial<ProactiveSettings> | null; sent: SentRow[]; subscriptions?: any[] }
+// standing: the person's active rows of public.standing_payments (their rent rule).
+export interface ProactiveInput { accounts: any[]; transactions: any[]; settings: Partial<ProactiveSettings> | null; sent: SentRow[]; subscriptions?: any[]; standing?: any[] }
 
 const DAY = 86400000;
 const money = (c: number) => (c < 0 ? "-$" : "$") + Math.floor(Math.abs(c) / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(Math.abs(c) % 100).padStart(2, "0");
@@ -80,8 +89,11 @@ export function plan(input: ProactiveInput, now: number) {
   const clock = localClock(now, tz), today = clock.date;
   const out = { messages: [] as ProactiveMessage[], suppressed: [] as { key: string; reason: string }[], held: 0, today, hour: clock.hour, fired_reports: [] as { instruction_id: string; period: string }[] };
   const accounts = input.accounts || [], transactions = input.transactions || [];
-  if (!accounts.length) return out; // nothing linked: nothing to say, and never a number from nothing
   const sentKeys = new Set((input.sent || []).map(x => x.key));
+  const quietRule = s.quiet_start != null && s.quiet_end != null ? { start: s.quiet_start, end: s.quiet_end, utc_offset_hours: clock.offset_hours } : null;
+  const rentLater = () => rentOffers(input, today, tz, clock.hour < 8 || (!!quietRule && AgentAlerts.inQuiet(now, quietRule)), sentKeys, out);
+  // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs.
+  if (!accounts.length) { rentLater(); return out; }
   // The budget counts only unrequested messages; what the person asked for (a cadence, a watch) never uses it up.
   const budgetTimes = (input.sent || []).filter(x => !x.cadence).map(x => x.sent_at);
   const prov: any = (AgentLedger as any).provenance(accounts, transactions, today);
@@ -91,7 +103,7 @@ export function plan(input: ProactiveInput, now: number) {
     sentKeys.add(m.key); out.messages.push(Object.assign({}, m, { text: m.text.trim() + cite, source: prov.source, as_of: prov.as_of }));
     return true;
   };
-  const quiet = s.quiet_start != null && s.quiet_end != null ? { start: s.quiet_start, end: s.quiet_end, utc_offset_hours: clock.offset_hours } : null;
+  const quiet = quietRule;
   const quietNow = !!quiet && AgentAlerts.inQuiet(now, quiet);
 
   // Event alerts and findings, in the loop's decision order: safety, the person's watches, then findings within budget.
@@ -115,6 +127,8 @@ export function plan(input: ProactiveInput, now: number) {
       if (push({ key, kind: "finding", text, capability_id: offer ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
     }
   }
+  // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
+  rentLater();
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
   if (quietNow || clock.hour < 8) return out;
   const L: any = AgentLedger;
@@ -162,7 +176,28 @@ const whenText = (i: any) => i.cadence === "daily" ? "every day" : i.cadence ===
 function weekKey(ymd: string) { const d = new Date(Date.parse(ymd + "T00:00:00Z")); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const y = d.getUTCFullYear(), w1 = new Date(Date.UTC(y, 0, 4)); return `${y}-W${String(1 + Math.round(((d.getTime() - w1.getTime()) / DAY - 3 + ((w1.getUTCDay() + 6) % 7)) / 7)).padStart(2, "0")}`; }
 function monthName(ym: string) { return new Date(Date.parse(ym + "-01T00:00:00Z")).toLocaleString("en-US", { month: "long", timeZone: "UTC" }); }
 
-function trialOffer(p: any, subs: any[]): ProactiveOffer | null {
+// Each active rent rule whose month card is due to be offered (StandingRent.dueSoon: a few days before the due day, the
+// month not already staged). Once per (rule, month) by the log key; from 8 a.m. and outside quiet hours; never in the same
+// run as another offer, because one yes in the thread must answer exactly one question (it waits for the next hour).
+// The source is the person's own rent setup, with the time it was last changed.
+export const RENT_LEAD_DAYS = 3;
+function rentOffers(input: ProactiveInput, today: string, tz: string, hold: boolean, sentKeys: Set<string>, out: { messages: ProactiveMessage[]; suppressed: { key: string; reason: string }[] }) {
+  for (const row of input.standing || []) {
+    const d: any = (StandingRent as any).dueSoon(row, today, RENT_LEAD_DAYS);
+    if (!d || !d.rule_id) continue;
+    const key = `rent:${d.rule_id}:${d.month}`;
+    if (sentKeys.has(key)) continue;
+    if (hold) { out.suppressed.push({ key, reason: "quiet_hours" }); continue; }
+    if (out.messages.some(m => m.offer)) { out.suppressed.push({ key, reason: "one_offer_at_a_time" }); continue; }
+    const asOf = row.updated_at || row.created_at || null;
+    sentKeys.add(key);
+    out.messages.push({ key, kind: "standing_payment", capability_id: StandingRent.CAPABILITY, urgent: false, cadence: true, source: "your rent setup", as_of: asOf,
+      text: `${d.text} (from your rent setup, as of ${asOfText(asOf, tz)})`,
+      offer: { kind: "rent_month", standing_id: String(d.rule_id), month: d.month, due_on: d.due_on, amount_cents: d.amount_cents, payee_name: d.payee_name, rail: d.rail } });
+  }
+}
+
+function trialOffer(p: any, subs: any[]): TrialOffer | null {
   const m = /^trial_converting:([^:]+):(\d{4}-\d{2}-\d{2})$/.exec(String(p.key || "")); if (!m) return null;
   const sub = subs.find(x => String(x.id) === m[1]); if (!sub) return null;
   const amt = Number(sub.amount);
@@ -176,8 +211,9 @@ const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now
 export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
 export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
   const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
-  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || d.offer.kind !== "cancel_trial") return null;
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || (d.offer.kind !== "cancel_trial" && d.offer.kind !== "rent_month")) return null;
   if (await d.liveCard()) return null;
+  if (d.offer.kind === "rent_month") return rentOfferAnswer(yes, d, now);
   const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
   await d.clear();
   if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
@@ -192,6 +228,17 @@ export async function offerMessage(message: string, d: OfferDeps, now: number): 
   return { reply: `${name} hasn't charged you yet, so there's nothing on your cards for me to cancel from here, and nothing was cancelled. To stop it before ${when}: ${how}${o.cancel_steps ? ` (${String(o.cancel_steps).slice(0, 200)})` : ""}.${watched ? ` I'll tell you if ${name} charges you anyway.` : ""}` };
 }
 const fmtDay = (ymd: string) => new Date(Date.parse(ymd + "T12:00:00Z")).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+// The answer to "Want this month's rent card?": yes puts up the rent flow's own card (amount, month and recipient restated,
+// 10 minutes, its own yes); no skips the month; nothing is staged here either way. A month long past offers nothing.
+async function rentOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
+  const o = d.offer, name = monthName(o.month);
+  await d.clear();
+  if (Date.parse(o.due_on + "T23:59:59Z") + 10 * DAY < now) return { reply: `That offer has expired: ${name}'s rent was due ${fmtDay(o.due_on)}, so nothing was staged. Say "pay my rent" if you want a card.` };
+  if (!yes) return { reply: `Okay, skipping ${name}'s rent card. Nothing was staged or sent. Say "pay my rent" if you change your mind.` };
+  const flow = await d.runFlow("pay my rent");
+  if (flow && flow.reply) return { reply: flow.reply, route: flow.route };
+  return { reply: `I couldn't put up ${name}'s rent card right now, so nothing was staged. Say "pay my rent" in a moment.` };
+}
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----
 // Each command is answered by restating exactly what will happen; nothing is guessed from words it does not know.
@@ -291,21 +338,27 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
     async users(limit) {
       const r = await admin.from("agent_financial_accounts").select("user_id").eq("status", "active").limit(5000);
       if (r.error) throw new Error("accounts unavailable");
-      return [...new Set((r.data || []).map((x: any) => x.user_id))].slice(0, limit) as string[];
+      // People with rent turned on are offered its card even with nothing linked; an unreadable table only skips them.
+      const rent = await admin.from("standing_payments").select("user_id").eq("status", "active").limit(5000);
+      if (rent.error) console.error("[proactive] standing payments unavailable");
+      return [...new Set([...(r.data || []), ...(rent.error ? [] : rent.data || [])].map((x: any) => x.user_id))].slice(0, limit) as string[];
     },
     async load(userId) {
       const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
-      const [acc, tx, st, log, subs] = await Promise.all([
+      const [acc, tx, st, log, subs, rent] = await Promise.all([
         admin.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", userId),
         admin.from("agent_financial_transactions").select("account_id,provider_transaction_id,currency,amount_cents,posted_on,merchant_raw,is_pending,is_transfer,presence").eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(5000),
         admin.from("agent_proactive_settings").select("*").eq("user_id", userId).maybeSingle(),
         admin.from("agent_proactive_log").select("key,sent_at,cadence").eq("user_id", userId).gte("sent_at", new Date(Date.now() - 40 * DAY).toISOString()).limit(2000),
         admin.from("save_subscriptions").select("id,merchant,amount,billing_interval,next_billing_date,status,cancel_url,cancel_steps").eq("user_id", userId).limit(500),
+        admin.from("standing_payments").select("id,kind,payee_name,payee_handle,rail,amount_cents,day_of_month,funding,status,created_at,updated_at,last_staged_month").eq("user_id", userId).eq("kind", "rent").eq("status", "active").limit(5),
       ]);
       for (const r of [acc, tx, st, log]) if (r.error) throw new Error("proactive data unavailable");
       // Tracked subscriptions only add trial and renewal alerts; when they can't be read the rest still runs (logged).
       if (subs.error) console.error("[proactive] tracked subscriptions unavailable");
-      return { accounts: mapAccounts(acc.data), transactions: mapTransactions(tx.data), settings: st.data || null, sent: (log.data || []).map((x: any) => ({ key: x.key, sent_at: Date.parse(x.sent_at), cadence: !!x.cadence })), subscriptions: subs.error ? [] : (subs.data || []) };
+      // Same for the rent rule: unreadable means no rent card is offered this run, and the rest still runs (logged).
+      if (rent.error) console.error("[proactive] standing payments unavailable");
+      return { accounts: mapAccounts(acc.data), transactions: mapTransactions(tx.data), settings: st.data || null, sent: (log.data || []).map((x: any) => ({ key: x.key, sent_at: Date.parse(x.sent_at), cadence: !!x.cadence })), subscriptions: subs.error ? [] : (subs.data || []), standing: rent.error ? [] : (rent.data || []) };
     },
     async deliver(userId, messages, firedReports) {
       const delivered: string[] = [];

@@ -138,7 +138,7 @@ Status is derived: **not started** (no capability, or one only claimed), **built
 | 71 | Check the user is getting the full employer 401(k) match. | Read | MODULE_ONLY | full | SAVE-019 (TESTED), EARN-005 (TESTED) | module only |
 | 72 | Find old 401(k)s from past jobs and roll them over. | Ask | MODULE_ONLY | part | INV-019 (TESTED) | rollover status module; finding old plans and executing a rollover not built |
 | 73 | Track contribution limits and warn before going over. | Read | MODULE_ONLY | part | INV-018 (TESTED), TAX-009 (CLAIMED) | contribution tracking module |
-| 74 | Pay rent on the due date, through the landlord's portal, ACH or mailed check. | Rule | GATED | full | PAY-005 (GATED), HOUS-002 (CLAIMED) | rent payment execution is not built (C110); 'pay rent' reaches the bill review, which pays nothing |
+| 74 | Pay rent on the due date, through the landlord's portal, ACH or mailed check. | Rule | GATED | full | PAY-005 (GATED), HOUS-002 (CLAIMED) | rent is a standing flow (C110, 81-standing-rent.js): each month's card, on the person's yes, is staged for them to send in Zelle, Venmo, Cash App or PayPal; Upmore never pays rent itself (no portal, ACH or check rail) |
 | 75 | Pay utilities, phone, internet, insurance and tuition. | Rule | GATED | full | PAY-006 (GATED), BILL-008 (GATED) | bill pay is gated: the planner can preview a payment for a recorded bill, nothing is sent |
 | 76 | Pay only if the amount is within a tolerance of the usual bill; otherwise ask. | Rule | GATED | part | PAY-006 (GATED) | not built |
 | 77 | Check the balance covers the bill first, and move money to cover it if allowed. | Rule | MODULE_ONLY | part | SAVE-006 (TESTED), PAY-009 (TESTED) | overdraft-prevention move is a module; moving money is not built |

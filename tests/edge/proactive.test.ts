@@ -204,3 +204,55 @@ Deno.test("trial offer: when the cancel flow can act, its card is the approval; 
   const late = await offerMessage("yes", offerDeps().deps, Date.UTC(2026, 9, 15, 12));
   assertEquals(late!.reply, 'That offer has expired: the Paramount+ trial ended Oct 13, so nothing was cancelled. If you still want it gone, say "cancel Paramount+".');
 });
+
+// Monthly rent (a standing flow the person turned on, packages/domain/81-standing-rent.js): a few days before the due day
+// the person is offered that month's card. The offer is a question; it never stages anything. A yes puts up the rent
+// flow's own card (amount, month and recipient restated, its own yes); a no skips the month. Rows are a MOCK of
+// public.standing_payments.
+const RENT = { id: "sp-1", kind: "rent", payee_name: "Mike", payee_handle: "mike@example.com", rail: "zelle", amount_cents: 145000, day_of_month: 14, funding: "checking", status: "active", created_at: "2026-09-01T12:00:00Z", updated_at: "2026-09-01T12:00:00Z", last_staged_month: null };
+const withRent = (o: any = {}, rows: any[] = [RENT]) => Object.assign(input(o), { standing: rows });
+Deno.test("rent offer: three days before the due day the month's card is offered once, as a question, citing the rent setup; it is a cadence the person asked for", () => {
+  const p = plan(withRent(), NOW); // Sun Oct 11, 10 a.m. New York; rent due the 14th
+  const m = p.messages.find(x => x.kind === "standing_payment");
+  assert(m, JSON.stringify(p.messages.map(x => x.key)));
+  assertEquals(m!.key, "rent:sp-1:2026-10");
+  assertEquals(m!.text, "Rent for October is due Oct 14: $1,450.00 to Mike on Zelle, from checking. Want this month's card to send it? Reply YES or NO. Nothing is staged without your yes. (from your rent setup, as of Sep 1, 8:00 AM)");
+  assertEquals(m!.offer, { kind: "rent_month", standing_id: "sp-1", month: "2026-10", due_on: "2026-10-14", amount_cents: 145000, payee_name: "Mike", rail: "zelle" });
+  assertEquals([m!.cadence, m!.urgent, m!.capability_id], [true, false, "PAY-005"]);
+  assert(!/staged,|Staged/.test(JSON.stringify(p.messages)), "the scheduler never stages anything");
+  assert(!plan(withRent(), NOW - 2 * DAY).messages.some(x => x.kind === "standing_payment"), "five days out: not yet");
+  assert(!plan(withRent({ sent: [{ key: "rent:sp-1:2026-10", sent_at: NOW - H, cadence: true }] }), NOW).messages.some(x => x.kind === "standing_payment"), "once per month: what was sent is not offered again");
+  assert(!plan(withRent({}, [Object.assign({}, RENT, { last_staged_month: "2026-10" })]), NOW).messages.some(x => x.kind === "standing_payment"), "a month already staged is not offered");
+  assert(!plan(withRent({}, [Object.assign({}, RENT, { status: "stopped" })]), NOW).messages.some(x => x.kind === "standing_payment"), "stopped means no offer");
+  const late = plan(withRent(), Date.UTC(2026, 9, 12, 3, 0, 0)); // Sat 11 p.m. New York
+  assert(!late.messages.some(x => x.kind === "standing_payment") && late.suppressed.some(s => s.key === "rent:sp-1:2026-10"), "quiet hours hold it for the morning");
+  const noBank = plan({ accounts: [], transactions: [], settings: null, sent: [], standing: [RENT] }, NOW);
+  assertEquals(noBank.messages.map(x => x.kind), ["standing_payment"], "rent the person set up is offered even with nothing linked");
+});
+Deno.test("rent offer: never in the same run as another offer, so one yes answers exactly one question", () => {
+  const p = plan(Object.assign(withRent(), { subscriptions: [TRIAL] }), NOW);
+  assertEquals(p.messages.filter(x => x.offer).length, 1);
+  assert(p.suppressed.some(s => s.key === "rent:sp-1:2026-10" && s.reason === "one_offer_at_a_time"), JSON.stringify(p.suppressed));
+  const next = plan(Object.assign(withRent({ sent: p.messages.map(x => ({ key: x.key, sent_at: NOW, cadence: x.cadence })) }), { subscriptions: [TRIAL] }), NOW + H);
+  assert(next.messages.some(x => x.key === "rent:sp-1:2026-10"), "it goes the next hour");
+});
+function rentOfferDeps(o: { live?: boolean; flow?: any } = {}) {
+  const calls = { cleared: 0, flows: [] as string[] };
+  const offer = { kind: "rent_month", standing_id: "sp-1", month: "2026-10", due_on: "2026-10-14", amount_cents: 145000, payee_name: "Mike", rail: "zelle", thread_id: "th-updates" };
+  return { calls, deps: { offer, threadId: "th-updates", liveCard: async () => !!o.live, runFlow: async (t: string) => { calls.flows.push(t); return o.flow === undefined ? null : o.flow; }, clear: async () => { calls.cleared++; return true; }, watch: async () => true } };
+}
+Deno.test("rent offer: YES puts up the rent flow's own card (its yes is the approval); NO skips the month; nothing is staged here", async () => {
+  const card = { reply: "Rent for October: $1,450.00 to Mike on Zelle, due Oct 14, from checking, for you to send. Reply YES to stage it or NO to skip this month, within 10 min.", route: { flow: "rent", outcome: "confirm" } };
+  const y = rentOfferDeps({ flow: card });
+  const r = await offerMessage("yes", y.deps, NOW);
+  assertEquals(y.calls.flows, ["pay my rent"]); assertEquals(r!.reply, card.reply); assertEquals(r!.route.outcome, "confirm", "a card, not a staged payment");
+  assertEquals(y.calls.cleared, 1);
+  const n = rentOfferDeps();
+  assertEquals((await offerMessage("no", n.deps, NOW))!.reply, "Okay, skipping October's rent card. Nothing was staged or sent. Say \"pay my rent\" if you change your mind.");
+  assertEquals(n.calls.flows, [], "no runs nothing");
+  assertEquals(await offerMessage("yes", rentOfferDeps({ live: true }).deps, NOW), null, "a live card in the thread answers its own yes");
+  assertEquals((await offerMessage("yes", rentOfferDeps().deps, NOW))!.reply, "I couldn't put up October's rent card right now, so nothing was staged. Say \"pay my rent\" in a moment.");
+  const old = rentOfferDeps({ flow: card });
+  assertEquals((await offerMessage("yes", old.deps, Date.UTC(2026, 9, 30, 12)))!.reply, "That offer has expired: October's rent was due Oct 14, so nothing was staged. Say \"pay my rent\" if you want a card.");
+  assertEquals(old.calls.flows, [], "an expired offer runs nothing");
+});

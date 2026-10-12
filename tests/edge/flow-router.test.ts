@@ -367,3 +367,71 @@ Deno.test("Brokerage wiring: the connection (and its Vault token) is resolved on
   const r = await routeFlows("buy $5 of VOO", { db, extract: stubModel, now: () => T0, brokerFactory: factory } as any);
   eq(calls, 1, "a trade resolves it once"); eq(r!.route.outcome, "confirm");
 });
+
+// Monthly rent as a standing flow (packages/domain/81-standing-rent.js; real-world C110; spec 16 item S16-15). The rule
+// lives in public.standing_payments (here an in-memory MOCK of it); the flow's writes reach it before the reply; a write
+// that fails is never claimed; nothing is staged without the person's yes, and no rail is ever written.
+function rentDb(o: { rows?: any[]; failRead?: boolean; failWrite?: boolean; recipients?: any[] } = {}) {
+  const store: { state: any; rows: any[]; ops: any[] } = { state: null, rows: (o.rows || []).map(r => Object.assign({}, r)), ops: [] };
+  const db: FlowDb = {
+    async loadState() { return store.state ? JSON.parse(JSON.stringify(store.state)) : null; },
+    async saveState(s: any) { store.state = JSON.parse(JSON.stringify(s)); },
+    async loadData() { return { ok: true, ...mapFlowData([], [], [], o.recipients || [], o.failRead ? null : store.rows.filter(r => r.status === "active").map(r => Object.assign({}, r))) }; },
+    async saveRecipients() {},
+    async saveStanding(ops: any[]) {
+      if (o.failWrite) throw new Error("standing store down");
+      for (const op of ops) {
+        store.ops.push(JSON.parse(JSON.stringify(op)));
+        if (op.op === "insert") store.rows.push(Object.assign({ id: "sp-" + store.rows.length, created_at: new Date(T0).toISOString(), last_staged_month: null }, op.row));
+        if (op.op === "update") Object.assign(store.rows.find(r => r.id === op.id), op.set);
+      }
+    },
+  };
+  return { db, store };
+}
+const MIKE = [{ id: "r-mike", handle: "mike@example.com", display_name: "Mike", channel: "in-app", source: "confirmed", rail: "zelle", last_used_at: new Date(T0).toISOString() }];
+Deno.test("rent wiring: ask, card, yes saves the rule to standing_payments before the reply; the month card's yes stages it for the person to send", async () => {
+  const { db, store } = rentDb({ recipients: MIKE }); let calls = 0;
+  const model = async () => { calls++; return { intent: "send_money", recipient_span: "rent" }; };
+  const go = (m: string, at = T0) => routeFlows(m, { db, extract: model, now: () => at });
+  const ask = await go("pay my rent");
+  eq(ask.reply, "Who do you pay rent to, how much, and which day of the month? e.g. 'Mike $1,450 on the 1st via Zelle'");
+  eq(ask.route.flow, "rent"); eq(ask.route.route, "pay_rent"); eq(ask.route.outcome, "ask");
+  assert(hasLiveCard(store.state), "the open question is saved with the thread, so the answer routes back to it");
+  const card = await go("Mike $1,450 on the 1st via Zelle", T0 + 60000);
+  eq(card.reply, "Set up rent: $1,450.00 to Mike on Zelle, monthly on the 1st, from checking, for you to send each month. Each month I'll put up the card and wait for your yes; one message ('stop rent') turns it off. Reply YES or NO within 10 min.");
+  eq(store.rows.length, 0, "a card saves nothing");
+  const yes = await go("yes", T0 + 120000);
+  eq(yes.route.outcome, "rent_set"); assert(/^Rent is set up: \$1,450\.00 to Mike on Zelle/.test(yes.reply), yes.reply);
+  eq(store.rows.length, 1); eq([store.rows[0].status, store.rows[0].amount_cents, store.rows[0].day_of_month, store.rows[0].rail, store.rows[0].payee_handle], ["active", 145000, 1, "zelle", "mike@example.com"]);
+  eq(calls, 0, "no model call anywhere in the rent dialogue");
+  // Three days before the 1st: the month card, then the yes stages it (handoff), and the month is recorded.
+  const oct29 = Date.UTC(2026, 9, 29, 14);
+  const month = await go("pay my rent", oct29);
+  eq(month.reply, "Rent for November: $1,450.00 to Mike on Zelle, due Nov 1, from checking, for you to send. Reply YES to stage it or NO to skip this month, within 10 min.");
+  for (const re of [/[Rr]ent/, /month|monthly/, /Reply YES|Confirm below/]) assert(re.test(month.reply), `spec 16 S16-15 check ${re}`);
+  const staged = await go("yes", oct29 + 60000);
+  eq(staged.route.outcome, "staged"); assert(/^Rent for November: Staged, not sent\. In your bank app: .*Upmore didn't move any money; you send it\.$/.test(staged.reply), staged.reply);
+  eq(store.rows[0].last_staged_month, "2026-11");
+  const again = await go("pay my rent", oct29 + 120000);
+  eq(again.route.outcome, "already_done");
+  // One message turns it off.
+  const off = await go("stop rent", oct29 + 180000);
+  eq(off.route.outcome, "rent_stopped"); eq(store.rows[0].status, "stopped");
+  eq(store.ops.map(x => x.op), ["insert", "update", "update"]);
+});
+Deno.test("rent wiring: a write that fails is never claimed; an unreadable table says so; pay sam 900 for rent is still a send to Sam", async () => {
+  const RULE = { id: "sp-9", kind: "rent", payee_name: "Mike", payee_handle: "mike@example.com", rail: "zelle", amount_cents: 145000, day_of_month: 1, funding: "checking", status: "active", created_at: "2026-09-01T00:00:00Z", last_staged_month: null };
+  const { db, store } = rentDb({ rows: [RULE], recipients: MIKE, failWrite: true });
+  const at = Date.UTC(2026, 9, 29, 14);
+  await routeFlows("pay my rent", { db, extract: null, now: () => at });
+  const y = await routeFlows("yes", { db, extract: null, now: () => at + 1000 });
+  eq(y.reply, "I couldn't save that right now, so nothing was staged. Nothing was sent. Try again in a moment.");
+  eq(y.route.outcome, "not_saved"); assert(y.route.problems.includes("standing payment save failed"));
+  eq(store.rows[0].last_staged_month, null);
+  const u = rentDb({ failRead: true });
+  eq((await routeFlows("pay my rent", { db: u.db, extract: null, now: () => at }))!.reply, "I can't read your rent setup right now, so I can't do that yet. Nothing was changed.");
+  const s = rentDb({ rows: [RULE], recipients: [{ id: "r-sam", handle: "@sam", display_name: "Sam", channel: "in-app", source: "completed_send", rail: "venmo", last_used_at: new Date(T0).toISOString() }] });
+  const send = await routeFlows("pay sam 900 for rent", { db: s.db, extract: null, now: () => at });
+  eq(send.route.flow, "send"); assert(/\$900\.00 to Sam/.test(send.reply), send.reply);
+});

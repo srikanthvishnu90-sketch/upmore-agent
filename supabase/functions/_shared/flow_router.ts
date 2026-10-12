@@ -1,5 +1,5 @@
 // Live wiring of the message router and the flows (buy from a text INV-011, cancel BILL-003, pay a person PAY-001/PAY-002,
-// split an expense PAY-004) into the agent-chat handler. Phase 1 and Rail 1, docs/instinct-spec-series/BUILD-STATUS.md.
+// split an expense PAY-004, monthly rent as a standing flow PAY-005 / real-world C110) into the agent-chat handler. Phase 1 and Rail 1, docs/instinct-spec-series/BUILD-STATUS.md.
 //
 // What this module does, per message:
 //   1. Restore the thread's flow state (agent_flow_state) and decide whether the message could be a flow at all.
@@ -13,7 +13,7 @@
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, StandingRent, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage, ModelUnavailableError } from "./model_calls.ts";
 import { callModel, type CallOptions, type ModelConfig } from "./model_gateway.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
@@ -44,6 +44,10 @@ export interface FlowData {
   // so instead of treating everyone as a stranger.
   recipients?: any[];
   recipients_ok?: boolean;
+  // Rows of public.standing_payments (the person's rent rule). standing_ok false means the table could not be read: the
+  // rent flow says so instead of treating the person as having no rent set up.
+  standing?: any[];
+  standing_ok?: boolean;
 }
 
 export interface FlowDb {
@@ -51,6 +55,8 @@ export interface FlowDb {
   saveState(state: any): Promise<void>;
   loadData(): Promise<FlowData>;
   saveRecipients?(rows: any[]): Promise<void>;
+  // The rent flow's writes (a rule saved on the person's yes, changed, stopped, or a month staged), applied in order.
+  saveStanding?(ops: any[]): Promise<void>;
 }
 
 export interface RouteMeta {
@@ -167,6 +173,8 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
     cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
+    // Rent stages each month for the person to send in their own app; it has no connector because it writes to no rail.
+    rent: StandingRent.create({ clock: now, rule: StandingRent.activeRule(data.standing || []), unavailable: data.standing_ok === false, recipients, state: s.rent }),
     recipients,
   };
 }
@@ -187,9 +195,13 @@ export function hasLiveCard(saved: any): boolean {
   if (saved.trade && (saved.trade.pending || saved.trade.suggestion)) return true;
   if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer)) return true;
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
+  if (saved.rent && (saved.rent.pending || saved.rent.asking)) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
   return false;
 }
+
+// What each rent write means if it never reached the database, said instead of the flow's own reply.
+const RENT_WRITES: Record<string, string> = { rent_set: "nothing was set up", rent_changed: "your rent stays as it was", rent_stopped: "rent is still on", staged: "nothing was staged" };
 
 // One routed message. Returns null when the message is not a flow, so the existing handler answers it unchanged.
 // What a live card is, in a few words, for the note that says it was dropped.
@@ -199,6 +211,7 @@ function liveCardWords(sessions: any): string[] {
   if (sessions.split && sessions.split.pending) out.push(`the ${m(sessions.split.pending.amount_cents)} split request`);
   if (sessions.trade && sessions.trade.pending) out.push(`the ${sessions.trade.pending.symbol} order`);
   if (sessions.cancel && sessions.cancel.pending) out.push("the cancellation");
+  if (sessions.rent && sessions.rent.pending) out.push("the rent card");
   return out;
 }
 
@@ -218,7 +231,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.
-  const notes = [...sessions.send.landed(data.transactions).map((x: any) => x.text), ...sessions.split.paid(data.transactions).map((x: any) => x.text)];
+  const notes = [...sessions.send.landed(data.transactions).map((x: any) => x.text), ...sessions.split.paid(data.transactions).map((x: any) => x.text), ...sessions.rent.landed(data.transactions).map((x: any) => x.text)];
   const memo = JSON.parse(JSON.stringify((saved && saved.router) || {}));
   const out = await AgentRouter.handle(message, { extract: deps.extract || undefined, sessions, parsers: PARSERS, timeout_ms: deps.timeoutMs ?? 8000, memo, now });
   // A message that is not a flow, sent while a card is live, drops the card (CORE-009 S10): nothing stays pending silently.
@@ -230,16 +243,22 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
       dropNote = `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
     }
   }
-  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), router: out.memo || memo };
+  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), rent: sessions.rent.snapshot(), router: out.memo || memo };
   // Recipients saved on evidence (a completed send, or a handle typed back and SAVE) are written before the reply.
   const rows = recipients.drain();
   let saveError = false;
   if (rows.length) {
     try { if (!deps.db.saveRecipients) throw new Error("no recipient store"); await deps.db.saveRecipients(rows); } catch { saveError = true; }
   }
+  // The rent rule's writes go to the database before the reply too; a write that fails is never claimed (below).
+  const standingOps = sessions.rent.drain();
+  let standingError = false;
+  if (standingOps.length) {
+    try { if (!deps.db.saveStanding) throw new Error("no standing store"); await deps.db.saveStanding(standingOps); } catch { standingError = true; }
+  }
   if (out.route === "fallthrough") {
     // A dropped card is still a state change; keep it, then let the existing handler answer.
-    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, router: saved?.router ?? state.router })) await deps.db.saveState(state);
+    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, rent: saved?.rent ?? state.rent, router: saved?.router ?? state.router })) await deps.db.saveState(state);
     return dropNote ? { fallthrough: true, note: dropNote } : null;
   }
   // Saved before the reply leaves, so a crash never leaves a card the person can see without the state that makes it safe.
@@ -248,12 +267,15 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   let reply = typeof r.text === "string" && r.text.trim() ? r.text : r.outcome === "nothing_pending" ? "There's nothing waiting on you." : "Okay.";
   // Never claim a save that did not reach the database.
   if (saveError && r.outcome === "saved") reply = "I couldn't save that right now, so nothing was saved. Reply SAVE again in a moment.";
+  // A rent rule, change, stop or staged month that did not reach the database is not claimed: nothing changed.
+  const rentLost = standingError && !!RENT_WRITES[r.outcome];
+  if (rentLost) reply = `I couldn't save that right now, so ${RENT_WRITES[r.outcome]}. Nothing was sent. Try again in a moment.`;
   if (notes.length) reply = `${notes.join(" ")} ${reply}`;
-  const problems = [...(out.problems ?? []), ...(saveError ? ["recipient save failed"] : [])];
+  const problems = [...(out.problems ?? []), ...(saveError ? ["recipient save failed"] : []), ...(standingError ? ["standing payment save failed"] : [])];
   return {
     reply,
     withhold_user_text: !!out.withhold_text,
-    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: saveError && r.outcome === "saved" ? "not_saved" : r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems },
+    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: (saveError && r.outcome === "saved") || rentLost ? "not_saved" : r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems },
   };
 }
 
@@ -293,18 +315,20 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
     },
     async loadData(): Promise<FlowData> {
       const since = new Date(now() - 400 * 86400000).toISOString().slice(0, 10);
-      const [tx, accts, snaps, recs] = await Promise.all([
+      const [tx, accts, snaps, recs, standing] = await Promise.all([
         supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
           .eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000),
         supabase.from("brokerage_accounts").select("id,provider,label,paper,status").eq("user_id", userId),
         supabase.from("portfolio_snapshots").select("brokerage_account_id,cash,snapshot_at").eq("user_id", userId).order("snapshot_at", { ascending: false }).limit(50),
         supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500),
+        supabase.from("standing_payments").select("id,kind,payee_name,payee_handle,rail,amount_cents,day_of_month,funding,status,created_at,updated_at,last_staged_month").eq("user_id", userId).eq("kind", "rent").eq("status", "active").limit(5),
       ]);
       const empty = { transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} };
       if (tx.error) return { ok: false, missing: "transactions", ...empty };
       if (accts.error || snaps.error) return { ok: false, missing: "brokerage accounts", ...empty };
       // An unreadable recipient table (or one not yet migrated) blocks only person-to-person flows, and they say so.
-      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || [], recs.error ? null : recs.data || []) };
+      // An unreadable standing table (or one not yet migrated) blocks only the rent flow, and it says so.
+      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || [], recs.error ? null : recs.data || [], standing.error ? null : standing.data || []) };
     },
     async saveRecipients(rows: any[]) {
       for (const row of rows) {
@@ -322,19 +346,32 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
         if (up.error) throw new Error("Recipient could not be updated.");
       }
     },
+    // Through the caller's RLS client (owner-only policies); every write names the caller's own user id.
+    async saveStanding(ops: any[]) {
+      const at = new Date(now()).toISOString();
+      for (const op of ops) {
+        if (op.op === "insert") {
+          const ins = await supabase.from("standing_payments").insert(Object.assign({}, op.row, { user_id: userId, created_at: at, updated_at: at }));
+          if (ins.error) throw new Error("Standing payment could not be saved.");
+        } else if (op.op === "update" && op.id) {
+          const up = await supabase.from("standing_payments").update(Object.assign({}, op.set, { updated_at: at })).eq("id", op.id).eq("user_id", userId);
+          if (up.error) throw new Error("Standing payment could not be updated.");
+        }
+      }
+    },
   };
 }
 
 // Pure mapping from database rows to what the flows read. Everything is live (owner rule 2026-10-11): a paper account row
 // is never shown or offered, and only active, live connections are listed.
-export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = []) {
+export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = [], standingRows: any[] | null = []) {
   const transactions = txRows.filter(t => t.posted_on && !t.is_pending).map(t => ({ id: t.provider_transaction_id, account_id: t.account_id, posted_at: t.posted_on, amount: Number(t.amount_cents) / 100, merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer }));
   const cashOf = (id: string) => { const s = snapRows.find(r => r.brokerage_account_id === id); return s && s.cash !== null && s.cash !== undefined ? Math.round(Number(s.cash) * 100) : undefined; };
   const brokerageAccounts = acctRows.filter(a => a.status !== "revoked" && a.paper !== true).map(a => ({ id: a.id, name: `${a.provider} ${a.label}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
   // People come only from public.saved_recipients (rows saved on evidence); anyone else is a stranger and is confirmed in
   // full. No instrument list exists yet; orders stop at the compliance gate before needing one.
   const people: any[] = [], instruments: any[] = [];
-  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory(), recipients: recipientRows || [], recipients_ok: recipientRows !== null };
+  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory(), recipients: recipientRows || [], recipients_ok: recipientRows !== null, standing: standingRows || [], standing_ok: standingRows !== null };
 }
 
 // Where each known merchant's own cancellation page is, from the researched catalog. Used only to point the person at

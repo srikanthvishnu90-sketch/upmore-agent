@@ -269,7 +269,7 @@ Expected live outcome once the blockers are cleared, stated before any score so 
 | Provider down | A 200 with the outage sentence and the cause in meta, never a 502 or planner wording | same + `tests/edge/live-replays.test.ts` |
 | Health | `model-health` (token; `?probe=1` makes one real call): 503 + founder alert when down; `model_health()` verdict over `agent_provider_events` | `tests/edge/model-health.test.ts` (4), `tests/db/model_health.test.sql` (13) |
 | Cost per turn | `agent_turn_costs` + `agent_daily_costs`; prices labelled with their source (third-party tables until the invoice reconciles) | same |
-| Live failures replay forever | 14 fixtures from the first run; 11 pass by behavior, 3 triaged in writing (S16-03 no Netflix charge, S16-10 no brokerage, S16-15 rent flow C110 not built) | `deno test -A --no-check tests/edge/live-replays.test.ts`, `node --test tests/gauntlet-replays.test.cjs` |
+| Live failures replay forever | 14 fixtures from the first run; 11 pass by behavior, 3 triaged in writing (S16-03 no Netflix charge, S16-10 no brokerage, S16-15 no rent on file for the test user: the standing rent flow is built since 2026-10-12, so the replay asks the setup question, triaged precondition) | `deno test -A --no-check tests/edge/live-replays.test.ts`, `node --test tests/gauntlet-replays.test.cjs` |
 | Fixes from the run | S16-06 $40 -> $50 (0919f4b); balance wording (3407575); a photo alone is a message (S16-12, app + handler); "pay my rent" no longer a person-to-person send (S16-15 routing) | PAY-001 S07, `tests/photo-only.test.cjs`, `tests/router.test.cjs` |
 | Photos for S16-11/12/17 | Synthetic fixtures (`evals/gauntlet/media/make-media.py`): a scam text, a receipt with a faint "send $500", a circled charge; the owner may use real photos with `--media-dir`. Only the 11-minute wait is NOT RUN with `--no-wait`. | `tests/gauntlet-runner.test.cjs` |
 | Safe re-run | go-live.sh now applies only pending migrations (`upmore_migration_ledger`); `--all` would have replayed 22 applied files | `bash tests/db/run.sh` (ledger step) |
@@ -352,6 +352,20 @@ Owner sequence (the manual steps that go-live.sh automates):
 2. Deploy agent-chat, broker-oauth-start, and broker-oauth-callback (`--no-verify-jwt`).
 3. Run the live gauntlet on that exact commit.
 4. If something breaks, redeploy the v203 copy.
+
+## Monthly rent as a standing flow (2026-10-12; real-world C110, spec 16 item S16-15, PAY-005)
+
+Built and tested here; **not deployed, migration not applied live.** Owner rules it follows: an automation is a
+per-person toggle restated in exact terms, every run still asks for a one-line yes, one message turns it off; Upmore
+stages a payment for the person to send and never moves money itself.
+
+| Piece | What it does | Check |
+| --- | --- | --- |
+| `packages/domain/81-standing-rent.js` (pure) | "pay my rent" with nothing on file asks the one blocking question (who, how much, which day of the month); the answer becomes a card restating the exact terms ("Set up rent: $1,450.00 to Mike on Zelle, monthly on the 1st, from checking, for you to send each month ... Reply YES or NO within 10 min."); YES saves the rule, NO saves nothing. With rent on file: that month's card (amount, month, payee, due date), YES stages it for the person to send (AgentMoney.handoff, as the send flow does), NO skips the month. "rent is 1500 now" is a restated card; "stop rent" turns it off. Cards expire in 10 minutes (a late yes gets a fresh card). Payees resolve through the saved-recipient book (Rail 1). Only Zelle, Venmo, Cash App, PayPal; bill pay, ACH, check and portals are said to be not built. | `node --test tests/standing-rent.test.cjs` (15) |
+| Router (`69-agent-router.js`) | Rent commands route to `sessions.rent` from the words alone, no model call; "pay sam 900 for rent" stays a send to Sam; other flows' live cards are dropped first. | `node --test tests/router.test.cjs` (16) |
+| Wiring (`_shared/flow_router.ts`) | `rent` session in `buildSessions`, state in `agent_flow_state`; the rule is read from `public.standing_payments` through the caller's RLS client; writes go in before the reply and a failed write is never claimed; an unreadable table says so. `rentReply`/`RENT_NOT_BUILT` removed from `direct_answers.ts`. | `deno test -A --no-check tests/edge/flow-router.test.ts tests/edge/direct-answers.test.ts` |
+| Scheduler (`_shared/proactive.ts`) | Three days before the due day, from 8 a.m. and outside quiet hours, once per (rule, month): "Rent for November is due Nov 1: ... Want this month's card to send it? Reply YES or NO. Nothing is staged without your yes." Never in the same run as another offer. YES puts up the rent flow's own card (its yes is the approval); NO skips the month. | `deno test -A --no-check tests/edge/proactive.test.ts` |
+| Migration `20261012020000_standing_payments.sql` | `public.standing_payments` (owner-only RLS, one active rent rule per person, day 1 to 28, handoff apps only, no identity digits) and the `standing_payment` kind on `agent_proactive_log`. | `bash tests/db/run.sh` (`tests/db/standing_payments.test.sql`); **not run in this session (root, no Postgres server binaries)** |
 
 ## Connector matrix (from 2026-10-11, owner's 100-platform coverage prompt v2)
 

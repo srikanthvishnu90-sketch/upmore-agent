@@ -2,7 +2,8 @@
 // wrong or the flows not covering:
 //   - "connect my fidelity": the model invented app steps (S16-19). Now the connector matrix answers: a live connect link,
 //     the read-only Plaid path, a fallback while trading waits on approval, not built yet, off, or can't connect.
-//   - "pay my rent": got "How much?". A standing rent payment is not built (Phase 3), said plainly with what works today.
+//   ("pay my rent" used to be answered here as not built. It is now the standing rent flow, packages/domain/81-standing-rent.js,
+//   routed by AgentRouter through _shared/flow_router.ts, so nothing here intercepts it.)
 //   - "find me money": the model's answer was swapped for a dispute fallback (S16-18). Now the save engine reads the
 //     person's own transactions and ranks what it finds, every number from their rows, with the source and as-of date.
 //   - balance and spending with nothing linked: the planner's fallback spoke in internal terms ("retained USD posted
@@ -17,13 +18,6 @@ export function connectReply(message: string): string | null {
   const a = BrokerageConnectors.connectAnswer(PLATFORMS_JSON, message);
   if (!a) return null;
   return a.card ? ConnectCards.message(a.card, { lead: a.text }) : a.text;
-}
-
-const RENT = /^\s*(?:please |pls |can you |could you |can u )?pay (?:my |the |this month'?s )?rent\b(?!.*\b(?:to|for)\s+@?[a-z]+\s+\$?\d)/i;
-export const RENT_NOT_BUILT =
-  "Paying rent from Upmore isn't built yet, so nothing was set up. If your landlord takes Venmo or Zelle, say \"send <name> <amount> for rent\" and I'll set it up for you to send.";
-export function rentReply(message: string): string | null {
-  return RENT.test(message) ? RENT_NOT_BUILT : null;
 }
 
 export const NO_ACCOUNTS =

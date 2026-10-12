@@ -942,7 +942,7 @@
    "typed": "why is my portfolio down today",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "Today, per your Alpaca account as of 19:14 UTC: your positions are down $12.95 in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). PLTR -$12.95 (-1.7%). I don't know why a price moved, so I won't guess.\nLIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1023,7 +1023,7 @@
    "typed": "give me my portfolio report",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "Today, per your Alpaca account as of 19:14 UTC: your positions are down $12.95 in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). PLTR -$12.95 (-1.7%). I don't know why a price moved, so I won't guess.\nLIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },

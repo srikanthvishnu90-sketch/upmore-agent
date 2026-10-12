@@ -10,7 +10,7 @@
        PATCH  /v2/orders/{order_id}              replace (returns a new order with a new id)
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
        GET    /v2/account                        getAccount: id, status, restriction flags, buying power, cash (strings)
-       GET    /v2/positions[/{symbol}]           getPositions (404 = none)
+       GET    /v2/positions[/{symbol}]           getPositions (404 = none), with today's unrealized change (unrealized_intraday_pl)
        GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
        GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
        GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
@@ -189,7 +189,7 @@
       }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
-      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: false, live: true });
+      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), today_pl_cents: strToCents(j.unrealized_intraday_pl, "round"), today_pct: Number.isFinite(num(j.unrealized_intraday_plpc)) ? num(j.unrealized_intraday_plpc) : null, paper: false, live: true });
       // The quote a card is priced on: the ask for a buy, the bid for a sell, with the quote's own timestamp as its as-of.
       // A zero or missing side falls back to the latest trade, said so in the source.
       async function quote(symbol, side) {

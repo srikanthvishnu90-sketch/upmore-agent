@@ -612,6 +612,16 @@
         const where = a.name || "your account", srcWords = String(h.source || "").toLowerCase().replace(/^your /, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const srcSaid = srcWords && new RegExp(`(^|[^a-z0-9])${srcWords}($|[^a-z0-9])`).test(String(where).toLowerCase()) ? "" : `, ${h.source}`;
         const list = `${a.live ? "LIVE portfolio" : "Portfolio"} in ${where}${srcSaid}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`;
+        // Today's change (megadoc G04, G13): the broker's own unrealized change for the day on each position (Alpaca's
+        // unrealized_intraday_pl: today's price against yesterday's close, or against the buy price for shares bought
+        // today). Numbers only: Upmore doesn't know why a price moved and never guesses a reason.
+        if (/\b(?:today|this morning|so far today|report)\b/i.test(String(text || "")) && rows.length) {
+          const missing = rows.filter(x => !Number.isSafeInteger(x.today_pl_cents));
+          if (missing.length) return say("answer", `I can't give today's change: the read doesn't carry it for ${missing.map(x => x.symbol).join(", ")}.\n${list}`, { paper: false, live: !!a.live });
+          const total = rows.reduce((t, x) => t + x.today_pl_cents, 0), signed = c => `${c < 0 ? "-" : "+"}${money(Math.abs(c))}`;
+          const each = rows.slice().sort((x, y) => Math.abs(y.today_pl_cents) - Math.abs(x.today_pl_cents)).map(x => `${x.symbol} ${signed(x.today_pl_cents)}${Number.isFinite(x.today_pct) ? ` (${x.today_pct < 0 ? "-" : "+"}${(Math.round(Math.abs(x.today_pct) * 1000) / 10).toFixed(1)}%)` : ""}`).join(", ");
+          return say("answer", `Today, per ${h.source} as of ${hhmm(h.as_of)}: your positions are ${total === 0 ? "flat" : `${total < 0 ? "down" : "up"} ${money(Math.abs(total))}`} in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). ${each}. I don't know why a price moved, so I won't guess.\n${list}`, { paper: false, live: !!a.live, today_cents: total });
+        }
         const which = /\b(biggest|largest|top|smallest)\b/i.exec(String(text || ""));
         if (!which || !rows.length) return say("answer", list, { paper: false, live: !!a.live });
         const valued = rows.filter(x => Number.isSafeInteger(x.market_value_cents));

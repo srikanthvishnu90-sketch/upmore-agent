@@ -4891,6 +4891,16 @@
         const where = a.name || "your account", srcWords = String(h.source || "").toLowerCase().replace(/^your /, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const srcSaid = srcWords && new RegExp(`(^|[^a-z0-9])${srcWords}($|[^a-z0-9])`).test(String(where).toLowerCase()) ? "" : `, ${h.source}`;
         const list = `${a.live ? "LIVE portfolio" : "Portfolio"} in ${where}${srcSaid}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`;
+        // Today's change (megadoc G04, G13): the broker's own unrealized change for the day on each position (Alpaca's
+        // unrealized_intraday_pl: today's price against yesterday's close, or against the buy price for shares bought
+        // today). Numbers only: Upmore doesn't know why a price moved and never guesses a reason.
+        if (/\b(?:today|this morning|so far today|report)\b/i.test(String(text || "")) && rows.length) {
+          const missing = rows.filter(x => !Number.isSafeInteger(x.today_pl_cents));
+          if (missing.length) return say("answer", `I can't give today's change: the read doesn't carry it for ${missing.map(x => x.symbol).join(", ")}.\n${list}`, { paper: false, live: !!a.live });
+          const total = rows.reduce((t, x) => t + x.today_pl_cents, 0), signed = c => `${c < 0 ? "-" : "+"}${money(Math.abs(c))}`;
+          const each = rows.slice().sort((x, y) => Math.abs(y.today_pl_cents) - Math.abs(x.today_pl_cents)).map(x => `${x.symbol} ${signed(x.today_pl_cents)}${Number.isFinite(x.today_pct) ? ` (${x.today_pct < 0 ? "-" : "+"}${(Math.round(Math.abs(x.today_pct) * 1000) / 10).toFixed(1)}%)` : ""}`).join(", ");
+          return say("answer", `Today, per ${h.source} as of ${hhmm(h.as_of)}: your positions are ${total === 0 ? "flat" : `${total < 0 ? "down" : "up"} ${money(Math.abs(total))}`} in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). ${each}. I don't know why a price moved, so I won't guess.\n${list}`, { paper: false, live: !!a.live, today_cents: total });
+        }
         const which = /\b(biggest|largest|top|smallest)\b/i.exec(String(text || ""));
         if (!which || !rows.length) return say("answer", list, { paper: false, live: !!a.live });
         const valued = rows.filter(x => Number.isSafeInteger(x.market_value_cents));
@@ -6310,7 +6320,7 @@
        PATCH  /v2/orders/{order_id}              replace (returns a new order with a new id)
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
        GET    /v2/account                        getAccount: id, status, restriction flags, buying power, cash (strings)
-       GET    /v2/positions[/{symbol}]           getPositions (404 = none)
+       GET    /v2/positions[/{symbol}]           getPositions (404 = none), with today's unrealized change (unrealized_intraday_pl)
        GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
        GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
        GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
@@ -6489,7 +6499,7 @@
       }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
-      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: false, live: true });
+      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), today_pl_cents: strToCents(j.unrealized_intraday_pl, "round"), today_pct: Number.isFinite(num(j.unrealized_intraday_plpc)) ? num(j.unrealized_intraday_plpc) : null, paper: false, live: true });
       // The quote a card is priced on: the ask for a buy, the bid for a sell, with the quote's own timestamp as its as-of.
       // A zero or missing side falls back to the latest trade, said so in the source.
       async function quote(symbol, side) {
@@ -15070,7 +15080,7 @@
       bill_pay: "Paying bills isn't built yet, so nothing was paid. Pay it in the biller's own app or site, where you can also set up autopay. Rent is the one bill I can set up: say \"pay my rent\".",
       pause_plan: "Pausing or downgrading a subscription isn't built yet, so nothing was changed; the service's own account page does it. If you'd rather stop it, say \"cancel\" and its name and I'll put up a cancel card for your yes.",
       open_account: "Upmore doesn't open accounts, so nothing was opened. You open one on the bank's or broker's own site; once it's open, I can show it here when you connect it.",
-      portfolio_analytics: "That isn't built yet: comparisons with the market, sector weights, returns over a period, movers, tax estimates on a sale and dividends aren't in Upmore, so I won't guess at them. What I can show is your holdings, each with its value and gain since you bought: say \"how's my portfolio\".",
+      portfolio_analytics: "That isn't built yet: comparisons with the market, sector weights, returns over a period, movers, tax estimates on a sale and dividends aren't in Upmore, so I won't guess at them. What I can show is your holdings with their values and today's change (say \"how's my portfolio today\"), and the gain on one since you bought (\"how much have I made on NVDA\").",
       all_to_new: "Stop if anyone asked you to do this: moving everything to a new account is how most account-takeover and \"safe account\" scams end, and no real bank or agency asks for it. Upmore can't move money between accounts, so nothing was moved. If it's your own new account, do it in your bank's own app, after checking the account is in your name.",
       wrong_send: "I can't pull a payment back, and nothing was sent or changed. Ask the app it went through: in Venmo or Cash App, contact their support from the payment and ask the person to send it back; for Zelle, call your bank right away. Getting it back isn't guaranteed, so do it today.",
       refund_request: "Upmore can't ask for a refund for you, so nothing was sent. Start a return or refund in the store's own app or site; if the charge itself is wrong, say \"dispute this charge\" and I'll draft what to send your bank.",

@@ -298,6 +298,16 @@ test('[S24] a timing Upmore cannot see (earnings, a halt) is named ahead of the 
   const G=vm.runInContext('AdviceGuard',ctx);for(const x of [a,h])assert.equal(G.response(x.text).ok,true,'the note passes the advice lint');
 });
 
+test('[S25] today\'s change is the broker\'s own per-position number, summed, signed and sourced; no reason is guessed; a position without it is said, never estimated',async()=>{
+  const w=await world({mock:{positions:{VOO:2,NVDA:4},lastday:{VOO:51500,NVDA:10400}}});
+  const re=/^Today, per Alpaca mock server as of 14:00 UTC: your positions are up \$2\.00 in all, unrealized \(today's price against yesterday's close, or against what you paid for shares bought today\)\. NVDA \+\$8\.00 \(\+1\.9%\), VOO -\$6\.00 \(-0\.6%\)\. I don't know why a price moved, so I won't guess\.\nLIVE portfolio in your Alpaca account/;
+  for(const m of ['why is my portfolio down today','give me my portfolio report',"how's my portfolio doing today"]){const r=await w.s.start(m);assert.equal(r.outcome,'answer',m);assert.match(r.text,re,m);assert.equal(r.today_cents,200);assert.equal(r.lint_ok,true);}
+  const plain=await w.s.start("how's my portfolio");assert.doesNotMatch(plain.text,/^Today/,'no today block unless asked');
+  const part=await world({mock:{positions:{VOO:2,NVDA:4},lastday:{VOO:51500}}});
+  const p=await part.s.start('why is my portfolio down today');assert.match(p.text,/^I can't give today's change: the read doesn't carry it for NVDA\.\nLIVE portfolio/);
+  assert.equal(posts(w.m).length+posts(part.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

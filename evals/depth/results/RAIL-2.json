@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T13:51:15.726Z",
+ "run_at": "2026-10-12T13:57:58.749Z",
  "baseline_all_green": true,
- "sub_capabilities": 24,
- "proven": 24,
+ "sub_capabilities": 25,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -285,6 +285,17 @@
    "title": "A timing Upmore can't see is named first",
    "defect": "the situation note is dropped, so the flow asks the size as if the timing had been understood",
    "test": "'sell my NVDA before earnings' says Upmore has no earnings dates before asking the size",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S25",
+   "id": "D25",
+   "title": "Today's change is the broker's own number",
+   "defect": "the adapter stops reading unrealized_intraday_pl, so today's change is never available",
+   "test": "'why is my portfolio down today' sums Alpaca's unrealized_intraday_pl per position, signed and sourced",
    "bites": true,
    "applied": true,
    "collateral": [],

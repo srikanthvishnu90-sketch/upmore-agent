@@ -147,7 +147,8 @@ function start(opts) {
       return send(res, 404, { message: "not found" });
     });
   });
-  function pos(s, q) { const px = st.quotes[s] ? st.quotes[s].bid : 0; return { asset_id: "asset-" + s, symbol: s, exchange: "ARCA", asset_class: "us_equity", avg_entry_price: str(px), qty: qtyStr(q), qty_available: qtyStr(Math.max(0, q - reserved(s))), side: "long", market_value: str(Math.round(q * px)), cost_basis: str(Math.round(q * px)), current_price: str(px) }; }
+  // Today's change is carried only for a symbol given a prior close (lastday: SYMBOL -> cents), as Alpaca derives it.
+  function pos(s, q) { const px = st.quotes[s] ? st.quotes[s].bid : 0, ld = (o.lastday || {})[s]; const today = Number.isSafeInteger(ld) && ld > 0 ? { lastday_price: str(ld), unrealized_intraday_pl: (q * (px - ld) < 0 ? "-" : "") + str(Math.abs(Math.round(q * (px - ld)))), unrealized_intraday_plpc: String(Math.round(((px - ld) / ld) * 1e6) / 1e6), change_today: String(Math.round(((px - ld) / ld) * 1e6) / 1e6) } : {}; return { ...today, asset_id: "asset-" + s, symbol: s, exchange: "ARCA", asset_class: "us_equity", avg_entry_price: str(px), qty: qtyStr(q), qty_available: qtyStr(Math.max(0, q - reserved(s))), side: "long", market_value: str(Math.round(q * px)), cost_basis: str(Math.round(q * px)), current_price: str(px) }; }
   return new Promise(resolve => server.listen(0, "127.0.0.1", () => {
     const base = `http://127.0.0.1:${server.address().port}`;
     resolve({

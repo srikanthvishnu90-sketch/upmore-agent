@@ -12,7 +12,7 @@
    "id": "L3-04",
    "thread_id": "3541f446-b8af-497f-aa24-385addf1cd61",
    "next": 1,
-   "due_at": 1791854613064,
+   "due_at": "2026-10-13T01:23:33.064Z",
    "turns": [
     {
      "text": "send sam $40",

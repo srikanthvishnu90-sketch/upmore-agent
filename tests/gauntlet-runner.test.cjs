@@ -60,9 +60,9 @@ test('spec16 and L3 suites: media items send their photo, waits are reported NOT
   assert.equal(s.not_run,1,'only the 11-minute wait: the three media items send their photos');assert.deepEqual(photos.sort(),['','am i being scammed','dispute this charge'],'S16-11, 12 (a photo alone) and 17 carry one photo each');assert.equal(s.rows.find(r=>r.id==='S16-01').status,'PASS');assert.equal(s.rows.find(r=>r.id==='S16-03').status,'FAIL');assert.equal(a.code,1);
   staged=0;const b=await spawnRun(['--suite','l3','--label','grader-l3','--max-wait-min','1'],port);
   const f=path.join(root,'evals/gauntlet/results/grader-l3.l3.json');const r=JSON.parse(fs.readFileSync(f,'utf8'));
-  assert.equal(r.pending.length,1,'the 3-hour case is saved, not faked');assert.equal(r.pending[0].id,'L3-04');assert.ok(r.pending[0].due_at>Date.now()+2*3600000);
+  assert.equal(r.pending.length,1,'the 3-hour case is saved, not faked');assert.equal(r.pending[0].id,'L3-04');assert.ok(Date.parse(r.pending[0].due_at)>Date.now()+2*3600000,'due_at is stored as an ISO string, never a bare epoch (a 13-digit number trips the datasets privacy sweep as account-shaped)');
   assert.equal(r.cases.find(c=>c.id==='L3-05').status,'FAIL','the canned server staged twice on a double yes');
-  r.pending[0].due_at=Date.now()-1;fs.writeFileSync(f,JSON.stringify(r));
+  r.pending[0].due_at=Date.now()-1;fs.writeFileSync(f,JSON.stringify(r)); // a numeric due_at from an older results file still resumes
   const c=await spawnRun(['--resume','grader-l3'],port);const r2=JSON.parse(fs.readFileSync(f,'utf8'));
   assert.equal(r2.pending.length,0);assert.ok(r2.cases.find(x=>x.id==='L3-04'),'resumed and graded');assert.equal(b.code,1);assert.equal(c.code,1);
   }finally{if(server.closeAllConnections)server.closeAllConnections();server.close();for(const x of ['grader-spec16.spec16.json','grader-l3.l3.json']){const q=path.join(root,'evals/gauntlet/results',x);if(fs.existsSync(q))fs.unlinkSync(q);}}

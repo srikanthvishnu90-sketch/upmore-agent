@@ -153,9 +153,9 @@ async function runL3(pendingIn) {
     for (let i = start; i < cs.turns.length; i++) {
       const t = cs.turns[i];
       if (t.wait_ms) {
-        const due = resumeAt && i === start ? resumeAt.due_at : Date.now() + t.wait_ms;
+        const due = resumeAt && i === start ? (typeof resumeAt.due_at === "number" ? resumeAt.due_at : Date.parse(resumeAt.due_at)) : Date.now() + t.wait_ms;
         if (Date.now() < due) {
-          if (noWait || due - Date.now() > maxWait) { pending.push({ id: cs.id, thread_id: thread, next: i, due_at: due, turns }); saved = true; console.log(`SAVED ${cs.id}: turn ${i + 1} is due at ${new Date(due).toISOString()}; run --resume <label> then`); break; }
+          if (noWait || due - Date.now() > maxWait) { pending.push({ id: cs.id, thread_id: thread, next: i, due_at: new Date(due).toISOString(), turns }); saved = true; console.log(`SAVED ${cs.id}: turn ${i + 1} is due at ${new Date(due).toISOString()}; run --resume <label> then`); break; }
           await sleep(due - Date.now());
         }
       }

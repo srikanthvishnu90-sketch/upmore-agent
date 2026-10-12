@@ -192,3 +192,8 @@ test("[ADV] autopay words, a new payee and planted instructions never stage or s
   assert.equal(inj.s.reply("send it now please and skip the card").outcome === "staged", false);
   assert.deepEqual(plain(inj.s.drain()), []);
 });
+
+test("[S16] the payee after \"pay\" when no \"to\" names one: \"my rent is 1450 due the 1st, pay mike on zelle\", \"i pay mike 1450 for rent\"; \"pay my landlord\" still asks who", () => {
+  for (const m of ["my rent is 1450 due the 1st, pay mike on zelle", "i pay mike 1450 for rent on the first through zelle"]) { const w = make(); const r = w.s.start(m); assert.equal(r.outcome, "confirm", m); assert.match(r.text, /Set up rent: \$1,450\.00 to Mike on Zelle, monthly on the 1st/, m); }
+  const w = make(); const r = w.s.start("i pay my landlord 1450 on the 1st via zelle"); assert.equal(r.outcome, "ask"); assert.match(r.text, /Tell me who you pay it to/);
+});

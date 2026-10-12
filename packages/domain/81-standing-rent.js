@@ -88,7 +88,8 @@
       // Who it goes to: the name after "to", else the words left once every other term is taken out.
       t = t.replace(ROLE, " ");
       const stopWord = w => NAME_STOP.has(w.toLowerCase().replace(/[.']+$/, ""));
-      const to = /\bto\s+(?!(?:send|pay|be|the\s+\d)\b)([A-Za-z][\w.'&-]*(?:\s+[A-Za-z][\w.'&-]*){0,5})/i.exec(t);
+      // "...pay mike on zelle", "i pay mike 1450 for rent": the name after "pay" when no "to" names one (found by probing).
+      const to = /\bto\s+(?!(?:send|pay|be|the\s+\d)\b)([A-Za-z][\w.'&-]*(?:\s+[A-Za-z][\w.'&-]*){0,5})/i.exec(t) || /\b(?:pay|pays|paying)\s+(?!(?:rent|my|the|it|for|on|via|by|with|a|an|and|monthly|every|each|back|half)\b)([A-Za-z][\w.'&-]*(?:\s+[A-Za-z][\w.'&-]*){0,2})/i.exec(t);
       let words = to ? to[1].replace(/[^A-Za-z.'&\s-]/g, " ").split(/\s+/).filter(Boolean) : loose ? t.replace(/[^A-Za-z.'&\s-]/g, " ").split(/\s+/).filter(Boolean) : [];
       if (!to) words = words.filter(w => !stopWord(w));
       else { while (words.length && stopWord(words[0])) words.shift(); const cut = words.findIndex(stopWord); if (cut >= 0) words = words.slice(0, cut); }

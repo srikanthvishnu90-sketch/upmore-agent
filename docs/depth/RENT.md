@@ -25,4 +25,5 @@ Check: `node --test tests/depth-RENT.test.cjs && node evals/depth/run.cjs RENT`.
 | S13 | Stop-on-change before staging | a new amount since the card stops the stage | `S13` in tests/depth-RENT.test.cjs | the amount is not re-checked at the yes | proven |
 | S14 | The scheduler only says when | a staged month is not offered again | `S14` in tests/depth-RENT.test.cjs | the staged month is not checked | proven |
 | S15 | The 1st to the 28th | the 31st is asked again | `S15` in tests/depth-RENT.test.cjs | any day of the month is accepted | proven |
+| S16 | The payee after pay | pay mike on zelle names Mike | `S16` in tests/depth-RENT.test.cjs | only 'to' names the payee, so 'pay mike' asks who | proven |
 <!-- results:end -->

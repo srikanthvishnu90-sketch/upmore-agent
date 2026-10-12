@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T20:21:10.464Z",
+ "run_at": "2026-10-12T20:34:32.117Z",
  "baseline_all_green": true,
- "sub_capabilities": 31,
- "proven": 33,
+ "sub_capabilities": 32,
+ "proven": 37,
  "problems": [],
  "rows": [
   {
@@ -398,6 +398,50 @@
    "title": "Canceled dividends dropped",
    "defect": "canceled activities are counted",
    "test": "a canceled $5.00 is not counted",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S32",
+   "id": "D34",
+   "title": "Deposits are not gain",
+   "defect": "money put in is counted as gain",
+   "test": "a $500 deposit leaves a $123.45 gain",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S32",
+   "id": "D35",
+   "title": "History checked against the last close",
+   "defect": "the history is used without the check, so a wrong series becomes a return",
+   "test": "history $3,500 against last close $3,400 shows no number",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S32",
+   "id": "D36",
+   "title": "A share transfer stops the return",
+   "defect": "shares moved in by transfer are counted as gain",
+   "test": "an ACATS in the period shows no number",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S32",
+   "id": "D37",
+   "title": "Money-weighted percent",
+   "defect": "every flow counts as if in for the whole period",
+   "test": "the March deposit weighs by its time in the account: +3.7%",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -116,7 +116,11 @@
       const NOT_DIV_SYM = /^(?:last|past|ever|all|alpaca|account|each|every|stocks?|etfs?|funds?|me|my|this|that|the|year|month|week|today|dividends?|it|them)$/i;
       const divSym0 = DIVQ ? ((/\b(?:from|on|by|for|in)\s+([A-Za-z][A-Za-z.]{0,5})\b(?!\s*(?:account|shares))/.exec(t) || /\bdid\s+([A-Za-z][A-Za-z.]{0,5})\s+pay\b/i.exec(t) || /\b([A-Z][A-Z.]{0,5})\s+dividends?\b/.exec(t) || [])[1] || null) : null;
       const div_symbol = divSym0 && !NOT_DIV_SYM.test(divSym0) && !NOT_TICKER.test(divSym0) && !/^20\d\d$/.test(divSym0) ? divSym0.toUpperCase().replace(/\.$/, "") : null;
+      // "How are my investments doing this year", "my ytd return", "compare my portfolio to the S&P", "am I beating the
+      // market" (megadoc G02, G14): the account's return over a period, worked out from its own values and transfers.
+      const PERF = !/\b(buy|sell|order|should)\b/i.test(t) && /\bcompare (?:my )?(?:portfolio|holdings|investments?|returns?|performance|account)\b|\b(?:beat(?:ing)?|lagging|behind|ahead of|outperform(?:ing)?|underperform(?:ing)?|vs\.?|versus|against|compared to) (?:the )?(?:s&p(?: 500)?|sp ?500|spy|market|index)\b|\b(?:ytd|year[- ]to[- ]date) (?:return|performance|gain|loss)s?\b|\b(?:portfolio|investment|investments|account|brokerage) (?:return|performance)s?\b|\bhow (?:are|is|have|has) my (?:investments?|portfolio|stocks|holdings|brokerage(?: account)?|alpaca(?: account)?) (?:been )?(?:doing|done|performing|performed)\b[^?.!]*\b(?:this year|this month|since|past year|last 12 months|ytd|so far|overall|all time)\b|\bhow much (?:have|did) i (?:make|made|earn|earned|lose|lost|gain|gained) (?:investing|in (?:my )?(?:portfolio|brokerage|investments|stocks|alpaca(?: account)?))\b|\bhow (?:did|has|have) my (?:investments?|portfolio|stocks|holdings|brokerage(?: account)?|alpaca(?: account)?) (?:do|done|perform|performed)\b/i.test(t);
       const action = DIVQ ? "dividends"
+        : PERF ? "performance"
         : gm ? "gain"
         : qm ? "quote"
         : STATUS.test(t) && !/\bcancel\b/i.test(t) ? "status"
@@ -354,6 +358,7 @@
         if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "dividends") { const c = connectStop(); if (c) return c; return dividendsAnswer(parsed); }
+        if (parsed.action === "performance") { const c = connectStop(); if (c) return c; return performanceAnswer(parsed); }
         if (parsed.action === "status") return orderStatus(parsed.text);
         if (parsed.action === "quote") { const c = connectStop(); if (c) return c; return quoteOnly(parsed.query); }
         if (parsed.action === "gain") { const c = connectStop(); if (c) return c; return gainOn(parsed.query); }
@@ -751,6 +756,63 @@
         if (withheld > 0) body += ` ${money(withheld)} was withheld or charged against them, so ${money(gross - withheld)} landed.`;
         if (roc > 0) body += ` ${money(roc)} of it the broker labels return of capital.`;
         return say("answer", `${body} From ${src}.${tail}`, { reason: "dividends", total_cents: gross, withheld_cents: withheld });
+      }
+
+      // The account's return over a period (megadoc G02, G14). End value: the account's equity now. Start value: the close
+      // before the period from the broker's daily history, which Alpaca warns can be wrong, so it is used only when one of
+      // its last points matches the account's own last-close equity (last_equity) to the dollar. Money moved in or out is
+      // taken out of the gain; the percent is money-weighted (Modified Dietz: each flow weighted by the share of the period
+      // it was in the account). Shares moved by transfer, a read that fails, or values that disagree: no number is shown.
+      // Against the S&P 500: SPY's daily closes with dividends and splits adjusted, over the same days. Numbers only.
+      const DAY = 86400000, dnum = d => Math.round(Date.parse(`${d}T00:00:00Z`) / DAY), shift = (d, n) => new Date(Date.parse(`${d}T00:00:00Z`) + n * DAY).toISOString().slice(0, 10);
+      const pct1 = x => `${x >= 0 ? "+" : "-"}${Math.abs(Math.round(x * 1000) / 10).toFixed(1)}%`;
+      const fullDate = d => `${md(d)}, ${d.slice(0, 4)}`;
+      function perfPeriod(t, today) {
+        const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+        if (/\blast year\b|\b(?:in|for|during) 20\d\d\b|\blast month\b/i.test(t) && !/\b(?:past|last) (?:12|twelve) months\b|\bpast year\b/i.test(t)) return { unsupported: true };
+        if (/\bthis month\b/i.test(t)) return { from: `${y}-${String(m).padStart(2, "0")}-01`, label: `This month (${MON[m - 1]} 1 to ${md(today)})` };
+        if (/\b(?:past|last) (?:12|twelve) months\b|\bpast year\b/i.test(t)) { const f = shift(today, -365); return { from: f, label: `Over the last 12 months (${fullDate(f)} to ${fullDate(today)})` }; }
+        if (/\b(?:since i (?:started|opened|joined|began)|all[- ]time|ever|overall|since the start)\b/i.test(t)) return { from: shift(today, -5 * 365), label: "Since the account first had money", since: true };
+        return { from: `${y}-01-01`, label: `This year (Jan 1 to ${md(today)})` };
+      }
+      async function performanceAnswer(parsed) {
+        const t = parsed.text || "", today = day(clock()), per = perfPeriod(t, today), bench = /\b(?:s&p|sp ?500|spy|market|index|benchmark)\b/i.test(t);
+        if (per.unsupported) return say("answer", "I can work out a return only for a period that ends today, so not that one. Ask \"how did my portfolio do this year\", \"this month\", \"over the last 12 months\" or \"since I started\".", { reason: "perf_period" });
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {}, where = a.name || "your account";
+        const NO = why => say("answer", `${why} so I won't show a return worked out from it. Your brokerage app's performance page has its own figure.`, { reason: "perf_unchecked" });
+        if (!Number.isSafeInteger(a.equity_cents) || !Number.isSafeInteger(a.last_equity_cents)) return NO(`I can't read the current value and last close of ${where} right now,`);
+        const h = await readOr("portfolio_history", { account: a.id, from: shift(per.from, -10) });
+        if (!h || !Array.isArray(h.value) || !h.value.length) return ask("history_unreadable", "I can't read your account's daily values right now, so I won't guess at a return. Ask again in a moment.");
+        const pts = h.value.filter(x => Number.isSafeInteger(x.equity_cents));
+        // The history must agree with the account's own last close before any of it is used.
+        if (!pts.slice(-2).some(x => Math.abs(x.equity_cents - a.last_equity_cents) <= 100)) return NO(`The daily values of ${where} don't match its own last close (${money(pts.length ? pts[pts.length - 1].equity_cents : 0)} against ${money(a.last_equity_cents)}),`);
+        const before = pts.filter(x => x.date < per.from && x.equity_cents > 0);
+        let start = !per.since && before.length ? before[before.length - 1] : pts.find(x => x.date >= (per.since ? "0000" : per.from) && x.equity_cents > 0);
+        if (!start) return say("answer", `${where} had no money in it over that period, so there's no return to show. From ${h.source}'s daily values, as of ${hhmm(h.as_of)}.`, { reason: "perf_empty" });
+        const opened = !per.since && !before.length;
+        const f = await readOr("cash_flows", { account: a.id, from: shift(start.date, 1) });
+        if (!f || !Array.isArray(f.value)) return ask("flows_unreadable", "I can't read the money moved in and out of your account right now, so I won't guess at a return. Ask again in a moment.");
+        if ((f.share_moves || []).some(x => x.date > start.date)) return NO(`Shares were moved in or out of ${where} by transfer during that period (${f.share_moves.filter(x => x.date > start.date).map(x => md(x.date)).join(", ")}), and a transfer of shares has no cash amount to take out,`);
+        if (f.truncated) return NO(`${where} has more transfers in that period than I can read at once,`);
+        const flows = f.value.filter(x => x.date > start.date && x.date <= today), net = flows.reduce((s0, x) => s0 + x.cents, 0);
+        const D = Math.max(1, dnum(today) - dnum(start.date)), weighted = flows.reduce((s0, x) => s0 + x.cents * (D - (dnum(x.date) - dnum(start.date))) / D, 0);
+        const E0 = start.equity_cents, E1 = a.equity_cents, gain = E1 - E0 - net, denom = E0 + weighted;
+        // Missing history is never read as "the account was empty": a start later than asked is said as the first day a
+        // value could be read.
+        const label = per.since ? `Since ${fullDate(start.date)}, the first day its daily values show money in it` : opened ? `Since ${fullDate(start.date)}, the first day with a value I can read for this period` : per.label;
+        let text = `${label}, ${where} ${gain >= 0 ? "gained" : "lost"} ${money(Math.abs(gain))}${denom > 0 ? `, ${pct1(gain / denom)}` : ""}. It was worth ${money(E0)} at the close on ${fullDate(start.date)} and is worth ${money(E1)} now.`;
+        if (flows.length) text += ` The ${money(Math.abs(net))} you ${net >= 0 ? "put in" : "took out"} (net, ${flows.length} transfer${flows.length === 1 ? "" : "s"}) isn't counted as ${net >= 0 ? "gain" : "loss"}, and the percent is money-weighted (Modified Dietz), so it counts when the money moved.`;
+        else text += " No money moved in or out, so that's the simple change.";
+        text += ` From ${h.source}'s daily values (checked against its last close) and transfers, as of ${hhmm(a && accts.as_of ? accts.as_of : h.as_of)}.`;
+        if (bench) {
+          const b = await readOr("bars", { symbol: "SPY", from: shift(start.date, -10) });
+          const base = b && Array.isArray(b.value) ? b.value.filter(x => x.date <= start.date).pop() : null, last = b && Array.isArray(b.value) ? b.value[b.value.length - 1] : null;
+          if (!base || !last || last.date <= base.date) text += " I can't read SPY's prices for the same days right now, so there's no S&P 500 comparison.";
+          else text += ` Over the same days SPY, an S&P 500 fund, returned ${pct1(last.close_cents / base.close_cents - 1)} with dividends counted (${b.source}, ${fullDate(base.date)} close to ${fullDate(last.date)} close).${flows.length ? " The two aren't measured the same way: yours counts when your money moved, SPY's doesn't." : ""}`;
+        }
+        return say("answer", text, { reason: "performance", gain_cents: gain });
       }
 
       async function gainOn(query) {

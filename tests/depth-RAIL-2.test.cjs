@@ -384,3 +384,17 @@ test('[S31] dividends from the account activities: paged, canceled dropped, with
   const d=await ad.dividends('2026-01-01');assert.equal(JSON.stringify(d.value.map(x=>x.cents)),'[100]');
 });
 
+// Performance (megadoc G02, G14): the account's equity now and its close before the period, flows taken out, a
+// money-weighted percent, SPY over the same days. The history is used only when it matches the account's own last close.
+const PERF={history:[['2025-12-30',2940],['2025-12-31',2950],['2026-03-02',3300],['2026-10-08',3480],['2026-10-09',3500]],equity_cents:357345,last_equity_cents:350000,activities:[{id:'c1',activity_type:'CSD',date:'2026-03-01',net_amount:'500.00',status:'executed'}],bars:{SPY:[['2025-12-30',588],['2025-12-31',590],['2026-10-09',650]]}};
+test('[S32] performance: deposits taken out, money-weighted percent, SPY over the same days; unmatched history, a share transfer or a failed read show no number; nothing placed',async()=>{
+  const w=await world({mock:PERF});
+  const r=await w.s.start('compare my portfolio to the S&P');
+  assert.equal(r.text,'This year (Jan 1 to Oct 12), your Alpaca account gained $123.45, +3.7%. It was worth $2,950.00 at the close on Dec 31, 2025 and is worth $3,573.45 now. The $500.00 you put in (net, 1 transfer) isn\'t counted as gain, and the percent is money-weighted (Modified Dietz), so it counts when the money moved. From Alpaca mock server\'s daily values (checked against its last close) and transfers, as of 14:00 UTC. Over the same days SPY, an S&P 500 fund, returned +10.2% with dividends counted (Alpaca mock server market data, Dec 31, 2025 close to Oct 9, 2026 close). The two aren\'t measured the same way: yours counts when your money moved, SPY\'s doesn\'t.');
+  assert.match(w.m.state.requests.find(q=>q.path==='/v2/stocks/SPY/bars').query,/adjustment=all/);
+  assert.equal(posts(w.m).length,0);
+  const off=await (await world({mock:Object.assign({},PERF,{last_equity_cents:340000})})).s.start('what is my ytd return');assert.equal(off.reason,'perf_unchecked');assert.match(off.text,/don't match its own last close \(\$3,500\.00 against \$3,400\.00\)/);assert.doesNotMatch(off.text,/gained|lost|%/);
+  const moved=await (await world({mock:Object.assign({},PERF,{activities:PERF.activities.concat([{id:'s1',activity_type:'ACATS',date:'2026-05-01',net_amount:'0',status:'executed'}])})})).s.start('am I beating the market');assert.equal(moved.reason,'perf_unchecked');assert.match(moved.text,/^Shares were moved in or out of your Alpaca account by transfer during that period \(May 1\)/);
+  const w3=await world({mock:PERF});w3.m.fault('history_down');const down=await w3.s.start('how are my investments doing this year');assert.equal(down.reason,'history_unreadable');assert.doesNotMatch(down.text,/\$\d/);
+});
+

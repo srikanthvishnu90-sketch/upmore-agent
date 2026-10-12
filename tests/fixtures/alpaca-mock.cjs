@@ -23,6 +23,9 @@ function start(opts) {
     // Non-trade activities (Trading API GET /v2/account/activities/{type}; fields per alpaca-py NonTradeActivity): id,
     // activity_type, date, net_amount (string), description, status, symbol, qty, per_share_amount. refuse_types answer 422.
     activities: (o.activities || []).slice(), refuse_types: (o.refuse_types || []).slice(),
+    // Performance reads: the account's equity (GET /v2/account "equity"), its daily history ([["YYYY-MM-DD", dollars]],
+    // served as alpaca-py's PortfolioHistory: timestamp[] in seconds, equity[]), and daily bars per symbol for the data API.
+    equity_cents: o.equity_cents, last_equity_cents: o.last_equity_cents, history: (o.history || []).slice(), bars: Object.assign({}, o.bars || {}),
     orders: [], requests: [], tokens: Object.assign({}, o.tokens || {}), faults: { drop_next_create_response: false, fail_next_create: null, partial_next: null, reject_next: null, cancel_pending: false },
   };
   for (const [sym, q] of Object.entries(o.quotes || { VOO: [51200, 51210], VT: [11800, 11810], NVDA: [10600, 10610], TSLA: [25000, 25010], AAPL: [22000, 22010] })) st.quotes[sym] = { bid: q[0], ask: q[1], t: st.now() - 30000 };
@@ -30,7 +33,7 @@ function start(opts) {
   // (Broker API); an OAuth Bearer token reaches exactly one account under /v2 (Trading API). The default account keeps
   // its fields on st so single-account tests read st.orders and st.positions as before.
   const accts = { [st.account]: st };
-  for (const [id, a] of Object.entries(o.accounts || {})) accts[id] = { account: id, activities: (a.activities || []).slice(), buying_power_cents: a.buying_power_cents !== undefined ? a.buying_power_cents : 1000000, positions: Object.assign({}, a.positions || {}), orders: [] };
+  for (const [id, a] of Object.entries(o.accounts || {})) accts[id] = { account: id, activities: (a.activities || []).slice(), history: (a.history || []).slice(), equity_cents: a.equity_cents, last_equity_cents: a.last_equity_cents, buying_power_cents: a.buying_power_cents !== undefined ? a.buying_power_cents : 1000000, positions: Object.assign({}, a.positions || {}), orders: [] };
   let ac = st;
   const fillAll = () => { for (const a of Object.values(accts)) { ac = a; for (const x of a.orders) fillOne(x); } ac = st; };
   const str = c => `${Math.floor(c / 100)}.${String(c % 100).padStart(2, "0")}`;
@@ -105,6 +108,10 @@ function start(opts) {
       // only when status is not asked for, as Alpaca's reference describes the filter.
       if (req.method === "GET" && path === "/v2/assets") { const want = url.searchParams.get("status"); return send(res, 200, Object.entries(st.assets).filter(([, a]) => !want || (a.status || "active") === want).map(([s, a]) => ({ id: "asset-" + s, class: "us_equity", exchange: "NASDAQ", symbol: s, name: a.name, status: a.status || "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }))); }
       if (req.method === "GET" && (m = /^\/v[12]\/assets\/([^/]+)$/.exec(path))) { const a = st.assets[decodeURIComponent(m[1])]; return a ? send(res, 200, { id: "asset-" + m[1], class: "us_equity", exchange: "ARCA", symbol: decodeURIComponent(m[1]), name: a.name, status: "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }) : send(res, 404, { message: "asset not found" }); }
+      if (req.method === "GET" && (m = /^\/v2\/stocks\/([^/]+)\/bars$/.exec(path))) {
+        const from = String(url.searchParams.get("start") || "").slice(0, 10), list = (st.bars[decodeURIComponent(m[1])] || []).filter(([d]) => !from || d >= from);
+        return send(res, 200, { bars: list.map(([d, c]) => ({ t: `${d}T04:00:00Z`, o: c, h: c, l: c, c, v: 1000, n: 10, vw: c })), symbol: decodeURIComponent(m[1]), next_page_token: null });
+      }
       if (req.method === "GET" && (m = /^\/v2\/stocks\/([^/]+)\/(quotes|trades)\/latest$/.exec(path))) { const sym = decodeURIComponent(m[1]), q = st.quotes[sym]; if (!q) return send(res, 404, { message: "not found" }); return m[2] === "quotes" ? send(res, 200, { symbol: sym, quote: { t: new Date(q.t).toISOString(), ax: "V", ap: q.ask / 100, as: 1, bx: "V", bp: q.bid / 100, bs: 1, c: ["R"], z: "B" } }) : send(res, 200, { symbol: sym, trade: { t: new Date(q.t).toISOString(), x: "V", p: q.ask / 100, s: 10, c: ["@"], i: 1, z: "B" } }); }
       let sub, trading = false;
       if ((m = /^\/v1\/trading\/accounts\/([^/]+)(\/.*)$/.exec(path))) {
@@ -116,6 +123,11 @@ function start(opts) {
         ac = accts[tokenAccount]; sub = path.slice(3); trading = true;
       } else return send(res, 404, { message: "not found" });
       st.requests[st.requests.length - 1].account = ac.account;
+      if (req.method === "GET" && sub === "/account/portfolio/history") {
+        if (st.faults.history_down) return send(res, 500, { message: "internal error" });
+        const from = String(url.searchParams.get("start") || "").slice(0, 10), pts = (ac.history || []).filter(([d]) => !from || d >= from);
+        return send(res, 200, { timestamp: pts.map(([d]) => Date.parse(`${d}T04:00:00Z`) / 1000), equity: pts.map(([, v]) => v), profit_loss: pts.map(() => 0), profit_loss_pct: pts.map(() => 0), base_value: pts.length ? pts[0][1] : 0, timeframe: "1D" });
+      }
       if (req.method === "GET" && (m = /^\/account\/activities\/([A-Z]+)$/.exec(sub))) {
         const type = m[1]; if ((ac.refuse_types || st.refuse_types).includes(type)) return send(res, 422, { code: 42210000, message: `invalid activity type ${type}` });
         const after = url.searchParams.get("after"), size = Math.min(Number(url.searchParams.get("page_size") || 100), 100), token = url.searchParams.get("page_token");
@@ -123,7 +135,7 @@ function start(opts) {
         if (token) { const i = list.findIndex(a => a.id === token); list = i >= 0 ? list.slice(i + 1) : []; }
         return send(res, 200, list.slice(0, size));
       }
-      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: ac.status || "ACTIVE", trading_blocked: false, account_blocked: false, trade_suspended_by_user: false, ...(ac.flags || {}), currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents) });
+      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: ac.status || "ACTIVE", trading_blocked: false, account_blocked: false, trade_suspended_by_user: false, ...(ac.flags || {}), currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents), ...(ac.equity_cents !== undefined ? { equity: str(ac.equity_cents) } : {}), ...(ac.last_equity_cents !== undefined ? { last_equity: str(ac.last_equity_cents) } : {}) });
       if (req.method === "GET" && sub === "/positions") return send(res, 200, Object.entries(ac.positions).map(([s, q]) => pos(s, q)));
       if (req.method === "GET" && (m = /^\/positions\/([^/]+)$/.exec(sub))) { const s = decodeURIComponent(m[1]); return ac.positions[s] ? send(res, 200, pos(s, ac.positions[s])) : send(res, 404, { code: 40410000, message: "position does not exist" }); }
       if (req.method === "POST" && sub === "/orders") {

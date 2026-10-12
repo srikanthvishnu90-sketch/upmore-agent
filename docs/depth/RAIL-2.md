@@ -105,4 +105,8 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S31 | Dividends paged | 105 dividends read in two pages | `S31` in tests/depth-RAIL-2.test.cjs | only the first page is read, so the 101st dividend on is missing | proven |
 | S31 | A refused kind is said | DIVWH refused is said as not counted | `S31` in tests/depth-RAIL-2.test.cjs | a refused withholding kind is swallowed silently, as if it were $0.00 | proven |
 | S31 | Canceled dividends dropped | a canceled $5.00 is not counted | `S31` in tests/depth-RAIL-2.test.cjs | canceled activities are counted | proven |
+| S32 | Deposits are not gain | a $500 deposit leaves a $123.45 gain | `S32` in tests/depth-RAIL-2.test.cjs | money put in is counted as gain | proven |
+| S32 | History checked against the last close | history $3,500 against last close $3,400 shows no number | `S32` in tests/depth-RAIL-2.test.cjs | the history is used without the check, so a wrong series becomes a return | proven |
+| S32 | A share transfer stops the return | an ACATS in the period shows no number | `S32` in tests/depth-RAIL-2.test.cjs | shares moved in by transfer are counted as gain | proven |
+| S32 | Money-weighted percent | the March deposit weighs by its time in the account: +3.7% | `S32` in tests/depth-RAIL-2.test.cjs | every flow counts as if in for the whole period | proven |
 <!-- results:end -->

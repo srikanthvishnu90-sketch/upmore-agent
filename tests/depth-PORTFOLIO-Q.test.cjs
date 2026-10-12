@@ -207,4 +207,13 @@ test("[S28] the ways people ask: a savings 'dividend' is the bank's interest, re
   const d = await dw(DIVS).s.start("reinvest my dividends"); assert.equal(d.outcome, "not_built"); assert.match(d.text, /^Reinvesting dividends isn't built in Upmore yet, so nothing was set up\./);
   assert.notEqual(T.parse("best dividend stocks to buy").action, "dividends");
 });
+test("[S29] performance asks: the ways people ask reach it; a period not ending today is said, never worked out; missing history is never 'the account was empty'", async () => {
+  for (const t of ["how are my investments doing this year", "what's my ytd return", "compare my portfolio to the S&P", "am I beating the market", "how did my portfolio do this year", "portfolio return this month", "how much have I made investing since I started"]) assert.equal(T.parse(t).action, "performance", t);
+  for (const t of ["how is my portfolio doing", "should I buy SPY to beat the market", "what do I own"]) assert.notEqual(T.parse(t).action, "performance", t);
+  assert.equal(await say(world(ROWS), "how did my portfolio do last year"), "I can work out a return only for a period that ends today, so not that one. Ask \"how did my portfolio do this year\", \"this month\", \"over the last 12 months\" or \"since I started\".");
+  const w = world(ROWS);
+  w.conn.read = ((base) => async (k, p) => k === "brokerage_accounts" ? { value: [{ id: "a", name: "Mock brokerage", equity_cents: 357345, last_equity_cents: 350000 }], source: "Mock Broker", as_of: w.now } : k === "portfolio_history" ? { value: [{ date: "2026-10-08", equity_cents: 348000 }, { date: "2026-10-09", equity_cents: 350000 }], source: "Mock Broker", as_of: w.now } : k === "cash_flows" ? { value: [], share_moves: [], source: "Mock Broker", as_of: w.now } : base(k, p))(w.conn.read);
+  w.s = T.create({ registry, connectors: w.conn, clock: () => w.now, instruments, partners: { broker_dealer: { live: true } }, compliance: C });
+  assert.match(await say(w, "portfolio return this month"), /^Since Oct 8, 2026, the first day with a value I can read for this period, Mock brokerage gained \$93\.45, \+2\.7%\./);
+});
 

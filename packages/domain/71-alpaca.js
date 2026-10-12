@@ -19,6 +19,11 @@
               DIVWH, DIVFEE withheld (negative net_amount). NonTradeActivity fields per Alpaca's SDK (alpaca-py 0.44.0,
               alpaca/trading/models.py): id, activity_type, date, net_amount, description, status, symbol, qty,
               per_share_amount; paged by page_token (the last id) at page_size 100, direction desc (account-activities.md)
+       GET    /v2/account/activities/{CSD,CSW,JNLC,ACATC,ACATS,JNLS}  money and shares moved in or out (performance)
+       GET    /v2/account/portfolio/history?timeframe=1D&start=  daily equity (timestamp[], equity[]; alpaca-py
+              PortfolioHistory). Alpaca's reference warns it can be wrong; never shown unless it agrees with GET /v2/account
+       GET    {data}/v2/stocks/{symbol}/bars?timeframe=1Day&adjustment=all&feed=iex  daily closes, dividends and splits
+              adjusted (market-data-api/stock-pricing-data/historical.md)
      "Authorization: Bearer <token>" with the person's own OAuth token, read from the Vault for that person on every request
      (BrokerAccounts, 73-broker-accounts.js); nothing here reads the environment, logs a token or an Authorization header.
      Only api.alpaca.markets and data.alpaca.markets are accepted: the paper hosts and the Broker API are refused, so this
@@ -179,7 +184,7 @@
         // orders or transfers; trade_suspended_by_user: the account's own no-trading setting) or a status other than
         // ACTIVE. Said before a card is drawn, never found out from a refused order (megadoc F15).
         const restriction = [j.account_blocked === true && "blocked for trades and transfers", j.trading_blocked === true && j.account_blocked !== true && "blocked from trading", j.trade_suspended_by_user === true && "set not to trade (the account's own setting)", j.status && j.status !== "ACTIVE" && `not active (status ${String(j.status).slice(0, 40)})`].filter(Boolean).join(" and ") || null;
-        return { value: { id: c.account_id, status: j.status || null, restriction, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
+        return { value: { id: c.account_id, status: j.status || null, restriction, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), equity_cents: strToCents(j.equity, "round"), last_equity_cents: strToCents(j.last_equity, "round"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
       async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
       // The broker's list of active US equities, for a buy named by company ("buy $3 of palantir"). One request per adapter
@@ -191,11 +196,10 @@
         assetList = { value: (Array.isArray(r.json) ? r.json : []).map(j => ({ symbol: j.symbol, name: j.name || j.symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null })), source, as_of: clock() };
         return assetList;
       }
-      // Dividends paid into the account on or after `from` (YYYY-MM-DD), each type read on its own, newest first, at most 10
-      // pages of 100 a type. A withholding type the broker refuses is listed in `unread`, never counted as $0.00; the
-      // main DIV read failing throws, so no answer is built without it. Canceled rows are dropped.
-      const DIV_PAID = ["DIV", "DIVCGL", "DIVCGS", "DIVROC", "DIVTXEX"], DIV_HELD = ["DIVNRA", "DIVFT", "DIVTW", "DIVWH", "DIVFEE"];
-      async function dividends(from) {
+      // Non-trade activities of the given kinds on or after `from` (YYYY-MM-DD), each kind read on its own, newest first, at
+      // most 10 pages of 100 a kind. A kind listed in `optional` that the broker refuses goes in `unread`, never counted as
+      // $0.00; any other kind failing throws, so no answer is built without it. Canceled rows are dropped.
+      async function activityRows(types, optional, from) {
         const after = from ? new Date(Date.parse(`${from}T00:00:00Z`) - 86400000).toISOString().slice(0, 10) : null, rows = [], unread = [];
         let truncated = false;
         const readType = async type => {
@@ -206,18 +210,52 @@
             const list = Array.isArray(r.json) ? r.json : [];
             for (const j of list) {
               const date = String(j.date || "").slice(0, 10), cents = strToCents(j.net_amount, "round");
-              if (String(j.status || "").toLowerCase() === "canceled" || !Number.isSafeInteger(cents) || (from && date < from)) continue;
-              rows.push({ id: j.id || null, type: j.activity_type || type, date, cents, symbol: j.symbol || null, qty: num(j.qty), per_share_cents: strToCents(j.per_share_amount, "round"), description: j.description || "", withheld: DIV_HELD.includes(j.activity_type || type) });
+              if (String(j.status || "").toLowerCase() === "canceled" || (from && date < from)) continue;
+              rows.push({ id: j.id || null, type: j.activity_type || type, date, cents: Number.isSafeInteger(cents) ? cents : null, symbol: j.symbol || null, qty: num(j.qty), per_share_cents: strToCents(j.per_share_amount, "round"), description: j.description || "" });
             }
             if (list.length < 100) return;
             token = list[list.length - 1].id;
             if (page === 9) truncated = true;
           }
         };
-        await readType("DIV");
-        for (const type of DIV_PAID.slice(1).concat(DIV_HELD)) { try { await readType(type); } catch (e) { if (e && e.kind === "auth") throw e; unread.push(type); } }
+        for (const type of types) { try { await readType(type); } catch (e) { if (!optional.includes(type) || (e && e.kind === "auth")) throw e; unread.push(type); } }
         const seen = new Set();
-        return { value: rows.filter(x => !x.id || (seen.has(x.id) ? false : seen.add(x.id))).sort((a, b) => b.date.localeCompare(a.date)), unread, truncated, from: from || null, source, as_of: clock() };
+        return { rows: rows.filter(x => !x.id || (seen.has(x.id) ? false : seen.add(x.id))).sort((a, b) => b.date.localeCompare(a.date)), unread, truncated };
+      }
+      // Dividends paid into the account on or after `from`: DIV must read; the other paid kinds and the withholding kinds
+      // are optional (a refused one is said as not counted).
+      const DIV_PAID = ["DIV", "DIVCGL", "DIVCGS", "DIVROC", "DIVTXEX"], DIV_HELD = ["DIVNRA", "DIVFT", "DIVTW", "DIVWH", "DIVFEE"];
+      async function dividends(from) {
+        const a = await activityRows(DIV_PAID.concat(DIV_HELD), DIV_PAID.slice(1).concat(DIV_HELD), from);
+        return { value: a.rows.filter(x => Number.isSafeInteger(x.cents)).map(x => Object.assign(x, { withheld: DIV_HELD.includes(x.type) })), unread: a.unread, truncated: a.truncated, from: from || null, source, as_of: clock() };
+      }
+      // Money and shares moved in or out on or after `from` (performance, megadoc G02): cash deposits (CSD), withdrawals
+      // (CSW), cash journals (JNLC) and cash transfers (ACATC) are flows; a securities transfer (ACATS) or a stock journal
+      // (JNLS) moves shares without a cash amount, so it is flagged and no return is worked out over it. All must read.
+      async function cashFlows(from) {
+        const a = await activityRows(["CSD", "CSW", "JNLC", "ACATC", "ACATS", "JNLS"], [], from);
+        return { value: a.rows.filter(x => ["CSD", "CSW", "JNLC", "ACATC"].includes(x.type) && Number.isSafeInteger(x.cents)), share_moves: a.rows.filter(x => ["ACATS", "JNLS"].includes(x.type)), truncated: a.truncated, source, as_of: clock() };
+      }
+      // The account's daily equity from `from` to today (GET /v2/account/portfolio/history, timeframe 1D). Alpaca's own
+      // reference warns this endpoint can return wrong equity and profit/loss, so the flow never shows a figure from it
+      // unless one of its last points agrees with the account's own last-close equity (GET /v2/account last_equity).
+      async function portfolioHistory(from) {
+        const r = await call("GET", P(`/account/portfolio/history?timeframe=1D&start=${encodeURIComponent(`${from}T00:00:00Z`)}`), null, "portfolio history");
+        const j = r.json || {}, ts = Array.isArray(j.timestamp) ? j.timestamp : [], eq = Array.isArray(j.equity) ? j.equity : [];
+        const points = ts.map((t, i) => ({ date: new Date(Number(t) * 1000).toISOString().slice(0, 10), equity_cents: eq[i] === null || eq[i] === undefined ? null : strToCents(String(eq[i]), "round") })).filter(x => Number.isSafeInteger(x.equity_cents));
+        return { value: points, source, as_of: clock() };
+      }
+      // Daily closes for a symbol from `from`, split- and dividend-adjusted (adjustment=all), IEX feed, paged.
+      async function bars(symbol, from) {
+        const out = []; let token = null;
+        for (let page = 0; page < 5; page++) {
+          const qs = [`timeframe=1Day`, `start=${encodeURIComponent(`${from}T00:00:00Z`)}`, `adjustment=all`, `feed=iex`, `limit=1000`].concat(token ? [`page_token=${encodeURIComponent(token)}`] : []).join("&");
+          const r = await call("GET", `${dataBase}/v2/stocks/${encodeURIComponent(symbol)}/bars?${qs}`, null, "bars");
+          const j = r.json || {};
+          for (const b of Array.isArray(j.bars) ? j.bars : []) { const c = strToCents(String(b.c), "round"); if (Number.isSafeInteger(c) && c > 0) out.push({ date: String(b.t || "").slice(0, 10), close_cents: c }); }
+          token = j.next_page_token || null; if (!token) break;
+        }
+        return { value: out.sort((a, b) => a.date.localeCompare(b.date)), source: mock ? "Alpaca mock server market data" : "Alpaca market data (IEX feed)", as_of: clock() };
       }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
@@ -279,7 +317,7 @@
       // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
       // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
       return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
-        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, dividends, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, dividends, cashFlows, portfolioHistory, bars, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -295,12 +333,15 @@
         // Alpaca charges no commission it can quote here, but passes the SEC and FINRA fees on every sale through to the
         // account, rounded up to the cent on the day's total (docs.alpaca.markets/docs/regulatory-fees, checked 2026-10-12):
         // a sell card says so instead of "No fee." (sale_fees).
-        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: !a.value.restriction, restriction: a.value.restriction || null }], source: a.source, as_of: a.as_of }; }
+        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: !a.value.restriction, restriction: a.value.restriction || null, equity_cents: a.value.equity_cents, last_equity_cents: a.value.last_equity_cents }], source: a.source, as_of: a.as_of }; }
         if (kind === "quote") return adapter.quote(q.symbol, q.side || "buy");
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);
         if (kind === "holdings") return adapter.positions();
         if (kind === "dividends") return adapter.dividends(q.from || null);
+        if (kind === "cash_flows") return adapter.cashFlows(q.from);
+        if (kind === "portfolio_history") return adapter.portfolioHistory(q.from);
+        if (kind === "bars") return adapter.bars(q.symbol, q.from);
         if (kind === "asset") { const a = await adapter.asset(q.symbol); return a ? { value: a, source: adapter.source, as_of: now() } : null; }
         if (kind === "assets") return adapter.assets();
         if (kind === "order") { const r = await adapter.getOrder(q.order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }

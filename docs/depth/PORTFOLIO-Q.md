@@ -54,4 +54,5 @@ first "said once" check was a substring match that dropped a source ("Mock Broke
 | S26 | Last year is last year | VOO dividends last year is 2025 | `S26` in tests/depth-PORTFOLIO-Q.test.cjs | every period is read as this year | proven |
 | S27 | Unreadable is said | a failed read gives no number | `S27` in tests/depth-PORTFOLIO-Q.test.cjs | a failed dividends read is answered as none paid | proven |
 | S28 | A period is never a ticker | in 2026 has no ticker | `S28` in tests/depth-PORTFOLIO-Q.test.cjs | the parse's general query fills in when no ticker was named | proven (also fails S26) |
+| S29 | Missing history is not an empty account | no point before Oct 1 says the first day with a value | `S29` in tests/depth-PORTFOLIO-Q.test.cjs | a start later than asked is labeled as the whole period | proven |
 <!-- results:end -->

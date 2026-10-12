@@ -1032,7 +1032,7 @@
    "typed": "compare my portfolio to the S&P",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "I can't read the current value and last close of your Alpaca account (****4417) right now, so I won't show a return worked out from it. Your brokerage app's performance page has its own figure.",
    "executed": false,
    "mock_orders": 0
   },

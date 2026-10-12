@@ -1,9 +1,9 @@
 {
  "capability": "PORTFOLIO-Q",
- "run_at": "2026-10-12T20:21:46.699Z",
+ "run_at": "2026-10-12T20:33:29.024Z",
  "baseline_all_green": true,
- "sub_capabilities": 28,
- "proven": 28,
+ "sub_capabilities": 29,
+ "proven": 29,
  "problems": [],
  "rows": [
   {
@@ -337,6 +337,17 @@
    "collateral": [
     "S26"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S29",
+   "id": "D29",
+   "title": "Missing history is not an empty account",
+   "defect": "a start later than asked is labeled as the whole period",
+   "test": "no point before Oct 1 says the first day with a value",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

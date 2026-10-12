@@ -34,6 +34,9 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   code never does (envelope autonomy stays off; every send asks), and said "weekly on day 5". Now "every Friday ... I
   ask for your yes before each send." D09 plants the old promise back.
 
+- S06 (fixed after merge): every-other-week allowances counted from 1970, so the first send could come 1 or 13 days
+  after it was set; they count from the allowance's own first day now (D06b).
+
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -43,6 +46,7 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S04 | Round-ups on posted purchases | a pending $3.10 is not rounded up | `S04` in tests/depth-MONEY-PLANS.test.cjs | pending charges are rounded up, then rounded again when they post (the bug found building this packet) | proven |
 | S05 | No $0.00 overdraft move | empty savings asks for nothing | `S05` in tests/depth-MONEY-PLANS.test.cjs | the empty-savings stop uses < 0, so a $0.00 transfer is put up for confirmation (the bug found building this packet) | proven |
 | S06 | Short months still get the allowance | the 31st goes on Nov 30; the 29th on Feb 28, 2027 | `S06` in tests/depth-MONEY-PLANS.test.cjs | the day is compared as written, so a 31st allowance skips five months a year (the bug found building this packet) | proven |
+| S06 | Every other week from its own start | set Saturday Oct 10 for Fridays: Oct 16 and Oct 30, not Oct 9 or Oct 23 | `S06` in tests/depth-MONEY-PLANS.test.cjs | the two-week cycle is counted from 1970 | proven |
 | S07 | The goal's monthly amounts get there | $33.34 over 3 months is $11.12 a month | `S07` in tests/depth-MONEY-PLANS.test.cjs | the monthly amount is rounded to nearest, a cent short of the share (the bug found building this packet) | proven |
 | S08 | A gift asks how much | no amount asks "How much?" | `S08` in tests/depth-MONEY-PLANS.test.cjs | the gift has no amount guard, so it says "$NaN.NaN" (the bug found building this packet) | proven |
 | S09 | An allowance waits for a yes | "I ask for your yes before each send." | `S09` in tests/depth-MONEY-PLANS.test.cjs | the allowance promises to run inside an envelope with only a receipt, which shipped code never does (envelope autonomy is off; the bug found building this packet) | proven |

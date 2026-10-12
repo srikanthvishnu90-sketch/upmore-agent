@@ -36,10 +36,14 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   as-of. Each now carries the bureau and the report date. D08.
 - S20 (found here): an empty report said "Oldest ?, average age ?.". Now "0 open, 0 closed; no opening dates reported." D20.
 
+- S01, S10 (fixed after merge): "up 0 since" is "unchanged since" (D01b); 29.5 percent is said 29.5, never "30"
+  next to "under 30 percent helps" (whole percents otherwise, D10b); two cards over half their limit are counted (D10c).
+
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
 | S01 | Same bureau, same model | Experian 705 is down 7 from Experian 712, not 15 from Equifax | `S01` in tests/depth-CREDIT.test.cjs | the previous row is whichever came last, any bureau or model (the bug found building this packet) | proven |
+| S01 | Unchanged is unchanged | the same score twice says unchanged since | `S01` in tests/depth-CREDIT.test.cjs | a zero change reads "up 0" | proven |
 | S02 | Collections are counted | "1 public record and 2 collections" | `S02` in tests/depth-CREDIT.test.cjs | the public-record count is used for the collections too (the bug found building this packet said only "or collections") | proven |
 | S03 | Two calendar years | 2024-01-15 falls off 2026-01-15 | `S03` in tests/depth-CREDIT.test.cjs | 730 days are added, a day early across Feb 29 (the bug found building this packet) | proven |
 | S04 | Last four digits only | a pasted card number reads "account ending 7710" | `S04` in tests/depth-CREDIT.test.cjs | the account field is printed as given, whole card number included (the bug found building this packet) | proven |
@@ -49,6 +53,8 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S08 | Factors cite the report | source Experian, as of 2026-10-10 | `S08` in tests/depth-CREDIT.test.cjs | the explanation is returned without its source and as-of (the bug found building this packet) | proven |
 | S09 | Band edges | 670 is good, 800 exceptional | `S09` in tests/depth-CREDIT.test.cjs | the band floor is exclusive | proven |
 | S10 | Open cards only | $2,120.00 of $5,000.00 | `S10` in tests/depth-CREDIT.test.cjs | closed cards are counted in utilization | proven (also fails S08, S15, S19) |
+| S10 | No rounding across the line | 29.5 percent is said 29.5, not 30 | `S10` in tests/depth-CREDIT.test.cjs | the share is always rounded to a whole percent | proven |
+| S10 | Two cards are two | two cards over half their limit are counted | `S10` in tests/depth-CREDIT.test.cjs | any number of such cards reads "One card" | proven |
 | S11 | Only cards over the target | a card at exactly 30 percent gets no move | `S11` in tests/depth-CREDIT.test.cjs | a card at the target gets a $0.00 pay-down | proven |
 | S12 | Breakeven rounded up | $6,000.00 / $185.41 is 33 months | `S12` in tests/depth-CREDIT.test.cjs | the breakeven is rounded to nearest (32 months, before it has paid back) | proven |
 | S13 | Total cost decides | a 30-year quote at 6.00 percent is not worth it | `S13` in tests/depth-CREDIT.test.cjs | the total-cost check is dropped, so a longer term looks like a saving | proven |

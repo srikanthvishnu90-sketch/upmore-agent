@@ -38,6 +38,8 @@ test("[S01] a score is compared with the same bureau and model: Equifax VantageS
   const two = C.scoreMonitor([{ on: "2026-10-01", score: 720, bureau: "Equifax", model: "VantageScore 3.0" }, { on: "2026-10-02", score: 705, bureau: "Experian", model: "FICO 8" }]);
   assert.equal(two.change_since_last, null);
   assert.equal(two.text, "705 (good) as of 2026-10-02 from Experian, FICO 8.");
+  // An unchanged score says so, never "up 0" (merge review of this packet's notes).
+  assert.equal(C.scoreMonitor([{ on: "2026-09-01", score: 705, bureau: "Experian", model: "FICO 8" }, { on: "2026-10-02", score: 705, bureau: "Experian", model: "FICO 8" }]).text, "705 (good) as of 2026-10-02 from Experian, FICO 8, unchanged since 2026-09-01.");
 });
 
 test("[S02] the derogatory factor counts collections too: one record and two collections is not \"0 ... collections\"", () => {
@@ -101,6 +103,13 @@ test("[S10] utilization is open cards only: a closed card's limit and balance ne
   const u = C.utilization(REPORT());
   assert.deepEqual([u.balance_cents, u.limit_cents, u.bps], [212000, 500000, 4240]);
   assert.deepEqual(plain(u.per_card.map(c => [c.id, c.bps])), [["mock-c1", 3550], ["mock-c2", 7000]]);
+  // 29.5 percent is said as 29.5, not "30" (the line the person is told about is "under 30"); two cards over half their
+  // limit are two, not "one" (merge review of this packet's notes).
+  const r = REPORT(); r.accounts[0].balance_cents = 77500; r.accounts[1].balance_cents = 70000; r.accounts[0].limit_cents = 400000;
+  const w = C.walkthrough(r, []).sections.find(x => x.title === "Utilization");
+  assert.equal(w.text.split(":")[0], "29.5 percent");
+  const r2 = REPORT(); r2.accounts[0].balance_cents = 300000;
+  assert.match(C.walkthrough(r2, []).sections.find(x => x.title === "Utilization").text, / 2 cards are above half their limit/);
 });
 
 test("[S11] the utilization plan pays down only the cards over the target, before their statements close", () => {

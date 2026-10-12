@@ -224,3 +224,15 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
   into the stored attachment title; the donation log added a EUR gift into its dollar total.
 - Now: a 13-19 digit code passing the card checksum is never an order number (and appears nowhere in the parse); other
   currencies are said ("1 gift in another currency is not added in"), not added. DOCUMENTS 30/30 (D03b, D11b).
+
+## Money plans and credit wording, from those packets' notes (2026-10-12, morning)
+
+- Every-other-week allowances were counted from 1970, so the first send could come 1 or 13 days after it was set
+  (60-agent-money-plans.js); they now count from the allowance's own first day (MONEY-PLANS S06, D06b; 22/22).
+- An unchanged score said "up 0 since"; it says "unchanged since". A 29.5 percent utilization was said "30 percent"
+  next to "under 30 percent helps"; a share is still a whole percent unless rounding would carry it across the 10 or
+  30 percent line, then one decimal. "One card is above half its limit" was said when two were; it counts them
+  (61-agent-credit.js; CREDIT S01, S10; D01b, D10b, D10c; 23/23). The existing whole-percent strings are unchanged.
+- Still for the owner (not changed): shared-goal contributions are recorded before money moves; estimated-tax
+  payments are summed across years (which tax year a January payment belongs to is a design call); the transfer stop
+  line "checking has $X available" has no source or as-of because the account row carries none.

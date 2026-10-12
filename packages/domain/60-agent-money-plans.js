@@ -156,13 +156,22 @@
       a.text = `Allowance: ${money(a.amount_cents)} to ${p.name} ${when} by ${a.rail ? railName(a.rail) : "a rail you pick"}${a.max_per_month_cents ? `, never more than ${money(a.max_per_month_cents)} a month` : ""}. I ask for your yes before each send.`;
       return { allowance: a, text: a.text };
     }
+    // Every other week counts from the allowance's own first day (the first chosen weekday on or after it was set), not
+    // from 1970, so the first send is that day, then every 14 days. With no start on file it can't be placed: no send.
+    function everyOther(a, today, dow) {
+      const want = a.day != null ? a.day : 5;
+      if (dow !== want || !a.created_on) return false;
+      const startDow = new Date(dayMs(a.created_on)).getUTCDay(), first = addDays(a.created_on, (want - startDow + 7) % 7);
+      const days = Math.round((dayMs(today) - dayMs(first)) / DAY);
+      return days >= 0 && days % 14 === 0;
+    }
     function dueAllowances(list, today, sentThisMonthByAllowance) {
       const out = [];
       for (const a of list || []) {
         if (a.status !== "active") continue;
         const d = new Date(dayMs(today)), dow = d.getUTCDay(), dom = d.getUTCDate(), lastDom = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
         // A monthly day past the month's end (the 31st in November, the 29th in February 2027) goes on its last day.
-        const fires = a.cadence === "weekly" ? dow === (a.day != null ? a.day : 5) : a.cadence === "monthly" ? dom === Math.min(a.day || 1, lastDom) : dow === (a.day != null ? a.day : 5) && Math.floor(dayMs(today) / (7 * DAY)) % 2 === 0;
+        const fires = a.cadence === "weekly" ? dow === (a.day != null ? a.day : 5) : a.cadence === "monthly" ? dom === Math.min(a.day || 1, lastDom) : everyOther(a, today, dow);
         if (!fires) continue;
         const sent = (sentThisMonthByAllowance || {})[a.id] || 0;
         if (a.max_per_month_cents && sent + a.amount_cents > a.max_per_month_cents) { out.push({ allowance_id: a.id, skipped: `this month's ${money(a.max_per_month_cents)} cap would be passed` }); continue; }

@@ -35,7 +35,7 @@
       const at = days => series.filter(r => daysBetween(ymd(r.on), ymd(latest.on)) >= days).pop() || null;
       const d30 = at(30), d90 = at(90), change = prev ? latest.score - prev.score : null;
       const alert = (change != null && change <= -(o.drop_alert_points || 10)) || (prev && band(prev.score) !== band(latest.score));
-      return { latest: { score: latest.score, on: ymd(latest.on), bureau: latest.bureau || null, model: latest.model || null, band: band(latest.score) }, change_since_last: change, change_30d: d30 ? latest.score - d30.score : null, change_90d: d90 ? latest.score - d90.score : null, alert: !!alert, text: `${latest.score} (${band(latest.score)}) as of ${ymd(latest.on)}${latest.bureau ? ` from ${latest.bureau}` : ""}${latest.model ? `, ${latest.model}` : ""}${change != null ? `, ${change >= 0 ? "up" : "down"} ${Math.abs(change)} since ${ymd(prev.on)}` : ""}.${alert ? " Worth a look: that is a real move, not noise." : ""}`, source: latest.bureau || "score feed", as_of: ymd(latest.on) };
+      return { latest: { score: latest.score, on: ymd(latest.on), bureau: latest.bureau || null, model: latest.model || null, band: band(latest.score) }, change_since_last: change, change_30d: d30 ? latest.score - d30.score : null, change_90d: d90 ? latest.score - d90.score : null, alert: !!alert, text: `${latest.score} (${band(latest.score)}) as of ${ymd(latest.on)}${latest.bureau ? ` from ${latest.bureau}` : ""}${latest.model ? `, ${latest.model}` : ""}${change != null ? (change === 0 ? `, unchanged since ${ymd(prev.on)}` : `, ${change > 0 ? "up" : "down"} ${Math.abs(change)} since ${ymd(prev.on)}`) : ""}.${alert ? " Worth a look: that is a real move, not noise." : ""}`, source: latest.bureau || "score feed", as_of: ymd(latest.on) };
     }
 
     // Report helpers: utilization, ages, lates, from the snapshot's own rows.
@@ -47,7 +47,7 @@
 
     // CRDT-003: the standard reason codes explained with the user's numbers, not a generic paragraph.
     const FACTORS = {
-      high_utilization: r => { const u = utilization(r); return `You are using ${u.bps != null ? Math.round(u.bps / 100) : "?"} percent of your card limits (${money(u.balance_cents)} of ${money(u.limit_cents)}). Under 30 percent helps; under 10 percent helps most. This factor resets every statement, so it recovers fast.`; },
+      high_utilization: r => { const u = utilization(r); return `You are using ${u.bps != null ? pctOf(u.bps) : "?"} percent of your card limits (${money(u.balance_cents)} of ${money(u.limit_cents)}). Under 30 percent helps; under 10 percent helps most. This factor resets every statement, so it recovers fast.`; },
       late_payments: r => { const l = lates(r); return `${l.late30 + l.late60 + l.late90} late payment${l.late30 + l.late60 + l.late90 === 1 ? "" : "s"} on file${l.last_late_on ? `, the latest ${l.last_late_on}` : ""}. Payment history is the largest factor; a late mark fades over about two years and drops off after seven.`; },
       short_history: (r, asOf) => { const a = ages(r, asOf); return `Your oldest account is ${a.oldest_months != null ? Math.floor(a.oldest_months / 12) : "?"} years old and the average is ${a.average_months != null ? Math.round(a.average_months / 12 * 10) / 10 : "?"} years. Nothing speeds this up but time; keeping the oldest card open protects it.`; },
       many_inquiries: (r, asOf) => `${inquiries(r, asOf, 12).length} hard inquiries in the last 12 months. Each costs a few points for up to a year and leaves the report after two; several for one loan within a short window count as one.`,
@@ -58,6 +58,9 @@
     function factors(report, asOf) { return (report.factors || []).map(f => ({ code: f.code, bureau_text: f.text || null, explanation: FACTORS[f.code] ? FACTORS[f.code](report, asOf || report.as_of) : `${f.text || f.code}: the bureau did not say more, and I will not guess.`, source: report.bureau || "credit report", as_of: asOf || report.as_of || null })); }
 
     // CRDT-002: the plain-English walkthrough, with what looks off flagged (unknown accounts, closed accounts still reporting a balance, unexplained inquiries).
+    // A share in basis points, rounded to a whole percent unless rounding would carry it across the 10 or 30 percent
+    // lines people are told about: 29.5 is said "29.5", never "30" next to "under 30 percent helps".
+    const pctOf = bps => { const r = Math.round(bps / 100); const crosses = [1000, 3000].some(line => (bps < line) !== (r * 100 < line)); return crosses ? (Math.round(bps / 10) / 10).toFixed(1) : String(r); };
     function walkthrough(report, known) {
       const asOf = report.as_of, u = utilization(report), a = ages(report, asOf), l = lates(report), inq = inquiries(report, asOf, 24), open = (report.accounts || []).filter(x => x.status !== "closed"), closed = (report.accounts || []).filter(x => x.status === "closed");
       // An application list the person gave, even an empty one ("I applied for nothing"), is checked; no list assumes nothing.
@@ -67,7 +70,7 @@
       for (const i of inq) if (appsGiven && !knownApps.some(k => Math.abs(daysBetween(k.on, i.on)) <= 14 && (!k.by || String(k.by).toLowerCase() === String(i.by).toLowerCase()))) off.push({ kind: "unexplained_inquiry", on: i.on, by: i.by, text: `A hard inquiry by ${i.by} on ${i.on} matches no application you made.` });
       const sections = [
         { title: "Accounts", text: a.oldest_months != null ? `${open.length} open, ${closed.length} closed. Oldest ${Math.floor(a.oldest_months / 12)} years, average age ${(a.average_months / 12).toFixed(1)} years.` : `${open.length} open, ${closed.length} closed; no opening dates reported.` },
-        { title: "Utilization", text: u.bps != null ? `${Math.round(u.bps / 100)} percent: ${money(u.balance_cents)} across ${money(u.limit_cents)} of limits.${u.per_card.some(c => c.bps != null && c.bps > 5000) ? " One card is above half its limit, which scores worse than the same balance spread out." : ""}` : "No revolving limits reported." },
+        { title: "Utilization", text: u.bps != null ? `${pctOf(u.bps)} percent: ${money(u.balance_cents)} across ${money(u.limit_cents)} of limits.${((n) => n ? ` ${n === 1 ? "One card is" : `${n} cards are`} above half ${n === 1 ? "its" : "their"} limit, which scores worse than the same balance spread out.` : "")(u.per_card.filter(c => c.bps != null && c.bps > 5000).length)}` : "No revolving limits reported." },
         { title: "Payment history", text: l.any ? `${l.late30} thirty-day, ${l.late60} sixty-day, ${l.late90} ninety-day lates${l.last_late_on ? `; latest ${l.last_late_on}` : ""}.` : "No late payments on file." },
         { title: "Inquiries", text: `${inquiries(report, asOf, 12).length} hard in the last 12 months, ${inq.length} in 24.` },
         { title: "Public records and collections", text: `${(report.public_records || []).length} public records, ${(report.collections || []).length} collections.` }
@@ -94,7 +97,7 @@
       const a = ages(report, report.as_of), u = utilization(report), n = a.count;
       const newAvg = n != null && a.average_months != null ? divRound(a.average_months * n, n + 1) : null;
       const newUtil = kind === "credit_card" && limit_cents && u.limit_cents ? divRound(u.balance_cents * 10000, u.limit_cents + limit_cents) : null;
-      const parts = [`A hard inquiry: a few points for up to a year, gone from the report in two.`, newAvg != null ? `Average account age drops from ${(a.average_months / 12).toFixed(1)} to ${(newAvg / 12).toFixed(1)} years; it recovers as the account ages.` : "", newUtil != null ? `Utilization falls from ${Math.round(u.bps / 100)} to ${Math.round(newUtil / 100)} percent once the new limit reports, which helps.` : "", kind === "loan" ? "An installment loan adds mix and a new balance; the balance matters more than the mix." : ""].filter(Boolean);
+      const parts = [`A hard inquiry: a few points for up to a year, gone from the report in two.`, newAvg != null ? `Average account age drops from ${(a.average_months / 12).toFixed(1)} to ${(newAvg / 12).toFixed(1)} years; it recovers as the account ages.` : "", newUtil != null ? `Utilization falls from ${pctOf(u.bps)} to ${pctOf(newUtil)} percent once the new limit reports, which helps.` : "", kind === "loan" ? "An installment loan adds mix and a new balance; the balance matters more than the mix." : ""].filter(Boolean);
       return { kind, inquiry: true, average_age_months_before: a.average_months, average_age_months_after: newAvg, utilization_bps_before: u.bps, utilization_bps_after: newUtil, text: parts.join(" ") + " Exact point changes are not published; these are the directions and the mechanisms.", source: report.bureau || "credit report", as_of: report.as_of };
     }
     // CRDT-011: refinance watch. Monthly payment at each offer, the saving, the breakeven on closing costs, the interest difference over the remaining term.

@@ -1,9 +1,9 @@
 {
  "capability": "MONEY-PLANS",
- "run_at": "2026-10-12T06:43:23.073Z",
+ "run_at": "2026-10-12T07:24:24.965Z",
  "baseline_all_green": true,
  "sub_capabilities": 19,
- "proven": 21,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -69,6 +69,17 @@
    "title": "Short months still get the allowance",
    "defect": "the day is compared as written, so a 31st allowance skips five months a year (the bug found building this packet)",
    "test": "the 31st goes on Nov 30; the 29th on Feb 28, 2027",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06b",
+   "title": "Every other week from its own start",
+   "defect": "the two-week cycle is counted from 1970",
+   "test": "set Saturday Oct 10 for Fridays: Oct 16 and Oct 30, not Oct 9 or Oct 23",
    "bites": true,
    "applied": true,
    "collateral": [],

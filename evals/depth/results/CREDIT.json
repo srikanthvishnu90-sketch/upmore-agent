@@ -1,9 +1,9 @@
 {
  "capability": "CREDIT",
- "run_at": "2026-10-12T06:47:14.247Z",
+ "run_at": "2026-10-12T07:24:31.129Z",
  "baseline_all_green": true,
  "sub_capabilities": 20,
- "proven": 20,
+ "proven": 23,
  "problems": [],
  "rows": [
   {
@@ -12,6 +12,17 @@
    "title": "Same bureau, same model",
    "defect": "the previous row is whichever came last, any bureau or model (the bug found building this packet)",
    "test": "Experian 705 is down 7 from Experian 712, not 15 from Equifax",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S01",
+   "id": "D01b",
+   "title": "Unchanged is unchanged",
+   "defect": "a zero change reads \"up 0\"",
+   "test": "the same score twice says unchanged since",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -118,6 +129,28 @@
     "S15",
     "S19"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10b",
+   "title": "No rounding across the line",
+   "defect": "the share is always rounded to a whole percent",
+   "test": "29.5 percent is said 29.5, not 30",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10c",
+   "title": "Two cards are two",
+   "defect": "any number of such cards reads \"One card\"",
+   "test": "two cards over half their limit are counted",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   },
   {

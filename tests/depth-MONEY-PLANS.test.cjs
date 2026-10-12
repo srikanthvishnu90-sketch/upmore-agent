@@ -87,6 +87,10 @@ test("[S06] a monthly allowance on the 29th-31st goes on the month's last day in
   assert.equal(due(al(29), "2028-02-29"), 1);
   assert.equal(due(al(29), "2027-02-28"), 1, "2027 is not");
   assert.equal(due(al(29), "2028-02-28"), 0);
+  // Every other week counts from the allowance's own start, not from 1970 (merge review of this packet's notes): set on
+  // Saturday Oct 10 for Fridays, it goes Oct 16 and Oct 30, never Oct 9 (before it existed) or Oct 23.
+  const bi = { id: "mock-al-bi", name: "Maya Mock", status: "active", cadence: "biweekly", day: 5, amount_cents: 2000, rail: "cash_app", created_on: "2026-10-10" };
+  assert.deepEqual(["2026-10-09", "2026-10-16", "2026-10-23", "2026-10-30"].map(d => due(bi, d)), [0, 1, 0, 1]);
 });
 
 test("[S07] a shared goal's monthly amounts actually get there: $100.00 over three people and three months is $11.12, $11.11, $11.11", () => {

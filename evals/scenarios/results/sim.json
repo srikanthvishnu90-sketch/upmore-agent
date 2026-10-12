@@ -131,10 +131,11 @@
   {
    "id": "A15",
    "typed": "pay maya 40 but only if my paycheck landed",
-   "flow": "send",
-   "outcome": "not_built",
-   "reply": "Payments that wait on a condition aren't built yet, so nothing was set up. I can set up $40.00 to Maya K now instead. Want that?",
+   "flow": "paycheck_send",
+   "outcome": "settings_saved",
+   "reply": "No paycheck has posted yet. I'll ask you for the card to send Maya $40.00 when your next paycheck posts; I see it after your bank rows refresh. Nothing is sent before then, and the card still needs your yes. Say \"cancel the paycheck send to Maya\" to drop it.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {

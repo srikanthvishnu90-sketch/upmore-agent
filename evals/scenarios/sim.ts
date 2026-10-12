@@ -6,6 +6,7 @@
 // Netflix/Hulu/Spotify charges) plus every @handle a scenario's DO names as saved, so "send maya 40" can resolve.
 import { routeFlows, mapFlowData, userBroker, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 import { parseCommand } from "../../supabase/functions/_shared/proactive.ts";
+import { paycheckSendMessage } from "../../supabase/functions/agent-chat/_shared/paycheck_send.ts";
 import { PEOPLE, T0, txs, mockAlpaca, EXECUTED } from "../corpus/replay.ts";
 import mega from "./megadoc.json" with { type: "json" };
 
@@ -52,6 +53,10 @@ export async function simulate(s: any) {
   const text = typed(s.msg);
   // The chat handler answers the person's settings commands before the flows ("set a late fee alert", "pay maya 40
   // tomorrow at 9", reminders, budgets, IOUs): the same order here, so the evidence is what the person would see.
+  // A send that waits for the paycheck comes first, as in the chat (agent-chat/_shared/paycheck_send.ts): the corpus world
+  // has no paycheck, so it is saved and said.
+  const ps: any = await paycheckSendMessage(text, { transactions: async () => txs(), readWatches: async () => [], saveWatches: async () => true, runFlow: async (t: string) => { const f: any = await routeFlows(t, { db, extract: async () => { throw new Error("router model off (offline)"); }, now: () => now, brokerFactory, termsFetch: null } as any); return f && !f.fallthrough ? f : null; } }, now, "America/New_York");
+  if (ps) return { typed: text, flow: "paycheck_send", outcome: ps.changed ? "settings_saved" : (ps.route?.outcome || "answer"), reply: ps.reply, executed: false, recorded: !!ps.changed, mock_orders: alpaca.orders.length };
   const sc: any = parseCommand(text, { time_zone: "America/New_York", watches: [] } as any, now);
   // A saved setting is recorded (the chat writes it before replying, and a failed write says nothing changed), but it is
   // never an execution: nothing moves money.

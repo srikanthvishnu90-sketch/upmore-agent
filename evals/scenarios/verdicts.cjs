@@ -26,7 +26,7 @@ set("A08", "LIMITED", "restated with the day and time in the person's zone (am o
 set("A09", "NOT_BUILT", "Upmore does not execute transfers, so none to cancel; says where to stop one", "tests/edge/megadoc-sim.test.ts");
 set("A10", "NOT_BUILT", "'the usual' from history; asks how much");
 set("A13", "BUILT", "asks $40.55 or $40.56, verbatim", "tests/edge/megadoc-sim.test.ts");
-set("A15", "NOT_BUILT", "payments on a condition (paycheck landed); says so", "tests/edge/megadoc-sim.test.ts");
+set("A15", "BUILT", "the person's rows say whether a paycheck landed (a payroll deposit today or yesterday): landed, it is said with the deposit and the send card goes up (its own yes); not yet, the send waits and the hourly run asks for the card once when the next paycheck posts; nothing is sent from Upmore (PaycheckSend, 115-paycheck-send.js, agent-chat/_shared/paycheck_send.ts)", "tests/edge/paycheck-send.test.ts");
 // B. strangers, look-alikes, ambiguous amounts
 set("B01 B02 B13", "BUILT", "new recipient: asks the app or handle, then read-back confirm in full before any card", "tests/depth-RAIL-1.test.cjs");
 set("B03", "BUILT", "two saved Johns: 'Which John' with handles (the sim world has no Johns; the path is the 'Which Marcus' test)", "tests/depth-RAIL-1.test.cjs");

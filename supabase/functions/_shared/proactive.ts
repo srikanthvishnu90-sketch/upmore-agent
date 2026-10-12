@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -144,6 +144,13 @@ export function plan(input: ProactiveInput, now: number) {
     if (out.messages.some(m => m.offer)) { out.suppressed.push({ key: r.key, reason: "one_offer_at_a_time" }); continue; }
     sentKeys.add(r.key);
     out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "PAY-001", urgent: false, cadence: true, source: "the send you scheduled in chat", as_of: new Date(now).toISOString(), offer: r.offer });
+  }
+  // Sends waiting on the paycheck (megadoc A15; 115-paycheck-send.js): when a paycheck posts on or after the day it was
+  // set up, the question whether to put up the card, as an offer (the same answer as a scheduled send). One offer a run.
+  for (const r of (PaycheckSend as any).due(s.watches || [], (transactions || []).map((x: any) => ({ posted_on: x.posted_at, amount_cents: x.amount_cents, merchant_raw: x.merchant_raw, is_pending: !!x.is_pending, is_transfer: !!x.is_transfer })), now, tz, [...sentKeys])) {
+    if (out.messages.some(m => m.offer)) { out.suppressed.push({ key: r.key, reason: "one_offer_at_a_time" }); continue; }
+    sentKeys.add(r.key);
+    out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "PAY-001", urgent: false, cadence: true, source: "your bank rows and the send you set up in chat", as_of: new Date(now).toISOString(), offer: r.offer });
   }
   // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs,
   // and so are the dates they told Upmore about and their reminders; a public date needs no account either.
@@ -405,6 +412,10 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // maya". Restated with the day and time; at that time the person is asked for the card, which needs its own yes.
   const ss: any = (ScheduledSend as any).command(t, s.watches || [], now, zone);
   if (ss) return { settings: ss.watches ? { watches: capWatches(ss.watches) } : {}, reply: ss.reply };
+  // Sends waiting on the paycheck (megadoc A15): "cancel the paycheck send to maya", "show my paycheck sends". Setting
+  // one reads the person's rows, so it is agent-chat/_shared/paycheck_send.ts, before this.
+  const pc: any = (PaycheckSend as any).command(t, s.watches || []);
+  if (pc) return { settings: pc.watches ? { watches: capWatches(pc.watches) } : {}, reply: pc.reply };
   // Savings goals, tracking only (megadoc M08; teardown 2 step 4): "set a $3000 vacation goal by june in high yield
   // savings", "my vacation fund is in ally savings", "stop my vacation goal". Restated; nothing is moved.
   const gc: any = (SavingsGoals as any).command(t, s.watches || [], now, zone);

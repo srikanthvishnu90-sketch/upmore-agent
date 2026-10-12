@@ -30,7 +30,9 @@ Deno.test("megadoc sim: no request is dropped (P09 three asks, J11 two cancels)"
   assert(!/NYT and WSJ/.test(rows.J11.reply), rows.J11.reply);
 });
 Deno.test("megadoc sim: nothing for later, on a condition, in another currency or by percentage is staged as a send now", () => {
-  eqOutcome("A15", "not_built"); assert(/nothing was set up/.test(rows.A15.reply), rows.A15.reply);
+  // A15 "pay maya 40 but only if my paycheck landed": no paycheck in the world, so the send waits for the next one and
+  // asks for the card then (agent-chat/_shared/paycheck_send.ts); nothing is sent.
+  eqOutcome("A15", "settings_saved"); assert(/^No paycheck has posted yet\. I'll ask you for the card to send Maya \$40\.00 when your next paycheck posts/.test(rows.A15.reply), rows.A15.reply);
   // A08 "pay maya 40 tomorrow at 9": saved as a scheduled send that asks for the card at that time (its own yes then),
   // by the settings step the chat runs before the flows; nothing is staged or sent now.
   eqOutcome("A08", "settings_saved"); assert(/^Scheduled: tomorrow, .*, at 9:00 AM your time .*I'll ask you to send Maya \$40\.00\. Nothing is sent before then, and nothing is sent without its own card and your yes at that time\./.test(rows.A08.reply), rows.A08.reply);

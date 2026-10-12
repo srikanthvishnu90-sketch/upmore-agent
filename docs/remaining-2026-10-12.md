@@ -37,6 +37,7 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIV
 | 7 | ~~One stop per holding, one card at a time~~ **done** | E13 | positions, sell quotes | LIMITED: prices worked out and listed, nothing placed in one go; the first card offered; RAIL-2 S33 |
 | 8 | ~~Scheduled send: the card goes up at the time asked~~ **done** | A08 | scheduled-send watch + offer | LIMITED: asks for the card at the time, its own yes; SCHED-SEND 16/16, tests/edge/scheduled-send.test.ts |
 | 9 | Teardown sections with no capability-list item (H1) | — | teardown build order | tracking-only goals done (teardown 2 step 4; M08 BUILT, GOALS 15/15); what's new and budgets were done overnight |
+| 9b | ~~Send when the paycheck lands~~ **done** | A15 | the person's rows | BUILT; PAYCHECK-SEND 15/15, tests/edge/paycheck-send.test.ts |
 | 10 | Testing-agent labeled gaps | — | corpus 1.02, 2.04 | both deliberate divergences; owner call |
 
 ## 3. Gated by a standing rule (not built past the gate)

@@ -45,6 +45,7 @@ import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
 import { whatsNewReply } from "./_shared/whats_new_answer.ts";
 import { budgetReply, readBudgets } from "./_shared/budget_answer.ts";
 import { goalReply } from "./_shared/goal_answer.ts";
+import { paycheckSendMessage } from "./_shared/paycheck_send.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { cardOffersReply } from "./_shared/card_offers_answer.ts";
@@ -55,7 +56,7 @@ import { deadlinesReply } from "./_shared/deadlines_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
-import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS } from "../_shared/proactive.ts";
+import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS, capWatches } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -372,6 +373,26 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
           if (saved.error) throw saved.error;
           return json(cors, { thread_id: tid, reply: o.reply, action: null, route: o.route });
         }
+      }
+    }
+
+    // A send that waits for the paycheck (megadoc A15, _shared/paycheck_send.ts): landed (today or yesterday), the send
+    // card goes up now and needs its yes; not yet, it is saved and the hourly run asks when the next paycheck posts.
+    {
+      const flowDb = supabaseFlowDb(supabase, user.id, tid);
+      const p = await paycheckSendMessage(message, {
+        transactions: () => readRecentTransactions(supabase, user.id, Date.now()),
+        readWatches: async () => { const r = await supabase.from("agent_proactive_settings").select("watches").eq("user_id", user.id).maybeSingle(); if (r.error) throw new Error("Settings unavailable."); return (r.data && Array.isArray(r.data.watches)) ? r.data.watches : []; },
+        saveWatches: async (w) => { const r = await supabase.from("agent_proactive_settings").upsert({ user_id: user.id, watches: capWatches(w), updated_at: new Date().toISOString() }, { onConflict: "user_id" }); return !r.error; },
+        runFlow: async (text) => { const f: any = await routeFlows(text, { db: flowDb, extract: null, channel: "in-app", tz }); return f && !f.fallthrough ? f : null; },
+      }, Date.now(), tz);
+      if (p) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: p.reply, meta: { capability: true, paycheck_send: true, flow_route: p.route || null } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: p.reply, action: null, route: p.route });
       }
     }
 

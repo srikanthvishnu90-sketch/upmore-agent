@@ -95,3 +95,18 @@
 - Owner decisions logged (not changed): codes typed in chat on the legacy cancel path vs the settled no-codes-in-chat
   rule; info-only compliance calls without an execute flag; adapterFor ignoring adapter_state; utilization needs limits.
 - CI green through run 63+; agent running: depth PROACTIVE, CONNECT-CARDS, SUB-CASE.
+
+## 2026-10-12 06:55 UTC overnight wave 4 (check-in)
+- Time zones, red first each: rent's month (4a36ebe), direct answers (af1525f), buy "today", the cancel undo window and a
+  7-day refund window (cd61602) all counted the UTC day; after 8 p.m. ET they were a day ahead. Idempotency keys stay UTC.
+- Merged depth PROACTIVE/CONNECT-CARDS/SUB-CASE (b586cbb; one fee said on three days, a merchant named "UNAUTHORIZED..."
+  made a safety alert) and STYLE-CORPUS/REALWORLD/INTENTS (c6fce87; corpus example 5.14 asked for a code in chat; empty
+  read-backs counted as done). Merge review caught the packet's negation rule dropping real asks ("cancel netflix, I
+  never end up using it") and narrowed it, red first. Checked the proactive dedupe on 8 fixtures: no deadline lost.
+- 02838c0: a cancellation proof trusted the read-back's own expected state; all 24 provider-record items now name theirs.
+- CI was broken from 63b70a2 to cd61602 (six pushes, runs 73-78): my step name had an unquoted ": " and GitHub rejected
+  the workflow, so no job ran. Fixed in e251280 with a guard test; the first real run (79) then caught a type error in
+  a test I added (fixed 45ff877). The local bar now parses the workflow YAML and type-checks the edge suite as CI does.
+  node-ci benchmark stays false (it was not green on every commit).
+- Mutation coverage 48/62. Agents running: depth WORKFLOWS/RECOVERY/INVEST (router-bundle modules) and MONEY-PLANS/
+  CREDIT/DOCUMENTS.

@@ -162,3 +162,133 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 
 Benchmarks (which hold, which are owner-gated), every commit pushed with its CI run, test counts start vs end, duties
 done / open / blocked with the reason, everything gated and why, and the owner's short list (what needs his hands).
+
+### Report, 2026-10-12 16:00 UTC (window 04:00-16:00)
+
+**In one paragraph.** Every duty in Blocks A to G and H0 is done; H1 is part done. 167 commits went out on
+`claude/upmore-16-spec-instinct-0qyuqj`. Each one passed the whole local bar before it was pushed. CI was red on 8
+consecutive runs (73-80, 06:15-06:42); every run from 81 on is green. Nothing moved money, placed a trade, touched a live
+account or the live project. Decisions 2 and 3 stayed off. No standing rule changed. Nothing is PROVEN live: the deploy is
+the owner's step, and every count below is offline.
+
+The most useful finding of the last two hours came from probing the flows the way people type. Some cards said
+different terms than the person wrote. A limit written without "$" became a market order. "Send sarah 40 and marcus l
+20" carded Sarah and silently dropped Marcus. "Sell VTI buy VOO" dropped one order. Every card still needed a yes, so
+nothing could execute unseen. All of these are fixed, each red first with a planted defect.
+
+#### Benchmarks (`benchmark_list.json`, definitions untouched)
+
+| Benchmark | State | Why |
+|---|---|---|
+| matrix-honesty | **passes** | Flipped earlier tonight with evidence in `claude-progress.txt`. |
+| node-ci | not flipped | The node suite passes (2,079/2,079), and every commit ran CI. But runs 73-80 were red: the workflow YAML was invalid for six pushes, and then a test type error failed two more. So "green on every commit" did not hold tonight. Every commit since run 81 is green. |
+| testing-agent | not flipped | GREEN locally, 10/10, 87/87, 0 critical, 12/12 mutations. Two checks need the deploy and are not run: R-01m (29 model-answered corpus examples, graded live) and L-01 (one live $5 buy). |
+| live-suite | owner-gated | Needs the deployed build and a test JWT (`owner-go-live.sh`). |
+| security-gate | owner-gated | `verify-security-live.cjs` needs the deployed build. |
+
+#### Commits and CI
+
+- 167 commits since 04:00. Each commit, with its CI run and result, is listed in
+  `docs/overnight/2026-10-12-commits.md`.
+- CI runs 36-201 on this branch: 158 green, 8 red. 158 commits have a green run of their own; b586cbb went up in the same push as the next commit, so it has no run of its own.
+  - Runs 73-78 failed: a step name in 63b70a2 had an unquoted ": ", so GitHub rejected the workflow and no job ran. It
+    was fixed in e251280, with a guard test.
+  - Runs 79-80 failed on a type error in a test I added; the first real run caught it, fixed in 45ff877.
+  - Run 81 was green. The eight commits behind those red runs never got a green run of their own; later green runs
+    cover them. The local bar now parses the workflow YAML and type-checks the edge suite the way CI does.
+  - That breaks bar rule 3 ("CI green before the next push") for that half hour. It is the one place tonight's bar was not
+    met.
+- Evidence recorder: waves 8 and 9 recorded 22 pass each. The 7 function type-checks fail only because the proxy blocks
+  remote imports (deno.land, esm.sh): "unsuccessful tunnel" in each log.
+
+#### Test counts: start (4ea437d, re-measured on that commit at 14:50) and end
+
+| Suite | Start | End |
+|---|---|---|
+| node (`tests/*.cjs`) | 531/531 (64 files) | 2,079/2,079 (155 files) |
+| edge (`tests/edge/`) | 283/283 (37 files) | 526/526 (80 files) |
+| Agent100 | 103/103 | 103/103 |
+| Testing agent | GREEN 70/70 | GREEN 87/87, 12/12 mutations |
+| Eval harness | RELEASE OK, 11/11 mutations | RELEASE OK, 11/11 mutations |
+| Depth packets | 9 | 70. 1,430/1,430 planted defects bite; each recorded patch still applies (CI test). |
+| Domain modules with a planted defect | 46 modules, no report | 81/81 (`docs/depth/MUTATION-COVERAGE.md`) |
+| Megadoc, 240 scenarios | BUILT 61, LIMITED 22, DIVERGES 12, MODEL 59, NOT_BUILT 86 | BUILT 128, LIMITED 42, DIVERGES 3, MODEL 3, NOT_BUILT 64. PROVEN 0. |
+| Response-style corpus, offline | PASS 38 | PASS 39, FAIL 0 |
+
+#### Duties
+
+**Done.**
+- A1-A3.
+- B1-B4.
+- C1-C6.
+- D1-D7.
+- E1-E7.
+- F1-F4.
+- G1-G6.
+- H0.
+- Beyond the list: answers moved from the chat model to code, each with a depth packet:
+  - money owed, scam checks, savings rate, not-built asks;
+  - copy trading, portfolio analytics, accredited investor, merchant terms;
+  - hard money moments;
+  - IOUs, reminders, budgets, rent;
+  - today's portfolio change and the report;
+  - a restricted Alpaca account.
+- Privacy fixes:
+  - A deleted account's Gmail token is now purged.
+  - Data export covers every agent table, paged.
+  - The in-app privacy sheet matches /privacy.
+
+**Open.** H1 (teardown sections that map to no capability-list item). "What's new" and category budgets are built; the
+next sections in the teardowns' build order are not.
+
+**Blocked.** Nothing inside the window. Everything that needs the owner is in the list below.
+
+**Found and fixed that were mine.**
+- **Sell cards (12:06-15:04).** Tonight's longer sale-fee line pushed every limit, stop and trailing sell card past two
+  SMS segments. The fallback line then dropped the share count and the order type. Fixed in 7d360b4, which also gave the
+  fallback the timing and "can't be undone".
+- **IOU forget.** A first fix to "forget what sam owes me" would have forgotten the whole IOU log. The probe caught it
+  before commit.
+- **"cancel HBO".** A first version read any all-caps name as a ticker, so HBO was treated as a stock. Caught by the
+  probe before commit.
+
+#### Gated, and why
+
+- **Not built past a gate.**
+  - Prediction markets (decision 2) and crypto (decision 3): the 14 prediction-market cards, the 15 sportsbook and casino
+    cards and the USDC card are parsed and gated; nothing past the guards.
+  - Cards that need a phone call, identity digits, a card application or securities advice are gated: 130 of 194 method
+    cards are hard-gated.
+- **Built and tested, not live.** Every money path: trades are capped at $5 behind a fresh yes, sends are staged
+  handoffs, and cancels need one yes each. Nothing was deployed and no migration was pushed to the live project.
+
+#### The owner's short list (needs your hands)
+
+1. **Go-live.** Run `bash scripts/launch/owner-go-live.sh`. It applies the pending migrations, including
+   `20261012060000_oauth_vault_cascade` (the Gmail-token purge), and deploys the functions, including delete-account. Then
+   it runs `verify-security-live.cjs` and the live gauntlet. This one step is what can turn live-suite, security-gate and
+   the testing agent's two live checks green.
+2. **The $5 live order (L-01).** It needs your explicit yes, with the exact order and amount, before it runs.
+3. **Decisions on behavior the code now states.**
+   - "buy 1 VOO" with no "$" and no "share" is read as $1.00 at market. That rule is older than tonight; confirm it or
+     make it ask.
+   - "should i cancel netflix" puts up a cancel card (it still needs a yes) rather than answering as advice.
+   - "ok" counts as a yes on a card (P13, DIVERGES).
+   - Stop, stop-limit and trailing orders, and every order card when the market is closed, use the short card. It now
+     carries size, type, timing and "can't be undone", but not the account name or the line on what the order does. A
+     two-segment layout for them is design work.
+4. **Data or sources to add.**
+   - A dated official source for savings rates. Today M05 names no bank and no rate.
+   - Alpaca's regulatory fee rates differ between sources; confirm the current SEC and FINRA figures before showing any
+     number.
+   - A sends-history table, if "send Maya the usual" (A10) should read past amounts. It is a migration.
+5. **Before texting goes live.**
+   - A carrier-level STOP opt-out at the channel layer.
+   - Add LoopMessage and Browserbase to the privacy policy.
+6. **Older items still open:** bank refresh, refunds netting, termMatch, G15 dividends, movers.
+7. **Vercel previews.** Vercel builds a preview of every push to this branch: at least 200 in 24 hours, against the
+   Hobby limit of 100 per day, previews included (vercel.com/docs/limits/overview). 12 of the 100 previews since 04:00
+   failed, scattered between successful ones. Very likely the cap; the log was not readable from here (`npx vercel
+   inspect dpl_79XkNXU3sEHxApF8Aj8tWG5HW7qG --logs` shows it). GitHub Actions CI is unaffected. To stop it, either add
+   `"git": {"deploymentEnabled": {"claude/**": false}}` to `vercel.json` (waiting on your yes) or set an Ignored Build Step
+   in the Vercel dashboard.

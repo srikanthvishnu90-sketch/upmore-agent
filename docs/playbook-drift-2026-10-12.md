@@ -67,3 +67,13 @@ said, what is true, and the source.
   them); the router's hand-over in tests/edge/rent-timezone.test.ts.
 - Seen, not changed (owner wording call): the card says "Reply \"undo\" before 2026-11-03" but the code allows the undo
   on 2026-11-03 itself; "until" or "by" would match the code.
+
+## CI ran nothing for six pushes (2026-10-12, 06:15 to 06:40 UTC)
+
+- Said (commits 63b70a2 through cd61602, and this log): CI runs every check on every push.
+- True: 63b70a2 renamed the edge step to "Edge function tests (typed, no permissions: the evidence recorder ...)". The
+  unquoted ": " made .github/workflows/ci.yml invalid YAML, so GitHub rejected the file; runs 73 to 78 failed at once,
+  named after the file, with no job run. Every one of those commits was checked only by the local bar.
+- Now: the name has no colon; tests/ci-workflow.test.cjs fails on an unquoted ": " or " #" in a one-line name or run
+  value (red on 63b70a2's file, green now), and the local bar parses every workflow with a YAML parser first. CI on the
+  fixing commit is the check that covers the six.

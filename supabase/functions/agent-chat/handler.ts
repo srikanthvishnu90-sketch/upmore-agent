@@ -35,7 +35,7 @@ import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker,
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
-import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
+import { StyleCorpus, STYLE_CORPUS_JSON, ScamCheck } from "../_shared/router_core.js";
 import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
@@ -229,7 +229,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // waiting for the full catalog. Persist like the other deterministic paths.
     const workflowIntent = AgentIntents.match(message);
     const personalFinance = isPersonalFinancialRequest(message,workflowIntent?.task === "workflow");
-    const earlyGuard = tryGiftRewardSafe(message) ?? tryGamblingGuard(message) ?? tryFakeDocGuard(message) ?? tryContestGuard(message) ?? tryCryptoGuard(message) ?? tryFakeReviewGuard(message) ?? tryTaxFraudGuard(message) ?? tryPrivacyGuard(message) ?? tryScamGuard(message) ?? tryServerGuards(message) ?? trySyspromptGuard(message) ?? (personalFinance ? null : tryFinanceFact(message));
+    const earlyGuard = tryGiftRewardSafe(message) ?? tryGamblingGuard(message) ?? tryFakeDocGuard(message) ?? tryContestGuard(message) ?? tryCryptoGuard(message) ?? tryFakeReviewGuard(message) ?? tryTaxFraudGuard(message) ?? tryPrivacyGuard(message) ?? tryScamGuard(message) ?? (ScamCheck as any).answer(message) ?? tryServerGuards(message) ?? trySyspromptGuard(message) ?? (personalFinance ? null : tryFinanceFact(message));
     if (earlyGuard) {
       await supabase.from("agent_messages").insert([
         { thread_id: tid, role: "user", content: userContent },

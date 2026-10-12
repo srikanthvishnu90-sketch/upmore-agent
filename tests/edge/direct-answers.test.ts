@@ -205,3 +205,15 @@ Deno.test("traveling in Japan: no travel notice filed, alerts as usual, the time
     assertEquals(c && c.settings && c.settings.time_zone, z, z);
   }
 });
+
+// Megadoc N02-N15: everyday scams answered by ScamCheck (packages/domain/109-scam-check.js, depth packet SCAM-CHECK)
+// among the early guards, before the direct answers, the flows and the model.
+import SRC_HANDLER_SCAM from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
+import { ScamCheck } from "../../supabase/functions/_shared/router_core.js";
+Deno.test("everyday scams run among the early guards, ahead of every other answer (N02-N15)", () => {
+  const guard = SRC_HANDLER_SCAM.indexOf("?? tryScamGuard(message) ?? (ScamCheck as any).answer(message) ?? tryServerGuards(message)");
+  const direct = SRC_HANDLER_SCAM.indexOf("let direct: string | null = connectReply(message)");
+  assert(guard > 0 && guard < direct, "scam check before the direct answers");
+  assertMatch((ScamCheck as any).answer("a \"support agent\" called, they asked me to move money to a safe account"), /^Stop: that's a scam\./);
+  assertEquals((ScamCheck as any).answer("transfer $50 to my savings"), null);
+});

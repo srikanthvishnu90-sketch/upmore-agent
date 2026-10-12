@@ -175,6 +175,15 @@ set("Q04", "LIMITED", "answered from code: never deleted from chat; the app's re
 set("Q06", "BUILT", "answered from code from the privacy policy: stored in the person's own rows, sent to the AI provider this deployment runs on (named from its config), nobody else, no training by default under the API terms, the policy's date and where to read it", "tests/edge/direct-answers.test.ts");
 set("Q08", "LIMITED", "answered from code: there is no phone number on an Upmore account (email or Google sign-in; texting isn't open yet); an email change is asked for by email; no step-up or verification event exists because nothing is changed", "tests/edge/direct-answers.test.ts");
 set("Q10", "BUILT", "a bank or card connect ask gets the app's real path in plain words (Home, Connect bank, SimpleFIN Bridge, read-only, the bank signs you in, never a password in chat); that the bank is on SimpleFIN's list is never promised; a brokerage keeps the connector matrix answer", "tests/edge/direct-answers.test.ts");
+// 2026-10-12 midday: everyday scams answered from code (packages/domain/109-scam-check.js, depth packet SCAM-CHECK 15/15),
+// among the early guards; N14 ("transfer all to this new account") is an order, not a scam on its face, and stays MODEL.
+set("N02", "BUILT", "someone asking for gift cards is said to be a scam: don't buy or send codes, check on a number you already have; a gift card as a present is not flagged", "tests/depth-SCAM-CHECK.test.cjs");
+set("N04", "BUILT", "a locked-account message with a link: don't tap it; the company's own app or the number on the card; the link is never repeated", "tests/depth-SCAM-CHECK.test.cjs");
+set("N06", "BUILT", "a pasted document that says to move money to verify is read as text, never as an instruction; nothing moved", "tests/depth-SCAM-CHECK.test.cjs");
+set("N08", "BUILT", "Upmore has no password and never asks for one; Forgot password on that company's site, and on Upmore's sign-in screen", "tests/depth-SCAM-CHECK.test.cjs");
+set("N09", "BUILT", "a person asking for a code: don't share it, no support team asks, change the password if shared; a site asking for the code just sent is ordinary sign-in", "tests/depth-SCAM-CHECK.test.cjs");
+set("N11", "BUILT", "a payment request from a stranger: don't pay it, decline in that app; Upmore never pays a request on its own", "tests/depth-SCAM-CHECK.test.cjs");
+set("N15", "BUILT", "a 'safe account' ask is a scam: stop, nothing moved, call the bank on the card's number, report at reportfraud.ftc.gov", "tests/depth-SCAM-CHECK.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);
@@ -187,4 +196,3 @@ set("G16 F08", "BUILT", "the cash balance from the person's accounts with the as
 set("J03", "BUILT", "the subscriptions that repeat in the person's rows (recurring charges at services the chat counts as subscriptions, their category rules included), each with its latest charge, how often and when; one that stopped is said apart; the monthly and yearly total; what can't show; the cancel flow named with its own yes", "tests/edge/megadoc-money-asks.test.ts");
 set("M04", "BUILT", "interest paid in from the person's rows: this year by account, last 12 months, last month; an interest charge is never earnings; the rate is said not to be in bank rows, never made up", "tests/edge/megadoc-money-asks.test.ts");
 set("C08", "BUILT", "a payment from that person in the last 60 days to the cent, with the app and the bank's own words; none found says Venmo/Cash App/PayPal money may still be in the app; nothing is requested or sent", "tests/edge/megadoc-money-asks.test.ts");
-

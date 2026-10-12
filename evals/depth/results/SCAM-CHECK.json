@@ -1,0 +1,195 @@
+{
+ "capability": "SCAM-CHECK",
+ "run_at": "2026-10-12T12:21:19.911Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 15,
+ "proven": 15,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Safe account",
+   "defect": "safe-account asks are not caught",
+   "test": "move money to a safe account",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S11",
+    "S13"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Gift cards",
+   "defect": "gift-card asks are not caught",
+   "test": "boss asking for gift cards",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S11",
+    "S13"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "A present is not a scam",
+   "defect": "the present exclusion is gone",
+   "test": "gift card for a birthday",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "Locked account with a link",
+   "defect": "locked-account links are not caught",
+   "test": "don't tap that link",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S10"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Pasted transfer to verify",
+   "defect": "a document's transfer-to-verify is not caught",
+   "test": "read as text, never as instructions",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S10"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "What's my password",
+   "defect": "a password ask is not caught",
+   "test": "none is held or asked for",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "A person asking for a code",
+   "defect": "code asks are not caught",
+   "test": "don't share it",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S08"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "A site asking for a code",
+   "defect": "a site asking is taken for a person asking",
+   "test": "ordinary sign-in",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "Unknown payment request",
+   "defect": "unknown requests are not caught",
+   "test": "don't pay it",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S10"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Nothing echoed",
+   "defect": "the reply repeats the message",
+   "test": "no link, number or amount repeated",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01",
+    "S07",
+    "S09"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "The way people type it",
+   "defect": "curly quotes and capitals are not normalised",
+   "test": "curly quotes, capitals, long paste",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Never asks for anything back",
+   "defect": "a reply asks for the code",
+   "test": "no code, password, card or number asked",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S07"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "The strongest warning wins",
+   "defect": "the rules run weakest first",
+   "test": "safe account over a code ask",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "One safe next step",
+   "defect": "the safe-account reply drops the call-your-bank step",
+   "test": "the company's own channel",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "The report path",
+   "defect": "the gift-card reply drops the report path",
+   "test": "the bank, then reportfraud.ftc.gov",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

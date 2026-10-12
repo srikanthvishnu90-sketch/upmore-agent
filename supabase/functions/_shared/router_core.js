@@ -6925,12 +6925,16 @@
       "transaction transactions payment payments purchase purchases card credit debit bank account statement amount yesterday today " +
       "dollars dollar bucks usd hey hi so just like weird strange random twice double again how do does make start open file " +
       "jan feb mar apr may jun jul aug sep sept oct nov dec january february march april june july august september october november december " +
-      "st nd rd th photo picture pic screenshot attached here").split(/\s+/));
+      "st nd rd th photo picture pic screenshot attached here " +
+      // "a charge I don't recognize" names no merchant (found building the DISPUTE depth packet)
+      "dont doesnt recognize recognise recognized recognised know what something unknown idk").split(/\s+/));
 
     const ymd = s => String(s || "").slice(0, 10);
     const dayNum = s => Math.round(Date.parse(ymd(s) + "T00:00:00Z") / DAY);
     const validYmd = s => /^\d{4}-\d{2}-\d{2}$/.test(ymd(s)) && Number.isFinite(Date.parse(ymd(s) + "T00:00:00Z"));
     const money = c => "$" + Math.floor(Math.abs(c) / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(Math.abs(c) % 100).padStart(2, "0");
+    // A charge in another currency is said in that currency ("45.00 EUR"), never as dollars.
+    const amountOf = r => !r.currency || String(r.currency).toUpperCase() === "USD" ? money(r.amount_cents) : `${money(r.amount_cents).slice(1)} ${String(r.currency).toUpperCase()}`;
     const nice = s => { const [y, m, d] = ymd(s).split("-").map(Number); return `${MONTH_NAMES[m - 1]} ${d}, ${y}`; };
     const squash = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -7023,7 +7027,7 @@
     function draft(charge, opts) {
       const o = opts || {};
       const name = merchantName(charge.merchant_raw);
-      const amt = money(charge.amount_cents);
+      const amt = amountOf(charge);
       const when = validYmd(charge.posted_on) ? nice(charge.posted_on) : null;
       const posted = when ? (charge.is_pending ? `pending since ${when}` : `posted ${when}`) : "date not shown";
       const reason = o.unauthorized ? "I didn't authorize this charge." : "This charge isn't right.";
@@ -7049,9 +7053,9 @@
       const first = shown[0];
       return [
         lead || "Which charge do you want to dispute?",
-        ...shown.map((r, i) => `${i + 1}. ${merchantName(r.merchant_raw)}, ${money(r.amount_cents)}, ${r.is_pending ? "pending" : "posted"} ${nice(r.posted_on)}`),
+        ...shown.map((r, i) => `${i + 1}. ${merchantName(r.merchant_raw)}, ${amountOf(r)}, ${r.is_pending ? "pending" : "posted"} ${nice(r.posted_on)}`),
         list.length > MAX_LIST ? `(${list.length - MAX_LIST} more; add the amount or date to narrow it.)` : null,
-        `Say "dispute" with the amount and date of the one you mean, like "dispute ${merchantName(first.merchant_raw)} ${money(first.amount_cents)} on ${nice(first.posted_on).replace(/, \d{4}$/, "")}".`,
+        `Say "dispute" with the amount and date of the one you mean, like "dispute ${merchantName(first.merchant_raw)} ${amountOf(first)} on ${nice(first.posted_on).replace(/, \d{4}$/, "")}".`,
         source,
       ].filter(x => x != null).join("\n");
     }
@@ -7437,7 +7441,8 @@
       if (!all.length) { lines.push(`No posted transactions yet, so there's no in and out to compare. ${txSource(transactions, tz)}`); return lines.join("\n"); }
       const cur = all.filter((r) => inRange(r, p)), prev = all.filter((r) => inRange(r, p.prior));
       const inN = sum(cur.filter(isIncome)), outN = sum(cur.filter(isSpend)), inP = sum(prev.filter(isIncome)), outP = sum(prev.filter(isSpend));
-      lines.push(`${p.label[0].toUpperCase() + p.label.slice(1)}: ${money(inN)} in, ${money(outN)} out.`);
+      // History that starts inside this month is said, as spend says it: the days before it are not known to be $0.00.
+      lines.push(`${p.label[0].toUpperCase() + p.label.slice(1)}: ${money(inN)} in, ${money(outN)} out.${start && start > p.from ? ` Your linked transactions start ${dateLabel(start, true)}, so this covers only from then.` : ""}`);
       if (start && start > p.prior.to) {
         lines.push(`Your linked transactions start ${dateLabel(start, true)}, so there's no last month to compare with yet.`);
       } else {

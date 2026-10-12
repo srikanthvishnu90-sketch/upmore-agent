@@ -132,3 +132,30 @@ test('every amount and date in a draft comes from the rows', () => {
   assert.ok(dates.every((x) => x === 'Oct 5, 2026' || x === '2026-10-09'), dates.join(','));
   assert.equal(D.merchantName('NETFLIX.COM 866-579'), 'Netflix');
 });
+
+// Found building the DISPUTE depth packet (2026-10-12): a charge in another currency was stated in dollars ("$45.00"
+// for a 45.00 EUR hotel charge), in the draft the person sends and in the pick list.
+test('a charge in another currency is stated in that currency, never as dollars', () => {
+  const eur = { account_id: 'MOCK-card', provider_transaction_id: 'MOCK-eur', amount_cents: -4500, posted_on: '2026-10-05', merchant_raw: 'HOTEL LUTETIA PARIS', is_pending: false, currency: 'EUR' };
+  const a = D.answer('dispute the hotel lutetia charge', ROWS.concat([eur]), { today: TODAY });
+  assert.equal(a.kind, 'draft');
+  assert.match(a.text, /Charge: HOTEL LUTETIA PARIS, 45\.00 EUR, posted Oct 5, 2026\./);
+  assert.match(a.text, /a charge of 45\.00 EUR from Hotel Lutetia Paris on Oct 5, 2026\. This charge isn't right\. Please refund 45\.00 EUR to the card/);
+  assert.doesNotMatch(a.text, /\$45\.00/);
+  const p = D.answer('dispute this charge', [eur], { today: TODAY });
+  assert.match(p.text, /1\. Hotel Lutetia Paris, 45\.00 EUR, posted Oct 5, 2026/);
+  assert.match(p.text, /like "dispute Hotel Lutetia Paris 45\.00 EUR on Oct 5"/);
+  // Dollars stay dollars, with or without a currency on the row.
+  assert.match(D.answer('dispute the uber charge', ROWS.map((r) => Object.assign({ currency: 'USD' }, r)), { today: TODAY }).text, /Charge: UBER \*TRIP, \$12\.50, posted Oct 5, 2026\./);
+});
+
+// Found building the DISPUTE depth packet: "dispute a charge I don't recognize", the most common way to ask, said
+// "I couldn't find that charge" (the words "dont" and "recognize" were read as a merchant name) instead of listing them.
+test('"a charge I don\'t recognize" names no merchant: the charges to pick from, never "couldn\'t find"', () => {
+  for (const t of ["dispute a charge I don't recognize", 'i want to dispute a charge i dont recognise', "dispute something on my card, i don't know what it is"]) {
+    const a = D.answer(t, ROWS, { today: TODAY });
+    assert.equal(a.kind, 'pick', t);
+    assert.match(a.text, /^Which charge do you want to dispute\?\n1\. Trader Joes, \$64\.00/, t);
+  }
+  assert.equal(D.answer('dispute the lyft charge', ROWS, { today: TODAY }).kind, 'none', 'a merchant the person does not have is still not found');
+});

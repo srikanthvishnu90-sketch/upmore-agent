@@ -246,3 +246,11 @@ test('non-USD rows are never added into dollars', () => {
   const r = M.spend([tx('2026-10-02', -4000, 'KROGER'), tx('2026-10-03', -99999, 'KROGER', { currency: 'EUR' })], 'groceries this month', NOW);
   assert.match(r, /^You spent \$40\.00 on groceries/);
 });
+
+// Found building the MONEY-ANSWERS depth packet (2026-10-12): with history starting Oct 10, "how am I doing" said
+// "This month so far (Oct 1-12): $0.00 in" as if Oct 1-9 were known; spend already said its rows start later.
+test('checkup: history that starts inside this month says so, never a bare total for days it cannot see', () => {
+  const r = M.checkup([acct({})], [tx('2026-10-10', -5000, 'TRADER JOE S #552'), tx('2026-10-11', -2000, 'SHELL OIL 57444')], NOW);
+  assert.match(r, /\nThis month so far \(Oct 1-12\): \$0\.00 in, \$70\.00 out\. Your linked transactions start Oct 10, 2026, so this covers only from then\.\n/);
+  assert.doesNotMatch(M.checkup(ACCOUNTS, TX, NOW), /covers only from then/, 'history from August covers all of this month');
+});

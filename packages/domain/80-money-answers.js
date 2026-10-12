@@ -312,7 +312,8 @@
       if (!all.length) { lines.push(`No posted transactions yet, so there's no in and out to compare. ${txSource(transactions, tz)}`); return lines.join("\n"); }
       const cur = all.filter((r) => inRange(r, p)), prev = all.filter((r) => inRange(r, p.prior));
       const inN = sum(cur.filter(isIncome)), outN = sum(cur.filter(isSpend)), inP = sum(prev.filter(isIncome)), outP = sum(prev.filter(isSpend));
-      lines.push(`${p.label[0].toUpperCase() + p.label.slice(1)}: ${money(inN)} in, ${money(outN)} out.`);
+      // History that starts inside this month is said, as spend says it: the days before it are not known to be $0.00.
+      lines.push(`${p.label[0].toUpperCase() + p.label.slice(1)}: ${money(inN)} in, ${money(outN)} out.${start && start > p.from ? ` Your linked transactions start ${dateLabel(start, true)}, so this covers only from then.` : ""}`);
       if (start && start > p.prior.to) {
         lines.push(`Your linked transactions start ${dateLabel(start, true)}, so there's no last month to compare with yet.`);
       } else {

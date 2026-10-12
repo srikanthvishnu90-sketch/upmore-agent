@@ -421,3 +421,14 @@ test('a negated, past or questioned cancel never becomes a cancel card; asking t
   assert.equal(calls,0);
   for(const t of ['cancel netflix','should i cancel netflix']){const r=await R.handle(t,{extract:worst,sessions:sessions(world()),parsers});assert.equal(r.route,'cancel_subscription',t);}
 });
+
+// Two orders with no "and" (megadoc E15, found 2026-10-12): "sell VTI buy VOO" was not split, so one order would be
+// carded and the other silently dropped. A buy or sell that starts a second clause now splits it; "sell my VTI to buy
+// VOO" (one intent with a purpose) is not split.
+test('two orders with no conjunction are two requests, in order; a purpose clause is not split',()=>{
+  const J=x=>JSON.stringify(x);
+  assert.equal(J(R.splitRequests('sell VTI buy VOO')),J(['sell VTI','buy VOO']));
+  assert.equal(J(R.splitRequests('buy 2 VOO sell 1 VTI')),J(['buy 2 VOO','sell 1 VTI']));
+  assert.equal(J(R.splitRequests('sell VTI and buy VOO')),J(['sell VTI','buy VOO']));
+  for(const t of ['sell my VTI to buy VOO','buy VOO','sell half my VTI','buy 2 VOO then'])assert.equal(R.splitRequests(t),null,t);
+});

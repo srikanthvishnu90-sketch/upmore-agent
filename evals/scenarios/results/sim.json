@@ -670,9 +670,9 @@
   {
    "id": "E15",
    "typed": "sell VTI buy VOO",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "ask",
+   "reply": "Two things, one at a time. First: How much of VTI: shares, dollars, or a part like half? Then I'll do: buy VOO.",
    "executed": false,
    "mock_orders": 0
   },

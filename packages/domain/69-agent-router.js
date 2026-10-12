@@ -144,7 +144,9 @@
     const VERB = /^\s*(buy|sell|send|pay|venmo|zelle|cash ?app|paypal|cancel|split|transfer)\b/i;
     const MONEY_VERB = /^\s*(send|pay|venmo|zelle|cash ?app|paypal|transfer)\b/i;
     function splitRequests(text) {
-      const t = String(text || "").trim();
+      // A buy or sell that starts a second clause with no conjunction is its own request ("sell VTI buy VOO", megadoc
+      // E15); one after "to", "and", "then" or "or" is not ("sell my VTI to buy VOO" is one intent with a purpose).
+      const t = /^\s*(?:buy|sell)\b/i.test(String(text || "")) ? String(text || "").trim().replace(/(?<!\b(?:to|and|then|or|also|plus|,))\s+(?=(?:buy|sell)\s+\S)/gi, " and ") : String(text || "").trim();
       if (!MAYBE.test(t)) return null;
       const parts = t.split(/\s*(?:,\s*)?(?:\band then\b|\band also\b|\balso\b|\bthen\b|\band\b|\bplus\b|;)\s*|,\s*(?=(?:and\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|cancel|buy|sell|split|transfer|request)\b|@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:,|$|and\b))/i).map(x => x.trim()).filter(Boolean);
       if (parts.length < 2) return null;

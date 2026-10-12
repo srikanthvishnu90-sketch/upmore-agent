@@ -210,6 +210,7 @@ set("I04 I05", "NOT_BUILT", "IPO indications and allocations: the trade flow's o
 set("C09", "NOT_BUILT", "reminding someone else: Upmore messages nobody but the person; a reminder for the person offered with the exact phrase (said from code before the flows, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
 set("C07", "NOT_BUILT", "a request to a group chat: no group members are known; nothing requested; name them for a split (said from code before the flows, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
 set("C10", "BUILT", "a debt paid offline is marked settled in the person's own IOU log from how people say it ('sam says he already paid cash', 'sam paid me back in cash', 'sam settled up'); a note only, nothing paid or sent; never settles what the person owes", "tests/depth-IOU.test.cjs");
+set("E15", "LIMITED", "'sell VTI buy VOO' with no 'and' is now two requests in order (sell card first, then buy), never one card with the other dropped; settlement timing and tax notes are not said", "tests/router.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

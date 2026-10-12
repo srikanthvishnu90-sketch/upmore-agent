@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-X122n4Pyt2JUK0E/YMcBD4WnbD3p9tc2KEXiLA+yZY8=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-LwntJ405LfV/NciMQ8ST18Rlx6du/SA2UblsmzPKbdA=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -5620,21 +5620,111 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
     // user's financial data), finance_waitlist, listings. referrals is NOT in
     // this list on purpose: it has no user_id column (referrer_id/referee_id),
     // so saveRows() silently returned [] — it is exported separately below.
-    const tables = [["profiles", "created_at"], ["save_subscriptions", "created_at"],
-      ["save_ledger", "created_at"], ["save_renewals", "created_at"], ["save_claims", "created_at"],
-      ["save_receipts", "created_at"], ["simplefin_connections", "connected_at"],
-      ["simplefin_requests", "requested_at"], ["playbook_progress", "started_at"],
-      ["route_reminders", "created_at"], ["reminders", "created_at"], ["agent_tasks", "created_at"], ["agent_steps", "created_at"], ["action_ledger", "created_at"], ["finance_accounts", "created_at"],
-      ["finance_alerts", "created_at"], ["finance_goals", "created_at"],
+    // FIX (2026-10-12): the agent tables were all missing (linked accounts and
+    // transactions, settings with watches, rules and IOUs, standing payments,
+    // recipients, brokerage, findings, the ledger), and one select per table is
+    // capped at 1,000 rows by PostgREST. Each table is now read in pages of
+    // 1,000 in a stable order, and a table that can't be read is named in
+    // _unreadable instead of exported as empty. This list must equal
+    // tests/fixtures/export-tables.json (tests/export-coverage.test.cjs), which
+    // tests/db/export_coverage.test.sql checks against the database.
+    // [table, order columns, columns when select * is not granted]
+    const EXPORT_TABLES = [
+      ["profiles", "created_at"],
+      ["save_subscriptions", "created_at"],
+      ["save_ledger", "created_at"],
+      ["save_renewals", "created_at"],
+      ["save_claims", "created_at"],
+      ["save_receipts", "created_at"],
+      ["simplefin_connections", "connected_at"],
+      ["simplefin_requests", "requested_at"],
+      ["playbook_progress", "started_at"],
+      ["route_reminders", "created_at"],
+      ["reminders", "created_at"],
+      ["agent_tasks", "created_at"],
+      ["agent_steps", "created_at"],
+      ["action_ledger", "created_at"],
+      ["finance_accounts", "created_at"],
+      ["finance_alerts", "created_at"],
+      ["finance_goals", "created_at"],
       ["finance_snapshots", "created_at"],
-      ["referral_credits", "created_at"], ["user_subscriptions", "created_at"],
-      ["exec_approvals", "created_at"], ["exec_runs", "started_at"],
-      ["exec_credential_refs", "created_at"], ["plaid_requests", "requested_at"],
-      ["web_agent_jobs", "created_at"], ["agent_usage", "created_at"],
-      ["plaid_spend_ledger", "created_at"], ["plaid_holdings_cache", "fetched_at"],
-      ["finance_waitlist", "created_at"], ["listings", "created_at"]];
-    const out = { exported_at: new Date().toISOString(), user_id: financeTicket.owner };
-    for (const [t, col] of tables) {if(!financeTicket.current())return;out[t] = t==='profiles' ? [(await supa.from('profiles').select('*').eq('id',financeTicket.owner).maybeSingle()).data].filter(Boolean) : await saveRows(t,col,false,financeTicket);if(!financeTicket.current())return;}
+      ["referral_credits", "created_at"],
+      ["user_subscriptions", "created_at"],
+      ["exec_approvals", "created_at"],
+      ["exec_runs", "started_at"],
+      ["exec_credential_refs", "created_at"],
+      ["plaid_requests", "requested_at"],
+      ["web_agent_jobs", "created_at"],
+      ["agent_usage", "created_at"],
+      ["plaid_spend_ledger", "created_at"],
+      ["plaid_holdings_cache", "fetched_at"],
+      ["finance_waitlist", "created_at"],
+      ["listings", "created_at"],
+      ["agent_financial_accounts", "fetched_at,account_id"],
+      ["agent_financial_transactions", "posted_on,account_id,provider_transaction_id"],
+      ["agent_account_preferences", "updated_at,account_id"],
+      ["agent_financial_syncs", "fetched_at,provider"],
+      ["agent_financial_ingestions", "created_at,id"],
+      ["agent_transaction_reviews", "created_at,provider_transaction_id,review_revision"],
+      ["agent_transaction_review_pairs", "created_at,request_id"],
+      ["agent_transaction_revisions", "captured_at,provider_transaction_id,revision"],
+      ["agent_proactive_settings", "updated_at"],
+      ["agent_proactive_log", "sent_at,key"],
+      ["agent_settings", "updated_at"],
+      ["agent_flow_state", "updated_at,thread_id"],
+      ["standing_payments", "created_at,id"],
+      ["saved_recipients", "created_at,id"],
+      ["brokerage_accounts", "created_at,id", "id,user_id,provider,label,status,account_id,account_mask,scope,connected_at,created_at"],
+      ["manual_connections", "created_at,platform_id"],
+      ["user_oauth_connections", "connected_at,provider"],
+      ["agent_message_channels", "created_at,id"],
+      ["agent_message_inbox", "created_at,id"],
+      ["agent_message_outbox", "created_at,id"],
+      ["agent_message_delivery_events", "created_at,id"],
+      ["agent_message_turns", "created_at,inbox_id"],
+      ["agent_findings", "first_seen_at,id"],
+      ["agent_ledger", "created_at,id"],
+      ["agent_scheduled", "created_at,id"],
+      ["agent_cancel_watches", "created_at,id"],
+      ["cancel_claims", "created_at,id"],
+      ["playbook_reports", "created_at,id"],
+      ["agent_lessons", "created_at,id"],
+      ["agent_obligations", "created_at,id"],
+      ["agent_obligation_edits", "created_at,request_id"],
+      ["agent_biller_connections", "created_at,id"],
+      ["agent_biller_records", "external_id,connection_id"],
+      ["agent_payment_funding_accounts", "observed_at,id"],
+      ["agent_payment_coverage", "observed_at"],
+      ["agent_payment_attempts", "created_at,id"],
+      ["agent_payment_events", "created_at,provider_event_id"],
+      ["agent_workflow_tasks", "created_at,id"],
+      ["agent_workflow_events", "created_at,id"],
+      ["agent_recovery_cases", "created_at,id"],
+      ["agent_recovery_events", "created_at,id"],
+      ["agent_recovery_receipts", "created_at,request_id"],
+      ["agent_model_calls", "created_at,id"],
+      ["agent_turn_costs", "created_at,id"]];
+    const out = { exported_at: new Date().toISOString(), user_id: financeTicket.owner, _unreadable: [] };
+    const PAGE = 1000;
+    const exportRows = async (t, order, cols) => {
+      const rows = [];
+      for (let from = 0; ; from += PAGE) {
+        let q = supa.from(t).select(cols || "*").eq("user_id", financeTicket.owner);
+        for (const c of order.split(",")) q = q.order(c, { ascending: true });
+        const { data, error } = await q.range(from, from + PAGE - 1);
+        if (!financeTicket.current()) return null;
+        if (error || !Array.isArray(data) || data.some(row => row.user_id !== financeTicket.owner)) { out._unreadable.push(t); return []; }
+        rows.push(...data);
+        if (data.length < PAGE) return rows;
+      }
+    };
+    for (const [t, order, cols] of EXPORT_TABLES) {
+      if (!financeTicket.current()) return;
+      if (t === "profiles") { out[t] = [(await supa.from("profiles").select("*").eq("id", financeTicket.owner).maybeSingle()).data].filter(Boolean); continue; }
+      const rows = await exportRows(t, order, cols);
+      if (rows === null) return;
+      out[t] = rows;
+    }
     // referrals: no user_id column — the user is either the referrer or the referee
     try {
       const uid = financeTicket.owner;
@@ -5652,11 +5742,16 @@ globalThis.UpmorePrivateFinance = function ({storage,workspaceStorage,identity,u
       out.agent_messages = [];
       for (const th of (threads || [])) {
         if(!financeTicket.current() || th.user_id!==financeTicket.owner)return;
-        const { data: msgs } = await supa.from("agent_messages").select("*").eq("thread_id", th.id).order("created_at", { ascending: true });
-        if(!financeTicket.current())return;
-        (msgs || []).forEach(m => out.agent_messages.push(m));
+        // Paged like the tables above: a long thread is more than one 1,000-row read.
+        for (let from = 0; ; from += PAGE) {
+          const { data: msgs, error } = await supa.from("agent_messages").select("*").eq("thread_id", th.id).order("id", { ascending: true }).range(from, from + PAGE - 1);
+          if(!financeTicket.current())return;
+          if (error || !Array.isArray(msgs)) { if (!out._unreadable.includes("agent_messages")) out._unreadable.push("agent_messages"); break; }
+          msgs.forEach(m => out.agent_messages.push(m));
+          if (msgs.length < PAGE) break;
+        }
       }
-    } catch (e) { out.agent_threads = out.agent_threads || []; out.agent_messages = out.agent_messages || []; }
+    } catch (e) { out.agent_threads = out.agent_threads || []; out.agent_messages = out.agent_messages || []; out._unreadable.push("agent_threads"); }
     if(!financeTicket.current())return;
     const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
     const a = document.createElement("a");

@@ -5,6 +5,8 @@ set -euo pipefail
 export LC_ALL=C LANG=C
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
+# export_coverage.test.sql reads tests/fixtures/export-tables.json through psql from here.
+export UPMORE_ROOT="$ROOT"
 PGBIN="${PGBIN:-$(dirname "$(command -v postgres)")}"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/upmore-db-test.XXXXXX")"
 PORT="${PGTEST_PORT:-54329}"

@@ -1,0 +1,502 @@
+{
+ "about": "Every table the app's Export data reads (src/upmore-app-template.html EXPORT_TABLES must equal this list, tests/export-coverage.test.cjs), and every owner-readable table it leaves out with the reason (tests/db/export_coverage.test.sql checks the agent schema against both). Order columns page the read in a stable order, 1,000 rows at a time (PostgREST's default cap).",
+ "export": [
+  {
+   "table": "profiles",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "save_subscriptions",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "save_ledger",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "save_renewals",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "save_claims",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "save_receipts",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "simplefin_connections",
+   "order": [
+    "connected_at"
+   ]
+  },
+  {
+   "table": "simplefin_requests",
+   "order": [
+    "requested_at"
+   ]
+  },
+  {
+   "table": "playbook_progress",
+   "order": [
+    "started_at"
+   ]
+  },
+  {
+   "table": "route_reminders",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "reminders",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "agent_tasks",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "agent_steps",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "action_ledger",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "finance_accounts",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "finance_alerts",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "finance_goals",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "finance_snapshots",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "referral_credits",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "user_subscriptions",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "exec_approvals",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "exec_runs",
+   "order": [
+    "started_at"
+   ]
+  },
+  {
+   "table": "exec_credential_refs",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "plaid_requests",
+   "order": [
+    "requested_at"
+   ]
+  },
+  {
+   "table": "web_agent_jobs",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "agent_usage",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "plaid_spend_ledger",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "plaid_holdings_cache",
+   "order": [
+    "fetched_at"
+   ]
+  },
+  {
+   "table": "finance_waitlist",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "listings",
+   "order": [
+    "created_at"
+   ]
+  },
+  {
+   "table": "agent_financial_accounts",
+   "order": [
+    "fetched_at",
+    "account_id"
+   ]
+  },
+  {
+   "table": "agent_financial_transactions",
+   "order": [
+    "posted_on",
+    "account_id",
+    "provider_transaction_id"
+   ]
+  },
+  {
+   "table": "agent_account_preferences",
+   "order": [
+    "updated_at",
+    "account_id"
+   ]
+  },
+  {
+   "table": "agent_financial_syncs",
+   "order": [
+    "fetched_at",
+    "provider"
+   ]
+  },
+  {
+   "table": "agent_financial_ingestions",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_transaction_reviews",
+   "order": [
+    "created_at",
+    "provider_transaction_id",
+    "review_revision"
+   ]
+  },
+  {
+   "table": "agent_transaction_review_pairs",
+   "order": [
+    "created_at",
+    "request_id"
+   ]
+  },
+  {
+   "table": "agent_transaction_revisions",
+   "order": [
+    "captured_at",
+    "provider_transaction_id",
+    "revision"
+   ]
+  },
+  {
+   "table": "agent_proactive_settings",
+   "order": [
+    "updated_at"
+   ]
+  },
+  {
+   "table": "agent_proactive_log",
+   "order": [
+    "sent_at",
+    "key"
+   ]
+  },
+  {
+   "table": "agent_settings",
+   "order": [
+    "updated_at"
+   ]
+  },
+  {
+   "table": "agent_flow_state",
+   "order": [
+    "updated_at",
+    "thread_id"
+   ]
+  },
+  {
+   "table": "standing_payments",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "saved_recipients",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "brokerage_accounts",
+   "order": [
+    "created_at",
+    "id"
+   ],
+   "select": "id,user_id,provider,label,status,account_id,account_mask,scope,connected_at,created_at"
+  },
+  {
+   "table": "manual_connections",
+   "order": [
+    "created_at",
+    "platform_id"
+   ]
+  },
+  {
+   "table": "user_oauth_connections",
+   "order": [
+    "connected_at",
+    "provider"
+   ]
+  },
+  {
+   "table": "agent_message_channels",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_message_inbox",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_message_outbox",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_message_delivery_events",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_message_turns",
+   "order": [
+    "created_at",
+    "inbox_id"
+   ]
+  },
+  {
+   "table": "agent_findings",
+   "order": [
+    "first_seen_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_ledger",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_scheduled",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_cancel_watches",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "cancel_claims",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "playbook_reports",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_lessons",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_obligations",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_obligation_edits",
+   "order": [
+    "created_at",
+    "request_id"
+   ]
+  },
+  {
+   "table": "agent_biller_connections",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_biller_records",
+   "order": [
+    "external_id",
+    "connection_id"
+   ]
+  },
+  {
+   "table": "agent_payment_funding_accounts",
+   "order": [
+    "observed_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_payment_coverage",
+   "order": [
+    "observed_at"
+   ]
+  },
+  {
+   "table": "agent_payment_attempts",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_payment_events",
+   "order": [
+    "created_at",
+    "provider_event_id"
+   ]
+  },
+  {
+   "table": "agent_workflow_tasks",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_workflow_events",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_recovery_cases",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_recovery_events",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_recovery_receipts",
+   "order": [
+    "created_at",
+    "request_id"
+   ]
+  },
+  {
+   "table": "agent_model_calls",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  },
+  {
+   "table": "agent_turn_costs",
+   "order": [
+    "created_at",
+    "id"
+   ]
+  }
+ ],
+ "excluded": {
+  "agent_rate_limits": "a rate-limit counter; row security returns no rows to the person",
+  "agent_message_link_codes": "one-time link codes, hashed; not readable by the person",
+  "agent_workflow_rate_limits": "a rate-limit counter; not readable by the person",
+  "broker_oauth_states": "a 15-minute connect attempt; not readable by the person",
+  "broker_pending_links": "a connect awaiting confirmation; not readable by the person",
+  "agent_threads": "exported with agent_messages, per thread (messages carry no user_id)"
+ }
+}

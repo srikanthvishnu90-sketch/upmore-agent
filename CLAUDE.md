@@ -77,6 +77,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Savings target math (megadoc M06; read-only, no goal saved): "I want to save 10000 by June"; module `packages/domain/107-save-goal.js`, money kind "savegoal"; tests `node --test tests/depth-SAVE-GOAL.test.cjs && node evals/depth/run.cjs SAVE-GOAL`
 - Spending recheck (megadoc L06; read-only): "I spent less than that", "that's wrong", "break it down" right after a spending total; module `packages/domain/108-spend-recheck.js` over `MoneyAnswers.spendRows` (held to the same total as spend() in `tests/money-answers.test.cjs`), money kind "recheck"; tests `node --test tests/depth-SPEND-RECHECK.test.cjs && node evals/depth/run.cjs SPEND-RECHECK`
 - Account deletion leaves nothing (megadoc Q04): every per-person Vault secret has a declared way out `node --test tests/vault-deletion.test.cjs`; every user_id table cascades and a deleted account's Gmail token leaves the Vault (`20261012060000_oauth_vault_cascade.sql`) in `bash tests/db/run.sh` (`account_deletion_sweep.test.sql`, `oauth_vault_cascade.test.sql`)
+- Export data covers everything (privacy policy): the app's `EXPORT_TABLES` equals `tests/fixtures/export-tables.json` and pages past the 1,000-row cap `node --test tests/export-coverage.test.cjs`; every table a person can read about themselves is listed or excluded with a reason in `bash tests/db/run.sh` (`export_coverage.test.sql`)
 - Record a check: `python3 scripts/capture-checks.py <label>` writes `docs/testing/evidence-ledger.json`
 
 ## Rules

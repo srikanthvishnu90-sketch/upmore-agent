@@ -47,7 +47,7 @@ Pending credits are never the refund. S17-S22, D17-D22.
 | S14 | Three first-time merchants is safety | three new shops in a day go out as safety | `S14` in tests/depth-ALERTS.test.cjs | four are needed | proven |
 | S15 | The person's buffer | under a $500 buffer on Oct 15 | `S15` in tests/depth-ALERTS.test.cjs | the default $100 buffer is always used | proven |
 | S16 | One thing means one charge, nothing more (megadoc L09) | 'spend over 100 on one thing at target' is refused | `S16` in tests/depth-ALERTS.test.cjs | the end anchor is dropped, so a merchant after 'one thing' is ignored and a charge-over watch is guessed | proven |
-| S17 | No merchant, no refund watch | 'tell me when my refund posts' is not a refund watch | `S17` in tests/depth-ALERTS.test.cjs | a refund with no merchant is watched as merchant "my" | proven |
+| S17 | No merchant, no refund watch | 'tell me when refund posts' is not a refund watch | `S17` in tests/depth-ALERTS.test.cjs | a refund with no merchant is watched with an empty merchant, matching every credit | proven |
 | S17 | The merchant as typed | REI stays REI | `S17` in tests/depth-ALERTS.test.cjs | the merchant is kept lower-cased and title-cased, so REI becomes Rei | proven |
 | S18 | Business days skip weekends | 7 business days from Mon Oct 12 is Wed Oct 21 | `S18` in tests/depth-ALERTS.test.cjs | business days are counted as calendar days | proven |
 | S18 | No impossible date | Feb 30 is no deadline | `S18` in tests/depth-ALERTS.test.cjs | Feb 30 rolls over to Mar 2 | proven |
@@ -55,4 +55,8 @@ Pending credits are never the refund. S17-S22, D17-D22.
 | S20 | Another credit is said, not swallowed | a $12.00 credit is said with the watch still on | `S20` in tests/depth-ALERTS.test.cjs | other credits from the merchant are ignored | proven |
 | S21 | Late is the day after | on the deadline day nothing is late | `S21` in tests/depth-ALERTS.test.cjs | the deadline day itself is called late | proven |
 | S22 | Pending is not posted | a pending $45.99 credit is not the refund | `S22` in tests/depth-ALERTS.test.cjs | a pending credit is said as posted | proven |
+| S23 | No apostrophe still a refund watch | 'refund from airbnb doesnt show up' is merchant airbnb | `S23` in tests/depth-ALERTS.test.cjs | the negation is kept in the merchant ("airbnb doesnt") | proven |
+| S23 | The payer as subject | 'amazon hasnt refunded me' is a refund watch | `S23` in tests/depth-ALERTS.test.cjs | only 'my X refund' is read | proven |
+| S23 | By the 20th | 'by the 5th' after the 5th is next month's | `S23` in tests/depth-ALERTS.test.cjs | a passed day of the month is this month's | proven |
+| S23 | A generic payer is not a merchant | 'my refund from the airline' sets nothing | `S23` in tests/depth-ALERTS.test.cjs | "airline" is taken as the merchant | proven (also fails S17) |
 <!-- results:end -->

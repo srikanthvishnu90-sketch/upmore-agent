@@ -32,12 +32,14 @@ give $245.50 in one answer and $225.50 in a budget (S17, S18).
 | S02 | The ways people say it | 'target isn't shopping, it's groceries' is a rule for groceries | `S02` in tests/depth-CATEGORY-RULES.test.cjs | the isn't-it's form is not read, so the first category named wins | proven |
 | S03 | A money move is not a rule | 'categorize target under my budget' goes on | `S03` in tests/depth-CATEGORY-RULES.test.cjs | the savings, account and budget words are no longer kept out, so a budget is answered as an unknown category | proven |
 | S03 | A statement is not a rule | 'my biggest expense is groceries' goes on | `S03` in tests/depth-CATEGORY-RULES.test.cjs | any subject of 'is' is taken as a merchant | proven |
+| S03 | Subscriptions stay with the cancel flow | 'remove netflix from my subscriptions' goes on | `S03` in tests/depth-CATEGORY-RULES.test.cjs | the subscriptions exclusion is dropped, so a likely cancel is answered as a category rule | proven |
 | S04 | No pronoun as a merchant | 'recategorize that as groceries' saves nothing | `S04` in tests/depth-CATEGORY-RULES.test.cjs | the pronoun check is dropped, so a rule for the word "that" is saved | proven |
 | S05 | Food is asked, never guessed | 'count Target as food' asks which | `S05` in tests/depth-CATEGORY-RULES.test.cjs | food is taken as groceries | proven |
 | S06 | No rule for a bank word | 'count payment as shopping' saves nothing | `S06` in tests/depth-CATEGORY-RULES.test.cjs | the generic-word check is dropped | proven |
 | S07 | Already there is said, not saved | 'count Kroger as groceries' saves nothing | `S07` in tests/depth-CATEGORY-RULES.test.cjs | a rule repeating the default is saved | proven |
 | S08 | One rule per merchant | a second Target rule replaces the first | `S08` in tests/depth-CATEGORY-RULES.test.cjs | the old rule stays beside the new one | proven (also fails S12) |
 | S09 | Stop removes only the matching rule | 'stop counting Target as restaurants' changes nothing | `S09` in tests/depth-CATEGORY-RULES.test.cjs | the category in a stop is not checked | proven |
+| S09 | Out of a category is a stop | 'take target out of groceries' removes the rule | `S09` in tests/depth-CATEGORY-RULES.test.cjs | the out-of form is not read | proven |
 | S10 | Someone else's rule goes on | 'delete my autosave rule' is not ours | `S10` in tests/depth-CATEGORY-RULES.test.cjs | a rule we don't have is answered as ours | proven |
 | S11 | Clear all clears all | delete all my category rules leaves none | `S11` in tests/depth-CATEGORY-RULES.test.cjs | only the first rule is removed | proven |
 | S12 | At most 40 | a 41st rule is refused | `S12` in tests/depth-CATEGORY-RULES.test.cjs | the limit is not checked | proven |

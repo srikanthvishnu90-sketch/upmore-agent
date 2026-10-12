@@ -164,7 +164,7 @@ test("[S17] a promised refund is a watch: the merchant as typed, the amount, the
   assert.deepEqual(p("text me when my $120 refund from REI shows up"), ["refund_expected", "REI", 12000, null]);
   assert.deepEqual(p("alert me if my refund from United for the canceled flight hasn't posted in 7-10 business days"), ["refund_expected", "United", null, { kind: "days", n: 10, business: true }]);
   assert.deepEqual(p("ping me if the amazon refund of 23.10 isn't here by friday"), ["refund_expected", "amazon", 2310, { kind: "dow", dow: 5 }]);
-  for (const t of ["tell me when my refund posts", "tell me if my tax refund doesn't arrive by april 30", "tell me when amazon charges me"]) { const w = plain(A.parseWatch(t, NOON)); assert.ok(!w.ok || w.watch.kind !== "refund_expected", t); }
+  for (const t of ["tell me when my refund posts", "tell me when refund posts", "tell me if my tax refund doesn't arrive by april 30", "tell me when amazon charges me"]) { const w = plain(A.parseWatch(t, NOON)); assert.ok(!w.ok || w.watch.kind !== "refund_expected", t); }
 });
 
 test("[S18] the deadline is counted from the day the watch was set: business days skip weekends; a date already past is next year's", () => {
@@ -212,6 +212,19 @@ test("[S22] a pending credit or a credit before the watch is not the refund", ()
   assert.deepEqual(evalRefund(w, [tx("2026-10-12", 4599, "AMAZON.COM REFUND", { is_pending: true })]), []);
   assert.deepEqual(evalRefund(w, [tx("2026-10-01", 4599, "AMAZON.COM REFUND")]), [], "a credit from before the order is someone else's");
   assert.equal(evalRefund(w, [tx("2026-10-07", 4599, "AMAZON.COM REFUND")]).length, 1, "three days before the watch counts: it may have posted while the bank synced");
+});
+
+test("[S23] the way people actually type it: no apostrophes, the payer as subject, 'I don't get', 'by the 20th', 'isn't back'", () => {
+  const p = (t) => { const w = plain(A.parseWatch(t, NOON)); if (!w.ok || w.watch.kind !== "refund_expected") return null; const x = Object.assign(w.watch, { created_on: T }); return [x.merchant, x.amount_cents, A.dueOf(x)]; };
+  assert.deepEqual(p("let me know if the $89 refund from nike isnt back by the 20th"), ["nike", 8900, "2026-10-20"]);
+  assert.deepEqual(p("text me if my refund from airbnb doesnt show up in 10 days"), ["airbnb", null, "2026-10-22"]);
+  assert.deepEqual(p("alert me if i dont get my $200 refund from delta by nov 1"), ["delta", 20000, "2026-11-01"]);
+  assert.deepEqual(p("tell me if amazon hasnt refunded me by friday"), ["amazon", null, "2026-10-16"]);
+  assert.deepEqual(p("let me know if my $45.99 amazon return doesnt get refunded by oct 20"), ["amazon", 4599, "2026-10-20"]);
+  assert.deepEqual(p("tell me when the refund for my returned shoes from zappos arrives"), ["zappos", null, null]);
+  assert.deepEqual(p("tell me if my refund from chase hasnt posted by oct 31st"), ["chase", null, "2026-10-31"]);
+  assert.deepEqual(p("tell me if the refund from nike isnt back by the 5th"), ["nike", null, "2026-11-05"], "the 5th has passed this month: next month's");
+  for (const t of ["notify me when my refund from the airline posts", "tell me if my tax refund doesnt arrive by april 30", "tell me when my refund posts"]) assert.equal(p(t), null, t);
 });
 
 test("[ADV] planted descriptor text, paused watches and junk never reach an alert; every alert cites a source and an as-of", () => {

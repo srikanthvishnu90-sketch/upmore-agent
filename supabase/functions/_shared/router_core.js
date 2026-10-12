@@ -3519,27 +3519,40 @@
     // kept as said and resolved against the day the watch was set (dueOf), so "within 7 business days" counts from then.
     const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
     const DOWS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const REFUND_VERB = /\b(?:arrives?|arrived|come(?:s)? (?:in|through|back)|came (?:in|through|back)|posts?|posted|shows? up|showed up|shown up|lands?|landed|hits?|clears?|cleared|goes through|went through|(?:is|isn't|isnt|is not|gets?|got) here)\b/;
+    const REFUND_VERB = /\b(?:arrives?|arrived|come(?:s)? (?:in|through|back)|came (?:in|through|back)|posts?|posted|shows? up|showed up|shown up|lands?|landed|hits?|clears?|cleared|goes through|went through|(?:is|isn't|isnt|is not|gets?|got) here|(?:is|isn't|isnt|is not|comes?|came|gets?|got) back)\b/;
+    const NEG = "(?:doesn'?t|doesnt|does not|hasn'?t|hasnt|has not|isn'?t|isnt|is not|didn'?t|didnt|did not|don'?t|dont|do not|won'?t|wont|will not|never|still)";
+    const GENERIC_PAYER = /^(?:airline|the airline|store|the store|bank|company|merchant|seller|shop|retailer|restaurant|hotel|website|site|app|them|they|it|someone|tax|irs|federal|state|my|the|a|an|our|that|this)$/;
     function refundWatch(cond) {
-      const c = String(cond || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?]+$/, "").trim();
+      let c = String(cond || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[.!?]+$/, "").replace(/\s+/g, " ").trim();
+      if (!/\brefund/.test(c)) return null;
+      let m;
+      // "amazon refunds me", "amazon hasn't refunded me by friday": the payer is the subject.
+      if ((m = new RegExp(`^(?:the\\s+|my\\s+)?([a-z][\\w .'&-]*?)\\s+(?:${NEG}\\s+)?refund(?:s|ed)?\\s+(?:me|us)\\b(.*)$`).exec(c))) c = `my ${m[1]} refund arrives${m[2]}`;
+      // "i don't get my $200 refund from delta by nov 1", "i get my refund from target": the refund is the object.
+      else if ((m = new RegExp(`^(?:i\\s+|we\\s+)?(?:${NEG}\\s+)?(?:get|receive|see)\\s+(.*\\brefund\\b.*)$`).exec(c))) { const k = m[1].search(/\s(?:by|before|until|within|in \d|in the next)\b/); c = k >= 0 ? `${m[1].slice(0, k)} arrives${m[1].slice(k)}` : `${m[1]} arrives`; }
+      // "my amazon return doesn't get refunded by oct 20": the return's refund.
+      c = c.replace(new RegExp(`\\b(?:return|order|purchase)\\s+(?:${NEG}\\s+)?(?:get|gets|got|is|was|been)\\s+refunded\\b`), "refund arrives");
       if (!/\brefund\b/.test(c) || !REFUND_VERB.test(c)) return null;
       const subject = c.split(REFUND_VERB)[0];
       const amt = /\$\s?(\d[\d,]*(?:\.\d{1,2})?)/.exec(subject) || /\b(\d[\d,]*\.\d{2})\b/.exec(subject) || /\b(?:refund|credit) (?:of|for) (\d[\d,]*(?:\.\d{1,2})?)\b/.exec(subject) || /\b(\d[\d,]*(?:\.\d{1,2})?) (?:dollars? |bucks? )?refund\b/.exec(subject);
-      const words = subject.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?/g, " ").replace(/\b\d[\d,]*(?:\.\d{1,2})?\b(?: dollars?| bucks?)?/g, " ").replace(/\s+/g, " ").trim();
-      const from = /\brefund (?:of |for )?(?:\S+ )?from ([a-z][\w .'&-]*?)(?: (?:for|on|of)\b.*)?\s*(?:doesn't|does not|hasn't|has not|isn't|is not|never|won't|will not|still)?\s*$/.exec(words);
+      const words = subject.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?/g, " ").replace(/\b\d[\d,]*(?:\.\d{1,2})?\b(?: dollars?| bucks?)?/g, " ").replace(/\s+/g, " ").trim().replace(new RegExp(`\\s+${NEG}$`), "");
+      const from = /\bfrom\s+(?:the\s+|my\s+)?([a-z][\w .'&-]*?)(?:\s+(?:for|on|of)\b.*)?\s*$/.exec(words);
       const before = /^(?:(?:my|the|our|that|this)\s+)?([a-z][\w .'&-]*?)\s+refund\b/.exec(words);
-      const merchant = ((from && from[1]) || (before && before[1]) || "").replace(/\s+(?:order|purchase|return)$/, "").trim();
-      if (!merchant || /^(?:my|the|a|an|our|that|this|tax|irs|federal|state)$/.test(merchant) || /\b(?:tax|irs)\b/.test(merchant)) return null;
+      const merchant = ((from && /\brefund\b/.test(words.slice(0, from.index)) && from[1]) || (before && before[1]) || "").replace(/\s+(?:order|purchase|return)$/, "").trim();
+      if (!merchant || GENERIC_PAYER.test(merchant) || /\b(?:tax|irs)\b/.test(merchant)) return null;
       // The merchant as the person typed it ("REI", "Best Buy"), found again in their own words.
       const at = String(cond || "").toLowerCase().replace(/[’‘]/g, "'").indexOf(merchant), typed = at >= 0 ? String(cond).slice(at, at + merchant.length) : merchant;
-      // The deadline, after the verb: a date (Oct 20, October 20th, 10/20, 10/20/2026), a weekday, or N (business) days.
+      // The deadline, after the verb: a date (Oct 20, October 20th, 10/20, 10/20/2026), the 20th, a weekday, or N
+      // (business) days.
       const tail = c.slice(c.search(REFUND_VERB));
-      let due = null, m;
+      let due = null;
       if ((m = /\b(?:by|before|until|on)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/.exec(tail))) due = { kind: "date", m: MONTHS.indexOf(m[1].slice(0, 3)) + 1, d: +m[2], y: m[3] ? +m[3] : null };
       else if ((m = /\b(?:by|before|until|on)\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(tail))) due = { kind: "date", m: +m[1], d: +m[2], y: m[3] ? (m[3].length === 2 ? 2000 + +m[3] : +m[3]) : null };
+      else if ((m = /\b(?:by|before|until|on)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\b/.exec(tail))) due = { kind: "dom", d: +m[1] };
       else if ((m = /\b(?:by|before|until|on)\s+(?:this |next )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/.exec(tail))) due = { kind: "dow", dow: DOWS.indexOf(m[1]) };
-      else if ((m = /\b(?:in|within|after)\s+(\d{1,2})(?:\s*(?:-|to)\s*(\d{1,2}))?\s+(business |working )?days?\b/.exec(tail))) due = { kind: "days", n: +(m[2] || m[1]), business: !!m[3] };
+      else if ((m = /\b(?:in|within|after)\s+(?:the next\s+)?(\d{1,2})(?:\s*(?:-|to)\s*(\d{1,2}))?\s+(business |working )?days?\b/.exec(tail))) due = { kind: "days", n: +(m[2] || m[1]), business: !!m[3] };
       if (due && due.kind === "date" && (due.m < 1 || due.m > 12 || due.d < 1 || due.d > 31)) return null;
+      if (due && due.kind === "dom" && (due.d < 1 || due.d > 31)) return null;
       return { kind: "refund_expected", merchant: typed, amount_cents: amt ? toCents(amt[1]) : null, due };
     }
     // The deadline as a date (YYYY-MM-DD), counted from the day the watch was set; null when none was said.
@@ -3548,6 +3561,12 @@
       if (!due || !base) return null;
       const b = dayMs(base), iso = ms => new Date(ms).toISOString().slice(0, 10);
       if (due.kind === "days") { if (!due.business) return iso(b + due.n * DAY); let ms = b, left = due.n; while (left > 0) { ms += DAY; const wd = new Date(ms).getUTCDay(); if (wd !== 0 && wd !== 6) left--; } return iso(ms); }
+      if (due.kind === "dom") {
+        // "by the 20th": this month's 20th if it hasn't passed, else next month's (a month without that day has none).
+        const y0 = +base.slice(0, 4), m0 = +base.slice(5, 7);
+        for (const [y, mo] of [[y0, m0], m0 === 12 ? [y0 + 1, 1] : [y0, m0 + 1]]) { const d = new Date(Date.UTC(y, mo - 1, due.d)); const k = iso(d.getTime()); if (d.getUTCMonth() === mo - 1 && k >= base) return k; }
+        return null;
+      }
       if (due.kind === "dow") { let ms = b + DAY; while (new Date(ms).getUTCDay() !== due.dow) ms += DAY; return iso(ms); }
       if (due.kind === "date") {
         const y0 = +base.slice(0, 4), mk = y => `${y}-${String(due.m).padStart(2, "0")}-${String(due.d).padStart(2, "0")}`;
@@ -12284,7 +12303,7 @@
     }
 
     // ---- the person's words ----
-    const LEAD = /^\s*(?:(?:hey|hi|ok|okay|so|yo|pls|please|upmore)[,\s]+)*(?:(?:can|could|would|will) you\s+(?:please\s+)?|please\s+|pls\s+|i want (?:you )?to\s+|i'd like (?:you )?to\s+)?/i;
+    const LEAD = /^\s*(?:(?:hey|hi|ok|okay|so|yo|pls|please|upmore)[,\s]+)*(?:(?:can|could|would|will) (?:you|u)\s+(?:please\s+|pls\s+)?|please\s+|pls\s+|i want (?:you )?to\s+|i'd like (?:you )?to\s+)?/i;
     const TAIL = /(?:\s+(?:from now on|going forward|always|instead|please|pls|thanks|thank you|for me|too|now|anymore|any more))+$/;
     const clean = (m) => String(m || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(LEAD, "").replace(/\s+/g, " ").replace(/[\s?.!]+$/, "").replace(TAIL, "").trim();
     const QUESTION = /^(?:how|what|why|when|where|which|who|should|could|would|do|does|did|can|is|are|am|if|was|were)\b/;
@@ -12312,14 +12331,19 @@
     }
 
     const SET_STRONG = /^(?:always\s+)?(?:re-?categori[sz]e|categori[sz]e|re-?classify|classify)\s+(.+?)\s+(?:as|under|in|into|to)\s+(.+)$/;
-    const SET_WEAK = /^(?:always\s+)?(?:count|treat|mark|file|tag|label|put|move)\s+(.+?)\s+(?:as|under|in|into)\s+(.+)$/;
+    const SET_WEAK = /^(?:always\s+)?(?:count|treat|mark|file|tag|label|put|move)\s+(.+?)\s+(?:as|under|in|into|to)\s+(.+)$/;
+    // Chat shorthand: "target = groceries", "target -> groceries" (a known category only, like the bare "is" form).
+    const ARROW = /^(.+?)\s*(?:=|->|=>|\u2192)\s*(.+)$/;
     const CHANGE = /^(?:change|switch|set)\s+(?:the\s+category\s+(?:of|for)\s+)?(.+?)(?:(?:'s)?\s+category)?\s+(?:to|into)\s+(.+)$/;
     const ISNT_ITS = /^(.+?)\s+(?:isn'?t|is not|isnt|aint|ain't)\s+(?:a\s+|an\s+)?(.+?)[,;]?\s+(?:it'?s|it is|that'?s|thats)\s+(?:a\s+|an\s+)?(.+)$/;
     const IS = /^(.+?)\s+(?:should be|should count as|counts as|is|are|goes under|go under|belongs (?:in|under)|should go (?:in|under)|should be in)\s+(?:a\s+|an\s+|in\s+|under\s+)?(.+)$/;
-    const STOP_COUNT = /^(?:(?:stop|quit)\s+counting|(?:don'?t|do not|dont|never)\s+count)\s+(.+?)\s+as\s+(?:a\s+|an\s+)?(.+)$/;
+    const STOP_COUNT = /^(?:(?:stop|quit)\s+(?:counting|putting|categori[sz]ing|filing)|(?:don'?t|do not|dont|never)\s+(?:count|put|file))\s+(.+?)\s+(?:as|in|under|into)\s+(?:a\s+|an\s+|the\s+)?(.+)$/;
+    // "take Target out of groceries", "remove Target from groceries". Never for subscriptions: "remove netflix from my
+    // subscriptions" may be a cancel, so it goes on.
+    const OUT_OF = /^(?:remove|take)\s+(.+?)\s+(?:out of|from)\s+(?:my\s+|the\s+)?(.+)$/;
     const REMOVE = /^(?:delete|remove|forget|undo|drop|clear|cancel|stop)\s+(?:my\s+|the\s+)?(?:(category\s+)?rule\s+(?:for|on|about)\s+(.+)|(.+?)\s+(category\s+)?rule)$/;
     const REMOVE_ALL = /^(?:delete|remove|clear|forget|reset|erase|drop|undo)\s+(?:all\s+)?(?:of\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$/;
-    const LIST_ASK = /^(?:(?:show|list|see|view|give|tell)(?: me)?|what are|whats|what's|what is)\s+(?:all\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$|^(?:my\s+)?(?:category|categori[sz]ation)\s+rules$/;
+    const LIST_ASK = /^(?:(?:show|list|see|view|give|tell)(?: me)?|what are|whats|what's|what is)\s+(?:all\s+)?(?:(?:my|the)\s+)?(?:category|categori[sz]ation)\s+rules$|^(?:my\s+)?(?:category|categori[sz]ation)\s+rules$/;
     const NOT_A_NAME = /^(?:my|our|your|the|a|an|this|that|it|most|all|half|some|everything|what|which)\b|\b(?:biggest|largest|most|main|top|favorite|favourite|expenses?|spending|problem|weakness|habit|category|money|bills?|budget|thing|things|cost|costs)\b/;
     // Money places, and words that make it a dispute or a tax question ("classify this charge as fraud", "mark Staples as
     // a business expense"): not a category rule, so they go on to the dispute flow or the model.
@@ -12340,6 +12364,10 @@
         const g = groupOf(m[2]);
         return g && g !== "food" ? { kind: "stop", all: false, term: termOf(m[1]), group: g, explicit: true } : null;
       }
+      if ((m = OUT_OF.exec(t))) {
+        const g = groupOf(m[2]);
+        if (g && g !== "food" && g !== "subscriptions") return { kind: "stop", all: false, term: termOf(m[1]), group: g, explicit: true };
+      }
       const set = (x, y, strong) => {
         if (NOT_OURS.test(y)) return null;
         const term = termOf(x), g = groupOf(y), named = /\bcategor/.test(y) || strong;
@@ -12352,6 +12380,10 @@
       if ((m = SET_STRONG.exec(t))) return set(m[1], m[2], true);
       if ((m = SET_WEAK.exec(t))) return set(m[1], m[2], false);
       if ((m = CHANGE.exec(t))) return set(m[1], m[2], false);
+      if ((m = ARROW.exec(t))) {
+        const g = groupOf(m[2]), subj = m[1].trim();
+        if (g && g !== "food" && !NOT_A_NAME.test(subj) && subj.split(/\s+/).length <= 4) return { kind: "set", term: termOf(subj), group: g, food: false, unknown: null };
+      }
       if ((m = IS.exec(t))) {
         // "target is groceries": only when the rest is exactly a category, so "gas is expensive" or "netflix is a
         // subscription i want to cancel" goes on; and only when the subject reads like a merchant's name, so "my biggest

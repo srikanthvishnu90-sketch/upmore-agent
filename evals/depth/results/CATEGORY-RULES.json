@@ -1,9 +1,9 @@
 {
  "capability": "CATEGORY-RULES",
- "run_at": "2026-10-12T08:24:54.268Z",
+ "run_at": "2026-10-12T08:51:03.002Z",
  "baseline_all_green": true,
  "sub_capabilities": 20,
- "proven": 23,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -45,6 +45,17 @@
    "title": "A statement is not a rule",
    "defect": "any subject of 'is' is taken as a merchant",
    "test": "'my biggest expense is groceries' goes on",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03c",
+   "title": "Subscriptions stay with the cancel flow",
+   "defect": "the subscriptions exclusion is dropped, so a likely cancel is answered as a category rule",
+   "test": "'remove netflix from my subscriptions' goes on",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -113,6 +124,17 @@
    "title": "Stop removes only the matching rule",
    "defect": "the category in a stop is not checked",
    "test": "'stop counting Target as restaurants' changes nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09b",
+   "title": "Out of a category is a stop",
+   "defect": "the out-of form is not read",
+   "test": "'take target out of groceries' removes the rule",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -1,9 +1,9 @@
 {
  "capability": "ALERTS",
- "run_at": "2026-10-12T08:38:00.394Z",
+ "run_at": "2026-10-12T08:52:50.572Z",
  "baseline_all_green": true,
- "sub_capabilities": 22,
- "proven": 24,
+ "sub_capabilities": 23,
+ "proven": 28,
  "problems": [],
  "rows": [
   {
@@ -194,8 +194,8 @@
    "sub": "S17",
    "id": "D17",
    "title": "No merchant, no refund watch",
-   "defect": "a refund with no merchant is watched as merchant \"my\"",
-   "test": "'tell me when my refund posts' is not a refund watch",
+   "defect": "a refund with no merchant is watched with an empty merchant, matching every credit",
+   "test": "'tell me when refund posts' is not a refund watch",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -278,6 +278,52 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23",
+   "title": "No apostrophe still a refund watch",
+   "defect": "the negation is kept in the merchant (\"airbnb doesnt\")",
+   "test": "'refund from airbnb doesnt show up' is merchant airbnb",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23b",
+   "title": "The payer as subject",
+   "defect": "only 'my X refund' is read",
+   "test": "'amazon hasnt refunded me' is a refund watch",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23c",
+   "title": "By the 20th",
+   "defect": "a passed day of the month is this month's",
+   "test": "'by the 5th' after the 5th is next month's",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23d",
+   "title": "A generic payer is not a merchant",
+   "defect": "\"airline\" is taken as the merchant",
+   "test": "'my refund from the airline' sets nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S17"
+   ],
    "status": "proven"
   }
  ]

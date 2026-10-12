@@ -33,14 +33,14 @@ test("[S01] 'recategorize Target as groceries' saves one rule and restates it ex
 test("[S02] the ways people say it: count, put under, change to, is, isn't X it's Y, always, please", () => {
   const p = (m) => { const x = CR.parse(m); return x && [x.kind, x.term, x.group]; };
   for (const m of ["count target as groceries", "put Target under groceries", "change target to groceries", "change target's category to groceries", "target is groceries", "target should be groceries",
-    "target isn't shopping, it's groceries", "always categorize Target as groceries", "can you please recategorize my Target purchases as groceries from now on", "re-categorize target as grocery", "file target under grocery store"]) assert.deepEqual(p(m), ["set", "target", "groceries"], m);
+    "target isn't shopping, it's groceries", "always categorize Target as groceries", "can you please recategorize my Target purchases as groceries from now on", "re-categorize target as grocery", "file target under grocery store", "can u put target in groceries", "move target to the grocery category", "target = groceries", "target → groceries", "target -> groceries"]) assert.deepEqual(p(m), ["set", "target", "groceries"], m);
   assert.deepEqual(p("count trader joe’s as groceries"), ["set", "trader joe's", "groceries"]);
   assert.deepEqual(p("starbucks is coffee"), ["set", "starbucks", "restaurants"]);
 });
 
 test("[S03] asks that are not rules go on: money moves, questions, settings, other things called 'is'", () => {
   for (const m of ["move 500 to savings", "put 200 in savings", "categorize target under my budget", "recategorize netflix into my savings account", "classify this charge as fraud", "mark staples as a business expense", "categorize uber as a work expense", "move $50 into my groceries budget", "gas is expensive", "is target groceries?", "how do i categorize target as groceries",
-    "netflix is a subscription i want to cancel", "my biggest expense is groceries", "most of it is shopping", "set quiet hours to 10pm", "change my time zone to pacific", "mark this as spam", "count me in", "my rent is due", "uber is late"]) assert.equal(CR.parse(m), null, m);
+    "netflix is a subscription i want to cancel", "my biggest expense is groceries", "most of it is shopping", "set quiet hours to 10pm", "change my time zone to pacific", "mark this as spam", "count me in", "my rent is due", "uber is late", "remove netflix from my subscriptions", "put money to work", "move my 401k to fidelity", "x = 5", "put target to bed"]) assert.equal(CR.parse(m), null, m);
 });
 
 test("[S04] a pronoun is never guessed into a merchant", () => {
@@ -84,6 +84,7 @@ test("[S09] stop counting: the rule goes and the old category comes back; the wr
   assert.equal(c.reply, 'Removed your rule: charges that say "Target" count as shopping again, as they did before. Nothing else changed.');
   assert.deepEqual(cmd("stop counting Target as restaurants", [TARGET]), { rules: null, reply: 'Your rule counts "Target" as groceries, not restaurants, so nothing changed.' });
   assert.match(cmd("don't count Kroger as groceries").reply, /^"Kroger" counts as groceries by default, not by a rule of yours\./);
+  for (const m of ["stop putting target in groceries", "remove target from groceries", "take target out of groceries"]) assert.deepEqual(cmd(m, [TARGET]).rules, [], m);
 });
 
 test("[S10] someone else's rule is left alone: 'delete my autosave rule' goes on", () => {
@@ -94,6 +95,7 @@ test("[S10] someone else's rule is left alone: 'delete my autosave rule' goes on
 
 test("[S11] list them, and clear them all", () => {
   assert.equal(cmd("show my category rules", [TARGET]).reply, 'Your category rules: "Target" counts as groceries. They change how I count, nothing at your bank.');
+  assert.equal(cmd("show category rules", [TARGET]).reply, cmd("show my category rules", [TARGET]).reply);
   assert.equal(cmd("what are my category rules", []).reply, `You don't have any category rules. Say "count Target as groceries" to add one.`);
   const c = cmd("delete all my category rules", [TARGET, rule("joes corner store", "groceries")]);
   assert.deepEqual(c.rules, []);

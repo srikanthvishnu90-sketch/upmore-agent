@@ -39,7 +39,7 @@
     }
 
     // ---- the person's words ----
-    const LEAD = /^\s*(?:(?:hey|hi|ok|okay|so|yo|pls|please|upmore)[,\s]+)*(?:(?:can|could|would|will) you\s+(?:please\s+)?|please\s+|pls\s+|i want (?:you )?to\s+|i'd like (?:you )?to\s+)?/i;
+    const LEAD = /^\s*(?:(?:hey|hi|ok|okay|so|yo|pls|please|upmore)[,\s]+)*(?:(?:can|could|would|will) (?:you|u)\s+(?:please\s+|pls\s+)?|please\s+|pls\s+|i want (?:you )?to\s+|i'd like (?:you )?to\s+)?/i;
     const TAIL = /(?:\s+(?:from now on|going forward|always|instead|please|pls|thanks|thank you|for me|too|now|anymore|any more))+$/;
     const clean = (m) => String(m || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(LEAD, "").replace(/\s+/g, " ").replace(/[\s?.!]+$/, "").replace(TAIL, "").trim();
     const QUESTION = /^(?:how|what|why|when|where|which|who|should|could|would|do|does|did|can|is|are|am|if|was|were)\b/;
@@ -67,14 +67,19 @@
     }
 
     const SET_STRONG = /^(?:always\s+)?(?:re-?categori[sz]e|categori[sz]e|re-?classify|classify)\s+(.+?)\s+(?:as|under|in|into|to)\s+(.+)$/;
-    const SET_WEAK = /^(?:always\s+)?(?:count|treat|mark|file|tag|label|put|move)\s+(.+?)\s+(?:as|under|in|into)\s+(.+)$/;
+    const SET_WEAK = /^(?:always\s+)?(?:count|treat|mark|file|tag|label|put|move)\s+(.+?)\s+(?:as|under|in|into|to)\s+(.+)$/;
+    // Chat shorthand: "target = groceries", "target -> groceries" (a known category only, like the bare "is" form).
+    const ARROW = /^(.+?)\s*(?:=|->|=>|\u2192)\s*(.+)$/;
     const CHANGE = /^(?:change|switch|set)\s+(?:the\s+category\s+(?:of|for)\s+)?(.+?)(?:(?:'s)?\s+category)?\s+(?:to|into)\s+(.+)$/;
     const ISNT_ITS = /^(.+?)\s+(?:isn'?t|is not|isnt|aint|ain't)\s+(?:a\s+|an\s+)?(.+?)[,;]?\s+(?:it'?s|it is|that'?s|thats)\s+(?:a\s+|an\s+)?(.+)$/;
     const IS = /^(.+?)\s+(?:should be|should count as|counts as|is|are|goes under|go under|belongs (?:in|under)|should go (?:in|under)|should be in)\s+(?:a\s+|an\s+|in\s+|under\s+)?(.+)$/;
-    const STOP_COUNT = /^(?:(?:stop|quit)\s+counting|(?:don'?t|do not|dont|never)\s+count)\s+(.+?)\s+as\s+(?:a\s+|an\s+)?(.+)$/;
+    const STOP_COUNT = /^(?:(?:stop|quit)\s+(?:counting|putting|categori[sz]ing|filing)|(?:don'?t|do not|dont|never)\s+(?:count|put|file))\s+(.+?)\s+(?:as|in|under|into)\s+(?:a\s+|an\s+|the\s+)?(.+)$/;
+    // "take Target out of groceries", "remove Target from groceries". Never for subscriptions: "remove netflix from my
+    // subscriptions" may be a cancel, so it goes on.
+    const OUT_OF = /^(?:remove|take)\s+(.+?)\s+(?:out of|from)\s+(?:my\s+|the\s+)?(.+)$/;
     const REMOVE = /^(?:delete|remove|forget|undo|drop|clear|cancel|stop)\s+(?:my\s+|the\s+)?(?:(category\s+)?rule\s+(?:for|on|about)\s+(.+)|(.+?)\s+(category\s+)?rule)$/;
     const REMOVE_ALL = /^(?:delete|remove|clear|forget|reset|erase|drop|undo)\s+(?:all\s+)?(?:of\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$/;
-    const LIST_ASK = /^(?:(?:show|list|see|view|give|tell)(?: me)?|what are|whats|what's|what is)\s+(?:all\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$|^(?:my\s+)?(?:category|categori[sz]ation)\s+rules$/;
+    const LIST_ASK = /^(?:(?:show|list|see|view|give|tell)(?: me)?|what are|whats|what's|what is)\s+(?:all\s+)?(?:(?:my|the)\s+)?(?:category|categori[sz]ation)\s+rules$|^(?:my\s+)?(?:category|categori[sz]ation)\s+rules$/;
     const NOT_A_NAME = /^(?:my|our|your|the|a|an|this|that|it|most|all|half|some|everything|what|which)\b|\b(?:biggest|largest|most|main|top|favorite|favourite|expenses?|spending|problem|weakness|habit|category|money|bills?|budget|thing|things|cost|costs)\b/;
     // Money places, and words that make it a dispute or a tax question ("classify this charge as fraud", "mark Staples as
     // a business expense"): not a category rule, so they go on to the dispute flow or the model.
@@ -95,6 +100,10 @@
         const g = groupOf(m[2]);
         return g && g !== "food" ? { kind: "stop", all: false, term: termOf(m[1]), group: g, explicit: true } : null;
       }
+      if ((m = OUT_OF.exec(t))) {
+        const g = groupOf(m[2]);
+        if (g && g !== "food" && g !== "subscriptions") return { kind: "stop", all: false, term: termOf(m[1]), group: g, explicit: true };
+      }
       const set = (x, y, strong) => {
         if (NOT_OURS.test(y)) return null;
         const term = termOf(x), g = groupOf(y), named = /\bcategor/.test(y) || strong;
@@ -107,6 +116,10 @@
       if ((m = SET_STRONG.exec(t))) return set(m[1], m[2], true);
       if ((m = SET_WEAK.exec(t))) return set(m[1], m[2], false);
       if ((m = CHANGE.exec(t))) return set(m[1], m[2], false);
+      if ((m = ARROW.exec(t))) {
+        const g = groupOf(m[2]), subj = m[1].trim();
+        if (g && g !== "food" && !NOT_A_NAME.test(subj) && subj.split(/\s+/).length <= 4) return { kind: "set", term: termOf(subj), group: g, food: false, unknown: null };
+      }
       if ((m = IS.exec(t))) {
         // "target is groceries": only when the rest is exactly a category, so "gas is expensive" or "netflix is a
         // subscription i want to cancel" goes on; and only when the subject reads like a merchant's name, so "my biggest

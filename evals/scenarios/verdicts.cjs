@@ -47,7 +47,7 @@ set("C04", "NOT_BUILT", "named groups ('roommates'); asks who");
 set("C08", "MODEL", "answered by the chat model (request status reads are not flows)");
 set("C12", "BUILT", "\"split it\" with nothing open is asked back (what, how much, with whom), no model call, nothing requested", "tests/router.test.cjs");
 set("C05", "BUILT", "logged in the IOU log from the person's words (IouLog, 105-iou-log.js, the settings path): restated exactly as a note; nothing is requested from Jake or sent; no amount is asked, never guessed", "tests/edge/iou.test.ts");
-set("C06", "NOT_BUILT", "itemized splits; says so", "tests/edge/megadoc-sim.test.ts");
+set("C06", "LIMITED", "Sam's $12.00 salad is Sam's; who else splits the other $84.00 is asked (\"just me\" or names), evenly on exact cents with the odd cent the person's; the requests sum to the total; requests are made by the person in their app (handoff)", "tests/depth-RAIL-1.test.cjs");
 set("C07", "NOT_BUILT", "group-chat member lists");
 set("C09", "NOT_BUILT", "reminders sent to other people");
 set("C10", "NOT_BUILT", "marking a request settled offline");

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-1",
- "run_at": "2026-10-12T20:05:07.157Z",
+ "run_at": "2026-10-12T20:11:52.364Z",
  "baseline_all_green": true,
- "sub_capabilities": 21,
- "proven": 22,
+ "sub_capabilities": 22,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -44,7 +44,8 @@
     "S15",
     "S16",
     "S17",
-    "S19"
+    "S19",
+    "S22"
    ],
    "status": "proven"
   },
@@ -66,7 +67,8 @@
     "S18",
     "S19",
     "S20",
-    "S21"
+    "S21",
+    "S22"
    ],
    "status": "proven"
   },
@@ -307,6 +309,39 @@
    "title": "Splits by percentage",
    "defect": "a percentage is read as the amount (\"i pay 70% of 2400\" splits $70.00)",
    "test": "i pay 70% of 2400 requests from $2,400.00",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D23",
+   "title": "Itemized splits",
+   "defect": "an item owner also takes a share of the rest, so the others are under-asked",
+   "test": "sam's salad is all Sam pays; the other $84.00 is split among the rest",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D24",
+   "title": "Itemized splits",
+   "defect": "the item's own number is read as the total",
+   "test": "sam only had a salad for 12, split 96: the total is 96",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D25",
+   "title": "Itemized splits",
+   "defect": "'she' is read only at staging, so a name added after makes it unclear",
+   "test": "with sarah, she only had a salad: she is Sarah",
    "bites": true,
    "applied": true,
    "collateral": [],

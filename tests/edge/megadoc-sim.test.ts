@@ -32,7 +32,9 @@ Deno.test("megadoc sim: no request is dropped (P09 three asks, J11 two cancels)"
 Deno.test("megadoc sim: nothing for later, on a condition, in another currency or by percentage is staged as a send now", () => {
   for (const id of ["A08", "A15"]) { eqOutcome(id, "not_built"); assert(/nothing was set up/.test(rows[id].reply), rows[id].reply); }
   eqOutcome("B09", "refuse"); assert(/US dollars only/.test(rows.B09.reply));
-  eqOutcome("C06", "not_built");
+  // C06 "split the bill but sam only had a salad (12) of 96": Sam's item is Sam's, and who else is in is asked
+  // (tests/depth-RAIL-1.test.cjs S22). Nothing is requested on the first message.
+  eqOutcome("C06", "ask"); assertEquals(rows.C06.reply, 'Sam pays $12.00 for the salad. Who else is splitting the other $84.00 with you? Say "just me" if nobody else is in it.');
   // C11 "split rent 2400 with my roommate unevenly 60/40": the roommate is asked for (groups aren't kept); who pays which
   // comes next, then the card (tests/depth-RAIL-1.test.cjs S21). Nothing is requested on the first message.
   eqOutcome("C11", "ask"); assert(/I don't know who "my roommate" means/.test(rows.C11.reply), rows.C11.reply);

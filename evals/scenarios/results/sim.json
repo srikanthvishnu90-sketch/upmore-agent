@@ -320,8 +320,8 @@
    "id": "C06",
    "typed": "split the bill but sam only had a salad (12) of 96",
    "flow": "split",
-   "outcome": "not_built",
-   "reply": "Itemized splits aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\").",
+   "outcome": "ask",
+   "reply": "Sam pays $12.00 for the salad. Who else is splitting the other $84.00 with you? Say \"just me\" if nobody else is in it.",
    "executed": false,
    "mock_orders": 0
   },

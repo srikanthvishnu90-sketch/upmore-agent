@@ -2,7 +2,7 @@
 
 Written after the overnight report (`docs/overnight/2026-10-12-overnight-plan.md`). Three lists: what only the owner can
 do, what can be built now without crossing a gate (in build order), and what stays gated by a standing rule. The megadoc
-counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 43, DIVERGES 3, MODEL 3, NOT_BUILT 63 (updated as items below land).
+counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIVERGES 3, MODEL 3, NOT_BUILT 62 (updated as items below land).
 
 ## 1. Only the owner can do these
 
@@ -29,7 +29,7 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 43, DIV
 | # | What | Megadoc | Data | Notes |
 |---|---|---|---|---|
 | 1 | ~~Splits by percentage ("60/40", "70%")~~ **done** | C11 | the person's words | LIMITED: asks who the roommate is, then who pays which; RAIL-1 S21 |
-| 2 | Itemized splits ("sam only had a salad (12) of 96") | C06 | the person's words | named items to their owners, the rest split evenly |
+| 2 | ~~Itemized splits ("sam only had a salad (12) of 96")~~ **done** | C06 | the person's words | LIMITED: asks who else is in; RAIL-1 S22 |
 | 3 | Dividends received | G15 | Alpaca account activities (DIV), read-only | amounts from the broker with source and as-of |
 | 4 | Performance over a period, and against the S&P 500 | G02, G14 | Alpaca portfolio history; SPY bars | numbers only, no advice, period stated |
 | 5 | Movers this week or month among the person's holdings | G10, G07 | Alpaca bars | "why" is never guessed |

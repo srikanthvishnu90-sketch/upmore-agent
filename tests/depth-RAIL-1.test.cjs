@@ -232,6 +232,31 @@ test('[S21] splits by percentage: "i pay 60%" and "sarah pays 40%" go straight t
   const n=await world().split.start('split 100 with sarah and marcus l 50/25/25');assert.equal(n.outcome,'not_built');assert.match(n.text,/I can do your own share as a percentage/);
 });
 
+test('[S22] itemized splits: each item to its owner, the rest split evenly with the odd cent yours; who else is asked; the item\'s number is never the total; nothing guessed',async()=>{
+  const X=ROWS.concat([{id:'r4',handle:'@sam_k',display_name:'Sam K',channel:'sms',source:'completed_send',rail:'venmo',last_used_at:'2026-10-02T00:00:00Z'},{id:'r5',handle:'@dana_r',display_name:'Dana R',channel:'sms',source:'completed_send',rail:'venmo',last_used_at:'2026-10-02T00:00:00Z'}]);
+  const sum=sp=>sp.mine_cents+sp.asks.reduce((a,b)=>a+b.amount_cents,0);
+  // The megadoc's words (C06): Sam's salad is Sam's; who else is asked; "just me" leaves the $84.00 with the person.
+  const a=world({rows:X});const q=await a.split.start('split the bill but sam only had a salad (12) of 96');
+  assert.equal(q.reason,'itemized_who');assert.equal(q.text,'Sam pays $12.00 for the salad. Who else is splitting the other $84.00 with you? Say "just me" if nobody else is in it.');assert.equal(confirmations(a.split).length,0);
+  const a1=await a.split.reply('just me');assert.equal(a1.outcome,'confirm');assert.match(a1.text,/^Request \$12\.00 from Sam K \(@sam_k\) in Venmo: \$96\.00 total, yours \$84\.00\./);assert.equal(sum(a1.split),9600);
+  assert.match((await a.split.reply('details')).text,/Sam K \(@sam_k\) \$12\.00 for the salad\. The other \$84\.00 is yours\./);
+  const b=world({rows:X});await b.split.start('split the bill but sam only had a salad (12) of 96');const b1=await b.split.reply('dana and sarah');
+  assert.equal(JSON.stringify(b1.split.asks.map(x=>[x.name,x.amount_cents])),JSON.stringify([['Sam K',1200],['Dana R',2800],['Sarah M',2800]]));assert.equal(b1.split.mine_cents,2800);assert.equal(sum(b1.split),9600);
+  // Odd cent: the person's. Several items, each to its owner.
+  const c=await world({rows:X}).split.start('split 96.01 with sarah and marcus l, sam only had a salad (12)');assert.equal(c.split.mine_cents,2801);assert.equal(JSON.stringify(c.split.asks.map(x=>x.amount_cents)),JSON.stringify([1200,2800,2800]));
+  const d=await world({rows:X}).split.start('split 100 with sarah and dana and marcus l, sarah just had 10 and dana only had a $15 burger');assert.equal(JSON.stringify(d.split.asks.map(x=>[x.name,x.amount_cents])),JSON.stringify([['Sarah M',1000],['Dana R',1500],['Marcus L',3750]]));assert.equal(d.split.mine_cents,3750);
+  // The person's own item: the rest is the others'.
+  const e=await world({rows:X}).split.start('split 96 with sarah, i only had a salad (12)');assert.match(e.text,/^Request \$84\.00 from Sarah M .* yours \$12\.00\./);
+  // The item's own number is never the total, wherever it sits.
+  const f=await world({rows:X}).split.start('sam only had a salad for 12, split 96 with sarah');assert.equal(f.split.total_cents,9600);assert.equal(JSON.stringify(f.split.asks.map(x=>x.amount_cents)),JSON.stringify([1200,4200]));
+  // "she" is the one person named when the message is read; naming another later never makes it unclear.
+  const g=world({rows:X});await g.split.start('split 96 with sarah, she only had a salad (12)');const g1=await g.split.reply('marcus l');assert.equal(JSON.stringify(g1.split.asks.map(x=>[x.name,x.amount_cents])),JSON.stringify([['Sarah M',1200],['Marcus L',4200]]));
+  // Nothing guessed: no amount for the item, items over the total, and "no" stage nothing.
+  assert.equal((await world({rows:X}).split.start('split the bill, sam only had the salad')).reason,'itemized_unclear');
+  assert.equal((await world({rows:X}).split.start('split 50 with sarah, sarah only had a steak (60)')).reason,'itemized_total');
+  const h=world({rows:X});await h.split.start('split the bill but sam only had a salad (12) of 96');assert.equal((await h.split.reply('no')).outcome,'declined');assert.equal(confirmations(h.split).length,0);
+});
+
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{
   const {send,book}=world();
   assert.equal((await send.start('send $40 to marcus')).text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');

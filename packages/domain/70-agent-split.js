@@ -33,7 +33,7 @@
       const rm = /\b(venmo|zelle|cash ?app|paypal)\b/i.exec(head); if (rm) out.rail = /cash/i.test(rm[1]) ? "cash_app" : rm[1].toLowerCase();
       // Splits by percentage or by item are not built (megadoc C06, C11): flagged here, said plainly in stage().
       out.uneven = /\b\d{1,2}\s*\/\s*\d{1,2}\b|\bunevenly\b|\d{1,2}\s*%|\bpercent\b/i.test(t);
-      out.itemized = /\b(?:only|just) had\b|\bitemi[sz]e|\bby item\b/i.test(t);
+      out.itemized = /\b(?:only|just)\s+(?:had|got|ordered|ate)\b|\bitemi[sz]e|\bby item\b/i.test(t);
       head = head.replace(/,?\s*\b(?:tip|tax) included\b|,?\s*\bincluding (?:the )?(?:tip|tax)\b|,?\s*\bplus (?:the )?tip\b/gi, " ").replace(/\bunevenly\b|\b\d{1,2}\s*\/\s*\d{1,2}\b/gi, " ");
       // Chat filler at the end is never part of a name ("split 90 with sarah thx"; "ty" and "k" stay: Ty is a name, K an
       // initial); "w" alone is "with"; "sarah and i split
@@ -74,6 +74,26 @@
       if (out.pct_mine !== undefined || out.pct_other || out.ratio) out.names = out.names.filter(n => !/\b(?:pays|covers|takes)\b|%/.test(n));
       // "the 90 dollar dinner", "90 bucks": the currency word is the amount's, never the memo's.
       if (out.memo) out.memo = out.memo.replace(/^(?:dollars?|bucks|usd)\b\s*/i, "").trim() || null;
+      // Itemized splits (megadoc C06): "sam only had a salad (12) of 96". Each named item is its owner's to pay; the rest is
+      // split evenly among everyone else. The total is the one said ("of 96", "total 96"), else the one number left once
+      // the items are taken out; an item's own number is never the total.
+      if (out.itemized) {
+        const ITEM = /\b([a-z][a-z'-]*)\s+(?:only|just)\s+(?:had|got|ordered|ate)\s+(?:an?\s+|the\s+|one\s+|some\s+)?(?:\$(\d+(?:\.\d{1,2})?)\s+([a-z][a-z' -]{0,30}?)|([a-z][a-z' -]{0,30}?)\s*(?:\(\s*\$?(\d+(?:\.\d{1,2})?)\s*\)|(?:for|at|which was|that was|,|-|:)?\s*\$?(\d+(?:\.\d{1,2})?))|\$?(\d+(?:\.\d{1,2})?))(?=$|[\s,.;)!?])/gi;
+        const items = []; let rest = t, im;
+        while ((im = ITEM.exec(t))) {
+          const cents = Math.round(Number(im[2] || im[5] || im[6] || im[7]) * 100), what = (im[3] || im[4] || "").trim().replace(/\s+(?:for|at|which was|that was)$/i, "") || null;
+          if (cents > 0) items.push({ who: im[1].toLowerCase(), item: what, cents });
+          rest = rest.replace(im[0], " ");
+        }
+        out.items = items;
+        const tot = /\b(?:of|out of|total(?:\s+(?:of|was|is))?|bill\s+(?:was|is|of|came to)|came to)\s+\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(?![\d%])/i.exec(rest) || /\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s+(?:total|bill)\b/i.exec(rest) || AMOUNT.exec(rest);
+        out.amount_cents = tot ? Number(tot[1].replace(/,/g, "")) * 100 + (tot[2] ? Number((tot[2] + "0").slice(0, 2)) : 0) : null;
+        // The item clause is never a name ("with sam and maya, sam only had a salad") and never the memo ("for 12 of 96").
+        out.names = out.names.filter(n => !/\b(?:only|just)\s+(?:had|got|ordered|ate)\b/i.test(n));
+        // "with sarah, she only had a salad": "she" is the one person named, read now (a name added later never changes it).
+        if (out.names.length === 1) for (const it of items) if (/^(?:he|she|they|him|her|them)$/.test(it.who)) it.who = out.names[0].toLowerCase().split(/\s+/)[0];
+        if (items.length && out.memo && /\d|\b(?:only|just)\s+(?:had|got|ordered|ate)\b/i.test(out.memo)) out.memo = null;
+      }
       return out;
     }
 
@@ -88,6 +108,7 @@
       let pending = st.pending || null, identity = st.identity || null, waiting = st.waiting || null, saveOffers = st.save_offers || [];
       let waitingNames = st.waiting_names || null; // "Who are you splitting it with?" waiting on its answer
       let waitingShare = st.waiting_share || null; // "Who pays the 60%: you or Sam?" waiting on its answer
+      let waitingItems = st.waiting_items || null; // "Who else is splitting the other $84.00 with you?" waiting on its answer
       const staged = Array.isArray(st.staged) ? st.staged : [];
 
       function follow(spec, parsed, resolved, index, reason, extra) {
@@ -99,7 +120,7 @@
       const list = xs => xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
       function cardText(sp, channel) {
         const same = sp.asks.every(a => a.amount_cents === sp.asks[0].amount_cents), oneRail = sp.asks.every(a => a.rail === sp.asks[0].rail);
-        const tail = sp.fixed ? `${sp.memo ? ` for ${sp.memo}` : ""}: ${money(sp.total_cents)} total, yours ${money(sp.mine_cents)}` : `${sp.memo ? ` for ${sp.memo}` : ""}: ${money(sp.total_cents)} split ${sp.asks.length + 1} ways, yours ${money(sp.mine_cents)}`;
+        const tail = sp.fixed || sp.itemized ? `${sp.memo ? ` for ${sp.memo}` : ""}: ${money(sp.total_cents)} total, yours ${money(sp.mine_cents)}` : `${sp.memo ? ` for ${sp.memo}` : ""}: ${money(sp.total_cents)} split ${sp.asks.length + 1} ways, yours ${money(sp.mine_cents)}`;
         const heads = [];
         for (const label of [who, a => a.name]) {
           heads.push(same && oneRail ? `Request ${money(sp.asks[0].amount_cents)}${sp.asks.length > 1 ? " each" : ""} from ${list(sp.asks.map(label))} in ${Rec.railName(sp.asks[0].rail)}${tail}` : `Request ${list(sp.asks.map(a => `${money(a.amount_cents)} from ${label(a)} in ${Rec.railName(a.rail)}`))}${tail}`);
@@ -112,7 +133,7 @@
         return `Request ${money(sp.requested_cents)} from ${sp.asks.length} people${sp.memo ? ` for ${sp.memo}` : ""}. Reply YES, NO or DETAILS.`;
       }
       // A fixed or percentage share is said as one, never as "equal shares" (found 2026-10-12).
-      const details = sp => sp.fixed ? `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""}: you pay ${money(sp.mine_cents)}${sp.pct_mine !== undefined && sp.pct_mine !== null ? ` (${sp.pct_mine}%)` : ""}, and the rest, ${money(sp.total_cents - sp.mine_cents)}, is split evenly on exact cents: ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay.` : `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""} ${sp.asks.length + 1} ways, equal shares on exact cents (any odd cent is yours): you ${money(sp.mine_cents)}, ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay. I mark each one paid when the money lands. Reply YES or NO.`;
+      const details = sp => sp.itemized ? `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""} by item: ${sp.asks.filter(a => a.item).map(a => `${who(a)} ${a.item}`).concat(sp.mine_item ? [`you ${sp.mine_item}`] : []).join(", ")}. ${!sp.mine_item && sp.asks.every(a => a.item) ? `The other ${money(sp.total_cents - sp.items_cents)} is yours.` : `The other ${money(sp.total_cents - sp.items_cents)} is split evenly on exact cents: ${(sp.mine_item ? [] : [`you ${money(sp.mine_cents)}`]).concat(sp.asks.filter(a => !a.item).map(a => `${who(a)} ${money(a.amount_cents)}`)).join(", ")}.`} Each item is the amount you gave; any tax and tip are in the rest. Requests by ${list([...new Set(sp.asks.map(a => Rec.railName(a.rail)))])}, no fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay.` : sp.fixed ? `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""}: you pay ${money(sp.mine_cents)}${sp.pct_mine !== undefined && sp.pct_mine !== null ? ` (${sp.pct_mine}%)` : ""}, and the rest, ${money(sp.total_cents - sp.mine_cents)}, is split evenly on exact cents: ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay.` : `Split ${money(sp.total_cents)}${sp.memo ? ` for ${sp.memo}` : ""} ${sp.asks.length + 1} ways, equal shares on exact cents (any odd cent is yours): you ${money(sp.mine_cents)}, ${sp.asks.map(a => `${who(a)} ${money(a.amount_cents)} by ${Rec.railName(a.rail)} request`).join(", ")}. No fee. Requests are staged for you to tap Request in each app; nothing is sent from here and nobody is charged until they pay. I mark each one paid when the money lands. Reply YES or NO.`;
 
       async function stage(parsed, resolvedSoFar) {
         if (parsed.uneven && !resolvedSoFar && parsed.amount_cents && parsed.names.length) {
@@ -132,7 +153,38 @@
           }
         }
         if (parsed.uneven && !resolvedSoFar && parsed.amount_cents && parsed.names.length) return { outcome: "not_built", reason: "uneven_not_built", text: "That kind of uneven split isn't built yet, so nothing was requested. I can do your own share as a percentage (\"I pay 60%\"), a split with one person (\"60/40\"), an even split, or a fixed share (\"I pay 50\")." };
-        if (parsed.itemized && !resolvedSoFar) return { outcome: "not_built", reason: "itemized_not_built", text: "Itemized splits aren't built yet, so nothing was requested. I can split evenly, or with a fixed share of your own (\"I pay 50\")." };
+        if (parsed.itemized && !resolvedSoFar) {
+          // Itemized (megadoc C06): each item to its owner, the rest split evenly among everyone else. Nothing is guessed: no
+          // items, no total, items over the total, or an unclear "he" is asked back.
+          const items = parsed.items || [], HOW = "Say it with the total, like \"split 96, sam only had a salad for 12\".";
+          if (!items.length) return { outcome: "ask", reason: "itemized_unclear", text: `Who had what, and how much? ${HOW}` };
+          if (!parsed.amount_cents) return { outcome: "ask", reason: "itemized_total", text: `What was the total? ${HOW}` };
+          const first = n => String(n).toLowerCase().split(/\s+/)[0], ME = /^(?:i|me|myself)$/, PRON = /^(?:he|she|they|him|her|them)$/;
+          const nonOwners = parsed.names.filter(n => !items.some(it => first(n) === it.who));
+          const byWho = new Map();
+          for (const it of items) {
+            let who = it.who;
+            if (PRON.test(who)) { if (nonOwners.length !== 1) return { outcome: "ask", reason: "itemized_unclear", text: `Who is "${who}"? ${HOW}` }; who = first(nonOwners[0]); }
+            if (ME.test(who)) who = "me";
+            const was = byWho.get(who) || { cents: 0, items: [] };
+            was.cents += it.cents; if (it.item) was.items.push(it.item); byWho.set(who, was);
+          }
+          const sum = [...byWho.values()].reduce((a, b) => a + b.cents, 0);
+          if (sum >= parsed.amount_cents) return { outcome: "ask", reason: "itemized_total", text: `The items add up to ${money(sum)}, which is all of the ${money(parsed.amount_cents)} total or more. What was the total?` };
+          const owners = [...byWho.keys()].filter(w => w !== "me");
+          const names = owners.map(w => parsed.names.find(n => first(n) === w) || w).concat(parsed.names.filter(n => !byWho.has(first(n))));
+          const others = names.slice(owners.length);
+          const mine = byWho.get("me") || null;
+          const labels = w => { const b = byWho.get(w); return `${money(b.cents)}${b.items.length ? ` for the ${b.items.join(" and ")}` : ""}`; };
+          if (!others.length && !parsed.items_answered) {
+            waitingItems = parsed;
+            const said = owners.map(w => `${w.replace(/\b\w/g, c => c.toUpperCase())} pays ${labels(w)}`).concat(mine ? [`you pay ${labels("me")}`] : []).join(", ");
+            return { outcome: "ask", reason: "itemized_who", text: `${said.charAt(0).toUpperCase() + said.slice(1)}. Who else is splitting the other ${money(parsed.amount_cents - sum)}${mine ? "" : " with you"}? Say "just me" if nobody else is in it.` };
+          }
+          if (mine && !others.length) return { outcome: "ask", reason: "itemized_who", text: `Everyone named has an item, so nobody is left to split the other ${money(parsed.amount_cents - sum)}. Who pays it? ${HOW}` };
+          const item_plan = { items_cents: sum, mine_item: mine ? mine.cents : null, mine_label: mine ? labels("me") : null, item_cents: names.map((n, i) => i < owners.length ? byWho.get(owners[i]).cents : null), item_labels: names.map((n, i) => i < owners.length ? labels(owners[i]) : null) };
+          return stage(Object.assign({}, parsed, { itemized: false, names, item_plan, mine_cents: null, ways: null }), resolvedSoFar);
+        }
         if (!parsed.amount_cents) return { outcome: "ask", text: "How much was it?" };
         if (parsed.group && !resolvedSoFar) { waitingNames = Object.assign({}, parsed, { group: null, names: [] }); return { outcome: "ask", reason: "who_group", text: `Upmore doesn't keep groups, so I don't know who "${parsed.group}" means. Who are they? Name each person, like "Sam and Maya".` }; }
         if (!parsed.names.length) {
@@ -173,13 +225,24 @@
           asks.push({ name: p.name, handle: p.handle || null, nickname: p.nickname || null, rail, readback_id: p.readback_id || null, saved: !!p.saved, id: p.id || null });
         }
         // Equal shares (any odd cent is the person's), or the person's fixed share and the rest split among the others.
-        const fixed = parsed.mine_cents && parsed.mine_cents < parsed.amount_cents ? parsed.mine_cents : null;
-        const keysIdx = fixed ? asks.map((_, i) => "#" + i) : ["me"].concat(asks.map((_, i) => "#" + i));
-        const sp0 = Money.split(fixed ? parsed.amount_cents - fixed : parsed.amount_cents, keysIdx, null, fixed ? "#0" : "me");
-        asks.forEach((a, i) => { a.amount_cents = sp0.shares[fixed ? i : i + 1].share_cents; });
+        const fixed = parsed.mine_cents && parsed.mine_cents < parsed.amount_cents ? parsed.mine_cents : null, ip = parsed.item_plan || null;
+        let itemMine = null;
+        if (ip) {
+          // Items to their owners; the rest split evenly on exact cents among the people with no item (the odd cent is the
+          // person's when they are among them, else the first other's).
+          const keys = (ip.mine_item === null ? ["me"] : []).concat(asks.map((_, i) => "#" + i).filter((_, i) => ip.item_cents[i] === null));
+          const sh = Money.split(parsed.amount_cents - ip.items_cents, keys, null, keys[0]).shares, of = k => sh[keys.indexOf(k)].share_cents;
+          asks.forEach((a, i) => { a.amount_cents = ip.item_cents[i] !== null ? ip.item_cents[i] : of("#" + i); a.item = ip.item_labels[i]; });
+          itemMine = ip.mine_item !== null ? ip.mine_item : of("me");
+        } else {
+          const keysIdx = fixed ? asks.map((_, i) => "#" + i) : ["me"].concat(asks.map((_, i) => "#" + i));
+          const sp0 = Money.split(fixed ? parsed.amount_cents - fixed : parsed.amount_cents, keysIdx, null, fixed ? "#0" : "me");
+          asks.forEach((a, i) => { a.amount_cents = sp0.shares[fixed ? i : i + 1].share_cents; });
+          itemMine = fixed || sp0.shares[0].share_cents;
+        }
         let memo = parsed.memo || null, memo_flagged = false;
         if (memo && Guard) memo_flagged = !!Guard.wrap(memo).flagged;
-        const sp = { total_cents: parsed.amount_cents, mine_cents: fixed || sp0.shares[0].share_cents, fixed: !!fixed, pct_mine: fixed && parsed.pct_mine !== undefined ? parsed.pct_mine : null, asks, memo, memo_flagged, requested_cents: asks.reduce((s, a) => s + a.amount_cents, 0) };
+        const sp = { total_cents: parsed.amount_cents, mine_cents: itemMine, fixed: !!fixed && !ip, itemized: !!ip, items_cents: ip ? ip.items_cents : null, mine_item: ip ? ip.mine_label : null, pct_mine: fixed && parsed.pct_mine !== undefined ? parsed.pct_mine : null, asks, memo, memo_flagged, requested_cents: asks.reduce((s, a) => s + a.amount_cents, 0) };
         const key = `split:${ymd(clock())}:${parsed.amount_cents}:${asks.map(a => `${a.rail}/${(a.handle || a.name).toLowerCase()}`).sort().join(",")}`;
         if (staged.some(x => x.key === key)) return { outcome: "already_done", text: `That split was already staged today. I did not stage it again. If the requests never went out, say so and I'll restage them.` };
         const request = { capability_id: CAPABILITY, key, idempotency_key: key, draft_only: true, amount_cents: sp.requested_cents, recipient: asks.map(a => a.handle || a.name).join(","),
@@ -192,7 +255,7 @@
         return { outcome: r.outcome, text: r.message || null };
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { waitingNames = null; waitingShare = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; const p = parse(text); return stage(Object.assign(p, { names: expandNames(p.names) })); }
+      async function start(text) { waitingNames = null; waitingShare = null; waitingItems = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } saveOffers = []; const p = parse(text); return stage(Object.assign(p, { names: expandNames(p.names) })); }
       // "maya jake and sam": a chunk that is not one saved person but whose every word is one becomes one name per word
       // (corpus 2.01, megadoc C01).
       function expandNames(names) {
@@ -214,6 +277,16 @@
         return moved;
       }
       async function reply(text) {
+        if (waitingItems && !identity) {
+          const was = waitingItems, t0 = String(text || "").trim().replace(/[.!]+$/, "");
+          if (/^(?:no|nope|never ?mind|nvm|cancel|forget it)$/i.test(t0)) { waitingItems = null; return { outcome: "declined", text: "Okay. Nothing was staged." }; }
+          if (/^(?:just|only)\s+(?:me|us|the two of us|me and (?:him|her|them))$|^(?:me|nobody(?: else)?|no ?one(?: else)?|that'?s (?:it|all)|just (?:him|her|them) and me)$/i.test(t0)) { waitingItems = null; return stage(Object.assign({}, was, { items_answered: true })); }
+          if (NAMES_ANSWER.test(t0)) {
+            waitingItems = null;
+            const more = expandNames(t0.replace(/^\s*(?:just|only|with|me and)\s+/i, "").split(/\s*(?:,|\band\b|&|\+)\s*/i).map(n => n.trim()).filter(Boolean));
+            return stage(Object.assign({}, was, { items_answered: true, names: was.names.concat(more) }));
+          }
+        }
         if (waitingShare && !identity) {
           const was = waitingShare, t0 = String(text || "").trim().toLowerCase().replace(/[.!]+$/, "");
           const other = String(was.parsed.names[0] || "").toLowerCase();
@@ -284,13 +357,13 @@
         }
         return out;
       }
-      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), pending, identity, waiting, save_offers: saveOffers, staged, waiting_names: waitingNames, waiting_share: waitingShare }));
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), pending, identity, waiting, save_offers: saveOffers, staged, waiting_names: waitingNames, waiting_share: waitingShare, waiting_items: waitingItems }));
       // An answer to "Who are you splitting it with?": names only, a few words, no amounts.
       const NAMES_ANSWER = /^\s*(?:just |only |with |me and )?@?[a-z][a-z' .-]*(?:\s*(?:,|\band\b|&|\+|\s)\s*@?[a-z][a-z' .-]*){0,7}\s*[.!]*\s*$/i;
-      const accepts = text => (!!waitingShare && !identity && String(text || "").trim().split(/\s+/).length <= 4) || (!!identity && Rec.identityAccepts(identity, text)) || (saveOffers.length > 0 && /^\s*save( (them|him|her|it|both|all))?\s*[.!]*\s*$/i.test(String(text || ""))) || (!!waitingNames && !identity && NAMES_ANSWER.test(String(text || "")) && !/^\s*(y|yes|ok|okay|sure)\s*$/i.test(String(text || "")));
+      const accepts = text => (!!waitingItems && !identity && NAMES_ANSWER.test(String(text || "")) && !/^\s*(y|yes|ok|okay|sure)\s*$/i.test(String(text || ""))) || (!!waitingShare && !identity && String(text || "").trim().split(/\s+/).length <= 4) || (!!identity && Rec.identityAccepts(identity, text)) || (saveOffers.length > 0 && /^\s*save( (them|him|her|it|both|all))?\s*[.!]*\s*$/i.test(String(text || ""))) || (!!waitingNames && !identity && NAMES_ANSWER.test(String(text || "")) && !/^\s*(y|yes|ok|okay|sure)\s*$/i.test(String(text || "")));
       return { start, reply, paid, parse, snapshot, accepts, cardText, loop, staged, recipients: book,
         get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.sp.requested_cents, recipients: pending.sp.asks.map(a => a.name) } : null; },
-        get awaiting_input() { return !!identity || saveOffers.length > 0 || !!waitingNames || !!waitingShare; } };
+        get awaiting_input() { return !!identity || saveOffers.length > 0 || !!waitingNames || !!waitingShare || !!waitingItems; } };
     }
     return { create, parse, CAPABILITY };
   })();

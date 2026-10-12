@@ -44,10 +44,16 @@ for marker, filename, wrapped in [
     ('/*__RECOVERY_CONTROLLER__*/', 'recovery-review-controller.js', False),
     ('/*__RECOVERY_UI__*/', 'recovery-review-ui.js', False),
     ('/*__PRIVATE_FINANCE_SCOPE__*/', 'private-finance-scope.js', False),
+    ('/*__CONNECT_CARDS__*/', '../packages/domain/76-connect-cards.js', False),
 ]:
     assert marker in out, f'{marker} missing from template'
     content = (HERE / filename).read_text()
     out = out.replace(marker, '<script>\n' + content + '\n</script>' if wrapped else content, 1)
+
+# Real company logos (owner must rule, 2026-10-11): the manifest of img/brands/, inlined for appIcon().
+brands = json.loads((HERE.parent / "img" / "brands" / "brands.json").read_text())
+assert "/*__BRAND_ICONS__*/" in out, "brand icon placeholder missing from template"
+out = out.replace("/*__BRAND_ICONS__*/", "const BRAND_ICONS = " + json.dumps([{k: x[k] for k in ("slug", "name", "match", "file")} for x in brands], separators=(",", ":")) + ";", 1)
 
 # Keep the hardcoded marketing/copy counts in sync with the real data
 n_routes = len(data.get("routes", []))

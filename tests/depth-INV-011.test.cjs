@@ -60,11 +60,13 @@ const all=[];const keep=x=>{all.push(x);return x;};
 test('[S01] dollars or shares parse exactly; a bare integer, a vague size, zero or no size asks and stages nothing',async()=>{
   const cases=[['buy $500 of VOO',{notional_cents:50000}],['buy 500 dollars of VOO',{notional_cents:50000}],['VOO $500',{notional_cents:50000}],['buy $1,250.50 of VTI',{notional_cents:125050}],['buy 2 shares of VOO',{quantity:2}],['buy 1.5 VOO',{quantity:1.5}],['buy 0.25 shares of NVDA',{quantity:0.25}]];
   for(const [txt,want] of cases){const p=T.parse(txt);for(const k of Object.keys(want))assert.equal(p[k],want[k],txt);}
-  assert.equal(T.parse('buy 500 VOO').ambiguous_number,500);assert.equal(T.parse('buy 500 VOO').notional_cents,null);
+  // Owner's response-style corpus (3.01, 3.03; scenario E61): a bare number on a market buy is dollars, shown on the card.
+  assert.equal(T.parse('buy 500 VOO').ambiguous_number,null);assert.equal(T.parse('buy 500 VOO').notional_cents,50000);assert.equal(T.parse('buy 100 of NVDA').notional_cents,10000);
+  assert.equal(T.parse('sell 10 VOO').ambiguous_number,10,'a bare number on a sell still asks');assert.equal(T.parse('put everything in GME').all_in,true);
   const {s,r}=session();
   const a=keep(await s.start('buy VOO'));assert.equal(a.outcome,'ask');assert.equal(a.text,'How much of VOO: dollars or shares?');
-  const b=keep(await s.start('buy 500 VOO'));assert.equal(b.outcome,'ask');assert.equal(b.reason,'size_ambiguous');assert.equal(b.text,'Is 500 dollars or shares of VOO?');
-  const c=keep(await s.start('buy all my cash of VOO'));assert.equal(c.outcome,'ask');assert.equal(c.reason,'size');
+  const b=keep(await s.start('buy 500 VOO'));assert.notEqual(b.reason,'size_ambiguous');assert.match(b.text,/\$500\.00/,'the card shows the dollars');await s.reply('no');
+  const c=keep(await s.start('buy some VOO'));assert.equal(c.outcome,'ask');assert.equal(c.reason,'size');
   const d=keep(await s.start('buy $0 of VOO'));assert.equal(d.outcome,'ask');assert.equal(d.reason,'size');
   assert.equal(s.pending,null);assert.equal(r.writes.length,0);
 });
@@ -83,7 +85,7 @@ test('[S02] the symbol resolves against listed instruments: exact, by name with 
 
 test('[S03] decision words are refused with the advice redirect and nothing is read or staged; a user-directed order proceeds',async()=>{
   const {s,r}=session();
-  for(const txt of ['should I buy $500 of VOO','buy $500 of whatever is best','buy $500 of the stock that just dipped','buy $500 of whatever Pelosi bought','which ETF should I buy $500 of']){const a=keep(await s.start(txt));assert.equal(a.outcome,'refuse',txt);assert.equal(a.reason,'advice',txt);assert.ok(/don't (give investment advice|make it)/.test(a.text),a.text);assert.equal(s.pending,null,txt);}
+  for(const txt of ['should I buy $500 of VOO','buy $500 of whatever is best','buy $500 of the stock that just dipped','buy $500 of whatever Pelosi bought','which ETF should I buy $500 of']){const a=keep(await s.start(txt));assert.equal(a.outcome,'refuse',txt);assert.equal(a.reason,'advice',txt);assert.ok(/can't tell you what to buy|don't make it/.test(a.text),a.text);assert.match(a.text,/\?$/,'the refusal ends with a real offer (response-style corpus 3.06)');assert.equal(s.pending,null,txt);}
   assert.equal(r.writes.length,0);
   const ok=keep(await s.start('buy $500 of VOO'));assert.equal(ok.outcome,'confirm');assert.equal(G.request('buy $500 of VOO').decision,'allow');
 });
@@ -231,7 +233,7 @@ test('[S16] stop-on-change: price, fee, buying power and market session are re-v
 test('[ADV] adversarial log: stale quote, size ambiguity, look-alike symbol, decision words, duplicate text, stale yes, cross-order yes, timeout after send, rejection, no partner, sell, crypto, limit, injection',async()=>{
   const stale=session({},{quote_age_ms:2*3600000});assert.equal((await stale.s.start('buy $500 of VOO')).reason,'stale_quote');
   const {s,r,t}=session();
-  assert.equal((await s.start('buy 500 VOO')).reason,'size_ambiguous');
+  assert.equal((await s.start('sell 500 VOO')).reason,'size_ambiguous');
   assert.equal((await s.start('buy $500 of V00')).reason,'symbol_suggest');
   assert.equal((await s.start('should I buy $500 of VOO')).reason,'advice');
   assert.equal((await s.start('buy $500 of whatever Pelosi bought')).reason,'advice');

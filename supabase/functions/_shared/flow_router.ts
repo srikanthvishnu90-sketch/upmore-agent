@@ -14,7 +14,8 @@
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
 import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
-import { reserveModelCall, recordModelUsage } from "./model_calls.ts";
+import { reserveModelCall, recordModelUsage, ModelUnavailableError } from "./model_calls.ts";
+import { callModel, type CallOptions, type ModelConfig } from "./model_gateway.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
 
 let registryCache: any = null;
@@ -172,6 +173,14 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
 
 const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) => AgentSend.parse(t), cancel: (t: string) => AgentCancel.parse(t), split: (t: string) => AgentSplit.parse(t) };
 
+// The router also takes the answer to a flow's own question ("Do you mean $4.50?") and, for a few minutes after a card
+// settles, a second "yes" or a "cancel that" about it (they are answered from what happened, never by the model).
+export function needsRouter(saved: any, now: number): boolean {
+  if (hasLiveCard(saved)) return true;
+  if (saved && saved.send && saved.send.amount_check) return true;
+  if (saved && saved.split && saved.split.waiting_names) return true;
+  return !!(saved && saved.router && saved.router.settled && now - saved.router.settled.at < 30 * 60000);
+}
 export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
   if (saved.router && saved.router.pair) return true;
@@ -196,7 +205,7 @@ function liveCardWords(sessions: any): string[] {
 export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
-  if (!hasLiveCard(saved) && !AgentRouter.maybeFlow(message)) return null;
+  if (!needsRouter(saved, now()) && !AgentRouter.maybeFlow(message)) return null;
   const data = await deps.db.loadData();
   if (!data.ok) {
     return { reply: `I can't read your ${data.missing || "linked accounts"} right now, so I can't do that yet. Nothing was changed.`, withhold_user_text: false,
@@ -248,22 +257,20 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   };
 }
 
-// The model call: one forced tool call inside the existing budget reservation. Any failure throws, and the router falls
-// back to the regex net and marks the result source "regex_net".
-export function anthropicRouteExtractor(admin: any, userId: string, threadId: string, model: string, apiKey: string, request: typeof fetch = fetch) {
+// The model call: one forced tool call inside the existing budget reservation, through the model gateway (OpenAI or
+// Anthropic, same request). Any failure throws, and the router falls back to the regex net and marks the result source
+// "regex_net".
+export function routeExtractor(admin: any, userId: string, threadId: string, cfg: ModelConfig, o: CallOptions = {}) {
   return async (message: string) => {
-    if (!apiKey) throw new Error("router model is not configured");
-    const callId = await reserveModelCall(admin, userId, threadId, crypto.randomUUID(), 1, model);
-    const res = await request("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, max_tokens: 400, system: AgentRouter.SYSTEM, tools: [AgentRouter.TOOL], tool_choice: { type: "tool", name: AgentRouter.TOOL.name }, messages: [{ role: "user", content: message }] }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) throw new Error(`router model HTTP ${res.status}`);
-    const raw = await res.text();
-    if (raw.length > 30000) throw new Error("router model response is too large");
-    const body = JSON.parse(raw);
+    if (!cfg.apiKey) throw new Error("router model is not configured");
+    const callId = await reserveModelCall(admin, userId, threadId, crypto.randomUUID(), 1, cfg.model);
+    let body: any;
+    try {
+      body = await callModel(cfg, { max_tokens: 400, system: AgentRouter.SYSTEM, tools: [AgentRouter.TOOL], tool_choice: { type: "tool", name: AgentRouter.TOOL.name }, messages: [{ role: "user", content: message }] }, Object.assign({ timeoutMs: 10000 }, o, { role: "router" }));
+    } catch (e) {
+      if (e instanceof ModelUnavailableError) { console.error(`[model] router ${e.summary()}`); throw new Error(`router model ${e.summary()}`); }
+      throw e;
+    }
     await recordModelUsage(admin, callId, body.usage);
     const block = (body.content || []).find((b: any) => b && b.type === "tool_use" && b.name === AgentRouter.TOOL.name);
     if (!block || typeof block.input !== "object") throw new Error("router model returned no route_message call");
@@ -318,11 +325,12 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
   };
 }
 
-// Pure mapping from database rows to what the flows read. Paper accounts are labeled as paper, never presented as live.
+// Pure mapping from database rows to what the flows read. Everything is live (owner rule 2026-10-11): a paper account row
+// is never shown or offered, and only active, live connections are listed.
 export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = []) {
   const transactions = txRows.filter(t => t.posted_on && !t.is_pending).map(t => ({ id: t.provider_transaction_id, account_id: t.account_id, posted_at: t.posted_on, amount: Number(t.amount_cents) / 100, merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer }));
   const cashOf = (id: string) => { const s = snapRows.find(r => r.brokerage_account_id === id); return s && s.cash !== null && s.cash !== undefined ? Math.round(Number(s.cash) * 100) : undefined; };
-  const brokerageAccounts = acctRows.filter(a => a.status !== "revoked").map(a => ({ id: a.id, name: `${a.provider} ${a.label}${a.paper ? " (paper)" : ""}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
+  const brokerageAccounts = acctRows.filter(a => a.status !== "revoked" && a.paper !== true).map(a => ({ id: a.id, name: `${a.provider} ${a.label}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
   // People come only from public.saved_recipients (rows saved on evidence); anyone else is a stranger and is confirmed in
   // full. No instrument list exists yet; orders stop at the compliance gate before needing one.
   const people: any[] = [], instruments: any[] = [];

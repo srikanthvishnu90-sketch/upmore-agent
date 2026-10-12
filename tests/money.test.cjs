@@ -26,7 +26,7 @@ test('rail selection quotes the free rail first, instant when asked, handoff rai
 
 test('the send workflow fills gaps by asking, confirms exactly, treats a new recipient as T5, stops on scam patterns and velocity limits',()=>{
   assert.equal(M.prepareSend({amount_cents:0,recipient:'Sarah'},{people}).ask,'How much?');
-  assert.match(M.prepareSend({amount_cents:8500,recipient:'Marcus'},{people}).ask,/^Which Marcus: Marcus L or Marcus T\?$/);
+  assert.match(M.prepareSend({amount_cents:8500,recipient:'Marcus'},{people}).ask,/^Which Marcus: Marcus L \(@marcus\) or Marcus T\?$/);
   const nr=M.prepareSend({amount_cents:8500,recipient:'Priya'},{people});assert.equal(nr.new_recipient,true);assert.match(nr.ask,/confirmed in full, every time/);
   const s=M.prepareSend({amount_cents:8500,recipient:'Sarah',memo:'airbnb'},{people,today:TODAY});
   assert.equal(s.tier,'T3');assert.equal(s.rail.id,'venmo');assert.equal(s.first_time,false);
@@ -42,7 +42,7 @@ test('the send workflow fills gaps by asking, confirms exactly, treats a new rec
 
 test('handoff staging is tap-by-tap with a posting watch, and a receipt always carries the reversal contract and mitigation path',()=>{
   const s=M.prepareSend({amount_cents:8500,recipient:'Sarah',memo:'airbnb'},{people,today:TODAY});
-  const h=M.handoff(s);assert.equal(h.app,'Venmo');same(h.steps,['Open Venmo and tap Pay/Request','Search @sarah-m','Enter $85.00 and the note "airbnb"','Keep it private, then Pay']);assert.match(h.text,/I'll watch for \$85\.00 to Sarah M to post/);assert.equal(h.watch.deadline_days,1);
+  const h=M.handoff(s);assert.equal(h.app,'Venmo');same(h.steps,['Open Venmo and tap Pay/Request','Search @sarah-m','Enter $85.00 and the note "airbnb"','Keep it private, then Pay']);assert.match(h.text,/then Pay\. I'll confirm when \$85\.00 to Sarah M posts/);assert.equal(h.watch.deadline_days,1);
   assert.throws(()=>M.receipt(s,{}),/cannot mark a send complete/);
   const r=M.receipt(s,{posted:'2026-10-10'});assert.match(r.text,/^Landed\. \$85\.00 to Sarah M, Venmo, posted 2026-10-10/);assert.match(r.text,/Wrong send\? Reply 'wrong' and I'll start the mitigation path: ask the recipient to send it back/);
   const ach=M.prepareSend({amount_cents:180000,recipient:'Landlord LLC'},{people,partners:{ach:true},today:TODAY});const r2=M.receipt(ach,{reference:'ach-9912'});assert.match(r2.text,/^Sent\. \$1,800\.00 to Landlord LLC, ACH, confirmation ach-9912/);assert.match(r2.reversal_contract,/not a recall button/);
@@ -93,6 +93,6 @@ test('full lifecycle on the fake rail through the loop: confirm before act, idem
   const f1=await l2.wake({kind:'message',request:fail});const f2=await l2.wake({kind:'confirmation',confirmation_id:f1.confirmation_id,approved:true});assert.equal(f2.outcome,'failed');assert.match(f2.message,/insufficient funds/);assert.ok(!/Sent|Done/.test(f2.message));
   // T5 always asks, even inside an envelope
   const first=M.prepareSend({amount_cents:500,recipient:'Marcus L'},{people,today:TODAY});assert.equal(first.tier,'T5');
-  const l3=Loop.create({registry,connectors:rail,clock:()=>t.now,envelopes:[{id:'e',capability_id:'PAY-002',max_cents:100000,active:true}]});
+  const l3=Loop.create({policy:{envelope_autonomy:true},registry,connectors:rail,clock:()=>t.now,envelopes:[{id:'e',capability_id:'PAY-002',max_cents:100000,active:true}]});
   const t5=await l3.wake({kind:'message',request:Object.assign({},first.request,{capability_id:'PAY-002'})});assert.equal(t5.outcome,'awaiting_confirmation');
 });

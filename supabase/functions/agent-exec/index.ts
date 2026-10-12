@@ -67,9 +67,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // JSON-stringify for safe embedding inside page-context JS expressions.
 const jsq = (v: unknown) => JSON.stringify(v);
 
+// No password field (owner, 2026-10-11, decision 1: no password storage): the agent signs in with the email only.
 type ExecContext = {
   username: string;
-  password: string;
   approval: Record<string, unknown>;
   admin: ReturnType<typeof createClient>;
 };
@@ -880,21 +880,18 @@ async function myclawStart(
   const gNext1 = await page.clickText("^(next)$");
   ev.google_next1 = gNext1;
   await sleep(2500);
-  // Google's password page.
-  const gPassSel = await page.waitFor(`(() => !!document.querySelector('input[type="password"]'))()`, 15000)
-    .then((ok) => ok ? page.typeInto(['input[type="password"]'], ctx.password || "") : null);
-  ev.google_password_field = gPassSel;
-  if (!gPassSel) {
-    // Might be a "Verify it's you" / 2FA challenge instead of a password field.
+  // Google's password page: Upmore never stores or types a password (owner decision 1), so the run stops here.
+  const gPassSel = await page.waitFor(`(() => !!document.querySelector('input[type="password"]'))()`, 15000).catch(() => false);
+  ev.google_password_page = !!gPassSel;
+  if (gPassSel) {
+    return { ok: false, error: "Google wants your password to sign in to MyClaw, and Upmore never stores or types passwords. Nothing was changed: sign in to MyClaw yourself and cancel from its billing page." };
+  }
+  {
     const pageText = ((await page.eval("(document.body.innerText || '').slice(0,1500)").catch(() => "")) as string);
     ev.google_challenge_text = pageText.slice(0, 500);
     if (/verify (it's|its) you|2-step|two-step|try another way|confirm.*identity/i.test(pageText)) {
-      return { ok: false, error: "Google asked for extra verification (2FA/\"Verify it's you\") which the agent cannot complete. Nothing was changed — you'll need to approve it on your phone, then I can retry." };
+      return { ok: false, error: "Google asked for extra verification (2FA/\"Verify it's you\") which only you can complete. Nothing was changed: approve it on your phone, then I can retry." };
     }
-    return { ok: false, error: "Google sign-in showed no password field. Nothing was changed." };
-  }
-  if (!ctx.password) {
-    return { ok: false, error: "Google sign-in needs the Google password, which isn't saved. Nothing was changed." };
   }
   const gNext2 = await page.clickText("^(next)$");
   ev.google_next2 = gNext2;
@@ -904,7 +901,7 @@ async function myclawStart(
   if (/verify (it's|its) you|2-step|two-step|try another way|confirm.*identity|phone.*verif/i.test(postText)) {
     ev.google_challenge_text = postText.slice(0, 500);
     pushShot(ev, await page.screenshot("google-challenge"));
-    return { ok: false, error: "Google asked for extra verification after the password (2FA/\"Verify it's you\") which the agent cannot complete. Nothing was changed." };
+    return { ok: false, error: "Google asked for extra verification (2FA/\"Verify it's you\") which the agent cannot complete. Nothing was changed." };
   }
   // Wait to land back in MyClaw (logged in).
   const loggedIn = await page.waitFor(`(() => {
@@ -915,7 +912,7 @@ async function myclawStart(
   ev.post_login_url = await page.url().catch(() => null);
   pushShot(ev, await page.screenshot("logged-in"));
   if (!loggedIn) {
-    return { ok: false, error: "Google sign-in didn't complete (wrong password or challenge). Nothing was changed." };
+    return { ok: false, error: "Google sign-in didn't complete (a challenge only you can complete). Nothing was changed." };
   }
   // Logged in via Google SSO — proceed to find billing/cancel in the same phase.
   return await myclawFindAndCancel(page, ev);
@@ -1505,7 +1502,7 @@ async function resumeRunWithOtp(
           const page = await BbPage.open(cdp);
           // The OTP travels only into the page — never into evidence/logs.
           outcome = await def.resume(
-            { username: "", password: "", approval, admin },
+            { username: "", approval, admin },
             page, otpCode.trim(), ev, resumeState);
         } finally {
           cdp.close();
@@ -1919,8 +1916,7 @@ serve(async (req) => {
       if (!bbEnvReady()) return json({ error: "Browserbase not configured" }, 503);
       const runUser = user;
       if (!runUser) return json({ error: "Sign in required" }, 401);
-      // Load vaulted credential (email required; password optional — Cluely's
-      // Stripe portal needs only the email).
+      // Load the saved sign-in email (never a password: owner decision 1).
       const { data: credRef } = await admin.from("exec_credential_refs")
         .select("*").eq("user_id", runUser.id).eq("merchant_key", merchantKey).maybeSingle();
       if (!credRef) return json({ error: `No saved login for ${pb.display_name}` }, 409);
@@ -1928,7 +1924,7 @@ serve(async (req) => {
         p_name: (credRef as { vault_name: string }).vault_name,
       });
       if (verr || !vsecret) return json({ error: "Could not read saved login" }, 500);
-      let vcred: { username?: string; password?: string } = {};
+      let vcred: { username?: string } = {};
       try { vcred = JSON.parse(vsecret || "{}"); } catch { /* ignore */ }
       if (!vcred.username) return json({ error: "Saved login is incomplete" }, 409);
 
@@ -1950,7 +1946,7 @@ serve(async (req) => {
           .select("id");
         if (!claimed || !claimed.length) return json({ error: "Approval already claimed" }, 409);
         const ctx: ExecContext = {
-          username: vcred.username, password: vcred.password || "",
+          username: vcred.username,
           approval: approval as Record<string, unknown>, admin,
         };
         const { data: run } = await admin.from("exec_runs").insert({
@@ -2139,8 +2135,8 @@ serve(async (req) => {
       return json({ error: "Approval was already claimed or is no longer approved" }, 409);
     }
 
-    // Load vaulted credential. Browser playbooks (passwordless OTP flows)
-    // need only the username/email; HTTP playbooks need both.
+    // Load the saved sign-in email. No password is ever stored (owner decision 1); an HTTP playbook that would need
+    // one is not allowed.
     const { data: credRef } = await admin.from("exec_credential_refs")
       .select("*").eq("user_id", user.id).eq("merchant_key", merchantKey).maybeSingle();
     if (!credRef) {
@@ -2156,9 +2152,9 @@ serve(async (req) => {
       p_name: (credRef as { vault_name: string }).vault_name,
     });
     if (verr2 || !vsecret2) return json({ error: "Could not read saved login" }, 500);
-    let cred: { username?: string; password?: string } = {};
+    let cred: { username?: string } = {};
     try { cred = JSON.parse(vsecret2 || "{}"); } catch { /* ignore */ }
-    if (!cred.username || (!browserDef && !cred.password)) {
+    if (!cred.username) {
       const r = await recordGuidedRun({
         admin, approval, userId: user.id,
         reason: "no_vault_credentials",
@@ -2181,7 +2177,7 @@ serve(async (req) => {
     }
 
     const ctx: ExecContext = {
-      username: cred.username, password: cred.password || "",
+      username: cred.username,
       approval, admin,
     };
 

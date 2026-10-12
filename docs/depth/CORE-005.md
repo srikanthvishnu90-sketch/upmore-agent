@@ -2,6 +2,8 @@
 
 Owner: Claude. Status words: planned, built, proven (its test fails under the planted break and passes without it).
 
+**Off in production (owner rule, 2026-10-11).** Automations are per-person toggles and every run still asks that person for a fresh yes, so the gate (`43-agent-loop.js`) never lets an envelope replace the yes unless the loop is created with `policy: { envelope_autonomy: true }`, which no shipped code sets (the testing agent checks this: `evals/agent/run.ts` O-18). Inside an envelope the default answer is `confirm: true, reason: "fresh_approval_rule"`. The engine below stays built and proven: its tests create the loop with that explicit policy, so the limits, expiry, revocation, surprise rule and audit are ready if the owner turns it on in writing.
+
 Why second: an envelope is the only place the agent moves money without a per-action yes. Every other safeguard assumes a human said yes to this exact action; here the human said yes once, in advance, within limits. If the limits, the expiry, the revocation or the audit slip, the agent is spending on its own.
 
 Scope: T4 capabilities only (the registry decides the tier): autosave sweeps, own-account transfers, allowances, overdraft-prevention moves, shared-goal contributions. Sends to people (T3) and first-time recipients (T5) are never inside an envelope. The loop enforces the limits against the exact values it writes; the control plane owns the grant, the usage, the revocation, the surprise rule and the audit; the trust ladder (doc 11) decides when an envelope may even be offered.

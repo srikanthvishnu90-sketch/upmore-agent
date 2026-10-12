@@ -17,13 +17,21 @@
     const DOLLARS = /(?:\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(?!\s*(?:shares?|units?))\b|\b(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s*(?:dollars|bucks|usd)\b)/i;
     const SHARES = /\b(\d+(?:\.\d+)?)\s*(?:shares?|units?)\b/i;
     const BARE = /\b(?:buy|get|purchase|add|sell)\s+(\d+(?:\.\d+)?)\s+(?!dollars|bucks|usd|shares?|units?)([A-Za-z][A-Za-z.&'-]{0,5})\b/i;
-    const VAGUE = /\b(all my cash|everything|a bunch|some|a little|a lot|whatever|max|as much as)\b/i;
+    // "put everything in", "all in", "all my cash": the account's whole buying power, read from the broker and flagged as
+    // 100% of the cash before anything else (response-style corpus 3.09). Other vague sizes still ask.
+    const ALL_IN = /\b(everything|all my cash|all in|all of my cash|max(?:imum)?|as much as (?:i can|possible))\b/i;
+    const VAGUE = /\b(a bunch|some|a little|a lot|whatever)\b/i;
+    // "10k of VOO" is $10,000.00; "invest 5000 in X" and "put 300 into X" name dollars (megadoc E14, I03).
+    const THOUSANDS = /(?:^|[\s$])(\d+(?:\.\d+)?)\s?k\b/i, INVEST = /\b(?:invest|put)\s+\$?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?\s+(?:in|into)\b/i;
     function parseAmount(text) {
       const t = String(text || "");
+      const k = THOUSANDS.exec(t); if (k) { const c = Math.round(Number(k[1]) * 100000); return c > 0 ? { notional_cents: c } : { zero: true }; }
+      const inv = INVEST.exec(t); if (inv) { const c = Number(inv[1].replace(/,/g, "")) * 100 + Number(((inv[2] || "") + "00").slice(0, 2)); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const d = DOLLARS.exec(t), s = SHARES.exec(t);
       if (d) { const whole = Number((d[1] || d[3]).replace(/,/g, "")), frac = Number(((d[2] || d[4] || "") + "00").slice(0, 2)); const cents = whole * 100 + frac; return cents > 0 ? { notional_cents: cents } : { zero: true }; }
       if (s) { const q = Number(s[1]); return q > 0 ? { quantity: q } : { zero: true }; }
       const b = BARE.exec(t); if (b) { const n = Number(b[1]); if (!(n > 0)) return { zero: true }; return Number.isInteger(n) ? { ambiguous: n, symbol_hint: b[2] } : { quantity: n, symbol_hint: b[2] }; }
+      if (ALL_IN.test(t) && !/\bsell\b/i.test(t)) return { all_in: true };
       if (VAGUE.test(t)) return { vague: true };
       return {};
     }
@@ -64,7 +72,7 @@
       const t = String(text || "").trim();
       const protect = /\b(?:put|set|place|add)\s+(?:a\s+)?(?:trailing\s+)?stop\b/i.test(t) && /\bmy\b/i.test(t) && !/\bbuy\b/i.test(t);
       const side = (/\bsell\b/i.test(t) && !/\bbuy\b/i.test(t)) || protect ? "sell" : "buy";
-      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto)\b/i.test(t) ? "crypto" : "equity";
+      const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
       const action = /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
         : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
@@ -77,17 +85,24 @@
       let fraction = null;
       if (side === "sell") { const f = /\b(half|all|everything|entire|whole position|a third|one third|a quarter|one quarter)\b|\b(\d{1,3})\s*%\s*of\b/i.exec(rest); if (f) fraction = f[2] ? Number(f[2]) / 100 : { half: 0.5, all: 1, everything: 1, entire: 1, "whole position": 1, "a third": 1 / 3, "one third": 1 / 3, "a quarter": 0.25, "one quarter": 0.25 }[f[1].toLowerCase()]; if (protect && !fraction && !amount.quantity && !amount.notional_cents && !amount.ambiguous) fraction = 1; }
       let query = null;
-      const of = /\b(?:of|in(?:to)?)\s+(?!my\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?]|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
+      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
       if (of) query = of[1].trim();
       else if (amount.symbol_hint) query = amount.symbol_hint;
-      else { const up = /\b([A-Z]{1,5})\b(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      else { const up = /\b([A-Z]{1,5}(?:\.[A-Z])?)(?![\w.])(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
+      // A lowercase ticker right after the verb ("buy nvda"): the broker's asset list decides whether it is one.
+      if (!query) { const w = /\b(?:buy|sell|get|purchase)\s+(?:some\s+|more\s+)?([a-z]{1,5}(?:\.[a-z])?)(?![\w.])/i.exec(rest); if (w && !/^(it|that|this|them|all|half|my|the|some|more|stock|a|an|now|back|off|out|in|up|with|while|when|during|after|before|at|on|for|and|if|to|from|into|low|high|me|us|you|what|which|any|one|cheap)$/i.test(w[1])) query = w[1]; }
       if (!query) { const my = /\bmy\s+(?!(?:roth|ira|brokerage|account|schwab|fidelity|vanguard account|401k|taxable|order|limit|stop|cash)\b)([A-Za-z][\w.&'-]*)/i.exec(rest); if (my) query = my[1]; }
       if (query) query = query.replace(/\s+(ETF|stock|shares?|order)$/i, "").trim() || null;
+      // "I" and "A" are words before they are tickers; money words are not instruments ("with 300 in cash", megadoc F02, H12).
+      if (query && (/^(I|A)$/.test(query) && !/(?:\$|\bof\s+)(?:I|A)\b/.test(rest)) || query && /^(cash|savings|checking|my account|the market|stocks?)$/i.test(query)) query = null;
       const acct = /\b(?:in|from|using)\s+(?:my\s+)?((?:schwab|fidelity|vanguard|robinhood|public|roth|ira|brokerage|taxable|401k)[\w -]{0,24}?)(?=\s+account\b|\s*[,.!?]|$)/i.exec(t);
       // A number next to a symbol with a price attached ("buy 10 NVDA at $105") is a share count: notional orders are market only.
-      const ambiguous = amount.ambiguous && terms.type !== "market" ? null : amount.ambiguous || null;
+      // A bare number on a market buy is dollars ("buy 100 of nvda" is $100.00 of NVDA; owner's response-style corpus 3.01,
+      // 3.03 and scenario E61); the card shows the dollars before any yes. A bare number on a sell still asks.
+      const bareDollars = !!amount.ambiguous && terms.type === "market" && side === "buy";
+      const ambiguous = bareDollars || (amount.ambiguous && terms.type !== "market") ? null : amount.ambiguous || null;
       const quantity = amount.quantity || (amount.ambiguous && terms.type !== "market" ? amount.ambiguous : null);
-      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || null, quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query, account: acct ? acct[1].trim() : null };
+      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query, account: acct ? acct[1].trim() : null };
     }
 
     // S02: the symbol resolves against real instruments the caller supplies ({symbol, name, type, tradable_at: [account ids] | undefined}); a look-alike one edit away asks.
@@ -128,7 +143,8 @@
       const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
 
       // S15: nothing leaves without the advice-guard response lint; a message that fails is reported, never sent as advice.
-      const say = (outcome, text, extra) => { const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
+      // A reply starts with a capital even when it opens with an account name ("your Alpaca account ...").
+      const say = (outcome, text0, extra) => { const text = typeof text0 === "string" ? text0.charAt(0).toUpperCase() + text0.slice(1) : text0; const lint = Guard ? Guard.response(text) : { ok: true, findings: [] }; return Object.assign({ outcome, text, lint_ok: lint.ok, lint: lint.findings }, extra || {}); };
       const ask = (reason, text, extra) => say("ask", text, Object.assign({ reason }, extra));
 
       async function readOr(kind, params) { try { const r = await conn.read(kind, params || {}); if (!r || !r.source || !r.as_of) return null; return r; } catch (_) { return null; } }
@@ -136,10 +152,11 @@
       // S07: the confirmation restates the exact order: side, size, symbol with name, estimate at the quote with source and as-of, account, type, timing.
       // The card a person answers: two SMS segments at most. Action with the exact amount, where the money goes, the fee
       // and total, the quote it is priced on (source and as-of, on every card), what the order type does, that it queues
-      // when the market is closed, that a filled order can't be undone, and PAPER on every paper account. The rest is DETAILS.
+      // when the market is closed, that a filled order can't be undone, and LIVE on every live account. The rest is DETAILS.
       const hhmm = ms => new Date(ms).toISOString().slice(11, 16) + " UTC";
-      // The account's mode on every surface: LIVE on a person's own live account (Brokerage connect), PAPER on a paper one.
-      const MODE = acct => acct && acct.live ? "LIVE: " : acct && acct.paper ? "PAPER: " : "";
+      // LIVE on every surface of a person's own live account. Owner rule (2026-10-11): everything is live; there is no paper
+      // mode, label or fallback anywhere. A paper account is refused at account selection.
+      const MODE = acct => acct && acct.live ? "LIVE: " : "";
       const verb = ord => ord.side === "sell" ? "Sell" : "Buy";
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
@@ -172,7 +189,7 @@
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
         const est = ord.notional_cents ? `about ${qty(ord.quantity)} shares at ${money(ord.price_cents)}` : `about ${money(ord.estimated_cents)} at ${money(ord.price_cents)}`;
         const T = terms(ord), tif = tifWords(ord);
-        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ord.account.paper ? "Paper trading: no real money moves. " : ""}Reply yes or no.`;
+        return `${MODE(ord.account)}${verb(ord)} ${size} ${ord.symbol} (${ord.name})${T.head} in ${ord.account.name}: ${est} (${ord.quote_source}, as of ${new Date(ord.quote_as_of).toISOString().slice(11, 16)} UTC), ${ord.type && ord.type !== "market" ? `${ord.type.replace("_", " ")} order, ${tif}` : "market order"}, ${ord.market_open ? (ord.type && ord.type !== "market" ? "works now" : "executes now") : `${ord.type && ord.type !== "market" ? "works from" : "queued until"} ${ord.when}`}. ${T.note ? T.note + ". " : ""}${ord.leftover_cents ? `${money(ord.leftover_cents)} stays in cash because ${ord.account.name} trades whole shares only. ` : ""}${ord.account.live ? `Live order with real money in your own account${Number.isSafeInteger(ord.account.order_cap_cents) ? `; limit ${money(ord.account.order_cap_cents)} per order while Upmore is in testing` : ""}. ` : ""}Reply yes or no.`;
       }
 
       // The instrument, from the caller's list, or (when the broker can answer) the broker's own asset record for a ticker.
@@ -209,7 +226,8 @@
       // A read that failed because the broker refused the person's token (401) is a Reconnect, never "try again later".
       const READ_FAILS = ["broker_unreachable", "accounts_unreadable", "no_quote", "position_unreadable", "cash_unknown", "holdings_unreadable", "symbol_unknown"];
       const gone = () => typeof conn.auth_failed === "function" && conn.auth_failed() === true;
-      const RECONNECT = "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
+      const BAx = typeof BrokerAccounts !== "undefined" ? BrokerAccounts : typeof require === "function" ? require("./73-broker-accounts.js") : null;
+      const RECONNECT = BAx ? BAx.MESSAGES.reconnect("brokerage") : "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
       async function stage(parsed) {
         const r = await stageOnce(parsed);
         if (r && gone() && READ_FAILS.includes(r.reason)) { pending = null; return say("blocked", RECONNECT, { reason: "broker_reconnect" }); }
@@ -217,19 +235,35 @@
       }
       async function stageOnce(parsed) {
         suggestion = null;
+        // Copying someone's portfolio is not built: said plainly, with why a copy would be stale (corpus 3.08, scenario H02).
+        if (/\b(copy|copied|copying|mirror|mirrored)\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        // An investment pitch with a promised return is a scam pattern; nothing is staged (megadoc N01).
+        if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
+        // Stops across every holding at once are not built (megadoc E13): one holding at a time.
+        if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "portfolio") return portfolio();
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
-        if (parsed.asset === "crypto") return say("refuse", "Crypto trades go through a crypto venue, not the brokerage; that path is separate and not wired yet. Nothing was placed.", { reason: "crypto_venue" });
+        if (parsed.asset === "crypto") return say("refuse", "Upmore can't trade crypto yet, so nothing was placed. Want to name a stock-listed fund instead? I'll put up a card for it.", { reason: "crypto_venue" });
+        // Products Upmore does not offer, said plainly before any question (megadoc E20, E21, E25, I01-I08, M10).
+        const tx = parsed.text || "";
+        if (/\b(options?|calls|puts|call options?|put options?|contracts)\b/i.test(tx) && /\b(buy|sell|trade|yolo|copy)\b/i.test(tx)) return say("refuse", "Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own account.", { reason: "options_unsupported" });
+        if (/\b(on margin|margin|shorting|short sell|sell short|go short|leverage[d]?)\b/i.test(tx)) return say("refuse", "Upmore only places cash orders, with no margin or short selling, so nothing was placed.", { reason: "margin_unsupported" });
+        // Money into savings or checking is a transfer between the person's own accounts, not an order (megadoc M09).
+        if (/\b(?:in|into|to)\s+(?:my\s+)?(savings|checking|emergency fund|bank)\b/i.test(tx)) return say("not_built", "Moving money between your own accounts isn't built yet, so nothing was moved or placed.", { reason: "transfer_not_built" });
+        { const priv = /\b(spacex|stripe|openai|anthropic|databricks|chime|discord|epic games|shein|klarna)\b/i.exec(tx);
+          if (priv) return say("refuse", `${priv[1].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Spacex$/, "SpaceX").replace(/^Openai$/, "OpenAI")} isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.`, { reason: "private_unsupported" });
+          if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
+        if (/\b(a|per|each|every)\s+(week|month|day|paycheck|quarter)\b|\b(weekly|monthly|recurring|auto[- ]?invest|automatically|dca|dollar[- ]cost)\b/i.test(tx)) return say("not_built", "Recurring investments aren't built yet, so nothing was scheduled or placed. I can put up a card for a one-time order if you name the amount.", { reason: "recurring_not_built" });
         const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY, type = parsed.type || "market";
         // S03: decision words are refused before anything is read or staged. The guard catches the advice shapes; the local
         // list catches an order that leaves the choice of instrument or timing to the agent ("whatever's best", "the dip").
         const DECIDE = /\b(whatever|whichever|best|good one|the dip|dipped|just dropped|hot|winner|winning|pick|choose|recommend|should i|would you|what (do|would) you|pelosi|buffett|congress)\b/i;
-        if (Guard) { const g = Guard.request(parsed.text); if (g.decision === "block" || DECIDE.test(parsed.text)) return say("refuse", g.decision === "block" ? g.redirect : "That leaves the choice to me, and I don't make it: name the ticker and the amount and I'll place exactly that. I can show the data behind any name you're weighing.", { reason: "advice", rules: g.decision === "block" ? g.reasons : ["decision_left_to_agent"] }); }
+        if (Guard) { const g = Guard.request(parsed.text); if (g.decision === "block" || DECIDE.test(parsed.text)) return say("refuse", g.decision === "block" ? "I can't tell you what to buy or sell. If you decide, name the ticker and the amount and I'll put up a card. Want to see your current holdings?" : "That leaves the choice to me, and I don't make it. Name the ticker and the amount and I'll put up a card for exactly that. Want to see your current holdings?", { reason: "advice", rules: g.decision === "block" ? g.reasons : ["decision_left_to_agent"] }); }
         // A broker with no public trading API, named by the person: the honest answer, nothing staged.
         const nope = noApi(parsed.account) || noApi((/\b(fidelity|vanguard|robinhood|sofi)\b/i.exec(parsed.text || "") || [])[1]);
-        if (nope) return say("refuse", `${nope} Nothing was placed.`, { reason: "broker_no_public_api" });
+        if (nope) return say("refuse", nope, { reason: "broker_no_public_api" }); // it says nothing was placed and ends on the connect link
         // Nothing connected (or a connection to fix): said before any question about size or symbol and before any read.
         { const c = connectStop(); if (c) return c; }
         // No partner, no order, said first: before any question about size or symbol and before any read, the person
@@ -243,7 +277,7 @@
         if (parsed.ambiguous_number) return ask("size_ambiguous", `Is ${parsed.ambiguous_number} dollars or shares of ${(parsed.query || "that").toUpperCase()}?`);
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");
         if (parsed.vague) return ask("size", `How much exactly: a dollar amount or a share count? I don't size orders myself.`);
-        if (!parsed.notional_cents && !parsed.quantity && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? parsed.query.toUpperCase() : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
+        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
         if (parsed.notional_cents && type !== "market") return ask("size", `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
         const res = await instrument(parsed.query);
@@ -262,9 +296,16 @@
         else if (linked.length === 1) account = linked[0];
         else if (!linked.length) return ask("no_account", "No brokerage account is linked, so there is nowhere to place this.");
         else return ask("account_which", `Which account: ${linked.map(a => a.name).join(" or ")}?`);
+        if (account.paper === true) return say("refuse", "That account is a paper (practice) account. Upmore trades only in your own live brokerage account, so nothing was placed.", { reason: "paper_account" });
         if (account.tradable === false) return say("refuse", `${account.name} is view-only here; orders can't be placed in it.`, { reason: "account_view_only" });
         if (Array.isArray(inst.tradable_at) && !inst.tradable_at.includes(account.id)) return say("refuse", `${inst.symbol} is not tradable in ${account.name}.`, { reason: "not_tradable_here" });
         const fractional = account.fractional !== false && inst.fractionable !== false;
+        let allInNote = "";
+        if (parsed.all_in) {
+          if (!Number.isSafeInteger(account.cash_cents)) return ask("cash_unknown", `I can't read buying power in ${account.name}, so I can't size "everything". How much in dollars?`);
+          parsed = Object.assign({}, parsed, { notional_cents: account.cash_cents });
+          allInNote = `That's ${money(account.cash_cents)}, 100% of your brokerage cash, into one stock. `;
+        }
         // S04: a real quote, fresh, or no number at all. The ask prices a buy, the bid a sell.
         const q = await readOr("quote", { symbol: inst.symbol, side }), now = clock();
         if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents)) return ask("no_quote", `I have no quote for ${inst.symbol}, so I can't estimate the order. Ask again in a moment.`);
@@ -297,6 +338,7 @@
         const capC = Number.isSafeInteger(account.order_cap_cents) ? account.order_cap_cents : null;
         // A share count that fills at market (or at a stop, or trailing) is held to the cap 2% through the quote, as the adapter does.
         const capEst = order_notional => order_notional ? estimated : type === "limit" || type === "stop_limit" ? estimated : Math.ceil(estimated * 1.02);
+        if (capC !== null && allInNote && capEst(true) > capC) return say("stop", `${allInNote}Live orders are limited to ${money(capC)} each while Upmore is in testing, so nothing was placed.`, { reason: "order_cap" });
         if (capC !== null && capEst(parsed.notional_cents && type === "market") > capC) return say("stop", `That's about ${money(capEst(parsed.notional_cents && type === "market"))}; live orders are limited to ${money(capC)} each while Upmore is in testing. Nothing was placed.`, { reason: "order_cap" });
         // S06: buying power, read, before asking for a yes.
         const cash = Number.isSafeInteger(account.cash_cents) ? account.cash_cents : null, fee = Number.isSafeInteger(account.fee_cents) ? account.fee_cents : 0;
@@ -313,7 +355,7 @@
         const prior = orders.filter(x => x.key === base || x.key.startsWith(base + ":")).length;
         const key = parsed.another && prior ? `${base}:${prior + 1}` : base;
         const sizeWords = order.notional_cents ? money(order.notional_cents) + " of" : qty(quantity) + " shares of";
-        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper, live: !!account.live }, describe: `${account.live ? "LIVE " : account.paper ? "PAPER " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
+        const request = { capability_id: CAP, key, idempotency_key: key, params: { symbol: inst.symbol, side, quantity, notional_cents: order.notional_cents, amount_cents: estimated, account: account.id, type, limit_cents: order.limit_cents, stop_cents: order.stop_cents, trail_percent: order.trail_percent, trail_cents: order.trail_cents, time_in_force: tif, paper: !!account.paper, live: !!account.live }, describe: `${account.live ? "LIVE " : ""}${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol}${terms(order).head} in ${account.name}`, confirm: { action: `${side === "sell" ? "Sell" : "Buy"} ${sizeWords} ${inst.symbol} (${inst.name})`, amount: `about ${money(estimated)}`, recipient: `${inst.symbol} (${inst.name})`, from: account.name, fee: null, when: open ? "executes now" : `queued until ${when}` }, amount_cents: estimated };
         order.key = key; order.request = request;
         const r = await loop.wake({ kind: "message", request });
         if (r.outcome === "awaiting_confirmation") { pending = { order, confirmation_id: r.confirmation_id }; return say("confirm", cardText(order), { confirmation_id: r.confirmation_id, order, details: confirmText(order) }); }
@@ -424,15 +466,15 @@
         orders.push(fresh);
         return say(s.status === "filled" ? "filled" : "replaced", `${P}Changed: order ${target.order_id} is replaced by order ${ref}, ${fresh.side === "sell" ? "sell" : "buy"} ${qty(fresh.quantity)} ${fresh.symbol}${terms(fresh).head}, ${s.status === "filled" ? `filled at ${money(s.fill_price_cents)}` : s.status} per ${rb.source} (as of ${hhmm(rb.as_of)}).`, { order_id: ref, replaced: target.order_id });
       }
-      // The portfolio answer: positions and buying power from the account's own read, LIVE or PAPER said first.
+      // The portfolio answer: positions and buying power from the account's own read, LIVE said first.
       async function portfolio() {
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
         const h = await readOr("holdings", {});
         if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
-        const a = (accts.value || [])[0] || {}, paper = !!a.paper, rows = h.value || [];
+        const a = (accts.value || [])[0] || {}, rows = h.value || [];
         const fmt = x => `${qty(x.qty !== undefined ? x.qty : x.quantity)} ${x.symbol}${Number.isSafeInteger(x.market_value_cents) ? ` (${money(x.market_value_cents)})` : ""}`;
-        return say("answer", `${a.live ? "LIVE portfolio" : paper ? "PAPER portfolio (paper trading, no real money)" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper });
+        return say("answer", `${a.live ? "LIVE portfolio" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper: false, live: !!a.live });
       }
 
       async function recheck(ord) {
@@ -470,6 +512,7 @@
           const again = await stage(merged);
           return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
         }
+        if (cls.type === "hold") return { outcome: "held", text: "Holding it. Nothing was placed. Say yes to place it as shown, or no to drop it." };
         if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return p.order.action ? say("declined", "Okay, I left the order as it is.") : settle(r, p.order); }
         if (cls.type === "confirmation" && cls.approved === true) {
           if (p.order.action) {
@@ -503,7 +546,7 @@
       }
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
-      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : f.value.paper ? " (PAPER)" : ""}`).join("; ") + "."); }
+      function today(now) { const d = ymd(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && ymd(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };

@@ -193,7 +193,7 @@ export async function run() {
     ],
   });
   const ev = {};
-  const outcome = await runDeclarative({ username: "u", password: "p" }, page, SPOTIFY_PB, ev, 0, null);
+  const outcome = await runDeclarative({ username: "u" }, page, SPOTIFY_PB, ev, 0, null);
   check("real step loop completes the playbook", outcome.ok === true, JSON.stringify(outcome));
   db.finishRun(runId, outcome, ev, "spotify");
 

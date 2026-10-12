@@ -17,13 +17,13 @@ const root=path.resolve(__dirname,'..');
 const domainDir=process.env.UPMORE_DOMAIN_DIR||path.join(root,'packages/domain');
 const Mock=require('./fixtures/alpaca-mock.cjs');
 const ctx=vm.createContext({fetch,AbortController,setTimeout,clearTimeout,URL,URLSearchParams,btoa,atob,Buffer,TextEncoder,TextDecoder,crypto:globalThis.crypto});
-vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca.js','73-broker-accounts.js','74-broker-connect.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaTrading;this.C=Compliance;this.B=BrokerAccounts;this.K=BrokerConnect;',ctx);
+vm.runInContext(['35-agent-intents.js','43-agent-loop.js','45-advice-guard.js','46-voice.js','47-data-guard.js','48-money-math.js','50-agent-invest.js','53-compliance.js','66-agent-trade.js','67-agent-cards.js','71-alpaca.js','76-connect-cards.js','73-broker-accounts.js','74-broker-connect.js'].map(f=>fs.readFileSync(path.join(domainDir,f),'utf8')).join('\n')+'\nthis.T=AgentTrade;this.A=AlpacaTrading;this.C=Compliance;this.B=BrokerAccounts;this.K=BrokerConnect;',ctx);
 const {T,A,C,B,K}=ctx;
 const Registry=require(path.join(root,'packages/capabilities/registry.js'));
 const registry=Registry.load(JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/registry.json'),'utf8')),rel=>fs.existsSync(path.join(root,rel)));
 const T0=Date.UTC(2026,9,12,14,0,0);
 const UA='00000000-0000-0000-0000-0000000000a1',UB='00000000-0000-0000-0000-0000000000b2';
-const ENV={ALPACA_OAUTH_CLIENT_ID:'cid-upmore-test',ALPACA_OAUTH_CLIENT_SECRET:'csecret-upmore-test',SUPABASE_URL:'https://mrwngntwmnaqrqhupvlt.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'srk-upmore-test',UPMORE_APP_URL:'https://upmore-topaz.vercel.app'};
+const ENV={ALPACA_OAUTH_CLIENT_ID:'cid-upmore-test',ALPACA_OAUTH_CLIENT_SECRET:'csecret-upmore-test',SUPABASE_URL:'https://mrwngntwmnaqrqhupvlt.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'srk-upmore-test',UPMORE_APP_URL:'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app'};
 const CALLBACK='https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/broker-oauth-callback';
 const servers=[];after(async()=>{for(const s of servers)await s.close();});
 
@@ -103,7 +103,7 @@ test('[S02] Connect starts with the broker\'s own approval page: exact Alpaca UR
 
 test('[S03] the OAuth round trip (stubbed): the code is exchanged server side, form-encoded with the secret; the live account is read; the token is staged for this person and their own app confirms it',async()=>{
   const db=memDb();const c=await connect(db,UA,'code-A');
-  assert.equal(c.cb.outcome,'staged');assert.match(c.cb.redirect,/^https:\/\/upmore-topaz\.vercel\.app\/#you\?broker=confirm&link=[0-9a-f-]{36}$/);assert.equal(c.confirmed,true,'the starter\'s own app confirms it');
+  assert.equal(c.cb.outcome,'staged');assert.match(c.cb.redirect,/^https:\/\/upmore-srikanthvishnu90-sketchs-projects\.vercel\.app\/#you\?broker=confirm&link=[0-9a-f-]{36}$/);assert.equal(c.confirmed,true,'the starter\'s own app confirms it');
   const ex=c.of.calls.find(x=>x.url.endsWith('/oauth/token'));assert.equal(ex.method,'POST');assert.equal(ex.headers['content-type'],'application/x-www-form-urlencoded');
   const form=new URLSearchParams(ex.body);assert.deepEqual([...form.keys()].sort(),['client_id','client_secret','code','grant_type','redirect_uri']);assert.equal(form.get('grant_type'),'authorization_code');assert.equal(form.get('code'),'code-A');assert.equal(form.get('redirect_uri'),CALLBACK);
   const ac=c.of.calls.find(x=>x.url.endsWith('/v2/account'));assert.equal(ac.headers.authorization,'Bearer tok-A');
@@ -119,7 +119,7 @@ test('[S04] a tampered state is rejected before anything else happens: another p
   for(const f of forged){
     const of=oauthFetch();const before=db.calls.length;
     const r=await K.callback({query:{code:'code-A',state:f},env:ENV,db,fetch:of.f,now:T0+60000});
-    assert.equal(r.code,'state_invalid',`state ${f.slice(0,20)}...`);assert.equal(r.redirect,'https://upmore-topaz.vercel.app/#you?broker=error&reason=state_invalid');
+    assert.equal(r.code,'state_invalid',`state ${f.slice(0,20)}...`);assert.equal(r.redirect,'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/#you?broker=error&reason=state_invalid');
     assert.equal(of.calls.length,0,'no token exchange');assert.equal(db.calls.length,before,'no database call: not even the nonce is consumed');
   }
   assert.equal(db.rows.length,0);
@@ -157,7 +157,7 @@ test('[S09] Connect is honest when it can\'t run: app credentials not set, the p
     const db=memDb();const s=await K.start({user_id:UA,provider:'alpaca',env,db,now:T0});
     assert.equal(s.ok,false);assert.equal(s.code,'not_configured');assert.equal(s.message,'Connecting a brokerage isn\'t switched on yet: Upmore\'s Alpaca app credentials are not set. Nothing was connected.');assert.equal(db.calls.length,0);
   }
-  const db=memDb();const d=await connect(db,UA,'code-A',{query:{error:'access_denied',code:undefined}});assert.equal(d.cb.outcome,'denied');assert.equal(d.cb.redirect,'https://upmore-topaz.vercel.app/#you?broker=error&reason=denied');assert.equal(d.of.calls.length,0);
+  const db=memDb();const d=await connect(db,UA,'code-A',{query:{error:'access_denied',code:undefined}});assert.equal(d.cb.outcome,'denied');assert.equal(d.cb.redirect,'https://upmore-srikanthvishnu90-sketchs-projects.vercel.app/#you?broker=error&reason=denied');assert.equal(d.of.calls.length,0);
   const sch=await K.start({user_id:UA,provider:'schwab',env:ENV,db:memDb(),now:T0});assert.equal(sch.code,'not_wired');assert.equal(sch.message,'Connecting Charles Schwab isn\'t available yet. Alpaca is the broker you can connect today.');
 });
 
@@ -172,7 +172,7 @@ test('[S10] no secret, code or token ever reaches a log line, a redirect or a me
 test('[S11] no brokerage connected: an order, a portfolio question and a cancel get the honest connect prompt, and nothing is read or staged',async()=>{
   const db=memDb();const m=await market();const t=await trader(db,UA,m);
   assert.equal(t.r.wired,false);assert.equal(t.r.code,'connect');
-  const PROMPT='No brokerage is connected, so nothing was placed. Connect your own Alpaca account in Settings > Brokerage: you approve it on Alpaca\'s site and Upmore never sees your password.';
+  const PROMPT='No brokerage is connected yet, so nothing was placed - here\'s the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca';
   const a=await t.s.start('buy $5 of VOO');assert.equal(a.outcome,'blocked');assert.equal(a.reason,'broker_connect');assert.equal(a.text,PROMPT);
   assert.equal((await t.s.start('what do I own')).text,PROMPT);
   assert.equal(t.s.pending,null);assert.equal(m.state.requests.length,0);
@@ -180,22 +180,22 @@ test('[S11] no brokerage connected: an order, a portfolio question and a cancel 
 
 test('[S12] a broker with no public trading API is said plainly, in Connect and in a trade, with Alpaca as the way in',async()=>{
   const s=await K.start({user_id:UA,provider:'robinhood',env:ENV,db:memDb(),now:T0});
-  assert.equal(s.code,'unsupported');assert.equal(s.message,'Robinhood doesn\'t offer a way for apps to place trades for you, so Upmore can\'t connect it. To trade from Upmore, open an Alpaca account and connect it in Settings > Brokerage.');
+  assert.equal(s.code,'unsupported');assert.equal(s.message,'Robinhood doesn\'t let apps place trades, so Upmore can\'t connect it and nothing was placed. Alpaca does - here\'s the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');
   const db=memDb();await connect(db,UA,'code-A');const m=await market();const t=await trader(db,UA,m,{cap:100000});
   const r=await t.s.start('buy $5 of VOO in my Fidelity account');assert.equal(r.outcome,'refuse');assert.equal(r.reason,'broker_no_public_api');
-  assert.match(r.text,/^Fidelity doesn't offer a way for apps to place trades for you, so Upmore can't connect it\. .* Nothing was placed\.$/);assert.equal(landed(m,'acct-A').length,0);
+  assert.match(r.text,/^Fidelity doesn't let apps place trades, so Upmore can't connect it and nothing was placed\. Alpaca does - here's the link\.\n\nhttps:\/\/\S+\/connect\/alpaca$/);assert.equal(landed(m,'acct-A').length,0);
 });
 
 test('[S13] a revoked or expired token: Reconnect is said, the row is marked for Reconnect once, nothing is placed and no fill is ever claimed',async()=>{
   const db=memDb();await connect(db,UA,'code-A');const m=await market();const marks=[];
   const t=await trader(db,UA,m,{cap:100000,onAuth:q=>marks.push(q)});
   m.state.tokens={};
-  const r=await t.s.start('buy $5 of VOO');assert.equal(r.outcome,'blocked');assert.equal(r.reason,'broker_reconnect');assert.equal(r.text,'Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.');
+  const r=await t.s.start('buy $5 of VOO');assert.equal(r.outcome,'blocked');assert.equal(r.reason,'broker_reconnect');assert.equal(r.text,'Your brokerage connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');
   assert.deepEqual(JSON.parse(JSON.stringify(marks)),[{user_id:UA,account:db.rows[0].id}],'marked once for this person and row');
   // Revoked between the card and the yes: the write is refused, said as Reconnect, nothing filled.
   const db2=memDb();await connect(db2,UA,'code-A');const m2=await market();const t2=await trader(db2,UA,m2,{cap:100000,onAuth:()=>{}});
   assert.equal((await t2.s.start('buy $5 of VOO')).outcome,'confirm');m2.state.tokens={};
-  const y=await t2.s.reply('yes');assert.equal(y.outcome,'blocked');assert.equal(y.reason,'broker_reconnect');assert.equal(y.text,'Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.');assert.doesNotMatch(y.text,/Done|filled|bought/);
+  const y=await t2.s.reply('yes');assert.equal(y.outcome,'blocked');assert.equal(y.reason,'broker_reconnect');assert.equal(y.text,'Your brokerage connection was revoked or has expired, so nothing was placed - here\'s the link to reconnect.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca');assert.doesNotMatch(y.text,/Done|filled|bought/);
   // Revoked after the re-check passed, at the write itself: the broker's 401 is a definite refusal, said as Reconnect.
   const db3=memDb();await connect(db3,UA,'code-A');const m3=await market();let revoke=false;const t3=await trader(db3,UA,m3,{cap:100000,onAuth:()=>{}});
   assert.equal((await t3.s.start('buy $5 of VOO')).outcome,'confirm');

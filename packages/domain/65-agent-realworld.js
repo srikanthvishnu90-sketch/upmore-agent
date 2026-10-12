@@ -195,9 +195,15 @@
         const it = get(id), f = facts || {}, depth = f.depth || {}, overlay = f.overlay || {};
         const st = it.registry.map(r => ({ id: r, status: (overlay[r] && overlay[r].status) || (caps.get(r) || {}).status || "CLAIMED" }));
         const tested = st.filter(s => s.status === "TESTED" || s.status === "VERIFIED").length;
-        // Proven means this item's own depth packet (docs/depth/<id>.md, named in the map) is 15/15; a proven id that merely
-        // appears among an item's registry ids proves nothing about the item (a limit order is not a market buy).
-        const proven = it.depth && depth[it.depth] && depth[it.depth].proven === depth[it.depth].sub_capabilities && depth[it.depth].sub_capabilities >= 15 ? [it.depth] : [];
+        // Proven means this item's own depth packet (docs/depth/<id>.md, named in the map) has at least 15 sub-capabilities,
+        // every planted defect bites and every sub-capability has one that does (a sub-capability may carry more than one
+        // defect, so the counts need not match); a proven id that merely appears among an item's registry ids proves nothing
+        // about the item (a limit order is not a market buy).
+        const dp = it.depth && depth[it.depth];
+        const rowsOf = dp && Array.isArray(dp.rows) ? dp.rows : null;
+        const allBite = dp && (rowsOf ? rowsOf.length > 0 && rowsOf.every(r => r.bites) : dp.proven === dp.sub_capabilities);
+        const subsProven = dp && (rowsOf ? new Set(rowsOf.filter(r => r.bites).map(r => r.sub)).size : dp.proven);
+        const proven = dp && allBite && subsProven >= dp.sub_capabilities && dp.sub_capabilities >= 15 ? [it.depth] : [];
         const logic = proven.length ? "LOGIC_PROVEN" : tested === st.length ? "LOGIC_TESTED" : tested ? "PARTLY_TESTED" : "DESIGNED";
         const wired = it.connectors.some(p => { const row = providers.get(p); return row && /live/.test(row.adapter_state || ""); });
         const rail = wired ? "LIVE" : it.sandbox ? "SANDBOX" : NOT_WIRED;

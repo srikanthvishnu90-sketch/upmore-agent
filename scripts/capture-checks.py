@@ -104,6 +104,8 @@ if __name__ == '__main__':
               ('agent100-validate', ['npm', '--prefix', 'tests/agent100', 'run', 'validate']),
               ('agent100-dry', ['npm', '--prefix', 'tests/agent100', 'run', 'dry']),
               ('generated-core', ['python3', 'scripts/build-financial-core.py', '--check']),
+              ('testing-agent', ['deno', 'run', '-A', 'evals/agent/run.ts', '--check']),
+              ('testing-agent-mutations', ['deno', 'run', '-A', 'evals/agent/mutations.ts']),
               ('diff-whitespace', ['git', 'diff', '--check'])]
     for entry in ('agent-chat', 'agent-workflows', 'agent-payments', 'agent-message-inbound',
                   'agent-message-turn', 'agent-message-worker', 'simplefin-proxy'):

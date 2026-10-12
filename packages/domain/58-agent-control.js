@@ -24,7 +24,7 @@
         create(spec, now) {
           const need = ["capability_id", "text"].filter(k => !spec[k]); if (need.length) throw new Error(`A standing instruction needs ${need.join(", ")}.`);
           if (!spec.cadence && !spec.trigger) throw new Error("A standing instruction needs a cadence (daily, weekly, monthly, on a day) or a trigger (an event it answers).");
-          const r = { id: id("si"), capability_id: spec.capability_id, text: String(spec.text).trim(), params: spec.params || {}, cadence: spec.cadence || null, day: spec.day || null, trigger: spec.trigger || null, max_cents: Number.isInteger(spec.max_cents) ? spec.max_cents : null, expires_at: spec.expires_at || null, created_at: now, status: "active", last_fired_period: null, restated: null };
+          const r = { id: id("si"), capability_id: spec.capability_id, text: String(spec.text).trim(), params: spec.params || {}, cadence: spec.cadence || null, day: Number.isInteger(spec.day) ? spec.day : null, trigger: spec.trigger || null, max_cents: Number.isInteger(spec.max_cents) ? spec.max_cents : null, expires_at: spec.expires_at || null, created_at: now, status: "active", last_fired_period: null, restated: null };
           r.restated = restate(r); s.instructions.push(r); return r;
         },
         list() { return s.instructions.slice(); },
@@ -39,7 +39,7 @@
           for (const i of s.instructions) {
             if (i.status !== "active" || (i.expires_at && i.expires_at <= now) || !i.cadence) continue;
             const period = periodKey(i, now); if (!period || i.last_fired_period === period) continue;
-            if (i.day && !dayMatches(i, now)) continue;
+            if (i.day != null && !dayMatches(i, now)) continue; // Sunday is day 0
             out.push({ instruction_id: i.id, period, request: Object.assign({ capability_id: i.capability_id, key: `${i.id}:${period}`, idempotency_key: `${i.id}:${period}`, params: Object.assign({}, i.params), describe: i.text, cadence_requested: true, standing_instruction: i.id, amount_cents: i.params.amount_cents, recipient: i.params.recipient }, Number.isInteger(i.params.amount_cents) ? { confirm: { action: i.text, amount: money(i.params.amount_cents), recipient: String(i.params.recipient || "") } } : {}, i.max_cents != null && i.params.amount_cents > i.max_cents ? { blocked: `over the instruction's ${money(i.max_cents)} limit` } : {}) });
           }
           return out;

@@ -5,7 +5,8 @@
  "auth_methods": [
   "AGGREGATOR",
   "OAUTH",
-  "VAULTED_CREDENTIALS",
+  "PERSONAL_API_KEY",
+  "LIVE_SESSION",
   "MANUAL",
   "PUBLIC_DATA"
  ],
@@ -676,7 +677,7 @@
    "provider": "venmo",
    "display_name": "Venmo",
    "domain": "payment apps",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 1,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -697,7 +698,7 @@
      "gated": "no official API; handoff pattern"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -707,7 +708,7 @@
    "provider": "cash-app",
    "display_name": "Cash App",
    "domain": "payment apps",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 1,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -728,7 +729,7 @@
      "gated": "no official API; handoff pattern"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1216,7 +1217,7 @@
    "provider": "fidelity",
    "display_name": "Fidelity",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1257,7 +1258,7 @@
    "provider": "vanguard",
    "display_name": "Vanguard",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1298,7 +1299,7 @@
    "provider": "robinhood",
    "display_name": "Robinhood",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1421,7 +1422,7 @@
    "provider": "webull",
    "display_name": "Webull",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1462,7 +1463,7 @@
    "provider": "m1",
    "display_name": "M1",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1503,7 +1504,7 @@
    "provider": "betterment",
    "display_name": "Betterment",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1544,7 +1545,7 @@
    "provider": "wealthfront",
    "display_name": "Wealthfront",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1585,7 +1586,7 @@
    "provider": "public",
    "display_name": "Public",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1626,7 +1627,7 @@
    "provider": "sofi-invest",
    "display_name": "SoFi Invest",
    "domain": "brokerages and investment accounts",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS",
@@ -1667,7 +1668,7 @@
    "provider": "fidelity-netbenefits",
    "display_name": "Fidelity NetBenefits (401k/403b)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1684,7 +1685,7 @@
     "TAX-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "high",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1694,7 +1695,7 @@
    "provider": "empower",
    "display_name": "Empower (401k/403b)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1711,7 +1712,7 @@
     "TAX-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "high",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1721,7 +1722,7 @@
    "provider": "voya",
    "display_name": "Voya (401k/403b)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1738,7 +1739,7 @@
     "TAX-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "unverified (aggregator coverage not confirmed)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1748,7 +1749,7 @@
    "provider": "principal",
    "display_name": "Principal (401k/403b)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1765,7 +1766,7 @@
     "TAX-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "unverified (aggregator coverage not confirmed)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1775,7 +1776,7 @@
    "provider": "t-rowe-price",
    "display_name": "T. Rowe Price (401k/403b)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1792,7 +1793,7 @@
     "TAX-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "unverified (aggregator coverage not confirmed)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1802,7 +1803,7 @@
    "provider": "lively",
    "display_name": "Lively HSA",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES"
@@ -1815,7 +1816,7 @@
     "SAVE-020"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1825,7 +1826,7 @@
    "provider": "hsa-bank",
    "display_name": "HSA Bank",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES"
@@ -1838,7 +1839,7 @@
     "SAVE-020"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1848,7 +1849,7 @@
    "provider": "fidelity-hsa",
    "display_name": "Fidelity HSA",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES"
@@ -1861,7 +1862,7 @@
     "SAVE-020"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1871,7 +1872,7 @@
    "provider": "computershare",
    "display_name": "Computershare (ESPP/ESOP)",
    "domain": "retirement and tax-advantaged",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_HOLDINGS"
@@ -1884,7 +1885,7 @@
     "INV-017"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1894,7 +1895,7 @@
    "provider": "mohela",
    "display_name": "MOHELA",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1913,7 +1914,7 @@
     "CRDT-013"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1923,7 +1924,7 @@
    "provider": "nelnet",
    "display_name": "Nelnet",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1942,7 +1943,7 @@
     "CRDT-013"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1952,7 +1953,7 @@
    "provider": "aidvantage",
    "display_name": "Aidvantage",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -1971,7 +1972,7 @@
     "CRDT-013"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -1981,7 +1982,7 @@
    "provider": "navient",
    "display_name": "Navient",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2000,7 +2001,7 @@
     "CRDT-013"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2010,7 +2011,7 @@
    "provider": "sofi-loans",
    "display_name": "SoFi loans",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2029,7 +2030,7 @@
     "CRDT-013"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2039,7 +2040,7 @@
    "provider": "mr-cooper",
    "display_name": "Mr. Cooper",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2055,7 +2056,7 @@
     "CRDT-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2065,7 +2066,7 @@
    "provider": "rocket-mortgage",
    "display_name": "Rocket Mortgage",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2081,7 +2082,7 @@
     "CRDT-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2091,7 +2092,7 @@
    "provider": "affirm",
    "display_name": "Affirm (BNPL)",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -2103,7 +2104,7 @@
     "CRDT-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2113,7 +2114,7 @@
    "provider": "klarna",
    "display_name": "Klarna (BNPL)",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -2125,7 +2126,7 @@
     "CRDT-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2135,7 +2136,7 @@
    "provider": "afterpay",
    "display_name": "Afterpay (BNPL)",
    "domain": "loans and credit",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 2,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -2147,7 +2148,7 @@
     "CRDT-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2261,7 +2262,7 @@
    "provider": "coinbase",
    "display_name": "Coinbase",
    "domain": "crypto",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2288,7 +2289,7 @@
    "provider": "kraken",
    "display_name": "Kraken",
    "domain": "crypto",
-   "auth_method": "OAUTH",
+   "auth_method": "AGGREGATOR",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2342,7 +2343,7 @@
    "provider": "binance-us",
    "display_name": "Binance.US",
    "domain": "crypto",
-   "auth_method": "OAUTH",
+   "auth_method": "PERSONAL_API_KEY",
    "wave": 2,
    "scopes": [
     "READ_BALANCES",
@@ -2391,7 +2392,7 @@
    "provider": "verizon",
    "display_name": "Verizon",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2406,7 +2407,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2416,7 +2417,7 @@
    "provider": "att",
    "display_name": "AT&T",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2431,7 +2432,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2441,7 +2442,7 @@
    "provider": "t-mobile",
    "display_name": "T-Mobile",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2456,7 +2457,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2466,7 +2467,7 @@
    "provider": "xfinity",
    "display_name": "Xfinity",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2481,7 +2482,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2491,7 +2492,7 @@
    "provider": "comed",
    "display_name": "ComEd",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2506,7 +2507,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2516,7 +2517,7 @@
    "provider": "pge",
    "display_name": "PG&E",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2531,7 +2532,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2541,7 +2542,7 @@
    "provider": "con-edison",
    "display_name": "Con Edison",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2556,7 +2557,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2566,7 +2567,7 @@
    "provider": "city-water",
    "display_name": "City water utility",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2581,7 +2582,7 @@
     "SAVE-009"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2591,7 +2592,7 @@
    "provider": "planet-fitness",
    "display_name": "Planet Fitness",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2611,7 +2612,7 @@
      "gated": "browser playbook verified against a local merchant only (tests/execution/live-local); real merchants fall back to guided steps until one live run succeeds"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2621,7 +2622,7 @@
    "provider": "public-storage",
    "display_name": "Public Storage",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2641,7 +2642,7 @@
      "gated": "browser playbook verified against a local merchant only (tests/execution/live-local); real merchants fall back to guided steps until one live run succeeds"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2651,7 +2652,7 @@
    "provider": "spothero",
    "display_name": "SpotHero",
    "domain": "bills and utilities",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2671,7 +2672,7 @@
      "gated": "browser playbook verified against a local merchant only (tests/execution/live-local); real merchants fall back to guided steps until one live run succeeds"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2681,7 +2682,7 @@
    "provider": "geico",
    "display_name": "GEICO",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2700,7 +2701,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2710,7 +2711,7 @@
    "provider": "state-farm",
    "display_name": "State Farm",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2729,7 +2730,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2739,7 +2740,7 @@
    "provider": "progressive",
    "display_name": "Progressive",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2758,7 +2759,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2768,7 +2769,7 @@
    "provider": "lemonade",
    "display_name": "Lemonade",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2787,7 +2788,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2797,7 +2798,7 @@
    "provider": "bcbs",
    "display_name": "Blue Cross Blue Shield portal",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2816,7 +2817,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2826,7 +2827,7 @@
    "provider": "hra-admin",
    "display_name": "HRA administrator",
    "domain": "insurance",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS",
@@ -2845,7 +2846,7 @@
     "INS-008"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2855,7 +2856,7 @@
    "provider": "appfolio",
    "display_name": "AppFolio rent portal",
    "domain": "housing and property",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2875,7 +2876,7 @@
      "gated": "handoff pattern; portal payments are staged, the user taps"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2885,7 +2886,7 @@
    "provider": "buildium",
    "display_name": "Buildium",
    "domain": "housing and property",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2905,7 +2906,7 @@
      "gated": "handoff pattern; portal payments are staged, the user taps"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -2915,7 +2916,7 @@
    "provider": "rentcafe",
    "display_name": "RentCafe",
    "domain": "housing and property",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BILLS"
@@ -2935,7 +2936,7 @@
      "gated": "handoff pattern; portal payments are staged, the user taps"
     }
    ],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3144,7 +3145,7 @@
    "provider": "united-mileageplus",
    "display_name": "United MileagePlus",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3157,7 +3158,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3167,7 +3168,7 @@
    "provider": "delta-skymiles",
    "display_name": "Delta SkyMiles",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3180,7 +3181,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3190,7 +3191,7 @@
    "provider": "aa-advantage",
    "display_name": "American AAdvantage",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3203,7 +3204,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3213,7 +3214,7 @@
    "provider": "southwest-rr",
    "display_name": "Southwest Rapid Rewards",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3226,7 +3227,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3236,7 +3237,7 @@
    "provider": "marriott-bonvoy",
    "display_name": "Marriott Bonvoy",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3249,7 +3250,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3259,7 +3260,7 @@
    "provider": "hilton-honors",
    "display_name": "Hilton Honors",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3272,7 +3273,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3282,7 +3283,7 @@
    "provider": "hyatt",
    "display_name": "World of Hyatt",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3295,7 +3296,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3305,7 +3306,7 @@
    "provider": "chase-ur",
    "display_name": "Chase Ultimate Rewards",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3318,7 +3319,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3328,7 +3329,7 @@
    "provider": "amex-mr",
    "display_name": "Amex Membership Rewards",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3341,7 +3342,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3351,7 +3352,7 @@
    "provider": "citi-typ",
    "display_name": "Citi ThankYou",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3364,7 +3365,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3374,7 +3375,7 @@
    "provider": "capital-one-miles",
    "display_name": "Capital One miles",
    "domain": "rewards and loyalty",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES"
@@ -3387,7 +3388,7 @@
     "EARN-012"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3397,7 +3398,7 @@
    "provider": "amazon-orders",
    "display_name": "Amazon order history",
    "domain": "shopping and receipts",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -3413,7 +3414,7 @@
     "TXN-015"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3423,7 +3424,7 @@
    "provider": "walmart-orders",
    "display_name": "Walmart orders",
    "domain": "shopping and receipts",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -3439,7 +3440,7 @@
     "TXN-015"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3449,7 +3450,7 @@
    "provider": "target-orders",
    "display_name": "Target orders",
    "domain": "shopping and receipts",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -3465,7 +3466,7 @@
     "TXN-015"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3475,7 +3476,7 @@
    "provider": "costco-orders",
    "display_name": "Costco orders",
    "domain": "shopping and receipts",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_TRANSACTIONS"
@@ -3491,7 +3492,7 @@
     "TXN-015"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3676,7 +3677,7 @@
    "provider": "freecash",
    "display_name": "Freecash (earn app)",
    "domain": "side income and earn apps",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES",
@@ -3693,7 +3694,7 @@
     "EARN-004"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",
@@ -3703,7 +3704,7 @@
    "provider": "propel",
    "display_name": "Propel (earn app)",
    "domain": "side income and earn apps",
-   "auth_method": "VAULTED_CREDENTIALS",
+   "auth_method": "LIVE_SESSION",
    "wave": 3,
    "scopes": [
     "READ_BALANCES",
@@ -3720,7 +3721,7 @@
     "EARN-004"
    ],
    "write_actions": [],
-   "reliability_class": "low (scrape; least reliable class)",
+   "reliability_class": "low (a live session the person logs into; least reliable class)",
    "gated_reason": null,
    "adapter_state": "none",
    "last_checked": "2026-10-10",

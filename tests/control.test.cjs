@@ -39,7 +39,7 @@ test('envelopes: granted in the user\'s words with per-action and weekly limits,
   earn(c,'SAVE-001');const e=c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,max_per_week_cents:12000,describe:'move money to savings',granted_by_text:'you can move up to $50 to savings whenever, max $120 a week',expires_at:NOW+30*DAY},NOW);
   assert.equal(e.restated,'Without asking each time, I may move money to savings up to $50.00 per action and $120.00 per week, until 2026-11-09. You get a receipt after each one. First-time recipients still ask. Say "stop" or "revoke" to end it.');
   const conn=connectors();const memory={outcomes:[]};
-  const loop=Loop.create({registry,connectors:conn,clock:()=>NOW,memory,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
+  const loop=Loop.create({policy:{envelope_autonomy:true},registry,connectors:conn,clock:()=>NOW,memory,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
   const req=n=>({capability_id:'SAVE-001',key:'sweep-'+n,params:{amount_cents:5000,recipient:'savings'},describe:'move $50.00 to savings'});
   for(let n=1;n<=2;n++){const r=await loop.wake({kind:'event',request:req(n)});assert.equal(r.outcome,'confirmed',`sweep ${n}`);}
   assert.equal(conn.calls.write.length,2);const u=c.envelopes.usage(e.id,loop.memory.outcomes,NOW);same(u,{envelope_id:e.id,used_this_week_cents:10000,actions_this_week:2,remaining_this_week_cents:2000});
@@ -54,7 +54,7 @@ test('envelopes: granted in the user\'s words with per-action and weekly limits,
 test('kill switch: paused blocks every tier above a read in the loop, reads still answer, standing instructions and envelopes are empty, resume restores',async()=>{
   const c=C.create();const conn=connectors();
   earn(c,'SAVE-001');c.envelopes.grant({capability_id:'SAVE-001',tier:'T4',max_cents:5000,granted_by_text:'ok up to $50'},NOW);
-  const loop=Loop.create({registry,connectors:conn,clock:()=>NOW,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
+  const loop=Loop.create({policy:{envelope_autonomy:true},registry,connectors:conn,clock:()=>NOW,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause});
   c.pause.set('user said stop',NOW);assert.equal(c.pause.status(NOW).paused,true);assert.match(c.pause.status(NOW).text,/^Paused since 2026-10-10 14:00: I answer questions but take no action/);
   const blocked=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',key:'s1',params:{amount_cents:1000,recipient:'savings'},describe:'move $10'}});assert.equal(blocked.outcome,'blocked');assert.equal(blocked.reason,'paused');assert.match(blocked.message,/I'm paused \(user said stop\), so I did not do that\. Say resume/);assert.equal(conn.calls.write.length,0);assert.equal(loop.state,'IDLE');
   const send=await loop.wake({kind:'message',request:{capability_id:'PAY-001',key:'p1',params:{amount_cents:4000,recipient:'marcus'},describe:'send $40',confirm:{amount:'$40.00',recipient:'Marcus'}}});assert.equal(send.outcome,'blocked','a T3 confirmation is not even asked for while paused');
@@ -102,4 +102,11 @@ test('export carries no secret and lists every file; deletion needs the phrase, 
   const wn=C.whatsNew(log,'0.1.0');same(wn.versions,['0.3.0','0.2.0']);assert.ok(wn.changes.length>=6);assert.match(C.whatsNew(log,'0.3.0').text,/^Nothing new since 0\.3\.0\.$/);
   const f=C.create();assert.throws(()=>f.freezes.record('Equifax','frozen',NOW,'PIN 123456'),/Never store a freeze PIN/);f.freezes.record('Equifax','frozen',NOW,'password manager');f.freezes.record('Experian','frozen',NOW);const st=f.freezes.status();assert.equal(st.all_frozen,false);assert.equal(st.text,'Equifax: frozen, Experian: frozen, TransUnion: unknown.');
   f.credentials.record('simplefin-1','password',NOW-200*DAY,180);f.credentials.record('plaid-1','password',NOW-10*DAY,180);const due=f.credentials.due(NOW);assert.equal(due.length,1);assert.match(due[0].text,/^simplefin-1 password: last rotated 200 days ago; your interval is 180 days\. I never see or store the new one\.$/);
+});
+
+test('a weekly standing instruction on Sunday (day 0) keeps its day: it fires on Sundays only and is restated "on Sunday"',()=>{
+  const c=C.create();const SUN=Date.UTC(2026,9,11,15,0,0),MON=SUN+DAY;
+  const si=c.instructions.create({capability_id:'ANL-001',text:'Tell me my food spend',cadence:'weekly',day:0},SUN);
+  assert.equal(si.day,0,'Sunday is day 0, not "no day"');assert.match(si.restated,/every week on Sunday/);
+  assert.equal(c.instructions.due(MON).length,0,'not on a Monday');assert.equal(c.instructions.due(SUN).length,1,'on the Sunday');
 });

@@ -969,6 +969,13 @@
   .amsg p { margin: 0 0 10px; } .amsg p:last-child { margin-bottom: 0; }
   .amsg b { font-weight: 600; }
   .amsg a { color: #6EA8FF; }
+  /* Connect card: the iMessage link preview, copied (owner, 2026-10-11). */
+  .amsg a.ccard { display: block; width: min(300px, 100%); margin: 6px 0 2px; border-radius: 18px; overflow: hidden; background: #2C2C2E; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .ccard-img { display: block; background: #1E1F22; }
+  .ccard-img img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; }
+  .ccard-foot { display: block; padding: 9px 13px 10px; }
+  .ccard-foot b { display: block; font-weight: 600; font-size: 15px; line-height: 1.25; color: #F2F2F7; }
+  .ccard-foot span { display: block; margin-top: 1px; font-size: 13px; line-height: 1.25; color: #A1A1A6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .asrc { font-size: 12px; line-height: 1.4; color: var(--nsil3); margin-top: 6px; }
   .tstamp { align-self: center; font-size: 11px; line-height: 1.3; font-weight: 500;
     letter-spacing: 0.01em; color: var(--nsil3); margin: 6px 0 -6px; }
@@ -1874,7 +1881,7 @@
 
     <div class="sheet" id="subSheet" hidden>
       <div class="sheetcard">
-        <div class="sheeticon" id="subSheetIcon">N</div>
+        <div class="sheeticon" id="subSheetIcon"></div>
         <div style="text-align:center"><b id="subSheetName" style="font-size:18px">Netflix</b>
         <p class="psub" id="subSheetMeta" style="margin:4px 0 14px">$15.99/mo</p></div>
         <div id="subDupCompare" style="margin-bottom:12px" hidden></div>
@@ -1911,11 +1918,11 @@
           <button class="ghostbtn" id="agentSheetClose1" style="margin-top:8px">Not now</button>
         </div>
         <div id="agentCredView" hidden>
-          <p class="psub" style="text-align:left;margin-bottom:12px">The agent needs your <b id="agentCredMerchant">Devin</b> login. It's stored encrypted in your Upmore vault — only the agent can use it, and only after you approve each action.</p>
+          <p class="psub" style="text-align:left;margin-bottom:12px">The agent needs the email you sign in to <b id="agentCredMerchant">Devin</b> with. It's stored encrypted in your Upmore vault — only the agent can use it, and only after you approve each action.</p>
           <div class="svform" style="margin-top:0;text-align:left">
             <label class="f"><span>Username or email</span><input id="agentCredUser" autocomplete="username"></label>
-            <label class="f"><span>Password</span><input id="agentCredPass" type="password" autocomplete="current-password"></label>
-            <button class="go" id="agentCredSaveBtn" style="height:44px">Save login &amp; continue</button>
+            <p class="fine" style="margin:0 0 8px">Upmore never asks for or stores your password. Any code the merchant sends comes from you.</p>
+            <button class="go" id="agentCredSaveBtn" style="height:44px">Save email &amp; continue</button>
           </div>
           <button class="ghostbtn" id="agentSheetClose2" style="margin-top:8px">Not now</button>
         </div>
@@ -1937,7 +1944,7 @@
     </div>
     <div class="sheet" id="promoSheet" hidden>
       <div class="sheetcard">
-        <div class="sheeticon" id="promoSheetIcon">S</div>
+        <div class="sheeticon" id="promoSheetIcon"></div>
         <div style="text-align:center"><b id="promoSheetName" style="font-size:18px">SoFi</b>
         <p class="psub" id="promoSheetMeta" style="margin:4px 0 6px; overflow-wrap:anywhere">$300 bonus</p>
         <p class="psub" id="promoSheetCatches" style="margin:0 0 14px; font-size:13px; overflow-wrap:anywhere"></p></div>
@@ -2004,6 +2011,7 @@
 <!--__BILL_CONTROLLER__-->
 <!--__CHAT_CONTROLLER__-->
 <script>
+/*__CONNECT_CARDS__*/
   /* Phone frame on larger screens */
   (function () {
     if (new URLSearchParams(location.search).has("noanim")) document.documentElement.classList.add("noanim");
@@ -5517,10 +5525,16 @@
     for (const k of Object.keys(APP_ICONS)) if (n.includes(k)) return APP_ICONS[k];
     return null;
   }
-  function iconHue(name) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-    return h;
+  /* Real company logos (owner, must rule, 2026-10-11): the vendored app icons above first, then the companies' real marks
+     in img/brands/ (brands.json; sources and licenses in SOURCES.md). A company with neither is shown by name only: never
+     a letter tile, a generic glyph or a look-alike. Longest match first, on word boundaries ("uber eats" before "uber"). */
+  /*__BRAND_ICONS__*/
+  const BRAND_MATCH = BRAND_ICONS.flatMap(b => b.match.map(m => [m, b])).sort((x, y) => y[0].length - x[0].length)
+    .map(([m, b]) => [new RegExp("(^|[^a-z0-9])" + m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)"), b]);
+  function brandIcon(name) {
+    const n = String(name || "").toLowerCase();
+    for (const [re, b] of BRAND_MATCH) if (re.test(n)) return b;
+    return null;
   }
   const ICON_PX = { lg: [64, 16, 28], dock: [60, 15, 0], "": [44, 11, 20] };
   function appIcon(name, size) {
@@ -5528,9 +5542,9 @@
     const px = `width:${a[0]}px;height:${a[0]}px;border-radius:${a[1]}px;`;
     const slug = appIconSlug(name);
     if (slug) return `<img class="appicon" src="icons/${slug}.jpg" alt="${esc(name || "")}" loading="lazy" style="${px}object-fit:cover;">`;
-    const h = iconHue(name || "?");
-    const letter = (name || "?").trim().charAt(0).toUpperCase();
-    return `<span class="appicon" style="${px}font-size:${a[2]}px;background:linear-gradient(135deg,hsl(${h},65%,55%),hsl(${(h + 40) % 360},65%,42%))">${esc(letter)}</span>`;
+    const b = brandIcon(name);
+    if (b) return `<span class="appicon" style="${px}background:#fff;padding:${Math.round(a[0] * 0.18)}px;box-sizing:border-box;"><img src="${esc(b.file)}" alt="${esc(b.name)} logo" loading="lazy" style="width:100%;height:100%;object-fit:contain;display:block;"></span>`;
+    return `<span class="appicon" style="display:none" aria-hidden="true"></span>`; // no real logo on file: the name says it
   }
 
   let homeSubCache = [];
@@ -5686,7 +5700,7 @@
       twelve_month_projection: yearly,
       reversibility: "You keep access until the end of the current billing period. You can re-subscribe anytime from the merchant's site.",
       retention_known: null,
-      agent_mechanics: "The agent signs in to your account as you, using the login you saved in your Upmore vault. Some merchants' terms discourage automated access.",
+      agent_mechanics: "The agent signs in to your account as you, with the email you saved in your Upmore vault and the code the merchant sends you. Upmore never stores your password. Some merchants' terms discourage automated access.",
       agent_will_not: "The agent will not change your plan, add or change payment methods, accept offers or terms, or touch anything except the cancellation.",
       failure_path: "If it can't complete, nothing is changed — you'll get the direct link and steps to do it yourself.",
       shown_at: new Date().toISOString(),
@@ -5709,17 +5723,17 @@
       () => { $("agentSheet").hidden = true; };
   }
   async function agentSaveCred(sub, mkey) {
-    const u = $("agentCredUser").value.trim(), p = $("agentCredPass").value;
-    if (!u || !p) { toast("Enter both username and password"); return; }
+    // Email only: Upmore never stores a password (owner decision 1).
+    const u = $("agentCredUser").value.trim();
+    if (!u) { toast("Enter the email you sign in with"); return; }
     $("agentCredSaveBtn").disabled = true;
     try {
       const { data, error } = await supa.functions.invoke("exec-vault-store", {
-        body: { merchant_key: mkey, username: u, password: p, label: sub.merchant },
+        body: { merchant_key: mkey, username: u, label: sub.merchant },
       });
       if (error || !data || !data.ok) throw error || new Error("save failed");
-      $("agentCredPass").value = "";
       agentShowView("agentApproveView");
-      toast("Login saved — approve to continue");
+      toast("Email saved — approve to continue");
     } catch (e) { toast("Couldn't save login — try again"); }
     $("agentCredSaveBtn").disabled = false;
   }
@@ -6119,7 +6133,7 @@
         (has("buy") && has("shares", "share") && has("for me")) ||
         (has("trade") && has("for me", "my") && has("stock", "shares", "options"))) {
       return { paras: [
-        "I can't move money for you -- Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap.",
+        "I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap.",
         "To place the trade yourself: open your brokerage app, find the position, choose sell or buy, pick a market or limit order, then review and confirm. Tell me the numbers and I'll sanity-check the math before you tap." ] };
     }
     return null;
@@ -7110,7 +7124,7 @@
     { const _x = " " + String(t).toLowerCase() + " ";
       if (/\binvest\b[^.]{0,60}\bfor me\b/.test(_x) || /\bdo it for me\b/.test(_x) ||
           (/\bbuy\b[^.]{0,40}\bfor me\b/.test(_x) && /(stock|share|etf|fund|crypto|\$|ticker)/.test(_x)))
-        return { paras: ["I can't move money for you — Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] }; }
+        return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] }; }
     // OWN-HOLDINGS WALL (2026-09-27): checked BEFORE the broad capital walls —
     // the Guide never discusses the user's own holdings, so "is my portfolio
     // OK?" reliably redirects to the Investments X-ray instead of a refusal.
@@ -7135,9 +7149,9 @@
     if (has("fake direct deposit", "fake a direct deposit", "spoof direct deposit", "manufacture direct deposit", "fraud", "fake account", "fake identity", "fake pay stub", "fake documents"))
       return { paras: ["I can't help with that — faking deposits or documents is fraud, and it gets accounts closed and bonuses clawed back. If you want a bank bonus honestly, I can walk you through one whose requirements you actually meet."] };
     if (has("move my money", "move $", "transfer my money", "transfer $", "invest for me", "invest my", "auto-invest", "buy stock for me", "withdraw for me", "withdraw $", "send money for me"))
-      return { paras: ["I can't move money for you \u2014 Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] };
+      return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] };
     if (/\bwithdraw\b.{0,25}\bfor me\b/.test(t))
-      return { paras: ["I can't move money for you \u2014 Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] };
+      return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] };
     if (has("ignore your rules", "ignore your instructions", "disregard your rules", "guarantee me", "guaranteed $", "100% certain", "promise me $"))
       return { paras: ["I can't promise payouts — anyone who guarantees you money is selling something. What I can do is show you routes with verified terms and honest odds. Want that?"] };
 
@@ -11078,6 +11092,11 @@
   /* ================= Boot ================= */
   (async function boot() {
     let h = location.hash.slice(1);
+    // Connect link (/?connect=alpaca, from a connect card in a text): remembered through sign-in, started once signed in.
+    try {
+      const want = new URLSearchParams(location.search).get("connect");
+      if (want && ConnectCards.PROVIDERS[want]) { sessionStorage.setItem("upmore-pending-connect", want); history.replaceState(null, "", location.pathname + location.hash); }
+    } catch (e) {}
     // Gmail OAuth return (2026-09-28): the gmail-oauth callback redirects to
     // #you?gmail=connected|error. Strip the param, keep the screen, toast.
     const gm = /[?&]gmail=(connected|error)/.exec(h);
@@ -11146,6 +11165,9 @@
       const FUNNEL = ["splash", "welcome", "time", "about", "situation", "plan", "phone", "login", "blocked", "tos"];
       const dest = $(hh0) && !FUNNEL.includes(hh0) ? hh0 : "home";
       show(dest, { replace: true });
+      let pendingConnect = null;
+      try { pendingConnect = sessionStorage.getItem("upmore-pending-connect"); sessionStorage.removeItem("upmore-pending-connect"); } catch (e) {}
+      if (pendingConnect && ConnectCards.PROVIDERS[pendingConnect]) startConnect(pendingConnect);
       return;
     }
     // No session: returning users (onboarding answers saved) go straight to
@@ -12234,10 +12256,47 @@ function addMe(text, images) {
   d.appendChild(t);
   chat.appendChild(d); scrollChat();
 }
-const md = (s) => esc(s)
+const mdLine = (s) => esc(s)
   .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-  .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-  .replace(/\n/g, "<br>");
+  .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+/* Connect card (owner, 2026-10-11): a reply line that is exactly a connect link is drawn the way iMessage draws it, from the
+   same image: dark grey, the company's real logo with the Upmore wordmark in green serif centered below it, and a grey strip with "Connect X to
+   Upmore" and the domain. Tapping it starts that connection here (no page hop). Providers and logos: packages/domain/76-connect-cards.js. */
+function connectCardHTML(link, p) {
+  const c = ConnectCards.PROVIDERS[p];
+  return `<a class="ccard" href="${esc(link)}" data-connect="${esc(p)}"><span class="ccard-img"><img src="${esc(c.card)}" alt="${esc(c.name)} logo" width="1200" height="630"></span><span class="ccard-foot"><b>${esc(ConnectCards.title(p))}</b><span>${esc(ConnectCards.host(link))}</span></span></a>`;
+}
+const md = (s) => {
+  // Text lines join with <br> as before; a connect link line becomes the card, a block of its own.
+  let out = "", lastText = false;
+  for (const line of String(s == null ? "" : s).split("\n")) {
+    const p = ConnectCards.parse(line);
+    if (p) { out = out.replace(/(<br>)+$/, "") + connectCardHTML(line.trim(), p); lastText = false; continue; }
+    if (!lastText && out && !line.trim()) continue; // a blank line right after a card
+    out += (lastText ? "<br>" : "") + mdLine(line); lastText = true;
+  }
+  return out.replace(/(<br>)+$/, "");
+};
+// Start a connection from a card or a connect link: the same calls the Settings buttons make.
+async function startConnect(p) {
+  if (!ConnectCards.PROVIDERS[p]) return;
+  const name = ConnectCards.PROVIDERS[p].name;
+  if (!supa || !session || !session.user) { try { sessionStorage.setItem("upmore-pending-connect", p); } catch (e) {} toast(`Sign in, then ${name} connects from here.`); show("login"); return; }
+  try {
+    const { data, error } = p === "alpaca"
+      ? await supa.functions.invoke("broker-oauth-start", { body: { provider: "alpaca" } })
+      : await supa.functions.invoke("gmail-oauth", { body: { action: "start" } });
+    if (data && data.url) { location.href = data.url; return; } // the company's own approval page, then back here
+    const msg = (data && (data.message || data.error)) || (error && error.context && typeof error.context.json === "function" ? ((await error.context.json().catch(() => ({}))).message) : null);
+    toast(msg || `Couldn't start connecting ${name}. Nothing was connected; try again.`);
+  } catch (e) { toast(`Couldn't start connecting ${name}. Nothing was connected; try again.`); }
+}
+document.addEventListener("click", (e) => {
+  const a = e.target && e.target.closest ? e.target.closest("a.ccard[data-connect]") : null;
+  if (!a) return;
+  e.preventDefault();
+  startConnect(a.dataset.connect);
+});
 function addAI(paras, card, prov, requestTicket, workflowAction) {
   const ticket=requestTicket && typeof requestTicket.current==='function' ? requestTicket : chatRequests.capture();
   if(!ticket.current())return;
@@ -12294,8 +12353,11 @@ function renderChatTab() {
 /* Pending photo attachments for the next chat message. Hoisted to module
    scope: wireChat() fills them, chatSubmit() consumes and clears them. */
 let chatImages = [];
+// Send is live with words, or with a photo alone in agent mode (spec 16 item 12).
+function chatSendReady() { const ta = $("chatInput"), b = $("chatSend"); if (ta && b) b.disabled = !(ta.value.trim() || (chatImages.length && chatMode !== "ask")); }
 function renderChatImages() {
   let bar = $("chatImgBar");
+  chatSendReady();
   if (!chatImages.length) { if (bar) bar.remove(); return; }
   if (!bar) {
     bar = document.createElement("div");
@@ -12331,7 +12393,7 @@ function wireChat() {
   $("chatsSheetClose").onclick = () => { $("chatsSheet").hidden = true; };
   const ta = $("chatInput");
   ta.addEventListener("input", () => {
-    $("chatSend").disabled = !ta.value.trim();
+    chatSendReady();
     ta.style.height = "auto";
     ta.style.height = Math.min(ta.scrollHeight, 130) + "px";
   });
@@ -12412,7 +12474,8 @@ function wireChat() {
 function chatSubmit() {
   const ta = $("chatInput"); if (!ta) return;
   const v = ta.value.trim();
-  if (!v || busy) return;
+  // A photo alone is a message to the agent (spec 16 item 12); Ask mode still needs words.
+  if (busy || (!v && !(chatImages.length && chatMode !== "ask"))) return;
   const imgs = chatImages; chatImages = []; renderChatImages();
   ta.value = ""; ta.style.height = "auto"; $("chatSend").disabled = true;
   if (chatMode === "ask") guideAsk(v, imgs);

@@ -6,6 +6,7 @@
 #   tables they alter only gain columns, and the two live functions they replace keep their exact signatures and return
 #   types, so the running agent-chat v203 keeps working between this step and the deploy.)
 #   [--with-router-deps] is the older Option B subset, kept for reference.
+#   --pending: only the migrations not yet in the live ledger (safe to re-run; see below). go-live.sh uses this now.
 # What it does, each file in its own transaction, stopping at the first error:
 #   1. the three rail migrations: 20261011010000_flow_state.sql, 20261011020000_saved_recipients.sql,
 #      20261011030000_brokerage_accounts_per_user.sql (each person's own LIVE brokerage connection; tokens only in the
@@ -22,6 +23,33 @@ set -euo pipefail
 : "${SUPABASE_DB_URL:?set SUPABASE_DB_URL (Project Settings > Database > Connection string)}"
 cd "$(dirname "$0")/../.."
 run() { echo "== $1"; psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 --single-transaction -f "$1"; sha256sum "$1"; }
+# --pending (the default for every run after the first go-live): a ledger table records each applied file, and only the
+# files missing from it are applied, in ONE transaction, each with its ledger row. A re-run with nothing new applies
+# nothing. The first time, the ledger is backfilled with every file up to BASELINE, the last file the 2026-10-11 19:01 UTC
+# go-live applied (verified live that day: broker_pending_links, saved_recipients and agent_flow_state exist).
+BASELINE="20261011030000_brokerage_accounts_per_user.sql"
+if [[ "${1:-}" == "--pending" ]]; then
+  export PGOPTIONS="${PGOPTIONS:-} -c client_min_messages=warning"; P=(psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1)
+  "${P[@]}" -c "create table if not exists public.upmore_migration_ledger(filename text primary key, sha256 text not null, applied_at timestamptz not null default now()); alter table public.upmore_migration_ledger enable row level security; revoke all on public.upmore_migration_ledger from anon, authenticated;"
+  if [[ "$("${P[@]}" -tAc "select count(*) from public.upmore_migration_ledger")" == "0" ]]; then
+    vals=""
+    for f in supabase/migrations/*.sql; do b="$(basename "$f")"; [[ "$b" > "$BASELINE" ]] && continue
+      vals+="${vals:+,}('$b','$(sha256sum "$f" | cut -d' ' -f1)')"; done
+    "${P[@]}" -c "insert into public.upmore_migration_ledger(filename,sha256) values $vals on conflict do nothing"
+    echo "== ledger backfilled up to $BASELINE"
+  fi
+  applied="$("${P[@]}" -tAc "select filename from public.upmore_migration_ledger")"
+  args=(); names=()
+  for f in supabase/migrations/*.sql; do b="$(basename "$f")"
+    grep -qxF "$b" <<<"$applied" && continue
+    args+=(-f "$f" -c "insert into public.upmore_migration_ledger(filename,sha256) values ('$b','$(sha256sum "$f" | cut -d' ' -f1)')"); names+=("$b")
+  done
+  if (( ${#names[@]} == 0 )); then echo "== no pending migrations"; exit 0; fi
+  echo "== pending migrations, one transaction: ${names[*]}"
+  "${P[@]}" --single-transaction "${args[@]}"
+  echo "== applied ${#names[@]}"
+  exit 0
+fi
 if [[ "${1:-}" == "--all" ]]; then
   files=()
   for f in supabase/migrations/*.sql; do b="$(basename "$f")"; [[ "$b" > "20261008_000005_~" ]] && files+=(-f "$f"); done

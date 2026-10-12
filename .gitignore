@@ -6,3 +6,9 @@ shots-5tab/
 # test evidence may contain live session tokens — never commit
 tests/**/evidence/
 .gstack/
+
+# weekly corpus export drafts: real conversations, redacted by heuristic, reviewed by hand before merging
+corpus/drafts/
+
+# Supabase CLI cache (created by any supabase command; never committed)
+supabase/.temp/

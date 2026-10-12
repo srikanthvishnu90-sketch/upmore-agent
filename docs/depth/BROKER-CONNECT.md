@@ -44,8 +44,8 @@ Source: github.com/alpacahq/alpaca-docs (content/oauth/guide.md and oas/oauth, l
 | S08 | One account, one login | An account someone else holds is refused, and the person is told why. |
 | S09 | Honest when Connect can't run | App credentials not set, the person said no, or a provider not built: each is said plainly, and no state is written. |
 | S10 | No secret anywhere | No code, token, client secret or service key reaches a log line, a redirect or a message. |
-| S11 | No brokerage: the honest connect prompt | An order, a portfolio question or a cancel gets "No brokerage is connected... Connect your own Alpaca account in Settings > Brokerage". Nothing is read. |
-| S12 | No public API, said plainly | Fidelity, Vanguard, Robinhood and SoFi: "doesn't offer a way for apps to place trades for you", with Alpaca as the way in. |
+| S11 | No brokerage: the honest connect prompt | An order, a portfolio question or a cancel gets "No brokerage is connected yet, so nothing was placed - here's the link." and the Alpaca connect link on its own line (drawn as the connect card, owner's design 2026-10-11; it was "Connect your own Alpaca account in Settings > Brokerage"). Nothing is read. |
+| S12 | No public API, said plainly | Fidelity, Vanguard, Robinhood and SoFi: "doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.", then the Alpaca connect card. |
 | S13 | Revoked or expired: Reconnect | The 401 is said as Reconnect whether it happens at a read, at the re-check or at the write. The row is marked once and the token is wiped. No fill is ever claimed. |
 | S14 | The $5.00 per-order cap | Said before any card. The adapter also refuses an order over the cap even when a caller skips the flow. Market orders are estimated 2% through the quote. |
 | S15 | No order without approval | Nothing is sent before the yes, on a no, on a late yes, or on a new request. One yes places one order. |

@@ -190,6 +190,12 @@ test('status is computed from the registry, the overlay, the catalog and the dep
   const facts={depth,overlay};
   const c128=E.status('C128',facts);assert.equal(c128.logic,'LOGIC_PROVEN');assert.deepEqual(c128.proven,['PAY-001']);assert.equal(c128.rail,'NOT_WIRED');
   const c73=E.status('C73',facts);assert.equal(c73.rail,'SANDBOX');assert.equal(c73.logic,'LOGIC_PROVEN');assert.deepEqual(c73.proven,['BILL-003']);
+  // Proven: every planted defect bites and every sub-capability has one that does. A second defect on one sub-capability
+  // (PAY-001 S07, 17 defects for 16) still proves; a defect that does not bite, or a sub-capability with none, does not.
+  const pay=depth['PAY-001'],with_=rows=>({depth:Object.assign({},depth,{'PAY-001':Object.assign({},pay,{rows,proven:rows.filter(r=>r.bites).length})}),overlay});
+  assert.ok(pay.rows.length>pay.sub_capabilities,'PAY-001 carries more defects than sub-capabilities');
+  assert.equal(E.status('C128',with_(pay.rows.map((r,i)=>i===0?Object.assign({},r,{bites:false}):r))).logic==='LOGIC_PROVEN',false,'a defect that does not bite');
+  assert.equal(E.status('C128',with_(pay.rows.filter(r=>r.sub!=='S13'))).logic==='LOGIC_PROVEN',false,'a sub-capability with no defect');
   const c1=E.status('C1',facts);assert.equal(c1.logic,'LOGIC_TESTED');assert.equal(c1.tested,5);assert.deepEqual(c1.gaps,[]);
   const c90=E.status('C90',facts);assert.deepEqual(c90.gaps,['settlement-administrators']);
   const c81=E.status('C81',facts);assert.equal(c81.rail,'NOT_WIRED');

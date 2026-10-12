@@ -28,7 +28,7 @@
      "text": "yes",
      "checks": {
       "not_matches": [
-       "Staged\\.|Sent\\.|Landed"
+       "Staged\\b|Sent\\.|Landed"
       ]
      }
     }
@@ -65,7 +65,7 @@
      "text": "yes",
      "checks": {
       "not_matches": [
-       "Staged\\.|Sent\\."
+       "Staged\\b|Sent\\."
       ]
      }
     }
@@ -115,7 +115,7 @@
        "expired"
       ],
       "not_matches": [
-       "Staged\\.|Sent\\."
+       "Staged\\b|Sent\\."
       ]
      }
     }
@@ -135,36 +135,42 @@
      "text": "yes",
      "concurrent": 2,
      "checks": {
-      "at_most_one_matches": "Staged\\.|Sent\\."
+      "at_most_one_matches": "Staged\\b|Sent\\."
      }
     }
    ]
   },
   {
    "id": "L3-06",
-   "name": "two requests in one text",
+   "name": "two requests in one text: in order, one card at a time",
    "turns": [
     {
      "text": "send sam $40 and cancel netflix",
      "checks": {
+      "flow": "send",
       "matches": [
-       "two requests",
-       "1\\) send sam \\$40",
-       "2\\) cancel netflix"
-      ],
-      "not_matches": [
-       "Reply YES|Confirm below"
+       "^Two things, one at a time\\. First:",
+       "\\$40\\.00",
+       "Reply YES|Confirm below",
+       "Then I'll do: cancel netflix"
       ]
      }
     },
     {
-     "text": "1",
+     "text": "no",
      "checks": {
-      "flow": "send"
+      "flow": "cancel",
+      "matches": [
+       "[Nn]othing",
+       "\\n\\nNext: "
+      ],
+      "not_matches": [
+       "\\b(Sent|Paid)\\b"
+      ]
      }
     },
     {
-     "text": "no",
+     "text": "never mind",
      "checks": {}
     }
    ]
@@ -177,11 +183,8 @@
      "text": "send $40 to sam and $20 to marcus",
      "checks": {
       "matches": [
-       "two requests",
-       "2\\) send \\$20 to marcus"
-      ],
-      "not_matches": [
-       "Reply YES|Confirm below"
+       "Two things, one at a time|two requests",
+       "\\$20 to marcus"
       ]
      }
     },
@@ -214,7 +217,7 @@
      "text": "yes",
      "checks": {
       "not_matches": [
-       "Staged\\.|Sent\\."
+       "Staged\\b|Sent\\."
       ]
      }
     }

@@ -56,7 +56,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 
 | Input | Expected | Why |
 | --- | --- | --- |
-| "buy 500 VOO" | asks dollars or shares | Size ambiguity |
+| "sell 500 VOO" | asks dollars or shares (a bare number on a buy is dollars, owner's corpus 3.01) | Size ambiguity |
 | "should I sell my VOO" | advice redirect, nothing staged | Decision word |
 | any order with no live partner | blocked before any question | Gate |
 | "yes" then "yes" | one order | Double yes |

@@ -8,6 +8,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 g = root / "evals/gauntlet"
 embed = {n: json.loads((g / n).read_text()) for n in ["sloppy-20.json", "spec16-20.json", "l3-adversarial.json"]}
+# The media items' photos (synthetic fixtures from evals/gauntlet/media/make-media.py), so the single file runs all 20.
+import base64
+embed["media"] = {p.stem: {"data": base64.b64encode(p.read_bytes()).decode(), "media_type": "image/jpeg"} for p in sorted((g / "media").glob("S16-*.jpg"))}
 runner = (g / "run-live.cjs").read_text()
 if runner.startswith("#!"):
     runner = runner.split("\n", 1)[1]
@@ -19,6 +22,7 @@ content = ("#!/usr/bin/env node\n"
            "// Results (every reply verbatim) are written to ./results/ next to this file. The JWT is read from the environment\n"
            "// only; it is never written to a file or printed.\n"
            "globalThis.__UPMORE_GAUNTLET_EMBED__ = " + json.dumps(embed, separators=(",", ":"), ensure_ascii=False) + ";\n"
+           + "globalThis.__UPMORE_GAUNTLET_CHECKS__ = (function () { const module = { exports: {} };\n" + (g / "checks.cjs").read_text() + "return module.exports; })();\n"
            + runner)
 target = g / "standalone/run-gauntlet.cjs"
 ap = argparse.ArgumentParser(); ap.add_argument("--check", action="store_true"); args = ap.parse_args()

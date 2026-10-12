@@ -34,7 +34,7 @@ const confirmations=s=>s.loop.snapshot().log.filter(e=>e.to==='AWAITING_CONFIRMA
 test('[S01] an exact handle resolves first; a handle-shaped query is only ever a handle; a bare word is a name first',async()=>{
   const {send}=world();
   const a=await send.start('send $40 to @marcus');assert.equal(a.outcome,'confirm');assert.equal(a.send.recipient.name,'Marcus L');await send.reply('no');
-  const b=await send.start('send $40 to marcus');assert.equal(b.outcome,'ask','a bare "marcus" is a first name shared by two people, even though one handle is @marcus');assert.equal(b.text,'Which Marcus: Marcus L or Marcus T?');
+  const b=await send.start('send $40 to marcus');assert.equal(b.outcome,'ask','a bare "marcus" is a first name shared by two people, even though one handle is @marcus');assert.equal(b.text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');
   const r=R.resolve('@sarah_m',[{name:'Sarah M',handle:'@sarah-m',rails:['venmo'],saved:true}]);assert.notEqual(r.status,'saved','"@sarah_m" never matches the name "Sarah M" once the punctuation is gone');
   assert.equal(R.resolve('$mtee',R.fromRows(ROWS)).person.name,'Marcus T');
 });
@@ -56,10 +56,10 @@ test('[S03] a unique first name resolves straight to the card',async()=>{
 
 test('[S04] two matches ask "Which Marcus: Marcus L or Marcus T?" and stage nothing; the answer continues to the card',async()=>{
   const {send}=world();
-  const a=await send.start('send $40 to Marcus');assert.equal(a.outcome,'ask');assert.equal(a.reason,'ambiguous');assert.equal(a.text,'Which Marcus: Marcus L or Marcus T?');
+  const a=await send.start('send $40 to Marcus');assert.equal(a.outcome,'ask');assert.equal(a.reason,'ambiguous');assert.equal(a.text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');
   assert.equal(send.pending,null,'no card');assert.equal(confirmations(send).length,0,'the loop was never asked to confirm anything');
   assert.equal(send.accepts('T'),true);const b=await send.reply('T');assert.equal(b.outcome,'confirm');assert.equal(b.send.recipient.name,'Marcus T');assert.match(b.text,/\$40\.00 to Marcus T \(\$mtee\) in Cash App/);
-  const three=R.resolve('marcus',R.fromRows(ROWS.concat([{handle:'@mw',display_name:'Marcus W',source:'confirmed',rail:'venmo'}])));assert.equal(three.ask,'Which Marcus: Marcus L, Marcus T or Marcus W?');
+  const three=R.resolve('marcus',R.fromRows(ROWS.concat([{handle:'@mw',display_name:'Marcus W',source:'confirmed',rail:'venmo'}])));assert.equal(three.ask,'Which Marcus: Marcus L (@marcus), Marcus T ($mtee) or Marcus W (@mw)?');
 });
 
 test('[S05] a handle one edit from a saved one is named, never resolved; NEW starts the stranger path',async()=>{
@@ -77,6 +77,8 @@ test('[S06] a name one letter from a saved name is asked about, not guessed and 
   const a=await send.start('send $40 to sarha');assert.equal(a.outcome,'ask');assert.equal(a.reason,'lookalike');assert.match(a.text,/^I don't have Sarha on file, but Sarah M \(@sarah_m\) is one letter away\. Did you mean Sarah M\?/);
   assert.equal(send.pending,null);
   const b=await send.reply('yes');assert.equal(b.outcome,'confirm');assert.equal(b.send.recipient.name,'Sarah M');
+  // A family word is a relationship, not a typo: "mom" is never offered as "Tom" (corpus 1.06).
+  const kin=R.resolve('mom',R.fromRows([{id:'t',handle:'@tomhale',display_name:'Tom Hale',source:'completed_send',rail:'venmo'}]));assert.notEqual(kin.status,'lookalike');
 });
 
 test('[S07] a saved recipient goes straight to the card under PAY-001, even with no payment history on the row',async()=>{
@@ -89,11 +91,11 @@ test('[S07] a saved recipient goes straight to the card under PAY-001, even with
 test('[S08] a stranger is asked for the app and handle, and nothing is staged',async()=>{
   const {send}=world();
   const a=await send.start('send $25 to dana');assert.equal(a.outcome,'ask');assert.equal(a.reason,'new_recipient');assert.equal(a.new_recipient,true);
-  assert.equal(a.text,'I don\'t have Dana on file. Reply with Dana\'s Venmo, Cash App, PayPal or Zelle (like "venmo @dana"). New recipients are confirmed in full, every time.');
+  assert.equal(a.text,'I don\'t have Dana on file. New recipients are confirmed in full, every time. What\'s Dana\'s Venmo, Cash App, PayPal or Zelle (like "venmo @dana")?');
   assert.equal(send.pending,null);assert.equal(confirmations(send).length,0);
   const b=await send.reply('@dana-k');assert.equal(b.text,'Which app is @dana-k on: Venmo, Cash App or PayPal?','an @handle could be Venmo, Cash App or PayPal; never assumed');
   const c=await send.reply('venmo');assert.match(c.text,/^New recipient: Dana, Venmo @dana-k\./);assert.equal(confirmations(send).length,0);
-  const v=world();const d=await v.send.start('venmo dana 25');assert.equal(d.text,'I don\'t have Dana on file. Reply with Dana\'s Venmo handle. New recipients are confirmed in full, every time.');
+  const v=world();const d=await v.send.start('venmo dana 25');assert.equal(d.text,'I don\'t have Dana on file. New recipients are confirmed in full, every time. What\'s Dana\'s Venmo handle?');
 });
 
 test('[S09] the handle must be typed back exactly; two mismatches stop; ten minutes expire it; never mind stops it',async()=>{
@@ -114,7 +116,7 @@ test('[S10] the stranger\'s card is the full first-send card under PAY-002, and 
   const card=await send.reply('@dana-k');assert.equal(card.outcome,'confirm');
   assert.match(card.text,/^New recipient, first send: set up \$25\.00 to Dana \(@dana-k\) in Venmo/);assert.match(card.text,/Can't be undone once received\./);
   assert.equal(confirmations(send)[0].input.capability_id,'PAY-002');assert.equal(card.send.tier,'T5');
-  const y=await send.reply('yes');assert.equal(y.outcome,'staged');assert.match(y.text,/^Staged\. In Venmo:/);assert.match(y.text,/Reply SAVE to keep Dana for next time; otherwise I'll save them once the money lands\.$/);
+  const y=await send.reply('yes');assert.equal(y.outcome,'staged');assert.match(y.text,/^Staged, not sent\. In Venmo:/);assert.match(y.text,/Reply SAVE to keep Dana for next time; otherwise I'll save them once the money lands\.$/);
   assert.equal(book.outbox.length,0,'staging saves nobody');
 });
 
@@ -145,7 +147,7 @@ test('[S12] an explicit SAVE after the read-back saves as confirmed; a mention, 
 
 test('[S13] split resolves every name through the same layer: the same question, the same look-alike, the same stranger path, exact shares',async()=>{
   const {split,send,book}=world();
-  const a=await split.start('split $90 dinner with marcus and sarah');assert.equal(a.outcome,'ask');assert.equal(a.text,'Which Marcus: Marcus L or Marcus T?');assert.equal(split.pending,null);
+  const a=await split.start('split $90 dinner with marcus and sarah');assert.equal(a.outcome,'ask');assert.equal(a.text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');assert.equal(split.pending,null);
   const b=await split.reply('Marcus L');assert.equal(b.outcome,'confirm');assert.match(b.text,/^Request \$30\.00 each from Marcus L \(@marcus\) and Sarah M \(@sarah_m\) in Venmo for dinner: \$90\.00 split 3 ways, yours \$30\.00\./);
   const la=await split.start('split $40 with @sarah-m');assert.equal(la.reason,'lookalike');assert.match(la.text,/^@sarah-m is not on file, but it is one character away from Sarah M \(@sarah_m\)/);
   const st=await split.start('split $100 with sarah and dana');assert.equal(st.reason,'new_recipient');assert.equal(st.text,(await send.start('send $25 to dana')).text,'the stranger path is word for word the same in both flows');
@@ -179,14 +181,14 @@ test('[S16] follow-up replies go to the flow that asked, through the router, wit
   const c=await Router.handle('@dana-k',{extract,sessions});assert.equal(c.result.outcome,'confirm');
   const d=await Router.handle('yes',{extract,sessions});assert.equal(d.result.outcome,'staged');
   const e=await Router.handle('save',{extract,sessions});assert.equal(e.result.outcome,'saved');
-  const f=await Router.handle('split $90 with marcus and sarah',{extract:async()=>({intent:'split_expense',amount_span:'$90',amount_cents:9000,recipient_span:'marcus and sarah'}),sessions});assert.equal(f.flow,'split');assert.equal(f.result.text,'Which Marcus: Marcus L or Marcus T?');
+  const f=await Router.handle('split $90 with marcus and sarah',{extract:async()=>({intent:'split_expense',amount_span:'$90',amount_cents:9000,recipient_span:'marcus and sarah'}),sessions});assert.equal(f.flow,'split');assert.equal(f.result.text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');
   const g=await Router.handle('marcus t',{extract,sessions});assert.equal(g.flow,'split');assert.equal(g.result.outcome,'confirm');
   assert.equal(calls,0,'no follow-up reached the model');
 });
 
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{
   const {send,book}=world();
-  assert.equal((await send.start('send $40 to marcus')).text,'Which Marcus: Marcus L or Marcus T?');
+  assert.equal((await send.start('send $40 to marcus')).text,'Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?');
   assert.equal((await send.start('send $40 to @sarah-m')).reason,'lookalike');
   assert.notEqual(R.resolve('@sarah_m',[{name:'Sarah M',handle:'@sarah-m',rails:['venmo'],saved:true}]).status,'saved');
   await send.start('my friend dana is @dana-k btw');assert.equal(book.outbox.length,0);

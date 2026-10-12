@@ -62,9 +62,12 @@ test('grounding: an amount, ticker, person or merchant the message does not cont
 });
 
 test('sloppy texts the regex net missed reach the right flow through the model extraction',async()=>{
+  assert.equal(R.tidy('cancle netflix'),'cancel netflix');assert.equal(R.tidy('buy 100 of nvda rn pls'),'buy 100 of nvda');assert.equal(R.tidy('Split dinner 142.60 with 3 friends!!'),'Split dinner 142.60 with 3 friends');
+  assert.equal(R.tidy('what is my balance?'),'what is my balance?','a question mark is kept');assert.equal(R.tidy('123456'),'123456','a code is never touched');
   const w=world();const ss=sessions(w);
   const extract=stub({
-    'cancle netflix':{intent:'cancel_subscription',merchant_span:'netflix'},
+    // A misspelled leading verb is fixed before the model sees it (AgentRouter.tidy), so the model is asked about the clean text.
+    'cancel netflix':{intent:'cancel_subscription',merchant_span:'netflix'},
     'pay sam back forty':{intent:'send_money',amount_span:'forty',amount_cents:4000,recipient_span:'sam'},
     'buy five hundred dollars of VOO':{intent:'buy_security',amount_span:'five hundred dollars',amount_cents:50000,unit:'dollars',instrument_span:'VOO'}
   });
@@ -129,4 +132,73 @@ test('the app the person named survives the model path, and a new request in the
   const again=await R.handle('send sam $50',{extract:stub({'send sam $50':{intent:'send_money',amount_span:'$50',amount_cents:5000,unit:'dollars',recipient_span:'sam'}}),sessions:ss,parsers});
   assert.equal(again.result.outcome,'confirm','not "busy"');assert.deepEqual([...again.dropped],['send']);assert.match(again.result.text,/^I dropped the earlier card\. Set up \$50\.00 to Sam K/);
   const y=await R.handle('yes',{extract:null,sessions:ss,parsers});assert.equal(y.result.outcome,'staged');assert.equal(y.result.send.amount_cents,5000,'only the latest card can fire');
+});
+
+// Live finding 2026-10-11 (spec16 item 15): with the router model down, "pay my rent" went to the person-to-person flow
+// (a recipient called "rent") and was answered "How much?". A bill is not a person: the safety net leaves bills to the
+// bill workflow, and a bill word in the memo still pays the person.
+test('safety net: a bill is not a person; a bill word in the memo still pays the person',async()=>{
+  const down=async()=>{throw new Error('router model HTTP 400');};
+  for(const t of ['pay my rent','pay rent','pay my electric bill','pay my mortgage','pay my bills','pay my phone bill','pay my credit card']){
+    const r=await R.handle(t,{extract:down,sessions:sessions(world()),parsers}).catch(e=>({error:String(e)}));
+    assert.ok(!r||r.route!=='send_money',`${t} -> ${r&&r.route}`);
+  }
+  for(const t of ['pay sam for rent','pay sam $40','venmo sam 40 for the electric bill']){
+    const g=await R.handle(t,{extract:down,sessions:sessions(world()),parsers}).catch(e=>({error:String(e)}));
+    assert.equal(g&&g.route,'send_money',t);
+  }
+});
+
+// Live gauntlet, 2026-10-12 (gpt-5-nano, the deployed handler): the model returned these extractions and the flows asked
+// "How much?" / "Cancel what?", a dispute photo got the brokerage link, and a bare "no" reached the model. Each case
+// below is the model's real omission, replayed through the real flows.
+test('live 2026-10-12: a detail the model dropped is filled from the regex net, so the card goes up instead of "How much?"',async()=>{
+  const w=world(),ss=sessions(w);
+  const extract=stub({
+    'send sam $40':{intent:'send_money',recipient_span:'sam',amount_span:null,amount_cents:null},
+    'venmo sam 40 for pizza':{intent:'send_money',recipient_span:'sam',memo_span:'pizza'},
+    'pay sam back forty':{intent:'send_money',recipient_span:'sam'},
+    'can u cancel netflix':{intent:'cancel_subscription',merchant_span:null}, // the router tidies "for me" off before the model reads it
+  });
+  const a=await R.handle('send sam $40',{extract,sessions:ss,parsers});
+  assert.equal(a.result.outcome,'confirm',a.result.text);assert.match(a.result.text,/\$40\.00 to Sam K/);assert.deepEqual(Array.from(a.filled_from_net),['amount']);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const b=await R.handle('venmo sam 40 for pizza',{extract,sessions:ss,parsers});
+  assert.equal(b.result.outcome,'confirm',b.result.text);assert.match(b.result.text,/\$40\.00 to Sam K/);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const c=await R.handle('pay sam back forty',{extract,sessions:ss,parsers});
+  assert.equal(c.result.outcome,'confirm',c.result.text);assert.match(c.result.text,/\$40\.00/);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const d=await R.handle('can u cancel netflix for me',{extract,sessions:ss,parsers});
+  assert.equal(d.result.outcome,'confirm',d.result.text);assert.match(d.result.text,/^Cancel Netflix/);
+  assert.equal(w.writes.length,0,'nothing runs before a yes');
+});
+
+test('live 2026-10-12: a model reading two different amounts still asks; the net only fills what is missing',async()=>{
+  const w=world(),ss=sessions(w);
+  const a=await R.handle('send sam $40',{extract:stub({'send sam $40':{intent:'send_money',recipient_span:'sam',amount_span:'$40',amount_cents:4000}}),sessions:ss,parsers});
+  assert.deepEqual(Array.from(a.filled_from_net),[],'nothing filled when the model read it');
+  assert.equal(a.result.outcome,'confirm');
+});
+
+test('live 2026-10-12: "dispute this charge" is never an order, whatever the model says',async()=>{
+  const w=world(),ss=sessions(w);
+  const r=await R.handle('dispute this charge',{extract:stub({'dispute this charge':{intent:'manage_order'}}),sessions:ss,parsers});
+  assert.equal(r.route,'fallthrough');assert.equal(r.reason,'not an order');
+  const p=await R.handle('show my portfolio',{extract:stub({'show my portfolio':{intent:'manage_order'}}),sessions:ss,parsers});
+  assert.notEqual(p.route,'fallthrough','a real portfolio ask still goes to the trade flow');
+});
+
+test('live 2026-10-12: a bare "no" with no live card drops what was asked and says nothing happened, never the model',async()=>{
+  const w=world(),ss=sessions(w);let calls=0;
+  const extract=async raw=>{calls++;return raw==='send sam'?{intent:'send_money',recipient_span:'sam'}:{intent:'other'};};
+  const ask=await R.handle('send sam',{extract,sessions:ss,parsers});
+  assert.equal(ask.result.outcome,'ask');
+  const n0=calls;
+  const no=await R.handle('no',{extract,sessions:ss,parsers});
+  assert.equal(no.source,'deterministic');assert.equal(calls,n0,'no model call');
+  assert.match(no.result.text,/^Okay(, dropped)?\. Nothing (was sent, bought or cancelled|is waiting on you, and nothing was changed)\.$/);
+  const again=await R.handle('nope',{extract,sessions:ss,parsers});
+  assert.equal(again.result.text,'Okay. Nothing is waiting on you, and nothing was changed.');
+  assert.equal(w.writes.length,0);
 });

@@ -22,8 +22,8 @@ Everything below describes how far the not-done items are from done. None of it 
 | Logic, not done | Items |
 | --- | --- |
 | LOGIC_PROVEN | 3 |
-| LOGIC_TESTED | 105 |
-| PARTLY_TESTED | 76 |
+| LOGIC_TESTED | 106 |
+| PARTLY_TESTED | 75 |
 | DESIGNED | 22 |
 
 | Rail | Items |
@@ -32,7 +32,7 @@ Everything below describes how far the not-done items are from done. None of it 
 | SANDBOX | 1 |
 | NOT_WIRED | 205 |
 
-Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 66. Writes with no registry id at T3 or above: 68.
+Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 65. Writes with no registry id at T3 or above: 68.
 
 ## Proof kinds (verification surfaces)
 
@@ -153,7 +153,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C73 | Cancel a subscription end to end | no | provider_state | LOGIC_PROVEN | SANDBOX | BILL-003 TESTED, BILL-017 TESTED, BILL-018 TESTED | provider-cancellation |
 | C74 | Find every recurring charge and kill the ones I pick | no | provider_state | LOGIC_TESTED | NOT_WIRED | BILL-001 TESTED, BILL-011 TESTED, BILL-003 TESTED, SAVE-017 TESTED | provider-cancellation |
-| C75 | Stop a free trial before it converts | no | provider_state | PARTLY_TESTED | NOT_WIRED | BILL-010 CLAIMED, BILL-003 TESTED, CORE-007 TESTED | provider-cancellation |
+| C75 | Stop a free trial before it converts | no | provider_state | LOGIC_TESTED | NOT_WIRED | BILL-010 TESTED, BILL-003 TESTED, CORE-007 TESTED | provider-cancellation |
 | C76 | Negotiate a bill down | no | provider_state | PARTLY_TESTED | NOT_WIRED | BILL-005 CLAIMED, BILL-014 CLAIMED, SAVE-007 TESTED | provider-support-chat |
 | C77 | Dispute a charge and get the money back | no | confirmation_ref | LOGIC_TESTED | NOT_WIRED | CARD-010 TESTED, TXN-010 TESTED, PAY-024 TESTED | bank-dispute-portal |
 | C78 | Get a refund I'm owed | no | credit_posted | LOGIC_TESTED | NOT_WIRED | TXN-013 TESTED, EARN-017 TESTED | merchant-support |
@@ -553,7 +553,6 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | BILL-006 | CLAIMED | C114, C115, C125 |
 | BILL-008 | GATED | C113 |
 | BILL-009 | CLAIMED | C113, C124, C188, C197 |
-| BILL-010 | CLAIMED | C75 |
 | BILL-014 | CLAIMED | C76, C84 |
 | BILL-015 | CLAIMED | C84, C121 |
 | BILL-016 | CLAIMED | C181 |

@@ -17,11 +17,11 @@ Not live: the migration is not applied to the live project (owner step). Until i
 | S01 | Exact handle first, and a handle is only a handle | "@marcus" resolves to the person with that handle; "@sarah_m" never matches the name "Sarah M"; a bare word is read as a name first. |
 | S02 | Full name second | "Sam" picks the saved "Sam" over "Sam K"; "Marcus T" picks Marcus T. |
 | S03 | First name third | "sarah" resolves to the only Sarah, straight to the card. |
-| S04 | Two matches ask and stage nothing | "Which Marcus: Marcus L or Marcus T?"; no card, no loop confirmation; "T" or "Marcus T" continues to the card. |
+| S04 | Two matches ask and stage nothing | "Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?" (handles shown, response-style corpus 1.04); no card, no loop confirmation; "T" or "Marcus T" continues to the card. |
 | S05 | A handle look-alike is named | "@sarah-m" when "@sarah_m" is saved: "is one character away from Sarah M (@sarah_m). Did you mean Sarah M?"; NEW starts the stranger path; nothing is staged. |
 | S06 | A name look-alike is asked about | "sarha" asks "Did you mean Sarah M?" instead of guessing or calling her a stranger. |
 | S07 | Saved goes straight to the card | A saved row with no payment history still goes straight to the card under PAY-001; no new-recipient questions. |
-| S08 | A stranger is asked who, and nothing is staged | "venmo dana 25": "I don't have Dana on file. Reply with Dana's Venmo handle."; no card exists. |
+| S08 | A stranger is asked who, and nothing is staged | "venmo dana 25": "I don't have Dana on file. New recipients are confirmed in full, every time. What's Dana's Venmo handle?"; no card exists. |
 | S09 | The handle is typed back exactly | "@dana_k" for "@dana-k" does not match; two mismatches stop; ten minutes expire it; never mind stops it. |
 | S10 | The stranger's card is the full one | "New recipient, first send: set up $25.00 to Dana (@dana-k) in Venmo"; the loop sees PAY-002 (T5); yes stages a handoff for the person to send. |
 | S11 | Saved only after a completed send | Staging saves nobody; the debit posting saves the stranger (source completed_send, evidence the transaction id); a saved person's send only touches last_used_at. |
@@ -41,7 +41,7 @@ Not live: the migration is not applied to the live project (owner step). Until i
 
 | Input | Expected | Why |
 | --- | --- | --- |
-| "send $40 to marcus" with Marcus L and Marcus T | "Which Marcus: Marcus L or Marcus T?", nothing staged | Ambiguity |
+| "send $40 to marcus" with Marcus L and Marcus T | "Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?" (handles shown, response-style corpus 1.04), nothing staged | Ambiguity |
 | "send $40 to @sarah-m" with @sarah_m saved | look-alike named, nothing staged | Look-alike |
 | "send $40 to @sarah_m" with a person named "Sarah M" whose handle differs | look-alike or stranger, never Sarah M by name | Handle read as a name |
 | "my friend dana is @dana-k btw" | nothing saved | Mention |

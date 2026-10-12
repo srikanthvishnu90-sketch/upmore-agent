@@ -14,14 +14,18 @@
      OAuth adapter. No secrets live here: adapters receive a vault handle.
      Loads after AgentMonitors (merchantKey), AgentLoop (gate) and Compliance. */
   const Connectors = (() => {
-    const AUTH = Object.freeze(["AGGREGATOR", "OAUTH", "VAULTED_CREDENTIALS", "MANUAL"]);
+    // LIVE_SESSION (owner, 2026-10-11, decision 1: no password storage): the person logs in themselves in a live browser
+    // window and completes their own 2FA; only the encrypted session persists, never a password (it replaced vaulted
+    // credentials). PERSONAL_API_KEY: the person's own key for their own account, entered on the secure link into the
+    // vault, never in chat.
+    const AUTH = Object.freeze(["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL"]);
     const STATUS = Object.freeze(["HEALTHY", "STALE", "NEEDS_REAUTH", "BROKEN", "REVOKED"]);
     const SCOPES = Object.freeze(["READ_BALANCES", "READ_TRANSACTIONS", "READ_HOLDINGS", "READ_BILLS", "READ_IDENTITY", "INITIATE_TRANSFER", "PLACE_ORDER"]);
     const WRITE_SCOPES = new Set(["INITIATE_TRANSFER", "PLACE_ORDER"]);
     const CADENCE_MS = Object.freeze({ banking: 86400000, balances: 900000, bills: 30 * 86400000, holdings: 3600000 });
-    const RELIABILITY = Object.freeze({ AGGREGATOR: "high", OAUTH: "high", VAULTED_CREDENTIALS: "low (scrape; least reliable class)", MANUAL: "exact (user-entered)" });
+    const RELIABILITY = Object.freeze({ AGGREGATOR: "high", OAUTH: "high", PERSONAL_API_KEY: "high", LIVE_SESSION: "low (a live session the person logs into; least reliable class)", MANUAL: "exact (user-entered)" });
     // Source-of-truth ranking per datum: lower is better. Conflicts are reported, never merged.
-    const RANKING = Object.freeze({ balance: ["AGGREGATOR", "OAUTH", "VAULTED_CREDENTIALS", "MANUAL"], transaction: ["AGGREGATOR", "OAUTH", "VAULTED_CREDENTIALS", "MANUAL"], holding: ["OAUTH", "AGGREGATOR", "VAULTED_CREDENTIALS", "MANUAL"], bill: ["OAUTH", "VAULTED_CREDENTIALS", "AGGREGATOR", "MANUAL"] });
+    const RANKING = Object.freeze({ balance: ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL"], transaction: ["AGGREGATOR", "OAUTH", "PERSONAL_API_KEY", "LIVE_SESSION", "MANUAL"], holding: ["OAUTH", "PERSONAL_API_KEY", "AGGREGATOR", "LIVE_SESSION", "MANUAL"], bill: ["OAUTH", "LIVE_SESSION", "AGGREGATOR", "PERSONAL_API_KEY", "MANUAL"] });
     const merchantKey = raw => typeof AgentMonitors !== "undefined" ? AgentMonitors.merchantKey(raw) : String(raw || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const need = (o, keys, what) => { for (const k of keys) if (o[k] === undefined || o[k] === null || o[k] === "") throw new Error(`${what} needs ${k}`); };
 

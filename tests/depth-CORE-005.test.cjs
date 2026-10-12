@@ -17,7 +17,7 @@ const caps={'SAVE-001':{tier:'T4',name:'autosave sweep'},'PAY-009':{tier:'T4',na
 const registry={get:id=>caps[id]?Object.assign({id,status:'TESTED'},caps[id]):null,answer:id=>({text:`${id} is not available.`})};
 function rail(){const r={writes:[]};r.conn={read:async()=>({value:1,source:'x',as_of:T0}),write:async(id,p,key)=>{r.writes.push({key,params:p});return {reference:'ref-'+r.writes.length};},verify:async(id,key,ref)=>({confirmed:true,source:'Example Bank',reference:ref})};return r;}
 const sweep=(n,amount,extra)=>Object.assign({capability_id:'SAVE-001',key:'sweep-'+n,params:{amount_cents:amount,recipient:'savings'},describe:`move ${(amount/100).toFixed(2)} to savings`,confirm:{amount:`$${(amount/100).toFixed(2)}`,recipient:'savings'}},extra||{});
-function world(extra){const c=C.create();const r=rail();const t={now:T0};const loop=Loop.create(Object.assign({registry,connectors:r.conn,clock:()=>t.now,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause},extra||{}));return {c,r,t,loop};}
+function world(extra){const c=C.create();const r=rail();const t={now:T0};const loop=Loop.create(Object.assign({policy:{envelope_autonomy:true},registry,connectors:r.conn,clock:()=>t.now,envelopes:now=>c.envelopes.forLoop(loop.memory.outcomes,now),control:c.pause},extra||{}));return {c,r,t,loop};}
 const earn=(c,cap)=>{for(let i=0;i<3;i++)c.envelopes.clean(cap);};
 const grant=(c,now,over)=>c.envelopes.grant(Object.assign({capability_id:'SAVE-001',tier:'T4',max_cents:5000,max_per_week_cents:12000,recipient:'savings',describe:'move money to savings',granted_by_text:'you can move up to $50 to savings whenever, max $120 a week'},over||{}),now);
 const asked=(loop)=>loop.log.filter(e=>e.to==='AWAITING_CONFIRMATION').length;
@@ -109,9 +109,9 @@ test('[S11] an envelope never lowers a tier: grants for T3 and T5 capabilities a
   assert.throws(()=>c.envelopes.grant({capability_id:'PAY-001',tier:'T3',max_cents:5000,granted_by_text:'you can send Sarah $50 whenever'},T0),/Only a T4 capability can run under an envelope; PAY-001 is T3: sends to people and first-time recipients are confirmed every time\./);
   assert.throws(()=>c.envelopes.grant({capability_id:'PAY-002',tier:'T5',max_cents:5000,granted_by_text:'ok'},T0),/PAY-002 is T5/);
   assert.throws(()=>c.envelopes.grant({capability_id:'PAY-001',max_cents:5000,granted_by_text:'ok'},T0),/of unknown tier/);
-  const loop=Loop.create({registry,connectors:r.conn,clock:()=>T0,envelopes:[{id:'bypass',capability_id:'PAY-002',max_cents:100000,active:true}]});
+  const loop=Loop.create({policy:{envelope_autonomy:true},registry,connectors:r.conn,clock:()=>T0,envelopes:[{id:'bypass',capability_id:'PAY-002',max_cents:100000,active:true}]});
   const t5=await loop.wake({kind:'message',request:{capability_id:'PAY-002',key:'x',params:{amount_cents:4000,recipient:'dave'},describe:'send $40 to Dave',confirm:{amount:'$40.00',recipient:'Dave'}}});assert.equal(t5.outcome,'awaiting_confirmation');assert.equal(r.writes.length,0);
-  const t3=await Loop.create({registry,connectors:r.conn,clock:()=>T0,envelopes:[{id:'bypass',capability_id:'PAY-001',max_cents:100000,active:true}]}).wake({kind:'message',request:{capability_id:'PAY-001',key:'y',params:{amount_cents:4000,recipient:'p1'},describe:'send $40 to Sarah',confirm:{amount:'$40.00',recipient:'Sarah'}}});assert.equal(t3.outcome,'awaiting_confirmation');assert.equal(r.writes.length,0);
+  const t3=await Loop.create({policy:{envelope_autonomy:true},registry,connectors:r.conn,clock:()=>T0,envelopes:[{id:'bypass',capability_id:'PAY-001',max_cents:100000,active:true}]}).wake({kind:'message',request:{capability_id:'PAY-001',key:'y',params:{amount_cents:4000,recipient:'p1'},describe:'send $40 to Sarah',confirm:{amount:'$40.00',recipient:'Sarah'}}});assert.equal(t3.outcome,'awaiting_confirmation');assert.equal(r.writes.length,0);
 });
 
 test('[S12] a standing instruction does not widen an envelope: inside the limits it runs, outside them it confirms',async()=>{

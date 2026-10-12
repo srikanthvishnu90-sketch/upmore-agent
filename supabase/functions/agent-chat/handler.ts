@@ -4,6 +4,8 @@
 // Flow: load profile + thread + relevant verified routes → Anthropic →
 // grounding post-check → save + return reply.
 
+import { guardMoneyClaim, guardSecretAsk } from "../_shared/claim_guard.ts";
+import { redactionNote } from "../_shared/identity_redact.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 import {
   SYSTEM_PROMPT,
@@ -13,6 +15,7 @@ import {
   findFalseNoRouteClaim,
   appendSources,
   SAFE_FALLBACK,
+  dropGuaranteeSentences,
   FINANCE_SAFE_FALLBACK,
   BILLING_SAFE_FALLBACK,
   SETTLEMENT_SAFE_FALLBACK,
@@ -26,10 +29,17 @@ import { renderFinanceFacts, financeFactMatch, financeModeNudge, tryFinanceFact 
 import { AgentIntents } from "./agent_core.js";
 import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
-import { reserveModelCall, recordModelUsage, anthropicPlannerModel } from "../_shared/model_calls.ts";
-import { routeFlows, supabaseFlowDb, anthropicRouteExtractor, flowErrorReply, userBroker, brokerSource } from "../_shared/flow_router.ts";
+import { reserveModelCall, recordModelUsage } from "../_shared/model_calls.ts";
+import { modelConfig, chatReply, plannerModel, newMeter, adminHealthSink, type TurnMeter, type HealthSink } from "../_shared/model_gateway.ts";
+import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource, hasLiveCard } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
+import { chatInput } from "./_shared/chat_input.ts";
+import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
+import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";
+// The asks that need to know whether anything is linked (one count query, only for these).
+const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
+import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -39,8 +49,7 @@ import {
   type ChatLesson,
 } from "./_shared/lessons.ts";
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-4-5-20251001";
+// The provider and model come from the model gateway (MODEL_PROVIDER / OPENAI_* / ANTHROPIC_* secrets), read per request.
 const MAX_TOKENS = 400; // tight budget: short, basic replies
 
 const MAX_MESSAGE_LEN = 4000; // M2: cap input size — output already capped at MAX_TOKENS
@@ -77,9 +86,19 @@ let catalogCache: { at: number; routes: any[] } | null = null;
 
 // A note from the flow layer (a live card was dropped because the person moved on) goes in front of whatever reply the
 // rest of the handler produces, so the person always learns the card is gone.
+// Every turn that called a model leaves one agent_turn_costs row (calls, tokens, estimated cost), whatever the reply was.
+type TurnCtx = { note: string | null; meter: TurnMeter; user: string | null; thread: string | null; health: HealthSink | undefined };
 export async function handleChat(req: Request): Promise<Response> {
-  const ctx: { note: string | null } = { note: null };
+  const ctx: TurnCtx = { note: null, meter: newMeter(), user: null, thread: null, health: undefined };
   const res = await handleChatInner(req, ctx);
+  if (ctx.meter.calls > 0 && ctx.user) {
+    try {
+      const m = ctx.meter;
+      const svc = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await svc.from("agent_turn_costs").insert({ user_id: ctx.user, thread_id: ctx.thread, provider: m.provider, models: m.models, calls: m.calls, failed: m.failed, input_tokens: m.input_tokens, output_tokens: m.output_tokens, cached_tokens: m.cached_tokens, usd_micros: m.usd_micros, unpriced: m.unpriced });
+      console.log(`[cost] turn calls=${m.calls} failed=${m.failed} in=${m.input_tokens} out=${m.output_tokens} usd=${(m.usd_micros / 1e6).toFixed(6)} ${m.provider} ${m.models.join(",")}`);
+    } catch (_) { /* cost logging never breaks a reply */ }
+  }
   if (!ctx.note || res.status !== 200) return res;
   try {
     const body = await res.clone().json();
@@ -90,7 +109,7 @@ export async function handleChat(req: Request): Promise<Response> {
   } catch { return res; }
 }
 
-async function handleChatInner(req: Request, flowCtx: { note: string | null }): Promise<Response> {
+async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response> {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -169,22 +188,12 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       );
     }
 
-    const { thread_id, message, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
-    if (!message || typeof message !== "string") return json(cors, { error: "message required" }, 400);
-    if (message.length > MAX_MESSAGE_LEN) return json(cors, { error: "message too long" }, 400);
-    // Optional photo attachments: validated Anthropic image blocks (max 3,
-    // each capped at ~2MB base64 — the client downscales to 1024px JPEG).
-    const imageBlocks: unknown[] = [];
-    if (Array.isArray(images)) {
-      for (const im of images.slice(0, 3)) {
-        if (!im || typeof im.data !== "string" || im.data.length === 0 || im.data.length > 2_000_000) continue;
-        const mt = typeof im.media_type === "string" ? im.media_type : "";
-        if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mt)) continue;
-        imageBlocks.push({ type: "image", source: { type: "base64", media_type: mt, data: im.data } });
-      }
-    }
-    // Stored user content: the text plus an honest marker when photos were attached.
-    const userContent = (imageBlocks.length ? "[photo attached] " : "") + message;
+    const { thread_id, message: rawMessage, images } = body as { thread_id?: unknown; message?: unknown; images?: unknown };
+    // Text, photos, or both (a photo alone is a message: spec 16 item 12).
+    const input = chatInput(rawMessage, images, MAX_MESSAGE_LEN);
+    if (!input.ok) return json(cors, { error: input.error }, 400);
+    const { message, userContent, imageBlocks } = input;
+    flowCtx.note = redactionNote(input.redacted);
     // L4: thread_id must be a string when provided (non-string truthy values
     // would otherwise cause a DB error → noisy 500).
     if (thread_id !== undefined && thread_id !== null && typeof thread_id !== "string")
@@ -197,6 +206,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       if(error instanceof ChatThreadError) return json(cors,{error:error.code},error.status);
       throw error;
     }
+    flowCtx.user = user.id; flowCtx.thread = tid;
 
     // Catalog-independent safety guards run BEFORE the heavy parallel fetches
     // (1500-route catalog in 5 pages). They need no DB data, so a gambling,
@@ -213,6 +223,67 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
     }
 
+    // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
+    // connector matrix, "pay my rent" (not built, said plainly), "find me money" from the person's own transactions, and
+    // balance or spending with nothing linked in one plain line.
+    {
+      let direct: string | null = connectReply(message) ?? rentReply(message);
+      if (!direct && NEEDS_ACCOUNTS.test(message)) {
+        const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");
+        if (!linked.error) direct = noDataReply(message, linked.count ?? 0);
+      }
+      if (!direct) direct = await findMoneyReply(message, new Date().toISOString().slice(0, 10), async () => {
+        const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+        const r = await supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
+          .eq("user_id", user.id).eq("presence", "observed").gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000);
+        if (r.error) throw new Error("Transactions unavailable.");
+        return r.data || [];
+      });
+      if (direct) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: direct, meta: { capability: true, direct: true } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: direct, action: null });
+      }
+    }
+
+    // An answer to the agent's own offer ("your trial ends Thursday; should I cancel it?"): yes starts the cancellation,
+    // whose card is the one explicit approval; no keeps it; a live card in this thread answers its own yes first.
+    if (mayAnswerOffer(message)) {
+      const offer = await readOffer(supabase, user.id);
+      if (offer) {
+        const flowDb = supabaseFlowDb(supabase, user.id, tid);
+        const o = await offerMessage(message, supabaseOfferDeps(supabase, user.id, tid, offer, {
+          liveCard: async () => { try { return hasLiveCard(await flowDb.loadState()); } catch { return true; } },
+          runFlow: async (text) => { const f: any = await routeFlows(text, { db: flowDb, extract: null, channel: "in-app" }); return f && !f.fallthrough ? f : null; },
+        }), Date.now());
+        if (o) {
+          const saved = await supabase.from("agent_messages").insert([
+            { thread_id: tid, role: "user", content: userContent },
+            { thread_id: tid, role: "assistant", content: o.reply, meta: { capability: true, proactive_offer: offer.kind, flow_route: o.route || null } },
+          ]);
+          if (saved.error) throw saved.error;
+          return json(cors, { thread_id: tid, reply: o.reply, action: null, route: o.route });
+        }
+      }
+    }
+
+    // The agent speaks first (capability list section 2): what the person asks it to say on its own, and when, is
+    // remembered and restated here; the hourly agent-proactive run delivers it. No model call, no money path.
+    {
+      const s = await settingsMessage(message, supabaseSettingsDb(supabase, user.id), Date.now());
+      if (s) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: s.reply, meta: { capability: true, proactive_settings: true, changed: s.changed } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: s.reply, action: null });
+      }
+    }
+
     // Phase 1 wiring (2026-10-11): buy from a text, cancel, pay a person back. The model only extracts intent and spans
     // (forced tool call, inside the model budget); code grounds every amount and name in the message, a disagreement asks
     // one question, approvals never come from the model, and a model failure falls back to the regex net and says so.
@@ -221,7 +292,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       let flow: any = null;
       try {
         const flowAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-        const extract = anthropicRouteExtractor(flowAdmin, user.id, tid, Deno.env.get("ANTHROPIC_ROUTER_MODEL") ?? MODEL, Deno.env.get("ANTHROPIC_API_KEY") || "");
+        const extract = routeExtractor(flowAdmin, user.id, tid, modelConfig(Deno.env, "router"), { meter: flowCtx.meter, health: flowCtx.health ??= adminHealthSink(flowAdmin) });
         // The caller's own live brokerage connection, resolved only when the message can be a flow (never for small
         // talk); a 401 is marked for Reconnect (flush) before the reply goes out.
         let broker: any = null;
@@ -232,7 +303,7 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));
         flow = flowErrorReply(message);
       }
-      if (flow && flow.fallthrough) { flowCtx.note = flow.note; flow = null; }
+      if (flow && flow.fallthrough) { flowCtx.note = [flowCtx.note, flow.note].filter(Boolean).join(" ") || null; flow = null; }
       if (flow) {
         const saved = await supabase.from("agent_messages").insert([
           // A one-time code is used once by the run and never stored.
@@ -251,11 +322,13 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       const history = await supabase.from("agent_messages").select("role,content").eq("thread_id",tid).order("id",{ascending:false}).limit(10);
       if (history.error) throw new Error("Conversation history unavailable.");
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
-        anthropicPlannerModel(admin,user.id,tid,MODEL,Deno.env.get("ANTHROPIC_API_KEY")||""),message,(history.data||[]).reverse());
-      const reply = result.reply;
+        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse());
+      // A planner reply that stages nothing may not claim a money action (testing agent O-15).
+      // Nor ask for a password, code or full number in a message (secrets never travel through chat, owner decision 1).
+      const reply = guardSecretAsk(result.action ? result.reply : guardMoneyClaim(result.reply).reply).reply;
       const saved = await supabase.from("agent_messages").insert([
         {thread_id:tid,role:"user",content:message},
-        {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null}},
+        {thread_id:tid,role:"assistant",content:reply,meta:{financial_tools:true,sources:result.sources,tool_trace:result.trace,incomplete:!!result.incomplete,failure_code:result.failure_code||null,model_error:result.model_error||null}},
       ]);
       if (saved.error) throw saved.error;
       return json(cors,{thread_id:tid,reply,action:result.action,sources:result.sources,incomplete:!!result.incomplete});
@@ -701,7 +774,10 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
     const financeIds = financeFactMatch(message);
     const financeNudge = financeIds.length ? "\n\n" + financeModeNudge(financeIds) : "";
     const systemDynamic = "\n\n" + profileLine + "\n" + playbookLine + "\n" + resumeLine + "\n" + reminderLine + "\n" + expiryLine + "\n" + listingLine + "\n" + subscriptionLine + "\n" + settlementLine + "\n" + ipoLine + financeNudge +
-      renderLessonsBlock(chatLessons);
+      renderLessonsBlock(chatLessons) +
+      // The response-style corpus (corpus/, owner 2026-10-11): the hard rules, then the 6 examples nearest this message
+      // plus the 4 safety examples. Per message, so it sits in the uncached dynamic block (~1K tokens).
+      "\n\n" + StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples, message));
 
     // COST OPT 2026-09-27: monthly AI quota — tail-risk protection for the
     // $10/mo margin. 900 model calls/month (~30/day) caps worst-case AI cost
@@ -751,18 +827,12 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
     // (rate limit was already enforced for every request at the top of the
     // handler, before any DB work)
     const usageAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const chatCfg = modelConfig(Deno.env, "chat");
     let modelCallId:string;
-    try { modelCallId = await reserveModelCall(usageAdmin,user.id,tid,crypto.randomUUID(),0,MODEL); }
+    try { modelCallId = await reserveModelCall(usageAdmin,user.id,tid,crypto.randomUUID(),0,chatCfg.model); }
     catch { return json(cors,{error:"agent_unavailable",message:"The model budget is unavailable or exhausted. Your deterministic tools still work."},503); }
-    const anthropicRes = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
+    // A provider failure is said plainly, saved with its cause, and answered 200: never a silent 502, never planner wording.
+    const chat = await chatReply(chatCfg, {
         max_tokens: MAX_TOKENS,
         system: [
           { type: "text", text: systemStatic, cache_control: { type: "ephemeral" } },
@@ -773,14 +843,15 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
           role: "user",
           content: [...imageBlocks, { type: "text", text: message }],
         }],
-      }),
-    });
-    if (!anthropicRes.ok) {
-      const t = await anthropicRes.text();
-      console.error("anthropic error", anthropicRes.status, t.slice(0, 300));
-      return json(cors, { error: "agent_unavailable" }, 502);
+      }, { meter: flowCtx.meter, health: flowCtx.health ??= adminHealthSink(usageAdmin) });
+    if (!chat.ok) {
+      await supabase.from("agent_messages").insert([
+        { thread_id: tid, role: "user", content: userContent },
+        { thread_id: tid, role: "assistant", content: chat.reply, meta: { capability: true, failure_code: "model_unavailable", model_error: chat.model_error } },
+      ]);
+      return json(cors, { thread_id: tid, reply: chat.reply, action: null, failure_code: "model_unavailable" });
     }
-    const aj = await anthropicRes.json();
+    const aj = chat.message;
     let reply: string = aj.content?.map((b: any) => b.text ?? "").join("") ?? "";
 
     // COST OPT 2026-09-27: log token usage per request for margin verification.
@@ -832,11 +903,15 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
       // Finance-mode violations get the finance fallback (no route to ask about).
       // Billing-thread violations get the billing fallback (the route-specific
       // "which route you're asking about" is nonsensical there).
-      reply = isDebunkReply(reply) ? SCAM_FALLBACK
+      // Only a model-introduced guarantee word: drop those sentences, keep the answer (live 2026-10-12, "find me money").
+      // The fallback is picked from THIS message, not the thread: an earlier dispute made "find me money" a dispute reply.
+      const onlyGuarantee = violations.every((v) => v.startsWith("guarantee_language:"));
+      const trimmed = onlyGuarantee && !isDebunkReply(reply) ? dropGuaranteeSentences(reply) : null;
+      reply = trimmed ?? (isDebunkReply(reply) ? SCAM_FALLBACK
         : financeMode ? FINANCE_SAFE_FALLBACK
-        : isBillingContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? BILLING_SAFE_FALLBACK
-        : isSettlementContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? SETTLEMENT_SAFE_FALLBACK
-        : SAFE_FALLBACK;
+        : isBillingContext(message) ? BILLING_SAFE_FALLBACK
+        : isSettlementContext(message) ? SETTLEMENT_SAFE_FALLBACK
+        : SAFE_FALLBACK);
       action = null;
     } else if (financeMode) {
       // Finance answers skip the route-correction pass below (no route claim).
@@ -908,6 +983,10 @@ async function handleChatInner(req: Request, flowCtx: { note: string | null }): 
     // construction. Skips when the model already added one.
     reply = appendSources(reply, routes, financeMode, financeIds,
       settlements.map((s: any) => ({ name: s.name, claim_url: s.claim_url })));
+    // No model reply may claim a money action: those only run through a card and a yes (testing agent O-15).
+    reply = guardMoneyClaim(reply).reply;
+    // No model reply may ask for a password, a code or a full number in a message (owner decision 1).
+    reply = guardSecretAsk(reply).reply;
 
     // Persist
     await supabase.from("agent_messages").insert([

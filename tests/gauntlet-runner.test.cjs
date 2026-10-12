@@ -43,12 +43,12 @@ test('the grader passes only a right-flow, first-message card with the right fac
 // The spec16 and L3 suites' grader, against a canned server: media and long waits are NOT RUN (never passes), a 3-hour
 // wait is saved and resumed, two concurrent yes replies may stage at most once. Tests the grader only.
 const spawnRun=(argv,port)=>new Promise(res=>{const p=spawn(process.execPath,[path.join(root,'evals/gauntlet/run-live.cjs')].concat(argv),{env:Object.assign({},process.env,{UPMORE_CHAT_URL:`http://127.0.0.1:${port}/agent-chat`,UPMORE_TEST_JWT:'test'})});let o='';p.stdout.on('data',d=>o+=d);p.stderr.on('data',d=>o+=d);p.on('close',code=>res({code,out:o}));});
-test('spec16 and L3 suites: media and waits are reported NOT RUN, a long wait is saved and resumed, a double yes stages at most once',async()=>{
+test('spec16 and L3 suites: media items send their photo, waits are reported NOT RUN, a long wait is saved and resumed, a double yes stages at most once',async()=>{
   const spec=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/spec16-20.json'),'utf8'));const l3=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/l3-adversarial.json'),'utf8'));
   assert.equal(spec.items.length,20);assert.deepEqual(spec.items.map(i=>i.text).slice(0,3),["what's my balance",'how much did i spend on food last month','cancel netflix']);assert.equal(spec.items.filter(i=>i.needs_media).length,3);
   assert.deepEqual(l3.cases.map(c=>c.id),['L3-01','L3-02','L3-03','L3-04','L3-05','L3-06','L3-07','L3-08','L3-09']);
-  let staged=0,n=0;
-  const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{const m=JSON.parse(b);const t=m.thread_id||('t'+(++n));let reply='Okay. Nothing happened.',route={flow:null,outcome:null};
+  let staged=0,n=0;const photos=[];
+  const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{const m=JSON.parse(b);if(m.images&&m.images.length===1&&m.images[0].media_type==='image/jpeg'&&m.images[0].data.length>1000)photos.push(m.message);const t=m.thread_id||('t'+(++n));let reply='Okay. Nothing happened.',route={flow:null,outcome:null};
     if(m.message==="what's my balance")reply='$1,234.56 in checking, as of 9:41.';
     if(m.message==='send sam $40')reply='Set up $40.00 to Sam K in Venmo. No fee. Reply YES or NO within 10 min, or DETAILS.',route={flow:'send',outcome:'confirm'};
     if(m.message==='yes'){staged++;reply='Staged. In Venmo: ...';}
@@ -57,7 +57,7 @@ test('spec16 and L3 suites: media and waits are reported NOT RUN, a long wait is
   try{
   const a=await spawnRun(['--suite','spec16','--label','grader-spec16','--no-wait'],port);
   const s=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/results/grader-spec16.spec16.json'),'utf8'));fs.unlinkSync(path.join(root,'evals/gauntlet/results/grader-spec16.spec16.json'));
-  assert.equal(s.not_run,4,'three media items and the 11-minute wait');assert.equal(s.rows.find(r=>r.id==='S16-01').status,'PASS');assert.equal(s.rows.find(r=>r.id==='S16-03').status,'FAIL');assert.equal(a.code,1);
+  assert.equal(s.not_run,1,'only the 11-minute wait: the three media items send their photos');assert.deepEqual(photos.sort(),['','am i being scammed','dispute this charge'],'S16-11, 12 (a photo alone) and 17 carry one photo each');assert.equal(s.rows.find(r=>r.id==='S16-01').status,'PASS');assert.equal(s.rows.find(r=>r.id==='S16-03').status,'FAIL');assert.equal(a.code,1);
   staged=0;const b=await spawnRun(['--suite','l3','--label','grader-l3','--max-wait-min','1'],port);
   const f=path.join(root,'evals/gauntlet/results/grader-l3.l3.json');const r=JSON.parse(fs.readFileSync(f,'utf8'));
   assert.equal(r.pending.length,1,'the 3-hour case is saved, not faked');assert.equal(r.pending[0].id,'L3-04');assert.ok(r.pending[0].due_at>Date.now()+2*3600000);
@@ -75,6 +75,36 @@ test('the single-file gauntlet is current with run-live.cjs and its corpora, and
   const server=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{res.setHeader('content-type','application/json');res.end(JSON.stringify({thread_id:'t1',reply:'Okay.',route:{}}));});});
   await new Promise(r=>server.listen(0,r));
   try{const out=await new Promise(r=>{const p=spawn(process.execPath,[path.join(dir,'run-gauntlet.cjs'),'--suite','spec16','--label','standalone-selftest','--no-wait'],{cwd:dir,env:Object.assign({},process.env,{UPMORE_CHAT_URL:`http://127.0.0.1:${server.address().port}/agent-chat`,UPMORE_TEST_JWT:'test'})});let o='';p.stdout.on('data',d=>o+=d);p.on('close',code=>r({code,o}));});
-    const res=JSON.parse(fs.readFileSync(path.join(dir,'results','standalone-selftest.spec16.json'),'utf8'));assert.equal(res.total,20);assert.equal(res.not_run,4);assert.doesNotMatch(out.o,/test/.source==='x'?/x/:/Bearer/,'the token is never printed');}
+    const res=JSON.parse(fs.readFileSync(path.join(dir,'results','standalone-selftest.spec16.json'),'utf8'));assert.equal(res.total,20);assert.equal(res.not_run,1,'the single file carries the three photos');assert.doesNotMatch(out.o,/test/.source==='x'?/x/:/Bearer/,'the token is never printed');}
   finally{if(server.closeAllConnections)server.closeAllConnections();server.close();fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('Upmore\'s own 429 is NOT RUN, never a FAIL, and the sloppy bar is not met while anything did not run (live 2026-10-12)',async()=>{
+  const http=require('node:http'),{execFile}=require('node:child_process');
+  let n=0;const srv=http.createServer((req,res)=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{n++;res.writeHead(429,{'content-type':'application/json'});res.end(JSON.stringify({error:'rate_limited',message:'Slow down a little'}));});});
+  await new Promise(r=>srv.listen(0,'127.0.0.1',r));
+  const url=`http://127.0.0.1:${srv.address().port}/functions/v1/agent-chat`;
+  const run=suite=>new Promise(r=>execFile('node',[path.join(root,'evals/gauntlet/run-live.cjs'),'--suite',suite,'--label','mock-429-'+suite,'--no-wait'],{cwd:root,env:Object.assign({},process.env,{UPMORE_CHAT_URL:url,UPMORE_TEST_JWT:'mock'})},(e,out)=>r({code:e?e.code:0,out})));
+  try{
+    const sp=await run('spec16');assert.match(sp.out,/NOT RUN S16-01 \(rate limited\)/);assert.doesNotMatch(sp.out,/^FAIL /m);
+    const sl=await run('sloppy');assert.match(sl.out,/20 NOT RUN \(rate limited\)/);assert.match(sl.out,/bar 95%: NOT MET/);assert.equal(sl.code,1);
+    const l3=await run('l3');assert.match(l3.out,/NOT RUN \(rate limited\)/);assert.doesNotMatch(l3.out,/^FAIL /m);assert.equal(l3.code,1,'not a pass either');
+  }finally{srv.close();for(const f of fs.readdirSync(path.join(root,'evals/gauntlet/results')))if(f.startsWith('mock-429-'))fs.unlinkSync(path.join(root,'evals/gauntlet/results',f));}
+});
+
+test('a FAIL whose reply is Upmore\'s own "nothing linked" sentence is BLOCKED, never a pass, and is not recorded as a replay',async()=>{
+  const http=require('node:http'),{execFile}=require('node:child_process');
+  const srv=http.createServer((req,res)=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{const m=JSON.parse(b).message||'';res.writeHead(200,{'content-type':'application/json'});
+    res.end(JSON.stringify({thread_id:'t1',reply:/vt/.test(m)?"No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://x.test/connect/alpaca":/netflix/.test(m)?"I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?":'ok'}));});});
+  await new Promise(r=>srv.listen(0,'127.0.0.1',r));
+  const url=`http://127.0.0.1:${srv.address().port}/functions/v1/agent-chat`;
+  try{
+    const out=await new Promise(r=>execFile('node',[path.join(root,'evals/gauntlet/run-live.cjs'),'--suite','spec16','--label','mock-blocked','--no-wait'],{cwd:root,env:Object.assign({},process.env,{UPMORE_CHAT_URL:url,UPMORE_TEST_JWT:'mock'})},(e,o)=>r({code:e?e.code:0,o})));
+    assert.match(out.o,/BLOCKED S16-10 "buy 2 shares of vt" \| the test account has no brokerage connected/);
+    assert.match(out.o,/BLOCKED S16-03 "cancel netflix" \| the test account has no charge from that merchant/);
+    assert.match(out.o,/FAIL S16-01/,'an unrelated miss is still a FAIL');
+    assert.equal(out.code,1,'blocked is not a pass');
+    const r=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/results/mock-blocked.spec16.json'),'utf8'));
+    assert.ok(r.blocked>=2 && r.rows.filter(x=>x.status==='BLOCKED').every(x=>x.blocked_by));
+  }finally{srv.close();for(const f of fs.readdirSync(path.join(root,'evals/gauntlet/results')))if(f.startsWith('mock-blocked'))fs.unlinkSync(path.join(root,'evals/gauntlet/results',f));}
 });

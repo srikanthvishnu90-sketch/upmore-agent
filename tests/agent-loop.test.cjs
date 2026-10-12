@@ -70,7 +70,7 @@ test('declining a confirmation changes nothing and is remembered',async()=>{
 
 test('T4 acts without confirmation inside the envelope, asks outside it, at the limit is inside, first-time recipient always asks',async()=>{
   const env=[{id:'env-1',capability_id:'SAVE-001',max_cents:5000,recipient:'savings'}];
-  const mk=()=>{const c=fakeConnectors({});return {c,loop:AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:env})};};
+  const mk=()=>{const c=fakeConnectors({});return {c,loop:AgentLoop.create({policy:{envelope_autonomy:true},registry,connectors:c,clock:clockAt({now:1}),envelopes:env})};};
   let {c,loop}=mk();
   let r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',key:'sweep-1',params:{amount_cents:5000,recipient:'savings'},amount_cents:5000,recipient:'savings',describe:'move $50.00 to savings'}});
   assert.equal(r.outcome,'confirmed');assert.equal(c.calls.write.length,1);assert.match(r.message,/Done: move \$50\.00 to savings/);
@@ -86,14 +86,14 @@ test('T4 acts without confirmation inside the envelope, asks outside it, at the 
   const none=AgentLoop.create({registry,connectors:fakeConnectors({}),clock:clockAt({now:1})});
   r=await none.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'savings'}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(none.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'no_envelope');
-  const expired=AgentLoop.create({registry,connectors:fakeConnectors({}),clock:clockAt({now:10}),envelopes:[{...env[0],expires_at:5}]});
+  const expired=AgentLoop.create({policy:{envelope_autonomy:true},registry,connectors:fakeConnectors({}),clock:clockAt({now:10}),envelopes:[{...env[0],expires_at:5}]});
   r=await expired.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,recipient:'savings'}});
   assert.equal(r.outcome,'awaiting_confirmation');
 });
 
 test('T5 always asks even with an envelope; T2 drafts never send; GATED and unbuilt capabilities are refused honestly',async()=>{
   const c=fakeConnectors({});
-  const loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'PAY-002',max_cents:1e9}]});
+  const loop=AgentLoop.create({policy:{envelope_autonomy:true},registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'PAY-002',max_cents:1e9}]});
   let r=await loop.wake({kind:'message',request:{capability_id:'PAY-002',amount_cents:1,recipient:'new'}});
   assert.equal(r.outcome,'awaiting_confirmation');
   await loop.wake({kind:'confirmation',confirmation_id:r.confirmation_id,approved:false});
@@ -142,7 +142,7 @@ test('approval gaps: confirmations expire, the envelope is checked against the v
   assert.equal(x.outcome,'expired');assert.match(x.message,/expired after 1 minutes, so I did not act/);assert.equal(c.calls.write.length,0);assert.equal(loop.state,'IDLE');
   assert.equal(loop.memory.outcomes.pop().result,'confirmation_expired');
   // Envelope: the caller's summary says $1.00 but the params that would be written say $90.00.
-  c=fakeConnectors({});loop=AgentLoop.create({registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'SAVE-001',max_cents:5000}]});
+  c=fakeConnectors({});loop=AgentLoop.create({policy:{envelope_autonomy:true},registry,connectors:c,clock:clockAt({now:1}),envelopes:[{id:'e',capability_id:'SAVE-001',max_cents:5000}]});
   r=await loop.wake({kind:'event',request:{capability_id:'SAVE-001',amount_cents:100,params:{amount_cents:9000},confirm:{amount:'$90.00',recipient:'savings'}}});
   assert.equal(r.outcome,'awaiting_confirmation');assert.equal(loop.log.find(e=>e.to==='AWAITING_CONFIRMATION').input.reason,'outside_envelope');assert.equal(c.calls.write.length,0);
   // Money confirmation without the exact amount and recipient is refused before anything is asked.

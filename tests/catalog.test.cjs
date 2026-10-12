@@ -13,14 +13,14 @@ const registry=JSON.parse(fs.readFileSync(path.join(root,'packages/capabilities/
 test('every row is valid: auth method, registry capabilities, reliability class, last-checked date, gated write actions, honest adapter state',()=>{
   assert.deepEqual(Cat.validate(catalog,registry),[]);
   assert.ok(catalog.connectors.length>=100);
-  for(const c of catalog.connectors){for(const w of c.write_actions)assert.ok(w.gated,`${c.provider}: ${w.action} promised without a gate while no live adapter exists`);if(c.auth_method==='VAULTED_CREDENTIALS')assert.match(c.reliability_class,/least reliable/);}
+  for(const c of catalog.connectors){for(const w of c.write_actions)assert.ok(w.gated,`${c.provider}: ${w.action} promised without a gate while no live adapter exists`);if(c.auth_method==='LIVE_SESSION')assert.match(c.reliability_class,/least reliable/);}
   const live=catalog.connectors.filter(c=>/reference adapter|edge function exists/.test(c.adapter_state));assert.ok(live.length>=5&&live.length<=10,'only the reference adapters and the existing edge functions claim an adapter');
   const s=spawnSync('node',['scripts/connectors','--check'],{cwd:root,encoding:'utf8'});assert.equal(s.status,0,s.stdout+s.stderr);assert.match(s.stdout,/Catalog valid: \d+ connectors/);
   const l=spawnSync('node',['scripts/connectors','--list'],{cwd:root,encoding:'utf8'});assert.match(l.stdout,/Wave 1: money in, money out/);assert.match(l.stdout,/Wave 3: the long tail/);
 });
 
 test('the validator rejects a bad auth method, an unknown capability, a write action without a gate, and a scrape row that claims high reliability',()=>{
-  const bad={connectors:[{provider:'x',display_name:'X',domain:'d',auth_method:'MAGIC',wave:1,scopes:[],data_entities:[],capabilities:['ZZZ-999'],write_actions:[{action:'send',capability:'PAY-001',tier:'T3'}],reliability_class:'high',last_checked:'2026-10-10',adapter_state:'none'},{provider:'y',display_name:'Y',domain:'d',auth_method:'VAULTED_CREDENTIALS',wave:4,scopes:[],data_entities:[],capabilities:['ACCT-001'],write_actions:[],reliability_class:'high',last_checked:'',adapter_state:'none'}]};
+  const bad={connectors:[{provider:'x',display_name:'X',domain:'d',auth_method:'MAGIC',wave:1,scopes:[],data_entities:[],capabilities:['ZZZ-999'],write_actions:[{action:'send',capability:'PAY-001',tier:'T3'}],reliability_class:'high',last_checked:'2026-10-10',adapter_state:'none'},{provider:'y',display_name:'Y',domain:'d',auth_method:'LIVE_SESSION',wave:4,scopes:[],data_entities:[],capabilities:['ACCT-001'],write_actions:[],reliability_class:'high',last_checked:'',adapter_state:'none'}]};
   const e=Cat.validate(bad,registry);
   for(const re of [/invalid auth method MAGIC/,/ZZZ-999 is not in the registry/,/promised without a live adapter and no gated reason/,/wave must be 1, 2 or 3/,/last_checked date missing/,/least reliable class/])assert.ok(e.some(x=>re.test(x)),String(re));
 });

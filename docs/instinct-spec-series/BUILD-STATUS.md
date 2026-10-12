@@ -24,6 +24,65 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 | 15 | The missing 100+ | Claude | BUILT | scripts/build-backlog.py parses docs/instinct-spec-series/15.md one way into packages/capabilities/backlog.json (112 items, 15 groups, each CLAIMED with an owner doc; 81 attached to the registry capability they deepen, 31 new surface); scripts/build-capability-registry.py merges it as registry.backlog and refuses unknown ids or a raised status; `scripts/capabilities --backlog [doc|group]` lists it and --status reports it; tests/backlog.test.cjs | Check: `python3 scripts/build-backlog.py --check && node --test tests/backlog.test.cjs`. Backlog items are never counted as capabilities (all stays 296); when one is built, the status rises on the attached capability through doc 02's overlay, or a new doc 02 id is added first. The quarterly completeness audit against the top 20 apps is a cadence, not code. |
 | 16 | Messaging-native | Claude (pure: cards, flows, router, confirmations, transcripts) + Codex (channels, media, transports, live rails) | IN_PROGRESS | Spec: docs/instinct-spec-series/16-messaging-native.md (merged from main 2026-10-11). Claude, under the depth protocol one capability at a time: CORE-005 (autonomy envelopes, the only place money moves without a per-action yes) next per Vishnu 2026-10-11, then CORE-009 (the confirmation card over text). Gap analysis against what exists: (a) supabase/functions/imessage-inbound is a founder-only LoopMessage test bridge (hard-coded phone and user id, 4 bubbles of 700 chars, each URL its own bubble); (b) the production-track pipeline (agent-message-inbound/turn/worker, _shared/message_*.ts, 2026-10-10 message_* migrations) has transports (loopmessage only, enabled false), channels with verification and revocation, hashed expiring link codes, an inbox keyed by provider message id and source hash, turns with lease tokens, an outbox with delivery events, and a worker that will not deliver until a transport is verified; (c) nothing yet for: the confirmation card anatomy and its expiry/single-use/context-bound rules at the message layer, plain-text degradation per channel (M3), the seven-part dialogue contract per capability, the router (first-message understanding, one clarifier max), transcripts as replayable fixtures, STOP/HELP/opt-in, quiet hours at the message layer, inbound media as untrusted content, WhatsApp 24-hour window and templates, per-contact rate limits, link-out-and-return (M2), proactive outbound from the feed, typing/read/reaction semantics, the 20-text gauntlet in simulation, L4 live-rail nightly, L5 daily-driver program | Check per capability: `node --test tests/depth-<ID>.test.cjs && node evals/depth/run.cjs <ID>`. Spec deviation noted: the loop's confirmation default was 15 minutes; the message-layer card uses the spec's 10 |
 
+### Response-style corpus (owner, 2026-10-11 night): corpus in the prompt, corpus as evals — **offline only; 0 live or provider-confirmed results**
+
+| What | State | Check |
+| --- | --- | --- |
+| Corpus | `corpus/` (5 docs, 79 examples, the usage prompt, the 240-scenario megadoc) parsed to `corpus/corpus.json` | `node scripts/build-style-corpus.cjs --check` |
+| Few-shot selector | `packages/domain/75-style-corpus.js`: 6 nearest examples (lexical TF-IDF + tag boosts, a deliberate deviation from embeddings: free, deterministic, no extra model call) + the 4 safety examples (2.08, 2.09, 5.01, 5.04) always, under the hard rules and "STYLE EXAMPLES: copy the mannerisms, not the words". Wired into agent-chat's system prompt (chat replies). **Not in the financial planner's prompt yet.** | `node --test tests/style-corpus.test.cjs` |
+| Rule-graded evals, every commit | Every example replayed through the real flow router with the corpus world (mock Alpaca, router model off): **PASS 37, LIMITED 7, NOT_BUILT 3 (1.05 balance-aware send, 1.06 saved nicknames, 3.05 holding by company name), DIVERGES 1 (1.02 first send to a new handle asks for the handle typed back), FAIL 0, NEEDS_MODEL 31** (live only; 2.07 moved here when the new "answer" rule exposed it as a false pass). Variants (typos, slang, punctuation): 88/98. Ratchet + no untriaged FAIL + the safety examples. | `deno test tests/edge/corpus-evals.test.ts` (regenerate: `deno run -A evals/corpus/run.ts`; report `docs/corpus/README.md`) |
+| LLM judge (mannerisms 1-5, under 4 fails) | Built (`evals/corpus/judge.cjs`, `live.ts`, the cheap OpenAI model via the gateway). Approval turns are never sent live. **NOT RUN**: needs the deployed handler, a test JWT and the OpenAI key. | `deno run -A evals/corpus/run.ts --live` |
+| Fixes the corpus forced | bare number = dollars on a buy; "all in" uses cash; two requests handled in order (one card at a time, the second starts when the first settles; if the first part is unreadable both are named and the person picks); stale yes re-offers a fresh card; "$4.5" asks; scam and grief beats; "Staged, not sent" handoff; handles on every name; typo'd verbs and trailing filler ("cancle", "rn pls", "!!") cleaned before parsing; a family word ("mom") is never offered as a look-alike name | depth runners (all green, every defect bites), `tests/router.test.cjs`, `tests/edge/flow-router.test.ts` |
+
+### Megadoc (owner, 2026-10-11 night): 240 scenarios, honest status — **PROVEN 0 of 240 (no provider-confirmed record yet)**
+
+| What | State | Check |
+| --- | --- | --- |
+| Parse | `corpus/upmore-scenario-megadoc.txt` -> `evals/scenarios/megadoc.json`, 240 = the doc's own TOTAL | `node scripts/build-megadoc.cjs --check` |
+| Offline evidence | every MSG through the real flow router (router model off, MOCK Alpaca inside the eval): executed 0, mock orders 0 | `deno test tests/edge/megadoc-sim.test.ts` (8; red on the previous router, green now) |
+| Verdicts | **PROVEN 0, BUILT 61, LIMITED 22, DIVERGES 12, MODEL 59, NOT_BUILT 86**. LIMITED = the $5 live cap, person-to-person handoff, the daily limit, an unreadable merchant terms page. MODEL = answered by the chat model; graded only live. | `node --test tests/megadoc.test.cjs`; report `docs/scenarios/README.md` (`node evals/scenarios/report.cjs`) |
+| Bugs it found and fixed | A14 one $40 card to the wrong person; P09 a dropped request; E19 a $5 card after "no wait 10"; A08/A15 scheduled and conditional sends staged for now; questions answered "How much?"; promised-return, injected-instruction and secret-sending messages not stopped; options/margin/IPO asked for a size | drift log, `docs/playbook-drift-2026-10-11.md` |
+| To reach PROVEN | deploy with the OpenAI key; run the corpus `--live` and the gauntlet; connect one Alpaca account for a $5 fill; one Venmo handoff whose debit lands; one merchant cancel confirmed by the merchant | owner (see the launch list) |
+
+### Wiring roadmap (owner, 2026-10-11): section 2, the agent speaks first — **built and tested here; NOT deployed, NOT scheduled; 0 messages delivered live**
+
+| What | State | Check |
+| --- | --- | --- |
+| Scheduler + delivery | `_shared/proactive.ts` + `agent-proactive` function: hourly, every person with a linked account; AgentProactive.feed (monitors, save engine, alerts), AgentLoop's budget (1 unrequested note a day, 4 a week; safety, watches, deadlines within 2 days and asked-for cadences exempt), quiet hours in the person's time zone; weekly recap, monthly close, opt-in morning brief, standing reports. Each message: once per (person, key), into the "Updates from Upmore" thread, ending with source and as-of. | `deno test tests/edge/proactive.test.ts` (15; three planted defects caught) |
+| Chat side | "send me a weekly recap on Fridays", "turn on the morning brief", "quiet hours 10pm to 7am", "my time zone is Pacific", "tell me when checking drops below $500", "every Friday tell me my food spend", "stop my food report", "show my alerts": recognized with no model call and no database read for other messages, saved through the person's own session, restated | same + `node --test tests/proactive-wiring.test.cjs` |
+| Tables | `agent_proactive_settings` (own row, RLS), `agent_proactive_log` (unique person + key; service role writes) | `bash tests/db/run.sh` (proactive.test.sql, 14) |
+| Schedule | go-live deploys agent-proactive (--no-verify-jwt, own secret) and runs `scripts/launch/schedule-proactive.sql` (pg_cron minute 7 hourly, pg_net, secret in Vault). **Not executed here: pg_cron, pg_net and Vault exist only on Supabase.** | `node --test tests/go-live.test.cjs` (dry run) |
+| Moved | Capability list: section 2 from 3 to 12 reachable; section 1 from 4 to 7 as a side effect (unusual spending, trials, safe to spend in the brief); 34 of 149 in all. | `node scripts/capability-list.cjs --check` |
+
+### Owner decisions, 2026-10-11 night (in writing, in the build chat) — recorded as given, the strict reading applied
+
+| Decision | Owner's words | Applied as |
+| --- | --- | --- |
+| Automatic and recurring investing, copying portfolios, "etc." | "we can toggle automatic investing, copying portfolios etc. However every individual needs to approve it." | Per-person toggles: each person turns one on themselves after it is restated in exact terms, and one message turns it off. **Strict reading kept until the owner says otherwise:** every run still asks that person for a one-line yes, and every order stays under the $5 cap. Enforced in the loop since the testing agent found envelopes skipping the yes: inside an envelope the gate now asks (`fresh_approval_rule`); the old autonomy needs `policy: { envelope_autonomy: true }`, which no shipped code sets (O-18 checks both). If "approve it" meant approving the rule once, that policy is the one setting to change. Recurring-buy and copy engines not built yet. |
+| Automatic cancels | "before someone's free trial ends, we need to be able to message them saying (hey ur free trial is about to end, should i cancel this for you)" | Built: the proactive trial message asks; YES starts the cancel flow (its card is the one approval) or gives the steps when the trial never charged; NO keeps it; a late yes fires nothing. One approval per cancellation stands. |
+| Phone calls | not addressed | Still pending; no phone calls. |
+| $5 per-order cap | not raised | Unchanged. The owner's $200 live test envelope (10 x $5 recurring, $50 copy, $25 manual + dividends, $25 payments, $50 buffer) is recorded; no live test has run (no keys here; live tests are owner-triggered). |
+
+### Testing agent (owner brief, 2026-10-11): five families, 10/10 bar — **GREEN 70/70 offline; live and visual are on demand**
+
+| Part | Status | Check |
+| --- | --- | --- |
+| Offline run: response (corpus, no false action claims, numbers to the cent recomputed from rows, sources and as-of, "new" claims, money formatting, latency), outcome (megadoc 240, $5 cap, one approval per order and per cancellation, trial asks first, automations never skip a yes, no phone calls, identity digits), design (one-line approvals, receipts, no placeholders, labeled buttons, chat surface), flow (every REACHABLE capability exercised; a reachable claim with no exercise fails), live guard and ledger | **GREEN 70/70**, 0 critical; 5 labeled gaps, 3 not run. First run, kept as found: RED 60/65 (`docs/testing/agent-first-run-2026-10-11.md`); every finding fixed or corrected, logged in `docs/playbook-drift-2026-10-11.md` | `deno run -A evals/agent/run.ts --check` (CI) |
+| Self-test: 12 planted defects | 12/12 caught | `deno run -A evals/agent/mutations.ts` (CI) |
+| Visual: pixel baselines (phone + desktop, 9 signed-out screens), cut-off or covered copy, dead controls through DevTools | GREEN on this machine, 3 repeat runs identical; not in CI (fonts differ by machine); signed-in screens need a live login | `node evals/agent/visual.cjs` |
+| Live: one $5 buy, LIVE card, receipt with order id, ledger | **NOT RUN** (no deployed handler, JWT or connected account here). $0.00 of $200 spent | `deno run -A evals/agent/live.ts --spend-real-money` (owner-triggered) |
+
+### Connect cards (owner's reference design + "real company icons" must rule, 2026-10-11) — **built and tested; not deployed**
+
+| Part | Status | Check |
+| --- | --- | --- |
+| Copy: one line, then the connect link alone (trade flow: not connected, revoked, provider not built, broker with no public API) | built | `node --test tests/connect-cards.test.cjs` |
+| iMessage card: `connect/<provider>.html` (og:title "Connect X to Upmore", og:image) + `img/connect/<provider>.png` 1200x630 | built for Alpaca and Gmail; appears in Messages only once the app is deployed (owner) | `node scripts/build-connect-cards.cjs --check` (CI) |
+| App chat card + tap starts the connection (signed out: remembered through Log in) | built | `node evals/agent/visual.cjs` (card, logo image, tap); testing agent D-07 (CI) |
+| Real logos: Alpaca (theSVG, MIT), Gmail (SVG Logos, CC0) in `img/brands/` with sources | done | tests/connect-cards.test.cjs |
+| Real company icons everywhere a company is shown: the letter-tile fallback in `appIcon()` is gone; 99 real logos (multi-colour where available, else the official mark in the brand colour), each with its source and license; no logo on file means no icon, name only | done | tests/connect-cards.test.cjs; testing agent D-08 (CI) |
+| Bank connect (SimpleFIN) | **no card**: its real logo was not reachable from this environment; words only until the official file is added | — |
+
 ## Claimed files
 
 - 2026-10-11, per the owner: Codex is off this project. Claude owns the whole repository, including supabase/functions/**, supabase/migrations/** and the chat handler. The lists below are kept as history; open Requests addressed to Codex are now Claude's.
@@ -45,7 +104,7 @@ One capability at a time. Before code: 15 user-observable sub-capabilities enume
 
 | Capability | Doc | Sub-capabilities | Proven | Check |
 | --- | --- | --- | --- | --- |
-| PAY-001 send to a saved recipient | docs/depth/PAY-001.md | 16 | 16/16 (2026-10-11; S16 stop-on-change added) | `node --test tests/depth-PAY-001.test.cjs && node evals/depth/run.cjs PAY-001` |
+| PAY-001 send to a saved recipient | docs/depth/PAY-001.md | 16 | 17/17 defects (2026-10-11; S16 stop-on-change added; D17 on S07: "actually make it $50" after a $40 card corrects instead of re-asking, found live in spec16 item 6) | `node --test tests/depth-PAY-001.test.cjs && node evals/depth/run.cjs PAY-001` |
 | CORE-005 autonomy envelopes | docs/depth/CORE-005.md | 15 | 15/15 (2026-10-11) | `node --test tests/depth-CORE-005.test.cjs && node evals/depth/run.cjs CORE-005` |
 | INV-011 buy a stock or ETF from a text (real-world C46) | docs/depth/INV-011.md | 16 | 16/16 (2026-10-11; S16 stop-on-change added) | `node --test tests/depth-INV-011.test.cjs && node evals/depth/run.cjs INV-011` |
 | CORE-009 the confirmation card over text (spec 16) | docs/depth/CORE-009.md | 16 | 16/16 (2026-10-11; S16 two SMS segments added) | `node --test tests/depth-CORE-009.test.cjs && node evals/depth/run.cjs CORE-009` |
@@ -153,7 +212,7 @@ The owner's decision: people connect THEIR OWN brokerage. There is no shared tra
 1. Register the OAuth app at app.alpaca.markets → OAuth Apps, with redirect URI `https://mrwngntwmnaqrqhupvlt.supabase.co/functions/v1/broker-oauth-callback`. Get Alpaca's live/compliance approval.
 2. Set the function secrets `ALPACA_OAUTH_CLIENT_ID` and `ALPACA_OAUTH_CLIENT_SECRET`.
    - Optional: `BROKER_OAUTH_STATE_SECRET`. Without it, the state key is derived from the service-role key.
-   - Optional: `UPMORE_APP_URL`. The default is https://upmore-topaz.vercel.app.
+   - Optional: `UPMORE_APP_URL`. The default is https://upmore-srikanthvishnu90-sketchs-projects.vercel.app (owner, 2026-10-11: everything points there until a domain is bought; set this secret to the new domain then). If the live project already has `UPMORE_APP_URL` set to the topaz address, it overrides the default: change or remove it.
    - Optional: `UPMORE_LIVE_ORDER_CAP_CENTS`. The default is 500; raise it only in writing.
 3. Apply 20261011030000 with the other rail migrations: `SUPABASE_DB_URL=... bash scripts/launch/apply-rails-and-seed.sh`.
 4. Deploy the functions:
@@ -178,7 +237,7 @@ Bugs this rail's own tests caught before commit: the quoted needs-terms reply ra
 
 What stays true: cancel still cannot card live, because no account-page reader is connected; this rail is in the card path and runs the moment one is, and today it improves the honest "I can't" reply with the merchant's own published terms.
 
-### The gauntlet (after the rails) — **NOT RUN against the live handler; no live score exists**
+### The gauntlet (after the rails) — **first live run 2026-10-11 19:01-19:13 UTC: spec16 3/17 passed (3 NOT RUN: photos), blocked by the model key; the replies and the fixes are in the v3 section below.** The rows that follow are the history before that run.
 
 | What | State |
 | --- | --- |
@@ -200,7 +259,25 @@ Failures found while preparing the gauntlet, each named by stage and fixed befor
 
 Expected live outcome once the blockers are cleared, stated before any score so it cannot be misread: sloppy-20 carded stays low until the account-page reader (cancel) and the paper broker keys (buy) are in place; sends to Sam card only once Sam's rows exist in `saved_recipients`. Owner steps for a live run: allow the function host in this environment's network settings; apply 20261011010000_flow_state.sql and 20261011020000_saved_recipients.sql; seed Sam (Venmo and Zelle rows, source completed_send) for the test user; set the Alpaca paper secrets if the buy items should card; deploy agent-chat; issue a fresh test JWT; then `UPMORE_CHAT_URL=... UPMORE_TEST_JWT=... node evals/gauntlet/run-live.cjs --suite sloppy --label live-<date>` and the same with `--suite spec16` and `--suite l3`.
 
-### Launch (Tuesday) — live state, read from the project on 2026-10-11 (Supabase connector, read-only)
+### v3 (2026-10-11 evening): model gateway, health, cost, replays — **built and tested here, NOT deployed; 0 live model calls have succeeded**
+
+| What | State | Check |
+| --- | --- | --- |
+| First live run (go-live 19:01 UTC on 92a8364, raw file `evals/gauntlet/results/go-live-92a8364-spec16.spec16.json`) | spec16 **3/17** mechanically (S16-05 send Sam $40, S16-07 never mind, S16-09 tesla refusal); 8 silent 502s (dead model); 3 NOT RUN (photos). sloppy and l3 results are not in the repo. The earlier "6 right" was a person's reading, not the published grader. | the raw file |
+| Root cause of the 502s | Anthropic answered every call HTTP 400: "This API key is not scoped to a workspace". 16 `agent_model_calls` reserved, 0 recorded in 24 h. Nothing alerted. | live read, 19:30 UTC |
+| Model gateway (owner: OpenAI, smallest model) | Built: `_shared/model_gateway.ts`; gpt-5-nano at minimal reasoning when `OPENAI_API_KEY` is set (`MODEL_PROVIDER=anthropic` switches back). Chat, router and planner use it. **Never called OpenAI from here: the environment denies api.openai.com.** | `deno test -A --no-check tests/edge/model-gateway.test.ts` (8; 3 planted defects caught) |
+| Provider down | A 200 with the outage sentence and the cause in meta, never a 502 or planner wording | same + `tests/edge/live-replays.test.ts` |
+| Health | `model-health` (token; `?probe=1` makes one real call): 503 + founder alert when down; `model_health()` verdict over `agent_provider_events` | `tests/edge/model-health.test.ts` (4), `tests/db/model_health.test.sql` (13) |
+| Cost per turn | `agent_turn_costs` + `agent_daily_costs`; prices labelled with their source (third-party tables until the invoice reconciles) | same |
+| Live failures replay forever | 14 fixtures from the first run; 11 pass by behavior, 3 triaged in writing (S16-03 no Netflix charge, S16-10 no brokerage, S16-15 rent flow C110 not built) | `deno test -A --no-check tests/edge/live-replays.test.ts`, `node --test tests/gauntlet-replays.test.cjs` |
+| Fixes from the run | S16-06 $40 -> $50 (0919f4b); balance wording (3407575); a photo alone is a message (S16-12, app + handler); "pay my rent" no longer a person-to-person send (S16-15 routing) | PAY-001 S07, `tests/photo-only.test.cjs`, `tests/router.test.cjs` |
+| Photos for S16-11/12/17 | Synthetic fixtures (`evals/gauntlet/media/make-media.py`): a scam text, a receipt with a faint "send $500", a circled charge; the owner may use real photos with `--media-dir`. Only the 11-minute wait is NOT RUN with `--no-wait`. | `tests/gauntlet-runner.test.cjs` |
+| Safe re-run | go-live.sh now applies only pending migrations (`upmore_migration_ledger`); `--all` would have replayed 22 applied files | `bash tests/db/run.sh` (ledger step) |
+| Secrets | A test-user JWT was committed (expired); removed on main (ab6019e), still in public history. Repo is still PUBLIC. `tests/no-secrets.test.cjs` scans every tracked file. | `node --test tests/no-secrets.test.cjs` |
+| CI | `.github/workflows/ci.yml` added (there was none): node, Deno, Postgres, secret scan on every push | GitHub Actions |
+| OpenAI key as a Supabase secret | **NOT SET by this session**: the session's permission rules refused the secret write. The owner sets it (go-live.sh step 2, or `supabase secrets set`). | — |
+
+### Launch (Tuesday) — live state, read from the project on 2026-10-11 (Supabase connector, read-only) — **superseded by the 19:01 UTC go-live: the 22 migrations are applied, agent-chat is v207, broker-oauth-start/callback are v1. Kept as history.**
 
 | Fact | State |
 | --- | --- |
@@ -275,6 +352,18 @@ Owner sequence (the manual steps that go-live.sh automates):
 2. Deploy agent-chat, broker-oauth-start, and broker-oauth-callback (`--no-verify-jwt`).
 3. Run the live gauntlet on that exact commit.
 4. If something breaks, redeploy the v203 copy.
+
+## Connector matrix (from 2026-10-11, owner's 100-platform coverage prompt v2)
+
+- Data `packages/connectors/platforms.json` (100 researched rows + Alpaca as 101), contract `packages/domain/77-brokerage-connectors.js`, report `docs/connector-matrix/README.md` (generated; `--check` in CI), tests `tests/brokerage-connectors.test.cjs`, `tests/connector-matrix.test.cjs`.
+- Owner's 100: 16 trade + track by route, 64 track only, 15 off (prediction markets under decision 2, crypto under the shipped crypto rule), 5 can't connect. Today: Alpaca is the only live trading connector; 12 Plaid rows connect now (coverage researched), 29 are a try (Plaid coverage unverified), 4 track through a fallback, 35 not built. Verified live with a real account: 0.
+- Guided manual connect (read-only, session-only, decision 1): policy `packages/domain/78-manual-connect.js` (consent, read-only, health, status line, log scrubber), template + 3 playbooks (Cash App Investing, Fundrise, Yieldstreet; all unverified), design `docs/connector-matrix/guided-manual-connect.md`. Live window and session store not built.
+- No password storage anywhere (decision 1): vault refuses passwords, cancel runs never type one, chat redacts passwords and codes, model replies never ask for them (`tests/no-password-storage.test.cjs`).
+- Owner decisions (recorded 2026-10-12, the owner's reply prompt): decision 2 (prediction markets) and decision 3 (crypto) were sent unfilled, so both stay OFF exactly as guarded; nothing is built past them. If either is ever switched on: numbers only, never encouragement.
+- Owner-owned external dependencies (do not build against stubs expecting them): the SnapTrade account and keys; the Schwab, E*TRADE, IBKR and Saxo partner approvals; the $5 live order, only on the owner's explicit yes at execution time with symbol, amount and account stated first.
+- Deploy: the owner's reply left the deploy route unfilled, so nothing was deployed. Live baseline checked read-only 2026-10-12: exec-vault-store v25 still stores `{ username, password }`, agent-exec v55 predates the no-password change, agent-chat v207 predates the chat secret blocks. go-live.sh now deploys exec-vault-store and agent-exec too, and `scripts/launch/verify-security-live.cjs` gates the gauntlet on the three live checks.
+- Next build block after the deploy: the live sign-in window + session store (guided manual connect). It unblocks the 18 browser-assisted "not built" rows and the password-site cancel scripts; the other 17 not-built rows wait on SnapTrade keys (9) and partner approvals (8), not on the window.
+- BUILT, not VERIFIED. What remains is owner-gated: SnapTrade account and keys, partner approvals (Schwab, E*TRADE, IBKR, Saxo), guided manual connect (live browser login, not built), and decision 2.
 
 ## Requests between agents
 

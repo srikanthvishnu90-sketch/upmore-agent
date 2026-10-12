@@ -48,7 +48,16 @@ Deno.test("plan: the recap goes out on the chosen day only; the monthly close on
   assert(close && /^October closed: \$1,800\.00 in, /.test(close.text), close && close.text);
   assert(!plan(input(), NOW).messages.some(m => m.kind === "morning_brief"), "no brief unless asked");
   const brief = plan(input({ settings: { morning_brief: true } }), NOW).messages.find(m => m.kind === "morning_brief");
-  assert(brief && /^Good morning\. Cash: \$412\.00\. Safe to spend today: /.test(brief.text), brief && brief.text);
+  assert(brief && /^Good morning\. Cash: \$412\.00\. Safe to spend (?:until payday|over the next 30 days)/.test(brief.text), brief && brief.text);
+});
+Deno.test("plan: the morning brief's safe to spend is the chat answer's, from the same rows (one definition)", async () => {
+  const { moneyReply } = await import("../../supabase/functions/agent-chat/_shared/money_answers.ts");
+  const rows = { accounts: accountRows(), transactions: txRows([]) };
+  const brief = plan({ accounts: mapAccounts(rows.accounts), transactions: mapTransactions(rows.transactions), settings: { morning_brief: true }, sent: [] }, NOW).messages.find(m => m.kind === "morning_brief")!;
+  const chat = (await moneyReply("how much can i spend", new Date(NOW), { accounts: async () => rows.accounts as any, transactions: async () => rows.transactions as any }))!;
+  const head = (t: string) => (/Safe to spend [^:]*: \$[\d,]+\.\d\d(?:, about \$[\d,]+\.\d\d a day)?/.exec(t) || [""])[0];
+  assert(head(brief.text), brief.text);
+  assertEquals(head(brief.text), head(chat), `brief: ${brief.text}\nchat: ${chat}`);
 });
 Deno.test("plan: the person's day is counted in their own time zone", () => {
   assertEquals(localClock(NOW, "America/New_York").date, "2026-10-11");

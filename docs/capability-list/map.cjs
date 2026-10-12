@@ -84,7 +84,7 @@ const MAP = [
   [12, "TXN-021 ANL-009", "part", "module only; the planner can compare two ranges on request", null],
   [13, "CARD-001 ANL-001", "part", "module only", null],
   // the numbers
-  [14, "ANL-005", "full", "chat: \"how much can I spend\" answers cash minus bills due by the payday read from deposits, total and per day (none found: 30 days, said); the opt-in morning brief still uses the ledger's formula with a buffer", null],
+  [14, "ANL-005", "full", "chat: \"how much can I spend\" answers cash minus bills due by the payday read from deposits, total and per day (none found: 30 days, said); the opt-in morning brief gives the same number from the same function (tests/edge/proactive.test.ts)", null],
   [15, "ACCT-004 ANL-017", "part", "today's net worth in chat (untyped and foreign accounts listed apart); over time (ANL-017) is not reachable: no balance history is read", null],
   [16, "ANL-006", "full", "chat: \"forecast\": 90 days on repeating bills and paychecks, every assumption listed, everyday spending named as not included", null],
   [17, "ACCT-018 ANL-006", "full", "chat: \"how long will my money last\": days of cash at the average daily outflow of the last 90 days", null],

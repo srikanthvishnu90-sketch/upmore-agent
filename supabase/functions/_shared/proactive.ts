@@ -14,7 +14,7 @@
 // date the person is OFFERED that month's card ("Want this month's card to send it? Reply YES or NO"). The offer never
 // stages anything: a yes puts up the rent flow's own card, which restates the amount, month and recipient and needs its
 // own yes; a no skips the month.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -71,6 +71,18 @@ export function mapTransactions(rows: any[]) {
     id: `${r.account_id}:${r.provider_transaction_id}`, account_id: r.account_id, amount_cents: r.amount_cents, amount: r.amount_cents / 100,
     posted_at: String(r.posted_on).slice(0, 10), merchant_raw: r.merchant_raw, is_pending: !!r.is_pending, is_transfer: !!r.is_transfer,
   }));
+}
+
+// The mapped rows back in the shape the chat's numbers read (packages/domain/86-the-numbers.js), so the morning brief and
+// "how much can I spend" in chat give the same safe-to-spend from the same definition.
+const KIND_BACK: Record<string, string> = { checking: "checking", savings: "savings", cash: "cash", credit_card: "credit", brokerage: "investment", loan: "loan", other: "unknown" };
+export function numbersRows(accounts: any[], transactions: any[]) {
+  return {
+    accounts: (accounts || []).map(a => ({ account_id: a.id, name: a.name, institution: a.institution, account_kind: KIND_BACK[a.kind] || "unknown", currency: a.currency || "USD",
+      balance_cents: a.balance_cents, available_cents: a.available_cents ?? null, balance_as_of: a.as_of, fetched_at: a.as_of, sync_error: !!a.stale, status: "active" })),
+    transactions: (transactions || []).map(t => ({ account_id: t.account_id, provider_transaction_id: String(t.id), amount_cents: t.amount_cents, posted_on: t.posted_at,
+      merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer, currency: "USD" })),
+  };
 }
 
 function asOfText(asOf: string | null, tz: string) {
@@ -133,11 +145,16 @@ export function plan(input: ProactiveInput, now: number) {
   if (quietNow || clock.hour < 8) return out;
   const L: any = AgentLedger;
   if (s.morning_brief) {
-    const sts = L.safeToSpend({ today, accounts, transactions });
+    // Safe to spend from the same function as the chat answer (TheNumbers.safeToSpend): cash minus bills due by the
+    // payday read from deposits. Its first line is the number; a missing payday is said, never assumed.
+    const nr = numbersRows(accounts, transactions);
+    const sts: any = (TheNumbers as any).safeToSpend(nr.accounts, nr.transactions, now, { tz });
+    const lines = sts ? String(sts.text).split("\n") : [];
+    const safeText = !sts ? "" : sts.safe_cents === null ? lines[0] : [lines[0], sts.payday_found === false ? lines.find((l: string) => /couldn't find a regular paycheck/.test(l)) : null].filter(Boolean).join(" ");
     const dueToday = L.recurringCalendar(transactions, today, 0).items.filter((i: any) => i.direction === "debit" && i.on === today);
-    const cash = L.cashPosition(accounts);
+    const cash = sts && Number.isFinite(sts.cash_cents) ? sts.cash_cents : L.cashPosition(accounts).available_cents;
     push({ key: `brief:${today}`, kind: "morning_brief", capability_id: "ANL-005", urgent: false, cadence: true,
-      text: `Good morning. Cash: ${money(cash.available_cents)}. ${sts.text} ${dueToday.length ? `Due today: ${dueToday.map((i: any) => `${i.merchant} ${money(i.amount_cents)}`).join(", ")}.` : "Nothing is due today."}` });
+      text: `Good morning. Cash: ${money(cash)}. ${safeText} ${dueToday.length ? `Due today: ${dueToday.map((i: any) => `${i.merchant} ${money(i.amount_cents)}`).join(", ")}.` : "Nothing is due today."}` });
   }
   if (s.weekly_recap_dow != null && clock.dow === s.weekly_recap_dow) {
     const from = addDays(today, -7), to = addDays(today, -1);

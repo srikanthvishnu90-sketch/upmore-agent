@@ -89,7 +89,9 @@
       return out;
     }
     function parse(text) {
-      const t = String(text || "").trim();
+      // Chat filler at the end ("buy $4 of VOO thx", "... pls", "... rn") is never part of a ticker or a name (found by
+      // probing, 2026-10-12: it asked for "VOO thx").
+      const t = String(text || "").trim().replace(/[\s,.!]+(?:thx|thanks|thank you|pls|plz|lol|lmao|haha|rn)\s*[.!]*\s*$/i, ""); // "k" and "ty" are tickers (Kellanova, Tri-Continental), so never stripped
       const protect = /\b(?:put|set|place|add)\s+(?:a\s+)?(?:trailing\s+)?stop\b/i.test(t) && /\bmy\b/i.test(t) && !/\bbuy\b/i.test(t);
       const side = (/\bsell\b/i.test(t) && !/\bbuy\b/i.test(t)) || protect ? "sell" : "buy";
       const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";

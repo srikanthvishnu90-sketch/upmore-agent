@@ -212,6 +212,7 @@ test('[S20] splits as people type them: "w sarah", "sarah and i split 90", "with
   for(const m of ['split 90 w sarah','sarah and i split 90','split 90 with sarah thx','split 90 with sarah lol','split 90 bucks with sarah']){const w=world();const r=await w.split.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^Request \$45\.00 each from Sarah M \(@sarah_m\) in Venmo: \$90\.00 split 2 ways/,m);}
   const w=world();assert.match((await w.split.start('split the 90 dollar dinner with sarah')).text,/ in Venmo for dinner: /);
   assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with willa').names)),['willa']);
+  assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with ty').names)),['ty'],'Ty is a name');assert.deepEqual(JSON.parse(JSON.stringify(P.parse('split 90 with sam k').names)),['sam k'],'K is an initial');
 });
 
 test('[ADV] the adversarial log in docs/depth/RAIL-1.md, every row',async()=>{

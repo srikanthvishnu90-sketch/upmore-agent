@@ -34,9 +34,10 @@
       out.uneven = /\b\d{1,2}\s*\/\s*\d{1,2}\b|\bunevenly\b|\d{1,2}\s*%|\bpercent\b/i.test(t);
       out.itemized = /\b(?:only|just) had\b|\bitemi[sz]e|\bby item\b/i.test(t);
       head = head.replace(/,?\s*\b(?:tip|tax) included\b|,?\s*\bincluding (?:the )?(?:tip|tax)\b|,?\s*\bplus (?:the )?tip\b/gi, " ").replace(/\bunevenly\b|\b\d{1,2}\s*\/\s*\d{1,2}\b/gi, " ");
-      // Chat filler at the end is never part of a name ("split 90 with sarah thx"); "w" alone is "with"; "sarah and i split
+      // Chat filler at the end is never part of a name ("split 90 with sarah thx"; "ty" and "k" stay: Ty is a name, K an
+      // initial); "w" alone is "with"; "sarah and i split
       // 90" names Sarah (all found by probing, 2026-10-12).
-      head = head.replace(/[\s,.!]+(?:thx|thanks|thank you|ty|pls|plz|please|lol|lmao|haha|asap|rn|k|ok)\s*[.!]*\s*$/i, "");
+      head = head.replace(/[\s,.!]+(?:thx|thanks|thank you|pls|plz|please|lol|lmao|haha|asap|rn|ok)\s*[.!]*\s*$/i, "");
       const pair = /^\s*(.+?)\s+and\s+(?:i|me)\s+split\b/i.exec(head);
       const withM = /\b(?:with|between|among|w\/|w(?=\s))\s+(.+)$/i.exec(head) || (pair ? [pair[0], pair[1]] : null);
       if (withM) {

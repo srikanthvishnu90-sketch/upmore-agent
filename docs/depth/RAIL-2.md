@@ -84,7 +84,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S11 | A thrown write is never retried blind | a lost response is reconciled, never re-sent | `S11` in tests/depth-RAIL-2.test.cjs | a write that threw is retried with a fresh client id | proven |
 | S12 | A broker refusal is a failure | a 403 is failed with the reason | `S12` in tests/depth-RAIL-2.test.cjs | a definite refusal is treated as an unknown outcome | proven |
 | S13 | Canceled only when the record says so | pending_cancel is reported as requested | `S13` in tests/depth-RAIL-2.test.cjs | any read-back after a cancel is reported as canceled | proven |
-| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28, S29) |
+| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28, S29, S30) |
 | S15 | The broker's order rules before sending | a dollar amount on a limit asks for shares | `S15` in tests/depth-RAIL-2.test.cjs | a dollar amount is allowed on a limit order | proven |
 | S16 | Stop-on-change | a moved price stops the order | `S16` in tests/depth-RAIL-2.test.cjs | the re-verification result is ignored | proven |
 | S17 | Cross-person isolation: the caller's own account | a leaked row for another person opens nothing | `S17` in tests/depth-RAIL-2.test.cjs | rows are not checked against the caller, so a broken read hands A's request B's older account | proven |
@@ -101,4 +101,5 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
  is dropped, so the card is a market order | proven |
 | S28 | A sell card keeps its terms | sell 1 AAPL at $250 says 1 share and the limit | `S28` in tests/depth-RAIL-2.test.cjs | only the long fee line is tried, so a limit sell falls to the last-resort line | proven (also fails S27) |
 | S29 | A closed market is always said | a short-form card says Works from the open | `S29` in tests/depth-RAIL-2.test.cjs | the shortest card drops the timing, so a closed-market order reads as if it fills now | proven |
+| S30 | Filler is never a ticker | buy $4 of VOO thx cards VOO | `S30` in tests/depth-RAIL-2.test.cjs | trailing chat filler stays in the query, so 'VOO thx' is looked up | proven |
 <!-- results:end -->

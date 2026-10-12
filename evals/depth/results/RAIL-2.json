@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T15:05:54.030Z",
+ "run_at": "2026-10-12T15:18:50.153Z",
  "baseline_all_green": true,
- "sub_capabilities": 29,
- "proven": 29,
+ "sub_capabilities": 30,
+ "proven": 30,
  "problems": [],
  "rows": [
   {
@@ -183,7 +183,8 @@
     "S26",
     "S27",
     "S28",
-    "S29"
+    "S29",
+    "S30"
    ],
    "status": "proven"
   },
@@ -353,6 +354,17 @@
    "title": "A closed market is always said",
    "defect": "the shortest card drops the timing, so a closed-market order reads as if it fills now",
    "test": "a short-form card says Works from the open",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S30",
+   "id": "D30",
+   "title": "Filler is never a ticker",
+   "defect": "trailing chat filler stays in the query, so 'VOO thx' is looked up",
+   "test": "buy $4 of VOO thx cards VOO",
    "bites": true,
    "applied": true,
    "collateral": [],

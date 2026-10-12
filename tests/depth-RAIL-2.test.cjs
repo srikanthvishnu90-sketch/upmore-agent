@@ -340,6 +340,14 @@ test('[S29] when the market is closed a card always says when it works, even on 
   assert.equal(posts(w.m).length,0);
 });
 
+test('[S30] chat filler at the end ("thx", "pls", "lol", "rn") is never part of a ticker; a one-letter ticker like K is never stripped',async()=>{
+  const w=await world({mock:{positions:{AAPL:7}}});
+  for(const m of ['buy $4 of VOO thx','buy $4 of VOO pls','buy $4 of voo rn','buy $4 of VOO lol']){const r=await w.s.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^LIVE: Buy \$4\.00 of VOO /,m);await w.s.reply('no');}
+  const r=await w.s.start('sell 1 share of AAPL thanks');assert.match(r.text,/^LIVE: Sell 1 share of AAPL /);await w.s.reply('no');
+  assert.equal(T.parse('buy $4 of k').query.toLowerCase(),'k');
+  assert.equal(posts(w.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

@@ -137,6 +137,52 @@ test("the map fails on a vanished section, a missing section, an item outside 1.
   assert.ok(applyMap(fresh(), { SECTIONS: noneWithItems, ROWS: MAP.ROWS }, listItems).some(p => /coverage "none" goes with no items/.test(p)));
 });
 
+test("a row is counted PART only on its own row entry, which names the missing half", () => {
+  const part = features.filter(r => r.upmore_today_row === "PART");
+  assert.ok(part.length > 0 && part.length < 60, `${part.length} PART rows`);
+  for (const r of part) {
+    const o = MAP.ROWS[r.id];
+    assert.ok(o, `${r.id} is counted PART without a row entry`);
+    assert.strictEqual(o.coverage, "part", r.id);
+    assert.ok(o.items.length && o.note.trim(), r.id);
+  }
+  // Every row of a section mapped "part" is placed on its own.
+  for (const r of features) if (MAP.SECTIONS[`${r.app}/${r.section}`][1] === "part") assert.ok(MAP.ROWS[r.id], r.id);
+});
+
+test("the map fails on a row that would inherit PART from its section", () => {
+  // A whole section turned "part" with no row entries: each of its rows is named.
+  const sections = Object.assign({}, MAP.SECTIONS, { "Cleo/Savings": [[14], "part", "a test section"] });
+  const savings = features.filter(r => r.app === "Cleo" && r.section === "Savings").map(r => r.id);
+  const p1 = applyMap(fresh(), { SECTIONS: sections, ROWS: MAP.ROWS }, listItems);
+  for (const id of savings) assert.ok(p1.some(p => p.includes(id) && /counted PART from its section "Cleo\/Savings"/.test(p)), id);
+  // One row entry dropped from a section placed row by row.
+  const rows = Object.assign({}, MAP.ROWS); delete rows["T1-DUB-021"];
+  const p2 = applyMap(fresh(), { SECTIONS: MAP.SECTIONS, ROWS: rows }, listItems);
+  assert.ok(p2.some(p => /T1-DUB-021 "Discover tab" is counted PART/.test(p)), p2.join("\n"));
+  assert.deepStrictEqual(applyMap(fresh(), MAP, listItems), []);
+});
+
+test("the same kind of feature sits in the same place in every app", () => {
+  const same = (ids, items, coverage) => {
+    for (const id of ids) {
+      assert.deepStrictEqual(byId(id).capability_items, items, id);
+      assert.strictEqual(byId(id).capability_coverage, coverage, id);
+    }
+  };
+  same(["T1-ORIGIN-031", "T2-ROCKET-046", "T2-MONARCH-036", "T2-COPILOT-060", "T2-YNAB-108"], [7], "full"); // search and filters
+  same(["T1-ORIGIN-023", "T2-ROCKET-054", "T2-MONARCH-051", "T2-COPILOT-096", "T2-YNAB-080"], [11], "full"); // splits
+  same(["T1-ORIGIN-020", "T2-ROCKET-055", "T2-MONARCH-053", "T2-COPILOT-078"], [8], "full"); // rules that remember a fix
+  same(["T1-ORIGIN-009", "T2-MONARCH-016", "T2-COPILOT-052"], [15], "part"); // automatic home value feeds
+  same(["T1-ORIGIN-019", "T2-ROCKET-052", "T2-MONARCH-060", "T2-COPILOT-084"], [], "none"); // tags
+  same(["T1-ORIGIN-062", "T2-MONARCH-208"], [], "none"); // lifetime plan: Monte Carlo odds, retirement
+  same(["T1-ORIGIN-066", "T2-MONARCH-210"], [20], "full"); // a home purchase what-if
+  same(["T1-DUB-033", "T1-AUTOPILOT-026"], [46], "full"); // copying members of Congress
+  // Placement never lifts a gate: the politician trackers stay hard-gated, the crypto links stay off.
+  assert.ok(byId("T1-AUTOPILOT-026").hard_gated && byId("T1-DUB-033").hard_gated);
+  for (const id of ["T2-MONARCH-020", "T2-COPILOT-016"]) assert.ok(byId(id).hard_gated && byId(id).gates.includes("decision_3"), id);
+});
+
 test("features.json and README.md are current", () => {
   execFileSync(process.execPath, [path.join(ROOT, "scripts/build-teardowns.cjs"), "--check"], { stdio: "pipe" });
 });

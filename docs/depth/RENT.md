@@ -12,7 +12,7 @@ Check: `node --test tests/depth-RENT.test.cjs && node evals/depth/run.cjs RENT`.
 | --- | --- | --- | --- | --- | --- |
 | S01 | Rent words route to rent, a memo stays a send | 'pay sam 900 for rent' is not the rent flow | `S01` in tests/depth-RENT.test.cjs | any words may sit between the verb and 'rent' | proven |
 | S02 | The terms from the words | 1.5k is $1,500.00 | `S02` in tests/depth-RENT.test.cjs | the k is ignored | proven |
-| S03 | Only what is missing is asked | no day -> asked, no card | `S03` in tests/depth-RENT.test.cjs | a missing day is assumed to be the 1st | proven |
+| S03 | Only what is missing is asked | no day -> asked, no card | `S03` in tests/depth-RENT.test.cjs | a missing day is assumed to be the 1st | proven (also fails S17) |
 | S04 | The setup card saves nothing | a card drains no write; the yes inserts the exact row | `S04` in tests/depth-RENT.test.cjs | the rule is saved when the card goes up, before the yes | proven (also fails S05, S12) |
 | S05 | NO saves nothing | NO on setup and on change writes nothing | `S05` in tests/depth-RENT.test.cjs | a NO on a setup or change card is taken as the yes | proven |
 | S06 | Next month's card past the due day | on Oct 29 the card is November's, due Nov 1 | `S06` in tests/depth-RENT.test.cjs | next month is 30 days after this month's due day | proven (also fails S07, S08, S09, S12, S13) |
@@ -26,4 +26,5 @@ Check: `node --test tests/depth-RENT.test.cjs && node evals/depth/run.cjs RENT`.
 | S14 | The scheduler only says when | a staged month is not offered again | `S14` in tests/depth-RENT.test.cjs | the staged month is not checked | proven |
 | S15 | The 1st to the 28th | the 31st is asked again | `S15` in tests/depth-RENT.test.cjs | any day of the month is accepted | proven |
 | S16 | The payee after pay | pay mike on zelle names Mike | `S16` in tests/depth-RENT.test.cjs | only 'to' names the payee, so 'pay mike' asks who | proven |
+| S17 | No rent on file, said | when is rent due says no rent is set up | `S17` in tests/depth-RENT.test.cjs | a due-date question with nothing on file gets only the bare setup question | proven |
 <!-- results:end -->

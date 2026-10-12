@@ -250,7 +250,8 @@
         if (!rule) {
           // A change with nothing on file is a setup with what was said so far.
           if (kind === "change" && !hasTerms(terms)) { asking = { at: clock(), mode: "setup", terms: {} }; return { outcome: "ask", reason: "rent_terms", text: `${lead ? lead + " " : ""}You don't have rent set up yet. ${ASK_ALL}` }; }
-          return card(terms, "setup", [lead, kind === "change" ? "You don't have rent set up yet." : null, AUTOPAY.test(t) ?"Rent never pays itself here: each month I put up the card, you say yes, and you send it in your app." : null].filter(Boolean).join(" ") || null);
+          // "When is rent due?" with nothing on file: said, never left as a bare setup question (found by probing).
+          return card(terms, "setup", [lead, kind === "change" ? "You don't have rent set up yet." : /^\s*when(?:'s|s| is| does)?\s+(?:my\s+|the\s+)?rent\s+(?:due|go out|come out|get paid)\b/i.test(t) ? "You don't have rent set up, so I don't have its due date." : null, AUTOPAY.test(t) ?"Rent never pays itself here: each month I put up the card, you say yes, and you send it in your app." : null].filter(Boolean).join(" ") || null);
         }
         if (kind === "change" || ((kind === "setup" || kind === "pay") && hasTerms(terms))) return card(merge(fromRule(rule), terms), "change", lead);
         if (kind === "setup") return { outcome: "already_done", text: `${lead ? lead + " " : ""}${AUTOPAY.test(t) ? "Rent never pays itself here: each month's card waits for your yes. " : ""}Rent is already set up: ${restate(rule)}. Say 'pay my rent' for this month's card, 'rent is <amount> now' to change it, or 'stop rent' to turn it off.` };

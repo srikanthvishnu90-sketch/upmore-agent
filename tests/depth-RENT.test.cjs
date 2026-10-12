@@ -197,3 +197,8 @@ test("[S16] the payee after \"pay\" when no \"to\" names one: \"my rent is 1450 
   for (const m of ["my rent is 1450 due the 1st, pay mike on zelle", "i pay mike 1450 for rent on the first through zelle"]) { const w = make(); const r = w.s.start(m); assert.equal(r.outcome, "confirm", m); assert.match(r.text, /Set up rent: \$1,450\.00 to Mike on Zelle, monthly on the 1st/, m); }
   const w = make(); const r = w.s.start("i pay my landlord 1450 on the 1st via zelle"); assert.equal(r.outcome, "ask"); assert.match(r.text, /Tell me who you pay it to/);
 });
+
+test("[S17] \"when is rent due\" with no rent on file says so before asking for the setup; nothing is set up", () => {
+  for (const m of ["when is rent due", "whens my rent due?", "when's the rent due"]) { const w = make(); const r = w.s.start(m); assert.equal(r.outcome, "ask", m); assert.match(r.text, /^You don't have rent set up, so I don't have its due date\. Who do you pay rent to, how much, and which day of the month\?/, m); }
+  const w = make(); assert.doesNotMatch(w.s.start("pay rent").text, /due date/);
+});

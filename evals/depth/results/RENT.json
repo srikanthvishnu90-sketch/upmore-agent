@@ -1,9 +1,9 @@
 {
  "capability": "RENT",
- "run_at": "2026-10-12T14:44:21.618Z",
+ "run_at": "2026-10-12T15:32:41.948Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 17,
+ "proven": 17,
  "problems": [],
  "rows": [
   {
@@ -36,7 +36,9 @@
    "test": "no day -> asked, no card",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S17"
+   ],
    "status": "proven"
   },
   {
@@ -188,6 +190,17 @@
    "title": "The payee after pay",
    "defect": "only 'to' names the payee, so 'pay mike' asks who",
    "test": "pay mike on zelle names Mike",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "No rent on file, said",
+   "defect": "a due-date question with nothing on file gets only the bare setup question",
+   "test": "when is rent due says no rent is set up",
    "bites": true,
    "applied": true,
    "collateral": [],

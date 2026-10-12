@@ -438,6 +438,109 @@
       return out;
     }
 
+    /* 10b. Double subscriptions (real-world C7): the same service paid for
+           twice at once — two plans of it (iCloud at $0.99 and $2.99), or the
+           same plan billed two ways (Spotify direct and through the App Store).
+           A stream is one service, one billing channel, one account, one
+           amount, on a steady cadence. Two live streams for one service are
+           reported with both sets of charges. A stream a cancellation claim
+           covers is dead only when no charge posts after the claim: the claim
+           alone never counts as proof (a charge after it is a zombie, and
+           chargedAfterCancel reports that separately). */
+    const SERVICES = Object.freeze([...new Set(Object.values(SAME_JOB).flat())]);
+    function serviceOf(key) {
+      const padded = " " + String(key || "") + " ";
+      return SERVICES.find(n => padded.includes(" " + n + " ")) || null;
+    }
+    function channelOfKey(key) {
+      const k = String(key || "");
+      if (/^(apl itunes|apple com bill|itunes)\b/.test(k)) return { channel: "app_store", rest: k.replace(/^(apl itunes|apple com bill|itunes)\s*/, "") };
+      if (/^google\s/.test(k)) return { channel: "play_store", rest: k.replace(/^google\s*/, "") };
+      return { channel: "direct", rest: k };
+    }
+    function doubleSubscriptions(input) {
+      const txs = spend(clean(input.transactions));
+      const claims = (input.cancelClaims || []).filter(c => c && c.merchant);
+      const groups = {};
+      txs.forEach(t => {
+        const { channel, rest } = channelOfKey(t.key);
+        const service = serviceOf(rest) || serviceOf(t.key);
+        const gk = `${service || "?"}|${channel}|${t.accountId || ""}`;
+        (groups[gk] = groups[gk] || []).push({ t, service, channel });
+      });
+      const streams = [];
+      Object.values(groups).forEach(rows => {
+        rows.sort((a, b) => a.t.date.localeCompare(b.t.date));
+        const clusters = [];
+        rows.forEach(r => {
+          const amt = Math.abs(r.t.amount);
+          let c = clusters.find(x => Math.abs(x.amount - amt) <= Math.max(1, x.amount * 0.05));
+          if (!c) { c = { amount: amt, rows: [] }; clusters.push(c); }
+          c.rows.push(r);
+        });
+        clusters.forEach(c => {
+          if (c.rows.length < 2) return;
+          const gaps = [];
+          for (let i = 1; i < c.rows.length; i++) gaps.push(daysBetween(c.rows[i - 1].t.date, c.rows[i].t.date));
+          const bands = gaps.map(bandOf).filter(Boolean);
+          if (!bands.length) return;
+          const counts = {};
+          bands.forEach(b => { counts[b] = (counts[b] || 0) + 1; });
+          const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b))[0];
+          if (counts[top] < gaps.length * 0.75) return;
+          const last = c.rows[c.rows.length - 1].t, first = c.rows[0].t;
+          const sinceLast = daysBetween(last.date, input.today);
+          if (sinceLast === null || sinceLast > 2 * stepOf(top)) return; // dormant: not being paid for now
+          streams.push({ service: c.rows[0].service, channel: c.rows[0].channel, accountId: last.accountId, amount: cents(Math.abs(last.amount)), interval: top,
+            rows: c.rows.map(r => r.t), firstDate: first.date, lastDate: last.date, merchant: last.merchant });
+        });
+      });
+      // An app-store or play-store stream whose descriptor names no service is still paired when exactly one
+      // direct stream matches its amount to the cent and its cadence: the store bills the plan's own price,
+      // so a near price (Apple Music at $10.99 against Spotify at $11.99) is a different service, not a match.
+      streams.filter(s => !s.service).forEach(s => {
+        const cand = streams.filter(x => x.service && x.channel === "direct" && x.interval === s.interval && Math.abs(x.amount - s.amount) <= Math.max(0.02, s.amount * 0.01));
+        if (cand.length === 1) { s.service = cand[0].service; s.correlated = true; }
+      });
+      // Dead streams: a claim names the service and the amount, nothing in the stream posts after it, and
+      // the stream's next expected charge date has passed without one — the same rule the cancel flow's own
+      // verdict uses, so a kill is never declared before the missed charge proves it.
+      const isDead = s => claims.some(c => {
+        const ck = merchantKey(c.merchant);
+        if (!s.service || !(ck === s.service || serviceOf(ck) === s.service)) return false;
+        if (Number.isFinite(Number(c.amount_cents)) && Math.abs(s.amount - Number(c.amount_cents) / 100) > Math.max(s.amount * 0.05, 1)) return false;
+        const since = String(c.created_at || "").slice(0, 10);
+        if (!since || s.rows.some(t => t.date > since)) return false;
+        const expected = addDays(s.lastDate, stepOf(s.interval));
+        return expected !== null && expected < input.today;
+      });
+      const live = streams.filter(s => s.service && !isDead(s));
+      const byService = {};
+      live.forEach(s => { (byService[s.service] = byService[s.service] || []).push(s); });
+      const acctName = id => { const a = (input.accounts || []).find(x => x && (x.id === id || x.account_id === id)); return a ? (a.nickname || a.name || null) : null; };
+      const chanWords = { direct: "direct", app_store: "through the App Store", play_store: "through Google Play" };
+      const out = [];
+      Object.keys(byService).sort().forEach(service => {
+        const ss = byService[service];
+        if (ss.length < 2) return;
+        ss.sort((a, b) => (b.amount * PER_YEAR[b.interval]) - (a.amount * PER_YEAR[a.interval]));
+        const monthly = cents(ss.reduce((sum, s) => sum + s.amount * PER_YEAR[s.interval] / 12, 0));
+        const direct = ss.find(s => s.channel === "direct");
+        const name = direct ? direct.merchant : safeMerchant(service);
+        const parts = ss.map(s => `${usd(s.amount)} ${s.interval} billed ${chanWords[s.channel]}${s.correlated ? " (matched by amount and cadence)" : ""}, last charged ${s.lastDate}${acctName(s.accountId) ? ` on ${acctName(s.accountId)}` : ""}`);
+        out.push({
+          key: `double_subscription:${service}:${ss.map(s => `${s.channel}:${s.accountId || ""}:${s.amount.toFixed(2)}`).join("+")}`,
+          kind: "double_subscription", capabilityId: "subscriptions.cancel",
+          title: `${name} is being paid for ${ss.length} times over`,
+          detail: `${parts.join("; ")}. Together about ${usd(monthly)} a month (${usd(monthly * 12)} a year) for one service. One of them can go: tell me which to cancel and I'll put up its card.`,
+          counterparty: name, amount: monthly, dueOn: null,
+          evidence: { rule: "Two live charge streams for the same service: each at least two charges on a steady cadence, neither dormant, and neither dead under a cancellation claim (a claim with no later charge and the next expected charge date already passed).",
+            rows: ss.flatMap(s => s.rows.map(proof)), computed: { service, streams: ss.map(s => ({ channel: s.channel, account_id: s.accountId, amount: s.amount, interval: s.interval, occurrences: s.rows.length, last_date: s.lastDate, correlated: !!s.correlated })), monthly_total: monthly, yearly_total: cents(monthly * 12) } },
+        });
+      });
+      return out;
+    }
+
     /* 11. A balance above the deposit insurance limit. FDIC and NCUA insure
            $250,000 per depositor, per institution, per ownership category.
            Only one account at a time is known here, so this flags a single
@@ -637,13 +740,13 @@
 
     const ALL = Object.freeze([newSubscriptions, priceRises, trialsConverting, duplicateCharges,
       lowBalanceAhead, bankFees, chargedAfterCancel, deadlineWindows, unclaimedSearchDue, overlaps,
-      overInsuranceLimit, payLaterPlans]);
+      doubleSubscriptions, overInsuranceLimit, payLaterPlans]);
     const PRIORITY = Object.freeze({ charged_after_cancel: 1, duplicate_charge: 1, low_balance: 1, trial_converting: 1,
       bank_fee: 2, price_rise: 2, deadline: 2, pay_later: 2, over_insurance_limit: 2,
-      new_subscription: 3, overlap: 3, unclaimed_search: 3 });
+      new_subscription: 3, overlap: 3, double_subscription: 3, unclaimed_search: 3 });
     // Monitors that read bank transactions. They must never run on sample data.
     const NEEDS_LIVE = Object.freeze(["new_subscription", "price_rise", "duplicate_charge", "low_balance",
-      "bank_fee", "charged_after_cancel", "overlap", "over_insurance_limit", "pay_later"]);
+      "bank_fee", "charged_after_cancel", "overlap", "double_subscription", "over_insurance_limit", "pay_later"]);
 
     /* Runs every monitor. One monitor failing never stops the others, and its
        failure is reported rather than hidden.
@@ -672,7 +775,7 @@
 
     return { merchantKey, safeMerchant, clean, recurring, newSubscriptions, priceRises, trialsConverting,
       duplicateCharges, lowBalanceAhead, bankFees, chargedAfterCancel, deadlineWindows,
-      unclaimedSearchDue, overlaps, overInsuranceLimit, payLaterPlans, cashFlowForecast,
+      unclaimedSearchDue, overlaps, doubleSubscriptions, overInsuranceLimit, payLaterPlans, cashFlowForecast,
       cancelClaimVerdict, recoveryVerdict, runAll, NEEDS_LIVE, addDays, addMonths, daysBetween };
   })();
 
@@ -12893,6 +12996,11 @@
                                                 left, the day of the month and the pace, top 3 merchants, uncategorized spending said apart
        alerts(budgets, transactions, now, { tz, sent })    the 80% and 100% messages the agent sends on its own, once per
                                                 budget per month per threshold (the key says which)
+       monthlyReport(budgets, rows, monthKey, { rules })   (C16) a completed month's caps vs actuals in dollars per
+                                                budget: spent, cap, over/left, percent of cap, the biggest merchants,
+                                                and the P2P share (Venmo/Cash App/Zelle/PayPal rows counted in the
+                                                category like any charge, named apart); parse/answer serve it in
+                                                chat as kind "report" ("budget report", "how did I do on my budgets")
      A budget is stored as a person-set watch of kind "category_budget" in agent_proactive_settings.watches (no migration):
        { id, kind: "category_budget", category, amount_cents, period: "month", created_at, created_on, status, text }
      with no run of 9 or more digits anywhere (the table's check refuses one), and at most one per category.
@@ -12977,6 +13085,13 @@
       // A wish to budget better is not a budget ("i want to budget better", "learn to budget"; found 2026-10-12: it got
       // "I don't have a \"to\" category"). A budget with an amount still is ("i want to budget $400 for groceries").
       if (/\bbudget(?:ing)? (?:better|more|less|properly|smarter|well|wisely)\b|\b(?:learn|how|want|need|try|trying|start) (?:how )?to (?:start )?budget\b(?!\s+\$?\d)/.test(t)) return null;
+      // C16: the monthly report ask — "budget report", "how did I do on my budgets", "last month's budgets", or a
+      // named month with a report word ("September budget report"). A set command (a set verb, or any amount) is
+      // never a report; SET's own bare "^budget" opener would otherwise swallow "budget report" itself.
+      if (!amountIn(t) && !/^(?:set|make|create|start|add|put|setup|give me|i want|i'd like|i would like|let'?s)\b/.test(t)) {
+        const monthIdx = MONTHS.findIndex((n) => t.includes(n.toLowerCase())) + 1 || MON.findIndex((n) => new RegExp(`\\b${n.toLowerCase()}\\b`).test(t)) + 1;
+        if (/\bbudgets?\s+report\b|\breport\b.*\bbudgets?\b|\bbudgets?\s+recap\b|\bhow did (?:i|we) do\b|\blast month'?s?\b|\bprevious month\b/.test(t) || (monthIdx > 0 && /\b(?:report|recap|how|did|were|was|show|give|see)\b/.test(t))) return { kind: "report", month: monthIdx || null };
+      }
       if (QUESTION.test(t) || /\b(?:should|could|would|tips?|advice|help me|ideas?|good|reasonable|realistic|average|normal|typical)\b/.test(t)) return status(t);
       if (SET.test(t)) {
         const amt = amountIn(t), rest = amt ? t.replace(amt.text, " ") : t;
@@ -13088,7 +13203,46 @@
       for (const r of charges.concat(refunds)) { const k = MA.display(r.merchant_raw); by.set(k, (by.get(k) || 0) - cents(r)); }
       const top = [...by.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
       const spent = charged - refunded;
-      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, counted: charges.concat(refunds) };
+      // C16: the P2P share of what counted. A payment through Venmo, Cash App, Zelle or PayPal is spend like
+      // any card charge when it lands in the category (by the merchant in the descriptor, or the person's own
+      // category rule); it is counted once, in the same total, and the report names how much came via a rail.
+      const p2pBy = new Map();
+      for (const r of charges) { const rail = p2pRail(r.merchant_raw); if (rail) p2pBy.set(rail, (p2pBy.get(rail) || 0) - cents(r)); }
+      for (const r of refunds) { const rail = p2pRail(r.merchant_raw); if (rail && p2pBy.has(rail)) p2pBy.set(rail, p2pBy.get(rail) + cents(r)); }
+      const p2pRails = [...p2pBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
+      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, p2p, p2pRails, counted: charges.concat(refunds) };
+    }
+    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"]];
+    function p2pRail(raw) { const d = String(raw || ""); for (const [re, name] of P2P_RAILS) if (re.test(d)) return name; return null; }
+    // A completed month's window (C16): the whole month, no this-evening extension — the month is over.
+    function reportWindow(key) {
+      const y = +String(key).slice(0, 4), m = +String(key).slice(5, 7), days = lastDay(y, m);
+      return { today: `${key}-${pad(days)}`, from: `${key}-01`, to: `${key}-${pad(days)}`, y, m, day: days, days, name: MONTHS[m - 1], key };
+    }
+    // The monthly report (C16): caps versus actuals in dollars for one completed month, per budget — what was
+    // spent, the cap, over or left, the percent of the cap used, the biggest merchants in the category, and how
+    // much of it came through a P2P rail (Venmo, Cash App, Zelle, PayPal) — plus the month's uncategorized total,
+    // said apart, never guessed in. Tracking only, like everything here.
+    function monthlyReport(budgets, rows, monthKey, opts) {
+      const have = budgetsIn(budgets);
+      if (!have.length || !/^\d{4}-\d{2}$/.test(String(monthKey || ""))) return null;
+      const o = opts || {}, w = reportWindow(monthKey);
+      const ts = have.map((b) => tally(b, rows || [], w, o.rules || []));
+      const unc = uncategorized(rows || [], w, o.rules || []);
+      const totalSpent = ts.reduce((s, t) => s + t.spent, 0), totalCap = ts.reduce((s, t) => s + t.amount, 0);
+      const lines = [`Your ${w.name} budget report (caps vs what you spent):`];
+      const detail = ts.map((t) => {
+        const pct = t.amount > 0 ? Math.round((t.spent / t.amount) * 100) : 0;
+        lines.push(`${cap(t.label)}: ${money(t.spent)} spent of a ${money(t.amount)} cap — ${t.spent > t.amount ? `${money(t.spent - t.amount)} over` : t.spent === t.amount ? "exactly at the cap" : `${money(t.left)} left`} (${pct}% of the cap).`);
+        if (t.top.length) lines.push(`  Biggest: ${t.top.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
+        if (t.p2p > 0) lines.push(`  ${money(t.p2p)} of it came through ${t.p2pRails.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
+        return { category: t.budget.category, label: t.label, cap_cents: t.amount, spent_cents: t.spent, left_cents: t.left, pct, top: t.top, p2p_cents: t.p2p, p2p_rails: t.p2pRails };
+      });
+      lines.push(`Across ${ts.length === 1 ? "that budget" : `all ${ts.length} budgets`}: ${money(totalSpent)} spent against ${money(totalCap)} of caps.`);
+      if (unc > 0) lines.push(`${money(unc)} of ${w.name} spending wasn't in any category I know, so it isn't in these numbers.`);
+      lines.push(TAIL);
+      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
     function uncategorized(rows, w, rules) {
@@ -13111,10 +13265,20 @@
     const TAIL = "A budget only tracks: it never moves money or blocks a payment.";
     function answer(words, input) {
       const p = typeof words === "string" ? parse(words) : words;
-      if (!p || p.kind !== "status") return null;
+      if (!p || (p.kind !== "status" && p.kind !== "report")) return null;
       const i = input || {}, tz = i.tz || "UTC", have = budgetsIn(i.budgets);
       if (!have.length && p.bare) return null;
       if (!have.length) return { text: `You don't have any budgets set. Say "set a grocery budget of 400" (any category and amount, by the month) and I'll track it. Categories I can budget: ${LIST}.` };
+      if (p.kind === "report") {
+        const rows = i.transactions || [];
+        if (!rows.some((r) => r && !r.is_pending && typeof r.posted_on === "string")) return { text: `You have ${have.length} budget${have.length === 1 ? "" : "s"}, but I don't see a linked bank or card with posted transactions yet, so there's nothing to report.` };
+        const today = todayOf(i.now, tz), cm = +today.slice(5, 7), cy = +today.slice(0, 4);
+        let y = cy, m = cm === 1 ? 12 : cm - 1;
+        if (p.month) { m = p.month; if (p.month >= cm) y = cy - 1; } else if (cm === 1) y = cy - 1;
+        const report = monthlyReport(i.budgets, rows, `${y}-${pad(m)}`, { rules: i.rules || [] });
+        if (!report) return null;
+        return { text: `${report.text}\n${MA.txSource(rows, tz)}`, report };
+      }
       let pick = have;
       if (!p.all) {
         const mine = p.category ? have.filter((b) => b.category === p.category) : [];
@@ -13178,7 +13342,7 @@
     // "show my alerts": the budgets, restated.
     function describe(watches) { const b = budgetsIn(watches); return b.length ? `Budgets: ${b.map((x) => `${labelOf(x.category)} ${money(x.amount_cents)} a month`).join("; ")}.` : ""; }
 
-    return { KIND, LIST, parse, command, answer, alerts, describe, budgetsIn, isBudget, categoryIn, monthWindow, MAX_CENTS };
+    return { KIND, LIST, parse, command, answer, alerts, describe, budgetsIn, isBudget, categoryIn, monthWindow, monthlyReport, reportWindow, MAX_CENTS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = Budgets;
 

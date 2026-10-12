@@ -247,6 +247,18 @@ export function plan(input: ProactiveInput, now: number) {
     const nr = numbersRows(accounts, transactions);
     for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys], rules: s.category_rules || [] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
   }
+  // --- C16: the monthly budget report (caps vs actuals for the month that just ended), once per month by log key,
+  // a cadence message like the alerts above. Kept as one small block beside them on purpose. ---
+  if (budgets.length && transactions.length) {
+    const py = Number(today.slice(0, 4)), pm = Number(today.slice(5, 7));
+    const prevKey = `${pm === 1 ? py - 1 : py}-${String(pm === 1 ? 12 : pm - 1).padStart(2, "0")}`;
+    const rKey = `budget_report:${prevKey}`;
+    if (!sentKeys.has(rKey)) {
+      const report = (Budgets as any).monthlyReport(s.watches || [], numbersRows(accounts, transactions).transactions, prevKey, { rules: s.category_rules || [] });
+      if (report) push({ key: rKey, kind: "watch", text: report.text, capability_id: "ALRT-010", urgent: false, cadence: true });
+    }
+  }
+  // --- end C16 block ---
   // Late fees (megadoc D15; packages/domain/112-late-fee-watch.js): each one the bank's words name, posted since the
   // person turned the alert on, said once by its log key (latefee:<row id>), as a watch they asked for.
   if ((s.watches || []).some((w: any) => (LateFeeWatch as any).isWatch(w))) {

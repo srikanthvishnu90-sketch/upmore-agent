@@ -10,6 +10,11 @@
                                                 left, the day of the month and the pace, top 3 merchants, uncategorized spending said apart
        alerts(budgets, transactions, now, { tz, sent })    the 80% and 100% messages the agent sends on its own, once per
                                                 budget per month per threshold (the key says which)
+       monthlyReport(budgets, rows, monthKey, { rules })   (C16) a completed month's caps vs actuals in dollars per
+                                                budget: spent, cap, over/left, percent of cap, the biggest merchants,
+                                                and the P2P share (Venmo/Cash App/Zelle/PayPal rows counted in the
+                                                category like any charge, named apart); parse/answer serve it in
+                                                chat as kind "report" ("budget report", "how did I do on my budgets")
      A budget is stored as a person-set watch of kind "category_budget" in agent_proactive_settings.watches (no migration):
        { id, kind: "category_budget", category, amount_cents, period: "month", created_at, created_on, status, text }
      with no run of 9 or more digits anywhere (the table's check refuses one), and at most one per category.
@@ -94,6 +99,13 @@
       // A wish to budget better is not a budget ("i want to budget better", "learn to budget"; found 2026-10-12: it got
       // "I don't have a \"to\" category"). A budget with an amount still is ("i want to budget $400 for groceries").
       if (/\bbudget(?:ing)? (?:better|more|less|properly|smarter|well|wisely)\b|\b(?:learn|how|want|need|try|trying|start) (?:how )?to (?:start )?budget\b(?!\s+\$?\d)/.test(t)) return null;
+      // C16: the monthly report ask — "budget report", "how did I do on my budgets", "last month's budgets", or a
+      // named month with a report word ("September budget report"). A set command (a set verb, or any amount) is
+      // never a report; SET's own bare "^budget" opener would otherwise swallow "budget report" itself.
+      if (!amountIn(t) && !/^(?:set|make|create|start|add|put|setup|give me|i want|i'd like|i would like|let'?s)\b/.test(t)) {
+        const monthIdx = MONTHS.findIndex((n) => t.includes(n.toLowerCase())) + 1 || MON.findIndex((n) => new RegExp(`\\b${n.toLowerCase()}\\b`).test(t)) + 1;
+        if (/\bbudgets?\s+report\b|\breport\b.*\bbudgets?\b|\bbudgets?\s+recap\b|\bhow did (?:i|we) do\b|\blast month'?s?\b|\bprevious month\b/.test(t) || (monthIdx > 0 && /\b(?:report|recap|how|did|were|was|show|give|see)\b/.test(t))) return { kind: "report", month: monthIdx || null };
+      }
       if (QUESTION.test(t) || /\b(?:should|could|would|tips?|advice|help me|ideas?|good|reasonable|realistic|average|normal|typical)\b/.test(t)) return status(t);
       if (SET.test(t)) {
         const amt = amountIn(t), rest = amt ? t.replace(amt.text, " ") : t;
@@ -205,7 +217,46 @@
       for (const r of charges.concat(refunds)) { const k = MA.display(r.merchant_raw); by.set(k, (by.get(k) || 0) - cents(r)); }
       const top = [...by.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
       const spent = charged - refunded;
-      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, counted: charges.concat(refunds) };
+      // C16: the P2P share of what counted. A payment through Venmo, Cash App, Zelle or PayPal is spend like
+      // any card charge when it lands in the category (by the merchant in the descriptor, or the person's own
+      // category rule); it is counted once, in the same total, and the report names how much came via a rail.
+      const p2pBy = new Map();
+      for (const r of charges) { const rail = p2pRail(r.merchant_raw); if (rail) p2pBy.set(rail, (p2pBy.get(rail) || 0) - cents(r)); }
+      for (const r of refunds) { const rail = p2pRail(r.merchant_raw); if (rail && p2pBy.has(rail)) p2pBy.set(rail, p2pBy.get(rail) + cents(r)); }
+      const p2pRails = [...p2pBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
+      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, p2p, p2pRails, counted: charges.concat(refunds) };
+    }
+    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"]];
+    function p2pRail(raw) { const d = String(raw || ""); for (const [re, name] of P2P_RAILS) if (re.test(d)) return name; return null; }
+    // A completed month's window (C16): the whole month, no this-evening extension — the month is over.
+    function reportWindow(key) {
+      const y = +String(key).slice(0, 4), m = +String(key).slice(5, 7), days = lastDay(y, m);
+      return { today: `${key}-${pad(days)}`, from: `${key}-01`, to: `${key}-${pad(days)}`, y, m, day: days, days, name: MONTHS[m - 1], key };
+    }
+    // The monthly report (C16): caps versus actuals in dollars for one completed month, per budget — what was
+    // spent, the cap, over or left, the percent of the cap used, the biggest merchants in the category, and how
+    // much of it came through a P2P rail (Venmo, Cash App, Zelle, PayPal) — plus the month's uncategorized total,
+    // said apart, never guessed in. Tracking only, like everything here.
+    function monthlyReport(budgets, rows, monthKey, opts) {
+      const have = budgetsIn(budgets);
+      if (!have.length || !/^\d{4}-\d{2}$/.test(String(monthKey || ""))) return null;
+      const o = opts || {}, w = reportWindow(monthKey);
+      const ts = have.map((b) => tally(b, rows || [], w, o.rules || []));
+      const unc = uncategorized(rows || [], w, o.rules || []);
+      const totalSpent = ts.reduce((s, t) => s + t.spent, 0), totalCap = ts.reduce((s, t) => s + t.amount, 0);
+      const lines = [`Your ${w.name} budget report (caps vs what you spent):`];
+      const detail = ts.map((t) => {
+        const pct = t.amount > 0 ? Math.round((t.spent / t.amount) * 100) : 0;
+        lines.push(`${cap(t.label)}: ${money(t.spent)} spent of a ${money(t.amount)} cap — ${t.spent > t.amount ? `${money(t.spent - t.amount)} over` : t.spent === t.amount ? "exactly at the cap" : `${money(t.left)} left`} (${pct}% of the cap).`);
+        if (t.top.length) lines.push(`  Biggest: ${t.top.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
+        if (t.p2p > 0) lines.push(`  ${money(t.p2p)} of it came through ${t.p2pRails.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
+        return { category: t.budget.category, label: t.label, cap_cents: t.amount, spent_cents: t.spent, left_cents: t.left, pct, top: t.top, p2p_cents: t.p2p, p2p_rails: t.p2pRails };
+      });
+      lines.push(`Across ${ts.length === 1 ? "that budget" : `all ${ts.length} budgets`}: ${money(totalSpent)} spent against ${money(totalCap)} of caps.`);
+      if (unc > 0) lines.push(`${money(unc)} of ${w.name} spending wasn't in any category I know, so it isn't in these numbers.`);
+      lines.push(TAIL);
+      return { key: w.key, name: w.name, text: lines.join("\n"), budgets: detail, uncategorized_cents: unc, total_spent_cents: totalSpent, total_cap_cents: totalCap };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
     function uncategorized(rows, w, rules) {
@@ -228,10 +279,20 @@
     const TAIL = "A budget only tracks: it never moves money or blocks a payment.";
     function answer(words, input) {
       const p = typeof words === "string" ? parse(words) : words;
-      if (!p || p.kind !== "status") return null;
+      if (!p || (p.kind !== "status" && p.kind !== "report")) return null;
       const i = input || {}, tz = i.tz || "UTC", have = budgetsIn(i.budgets);
       if (!have.length && p.bare) return null;
       if (!have.length) return { text: `You don't have any budgets set. Say "set a grocery budget of 400" (any category and amount, by the month) and I'll track it. Categories I can budget: ${LIST}.` };
+      if (p.kind === "report") {
+        const rows = i.transactions || [];
+        if (!rows.some((r) => r && !r.is_pending && typeof r.posted_on === "string")) return { text: `You have ${have.length} budget${have.length === 1 ? "" : "s"}, but I don't see a linked bank or card with posted transactions yet, so there's nothing to report.` };
+        const today = todayOf(i.now, tz), cm = +today.slice(5, 7), cy = +today.slice(0, 4);
+        let y = cy, m = cm === 1 ? 12 : cm - 1;
+        if (p.month) { m = p.month; if (p.month >= cm) y = cy - 1; } else if (cm === 1) y = cy - 1;
+        const report = monthlyReport(i.budgets, rows, `${y}-${pad(m)}`, { rules: i.rules || [] });
+        if (!report) return null;
+        return { text: `${report.text}\n${MA.txSource(rows, tz)}`, report };
+      }
       let pick = have;
       if (!p.all) {
         const mine = p.category ? have.filter((b) => b.category === p.category) : [];
@@ -295,6 +356,6 @@
     // "show my alerts": the budgets, restated.
     function describe(watches) { const b = budgetsIn(watches); return b.length ? `Budgets: ${b.map((x) => `${labelOf(x.category)} ${money(x.amount_cents)} a month`).join("; ")}.` : ""; }
 
-    return { KIND, LIST, parse, command, answer, alerts, describe, budgetsIn, isBudget, categoryIn, monthWindow, MAX_CENTS };
+    return { KIND, LIST, parse, command, answer, alerts, describe, budgetsIn, isBudget, categoryIn, monthWindow, monthlyReport, reportWindow, MAX_CENTS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = Budgets;

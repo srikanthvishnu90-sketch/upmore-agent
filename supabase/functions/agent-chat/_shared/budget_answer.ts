@@ -13,13 +13,13 @@ export const BUDGETS_UNAVAILABLE = "I can't read your budgets right now, so I wo
 // A status ask about the person's budgets, or not (set and stop are settings commands, anything else goes on).
 export function isBudgetAsk(message: string): boolean {
   const p: any = (Budgets as any).parse(message);
-  return !!p && p.kind === "status";
+  return !!p && (p.kind === "status" || p.kind === "report"); // "report" = the C16 monthly caps-vs-actuals report
 }
 
 // opts.rules: the person's category rules (95-category-rules.js), counted the same way as the spending answer.
 export async function budgetReply(message: string, now: Date | number | string, read: BudgetReaders, opts?: { tz?: string; rules?: any[] }): Promise<string | null> {
   const p: any = (Budgets as any).parse(message);
-  if (!p || p.kind !== "status") return null;
+  if (!p || (p.kind !== "status" && p.kind !== "report")) return null;
   let budgets: any[];
   // A bare "am i on track" (megadoc L04) is a budget ask only for a person who has a budget: when the budgets can't be
   // read, or there are none, it goes on to the model (null), never a reply about budgets they may not have.

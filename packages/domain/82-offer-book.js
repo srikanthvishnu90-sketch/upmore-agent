@@ -37,7 +37,7 @@
         const age = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${t.checked_on}T00:00:00Z`)) / DAY);
         if (!Number.isFinite(age)) throw new Error(`offer book: today must be a date, got ${today}`);
         const stale = age > FRESH_DAYS[t.kind] || age < 0;
-        return { id, value: t.value, unit: t.unit, kind: t.kind, source: t.source, checked_on: t.checked_on, stale,
+        return { id, value: t.value, unit: t.unit, kind: t.kind, note: t.note || null, source: t.source, checked_on: t.checked_on, stale,
           cite: stale ? `per ${t.source.title}, checked ${t.checked_on}; that may have changed, so check before acting`
             : `per ${t.source.title}, checked ${t.checked_on}` };
       }

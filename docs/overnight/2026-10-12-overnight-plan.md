@@ -76,7 +76,7 @@ is filed, sent or paid by Upmore.
 - [ ] **C4. FTC and reissued refunds.** Match charges (e.g. Prime fees) to the FTC refund list kept as dated data; spot
   PayPal, Venmo or Zelle refund notices, check the sender against the official administrator before calling it real,
   and say the expiry date.
-- [ ] **C5. Price-drop claims.** Target 14 days, Best Buy return window, Costco 30 days: receipts in, current price in
+- [x] **C5. Price-drop claims.** Target 14 days, Best Buy return window, Costco 30 days: receipts in, current price in
   (fixtures), claim text out with the order number; credit watched on the card. Policy table with exclusions (open box,
   ended sales, Thanksgiving week).
 - [ ] **C6. State auto-return and failed-bank deposits.** Official-sender check for state treasurer letters; FDIC

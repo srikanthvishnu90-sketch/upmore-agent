@@ -41,6 +41,7 @@ import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
+import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
@@ -271,6 +272,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
         // Rewards math on cards the person holds (_shared/rewards_answer.ts): rotating categories, a stated bonus target, the annual fee.
         if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);
+        // A store's own price drop inside its window (_shared/price_drop_answer.ts): a draft the person sends.
+        if (!direct) direct = await priceDropReply(message, today, oldestFirst);
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T14:20:15.612Z",
+ "run_at": "2026-10-12T15:02:25.453Z",
  "baseline_all_green": true,
- "sub_capabilities": 26,
- "proven": 26,
+ "sub_capabilities": 28,
+ "proven": 28,
  "problems": [],
  "rows": [
   {
@@ -54,7 +54,9 @@
    "bites": true,
    "applied": true,
    "collateral": [
-    "S24"
+    "S24",
+    "S27",
+    "S28"
    ],
    "status": "proven"
   },
@@ -175,7 +177,9 @@
     "S13",
     "S16",
     "S24",
-    "S26"
+    "S26",
+    "S27",
+    "S28"
    ],
    "status": "proven"
   },
@@ -265,7 +269,8 @@
    "bites": true,
    "applied": true,
    "collateral": [
-    "S24"
+    "S24",
+    "S28"
    ],
    "status": "proven"
   },
@@ -311,6 +316,30 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S27",
+   "id": "D27",
+   "title": "A limit without $",
+   "defect": "a limit price without '$' is dropped, so the card is a market order",
+   "test": "buy 1 VOO limit 500 is a $500 limit",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S28",
+   "id": "D28",
+   "title": "A sell card keeps its terms",
+   "defect": "only the long fee line is tried, so a limit sell falls to the last-resort line",
+   "test": "sell 1 AAPL at $250 says 1 share and the limit",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S27"
+   ],
    "status": "proven"
   }
  ]

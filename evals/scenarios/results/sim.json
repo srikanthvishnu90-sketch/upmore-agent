@@ -600,7 +600,7 @@
    "typed": "buy 3 shares AAPL limit 180",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "That's about $702.27; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.",
+   "reply": "That's about $540.00; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },

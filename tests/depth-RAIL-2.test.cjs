@@ -318,6 +318,22 @@ test('[S26] sizes as people type them: "one share of apple", "a share of NVDA", 
   assert.equal(posts(w.m).length,0);
 });
 
+test('[S27] a limit said without "$" is a limit, never a market order: "limit 500", "at 500 or less", "under 500" on a buy, "at 250 or better" and "above 250" on a sell; a count of days is never a price',async()=>{
+  const w=await world({mock:{positions:{AAPL:7}}});
+  for(const m of ['buy 1 share of VOO at 500 or less','buy 1 VOO under 500','buy 1 VOO limit 500']){const r=await w.s.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^LIVE: Buy 1 share of VOO at a \$500\.00 limit, about \$500\.00,/,m);await w.s.reply('no');}
+  for(const m of ['sell 1 AAPL at 250 or better','sell 1 AAPL above 250']){const r=await w.s.start(m);assert.equal(r.outcome,'confirm',m);assert.match(r.text,/^LIVE: Sell 1 share of AAPL at a \$250\.00 limit, about \$250\.00,/,m);await w.s.reply('no');}
+  assert.notEqual((await w.s.start('sell 1 AAPL over 2 days')).outcome,'confirm','"over 2 days" is not a $2 limit');
+  assert.equal(posts(w.m).length,0);
+});
+
+test('[S28] a sell card keeps its size, order type and "can\'t be undone" inside two segments: a limit sell uses the shorter fee line; the last-resort line still says size, type and the fees',async()=>{
+  const w=await world({mock:{positions:{AAPL:7}}});
+  const a=await w.s.start('sell 1 AAPL at $250');assert.ok(a.text.length<=306);assert.match(a.text,/^LIVE: Sell 1 share of AAPL at a \$250\.00 limit, .* Plus SEC and FINRA sale fees, a cent or more\. .*Can't be undone once filled\./);await w.s.reply('no');
+  const b=await w.s.start('sell 2 AAPL if it falls to $200');assert.match(b.text,/^LIVE: Sell 2 shares of AAPL if it falls to \$200\.00 \(stop\): \$400\.00, less SEC and FINRA fees\. .*Can't be undone once filled\./);await w.s.reply('no');
+  const c=await w.s.start('sell 1 share of AAPL');assert.match(c.text,/No Upmore fee; SEC and FINRA fees on a sale, a cent or more, come out at day's end\./,'a market sell still fits the long line');
+  assert.equal(posts(w.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

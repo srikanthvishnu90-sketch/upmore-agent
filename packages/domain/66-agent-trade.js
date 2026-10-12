@@ -58,7 +58,17 @@
       } else {
         const stopAt = take(new RegExp(`\\bstop(?:[- ]?loss)?(?:\\s+(?:order|price))?\\s*(?:at|@|of|to)?\\s*${PX}`, "i").exec(t));
         const stopPct = !stopAt && /\bstop\b/i.test(t) ? take(/(\d+(?:\.\d+)?)\s*%\s*(?:below|under|down)/i.exec(t)) : null;
-        const limAt = take(new RegExp(`\\b(?:limit(?:\\s+price)?(?:\\s+of)?|at|@)\\s*${PX}`, "i").exec(t.replace(stopAt ? stopAt[0] : "\u0000", " ")));
+        let limAt = take(new RegExp(`\\b(?:limit(?:\\s+price)?(?:\\s+of)?|at|@)\\s*${PX}`, "i").exec(t.replace(stopAt ? stopAt[0] : "\u0000", " ")));
+        // A limit said without "$" (found by probing, 2026-10-12): "limit 500", "at 500 or less", "at 250 or better", and
+        // "under 500" on a buy or "above 250" on a sell. Before, each was dropped and the card was a market order. A count
+        // of days, shares or a percent is never a price.
+        if (!limAt && !stopAt) {
+          const N = String.raw`\$?\s?(\d[\d,]*)(?:\.(\d{1,2}))?(?![\d,.]*\s*(?:days?|weeks?|months?|years?|shares?|units?|%|percent))`;
+          limAt = take(new RegExp(String.raw`\blimit(?:\s+price)?(?:\s+of)?\s+` + N + String.raw`\b`, "i").exec(t))
+            || take(new RegExp(String.raw`\bat\s+` + N + String.raw`\s+or\s+(?:less|lower|under|below|better|more|higher|above)\b`, "i").exec(t))
+            || (side === "sell" ? null : take(new RegExp(String.raw`\b(?:under|below|for less than|no more than|at most)\s+` + N + String.raw`\b(?!\s*(?:dollars|bucks)\s+(?:of|in|worth))`, "i").exec(t)))
+            || (side === "sell" ? take(new RegExp(String.raw`\b(?:above|over|at least|no less than)\s+` + N + String.raw`\b`, "i").exec(t)) : null);
+        }
         const dip = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${DIP})\\s+(?:to|below|under)\\s*${PXO}\\b`, "i").exec(t));
         const rise = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${RISE})\\s+(?:to\\s+|above\\s+|over\\s+)?${PXO}\\b`, "i").exec(t));
         const hit = take(new RegExp(`\\b(?:if|when|once) (?:it|the price|price)\\s+(?:${HIT})\\s+${PXO}\\b`, "i").exec(t));
@@ -206,6 +216,9 @@
       // A sale on an account whose broker passes regulatory fees through (Alpaca: SEC and FINRA, rounded up to the cent on
       // the day's total) is never carded "No fee."; the fee isn't known to the cent before the fill, so it is said in words.
       const SALE_FEES = "No Upmore fee; SEC and FINRA fees on a sale, a cent or more, come out at day's end";
+      // The same fact, shorter, for a sell card that would not fit two segments with the long line (a limit or stop sell
+      // carries its price terms too); before, such a card fell to the last-resort line and lost its size and order type.
+      const SALE_FEES_SHORT = "Plus SEC and FINRA sale fees, a cent or more";
       const saleFees = ord => ord.side === "sell" && ord.account && ord.account.sale_fees === "regulatory" && !(ord.fee_cents > 0);
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
@@ -229,12 +242,12 @@
         const quote = `Quote ${money(ord.price_cents)} (${ord.quote_source}, ${hhmm(ord.quote_as_of)})`;
         const timing = ord.market_open ? null : ord.type === "market" ? `Queued until ${ord.when}` : `Works from ${ord.when}`;
         const whens = [[quote, T.note, tif && tif[0].toUpperCase() + tif.slice(1), timing], [quote, T.note, tif === "good till canceled" ? "GTC" : tif ? "Day order" : null, timing], [quote, T.note, timing]];
-        for (const w of whens) for (const head of heads) {
-          const f = { head, fee_cents: ord.fee_cents || 0, fee_text: saleFees(ord) ? SALE_FEES : null, total_cents: ord.estimated_cents + (ord.fee_cents || 0), when: w.filter(Boolean).join(". "), irreversible: true, irreversible_text: "Can't be undone once filled.", expiry_ms: o.confirm_ttl_ms || 10 * 60000 };
+        for (const feeText of saleFees(ord) ? [SALE_FEES, SALE_FEES_SHORT] : [null]) for (const w of whens) for (const head of heads) {
+          const f = { head, fee_cents: ord.fee_cents || 0, fee_text: feeText, total_cents: ord.estimated_cents + (ord.fee_cents || 0), when: w.filter(Boolean).join(". "), irreversible: true, irreversible_text: "Can't be undone once filled.", expiry_ms: o.confirm_ttl_ms || 10 * 60000 };
           const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : f.fee_text ? `${f.fee_text}.` : "No fee."} ${f.when}. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil((head.length + f.when.length + 80) / 153) } };
           if (r.segments.segments <= 2) return r.text;
         }
-        return `${MODE(ord.account)}${V} ${ord.symbol}: ${money(ord.estimated_cents)}${saleFees(ord) ? ", less SEC and FINRA fees" : ""}. ${quote}. Reply YES, NO or DETAILS.`;
+        return `${MODE(ord.account)}${V} ${size} ${ord.symbol}${T.head}: ${money(ord.estimated_cents)}${saleFees(ord) ? ", less SEC and FINRA fees" : ""}. ${quote}. Can't be undone once filled. Reply YES, NO or DETAILS.`;
       }
       function confirmText(ord) {
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;

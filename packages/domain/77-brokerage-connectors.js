@@ -88,7 +88,7 @@
 
     // "I invest on Robinhood": the row for a platform named in the person's words (aliases on word boundaries).
     function find(rows, words) {
-      const t = ` ${String(words || "").toLowerCase().replace(/[^a-z0-9.*&+ -]/g, " ")} `;
+      const t = ` ${String(words || "").toLowerCase().replace(/[^a-z0-9.*&+ -]/g, " ").replace(/\s+/g, " ").trim()} `;
       let best = null;
       for (const r of rows || []) for (const a of [r.platform].concat(r.aliases || [])) {
         const k = String(a).toLowerCase();
@@ -147,6 +147,29 @@
       }
       return out;
     }
-    return { ROUTES, AUTH, DEFAULT_CAP_CENTS, capability, today, validate, find, adapterFor, summary };
+    // "connect my fidelity" (live gauntlet S16-19, 2026-10-12: the model invented app steps). The honest answer for the
+    // platform the person named, from the matrix: a live connect link (Alpaca), the read-only Plaid path, a fallback while
+    // trading waits on approval, not built yet, off, or can't connect. Pure: returns the words and whether the Alpaca
+    // connect card follows; null when no platform was named.
+    const CONNECT_RX = /^\s*(?:please |pls |can you |could you |can u |i want to |i wanna |help me )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+|our\s+)?(.+?)\s*[?.!]*\s*$/i;
+    function connectAnswer(rows, words) {
+      const m = CONNECT_RX.exec(String(words || ""));
+      if (!m) return null;
+      const named = find(rows, m[1]);
+      if (!named) return null;
+      const r = named, via = r.via && r.via !== r.platform ? `${r.via} connects as part of ${r.platform}. ` : "";
+      const t = today(r, rows), name = r.via || r.platform;
+      const plaidSteps = "In the app: Investments, then Connect investments, then pick it on Plaid's list. You log in on its own page; Upmore never sees the password.";
+      if (t.state === "blocked") return { platform: r.platform, state: t.state, text: `${name} isn't available in Upmore, so nothing was connected.` };
+      if (t.state === "none") return { platform: r.platform, state: t.state, text: `${name} can't be connected${r.notes ? `: ${r.notes.replace(/\.$/, "")}` : ""}. Nothing was connected.` };
+      if (t.state === "connect" && capability(r).trade) return { platform: r.platform, state: t.state, card: r.id, text: `${via}Not connected yet - here's the link.` };
+      if (t.state === "connect") return { platform: r.platform, state: t.state, text: `${via}${name} doesn't let apps place trades, so Upmore tracks it read-only through Plaid (holdings and balances). ${plaidSteps}` };
+      if (t.state === "try") return { platform: r.platform, state: t.state, text: `${via}Upmore can track ${name} read-only through Plaid, but Plaid's coverage of ${name} isn't confirmed yet, so it's worth a try. ${plaidSteps}` };
+      // What is missing, in the person's words (the matrix's "needs" is for the owner, not for them).
+      const waits = r.auth === "partner_oauth" ? `${r.platform.replace(/\s*\(.*\)$/, "")}'s approval of Upmore, which it doesn't have yet` : "a connection Upmore hasn't switched on";
+      if (t.state === "fallback") return { platform: r.platform, state: t.state, text: `${via}${capability(r).trade ? `Trading at ${r.platform} needs ${waits}.` : `Upmore's direct connection to ${r.platform} isn't switched on yet.`} Meanwhile it can be tracked read-only through Plaid. ${plaidSteps}` };
+      return { platform: r.platform, state: t.state, text: `${via}Upmore can't connect ${name} yet: it needs ${waits}${r.route === "browser_assisted" ? " (a secure window where you log in yourself)" : ""}. Nothing was connected.` };
+    }
+    return { ROUTES, AUTH, DEFAULT_CAP_CENTS, capability, today, validate, find, adapterFor, summary, connectAnswer };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = BrokerageConnectors;

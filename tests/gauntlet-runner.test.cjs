@@ -91,3 +91,20 @@ test('Upmore\'s own 429 is NOT RUN, never a FAIL, and the sloppy bar is not met 
     const l3=await run('l3');assert.match(l3.out,/NOT RUN \(rate limited\)/);assert.doesNotMatch(l3.out,/^FAIL /m);assert.equal(l3.code,1,'not a pass either');
   }finally{srv.close();for(const f of fs.readdirSync(path.join(root,'evals/gauntlet/results')))if(f.startsWith('mock-429-'))fs.unlinkSync(path.join(root,'evals/gauntlet/results',f));}
 });
+
+test('a FAIL whose reply is Upmore\'s own "nothing linked" sentence is BLOCKED, never a pass, and is not recorded as a replay',async()=>{
+  const http=require('node:http'),{execFile}=require('node:child_process');
+  const srv=http.createServer((req,res)=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{const m=JSON.parse(b).message||'';res.writeHead(200,{'content-type':'application/json'});
+    res.end(JSON.stringify({thread_id:'t1',reply:/vt/.test(m)?"No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://x.test/connect/alpaca":/netflix/.test(m)?"I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?":'ok'}));});});
+  await new Promise(r=>srv.listen(0,'127.0.0.1',r));
+  const url=`http://127.0.0.1:${srv.address().port}/functions/v1/agent-chat`;
+  try{
+    const out=await new Promise(r=>execFile('node',[path.join(root,'evals/gauntlet/run-live.cjs'),'--suite','spec16','--label','mock-blocked','--no-wait'],{cwd:root,env:Object.assign({},process.env,{UPMORE_CHAT_URL:url,UPMORE_TEST_JWT:'mock'})},(e,o)=>r({code:e?e.code:0,o})));
+    assert.match(out.o,/BLOCKED S16-10 "buy 2 shares of vt" \| the test account has no brokerage connected/);
+    assert.match(out.o,/BLOCKED S16-03 "cancel netflix" \| the test account has no charge from that merchant/);
+    assert.match(out.o,/FAIL S16-01/,'an unrelated miss is still a FAIL');
+    assert.equal(out.code,1,'blocked is not a pass');
+    const r=JSON.parse(fs.readFileSync(path.join(root,'evals/gauntlet/results/mock-blocked.spec16.json'),'utf8'));
+    assert.ok(r.blocked>=2 && r.rows.filter(x=>x.status==='BLOCKED').every(x=>x.blocked_by));
+  }finally{srv.close();for(const f of fs.readdirSync(path.join(root,'evals/gauntlet/results')))if(f.startsWith('mock-blocked'))fs.unlinkSync(path.join(root,'evals/gauntlet/results',f));}
+});

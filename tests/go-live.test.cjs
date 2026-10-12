@@ -41,3 +41,15 @@ test('dry run: the no-password functions are deployed, and the security checks r
   assert.ok(src.indexOf('node scripts/launch/verify-security-live.cjs ||')<src.indexOf('for s in spec16 sloppy l3'),'the checks gate the gauntlet');
   assert.ok(!/--no-verify-jwt/.test(src.split('\n').filter(l=>/deploy (exec-vault-store|agent-exec)/.test(l)).join('\n')),'both keep JWT verification, as they run live today');
 });
+
+test('the owner one-command runner: hidden prompts only, secrets forgotten after, results pushed, never a secret echoed',()=>{
+  const s=require('node:fs').readFileSync(path.join(root,'scripts/launch/owner-go-live.sh'),'utf8');
+  for(const v of ['SUPABASE_DB_URL','GAUNTLET_PASSWORD','OPENAI_API_KEY','ALPACA_OAUTH_CLIENT_ID','ALPACA_OAUTH_CLIENT_SECRET']){
+    assert.ok(new RegExp(`ask ${v} "`).test(s),`${v} is asked on a hidden prompt`);
+    assert.ok(!new RegExp(`echo[^\\n]*\\$\\{?${v}`).test(s),`${v} is never echoed`);
+  }
+  assert.match(s,/read -rs/);
+  assert.ok(s.indexOf('unset SUPABASE_DB_URL GAUNTLET_PASSWORD OPENAI_API_KEY')>s.indexOf('bash scripts/launch/go-live.sh'),'forgotten right after the run');
+  assert.match(s,/git add evals\/gauntlet\/results evals\/gauntlet\/replays/);
+  assert.match(s,/\[\[ -z "\$\(git status --porcelain\)" \]\]/,'never runs on uncommitted changes');
+});

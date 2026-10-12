@@ -33,3 +33,11 @@ test('both model paths drop any sentence that asks for a password, a code or a f
     assert.ok(p.includes('Prediction markets (Kalshi, Polymarket): never encourage a position;'), f);
   }
 });
+
+test('the direct answers (connect my X, pay my rent, find me money, nothing linked) run after the safety guards and before the flows and the model',()=>{
+  assert.ok(h.includes('import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";'));
+  const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
+  assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');
+  assert.ok(h.includes('meta: { capability: true, direct: true }'));
+  assert.ok(h.includes('.eq("presence", "observed")'),'find me money reads only observed rows');
+});

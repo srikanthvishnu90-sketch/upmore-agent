@@ -555,6 +555,16 @@ export function checkGrounding(
   return violations;
 }
 
+// A reply whose only problem is a guarantee word the model introduced ("guaranteed", "risk-free") loses those sentences
+// and keeps the rest. Replacing the whole reply threw away good answers: live gauntlet 2026-10-12, "find me money" was
+// swapped for the billing fallback (it mentions a dispute only because the thread had one). Null when nothing is left.
+export function dropGuaranteeSentences(reply: string): string | null {
+  const RX = /\bguarantee[sd]?\b|\bguaranteeing\b|\brisk-free\b|\bno risk\b/i;
+  const kept = String(reply ?? "").split(/(?<=[.!?])\s+|\n+/).filter((x) => x.trim() && !RX.test(x));
+  const out = kept.join(" ").trim();
+  return out.length >= 20 ? out : null;
+}
+
 export const SAFE_FALLBACK =
   "I want to be careful here — I can't verify that claim right now, so I won't " +
   "state it as fact. Tell me which route you're asking about and I'll walk you " +

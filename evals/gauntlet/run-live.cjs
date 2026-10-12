@@ -76,6 +76,15 @@ async function post(body) {
 // user turned most of L3 and the end of sloppy into "fails"). go-live.sh resets the test user's window before each suite.
 const LIMITED = "rate_limited: Upmore's own limit (60 messages an hour per person) answered 429 before any code ran; not a behaviour result";
 const limited = res => !!(res && (res.rate_limited || res.error === "rate_limited"));
+// A FAIL whose reply is one of Upmore's own exact "you have nothing linked" sentences is BLOCKED: the test account has no
+// data for that item (no bank, no Netflix charge, no brokerage), and the reply was the honest one. BLOCKED never counts as
+// a pass; it says what the account needs instead (docs/gauntlet/live-2026-10-12.md).
+const PRECONDITIONS = [
+  [/^No brokerage is connected yet, so nothing was placed/, "the test account has no brokerage connected"],
+  [/^I don't see a [\w .'&-]+ charge on your linked cards/, "the test account has no charge from that merchant"],
+  [/I don't see a connected bank or card yet/, "the test account has no bank or card linked"],
+];
+const blockedBy = res => { const r = String(res && res.reply || ""); const p = PRECONDITIONS.find(([re]) => re.test(r)); return p ? p[1] : null; };
 const suite = args.includes("--suite") ? args[args.indexOf("--suite") + 1] : "sloppy";
 const resume = args.includes("--resume") ? args[args.indexOf("--resume") + 1] : null;
 const noWait = args.includes("--no-wait"), maxWait = (args.includes("--max-wait-min") ? Number(args[args.indexOf("--max-wait-min") + 1]) : 15) * 60000;
@@ -95,13 +104,14 @@ async function runSpec16() {
     if (res && res.thread_id) thread = res.thread_id;
     if (limited(res)) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [LIMITED] }); console.log(`NOT RUN ${item.id} (rate limited)`); continue; }
     const reasons = check(item.checks || {}, res);
-    rows.push({ id: item.id, text: item.text, expect: item.expect, media: photo ? item.needs_media : undefined, status: reasons.length ? "FAIL" : "PASS", reasons, reply: res && res.reply || null, route: res && res.route || null, error: res && res.error || null, failure_code: res && res.failure_code || null, segments: segments(res && res.reply || "") });
-    console.log(`${reasons.length ? "FAIL" : "PASS"} ${item.id} ${JSON.stringify(item.text)}${reasons.length ? " | " + reasons.join("; ") : ""}`);
+    const blocked = reasons.length ? blockedBy(res) : null;
+    rows.push({ id: item.id, text: item.text, expect: item.expect, media: photo ? item.needs_media : undefined, status: reasons.length ? (blocked ? "BLOCKED" : "FAIL") : "PASS", blocked_by: blocked || undefined, reasons, reply: res && res.reply || null, route: res && res.route || null, error: res && res.error || null, failure_code: res && res.failure_code || null, segments: segments(res && res.reply || "") });
+    console.log(`${reasons.length ? (blocked ? "BLOCKED" : "FAIL") : "PASS"} ${item.id} ${JSON.stringify(item.text)}${blocked ? ` | ${blocked}` : reasons.length ? " | " + reasons.join("; ") : ""}`);
   }
   // Leave nothing live behind the run.
   if (thread) { try { await post({ thread_id: thread, message: "never mind" }); } catch (_) {} }
   const ran = rows.filter(r => r.status !== "NOT RUN"), passed = ran.filter(r => r.status === "PASS").length;
-  return { suite: "spec16", total: rows.length, ran: ran.length, passed, not_run: rows.length - ran.length, rows };
+  return { suite: "spec16", total: rows.length, ran: ran.length, passed, blocked: rows.filter(r => r.status === "BLOCKED").length, not_run: rows.length - ran.length, rows };
 }
 async function runL3(pendingIn) {
   const sc = loadCorpus("l3-adversarial.json");
@@ -154,7 +164,7 @@ if (require.main === module) (async () => {
     const result = Object.assign({ label: resume || label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>.") }, r);
     fs.writeFileSync(file, JSON.stringify(result, null, 1));
     recordReplays(result);
-    if (r.suite === "spec16") console.log(`\nspec 16 20-text gauntlet against the live handler: ${r.passed}/${r.ran} behaved as specified (${r.not_run} not run: media or wait). Raw replies: ${path.relative(root, file)}`);
+    if (r.suite === "spec16") console.log(`\nspec 16 20-text gauntlet against the live handler: ${r.passed}/${r.ran} behaved as specified (${r.blocked || 0} blocked by the test account's missing data, ${r.not_run} not run: media, wait or rate limit). Raw replies: ${path.relative(root, file)}`);
     else console.log(`\nL3 against the live handler: ${r.passed}/${r.finished} cases passed${r.not_run ? `, ${r.not_run} NOT RUN (rate limited)` : ""}${r.pending.length ? `, ${r.pending.length} waiting (resume later)` : ""}. Spec 16 needs 100%. Raw replies: ${path.relative(root, file)}`);
     process.exit(r.suite === "spec16" ? (r.passed === r.ran ? 0 : 1) : (r.passed === r.finished && !r.pending.length && !r.not_run ? 0 : 1));
   }
@@ -162,7 +172,7 @@ if (require.main === module) (async () => {
   for (const item of corpus.items) {
     let res; try { res = await post({ message: item.text }); } catch (e) { res = { error: String(e && e.message || e) }; }
     if (limited(res)) { rows.push({ id: item.id, text: item.text, expected_flow: item.flow, not_run: true, reason: LIMITED }); console.log(`NOT RUN    ${item.id} ${JSON.stringify(item.text)} (rate limited)`); continue; }
-    const g = grade(item, res), u = understood(item, res); rows.push(Object.assign({ id: item.id, text: item.text, expected_flow: item.flow, understood: u.pass, understood_reasons: u.reasons }, g));
+    const g = grade(item, res), u = understood(item, res); rows.push(Object.assign({ id: item.id, text: item.text, expected_flow: item.flow, understood: u.pass, understood_reasons: u.reasons, blocked_by: g.pass ? undefined : blockedBy(res) || undefined }, g));
     if (res && res.thread_id) { try { await post({ thread_id: res.thread_id, message: "no" }); } catch (_) {} }
     console.log(`${u.pass ? "UNDERSTOOD" : "MISSED    "} ${g.pass ? "CARDED" : "NO CARD"} ${item.id} ${JSON.stringify(item.text)}${u.pass ? "" : " | understanding: " + u.reasons.join("; ")}${g.pass ? "" : " | card: " + g.reasons.join("; ")}`);
   }
@@ -171,6 +181,7 @@ if (require.main === module) (async () => {
   const score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, not_run: notRun, understood: und, understood_pct: Math.round(und * 1000 / rows.length) / 10, carded: passed, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: !notRun && und / rows.length >= 0.95, rows };
   fs.writeFileSync(path.join(__dirname, "results", `${label}.json`), JSON.stringify(score, null, 1));
   recordReplays(Object.assign({ suite: "sloppy" }, score));
-  console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)${notRun ? `; ${notRun} NOT RUN (rate limited)` : ""}`);
+  const blockedN = rows.filter(r => r.blocked_by).length;
+  console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)${blockedN ? `; ${blockedN} not carded only because the test account has no data for them` : ""}${notRun ? `; ${notRun} NOT RUN (rate limited)` : ""}`);
   process.exit(score.meets_bar ? 0 : 1);
 })();

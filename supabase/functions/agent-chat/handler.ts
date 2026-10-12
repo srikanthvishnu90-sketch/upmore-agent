@@ -15,6 +15,7 @@ import {
   findFalseNoRouteClaim,
   appendSources,
   SAFE_FALLBACK,
+  dropGuaranteeSentences,
   FINANCE_SAFE_FALLBACK,
   BILLING_SAFE_FALLBACK,
   SETTLEMENT_SAFE_FALLBACK,
@@ -35,6 +36,9 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
+import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";
+// The asks that need to know whether anything is linked (one count query, only for these).
+const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
@@ -217,6 +221,32 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         { thread_id: tid, role: "assistant", content: earlyGuard, meta: { capability: true, guard: true } },
       ]);
       return json(cors, { thread_id: tid, reply: earlyGuard, action: null });
+    }
+
+    // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
+    // connector matrix, "pay my rent" (not built, said plainly), "find me money" from the person's own transactions, and
+    // balance or spending with nothing linked in one plain line.
+    {
+      let direct: string | null = connectReply(message) ?? rentReply(message);
+      if (!direct && NEEDS_ACCOUNTS.test(message)) {
+        const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");
+        if (!linked.error) direct = noDataReply(message, linked.count ?? 0);
+      }
+      if (!direct) direct = await findMoneyReply(message, new Date().toISOString().slice(0, 10), async () => {
+        const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+        const r = await supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
+          .eq("user_id", user.id).eq("presence", "observed").gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000);
+        if (r.error) throw new Error("Transactions unavailable.");
+        return r.data || [];
+      });
+      if (direct) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: direct, meta: { capability: true, direct: true } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: direct, action: null });
+      }
     }
 
     // An answer to the agent's own offer ("your trial ends Thursday; should I cancel it?"): yes starts the cancellation,
@@ -873,11 +903,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // Finance-mode violations get the finance fallback (no route to ask about).
       // Billing-thread violations get the billing fallback (the route-specific
       // "which route you're asking about" is nonsensical there).
-      reply = isDebunkReply(reply) ? SCAM_FALLBACK
+      // Only a model-introduced guarantee word: drop those sentences, keep the answer (live 2026-10-12, "find me money").
+      // The fallback is picked from THIS message, not the thread: an earlier dispute made "find me money" a dispute reply.
+      const onlyGuarantee = violations.every((v) => v.startsWith("guarantee_language:"));
+      const trimmed = onlyGuarantee && !isDebunkReply(reply) ? dropGuaranteeSentences(reply) : null;
+      reply = trimmed ?? (isDebunkReply(reply) ? SCAM_FALLBACK
         : financeMode ? FINANCE_SAFE_FALLBACK
-        : isBillingContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? BILLING_SAFE_FALLBACK
-        : isSettlementContext(message, exclHist.map((h) => String(h.content ?? "")).join("\n")) ? SETTLEMENT_SAFE_FALLBACK
-        : SAFE_FALLBACK;
+        : isBillingContext(message) ? BILLING_SAFE_FALLBACK
+        : isSettlementContext(message) ? SETTLEMENT_SAFE_FALLBACK
+        : SAFE_FALLBACK);
       action = null;
     } else if (financeMode) {
       // Finance answers skip the route-correction pass below (no route claim).

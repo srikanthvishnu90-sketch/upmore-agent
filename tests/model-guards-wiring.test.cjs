@@ -64,8 +64,11 @@ test('see-everything numbers, then dispute (S16-17), then find me money, in the 
     caught=h.indexOf('} catch { direct = MONEY_UNAVAILABLE; }'),
     reply=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
   assert.ok(block>0 && block<noData && noData<money && money<dispute && dispute<find && find<caught && caught<reply,'connect/rent, nothing linked, money answers, dispute, find me money, the plain failure line, then the one stored reply');
-  const body=h.slice(money,dispute);
-  assert.ok(body.includes('supabase.from("agent_financial_accounts")') && body.includes('.eq("status", "active")'),'active accounts only');
-  assert.ok(body.includes('supabase.from("agent_account_preferences")') && body.includes('mergeKinds('),'the person\'s own account types win');
+  const accounts=h.slice(h.indexOf('const readAccounts = () => acctCache ??='),money);
+  assert.ok(accounts.includes('supabase.from("agent_financial_accounts")') && accounts.includes('.eq("status", "active")'),'active accounts only, read once and shared');
+  assert.ok(accounts.includes('supabase.from("agent_account_preferences")') && accounts.includes('mergeKinds('),'the person\'s own account types win');
+  assert.ok(h.includes('moneyReply(message, new Date(), { accounts: readAccounts, transactions: readTx })'),'money answers use the shared readers');
+  const rewards=h.indexOf('if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);');
+  assert.ok(find<rewards && rewards<caught,'rewards math after find me money, inside the plain-failure guard');
   assert.ok(h.includes('(NEEDS_ACCOUNTS.test(message) || moneyKind(message))'),'the linked count is read for every money ask');
 });

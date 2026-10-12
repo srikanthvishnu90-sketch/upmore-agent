@@ -39,6 +39,7 @@ import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
 import { connectReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
+import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
@@ -249,22 +250,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const oldestFirst = async () => (await readTx()).slice().reverse();
       // See-everything numbers (_shared/money_answers.ts): balance, spending, "how am i doing", "did rent go through",
       // every number from the person's own rows (RLS client) with its source and as-of time.
-      if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
-        accounts: async () => {
-          const [a, p] = await Promise.all([
-            supabase.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", user.id).eq("status", "active"),
-            supabase.from("agent_account_preferences").select("account_id,account_kind").eq("user_id", user.id),
-          ]);
-          if (a.error) throw new Error("Accounts unavailable.");
-          return mergeKinds(a.data || [], p.error ? [] : p.data || []);
-        },
-        transactions: readTx,
-      });
+      let acctCache: Promise<any[]> | null = null;
+      const readAccounts = () => acctCache ??= (async () => {
+        const [a, p] = await Promise.all([
+          supabase.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", user.id).eq("status", "active"),
+          supabase.from("agent_account_preferences").select("account_id,account_kind").eq("user_id", user.id),
+        ]);
+        if (a.error) throw new Error("Accounts unavailable.");
+        return mergeKinds(a.data || [], p.error ? [] : p.data || []);
+      })();
+      if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), { accounts: readAccounts, transactions: readTx });
       // "dispute this charge" and "find me money": a failed read says so plainly instead of failing the whole turn.
       const today = new Date().toISOString().slice(0, 10);
       try {
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
         if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
+        // Rewards math on cards the person holds (_shared/rewards_answer.ts): rotating categories, a stated bonus target, the annual fee.
+        if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([

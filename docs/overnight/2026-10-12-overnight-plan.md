@@ -117,11 +117,11 @@ and as-of, and shows the math on request.
 
 Applying, opening accounts and moving money are [Flag] and gated. What can be built is the honest math and tracking.
 
-- [ ] **F1. Rotating 5% activation.** A dated quarterly-category table (Chase Freedom Flex Q4: grocery, dining; activate
+- [x] **F1. Rotating 5% activation.** A dated quarterly-category table (Chase Freedom Flex Q4: grocery, dining; activate
   by Dec 14; $1,500 cap): remind to activate, track spend toward the cap from card rows.
-- [ ] **F2. Spend-target tracker** for a card the person already opened: target, deadline, spend so far from rows,
+- [x] **F2. Spend-target tracker** for a card the person already opened: target, deadline, spend so far from rows,
   days left. Read-only.
-- [ ] **F3. Annual-fee review** (the retention-offer card without the call): fee posted vs benefits actually used from
+- [x] **F3. Annual-fee review** (the retention-offer card without the call): fee posted vs benefits actually used from
   rows; the keep / ask / cancel math. Calling stays off; the person asks.
 - [ ] **F4. Card-linked offer matcher**: usual merchants vs offers the person pastes or forwards (fixtures).
 
@@ -129,7 +129,7 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 
 - [x] **G1. Every CLAUDE.md command, verbatim.** (04:30: 30 commands ok; one fix, depth results byte-stable) Run each command line in CLAUDE.md on a clean worktree; any that fails or
   drifted is fixed or the doc corrected, logged in the drift file.
-- [ ] **G2. Property tests for money math.** Cents rounding, period boundaries (month ends, leap day, DST in the person's
+- [x] **G2. Property tests for money math.** (spend; rewards in its depth packet) Cents rounding, period boundaries (month ends, leap day, DST in the person's
   time zone), currency never mixed, for money answers, rent and every Block C-F module.
 - [ ] **G3. Injection sweep.** Merchant names, email bodies and receipts carrying instructions run through each new
   detector; nothing they say becomes an action (data guard, adversarial set extended).

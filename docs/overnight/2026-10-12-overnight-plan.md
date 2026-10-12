@@ -127,14 +127,14 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 
 ## Block G: test hardening (runs between builds)
 
-- [ ] **G1. Every CLAUDE.md command, verbatim.** Run each command line in CLAUDE.md on a clean worktree; any that fails or
+- [x] **G1. Every CLAUDE.md command, verbatim.** (04:30: 30 commands ok; one fix, depth results byte-stable) Run each command line in CLAUDE.md on a clean worktree; any that fails or
   drifted is fixed or the doc corrected, logged in the drift file.
 - [ ] **G2. Property tests for money math.** Cents rounding, period boundaries (month ends, leap day, DST in the person's
   time zone), currency never mixed, for money answers, rent and every Block C-F module.
 - [ ] **G3. Injection sweep.** Merchant names, email bodies and receipts carrying instructions run through each new
   detector; nothing they say becomes an action (data guard, adversarial set extended).
 - [ ] **G4. Mutation coverage report.** Each new module listed with its planted defects and the test that catches each.
-- [ ] **G5. Go-live readiness.** `go-live.sh` and the pending-migration ledger include every new migration and function
+- [x] **G5. Go-live readiness.** (the pending ledger globs every migration; go-live deploys manual-connect) `go-live.sh` and the pending-migration ledger include every new migration and function
   (manual_connections, standing_payments, nicknames, manual-connect); the go-live test pins them. The owner's one
   command still does everything.
 - [ ] **G6. Visual.** Any app change re-runs `node evals/agent/visual.cjs`; baselines change only with a stated reason.

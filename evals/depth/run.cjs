@@ -46,7 +46,11 @@ fs.rmSync(tmp, { recursive: true, force: true });
 const table = ["| # | Sub-capability | What it does | Its test | The break I proved | Status |", "| --- | --- | --- | --- | --- | --- |"].concat(rows.sort((a, b) => a.sub.localeCompare(b.sub)).map(r => `| ${r.sub} | ${r.title} | ${r.test} | \`${r.sub}\` in tests/depth-${id}.test.cjs | ${r.defect} | ${r.status}${r.collateral.length ? ` (also fails ${r.collateral.join(", ")})` : ""} |`)).join("\n");
 const summary = { capability: id, run_at: new Date().toISOString(), baseline_all_green: Object.values(baseline.results).every(Boolean), sub_capabilities: tags.length, proven: rows.filter(r => r.bites).length, problems, rows };
 fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
-fs.writeFileSync(path.join(__dirname, "results", `${id}.json`), JSON.stringify(summary, null, 1) + "\n");
+// A re-run that proves exactly what the last one proved keeps the last file (and its run_at), so a check that passes
+// leaves the tree clean; any change in the rows, the baseline or the problems is written with the new time.
+const resultFile = path.join(__dirname, "results", `${id}.json`);
+const sameAs = prev => { try { const p = JSON.parse(fs.readFileSync(resultFile, "utf8")); return JSON.stringify({ ...p, run_at: null }) === JSON.stringify({ ...summary, run_at: null }); } catch { return false; } };
+if (!sameAs()) fs.writeFileSync(resultFile, JSON.stringify(summary, null, 1) + "\n");
 console.log(table);
 console.log(`\n${id}: ${tags.length} sub-capabilities, ${summary.proven}/${rows.length} defects proven to bite, baseline ${summary.baseline_all_green ? "green" : "RED"}${problems.length ? "\nPROBLEMS:\n- " + problems.join("\n- ") : ""}`);
 // Paste the table into the depth doc between the markers, so the doc never carries a hand-written claim.

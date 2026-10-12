@@ -9,7 +9,7 @@ Deno.test("the handler's today is the person's local date, and the money answers
   assert(HANDLER.includes('supabase.from("agent_proactive_settings").select("*").eq("user_id", user.id)'), "reads the person's zone");
   assert(HANDLER.includes("const today = localClock(Date.now(), tz).date;"), "today is the local date");
   assert(!HANDLER.includes("const today = new Date().toISOString().slice(0, 10);"), "never the UTC date");
-  assert(/previous: readPrevious,\s*\}, \{ tz, rules \}\);/.test(HANDLER), "moneyReply gets the zone (and the person's category rules)");
+  assert(/scheduledTransfers: async \(\) => \[\],\s*\}, \{ tz, rules \}\);/.test(HANDLER), "moneyReply gets the zone (and the person's category rules)");
 });
 
 Deno.test("9 p.m. in New York on Oct 11 is still Oct 11 there", () => {

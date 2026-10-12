@@ -283,7 +283,7 @@ export function plan(input: ProactiveInput, now: number) {
     // Safe to spend from the same function as the chat answer (TheNumbers.safeToSpend): cash minus bills due by the
     // payday read from deposits. Its first line is the number; a missing payday is said, never assumed.
     const nr = numbersRows(accounts, transactions);
-    const sts: any = (TheNumbers as any).safeToSpend(nr.accounts, nr.transactions, now, { tz });
+    const sts: any = (TheNumbers as any).safeToSpend(nr.accounts, nr.transactions, now, { tz, buffer_cents: s.buffer_cents ?? undefined });
     const lines = sts ? String(sts.text).split("\n") : [];
     const safeText = !sts ? "" : sts.safe_cents === null ? lines[0] : [lines[0], sts.payday_found === false ? lines.find((l: string) => /couldn't find a regular paycheck/.test(l)) : null].filter(Boolean).join(" ");
     const dueToday = L.recurringCalendar(transactions, today, 0).items.filter((i: any) => i.direction === "debit" && i.on === today);

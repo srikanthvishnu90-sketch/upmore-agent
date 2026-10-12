@@ -81,6 +81,7 @@ Deno.test("the hourly budget alerts count the rules saved in the person's settin
 Deno.test("the handler reads the rules from the settings row once per turn and hands them to both answers", () => {
   assert(SRC_HANDLER.includes('supabase.from("agent_proactive_settings").select("*").eq("user_id", user.id).maybeSingle()'), "one read of the person's row");
   assert(SRC_HANDLER.includes("const rules = !tzRead.error && tzRead.data && Array.isArray(tzRead.data.category_rules) ? tzRead.data.category_rules : [];"), "a failed read or no column is no rules");
-  assert(SRC_HANDLER.includes("previous: readPrevious,\n      }, { tz, rules });"), "moneyReply gets them");
+  assert(SRC_HANDLER.includes("settings: async () => (!tzRead.error && tzRead.data ? tzRead.data : null),"), "moneyReply also gets the settings row it already read (C3/C4/C9 inputs)");
+  assert(SRC_HANDLER.includes("scheduledTransfers: async () => [],\n      }, { tz, rules });"), "moneyReply gets them");
   assert(SRC_HANDLER.includes("transactions: readTx }, { tz, rules });"), "budgetReply gets them");
 });

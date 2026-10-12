@@ -328,6 +328,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         cancellations: () => readCancellations(supabase, user.id),
         // "show me the math" explains the answer just given in this thread.
         previous: readPrevious,
+        // The numbers' extra inputs (C3/C4/C9): the settings row this turn already read — its buffer_cents
+        // (safe-to-spend and the forecast's line) and its watches (the savings goals afford reads). No extra
+        // read; a failed settings read above simply loses the inputs, never the answer (money_answers).
+        settings: async () => (!tzRead.error && tzRead.data ? tzRead.data : null),
+        // Scheduled own-account transfers have no store yet: the input stays empty (never invented) until one
+        // exists; safe-to-spend and the forecast then subtract only what is supplied.
+        scheduledTransfers: async () => [],
       }, { tz, rules });
       // "dispute this charge", "find me money" and an airline refund (_shared/airline_answer.ts, DOT rules from the offer
       // book): a failed read says so plainly instead of failing the whole turn.

@@ -79,6 +79,7 @@ Instinct spec series: `docs/instinct-spec-series/` (16 docs). Ownership, status 
 - Account deletion leaves nothing (megadoc Q04): every per-person Vault secret has a declared way out `node --test tests/vault-deletion.test.cjs`; every user_id table cascades and a deleted account's Gmail token leaves the Vault (`20261012060000_oauth_vault_cascade.sql`) in `bash tests/db/run.sh` (`account_deletion_sweep.test.sql`, `oauth_vault_cascade.test.sql`)
 - Export data covers everything (privacy policy): the app's `EXPORT_TABLES` equals `tests/fixtures/export-tables.json` and pages past the 1,000-row cap `node --test tests/export-coverage.test.cjs`; every table a person can read about themselves is listed or excluded with a reason in `bash tests/db/run.sh` (`export_coverage.test.sql`)
 - Everyday scams said plainly (megadoc N02/N04/N06/N08/N09/N11/N15: gift cards, locked-account links, pasted transfer-to-verify, what's my password, someone asking for a code, a stranger's payment request, a "safe account"), among the early guards: module `packages/domain/109-scam-check.js`; tests `node --test tests/depth-SCAM-CHECK.test.cjs && node evals/depth/run.cjs SCAM-CHECK`
+- Savings rate (megadoc M05): no bank or rate named; the person's own savings interest from rows, rough yearly rate: module `packages/domain/110-savings-rate.js` (money kind savingsrate); tests `node --test tests/depth-SAVINGS-RATE.test.cjs && node evals/depth/run.cjs SAVINGS-RATE`
 - Record a check: `python3 scripts/capture-checks.py <label>` writes `docs/testing/evidence-ledger.json`
 
 ## Rules

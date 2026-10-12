@@ -126,3 +126,12 @@ Deno.test("L06: a disputed spending total is rechecked from the thread's last an
   // A bare "that's wrong" with no spending answer just given goes on to the model.
   assertEquals(await moneyReply("that's wrong", now, rd([]), { tz: "America/New_York" }), null);
 });
+
+Deno.test("M05: a better savings rate names no bank or rate, through the handler's chain; no savings account is said", async () => {
+  const [k, r] = await first("find me a better savings rate");
+  assertEquals(k, "moneyReply");
+  assertMatch(r, /^I don't have a verified, dated source for today's savings rates, so I won't name banks or rates\.\nI don't see a linked savings account, so I can't say what yours earns\.\n/);
+  assertMatch(r, /Upmore doesn't open accounts, and nothing was moved\./);
+  assertMatch(r, SRC);
+  assertEquals((await first("find me a better rate"))[0], null);
+});

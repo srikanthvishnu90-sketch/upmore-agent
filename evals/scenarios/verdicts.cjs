@@ -186,6 +186,7 @@ set("N11", "BUILT", "a payment request from a stranger: don't pay it, decline in
 set("N15", "BUILT", "a 'safe account' ask is a scam: stop, nothing moved, call the bank on the card's number, report at reportfraud.ftc.gov", "tests/depth-SCAM-CHECK.test.cjs");
 set("O09", "BUILT", "answered from code: Upmore can't trade options, nothing placed (the trade flow's own refusal, now reached even when the message isn't order-shaped), the $5 cap when a size was named, and one plain risk line; no lecture, no pick", "tests/edge/direct-answers.test.ts");
 set("O03", "BUILT", "answered from rows (money kind rentshort, 106-rent-short.js): rent read from the repeating payment or asked, the cash today and the paychecks and bills before the due date, a part-now-rest-later message to the landlord, and local help (211) when still short; nothing paid or sent", "tests/depth-RENT-SHORT.test.cjs");
+set("M05", "LIMITED", "answered from rows (110-savings-rate.js): no bank or rate is named (no verified, dated rate source exists); what each linked savings account paid in interest last full month and a rough yearly rate from it, and that switching means opening an account yourself; LIMITED until a dated rate source lets it compare", "tests/depth-SAVINGS-RATE.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

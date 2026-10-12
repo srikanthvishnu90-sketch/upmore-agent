@@ -50,7 +50,7 @@ const root = path.resolve(__dirname, "../..");
 // (evals/gauntlet/standalone/run-gauntlet.cjs, made by scripts/build-standalone-gauntlet.py).
 const loadCorpus = name => (globalThis.__UPMORE_GAUNTLET_EMBED__ && globalThis.__UPMORE_GAUNTLET_EMBED__[name]) || JSON.parse(fs.readFileSync(path.join(__dirname, name), "utf8"));
 const corpus = loadCorpus("sloppy-20.json");
-const args = process.argv.slice(2), label = (args[args.indexOf("--label") + 1] || `live-${new Date().toISOString().slice(0, 10)}`).replace(/[^\w.-]/g, "_");
+const args = process.argv.slice(2), label = ((args.includes("--label") && !/^--/.test(args[args.indexOf("--label") + 1] || "") ? args[args.indexOf("--label") + 1] : "") || `live-${new Date().toISOString().slice(0, 10)}`).replace(/[^\w.-]/g, "_");
 const url = process.env.UPMORE_CHAT_URL, jwt = process.env.UPMORE_TEST_JWT;
 // SMS segment count, the same rule as packages/domain/67-agent-cards.js (copied, not imported, so this file stays live-only).
 // The digits are generated so no long digit run sits in this file (the privacy sweep reads evals/ for account-number shapes).

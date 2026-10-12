@@ -31,7 +31,7 @@ import { FinancialToolSession } from "../_shared/financial_tools.ts";
 import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/financial_planner.ts";
 import { reserveModelCall, recordModelUsage } from "../_shared/model_calls.ts";
 import { modelConfig, chatReply, plannerModel, newMeter, adminHealthSink, type TurnMeter, type HealthSink } from "../_shared/model_gateway.ts";
-import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource, hasLiveCard } from "../_shared/flow_router.ts";
+import { routeFlows, supabaseFlowDb, routeExtractor, flowErrorReply, userBroker, brokerSource, hasLiveCard, dropLiveCards } from "../_shared/flow_router.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
@@ -255,6 +255,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // counts by; a failed read or no column yet means no rules, never a guess.
     const tzRead = await supabase.from("agent_proactive_settings").select("*").eq("user_id", user.id).maybeSingle();
     const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
+    // A message answered before the flow router moves on from a live card: the card is dropped and the note says so.
+    const movedOn = async () => { try { return await dropLiveCards(supabaseFlowDb(supabase, user.id, tid), () => Date.now(), tz); } catch { return null; } };
     const rules = !tzRead.error && tzRead.data && Array.isArray(tzRead.data.category_rules) ? tzRead.data.category_rules : [];
     {
       // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so. So do
@@ -346,6 +348,9 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
+        // Answered here, so a live card in this thread is dropped and said (live gauntlet L3-01): a later yes stages nothing.
+        const dropNote = await movedOn();
+        if (dropNote) direct = `${direct}\n\n${dropNote}`;
         const saved = await supabase.from("agent_messages").insert([
           { thread_id: tid, role: "user", content: userContent },
           { thread_id: tid, role: "assistant", content: direct, meta: { capability: true, direct: true } },
@@ -402,6 +407,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     {
       const s = await settingsMessage(message, supabaseSettingsDb(supabase, user.id), Date.now());
       if (s) {
+        const dropNote = await movedOn();
+        if (dropNote) s.reply = `${s.reply}\n\n${dropNote}`;
         const saved = await supabase.from("agent_messages").insert([
           { thread_id: tid, role: "user", content: userContent },
           { thread_id: tid, role: "assistant", content: s.reply, meta: { capability: true, proactive_settings: true, changed: s.changed } },

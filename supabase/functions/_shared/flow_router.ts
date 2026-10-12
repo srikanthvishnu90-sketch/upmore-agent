@@ -307,6 +307,23 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   };
 }
 
+// A message answered before the flow router (an answer from code, a settings command) moves on from a live card the same
+// way a model answer does (CORE-009 S10): the card is dropped and the note says so, so a later "yes" stages nothing
+// (live gauntlet L3-01, go-live f2ffce9: "what's my balance" was answered and the $40 card to Sam stayed live). Null when
+// no card is live. A failed read keeps the state as it is and says nothing.
+export async function dropLiveCards(db: FlowDb, now: () => number = () => Date.now(), tz: string | null = null): Promise<string | null> {
+  const saved = await db.loadState();
+  if (!hasLiveCard(saved)) return null;
+  const data = await db.loadData();
+  if (!data.ok) return null;
+  const { recipients: _r, ...sessions } = buildSessions(data, saved, now, "in-app", null, null, tz);
+  const words = liveCardWords(sessions);
+  if (!words.length) return null;
+  for (const k of Object.keys(sessions)) if ((sessions as any)[k] && (sessions as any)[k].pending) await (sessions as any)[k].reply("never mind");
+  await db.saveState({ trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), router: (saved && saved.router) || {} });
+  return `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
+}
+
 // The model call: one forced tool call inside the existing budget reservation, through the model gateway (OpenAI or
 // Anthropic, same request). Any failure throws, and the router falls back to the regex net and marks the result source
 // "regex_net".

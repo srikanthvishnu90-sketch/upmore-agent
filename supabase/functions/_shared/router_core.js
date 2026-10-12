@@ -9327,7 +9327,10 @@
     const DROP = /^\s*(?:n|no|nope|nah|stop|cancel|never ?mind|nvm|forget it|scratch that|not now)\s*[.!?]*\s*$|\b(?:nvm|never ?mind|forget it)\s*[.!?]*\s*$/i;
     const DETAILS = /^\s*(?:3|details?|more|terms|full terms)\s*[.!?]*\s*$/i;
     const FLOW_VERB = /\b(buy|sell|cancel|split|venmo|zelle|send|pay|transfer|portfolio)\b/i;
-    const NEW_REQUEST = /^\s*(?:please\s+|pls\s+|can you\s+|could you\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|buy|sell|cancel|split|transfer|request|invest)\b\s+\S/i;
+    const NEW_REQUEST = /^\s*(?:please\s+|pls\s+|can you\s+|could you\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|buy|sell|cancel|split|transfer|request|invest|dispute|refund|report|find|show|check|track|remind|tell|help|connect|link|explain|stop|lock)\b\s+\S/i;
+    // Words that are never a rent payee's name: the live gauntlet (go-live f2ffce9, S16-17) saw "dispute this charge" read
+    // as the payee "Dispute Charge" while the rent setup question was open.
+    const NOT_A_NAME = /\b(?:dispute|charge|charges|refund|balance|spend|spent|spending|fee|fees|bill|bills|subscription|this|that|these|those|what|why|how|when|where|show|find|check|help|money|account|card|bank|budget|goal|stock|news|tell|remind|track|alert|my)\b/i;
 
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now()), st = o.state || {}, ttl = o.confirm_ttl_ms || TTL;
@@ -9533,7 +9536,7 @@
         if (asking.candidates && Rec && Rec.choose(asking.candidates, t)) return true;
         const x = parseTerms(t);
         if (x.amount_cents || x.day || x.rail || x.handle || x.rail_not_built) return true;
-        return !!x.payee && !asking.terms.payee && t.split(/\s+/).length <= 3 && !FLOW_VERB.test(t) && !/\?\s*$/.test(t);
+        return !!x.payee && !asking.terms.payee && t.split(/\s+/).length <= 3 && !FLOW_VERB.test(t) && !NOT_A_NAME.test(t) && !/\?\s*$/.test(t);
       }
       // "Landed" only when the debit posts, matched like the send flow matches a staged send.
       function landed(transactions) {

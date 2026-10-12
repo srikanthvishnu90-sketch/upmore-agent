@@ -27,4 +27,5 @@ Check: `node --test tests/depth-RENT.test.cjs && node evals/depth/run.cjs RENT`.
 | S15 | The 1st to the 28th | the 31st is asked again | `S15` in tests/depth-RENT.test.cjs | any day of the month is accepted | proven |
 | S16 | The payee after pay | pay mike on zelle names Mike | `S16` in tests/depth-RENT.test.cjs | only 'to' names the payee, so 'pay mike' asks who | proven |
 | S17 | No rent on file, said | when is rent due says no rent is set up | `S17` in tests/depth-RENT.test.cjs | a due-date question with nothing on file gets only the bare setup question | proven |
+| S18 | Another ask is not the payee | dispute this charge is not read as the payee | `S18` in tests/depth-RENT.test.cjs | any short words are taken as the payee and new asks with an amount are read as rent terms | proven |
 <!-- results:end -->

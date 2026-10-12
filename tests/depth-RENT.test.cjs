@@ -202,3 +202,8 @@ test("[S17] \"when is rent due\" with no rent on file says so before asking for 
   for (const m of ["when is rent due", "whens my rent due?", "when's the rent due"]) { const w = make(); const r = w.s.start(m); assert.equal(r.outcome, "ask", m); assert.match(r.text, /^You don't have rent set up, so I don't have its due date\. Who do you pay rent to, how much, and which day of the month\?/, m); }
   const w = make(); assert.doesNotMatch(w.s.start("pay rent").text, /due date/);
 });
+
+test("[S18] while the rent question is open, another ask is never read as the payee: \"dispute this charge\" (live gauntlet S16-17), \"show my balance\", \"dispute the $40 charge\"; a bare name still is", () => {
+  for (const m of ["dispute this charge", "show my balance", "check this charge", "what's my balance", "dispute the $40 charge", "refund my 12.99 fee", "my spending"]) { const w = make(); assert.equal(w.s.start("pay rent").outcome, "ask"); assert.equal(w.s.accepts(m), false, m); }
+  for (const m of ["Mike", "dana r", "Mike $1,450 on the 1st via Zelle"]) { const w = make(); w.s.start("pay rent"); assert.equal(w.s.accepts(m), true, m); }
+});

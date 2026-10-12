@@ -683,6 +683,14 @@
     const REQUEST_RE = /\b(for me|on my behalf|can you|could you|will you|would you|please|help me|i want (you )?to|i need (you )?to|i'd like (you )?to|i would like (you )?to|let'?s|go ahead|do it|handle|take care of|get (me|my|it) )\b/i;
     const IMPERATIVE_RE = /^(pay|schedule|track|cancel|dispute|stop|pause|write|draft|file|chase|search|find|lower|negotiate|request|ask|waive|reverse|fight|contest|send|prepare|get)\b/i;
     const EXPLAIN_RE = /^(what|what's|whats|how|why|when|where|who|which|is|are|does|do|did|should|explain|tell me about|define)\b/i;
+    // "please don't cancel my Netflix" asks for the opposite of a cancellation, and "please don't pay my rent" for the
+    // opposite of a payment: a negated request is no task ("don't forget to pay" still is). Found building the INTENTS
+    // depth packet. The negation is read per clause and only as a command (the clause opens with it): "cancel netflix, I
+    // never end up using it" and "pay my rent, don't send it early" are still the request, and "I don't pay attention to
+    // these, cancel my hulu" describes the person, it does not countermand the ask.
+    const CLAUSES = /[,.;:!?\n]+|\s+(?:but|and|so|then|also)\s+/i;
+    const NEG_CMD = /^\s*(?:(?:ok(?:ay)?|actually|wait|hey|no|nah|nvm|never ?mind|and|but|so|also|um+)\b[,\s]*)*(?:please\s+)?(?:don'?t|dont|do not|never|no need to|please not|(?:can|could|would|will) you (?:please )?not)\b(?!\s+(?:forget|fail)\b)/i;
+    const negated = (t, re) => { const hits = t.split(CLAUSES).filter(c => re.test(c)); return hits.length > 0 && hits.every(c => NEG_CMD.test(c)); };
 
     // Most specific first: the first task that matches wins.
     const TASKS = [
@@ -723,7 +731,9 @@
 
       { task: "unclaimed", re: /\b(unclaimed (money|property|funds|cash)|missing money|money (i'?m|i am) owed by the state)\b/i,
         say: "Searching for unclaimed money is free, and claiming it is too. I'll line up the official search for each state you've lived in.", button: "Start the search" },
-      { task: "cancel", re: /\b(cancel|unsubscribe|get rid of|end|stop paying for)\b/i,
+      // A payment, a transfer, an order or a trade is not a subscription: cancelling one belongs to the flow that staged
+      // it, never to a subscription cancellation (found building the INTENTS depth packet).
+      { task: "cancel", re: /\b(cancel|unsubscribe|get rid of|end|stop paying for)\b/i, not: /\b(?:cancel|stop)\s+(?:all\s+)?(?:my |the |that |this |a |an |those |these )?(?:(?:limit|stop|market|buy|sell|pending|scheduled|recurring|last|zelle|venmo|wire|bank)\s+)?(?:payments?|transfers?|sends?|orders?|trades?|zelle|venmo|wire)\b/i,
         say: "I'll set up the cancellation. You approve it before anything happens.", button: "Set up the cancellation" },
     ];
 
@@ -746,7 +756,7 @@
       for (const def of TASKS) {
         if (!def.re.test(t)) continue;
         if (def.task === "workflow" && /\b(earn|make|find|get)\b.*\b(money|cash|income)\b.*\b(to|so (i|we) can)\s+pay\b/i.test(t)) continue;
-        if (!def.always && (!asks || explains)) return null;
+        if (!def.always && (!asks || explains || negated(t, def.re) || (def.not && def.not.test(t)))) return null;
         const out = { task: def.task, kind: def.kind || null, target: null, say: def.say, button: def.button };
         if (def.task === "workflow") out.request = raw;
         if (def.task === "cancel") {

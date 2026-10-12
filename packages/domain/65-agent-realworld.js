@@ -13,6 +13,10 @@
     // Words that are a report, not evidence. Any evidence whose only content is one of these is unknown.
     const SAY_SO = /^(task )?(completed?|done|success(ful)?|ok|finished|sent|cancell?ed)\.?$/i;
     const NOT_WIRED = "NOT_WIRED";
+    // A catalog row is live only when its adapter state says live (a text such as "not live: awaiting the partner" is
+    // not), and a rail is wired only through a live adapter: a sandbox is not a rail (CLAUDE.md, everything is LIVE).
+    const isLive = s => /^live\b/i.test(String(s || "").trim());
+    const pos = v => isNum(v) && v > 0;
 
     // Which evidence fields each proof kind needs, and what they mean. A kind is a verification surface: two
     // capabilities with the same kind still prove different things because the map's proof text names the counterparty.
@@ -49,13 +53,14 @@
       const tierOf = it => it.registry.map(r => caps.get(r)).filter(Boolean).map(c => c.tier).sort().pop() || null;
 
       // The connector path: for each connector the item names, whether an adapter exists. ctx.connected lists the
-      // provider ids the user has linked; ctx.adapters maps provider id -> { state: "live" | "sandbox" | "none" }.
+      // provider ids the user has linked; ctx.adapters maps provider id -> { state: "live" | "sandbox" | "none" }. Only
+      // "live" wires; a sandbox adapter is NOT_WIRED like a missing one (found building the REALWORLD depth packet).
       function plan(id, ctx) {
         const it = get(id), c = ctx || {}, connected = new Set(c.connected || []), adapters = c.adapters || {};
         const path = it.connectors.map(p => {
           if (p.startsWith("gap:")) return { connector: p, in_catalog: false, linked: false, adapter: "none", wired: false, reason: `${p.slice(4)} is not in the connector catalog` };
-          const row = providers.get(p), a = adapters[p], state = a && a.state ? a.state : (row && /live/.test(row.adapter_state || "") ? "live" : "none");
-          return { connector: p, in_catalog: !!row, linked: connected.has(p), adapter: state, wired: connected.has(p) && state !== "none", auth: row ? row.auth_method : null, reason: !row ? "not in the catalog" : !connected.has(p) ? "not linked by the user" : state === "none" ? "adapter not built" : null };
+          const row = providers.get(p), a = adapters[p], state = a && a.state ? a.state : (row && isLive(row.adapter_state) ? "live" : "none");
+          return { connector: p, in_catalog: !!row, linked: connected.has(p), adapter: state, wired: connected.has(p) && state === "live", auth: row ? row.auth_method : null, reason: !row ? "not in the catalog" : !connected.has(p) ? "not linked by the user" : state === "none" ? "adapter not built" : state !== "live" ? `adapter is ${state}, not live` : null };
         });
         const live = path.find(p => p.wired) || null;
         const gated = it.registry.map(r => caps.get(r)).filter(c => c && c.status === "GATED").map(c => `${c.id}: ${c.gate_reason || "gated"}`);
@@ -109,7 +114,7 @@
             if (e.status === "rejected" || e.status === "cancelled") return out(false, `order ${e.status}`);
             if (e.status === "queued") { if (e.market_open === true) return out(false, "queued while the market is open"); return out(true, "queued until the open under a confirmed order id", { pending: true }); }
             if (e.status !== "filled") return out(null, `order status ${e.status}`);
-            if (!isNum(e.fill_price_cents) || !isNum(e.quantity) || !isNum(e.filled_at)) return out(false, "fill lacks price, quantity or time");
+            if (!pos(e.fill_price_cents) || !pos(e.quantity) || !isNum(e.filled_at)) return out(false, "fill lacks price, quantity or time");
             if (e.position && isNum(e.position.quantity) && e.position.quantity < e.quantity) return out(false, "position does not reflect the fill");
             return out(true, `filled ${e.quantity} at ${money(e.fill_price_cents)}`, { total_cents: Math.round(e.fill_price_cents * e.quantity) });
           }
@@ -117,12 +122,13 @@
             if (!isStr(e.order_id)) return out(null, "no order id");
             if (e.status !== "open") return out(e.status === "filled" || e.status === "expired" ? true : false, `order ${e.status}`);
             const p = e.params || {}, w = e.wanted || {};
+            if (!Object.keys(w).length) return out(null, "no requested parameters to compare the resting order to");
             for (const f of Object.keys(w)) if (p[f] !== w[f]) return out(false, `${f} rests as ${p[f]}, not ${w[f]}`);
             return out(true, "resting with the requested parameters");
           }
           case "credit_posted": {
             const r = e.credit_row; if (typeof r !== "object") return out(null, "no credit row");
-            if (!isNum(r.amount_cents) || !isNum(r.posted_at)) return out(false, "credit row lacks amount or posted time");
+            if (!pos(r.amount_cents) || !isNum(r.posted_at)) return out(false, "credit row lacks amount or posted time");
             if (r.amount_cents !== e.expected_cents) return out(false, `credit of ${money(r.amount_cents)} is not the ${money(e.expected_cents)} expected`);
             return out(true, `${money(r.amount_cents)} posted`, { total_cents: r.amount_cents, as_of: r.posted_at });
           }
@@ -135,6 +141,7 @@
           }
           case "balance_delta": {
             const f = e.from || {}, t = e.to || {}; if (![f.before, f.after, t.before, t.after].every(isNum)) return out(null, "balances not read on both sides");
+            if (!pos(e.amount_cents)) return out(false, "nothing moved");
             if (f.before - f.after !== e.amount_cents) return out(false, "source balance did not move by the amount");
             if (t.after - t.before !== e.amount_cents) return out(false, "destination balance did not move by the amount");
             return out(true, `${money(e.amount_cents)} moved, both balances agree`, { total_cents: e.amount_cents });
@@ -161,7 +168,7 @@
           case "payout_tracked": {
             if (!isStr(e.reference, 4)) return out(false, "no claim reference");
             const p = e.payout_row; if (!p) return out(false, "payout not yet posted", { pending: true });
-            if (!isNum(p.amount_cents) || !isNum(p.posted_at)) return out(false, "payout row lacks amount or posted time");
+            if (!pos(p.amount_cents) || !isNum(p.posted_at)) return out(false, "payout row lacks amount or posted time");
             return out(true, `${money(p.amount_cents)} landed`, { total_cents: p.amount_cents, as_of: p.posted_at });
           }
           case "freeze_confirmations": {
@@ -205,7 +212,7 @@
         const subsProven = dp && (rowsOf ? new Set(rowsOf.filter(r => r.bites).map(r => r.sub)).size : dp.proven);
         const proven = dp && allBite && subsProven >= dp.sub_capabilities && dp.sub_capabilities >= 15 ? [it.depth] : [];
         const logic = proven.length ? "LOGIC_PROVEN" : tested === st.length ? "LOGIC_TESTED" : tested ? "PARTLY_TESTED" : "DESIGNED";
-        const wired = it.connectors.some(p => { const row = providers.get(p); return row && /live/.test(row.adapter_state || ""); });
+        const wired = it.connectors.some(p => { const row = providers.get(p); return row && isLive(row.adapter_state); });
         const rail = wired ? "LIVE" : it.sandbox ? "SANDBOX" : NOT_WIRED;
         const gaps = it.connectors.filter(p => p.startsWith("gap:")).map(p => p.slice(4));
         // DONE is the only status that means the world changed. It needs a recorded live run (provider_mode "live", a real

@@ -5,13 +5,18 @@
        parse(text, file)        "### n.nn Title" blocks -> { id, file, title, topic, turns: [{role, text}], note, tags, has_card }
        select(examples, msg, o) the k nearest examples to the person's message (default 6), plus the safety examples that
                                 are always included (2.08 double yes, 2.09 stale yes, 5.01 provider outage, 5.04 unknown send
-                                state). Lexical TF-IDF over the example's user turns and title, with tag boosts; free,
+                                state). Never an example in RULED_OUT (one that breaks a standing owner rule).
+                                Lexical TF-IDF over the example's user turns and title, with tag boosts; free,
                                 deterministic and testable offline (no embedding call per message).
        render(selected)         the system-prompt block: the hard rules first, then the examples.
      The corpus is fiction (names, handles, balances); placeholders like [price from tool] are never filled in by the
      model. Capabilities shown in an example may not exist for this person; the hard rules say so. */
   const StyleCorpus = (() => {
     const SAFETY = ["2.08", "2.09", "5.01", "5.04"];
+    // Examples that break a standing owner rule never reach a prompt, whatever the message: 5.14 asks the person to text
+    // a one-time code ("One-time codes OK in chat"), while the agent never asks for a password, code or card in chat
+    // (CLAUDE.md, secrets never travel through chat, 2026-10-11). Found building the STYLE-CORPUS depth packet.
+    const RULED_OUT = ["5.14"];
     const HARD_RULES = [
       "HARD RULES (they outrank every example below):",
       "- Never invent balances, prices, fills, statuses, merchant names or confirmation numbers. They come from a tool result in this turn; otherwise say what is unknown.",
@@ -20,6 +25,7 @@
       "- Never retry a money move whose state is unknown; say what is known and what to check.",
       "- Only say an action happened when a tool result says it did. The examples show capabilities this person may not have; say plainly when something isn't available.",
       "- Placeholders like [price from tool] are filled only from a tool result, never by you.",
+      "- Never ask for a password, a one-time code, a PIN or a card or account number in chat. Sign-ins happen on the company's own page; anything else sensitive goes on the secure link.",
     ].join("\n");
     const HEADER = "STYLE EXAMPLES: copy the mannerisms, not the words. The names, handles, accounts and amounts in them are fictional.";
 
@@ -86,14 +92,14 @@
         const cos = dot / (q.n * ix.vecs[i].n), tagHits = e.tags.filter(t => qt.has(t)).length;
         return { e, score: cos + 0.08 * tagHits };
       }).sort((a, b) => b.score - a.score || (a.e.id < b.e.id ? -1 : 1));
-      const picked = scored.filter(s => !always.includes(s.e.id) && s.score > 0).slice(0, k).map(s => s.e);
-      const safety = always.map(id => examples.find(e => e.id === id)).filter(Boolean);
+      const picked = scored.filter(s => !always.includes(s.e.id) && !RULED_OUT.includes(s.e.id) && s.score > 0).slice(0, k).map(s => s.e);
+      const safety = always.filter(id => !RULED_OUT.includes(id)).map(id => examples.find(e => e.id === id)).filter(Boolean);
       return picked.concat(safety);
     }
     function render(selected) {
       const ex = selected.map(e => [`### ${e.id} ${e.title}`].concat(e.turns.map(t => t.role === "user" ? `U: ${t.text}` : t.role === "assistant" ? `A: ${t.text}` : `(${t.text})`), e.note ? [`NOTE: ${e.note}`] : []).join("\n"));
       return [HARD_RULES, "", HEADER].concat(ex.map(x => "\n" + x)).join("\n");
     }
-    return { SAFETY, HARD_RULES, HEADER, parse, select, render, tokens, tagsOf };
+    return { SAFETY, RULED_OUT, HARD_RULES, HEADER, parse, select, render, tokens, tagsOf };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = StyleCorpus;

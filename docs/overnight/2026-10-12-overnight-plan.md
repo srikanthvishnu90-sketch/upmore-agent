@@ -133,7 +133,7 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
   time zone), currency never mixed, for money answers, rent and every Block C-F module.
 - [x] **G3. Injection sweep.** (found: merchant text echoed in Upmore's voice; fixed at the source) Merchant names, email bodies and receipts carrying instructions run through each new
   detector; nothing they say becomes an action (data guard, adversarial set extended).
-- [ ] **G4. Mutation coverage report.** Each new module listed with its planted defects and the test that catches each.
+- [x] **G4. Mutation coverage report.** Each new module listed with its planted defects and the test that catches each.
 - [x] **G5. Go-live readiness.** (the pending ledger globs every migration; go-live deploys manual-connect) `go-live.sh` and the pending-migration ledger include every new migration and function
   (manual_connections, standing_payments, nicknames, manual-connect); the go-live test pins them. The owner's one
   command still does everything.

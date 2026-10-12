@@ -23,6 +23,7 @@ jobs:
           node scripts/build-connector-matrix.cjs --check
           node scripts/build-teardowns.cjs --check
           node scripts/build-methods.cjs --check
+          node scripts/build-mutation-report.cjs --check
           python3 scripts/build-standalone-gauntlet.py --check
           node evals/parity/build-matrix.cjs --check
           node scripts/realworld-audit.cjs --check

@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T12:02:06.916Z",
+ "run_at": "2026-10-12T13:51:15.726Z",
  "baseline_all_green": true,
- "sub_capabilities": 22,
- "proven": 22,
+ "sub_capabilities": 24,
+ "proven": 24,
  "problems": [],
  "rows": [
   {
@@ -53,7 +53,9 @@
    "test": "the card names the quote, its source and its time",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S24"
+   ],
    "status": "proven"
   },
   {
@@ -171,7 +173,8 @@
     "S11",
     "S12",
     "S13",
-    "S16"
+    "S16",
+    "S24"
    ],
    "status": "proven"
   },
@@ -258,6 +261,30 @@
    "title": "A sale is never carded \"No fee.\"",
    "defect": "the adapter stops declaring Alpaca's pass-through sale fees, so a sale is carded \"No fee.\"",
    "test": "an Alpaca sell card says SEC and FINRA fees come out",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S24"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23",
+   "title": "A restricted account is said before any card",
+   "defect": "the adapter stops reading the restriction, so a blocked account is carded and the broker refuses the order after the yes",
+   "test": "Alpaca's restriction flags and a non-ACTIVE status refuse with the source and time, nothing staged",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S24",
+   "id": "D24",
+   "title": "A timing Upmore can't see is named first",
+   "defect": "the situation note is dropped, so the flow asks the size as if the timing had been understood",
+   "test": "'sell my NVDA before earnings' says Upmore has no earnings dates before asking the size",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -9,7 +9,7 @@
        GET    /v2/orders:by_client_order_id      reconcile a write whose response was lost (returns the order object)
        PATCH  /v2/orders/{order_id}              replace (returns a new order with a new id)
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
-       GET    /v2/account                        getAccount: id, status, buying power, cash (strings)
+       GET    /v2/account                        getAccount: id, status, restriction flags, buying power, cash (strings)
        GET    /v2/positions[/{symbol}]           getPositions (404 = none)
        GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
        GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
@@ -171,7 +171,11 @@
       async function account() {
         const r = await call("GET", P("/account"), null, "account"); const j = r.json || {}; checkOwner(j.id);
         // Buying power rounds down to the cent: never claim a fraction of a cent the account does not have.
-        return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
+        // A restriction is read from the account itself: Alpaca's flags (trading_blocked: no orders; account_blocked: no
+        // orders or transfers; trade_suspended_by_user: the account's own no-trading setting) or a status other than
+        // ACTIVE. Said before a card is drawn, never found out from a refused order (megadoc F15).
+        const restriction = [j.account_blocked === true && "blocked for trades and transfers", j.trading_blocked === true && j.account_blocked !== true && "blocked from trading", j.trade_suspended_by_user === true && "set not to trade (the account's own setting)", j.status && j.status !== "ACTIVE" && `not active (status ${String(j.status).slice(0, 40)})`].filter(Boolean).join(" and ") || null;
+        return { value: { id: c.account_id, status: j.status || null, restriction, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
       async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
       // The broker's list of active US equities, for a buy named by company ("buy $3 of palantir"). One request per adapter
@@ -259,7 +263,7 @@
         // Alpaca charges no commission it can quote here, but passes the SEC and FINRA fees on every sale through to the
         // account, rounded up to the cent on the day's total (docs.alpaca.markets/docs/regulatory-fees, checked 2026-10-12):
         // a sell card says so instead of "No fee." (sale_fees).
-        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
+        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: !a.value.restriction, restriction: a.value.restriction || null }], source: a.source, as_of: a.as_of }; }
         if (kind === "quote") return adapter.quote(q.symbol, q.side || "buy");
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);

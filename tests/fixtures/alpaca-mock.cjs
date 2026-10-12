@@ -15,6 +15,9 @@ function start(opts) {
     key: o.key || "PKMOCKKEY", secret: o.secret || "mock-secret-value", account: o.account || "acct-paper-1",
     now: o.now || (() => Date.now()), is_open: o.is_open !== undefined ? o.is_open : true, next_open: o.next_open || "2026-10-13T09:30:00-04:00",
     buying_power_cents: o.buying_power_cents !== undefined ? o.buying_power_cents : 1000000,
+    // The account's status and its restriction flags (trading_blocked, account_blocked, trade_suspended_by_user), as the
+    // Trading API's account object carries them; any flag true and the mock refuses orders the way the broker does.
+    status: o.status || "ACTIVE", flags: Object.assign({}, o.flags || {}),
     positions: Object.assign({}, o.positions || {}), // SYMBOL -> qty (number)
     quotes: {}, assets: Object.assign({ VOO: { name: "Vanguard S&P 500 ETF", fractionable: true, tradable: true }, VT: { name: "Vanguard Total World Stock ETF", fractionable: true, tradable: true }, NVDA: { name: "NVIDIA Corporation Common Stock", fractionable: true, tradable: true }, TSLA: { name: "Tesla, Inc. Common Stock", fractionable: true, tradable: true }, AAPL: { name: "Apple Inc. Common Stock", fractionable: true, tradable: true } }, o.assets || {}),
     orders: [], requests: [], tokens: Object.assign({}, o.tokens || {}), faults: { drop_next_create_response: false, fail_next_create: null, partial_next: null, reject_next: null, cancel_pending: false },
@@ -110,12 +113,13 @@ function start(opts) {
         ac = accts[tokenAccount]; sub = path.slice(3); trading = true;
       } else return send(res, 404, { message: "not found" });
       st.requests[st.requests.length - 1].account = ac.account;
-      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: "ACTIVE", currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents) });
+      if (req.method === "GET" && sub === "/account") return send(res, 200, { id: ac.account, account_number: "PA0000000", status: ac.status || "ACTIVE", trading_blocked: false, account_blocked: false, trade_suspended_by_user: false, ...(ac.flags || {}), currency: "USD", buying_power: str(ac.buying_power_cents) + "7311", cash: str(ac.buying_power_cents), portfolio_value: str(ac.buying_power_cents) });
       if (req.method === "GET" && sub === "/positions") return send(res, 200, Object.entries(ac.positions).map(([s, q]) => pos(s, q)));
       if (req.method === "GET" && (m = /^\/positions\/([^/]+)$/.exec(sub))) { const s = decodeURIComponent(m[1]); return ac.positions[s] ? send(res, 200, pos(s, ac.positions[s])) : send(res, 404, { code: 40410000, message: "position does not exist" }); }
       if (req.method === "POST" && sub === "/orders") {
         if (st.faults.fail_next_create) { const f = st.faults.fail_next_create; st.faults.fail_next_create = null; return send(res, f, { message: "internal error" }); }
         if (st.faults.reject_next) { const f = st.faults.reject_next; st.faults.reject_next = null; return send(res, f.status, { code: 0, message: f.message }); }
+        if (ac.flags && (ac.flags.trading_blocked || ac.flags.account_blocked || ac.flags.trade_suspended_by_user)) return send(res, 403, { code: 40310000, message: "account is not allowed to trade" });
         const err = validate(body || {}); if (err) return send(res, 422, { code: 42210000, message: err });
         const q = st.quotes[body.symbol], qty = body.qty !== undefined ? Number(body.qty) : null, notional = body.notional !== undefined ? cents(body.notional) : null;
         if (body.side === "buy") { const px = body.type === "limit" || body.type === "stop_limit" ? cents(body.limit_price) : body.type === "stop" ? Math.max(cents(body.stop_price), q.ask) : q.ask; const est = notional || Math.round(qty * px); if (est > ac.buying_power_cents) return send(res, 403, { code: 40310000, message: "insufficient buying power" }); }

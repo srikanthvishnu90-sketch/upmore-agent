@@ -771,7 +771,7 @@
    "typed": "sell my NVDA before earnings",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "How much of NVDA: shares, dollars, or a part like half?",
+   "reply": "Upmore doesn't track earnings dates, so it won't time this: the order goes in when you say yes, or at the next open if the market's closed. How much of NVDA: shares, dollars, or a part like half?",
    "executed": false,
    "mock_orders": 0
   },
@@ -879,7 +879,7 @@
    "typed": "buy during halt",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "Which ticker?",
+   "reply": "Upmore can't see trading halts: an order sent during one can't fill until trading resumes, and can then fill far from the last price. Which ticker?",
    "executed": false,
    "mock_orders": 0
   },

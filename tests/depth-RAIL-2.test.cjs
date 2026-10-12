@@ -274,6 +274,30 @@ test('[S22] a sale is never carded "No fee.": Alpaca passes SEC and FINRA fees t
   assert.equal(posts(w.m).length,0);
 });
 
+test('[S23] a restricted account is said before any card, with its source and time: Alpaca\'s trading_blocked, account_blocked and the account\'s own no-trading setting, and a status other than ACTIVE; nothing is staged or sent',async()=>{
+  for(const [mock,words] of [[{flags:{trading_blocked:true}},'blocked from trading'],[{flags:{account_blocked:true,trading_blocked:true}},'blocked for trades and transfers'],[{flags:{trade_suspended_by_user:true}},"set not to trade \\(the account's own setting\\)"],[{status:'SUBMITTED'},'not active \\(status SUBMITTED\\)']]){
+    const w=await world({mock,});
+    const a=await w.s.start('buy $4 of VOO');assert.equal(a.outcome,'refuse',JSON.stringify(mock));assert.equal(a.reason,'account_restricted');
+    assert.match(a.text,new RegExp('^Your Alpaca account is '+words+', per Alpaca mock server, as of \\d\\d:\\d\\d UTC, so it won\'t take an order\\. Nothing was placed\\.'));
+    const b=await w.s.start('sell 1 share of AAPL');assert.equal(b.reason,'account_restricted','a sell is refused the same way');
+    assert.equal(w.s.pending,null);assert.equal(posts(w.m).length,0);
+  }
+  const ok=await world({mock:{flags:{transfers_blocked:true}}});
+  assert.equal((await ok.s.start('buy $4 of VOO')).outcome,'confirm','transfers blocked alone still trades');
+});
+
+test('[S24] a timing Upmore cannot see (earnings, a halt) is named ahead of the first question, never used to time an order; plain asks and cards are unchanged',async()=>{
+  const w=await world({mock:{positions:{NVDA:3}}});
+  const a=await w.s.start('sell my NVDA before earnings');assert.equal(a.outcome,'ask');
+  assert.match(a.text,/^Upmore doesn't track earnings dates, so it won't time this: the order goes in when you say yes, or at the next open if the market's closed\. How much of NVDA: shares, dollars, or a part like half\?$/);
+  const h=await w.s.start('buy during halt');assert.equal(h.outcome,'ask');assert.match(h.text,/^Upmore can't see trading halts: an order sent during one can't fill until trading resumes, and can then fill far from the last price\. Which ticker\?$/);
+  const n=await w.s.start('buy NVDA after the earnings call');assert.match(n.text,/^Upmore doesn't track earnings dates.* How much of NVDA: dollars or shares\?$/);
+  const p=await w.s.start('sell my NVDA');assert.equal(p.text,'How much of NVDA: shares, dollars, or a part like half?','no note without the situation');
+  const c=await w.s.start('sell 1 share of NVDA before earnings');assert.equal(c.outcome,'confirm','a full order is carded as usual');assert.doesNotMatch(c.text,/earnings/,'the card stays two segments; it queues or executes by the broker clock');assert.match(c.text,/^LIVE: Sell 1 share of NVDA,/);
+  await w.s.reply('no');assert.equal(posts(w.m).length,0);
+  const G=vm.runInContext('AdviceGuard',ctx);for(const x of [a,h])assert.equal(G.response(x.text).ok,true,'the note passes the advice lint');
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

@@ -4390,7 +4390,7 @@
       let fraction = null;
       if (side === "sell") { const f = /\b(half|all|everything|entire|whole position|a third|one third|a quarter|one quarter)\b|\b(\d{1,3})\s*%\s*of\b/i.exec(rest); if (f) fraction = f[2] ? Number(f[2]) / 100 : { half: 0.5, all: 1, everything: 1, entire: 1, "whole position": 1, "a third": 1 / 3, "one third": 1 / 3, "a quarter": 0.25, "one quarter": 0.25 }[f[1].toLowerCase()]; if (protect && !fraction && !amount.quantity && !amount.notional_cents && !amount.ambiguous) fraction = 1; }
       let query = null;
-      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
+      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop|before|after|ahead|during|around|while|when|once)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
       if (of) query = of[1].trim();
       else if (amount.symbol_hint) query = amount.symbol_hint;
       else { const up = /\b([A-Z]{1,5}(?:\.[A-Z])?)(?![\w.])(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
@@ -4582,9 +4582,17 @@
       const gone = () => typeof conn.auth_failed === "function" && conn.auth_failed() === true;
       const BAx = typeof BrokerAccounts !== "undefined" ? BrokerAccounts : typeof require === "function" ? require("./73-broker-accounts.js") : null;
       const RECONNECT = BAx ? BAx.MESSAGES.reconnect("brokerage") : "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
+      // A timing Upmore can't see, named by the person (megadoc E26, F12): no earnings calendar and no halt feed, so it
+      // never times an order around either. Said ahead of the first question, so the person knows before answering it.
+      const SITUATION = [
+        [/\b(?:before|ahead of|after|into|over|around)\s+(?:the\s+|its\s+|their\s+|next\s+)?earnings\b|\bearnings (?:call|report|date|day)\b/i, "Upmore doesn't track earnings dates, so it won't time this: the order goes in when you say yes, or at the next open if the market's closed. "],
+        [/\bhalt(?:ed|s)?\b|\btrading (?:is )?(?:paused|suspended|stopped)\b/i, "Upmore can't see trading halts: an order sent during one can't fill until trading resumes, and can then fill far from the last price. "],
+      ];
       async function stage(parsed) {
         const r = await stageOnce(parsed);
         if (r && gone() && READ_FAILS.includes(r.reason)) { pending = null; return say("blocked", RECONNECT, { reason: "broker_reconnect" }); }
+        const situ = r && r.outcome === "ask" ? SITUATION.find(([re]) => re.test(parsed.text || "")) : null;
+        if (situ) return Object.assign({}, r, { text: situ[1] + r.text, situation: true });
         return r;
       }
       async function stageOnce(parsed) {
@@ -4665,6 +4673,9 @@
         else if (!linked.length) return ask("no_account", "No brokerage account is linked, so there is nowhere to place this.");
         else return ask("account_which", `Which account: ${linked.map(a => a.name).join(" or ")}?`);
         if (account.paper === true) return say("refuse", "That account is a paper (practice) account. Upmore trades only in your own live brokerage account, so nothing was placed.", { reason: "paper_account" });
+        // A restriction the broker reports on the account (blocked, the account's own no-trading setting, not active) is
+        // said with its source and time before any card; a read-only connection stays "view-only".
+        if (account.tradable === false && account.restriction) return say("refuse", `${account.name} is ${account.restriction}, per ${accts.source}, as of ${hhmm(accts.as_of)}, so it won't take an order. Nothing was placed. The broker's own app or support can say why and what clears it.`, { reason: "account_restricted" });
         if (account.tradable === false) return say("refuse", `${account.name} is view-only here; orders can't be placed in it.`, { reason: "account_view_only" });
         // A sell by company name: exactly one of the person's holdings matches, or the person is asked, never guessed for.
         if (sellByName) {
@@ -6298,7 +6309,7 @@
        GET    /v2/orders:by_client_order_id      reconcile a write whose response was lost (returns the order object)
        PATCH  /v2/orders/{order_id}              replace (returns a new order with a new id)
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
-       GET    /v2/account                        getAccount: id, status, buying power, cash (strings)
+       GET    /v2/account                        getAccount: id, status, restriction flags, buying power, cash (strings)
        GET    /v2/positions[/{symbol}]           getPositions (404 = none)
        GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
        GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
@@ -6460,7 +6471,11 @@
       async function account() {
         const r = await call("GET", P("/account"), null, "account"); const j = r.json || {}; checkOwner(j.id);
         // Buying power rounds down to the cent: never claim a fraction of a cent the account does not have.
-        return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
+        // A restriction is read from the account itself: Alpaca's flags (trading_blocked: no orders; account_blocked: no
+        // orders or transfers; trade_suspended_by_user: the account's own no-trading setting) or a status other than
+        // ACTIVE. Said before a card is drawn, never found out from a refused order (megadoc F15).
+        const restriction = [j.account_blocked === true && "blocked for trades and transfers", j.trading_blocked === true && j.account_blocked !== true && "blocked from trading", j.trade_suspended_by_user === true && "set not to trade (the account's own setting)", j.status && j.status !== "ACTIVE" && `not active (status ${String(j.status).slice(0, 40)})`].filter(Boolean).join(" and ") || null;
+        return { value: { id: c.account_id, status: j.status || null, restriction, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
       async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
       // The broker's list of active US equities, for a buy named by company ("buy $3 of palantir"). One request per adapter
@@ -6548,7 +6563,7 @@
         // Alpaca charges no commission it can quote here, but passes the SEC and FINRA fees on every sale through to the
         // account, rounded up to the cent on the day's total (docs.alpaca.markets/docs/regulatory-fees, checked 2026-10-12):
         // a sell card says so instead of "No fee." (sale_fees).
-        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: a.value.status === null || a.value.status === "ACTIVE" }], source: a.source, as_of: a.as_of }; }
+        if (kind === "brokerage_accounts") { const a = await adapter.account(); return { value: [{ id: adapter.account_id, name, paper: false, live: true, order_cap_cents: adapter.order_cap_cents, mock: adapter.mock, fractional: true, cash_cents: a.value.buying_power_cents, fee_cents: 0, sale_fees: "regulatory", tradable: !a.value.restriction, restriction: a.value.restriction || null }], source: a.source, as_of: a.as_of }; }
         if (kind === "quote") return adapter.quote(q.symbol, q.side || "buy");
         if (kind === "market_clock") { const k = await adapter.marketClock(); return { value: k, source: k.source, as_of: k.as_of }; }
         if (kind === "position") return adapter.position(q.symbol);

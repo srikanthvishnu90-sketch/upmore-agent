@@ -111,7 +111,7 @@
       let fraction = null;
       if (side === "sell") { const f = /\b(half|all|everything|entire|whole position|a third|one third|a quarter|one quarter)\b|\b(\d{1,3})\s*%\s*of\b/i.exec(rest); if (f) fraction = f[2] ? Number(f[2]) / 100 : { half: 0.5, all: 1, everything: 1, entire: 1, "whole position": 1, "a third": 1 / 3, "one third": 1 / 3, "a quarter": 0.25, "one quarter": 0.25 }[f[1].toLowerCase()]; if (protect && !fraction && !amount.quantity && !amount.notional_cents && !amount.ambiguous) fraction = 1; }
       let query = null;
-      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
+      const of = /\b(?:of|in(?:to)?)\s+(?!my\b|cash\b|savings\b|checking\b)([A-Za-z][A-Za-z0-9.&' -]{0,40}?)(?=\s+(?:in|from|using|at|now|please|and|today|tomorrow|if|with|for|good|gtc|until|till|limit|stop|before|after|ahead|during|around|while|when|once)\b|\s*[,.!?](?=\s|$)|$)/i.exec(rest.replace(/\b(shares?|units?|dollars)\s+of\b/i, "of"));
       if (of) query = of[1].trim();
       else if (amount.symbol_hint) query = amount.symbol_hint;
       else { const up = /\b([A-Z]{1,5}(?:\.[A-Z])?)(?![\w.])(?!\s*\$)/.exec(rest.replace(DOLLARS, " ").replace(/\b(ETF|USD|IRA|ROTH|ET|AM|PM|GTC)\b/g, " ")); if (up) query = up[1]; }
@@ -303,9 +303,17 @@
       const gone = () => typeof conn.auth_failed === "function" && conn.auth_failed() === true;
       const BAx = typeof BrokerAccounts !== "undefined" ? BrokerAccounts : typeof require === "function" ? require("./73-broker-accounts.js") : null;
       const RECONNECT = BAx ? BAx.MESSAGES.reconnect("brokerage") : "Your brokerage connection was revoked or has expired, so nothing was placed. Reconnect it in Settings > Brokerage.";
+      // A timing Upmore can't see, named by the person (megadoc E26, F12): no earnings calendar and no halt feed, so it
+      // never times an order around either. Said ahead of the first question, so the person knows before answering it.
+      const SITUATION = [
+        [/\b(?:before|ahead of|after|into|over|around)\s+(?:the\s+|its\s+|their\s+|next\s+)?earnings\b|\bearnings (?:call|report|date|day)\b/i, "Upmore doesn't track earnings dates, so it won't time this: the order goes in when you say yes, or at the next open if the market's closed. "],
+        [/\bhalt(?:ed|s)?\b|\btrading (?:is )?(?:paused|suspended|stopped)\b/i, "Upmore can't see trading halts: an order sent during one can't fill until trading resumes, and can then fill far from the last price. "],
+      ];
       async function stage(parsed) {
         const r = await stageOnce(parsed);
         if (r && gone() && READ_FAILS.includes(r.reason)) { pending = null; return say("blocked", RECONNECT, { reason: "broker_reconnect" }); }
+        const situ = r && r.outcome === "ask" ? SITUATION.find(([re]) => re.test(parsed.text || "")) : null;
+        if (situ) return Object.assign({}, r, { text: situ[1] + r.text, situation: true });
         return r;
       }
       async function stageOnce(parsed) {
@@ -386,6 +394,9 @@
         else if (!linked.length) return ask("no_account", "No brokerage account is linked, so there is nowhere to place this.");
         else return ask("account_which", `Which account: ${linked.map(a => a.name).join(" or ")}?`);
         if (account.paper === true) return say("refuse", "That account is a paper (practice) account. Upmore trades only in your own live brokerage account, so nothing was placed.", { reason: "paper_account" });
+        // A restriction the broker reports on the account (blocked, the account's own no-trading setting, not active) is
+        // said with its source and time before any card; a read-only connection stays "view-only".
+        if (account.tradable === false && account.restriction) return say("refuse", `${account.name} is ${account.restriction}, per ${accts.source}, as of ${hhmm(accts.as_of)}, so it won't take an order. Nothing was placed. The broker's own app or support can say why and what clears it.`, { reason: "account_restricted" });
         if (account.tradable === false) return say("refuse", `${account.name} is view-only here; orders can't be placed in it.`, { reason: "account_view_only" });
         // A sell by company name: exactly one of the person's holdings matches, or the person is asked, never guessed for.
         if (sellByName) {

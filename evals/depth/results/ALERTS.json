@@ -1,0 +1,181 @@
+{
+ "capability": "ALERTS",
+ "run_at": "2026-10-12T05:58:36.946Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 15,
+ "proven": 15,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Quiet hours across midnight",
+   "defect": "the end hour itself still counts as quiet",
+   "test": "7:30 a.m. is no longer quiet",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S02"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "The person's own clock",
+   "defect": "the UTC hour is used as the person's hour",
+   "test": "03:00 UTC is 8 p.m. in Los Angeles",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S01"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "A fee alert is for a fee",
+   "defect": "the fee rule matches letters inside words, so ATM cash is a fee (the bug found building the LEDGER packet)",
+   "test": "an ATM withdrawal fires no fee alert",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "Safety at once, the rest in the morning",
+   "defect": "safety is held with everything else",
+   "test": "a fraud shape at 11 p.m. goes out now",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S14"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Watches come through quiet hours",
+   "defect": "a watch is held like any finding (the bug found building this packet)",
+   "test": "a balance watch at 11 p.m. is delivered",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "Held until 7 a.m. local",
+   "defect": "the end hour is taken as UTC",
+   "test": "held until 11:00 UTC in New York",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "Watches are never bundled",
+   "defect": "a watch is folded into the bundle",
+   "test": "a watch stays its own message beside a bundle",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Two are said one by one",
+   "defect": "two items make a bundle",
+   "test": "two ordinary items are not bundled",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "The exact number",
+   "defect": "the thousands comma is not removed",
+   "test": "$1,250.50 is 125050 cents",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Refused, never guessed",
+   "defect": "'go below' is read as a balance falling",
+   "test": "'gas prices go below $3' is not a balance watch",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "Available, not the books",
+   "defect": "the watch compares the ledger balance",
+   "test": "$600 with $400 available is below $500",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Today's charges only",
+   "defect": "every charge in the rows is read",
+   "test": "yesterday's $640 does not fire today",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "Usual needs five past charges",
+   "defect": "one past charge sets the usual",
+   "test": "two $15 dinners do not make $60 large",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "Three first-time merchants is safety",
+   "defect": "four are needed",
+   "test": "three new shops in a day go out as safety",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "The person's buffer",
+   "defect": "the default $100 buffer is always used",
+   "test": "under a $500 buffer on Oct 15",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  }
+ ]
+}

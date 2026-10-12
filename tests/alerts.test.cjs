@@ -1,5 +1,5 @@
 // Instinct spec doc 02 ALRT-001..012: today's rows and connector events become alerts with evidence and a reason; the user's own watches are
-// parsed from their words and evaluated the same way; quiet hours hold everything but safety; a busy day is one bundle; the proactive feed carries it all.
+// parsed from their words and evaluated the same way; quiet hours hold everything but safety and the person's own watches; a busy day is one bundle; the proactive feed carries it all.
 // Check: node --test tests/alerts.test.cjs
 const {test}=require('node:test');
 const assert=require('node:assert/strict');

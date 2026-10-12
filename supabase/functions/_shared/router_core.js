@@ -251,14 +251,16 @@
         if (extra < 1) return;
         const age = daysBetween(g[0].date, input.today);
         if (age === null || age > 60) return;
+        // Day 45 while it is still ahead; past it, the window's own close, so the date said is never one already gone.
+        const late = age > 45, by = addDays(g[0].date, late ? 60 : 45);
         out.push({
           key: `duplicate_charge:${g[0].key}:${g[0].date}:${each.toFixed(2)}`,
           kind: "duplicate_charge", capabilityId: "recovery.duplicate_charge_dispute",
           title: `${g[0].merchant} charged you ${g.length} times on ${g[0].date}`,
-          detail: `${g.length} charges of ${usd(each)} on the same day${refunds ? `, ${refunds} already refunded` : ""}. If ${extra === 1 ? "one is" : extra + " are"} a mistake, that is ${usd(each * extra)} to get back. Dispute by ${addDays(g[0].date, 45)}.`,
-          counterparty: g[0].merchant, amount: cents(each * extra), dueOn: addDays(g[0].date, 45),
+          detail: `${g.length} charges of ${usd(each)} on the same day${refunds ? `, ${refunds} already refunded` : ""}. If ${extra === 1 ? "one is" : extra + " are"} a mistake, that is ${usd(each * extra)} to get back. Dispute by ${by}${late ? ", when the dispute window closes" : ""}.`,
+          counterparty: g[0].merchant, amount: cents(each * extra), dueOn: by,
           evidence: { rule: "Same merchant, same amount, same day, same account, not already refunded.",
-            rows: g.map(proof), computed: { charges: g.length, refunds_seen: refunds, disputed_amount: cents(each * extra), dispute_by: addDays(g[0].date, 45), window_closes: addDays(g[0].date, 60) } },
+            rows: g.map(proof), computed: { charges: g.length, refunds_seen: refunds, disputed_amount: cents(each * extra), dispute_by: by, window_closes: addDays(g[0].date, 60) } },
         });
       });
       return out;
@@ -2246,10 +2248,12 @@
         if (prev.some(p => Math.abs(p - was) > Math.max(divRound(was * 2, 100), 25))) continue;
         const up = now - was;
         if (up < 50 || now * 100 <= was * 105 || days(last.date, input.today) > 45) continue;
-        out.push(opp("P1_subscription", `price_increase:${last.merchant}`, { title: `${last.merchant} went up ${money(up)} a month`, capability_id: "BILL-002", tier: "T3",
-          expected_monthly_cents: up, confidence: "high", merchant: last.merchant,
+        // The rise is per charge; a month holds 52/12 weekly charges and 1/12 of a yearly one, so it is said at its cadence.
+        const upMonthly = divRound(up * PER_YEAR[cluster.interval], 12), per = { weekly: "a week", biweekly: "every two weeks", monthly: "a month", quarterly: "a quarter", yearly: "a year" }[cluster.interval];
+        out.push(opp("P1_subscription", `price_increase:${last.merchant}`, { title: `${last.merchant} went up ${money(up)} ${per}`, capability_id: "BILL-002", tier: "T3",
+          expected_monthly_cents: upMonthly, confidence: "high", merchant: last.merchant,
           action: { type: "cancel_or_downgrade", capability_id: "BILL-003", note: "The delta is the surfaced number; the saving depends on the user's choice." },
-          evidence: { rule: "Latest charge at least 5 percent and $0.50 above a steady earlier price.", rows: before.concat([last]).map(t => ({ id: t.id, date: t.date, amount: t.amount, merchant: t.merchant })), computed: { previous_cents: was, new_cents: now, increase_cents: up } },
+          evidence: { rule: "Latest charge at least 5 percent and $0.50 above a steady earlier price.", rows: before.concat([last]).map(t => ({ id: t.id, date: t.date, amount: t.amount, merchant: t.merchant })), computed: { previous_cents: was, new_cents: now, increase_cents: up, interval: cluster.interval, monthly_increase_cents: upMonthly } },
           verify: { how: "next charge at or below the previous price, or cancel confirmed" } }));
         // The inventory carries the merchant at its new price, dated from the latest charge.
         const next = cluster.interval === "monthly" ? M.addMonths(last.date, 1) : cluster.interval === "quarterly" ? M.addMonths(last.date, 3) : cluster.interval === "yearly" ? M.addMonths(last.date, 12) : M.addDays(last.date, { weekly: 7, biweekly: 14 }[cluster.interval]);
@@ -2964,10 +2968,15 @@
 
     // TXN-003/004: merchant normalization and categorization with user rules that always win over the defaults.
     const DISPLAY = [[/\bamzn\b|amazon/, "Amazon"], [/\bsq \*|square\b/, "Square merchant"], [/\btst\*|toast\b/, "Toast restaurant"], [/\bwholefds|whole foods/, "Whole Foods"], [/\btrader joe/, "Trader Joe's"], [/\bcostco/, "Costco"], [/\bkroger/, "Kroger"], [/\bstarbucks/, "Starbucks"], [/\buber\b(?! ?eats)/, "Uber"], [/\buber ?eats|doordash|grubhub/, "Food delivery"], [/\bnetflix/, "Netflix"], [/\bspotify/, "Spotify"], [/\bapple\.com\/bill|apple com bill/, "Apple"], [/\bgoogle \*?one|google one/, "Google One"], [/\bpayroll|direct dep|dir dep/, "Payroll"], [/\bvenmo/, "Venmo"], [/\bzelle/, "Zelle"], [/\bshell|chevron|exxon|bp\b/, "Fuel"], [/\bcomcast|xfinity/, "Comcast Xfinity"]];
-    const CATEGORY_RULES = [["income", /payroll|direct dep|dir dep|salary|deposit from employer/], ["transfers", /transfer|zelle|venmo|cash app|paypal/], ["housing", /rent|mortgage|property mgmt|hoa/], ["utilities", /electric|power|gas co|water|comcast|xfinity|verizon|at&t|t-mobile|internet|mobile/], ["subscriptions", /netflix|spotify|hulu|disney|apple\.com\/bill|apple com bill|google \*?one|microsoft|adobe|prime|peloton|nytimes|planet fit/], ["groceries", /trader joe|kroger|costco|wholefds|whole foods|safeway|aldi|grocery|market/], ["dining", /starbucks|chipotle|restaurant|cafe|coffee|doordash|uber ?eats|grubhub|tst\*|pizza|burger/], ["transport", /uber(?! ?eats)|lyft|shell|chevron|exxon|parking|transit|metro|fuel/], ["fees", /fee|overdraft|nsf|atm/], ["health", /pharmacy|cvs|walgreens|clinic|dental|doctor|hospital/], ["insurance", /insurance|geico|state farm|allstate|progressive/], ["debt_payment", /loan payment|nelnet|sallie|student loan|card payment|autopay/], ["travel", /airline|delta|united|hotel|airbnb|marriott/], ["shopping", /amazon|amzn|target|walmart|best buy|nike|etsy/], ["entertainment", /cinema|theater|ticket|steam|playstation|xbox/]];
+    const CATEGORY_RULES = [["income", /payroll|direct dep|dir dep|salary|deposit from employer/], ["transfers", /transfer|zelle|venmo|cash app|paypal(?! ?\*)/], ["housing", /rent|mortgage|property mgmt|hoa/], ["utilities", /electric|power|gas co|water|comcast|xfinity|verizon|at&t|t-mobile|internet|mobile/], ["subscriptions", /netflix|spotify|hulu|disney|apple\.com\/bill|apple com bill|google \*?one|microsoft|adobe|prime|peloton|nytimes|planet fit/], ["groceries", /trader joe|kroger|costco|wholefds|whole foods|safeway|aldi|grocery|market/], ["dining", /starbucks|chipotle|restaurant|cafe|coffee|doordash|uber ?eats|grubhub|tst\*|pizza|burger/], ["transport", /uber(?! ?eats)|lyft|shell|chevron|exxon|parking|transit|metro|fuel/], ["fees", /\bfees?\b|overdraft|\bnsf\b/], ["health", /pharmacy|cvs|walgreens|clinic|dental|doctor|hospital/], ["insurance", /insurance|geico|state farm|allstate|progressive/], ["debt_payment", /loan payment|nelnet|sallie|student loan|card payment|autopay/], ["travel", /airline|delta|united|hotel|airbnb|marriott/], ["shopping", /amazon|amzn|target|walmart|best buy|nike|etsy/], ["entertainment", /cinema|theater|ticket|steam|playstation|xbox/]];
+    // PAYPAL *EBAY is a purchase paid through PayPal (spending); a bare PayPal transfer is money moving. ATM cash, Atmos
+    // Energy and a feed store are not fees: the fee rule matches the word, not the letters inside another one.
+    // The shown name is built from MerchantLabel's safe text, so words planted in a descriptor never reach a message;
+    // the key (what rows are grouped by) stays the raw text's.
+    const safeText = raw => typeof MerchantLabel !== "undefined" ? MerchantLabel.safe(raw) : String(raw || "");
     function normalizeMerchant(raw) {
-      const k = mkey(raw); const hit = DISPLAY.find(([re]) => re.test(k) || re.test(String(raw || "").toLowerCase()));
-      return { raw, key: k, display: hit ? hit[1] : k.replace(/\b\d{3,}\b/g, "").trim().replace(/\b[a-z]/g, ch => ch.toUpperCase()) || String(raw || "") };
+      const k = mkey(raw), shown = safeText(raw); const hit = DISPLAY.find(([re]) => re.test(k) || re.test(String(raw || "").toLowerCase()));
+      return { raw, key: k, display: hit ? hit[1] : mkey(shown).replace(/\b\d{3,}\b/g, "").trim().replace(/\b[a-z]/g, ch => ch.toUpperCase()) || shown };
     }
     function categorize(t, rules) {
       const text = `${t.merchant_raw || t.merchant || ""} ${t.note || ""}`.toLowerCase(), c = cents(t);
@@ -3433,7 +3442,7 @@
      detectors that turn today's rows and connector events into the loop's
      inputs, each with its evidence rows and a reason, plus the user's own
      watches ("tell me when checking drops below $500") parsed into conditions
-     and evaluated the same way. Quiet hours hold everything but safety; a
+     and evaluated the same way. Quiet hours hold everything but safety and watches; a
      busy day is bundled into one message. Pure: nothing here sends. Output is
      the proactive feed's shape (safety, watches, proactive) so AgentProactive
      can merge it. Loads after AgentLedger (optional) and AgentMonitors (optional). */
@@ -3537,12 +3546,14 @@
       }
       return out;
     }
-    // ALRT-011 quiet hours: everything but safety waits until the quiet window ends; the held list says when.
+    // ALRT-011 quiet hours: everything but safety and the person's own watches waits until the quiet window ends; the held
+    // list says when. A watch is something they asked to hear the moment it happens, and the quiet-hours reply promises it
+    // ("Only safety alerts and things you asked me to watch come through then").
     function inQuiet(now, quiet) { if (!quiet || !now) return false; const h = new Date(now).getUTCHours() + (quiet.utc_offset_hours || 0), hh = ((h % 24) + 24) % 24; return quiet.start > quiet.end ? (hh >= quiet.start || hh < quiet.end) : (hh >= quiet.start && hh < quiet.end); }
     function quietEnds(now, quiet) { const d = new Date(now); const off = quiet.utc_offset_hours || 0; const endUtc = ((quiet.end - off) % 24 + 24) % 24; const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), endUtc, 0, 0); return t > now ? t : t + DAY; }
     function deliver(firings, now, quiet) {
       const q = inQuiet(now, quiet);
-      const deliverNow = firings.filter(f => f.severity === "safety" || !q), held = firings.filter(f => f.severity !== "safety" && q).map(f => Object.assign({}, f, { held_until: quietEnds(now, quiet) }));
+      const deliverNow = firings.filter(f => f.severity === "safety" || f.kind === "watch" || !q), held = firings.filter(f => f.severity !== "safety" && f.kind !== "watch" && q).map(f => Object.assign({}, f, { held_until: quietEnds(now, quiet) }));
       return { now: deliverNow, held, quiet: q, held_until: q ? quietEnds(now, quiet) : null };
     }
     // ALRT-012 fatigue guard at the alert layer: three or more ordinary items at once become one bundle. Safety, urgent items and the user's own watches are never folded in.

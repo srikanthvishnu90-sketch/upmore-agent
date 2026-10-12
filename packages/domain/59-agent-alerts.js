@@ -2,7 +2,7 @@
      detectors that turn today's rows and connector events into the loop's
      inputs, each with its evidence rows and a reason, plus the user's own
      watches ("tell me when checking drops below $500") parsed into conditions
-     and evaluated the same way. Quiet hours hold everything but safety; a
+     and evaluated the same way. Quiet hours hold everything but safety and watches; a
      busy day is bundled into one message. Pure: nothing here sends. Output is
      the proactive feed's shape (safety, watches, proactive) so AgentProactive
      can merge it. Loads after AgentLedger (optional) and AgentMonitors (optional). */
@@ -106,12 +106,14 @@
       }
       return out;
     }
-    // ALRT-011 quiet hours: everything but safety waits until the quiet window ends; the held list says when.
+    // ALRT-011 quiet hours: everything but safety and the person's own watches waits until the quiet window ends; the held
+    // list says when. A watch is something they asked to hear the moment it happens, and the quiet-hours reply promises it
+    // ("Only safety alerts and things you asked me to watch come through then").
     function inQuiet(now, quiet) { if (!quiet || !now) return false; const h = new Date(now).getUTCHours() + (quiet.utc_offset_hours || 0), hh = ((h % 24) + 24) % 24; return quiet.start > quiet.end ? (hh >= quiet.start || hh < quiet.end) : (hh >= quiet.start && hh < quiet.end); }
     function quietEnds(now, quiet) { const d = new Date(now); const off = quiet.utc_offset_hours || 0; const endUtc = ((quiet.end - off) % 24 + 24) % 24; const t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), endUtc, 0, 0); return t > now ? t : t + DAY; }
     function deliver(firings, now, quiet) {
       const q = inQuiet(now, quiet);
-      const deliverNow = firings.filter(f => f.severity === "safety" || !q), held = firings.filter(f => f.severity !== "safety" && q).map(f => Object.assign({}, f, { held_until: quietEnds(now, quiet) }));
+      const deliverNow = firings.filter(f => f.severity === "safety" || f.kind === "watch" || !q), held = firings.filter(f => f.severity !== "safety" && f.kind !== "watch" && q).map(f => Object.assign({}, f, { held_until: quietEnds(now, quiet) }));
       return { now: deliverNow, held, quiet: q, held_until: q ? quietEnds(now, quiet) : null };
     }
     // ALRT-012 fatigue guard at the alert layer: three or more ordinary items at once become one bundle. Safety, urgent items and the user's own watches are never folded in.

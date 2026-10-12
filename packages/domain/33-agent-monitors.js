@@ -228,14 +228,16 @@
         if (extra < 1) return;
         const age = daysBetween(g[0].date, input.today);
         if (age === null || age > 60) return;
+        // Day 45 while it is still ahead; past it, the window's own close, so the date said is never one already gone.
+        const late = age > 45, by = addDays(g[0].date, late ? 60 : 45);
         out.push({
           key: `duplicate_charge:${g[0].key}:${g[0].date}:${each.toFixed(2)}`,
           kind: "duplicate_charge", capabilityId: "recovery.duplicate_charge_dispute",
           title: `${g[0].merchant} charged you ${g.length} times on ${g[0].date}`,
-          detail: `${g.length} charges of ${usd(each)} on the same day${refunds ? `, ${refunds} already refunded` : ""}. If ${extra === 1 ? "one is" : extra + " are"} a mistake, that is ${usd(each * extra)} to get back. Dispute by ${addDays(g[0].date, 45)}.`,
-          counterparty: g[0].merchant, amount: cents(each * extra), dueOn: addDays(g[0].date, 45),
+          detail: `${g.length} charges of ${usd(each)} on the same day${refunds ? `, ${refunds} already refunded` : ""}. If ${extra === 1 ? "one is" : extra + " are"} a mistake, that is ${usd(each * extra)} to get back. Dispute by ${by}${late ? ", when the dispute window closes" : ""}.`,
+          counterparty: g[0].merchant, amount: cents(each * extra), dueOn: by,
           evidence: { rule: "Same merchant, same amount, same day, same account, not already refunded.",
-            rows: g.map(proof), computed: { charges: g.length, refunds_seen: refunds, disputed_amount: cents(each * extra), dispute_by: addDays(g[0].date, 45), window_closes: addDays(g[0].date, 60) } },
+            rows: g.map(proof), computed: { charges: g.length, refunds_seen: refunds, disputed_amount: cents(each * extra), dispute_by: by, window_closes: addDays(g[0].date, 60) } },
         });
       });
       return out;

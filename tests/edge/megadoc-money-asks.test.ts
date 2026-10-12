@@ -49,3 +49,13 @@ Deno.test("J03: the subscriptions that repeat, each with its latest charge, and 
   assertMatch(r, SRC);
 });
 
+Deno.test("M04 / C08: interest paid in and a payment from a person, from rows; none is said with where else to look", async () => {
+  const [k, r] = await first("how much am I earning on savings");
+  assertEquals(k, "moneyReply");
+  assertMatch(r, /^I don't see any interest paid into your linked accounts since Aug 5, 2026\. The rate isn't in your bank rows/);
+  const [k2, r2] = await first("did maya pay me back?");
+  assertEquals(k2, "moneyReply");
+  assertMatch(r2, /^I don't see a payment from Maya in your linked accounts since Aug 13\.\nVenmo, Cash App and PayPal money stays in the app/);
+  assertMatch(r2, SRC);
+});
+

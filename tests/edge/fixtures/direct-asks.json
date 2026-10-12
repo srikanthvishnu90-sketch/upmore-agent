@@ -231,6 +231,12 @@
     ["what subscriptions do I have", "moneyReply"],
     ["list my subscriptions", "moneyReply"],
     ["what am i subscribed to", "moneyReply"],
-    ["my subscriptions are too expensive", null]
+    ["my subscriptions are too expensive", null],
+    ["how much am I earning on savings", "moneyReply"],
+    ["how much interest did i earn this year", "moneyReply"],
+    ["did maya pay me back?", "moneyReply"],
+    ["has jake paid me yet", "moneyReply"],
+    ["did i pay maya", null],
+    ["how much interest am i paying on my card", null]
   ]
 }

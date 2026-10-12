@@ -166,4 +166,6 @@ set("L11", "BUILT", "safe to spend: cash minus the repeating bills due before pa
 set("L12", "BUILT", "'can I afford a 900 trip': $900.00 against safe to spend, what is left and per day; a number of days, weeks or months is never read as dollars", "tests/edge/megadoc-money-asks.test.ts");
 set("G16 F08", "BUILT", "the cash balance from the person's accounts with the as-of time; a balance more than a day old is said as stale", "tests/edge/megadoc-money-asks.test.ts");
 set("J03", "BUILT", "the subscriptions that repeat in the person's rows (recurring charges at services the chat counts as subscriptions, their category rules included), each with its latest charge, how often and when; one that stopped is said apart; the monthly and yearly total; what can't show; the cancel flow named with its own yes", "tests/edge/megadoc-money-asks.test.ts");
+set("M04", "BUILT", "interest paid in from the person's rows: this year by account, last 12 months, last month; an interest charge is never earnings; the rate is said not to be in bank rows, never made up", "tests/edge/megadoc-money-asks.test.ts");
+set("C08", "BUILT", "a payment from that person in the last 60 days to the cent, with the app and the bank's own words; none found says Venmo/Cash App/PayPal money may still be in the app; nothing is requested or sent", "tests/edge/megadoc-money-asks.test.ts");
 

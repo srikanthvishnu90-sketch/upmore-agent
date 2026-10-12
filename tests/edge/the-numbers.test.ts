@@ -38,6 +38,7 @@ Deno.test("routing: the numbers fire, in the person's own words", () => {
     ["how much can i spend", "safe"], ["How much can I spend until payday?", "safe"], ["safe to spend", "safe"], ["what's my safe to spend", "safe"],
     ["how much money can i spend this week", "safe"], ["what can i spend", "safe"],
     ["what bills are coming up", "upcoming"], ["what bills are due this month", "upcoming"], ["upcoming bills", "upcoming"], ["show me my upcoming payments", "upcoming"],
+    ["any bills this week", "upcoming"], ["whats coming out this week", "upcoming"], ["what's coming out of my checking next week", "upcoming"],
     ["how long will my money last", "runway"], ["how long will my savings last if i lost my job", "runway"], ["what's my runway", "runway"], ["runway", "runway"],
     ["can i afford a $600 trip next month", "afford"], ["can i afford $50", "afford"], ["could i afford a $1,200 laptop by dec 1", "afford"],
     ["what's my net worth", "networth"], ["net worth", "networth"], ["how much am i worth", "networth"], ["calculate my net worth", "networth"],

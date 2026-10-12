@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-names = ["33-agent-monitors.js", "35-agent-intents.js", "36-agent-workflows.js", "41-agent-recovery.js", "42-agent-recipients.js", "43-agent-loop.js", "45-advice-guard.js",
+names = ["32-merchant-label.js", "33-agent-monitors.js", "35-agent-intents.js", "36-agent-workflows.js", "41-agent-recovery.js", "42-agent-recipients.js", "43-agent-loop.js", "45-advice-guard.js",
          "46-voice.js", "47-data-guard.js", "48-money-math.js", "49-agent-save.js", "50-agent-invest.js", "53-compliance.js",
          "54-agent-money.js", "57-agent-ledger.js", "58-agent-control.js", "59-agent-alerts.js", "56-agent-proactive.js", "64-agent-send.js", "66-agent-trade.js", "67-agent-cards.js", "68-agent-cancel.js", "69-agent-router.js", "70-agent-split.js", "71-alpaca.js", "72-merchant-terms.js", "76-connect-cards.js", "77-brokerage-connectors.js", "73-broker-accounts.js", "74-broker-connect.js", "75-style-corpus.js", "79-dispute.js", "80-money-answers.js", "78-manual-connect.js", "81-standing-rent.js", "82-offer-book.js", "87-rewards-math.js"]
 exports = ["AgentRouter", "AgentTrade", "AgentCancel", "AgentSend", "AgentSplit", "AgentRecipients", "AlpacaTrading", "BrokerAccounts", "BrokerConnect", "ConnectCards", "StyleCorpus", "STYLE_CORPUS_JSON", "MerchantTerms", "MERCHANT_TERMS_JSON", "AgentCards", "AgentLoop", "Compliance", "AgentLedger", "AgentControl", "AgentAlerts", "AgentProactive", "AgentMonitors", "AgentVoice", "CapabilityRegistry", "REGISTRY_JSON", "BrokerageConnectors", "PLATFORMS_JSON", "AgentSave", "AgentDispute", "MoneyAnswers", "ManualConnect", "MANUAL_PLAYBOOKS_JSON", "StandingRent", "OfferBook", "OFFER_TERMS_JSON", "RewardsMath"]

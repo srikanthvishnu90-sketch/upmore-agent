@@ -45,6 +45,8 @@
       s = s.replace(/\s+#?\d{3,}.*$/, ""); // trailing store numbers and references
       return s.replace(/[^a-z0-9]+/g, " ").trim();
     }
+    // Display-safe merchant names come from MerchantLabel (32-merchant-label.js, loaded first in every bundle).
+    const safeMerchant = raw => (typeof MerchantLabel !== "undefined" ? MerchantLabel.safe(raw) : (String(raw || "").trim() || "Unknown"));
     const TRANSFER_RE = /transfer|credit[\s-]?card[\s-]?(payment|autopay)|card[\s-]?autopay|\bautopay\b|\bzelle\b|\bach (credit|debit) transfer\b/i;
     const FEE_RE = /(overdraft|insufficient fund|nsf fee|late fee|late payment fee|maintenance fee|monthly service fee|service charge|atm fee|foreign transaction fee|returned item|nonsufficient)/i;
     // Things that repeat but are not subscriptions.
@@ -57,12 +59,13 @@
         if (!t) return null;
         const amount = Number(t.amount), date = String(t.posted_at || "").slice(0, 10);
         if (!isFinite(amount) || toUtc(date) === null) return null;
-        const merchant = String(t.merchant_raw || "").trim() || "Unknown";
+        const raw = String(t.merchant_raw || "").trim() || "Unknown";
+        const merchant = safeMerchant(raw);
         return {
           id: String(t.id != null ? t.id : (t.provider_id != null ? t.provider_id : "")),
-          date, amount, merchant, key: merchantKey(merchant), accountId: t.account_id || null,
+          date, amount, merchant, key: merchantKey(raw), accountId: t.account_id || null,
           pending: !!t.is_pending,
-          transfer: !!t.is_transfer || TRANSFER_RE.test(merchant),
+          transfer: !!t.is_transfer || TRANSFER_RE.test(raw),
           excluded: !!t.is_excluded,
         };
       }).filter(Boolean);
@@ -636,7 +639,7 @@
       return { findings, errors };
     }
 
-    return { merchantKey, clean, recurring, newSubscriptions, priceRises, trialsConverting,
+    return { merchantKey, safeMerchant, clean, recurring, newSubscriptions, priceRises, trialsConverting,
       duplicateCharges, lowBalanceAhead, bankFees, chargedAfterCancel, deadlineWindows,
       unclaimedSearchDue, overlaps, overInsuranceLimit, payLaterPlans, cashFlowForecast,
       cancelClaimVerdict, recoveryVerdict, runAll, NEEDS_LIVE, addDays, addMonths, daysBetween };

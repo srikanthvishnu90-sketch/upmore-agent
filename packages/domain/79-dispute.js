@@ -41,7 +41,9 @@
 
     // What the merchant is called in a sentence: the statement descriptor up to its first '*' or '#', without trailing
     // store numbers or a ".com", in title case ("STREAMFLIX*PREMIUM 0042" -> "Streamflix").
+    const label = raw => (typeof MerchantLabel !== "undefined" ? MerchantLabel : require("./32-merchant-label.js")).safe(raw);
     function merchantName(raw) {
+      raw = label(raw);
       let s = String(raw || "").split(/[*#]/)[0].replace(/\.(?:com|net|org|co)\b/ig, "").replace(/[\s\d\-_.]+$/, "").trim();
       if (!s) s = String(raw || "").trim();
       return s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
@@ -133,7 +135,7 @@
       const facts = `${name}, ${amt}, ${posted}`;
       const lines = [
         `Here's a dispute for the ${name} charge, pre-filled for you to send yourself. Nothing has been sent.`,
-        `Charge: ${charge.merchant_raw ? String(charge.merchant_raw).trim() : name}, ${amt}, ${posted}.`,
+        `Charge: ${charge.merchant_raw ? label(charge.merchant_raw) : name}, ${amt}, ${posted}.`,
         "",
         `Step 1, ask ${name} for a refund (their support page, app or email):`,
         `"Hi, I'm writing about a charge of ${amt} from ${name}${when ? ` on ${when}` : ""}. ${reason} Please refund ${amt} to the card it was charged to and confirm in writing. Thank you."`,

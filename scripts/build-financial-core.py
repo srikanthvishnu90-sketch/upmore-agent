@@ -4,7 +4,7 @@ from pathlib import Path
 import argparse
 
 root = Path(__file__).resolve().parents[1]
-names = ["33-agent-monitors.js", "35-agent-intents.js", "36-agent-workflows.js",
+names = ["32-merchant-label.js", "33-agent-monitors.js", "35-agent-intents.js", "36-agent-workflows.js",
          "37-agent-financial-model.js", "38-agent-biller-model.js", "39-agent-posted-flow.js", "40-agent-classified-ledger.js", "41-agent-recovery.js"]
 exports = ["AgentMonitors", "AgentIntents", "AgentWorkflows", "AgentFinancialModel",
            "AgentBillerModel", "AgentPostedFlow", "AgentClassifiedLedger", "AgentRecovery"]

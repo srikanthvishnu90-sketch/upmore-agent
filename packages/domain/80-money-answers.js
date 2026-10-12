@@ -139,7 +139,9 @@
       return null;
     }
     // A readable name for a merchant not on the list: card-network noise and store numbers removed, nothing invented.
+    const label = raw => (typeof MerchantLabel !== "undefined" ? MerchantLabel : require("./32-merchant-label.js")).safe(raw);
     function cleanName(raw) {
+      raw = label(raw);
       const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|card \d+)\b/gi, " ")
         .replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ").replace(/\s+/g, " ").trim();
       if (!s) return String(raw || "Unknown").trim() || "Unknown";

@@ -112,3 +112,14 @@ said, what is true, and the source.
   no bureau or score source is connected, no number guessed, where a free score and free reports are. How-to questions,
   credit cards, limits, reports and rewards are not taken (tests/edge/credit-score-answer.test.ts; the routing corpus
   and the order table check it takes none of their asks).
+
+## The chat reply guard let a made-up rate or score through (2026-10-12, morning)
+
+- Said (CLAUDE.md): the model explains numbers; functions over real rows produce them.
+- True: checkGrounding (agent-chat/_shared/agent.ts) caught invented dollar amounts only. Nothing in chat reads a
+  person's APR, utilization, interest rate or credit score, yet "Your APR is 24.99%" or "your score is 720" passed.
+- Now: a percentage or a 300-850 score in a sentence addressed to the person ("your ...") must appear in verified data
+  (route cards, the finance facts, settlements) or the person's own words, or be a ratio/change of two numbers they
+  gave ("rent is 27% of your income"); otherwise invented_rate / invented_score and the safe fallback. General
+  statements are not judged. tests/edge/grounding-rates.test.ts (the first unit tests of checkGrounding in the edge
+  suite); over the 122 corpus and gauntlet replies on file, none is newly flagged.

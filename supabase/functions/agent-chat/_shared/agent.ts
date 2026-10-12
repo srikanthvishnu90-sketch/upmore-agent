@@ -489,6 +489,32 @@ export function checkGrounding(
   for (const m of lowered.match(/\$[\d,]+(\.\d+)?/g) ?? []) {
     if (!allowedMoney.has(normAmt(m))) violations.push(`invented_amount:${m}`);
   }
+  // 2b. The person's own rates and score (2026-10-12). Nothing in chat reads a person's APR, utilization, interest rate
+  // or credit score, so a percentage or a 300-850 score in a sentence addressed to them ("your APR is 24.99%", "your
+  // score is 720") must come from verified data (route cards, the finance facts, settlements) or their own words.
+  // General statements ("the average APR is about 21%") are not judged here. tests/edge/grounding-rates.test.ts.
+  const verifiedText = [JSON.stringify(routes), FINANCE_FACTS.map((f) => f.text).join(" "),
+    settlements.map((s) => `${s.payout_summary ?? ""} ${s.summary ?? ""}`).join(" "), userMessage, threadUserText].join(" ");
+  const pctNum = (m: string) => String(Number(m.replace(/[^0-9.]/g, "")));
+  const allowedPct = new Set((verifiedText.match(/\d+(?:\.\d+)?\s?%/g) ?? []).map(pctNum));
+  const allowedNums = new Set(verifiedText.match(/\b\d{3}\b/g) ?? []);
+  // A percentage worked out from the person's own figures ("rent is 27% of your income", "up 41.7%") is arithmetic,
+  // not invention: every ratio and change between two numbers they gave is allowed, rounded as people write it.
+  const theirNums = ((userMessage + " " + threadUserText).match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((x) => Number(x.replace(/,/g, ""))).filter((x) => x > 0).slice(0, 40);
+  for (const a of theirNums) for (const b of theirNums) {
+    for (const r of [a / b * 100, (a - b) / b * 100]) {
+      if (!isFinite(r) || r <= 0) continue;
+      for (const d of [0, 1, 2]) allowedPct.add(String(Number(r.toFixed(d))));
+    }
+  }
+  for (const sentence of reply.split(/(?<=[.!?])\s+|\n+/)) {
+    if (!/\byour\b/i.test(sentence)) continue;
+    for (const p of sentence.match(/\d+(?:\.\d+)?\s?%/g) ?? []) {
+      if (!allowedPct.has(pctNum(p))) violations.push(`invented_rate:${p}`);
+    }
+    const score = /\b(?:credit score|fico|vantage ?score|score)\b[^.!?\d]{0,20}\b([3-8]\d\d)\b/i.exec(sentence);
+    if (score && !allowedNums.has(score[1])) violations.push(`invented_score:${score[1]}`);
+  }
   // 3. URLs must be a card's URL (or its domain) OR quoted from the user.
   // Trailing sentence punctuation ("at https://x.com.") is stripped before
   // comparing — the URL regex sweeps it in and it used to false-positive

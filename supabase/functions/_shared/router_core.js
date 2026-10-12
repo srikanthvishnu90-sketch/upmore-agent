@@ -5351,6 +5351,12 @@
         }
         return inv;
       }
+      const KINDS = {
+        "gym|gym membership|fitness|the gym|workout|workouts": /\b(?:planet fitness|la fitness|equinox|crunch|24 hour fitness|anytime fitness|ymca|orangetheory|gold'?s gym|lifetime|life time|blink|eos fitness|snap fitness|f45|solidcore|barry'?s|club pilates|peloton)\b/,
+        "music|music app|music streaming": /\b(?:spotify|apple music|pandora|tidal|amazon music|youtube music|deezer|siriusxm|sirius)\b/,
+        "streaming|streaming service|tv|tv streaming": /\b(?:netflix|hulu|disney|hbo max|max com|peacock|paramount|apple tv|prime video|youtube tv|sling|fubo|espn)\b/,
+        "cloud storage|storage|cloud": /\b(?:dropbox|icloud|google one|google storage|onedrive|backblaze)\b/,
+      };
       function resolve(query) {
         const inv = inventory(), q = keyOf(query);
         if (!q) return { none: true, inventory: inv };
@@ -5361,6 +5367,10 @@
         const ed = (a, b) => { const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i].concat(Array(n).fill(0))); for (let j = 1; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; };
         const q0 = q.split(" ")[0], near = q0.length >= 4 ? inv.filter(s => { const k0 = keyOf(s.merchant).split(" ")[0]; return ed(q0, k0) <= (k0.length >= 6 ? 2 : 1); }) : [];
         if (near.length === 1) return { one: near[0], inventory: inv, fuzzy: true };
+        // A kind of service ("my gym", "my music"): the person's own recurring charges from known brands of that kind;
+        // one resolves (the card names it), several ask which, none says so. Never a merchant they aren't charged by.
+        const kind = Object.keys(KINDS).find(k => new RegExp(`^(?:${k})$`).test(q));
+        if (kind) { const by = inv.filter(s => KINDS[kind].test(keyOf(s.merchant))); if (by.length === 1) return { one: by[0], inventory: inv, by_kind: true }; if (by.length > 1) return { many: by, inventory: inv }; }
         return { none: true, inventory: inv };
       }
       // S02: route by channel first, then by what the directory knows about the merchant.

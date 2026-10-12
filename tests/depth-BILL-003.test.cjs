@@ -238,3 +238,12 @@ test('[ADV] adversarial log: no charge, store-billed, human-only, missing terms,
 test('[S17] the way people ask: "unsubscribe me from netflix", "can you cancel my netflix?", "stop paying for netflix", "kill netflix" all card Netflix',async()=>{
   for(const m of ['unsubscribe me from netflix','unsubscribe from netflix','can you cancel my netflix?','stop paying for netflix','kill netflix','i want to cancel netflix']){const {s:x,r}=session();const a=await x.start(m);assert.equal(a.outcome,'confirm',m);assert.match(a.text,/^Cancel Netflix \(Standard, \$17\.99\/mo\)/,m);assert.equal(r.writes.length,0,'a card, nothing run');}
 });
+
+test('[S18] a kind of service ("my gym", "my music", "my streaming") resolves to the person\'s own charges of that kind: one is carded by name, several are asked, a brand they aren\'t charged by never',async()=>{
+  const card=async m=>{const {s:x,r}=session();const a=await x.start(m);assert.equal(r.writes.length,0);return a;};
+  assert.match((await card('cancel my gym')).text,/^Cancel Planet Fitness \(Black Card, \$24\.99\/mo\)/);
+  assert.match((await card('cancel my music')).text,/^Cancel Spotify \(Premium, \$10\.99\/mo\)/);
+  assert.match((await card('cancel my cloud storage')).text,/^Cancel Dropbox /);
+  const st=await card('cancel my streaming');assert.equal(st.outcome,'ask');assert.match(st.text,/^Which one: (?:Netflix|Hulu) .* or (?:Netflix|Hulu) /);
+  const ng=await card('cancel my vpn');assert.equal(ng.outcome,'ask');assert.match(ng.text,/^I don't see a vpn charge/);
+});

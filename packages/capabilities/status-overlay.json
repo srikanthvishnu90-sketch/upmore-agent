@@ -1223,7 +1223,7 @@
   "implementation": [
    "packages/domain/60-agent-money-plans.js"
   ],
-  "note": "ownTransfer: both accounts named in the confirm fields, never overdraws the source (available balance checked), runs inside a PAY-009 envelope with a receipt."
+  "note": "ownTransfer: both accounts named in the confirm fields, never overdraws the source (available balance checked), asks for the person's yes on every run (envelope autonomy is off in shipped code, CLAUDE.md automations rule), with a receipt."
  },
  "PAY-023": {
   "status": "TESTED",

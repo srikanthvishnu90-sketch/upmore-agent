@@ -189,3 +189,11 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
 | registry note SEC-008 ("new-this-week ones called out") | A device the person had revoked counted as known, so it signing in again was not called out | Revoked sessions are never known devices | S12; D17 |
 | registry note INS-001 ("the inventory") | A lapsed policy was listed like live cover ("$1,420.00 a year") and its premium added to the annual total | "auto (Mock Mutual, lapsed 2026-09-30)", not counted | S13; D18 |
 | `62-agent-documents.js` sessionAudit | No sessions: "0 active sessions: ." | "No active sessions." | S20; D25 |
+
+## Envelope wording that said a money move runs on its own (2026-10-12, morning)
+
+- Said: the registry note on ownTransfer ("runs inside a PAY-009 envelope with a receipt", registry.json and
+  status-overlay.json) and two real-world gates ("needs a yes unless inside an envelope", realworld.json).
+- True (CLAUDE.md automations rule, 2026-10-11): envelope autonomy is off in shipped code; every run asks the person
+  for a one-line yes. Found by the MONEY-PLANS packet's agent, outside its files.
+- Now: the note and both gates say each run needs the person's yes (envelope autonomy is off). No code changed.

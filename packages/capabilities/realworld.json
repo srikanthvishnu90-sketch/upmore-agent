@@ -933,7 +933,7 @@
    ],
    "proof_kind": "delivery_confirmed",
    "proof": "A projected negative day is pushed days ahead with the exact own-account transfer that prevents it; on yes the transfer is confirmed by both balances moving.",
-   "gate": "the preventing transfer needs a yes unless inside an envelope",
+   "gate": "the preventing transfer needs the person's yes each time (envelope autonomy is off)",
    "failure": "Warning sent, but the transfer is NOT_WIRED at <bank>; here is the exact move to make yourself.",
    "implementation": [
     "packages/domain/57-agent-ledger.js",
@@ -965,7 +965,7 @@
    ],
    "proof_kind": "delivery_confirmed",
    "proof": "A deposit above the learned pattern is classified and pushed with a suggested sweep; on yes the sweep is verified in both accounts.",
-   "gate": "the sweep needs a yes unless inside an envelope",
+   "gate": "the sweep needs the person's yes each time (envelope autonomy is off)",
    "failure": "Deposit seen; the sweep is NOT_WIRED at <bank>.",
    "implementation": [
     "packages/domain/59-agent-alerts.js",

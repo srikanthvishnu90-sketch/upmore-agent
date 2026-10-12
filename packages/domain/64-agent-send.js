@@ -67,18 +67,19 @@
       const bare = head2.replace(AMOUNT, " ").replace(SCHEDULE, " ").replace(/\s+/g, " ");
       const to = /\bto\s+(?!(?:send|pay|venmo|zelle|transfer|wire)\b)(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,3})/i.exec(bare);
       if (to) recipient_raw = to[1].trim();
-      else { const verb = /(?:^|[,.;:!?]\s*|\b(?:to|please)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
+      else { const verb = /(?:^|[,.;:!?]\s*|\b(?:to|please|pls|plz|you|u)\s+)(?:please\s+)?(?:send|pay|venmo|zelle|cash ?app|paypal|transfer|wire|give)\s+(@?[A-Za-z][\w.'-]*(?:\s+[A-Za-z][\w.'-]*){0,4})/i.exec(bare.trim()); if (verb) recipient_raw = verb[1].trim(); }
       if (phone) recipient_raw = recipient = phone;
       else if (recipient_raw) {
         // A name ends where the sentence moves on: "jake and add pizza", "maya but only if", "maya tomorrow at 9",
         // "maya from savings", "my roommate unevenly" (megadoc A05, A08, A11, A15, B07, C11).
-        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|tomorrow|please|instantly|asap|rn|pls|back|and|but|if|from|at|on|by|when|then|also|unevenly|evenly|only|every|each|via|using|with)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
+        recipient_raw = recipient_raw.replace(/\s+(now|today|tonight|tomorrow|please|instantly|asap|rn|pls|back|and|but|if|from|at|on|by|when|then|also|unevenly|evenly|only|every|each|via|using|with|like|about|around|roughly|approximately|approx|maybe)\b.*$/i, "").replace(/\s+(he|she|they|who|because|since)\b.*$/i, "").trim();
         // An amount in words is not part of the name ("send maya forty bucks").
         const numWord = w => w.toLowerCase() in UNITS || w.toLowerCase() in TENS || /^(hundred|thousand|bucks|dollars?|a|and)$/i.test(w);
         const kept = recipient_raw.split(/\s+/); while (kept.length > 1 && numWord(kept[kept.length - 1])) kept.pop();
         const cut = kept.findIndex((w, i) => i > 0 && numWord(w) && w.toLowerCase() !== "a"); if (cut > 0) kept.length = cut;
         recipient_raw = kept.join(" ");
         recipient = recipient_raw.split(/\s+/).slice(0, 2).join(" ").replace(/\b(my|the|some|another)\b\s*/gi, "").trim() || null;
+        if (recipient && /^(?:me|myself|us|you|u|it|them)$/i.test(recipient)) recipient = recipient_raw = null; // "give me 40" names nobody
       }
       const speed = /\b(instant|instantly|right now|asap|now)\b/i.test(t) ? "instant" : null;
       const funding = (/\bfrom\s+(checking|savings|[a-z]+ account)/i.exec(t) || [])[1] || null;

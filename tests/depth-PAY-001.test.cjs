@@ -182,3 +182,10 @@ test('[S18] "send Maya the usual" asks how much and says no record of past sends
   assert.equal(r.writes.length,0);assert.equal(s.pending,null);
   assert.equal((await s.start('send sam')).text,'How much?','no note without "the usual"');
 });
+
+test('[S19] the way people ask: "can you send sarah 40?", "give sarah 15", "send sarah like 40" name Sarah; "give me 40" names nobody',async()=>{
+  for(const m of ['can you send sarah 40?','could u pay sarah 40','give sarah 40','send sarah like 40','send sarah about 40','pls send sarah 40']){const p=S.parse(m);assert.equal(p.recipient,'sarah',m);assert.equal(p.amount_cents,4000,m);}
+  const {s,r}=session();const a=await s.start('can you send sarah 40?');assert.equal(a.outcome,'confirm');assert.match(a.text,/\$40\.00 to Sarah/);await s.reply('no');
+  assert.equal(S.parse('give me 40').recipient,null);assert.equal((await s.start('give me 40')).text,'Who should I send it to?');
+  assert.equal(r.writes.length,0);
+});

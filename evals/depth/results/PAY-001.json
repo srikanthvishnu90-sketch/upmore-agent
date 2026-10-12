@@ -1,9 +1,9 @@
 {
  "capability": "PAY-001",
- "run_at": "2026-10-12T14:08:43.775Z",
+ "run_at": "2026-10-12T14:17:03.072Z",
  "baseline_all_green": true,
- "sub_capabilities": 18,
- "proven": 19,
+ "sub_capabilities": 19,
+ "proven": 20,
  "problems": [],
  "rows": [
   {
@@ -239,6 +239,17 @@
    "title": "The usual is asked, never guessed",
    "defect": "'the usual' falls to a bare 'How much?', so the person isn't told nothing is remembered",
    "test": "send Sam the usual asks how much and says why",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D20",
+   "title": "The way people ask",
+   "defect": "a verb after 'can you' is not read, so the flow asks who",
+   "test": "'can you send sarah 40?' names Sarah",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -157,7 +157,7 @@
         // "25 to jake", "500 of AMD"), a payee and an amount ("jake 25"), or, after "cancel", another subscription
         // ("cancel NYT and WSJ"). Without that, "send maya 40 and 25 to jake" was one $40 card to Jake (megadoc A14,
         // P09, J11); now each part is its own request.
-        const borrow = i > 0 && !MAYBE.test(p) && verb && ((/^\$?\s?\d/.test(p) && !/^split$/i.test(verb) && !/^\d+\s+(?:friends|people|others|of us|ways|roommates|guys)\b/i.test(p)) || (MONEY_VERB.test(parts[0]) && /^@?[a-z][\w.'-]*\s+\$?\d[\d,]*(?:\.\d{1,2})?$/i.test(p)) || (/^cancel$/i.test(verb) && /^[\w.&'+-]+(?:\s+[\w.&'+-]+){0,2}$/.test(p) && !/\d/.test(p)));
+        const borrow = i > 0 && !MAYBE.test(p) && verb && ((/^\$?\s?\d/.test(p) && !/^split$/i.test(verb) && !/^\d+\s+(?:friends|people|others|of us|ways|roommates|guys)\b/i.test(p)) || (MONEY_VERB.test(parts[0]) && /^@?[a-z][\w.'-]*(?:\s+[a-z][\w.'-]*){0,2}\s+\$?\d[\d,]*(?:\.\d{1,2})?$/i.test(p)) || (/^cancel$/i.test(verb) && /^[\w.&'+-]+(?:\s+[\w.&'+-]+){0,2}$/.test(p) && !/\d/.test(p)));
         const isReq = MAYBE.test(p) || borrow;
         if (!isReq) { if (reqs.length) reqs[reqs.length - 1] += `${/^[A-Za-z]/.test(p) ? " and " : ", "}${p}`; else reqs.push(p); continue; }
         reqs.push(borrow ? `${verb} ${p}` : p);

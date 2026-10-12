@@ -432,3 +432,11 @@ test('two orders with no conjunction are two requests, in order; a purpose claus
   assert.equal(J(R.splitRequests('sell VTI and buy VOO')),J(['sell VTI','buy VOO']));
   for(const t of ['sell my VTI to buy VOO','buy VOO','sell half my VTI','buy 2 VOO then'])assert.equal(R.splitRequests(t),null,t);
 });
+
+test('a second payee with a two- or three-word name borrows the verb: "send sarah 40 and marcus l 20" is two sends, never one with Marcus dropped',()=>{
+  const J=x=>JSON.stringify(x);
+  assert.equal(J(R.splitRequests('send sarah 40 and marcus l 20')),J(['send sarah 40','send marcus l 20']));
+  assert.equal(J(R.splitRequests('pay jake 25 and mary ann lee 30')),J(['pay jake 25','pay mary ann lee 30']));
+  assert.equal(J(R.splitRequests('send maya 40 and jake 25')),J(['send maya 40','send jake 25']));
+  assert.equal(R.splitRequests('send sarah 40'),null);
+});

@@ -195,6 +195,7 @@ set("D06 D07", "NOT_BUILT", "bill pay is said not built; nothing paid; the bille
 set("J09 J14", "NOT_BUILT", "pausing or downgrading a subscription is said not built; the service's own page, or cancel by name (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
 set("M12", "NOT_BUILT", "Upmore opens no accounts; the bank's or broker's own site, then connect it (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
 set("E25", "NOT_BUILT", "recurring investing is said not built; buy now behind a yes, $5 cap (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("H01 H02 H03 H04 H05 H06 H07 H08 H09 H10 H11 H12 H13 H14 H15", "NOT_BUILT", "copy trading: said not built from code however it is phrased (the trade flow's own words), with the disclosure lag said right (Congress up to 45 days after a trade, a fund's 13F 45 days after each quarter), an unverifiable posted trade said so, a manager's ETF bought directly behind a yes, and no copy to report on or stop; nothing placed", "tests/edge/direct-answers.test.ts");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

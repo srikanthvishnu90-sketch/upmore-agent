@@ -219,6 +219,25 @@ export function notYetReply(message: string): string | null {
   return (NotYet as any).answer(String(message || ""));
 }
 
+// Copy trading (megadoc H01-H15): not built. The trade flow says so when a message reaches it (66-agent-trade.js
+// "copy_not_built"); "copy Nancy Pelosi's trades", "copy that guy from reddit's trades" or "how did copying Leopold do"
+// never did, and went to the model. The same words from code, plus what each shape needs said: a claimed trade from a
+// stranger can't be checked; a fund manager's ETF can be bought directly like any stock, behind a yes; there is no copy
+// to report on. Nothing placed, nothing named as a pick.
+const COPY = /\b(?:copy|copying|copied|mirror|mirroring|replicate|replicating|clone)\b[^.?!]{0,60}\b(?:portfolio|trades?|holdings|picks|positions|moves|etfs?|funds?|pelosi|buffett|congress|senator|cathie|ark|leopold|him|her|them|guy|investor|hedge fund)\b|\b(?:stop|cancel|end) copying\b|\bhow did (?:copying|the copy|my copy)\b|\bsell everything i copied\b/i;
+const COPY_IT = /^\s*(?:ok |okay |so |and )?copy (?:it|them|those|his|hers|his portfolio|her portfolio)\b(?! (?:text|link|message|number|address|code|down|paste))/i;
+const COPY_NOT = /\bcopy of (?:my |the |a )?(?:statement|receipt|bill|card|id|w-?2|1099|tax|lease|contract|invoice)\b/i;
+export const COPY_NONE =
+  "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late: a member of Congress reports a trade up to 45 days after it, and a fund's 13F comes 45 days after each quarter ends, so a copy would buy stale positions. Want to see your own holdings instead?";
+export function copyReply(message: string): string | null {
+  const m = String(message || "");
+  if (!(COPY.test(m) || COPY_IT.test(m)) || COPY_NOT.test(m)) return null;
+  if (/\b(?:stop|cancel|end) copying\b|\bhow did (?:copying|the copy|my copy)\b|\bsell everything i copied\b/i.test(m)) return "Copy trading isn't built, so there's no copy running to report on, stop or sell. Nothing was changed. Want to see your own holdings instead?";
+  if (/\b(?:reddit|twitter|tiktok|discord|youtube|x\.com|some guy|that guy|a guy|stranger|friend)\b/i.test(m)) return "Copy trading isn't built yet, so nothing was placed. And trades someone posts or tells you about can't be checked: there's no filing behind them, so there'd be nothing real to copy. Want to see your own holdings instead?";
+  if (/\b(?:etfs?|funds?|cathie|ark)\b/i.test(m) && !/\b(?:hedge fund|portfolio)\b/i.test(m)) return "Copy trading isn't built yet, so nothing was placed. A fund manager's ETF is itself something you can buy, like any stock: name the ticker and the amount and I'll put up a card for exactly that, which still needs your yes and is capped at $5 for now.";
+  return COPY_NONE;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

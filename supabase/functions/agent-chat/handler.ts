@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON, ScamCheck } from "../_shared/router_core.js";
-import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, optionsReply, notYetReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, optionsReply, notYetReply, copyReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
@@ -260,10 +260,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // email): from the app's real screens and the privacy policy, the AI provider named from this deployment's config.
       // Stock tips and picks (no securities advice: the advice guard's blocks) get one fixed answer, never the model's;
       // so does trading options, which Upmore can't do (the trade flow's own refusal, reached even when nothing order-shaped),
-      // and the money actions not built yet (own-account transfers, card locks, bill pay...), before any flow misreads them.
+      // and the money actions not built yet (own-account transfers, card locks, bill pay...), before any flow misreads them,
+      // and copy trading (not built) however it's phrased, in the trade flow's own words.
       // "I'm traveling in Japan": no travel notice can be filed; the person's day can move to local time on their word.
       // "Do this while I'm asleep" gets the standing rules and the person's own quiet hours (default 10 p.m. to 7 a.m.).
-      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? adviceReply(message) ?? optionsReply(message) ?? notYetReply(message) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end }) ?? travelReply(message, tz);
+      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? adviceReply(message) ?? optionsReply(message) ?? notYetReply(message) ?? copyReply(message) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end }) ?? travelReply(message, tz);
       let linkedCount = 0;
       if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");

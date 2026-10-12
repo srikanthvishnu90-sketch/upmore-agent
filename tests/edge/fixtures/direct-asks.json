@@ -329,6 +329,9 @@
     ["lock my card", "notYetReply"],
     ["report my card stolen", "notYetReply"],
     ["pay the electric bill", "notYetReply"],
-    ["pay my rent", null]
+    ["pay my rent", null],
+    ["copy Nancy Pelosi's trades", "copyReply"],
+    ["copy that", null],
+    ["send me a copy of my statement", null]
   ]
 }

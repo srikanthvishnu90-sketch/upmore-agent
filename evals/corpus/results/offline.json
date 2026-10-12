@@ -769,7 +769,7 @@
    "turns": [
     {
      "user": "copy pelosi's portfolio",
-     "reply": "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?",
+     "reply": "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late: a member of Congress reports a trade up to 45 days after it, and a fund's 13F comes 45 days after each quarter ends, so a copy would buy stale positions. Want to see your own holdings instead?",
      "outcome": "not_built"
     }
    ]

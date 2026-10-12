@@ -242,3 +242,16 @@ Deno.test("money actions not built yet are said before any flow can misread them
   // The phrases it offers really are handled: rent is its own flow, a cancel is the cancel flow, a buy the trade flow.
   assertEquals((AgentTrade as any).parse("buy $5 of VOO").action, "new");
 });
+
+// Megadoc H01-H15 copy trading: not built; said however it's phrased, in the trade flow's own words.
+Deno.test("copy trading: not built, the disclosure lag said right, an unverifiable source, an ETF bought directly (H-series)", () => {
+  const { copyReply, COPY_NONE } = DirectAnswers;
+  for (const t of ["copy Nancy Pelosi's trades", "copy Warren Buffett's portfolio with 10k", "copy Leopold but with 50k", "copy Leopold and Buffett half each", "copy it but skip the oil stuff"]) assertEquals(copyReply(t), COPY_NONE, t);
+  assertMatch(COPY_NONE, /a member of Congress reports a trade up to 45 days after it, and a fund's 13F comes 45 days after each quarter ends/);
+  assertMatch(copyReply("copy that guy from reddit's trades")!, /trades someone posts or tells you about can't be checked/);
+  assertMatch(copyReply("copy Cathie Wood's ETF")!, /A fund manager's ETF is itself something you can buy, like any stock: .*capped at \$5 for now\.$/);
+  for (const t of ["how did copying Leopold do", "stop copying Leopold", "sell everything I copied"]) assertMatch(copyReply(t)!, /^Copy trading isn't built, so there's no copy running to report on, stop or sell\./, t);
+  for (const t of ["copy that", "copy that!", "send me a copy of my statement", "can you copy that text", "copy the link"]) assertEquals(copyReply(t), null, t);
+  // The trade flow refuses with the same sentence, so the two never disagree.
+  assert(SRC_TRADE.includes(COPY_NONE));
+});

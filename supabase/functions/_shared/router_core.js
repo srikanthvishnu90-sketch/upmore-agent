@@ -4590,7 +4590,7 @@
       async function stageOnce(parsed) {
         suggestion = null;
         // Copying someone's portfolio is not built: said plainly, with why a copy would be stale (corpus 3.08, scenario H02).
-        if (/\b(copy|copied|copying|mirror|mirrored)\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late (up to 45 days), so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
+        if (/\b(copy|copied|copying|mirror|mirrored)\b/i.test(parsed.text || "")) return say("not_built", "Copy trading isn't built yet, so nothing was placed. Public disclosures also arrive late: a member of Congress reports a trade up to 45 days after it, and a fund's 13F comes 45 days after each quarter ends, so a copy would buy stale positions. Want to see your own holdings instead?", { reason: "copy_not_built" });
         // An investment pitch with a promised return is a scam pattern; nothing is staged (megadoc N01).
         if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
         // Stops across every holding at once are not built (megadoc E13): one holding at a time.

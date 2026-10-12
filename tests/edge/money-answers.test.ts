@@ -31,6 +31,8 @@ Deno.test("routing: the four asks fire, in the person's own words", () => {
     // Found by probing 2026-10-12: each went to the model.
     ["how much do i have in checking", "balance"], ["whats in savings", "balance"], ["what's in my checking?", "balance"], ["how much is in my account rn", "balance"],
     ["how much do i owe on my card", "balance"], ["how much do i owe on my credit cards?", "balance"], ["am i broke", "checkup"], ["am i broke?", "checkup"],
+    ["total spending october", "spend"], ["my total spending", "spend"], ["spending in september", "spend"], ["spending this week?", "spend"],
+    ["what was my total spend last month", "spend"], ["how much total did i spend", "spend"],
   ];
   for (const [m, k] of cases) assertEquals(moneyKind(m), k, m);
 });
@@ -41,6 +43,7 @@ Deno.test("routing: near misses go on to the flows and the model", () => {
     "how do i cut my spending", "help me budget my spending", "how am i doing on my emergency fund goal", "how is the market doing", "send sam 40",
     "cancel netflix", "did it go through", "what is rent", "pay my rent", "connect my chase", "find me money", "what's a roth ira",
     "how much do i owe on my car", "what's in my account settings", "am i broke if i buy this", "whats in a savings account",
+    "total spending for my wedding budget tips", "spending money for kids", "spending habits of millennials",
   ]) assertEquals(moneyKind(m), null, m);
 });
 

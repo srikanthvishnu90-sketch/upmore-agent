@@ -62,6 +62,9 @@ const CASH = new RegExp(LEAD + String.raw`(?:what'?s|whats|what is|how much is|s
 const CHECKUP = new RegExp(LEAD + String.raw`(?:how am i doing|how'?m i doing|how are my finances(?: doing| looking)?|how'?s my money(?: looking)?|how are things looking|am i doing ok(?:ay)?|am i broke)(?:\s+(?:financially|money-?wise|with money|with my money|this month|overall|lately|so far))*\s*[?.!]*\s*$`, "i");
 // Also "where is my money going" (megadoc L02) and "what's my biggest expense" (L08): this month's spending with its top
 // places, the same answer.
+// "total spending october", "my total spending", "spending this week?", "spending in september", "how much total did i
+// spend", "what was my total spend last month" (found by probing, 2026-10-12): the same spending answer.
+const SPEND_SHORT = /^\s*(?:(?:what(?:'s| is| was)\s+)?(?:my\s+)?total\s+(?:spending|spend|spent)|(?:my\s+)?spending)(?:\s+(?:in|for|during|this|last|so far|on)\b[^?.!]{0,30}|\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*)?\s*[?.!]*\s*$|^\s*how much total did i spend\b/i;
 const SPEND = /\b(?:how much|what)\s+(?:did|have|do)\s+i\s+(?:spend|spent)\b|\bhow much i(?:'ve| have)? spent\b|\bwhat(?:'s| is| was)? (?:my )?spending\b|\bshow (?:me )?my spending\b|^\s*my spending\b|^\s*(?:hey|ok|so)?[,\s]*where(?:'s| is| does| did| has)? (?:all )?(?:my|the) money (?:go|going|gone|been going)\b|^\s*(?:hey|ok|so)?[,\s]*(?:what'?s|whats|what is|what are) (?:my )?(?:biggest|largest|top) (?:expenses?|spending|costs?|charges?)\b/i;
 const ADVICE = /\b(?:should|could|cut|reduce|lower|stop|budget|tips?|help me|plan|save|limit|afford)\b/i;
 const THROUGH = /^\s*(?:hey|ok|okay|so|pls|please)?[,\s]*(?:did|has|have|is|was)\b/i;
@@ -124,7 +127,7 @@ export function moneyKind(message: string): MoneyKind | null {
   // Before spend: "how much did i spend on my amex" is a card, "did i spend more on food than last month" a comparison.
   const view = SpendingViews.ask(m) as "compare" | "cards" | null;
   if (view) return view;
-  if (SPEND.test(m) && !ADVICE.test(m)) return "spend";
+  if ((SPEND.test(m) || SPEND_SHORT.test(m)) && !ADVICE.test(m)) return "spend";
   if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m) || HAVE_IN.test(m) || CASH.test(m)) return "balance";
   return numbersKind(m);
 }

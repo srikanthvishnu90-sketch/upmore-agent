@@ -57,7 +57,7 @@ function fakeSupabase(tables: Record<string, { data?: any[]; error?: any }>) {
       select(s: string) { q.select = s; return b; },
       eq(c: string, v: unknown) { q.filters.push(["eq", c, v]); return b; },
       gte(c: string, v: unknown) { q.filters.push(["gte", c, v]); return b; },
-      order() { return b; }, limit() { return b; },
+      order() { return b; }, limit() { return b; }, range() { return b; }, or() { return b; },
       then(res: any, rej: any) { const t = tables[table] || { data: [] }; return Promise.resolve(t.error ? { data: null, error: t.error } : { data: t.data || [], error: null }).then(res, rej); },
     };
     return b;

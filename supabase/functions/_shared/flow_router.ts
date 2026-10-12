@@ -34,6 +34,8 @@ export class NotWired extends Error {
 // variable can make a rail look live. When an adapter lands, it adds itself here together with its read-back.
 export const LIVE_PARTNERS: Record<string, unknown> = Object.freeze({});
 
+import { readRecentTransactions } from "./recent_transactions.ts";
+
 export interface FlowData {
   ok: boolean;
   missing?: string;
@@ -321,10 +323,10 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
       if (r.error) throw new Error("Flow state could not be saved.");
     },
     async loadData(): Promise<FlowData> {
-      const since = new Date(now() - 400 * 86400000).toISOString().slice(0, 10);
+      // Newest first, so the cap drops the oldest rows and never this month (_shared/recent_transactions.ts); the flows
+      // get them oldest first, as before. A failed read is the "transactions" gap, never an answer from part of them.
       const [tx, accts, snaps, recs, standing, bank, prefs] = await Promise.all([
-        supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
-          .eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000),
+        readRecentTransactions(supabase, userId, now()).then((rows) => ({ data: rows.slice().reverse(), error: null }), (error) => ({ data: null, error })),
         supabase.from("brokerage_accounts").select("id,provider,label,paper,status").eq("user_id", userId),
         supabase.from("portfolio_snapshots").select("brokerage_account_id,cash,snapshot_at").eq("user_id", userId).order("snapshot_at", { ascending: false }).limit(50),
         supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500),

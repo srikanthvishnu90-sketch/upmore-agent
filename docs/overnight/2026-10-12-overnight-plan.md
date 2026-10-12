@@ -54,7 +54,7 @@ here. The morning report is the last section.
 
 ## Block B: merge the four running builds (as each lands)
 
-- [ ] B1 balance-aware sends (corpus 1.05), B2 saved nicknames + migration (1.06), B3 sell by company name (3.05),
+- [x] B1 balance-aware sends (cb8df6f) (corpus 1.05), B2 saved nicknames + migration (1.06), B3 sell by company name (3.05),
   B4 teardown-to-capability map. For each: read the diff critically (money paths, guards, RLS), rebuild generated files,
   the full bar above, DB suite locally for B2, push alone, wait for green. Triage file entries removed only when the
   corpus example passes offline.

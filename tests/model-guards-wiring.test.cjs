@@ -40,16 +40,17 @@ test('the direct answers (connect my X, find me money, nothing linked) run after
   const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
   assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');
   assert.ok(h.includes('meta: { capability: true, direct: true }'));
-  assert.ok(h.includes('.eq("presence", "observed")'),'find me money reads only observed rows');
+  assert.ok(h.includes('readRecentTransactions(supabase, user.id, Date.now())'),'find me money reads through the shared reader (observed rows only; behavior in tests/edge/recent-transactions.test.ts)');
 });
 
 test('one shared, newest-first transaction read per turn (a long history never drops this month), used by every direct answer',()=>{
   const start=h.indexOf('let direct: string | null = connectReply(message);'), end=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
   const block=h.slice(start,end);
   assert.ok(block.includes('txCache ??='),'read once and shared');
-  assert.ok(block.includes('.order("posted_on", { ascending: false, nullsFirst: true })') && block.includes('.range(from, from + 999)'),'newest first, in pages');
+  assert.ok(block.includes('readRecentTransactions(supabase, user.id, Date.now())'),'the shared newest-first reader, with the person\'s RLS client (its query shape is tested against real order, range and filter semantics in tests/edge/recent-transactions.test.ts)');
   assert.ok(!block.includes('ascending: true }).limit('),'no oldest-first limit, which cut off the newest rows');
-  assert.ok(block.includes('.eq("presence", "observed")') && block.includes('400 * 86400000') && block.includes('posted_on.is.null'),'observed rows, last 400 days, plus pending with no posted date');
+  const f=fs.readFileSync(path.join(__dirname,'../supabase/functions/_shared/flow_router.ts'),'utf8');
+  assert.ok(f.includes('readRecentTransactions(supabase, userId, now())') && !/agent_financial_transactions[^\n]*\n[^\n]*ascending: true \}\)\.limit\(/.test(f),'the flow router reads the same way');
   assert.ok(!block.includes('admin.'),'reads use the person\'s RLS client, never the service role');
 });
 

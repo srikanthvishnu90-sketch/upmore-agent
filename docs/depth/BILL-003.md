@@ -81,4 +81,5 @@ Check: `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BI
 | S16 | Stop-on-change | a changed fee or access date between yes and run stops it | `S16` in tests/depth-BILL-003.test.cjs | the re-verification result is ignored, so a new cancellation fee still runs | proven |
 | S17 | The way people ask | 'unsubscribe me from netflix' cards Netflix | `S17` in tests/depth-BILL-003.test.cjs | 'me from' is read as the merchant name | proven |
 | S18 | A kind of service | 'cancel my gym' cards Planet Fitness | `S18` in tests/depth-BILL-003.test.cjs | a kind of service is not matched to the person's charges, so 'my gym' is said not found while Planet Fitness is listed | proven |
+| S19 | An investment is not a subscription | kill my VOO position offers the sell words | `S19` in tests/depth-BILL-003.test.cjs | an investment named in a cancel is answered as a missing card charge | proven |
 <!-- results:end -->

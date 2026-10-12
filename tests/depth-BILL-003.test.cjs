@@ -247,3 +247,8 @@ test('[S18] a kind of service ("my gym", "my music", "my streaming") resolves to
   const st=await card('cancel my streaming');assert.equal(st.outcome,'ask');assert.match(st.text,/^Which one: (?:Netflix|Hulu) .* or (?:Netflix|Hulu) /);
   const ng=await card('cancel my vpn');assert.equal(ng.outcome,'ask');assert.match(ng.text,/^I don't see a vpn charge/);
 });
+
+test('[S19] "cancel my apple stock", "kill my VOO position": an investment, not a subscription; the sell words are offered and nothing is staged; a brand in capitals (HBO) is not taken for one',async()=>{
+  for(const [m,sym] of [['kill my VOO position','VOO'],['cancel my apple stock','apple'],['cancel my nvda shares','nvda']]){const {s:x,r}=session();const a=await x.start(m);assert.equal(a.reason,'investment_not_subscription',m);assert.equal(a.text,`${sym} looks like an investment, not a subscription, so there's nothing to cancel here. To sell it, say "sell my ${sym}" and I'll put up a card; nothing happens without your yes.`);assert.equal(r.writes.length,0);}
+  const {s:x}=session();const h=await x.start('cancel HBO');assert.notEqual(h.reason,'investment_not_subscription');
+});

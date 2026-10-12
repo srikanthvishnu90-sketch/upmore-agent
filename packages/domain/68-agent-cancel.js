@@ -189,6 +189,9 @@
         if (!query) return say("ask", "Cancel what? Name the subscription.");
         const r = resolve(query);
         if (r.many) return say("ask", `Which one: ${r.many.map(s => `${nameOf(s)} (${money(s.amount_cents)}/${s.interval === "monthly" ? "mo" : s.interval})`).join(" or ")}?`, { candidates: r.many.map(s => s.merchant) });
+        // "kill my VOO position", "cancel my apple stock": an investment, not a subscription (found by probing); the sell
+        // words are offered, nothing is staged here. A bare all-caps name is not enough: HBO, NYT and ESPN are subscriptions.
+        if (r.none && /\b(?:position|shares|stock|stocks|etf)\b/i.test(query)) { const sym = String(query).trim().replace(/\s+(?:position|shares?|stock)$/i, ""); return say("ask", `${sym} looks like an investment, not a subscription, so there's nothing to cancel here. To sell it, say "sell my ${sym}" and I'll put up a card; nothing happens without your yes.`, { reason: "investment_not_subscription" }); }
         if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
         return stage(r.one, ctx);
       }

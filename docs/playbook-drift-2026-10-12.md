@@ -352,3 +352,13 @@ the source.
   was stored; it is now left out with "unsupported_currency:<id>:custom" and every other account syncs (FINANCIAL-MODEL
   S06, D06b; 26/26). Still for the owner: any entry in a batch's errors (this one, a euro account) sets sync_error on
   every account in the ingest SQL, so the cash position reads unknown; changing that is a migration.
+
+## BUILD-STATUS still described the gauntlet as not run and the broker as paper accounts (2026-10-12, morning)
+
+- Said (BUILD-STATUS, written 2026-10-11): sloppy-20 gauntlet "NOT RUN ... no ANTHROPIC_API_KEY"; "the only brokerage
+  rows are Alpaca paper accounts with no adapter"; the depth table listed RAIL-2 as "Alpaca paper adapter" (16/16) and
+  older counts for INV-011 and BILL-003.
+- True: the gauntlet ran live once on 2026-10-12 (commit 2852339, OpenAI gpt-5-nano; docs/gauntlet/live-2026-10-12.md);
+  trading is the person's own live account through the Alpaca connector with the $5 cap and no paper anywhere; RAIL-2 is
+  the live-only rewrite (21/21); INV-011 17/17, BILL-003 18/18; 51 packets now cover all 63 modules.
+- Now: those lines say so and point to the triage doc and docs/depth/MUTATION-COVERAGE.md.

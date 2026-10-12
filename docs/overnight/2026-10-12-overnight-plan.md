@@ -79,7 +79,7 @@ is filed, sent or paid by Upmore.
 - [x] **C5. Price-drop claims.** Target 14 days, Best Buy return window, Costco 30 days: receipts in, current price in
   (fixtures), claim text out with the order number; credit watched on the card. Policy table with exclusions (open box,
   ended sales, Thanksgiving week).
-- [ ] **C6. State auto-return and failed-bank deposits.** Official-sender check for state treasurer letters; FDIC
+- [x] **C6. State auto-return and failed-bank deposits.** Official-sender check for state treasurer letters; FDIC
   failed-bank list matched to old bank names (dated data).
 
 ## Block D: subscriptions and spending (Methods 3, ungated)

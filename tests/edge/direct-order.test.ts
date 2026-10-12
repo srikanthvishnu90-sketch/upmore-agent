@@ -11,6 +11,7 @@ import { rewardsReply } from "../../supabase/functions/agent-chat/_shared/reward
 import { priceDropReply } from "../../supabase/functions/agent-chat/_shared/price_drop_answer.ts";
 import { moneyOwedReply } from "../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import { airlineReply } from "../../supabase/functions/agent-chat/_shared/airline_answer.ts";
+import { unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
 
 const NOW = new Date("2026-10-12T15:05:00Z"), TODAY = "2026-10-12";
 const ACCOUNTS = [
@@ -34,6 +35,7 @@ const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   priceDropReply: (m) => priceDropReply(m, TODAY, oldest),
   moneyOwedReply: (m) => moneyOwedReply(m, TODAY, oldest, accounts),
   airlineReply: (m) => airlineReply(m, TODAY, oldest),
+  unclaimedReply: (m) => unclaimedReply(m, TODAY, oldest, accounts),
 };
 const handler = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
 const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);
@@ -65,6 +67,15 @@ const OWNER: [string, string | null][] = [
   ["the airline owes me money for my cancelled delta flight", "airlineReply"],
   ["I cancelled my Delta ticket, am I owed anything?", "airlineReply"],
   ["I cancelled my flight, can I get a refund?", "airlineReply"],
+  ["did silicon valley bank fail? I had money there", "unclaimedReply"],
+  ["do i have money at a failed bank?", "unclaimedReply"],
+  ["is nano banc safe", "unclaimedReply"],
+  ["I got a letter from the Illinois Treasurer Money Match saying they owe me $412, is it real?", "unclaimedReply"],
+  ["the state treasurer sent me a letter about unclaimed money, legit?", "unclaimedReply"],
+  ["is this ftc refund email real? From: refunds@ftc.gov You have a PayPal payment from the FTC Amazon refund.", "moneyOwedReply"],
+  ["my payment failed at chase", null],
+  ["my bank failed to send my transfer", null],
+  ["is my money at fdic insured?", null],
   ["cancel my delta flight", null],
   ["book me a flight to Denver", null],
   ["send sam 40", null],

@@ -41,6 +41,7 @@ import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { airlineReply } from "./_shared/airline_answer.ts";
+import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
@@ -284,6 +285,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await priceDropReply(message, today, oldestFirst);
         // A flight ask is the airline rules' before it is a general "am I owed" (tests/edge/direct-order.test.ts).
         if (!direct) direct = await airlineReply(message, today, oldestFirst);
+        // A state treasurer letter or a failed bank (_shared/unclaimed_answer.ts) before a general "am I owed".
+        if (!direct) direct = await unclaimedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
         if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {

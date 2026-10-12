@@ -1,6 +1,6 @@
 {
  "capability": "ALERTS",
- "run_at": "2026-10-12T05:58:36.946Z",
+ "run_at": "2026-10-12T06:07:22.715Z",
  "baseline_all_green": true,
  "sub_capabilities": 15,
  "proven": 15,
@@ -136,9 +136,9 @@
   {
    "sub": "S12",
    "id": "D12",
-   "title": "Today's charges only",
+   "title": "The last 3 days, from the watch's own day",
    "defect": "every charge in the rows is read",
-   "test": "yesterday's $640 does not fire today",
+   "test": "a charge from before the watch was set does not fire; one 5 days old does not either",
    "bites": true,
    "applied": true,
    "collateral": [],

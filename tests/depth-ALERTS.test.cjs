@@ -105,10 +105,15 @@ test("[S11] a balance watch reads what is available: $600 on the books with $400
   assert.deepEqual(f.map(x => [x.key, x.text]), [["watch:w1:2026-10-12", "checking is at $400.00, below your $500.00 line. (you asked me to watch this)"]]);
 });
 
-test("[S12] a charge watch fires on today's charges, each once by its own key; yesterday's is not news", () => {
-  const rows = [tx("2026-10-11", -64000, "BEST BUY 00012"), tx(T, -25000, "BEST BUY 00012", { id: "mock-bb1" }), tx(T, -30000, "APPLE STORE R123", { id: "mock-ap1" })];
-  const f = plain(A.evaluateWatches([watch("alert me if a charge over $200 posts", "w2")], { today: T, transactions: rows, accounts: CHK }));
-  assert.deepEqual(f.map(x => x.key), ["watch:w2:mock-bb1", "watch:w2:mock-ap1"]);
+test("[S12] a charge watch reads the last 3 days from the day it was set, each charge once by its own key (late syncs are caught; older charges are not news)", () => {
+  const rows = [tx("2026-10-11", -64000, "BEST BUY 00012", { id: "mock-bb0" }), tx(T, -25000, "BEST BUY 00012", { id: "mock-bb1" }), tx(T, -30000, "APPLE STORE R123", { id: "mock-ap1" }), tx("2026-10-07", -90000, "OLD TV STORE", { id: "mock-old" })];
+  // Set today: yesterday's $640 came before the watch, so it is not news.
+  const fresh = plain(A.evaluateWatches([Object.assign(watch("alert me if a charge over $200 posts", "w2"), { created_on: T })], { today: T, transactions: rows, accounts: CHK }));
+  assert.deepEqual(fresh.map(x => x.key), ["watch:w2:mock-bb1", "watch:w2:mock-ap1"]);
+  // Set last week: yesterday's $640 synced late and still fires, dated; the charge 5 days ago is past the window.
+  const older = plain(A.evaluateWatches([Object.assign(watch("alert me if a charge over $200 posts", "w3"), { created_on: "2026-10-01" })], { today: T, transactions: rows, accounts: CHK }));
+  assert.deepEqual(older.map(x => x.key).sort(), ["watch:w3:mock-ap1", "watch:w3:mock-bb0", "watch:w3:mock-bb1"]);
+  assert.match(older.find(x => x.key === "watch:w3:mock-bb0").text, /charged \$640\.00 on 2026-10-11, over your \$200\.00 line/);
 });
 
 test("[S13] a large charge is over the person's line, or three times the usual with five past charges to say what usual is", () => {

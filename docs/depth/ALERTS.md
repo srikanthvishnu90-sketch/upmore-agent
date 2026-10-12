@@ -29,7 +29,7 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S09 | The exact number | $1,250.50 is 125050 cents | `S09` in tests/depth-ALERTS.test.cjs | the thousands comma is not removed | proven |
 | S10 | Refused, never guessed | 'gas prices go below $3' is not a balance watch | `S10` in tests/depth-ALERTS.test.cjs | 'go below' is read as a balance falling | proven |
 | S11 | Available, not the books | $600 with $400 available is below $500 | `S11` in tests/depth-ALERTS.test.cjs | the watch compares the ledger balance | proven |
-| S12 | Today's charges only | yesterday's $640 does not fire today | `S12` in tests/depth-ALERTS.test.cjs | every charge in the rows is read | proven |
+| S12 | The last 3 days, from the watch's own day | a charge from before the watch was set does not fire; one 5 days old does not either | `S12` in tests/depth-ALERTS.test.cjs | every charge in the rows is read | proven |
 | S13 | Usual needs five past charges | two $15 dinners do not make $60 large | `S13` in tests/depth-ALERTS.test.cjs | one past charge sets the usual | proven |
 | S14 | Three first-time merchants is safety | three new shops in a day go out as safety | `S14` in tests/depth-ALERTS.test.cjs | four are needed | proven |
 | S15 | The person's buffer | under a $500 buffer on Oct 15 | `S15` in tests/depth-ALERTS.test.cjs | the default $100 buffer is always used | proven |

@@ -180,7 +180,7 @@ report or a defect that did not bite. Results are as recorded by `node evals/dep
 | 59-agent-alerts.js | ALERTS D09 | the thousands comma is not removed | S09: $1,250.50 is 125050 cents | proven |
 | 59-agent-alerts.js | ALERTS D10 | 'go below' is read as a balance falling | S10: 'gas prices go below $3' is not a balance watch | proven |
 | 59-agent-alerts.js | ALERTS D11 | the watch compares the ledger balance | S11: $600 with $400 available is below $500 | proven |
-| 59-agent-alerts.js | ALERTS D12 | every charge in the rows is read | S12: yesterday's $640 does not fire today | proven |
+| 59-agent-alerts.js | ALERTS D12 | every charge in the rows is read | S12: a charge from before the watch was set does not fire; one 5 days old does not either | proven |
 | 59-agent-alerts.js | ALERTS D13 | one past charge sets the usual | S13: two $15 dinners do not make $60 large | proven |
 | 59-agent-alerts.js | ALERTS D14 | four are needed | S14: three new shops in a day go out as safety | proven |
 | 59-agent-alerts.js | ALERTS D15 | the default $100 buffer is always used | S15: under a $500 buffer on Oct 15 | proven |

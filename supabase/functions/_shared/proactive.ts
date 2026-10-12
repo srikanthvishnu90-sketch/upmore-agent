@@ -290,7 +290,8 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
     // "Tell me when my rent is due" is usually a question: an unreadable "tell me when" goes to the normal chat; an
     // explicit "alert me / text me / ping me" gets the honest list of what can be watched.
     if (!w.ok) return /^\s*tell me|^\s*let me know/i.test(t) ? null : { settings: {}, reply: w.text + " Nothing was set up." };
-    const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now}` });
+    // created_on: a watch reads charges from the day it was set, never older ones (59-agent-alerts.js evaluateWatches).
+    const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now}`, created_on: localClock(now, validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone).date });
     return { settings: { watches: (s.watches || []).concat([watch]).slice(-20) }, reply: AgentAlerts.restateWatch(watch) + " Say \"show my alerts\" to see them." };
   }
   if ((m = /^\s*every (day|morning|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[, ]+(?:tell me|send me|show me|give me)(?: my| the)? (.+?)(?: spend(?:ing)?| spent)?\s*[.!]?$/i.exec(t))) {

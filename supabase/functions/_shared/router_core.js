@@ -4635,7 +4635,9 @@
         if (parsed.ambiguous_number) return ask("size_ambiguous", `Is ${parsed.ambiguous_number} dollars or shares of ${(parsed.query || "that").toUpperCase()}?`);
         if (parsed.zero) return ask("size", "The amount has to be above zero. How much: dollars or shares?");
         if (parsed.vague) return ask("size", `How much exactly: a dollar amount or a share count? I don't size orders myself.`);
-        if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
+        // The size is asked only once the instrument is known: "buy a new laptop" is "which ticker?", never "How much of
+        // LAPTOP: dollars or shares?" (found 2026-10-12).
+        const missingSize = !parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction);
         if (parsed.notional_cents && type !== "market") return ask("size", parsed.trigger_cents ? `An order that waits for ${money(parsed.trigger_cents)} needs a share count, not dollars. How many shares?` : `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
         const res = await instrument(parsed.query, side);
@@ -4652,6 +4654,7 @@
         if (!sellByName) { const a = symbolAsk(); if (a) return a; }
         let inst = res.exact || null, heldNote = "";
         if (inst && inst.not_tradable) return say("refuse", `${inst.symbol} is not tradable at this broker.`, { reason: "not_tradable" });
+        if (missingSize) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
         // S05: account.
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now, so I can't place anything. Try again once the connection is back.");

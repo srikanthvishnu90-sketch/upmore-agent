@@ -573,7 +573,7 @@
    "typed": "buy tesla",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "How much of TESLA: dollars or shares?",
+   "reply": "I can't find \"tesla\" among listed instruments. Which ticker?",
    "executed": false,
    "mock_orders": 0
   },
@@ -609,7 +609,7 @@
    "typed": "buy with a limit but price is already below it",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "How much of it: dollars or shares?",
+   "reply": "Which ticker?",
    "executed": false,
    "mock_orders": 0
   },
@@ -879,7 +879,7 @@
    "typed": "buy during halt",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "How much of it: dollars or shares?",
+   "reply": "Which ticker?",
    "executed": false,
    "mock_orders": 0
   },
@@ -906,7 +906,7 @@
    "typed": "buy while account restricted",
    "flow": "trade",
    "outcome": "ask",
-   "reply": "How much of it: dollars or shares?",
+   "reply": "Which ticker?",
    "executed": false,
    "mock_orders": 0
   },

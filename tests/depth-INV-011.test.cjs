@@ -78,6 +78,8 @@ test('[S02] the symbol resolves against listed instruments: exact, by name with 
   const c=keep(await s.start('buy $500 of vanguard s&p 500'));assert.equal(c.outcome,'ask');assert.equal(c.reason,'symbol_suggest');assert.equal(c.text,'Did you mean VOO, Vanguard S&P 500 ETF? Say yes to use VOO.');
   const d=keep(await s.start('buy $500 of V00'));assert.equal(d.outcome,'ask');assert.equal(d.reason,'symbol_suggest');assert.match(d.text,/"V00" is not a listed symbol, but VOO is one character away, Vanguard S&P 500 ETF/);
   const e=keep(await s.start('buy $500 of ZZZZ'));assert.equal(e.outcome,'ask');assert.equal(e.reason,'symbol_unknown');assert.match(e.text,/can't find "ZZZZ"/);
+  // With no size, the instrument is still checked first: "buy a laptop" is "which ticker?", never "How much of LAPTOP".
+  const e2=keep(await s.start('buy a laptop'));assert.equal(e2.outcome,'ask');assert.equal(e2.reason,'symbol_unknown');assert.doesNotMatch(e2.text,/How much/);
   const f=keep(await s.start('buy $500 of vanguard'));assert.equal(f.outcome,'ask');assert.equal(f.reason,'symbol_ambiguous');assert.match(f.text,/^Which one: VOO \(Vanguard S&P 500 ETF\), VTI/);
   const g=keep(await s.start('buy $500 of PINK'));assert.equal(g.outcome,'refuse');assert.equal(g.reason,'not_tradable_here');
   assert.equal(s.pending,null);assert.equal(r.writes.length,0);

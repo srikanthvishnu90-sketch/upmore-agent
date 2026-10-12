@@ -21,12 +21,17 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 - S13 (found here): the fraud check read the finding's words, which carry the merchant's descriptor, so a merchant
   named "UNAUTHORIZED USE GUARD" turned a new-subscription note into a safety alert (safety skips quiet hours and the
   budget, so it would go out at 3 a.m.). The check now reads the rule that fired. D13 plants the old check.
+- S16 (found here, fixed in merge review): the feed handed the monitors `accounts_live`, which `plan()` never sets, and
+  the monitors read dollar balances while the feed's accounts are in cents, so the deposit-insurance check never ran:
+  a $312,500 savings balance was never mentioned. USD checking and savings now reach it in dollars, with their source
+  and as-of, and the finding says "Balance per <source>, as of <time> UTC." Brokerage accounts and cash sweeps never do.
+  D16 and D16b plant the missing path and an every-account path; tests/edge/proactive.test.ts checks it through plan().
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
 | S01 | A trial's end is a real deadline | a trial ending in 2 days gets through a spent budget | `S01` in tests/depth-PROACTIVE.test.cjs | trial_converting is left out of the deadline kinds, so the warning waits behind the budget | proven (also fails S10) |
-| S02 | The key the cancel offer is built on | the key is trial_converting:sub-9:2026-10-14 | `S02` in tests/depth-PROACTIVE.test.cjs | monitor keys are namespaced like save: and earn:, so plan() no longer sees a trial and never asks "should I cancel it for you?" | proven (also fails S01, S03, S04, S05, S06, S09, S10, S13) |
+| S02 | The key the cancel offer is built on | the key is trial_converting:sub-9:2026-10-14 | `S02` in tests/depth-PROACTIVE.test.cjs | monitor keys are namespaced like save: and earn:, so plan() no longer sees a trial and never asks "should I cancel it for you?" | proven (also fails S01, S03, S04, S05, S06, S09, S10, S13, S16) |
 | S03 | A new subscription is not a deadline | MAX.COM billing tomorrow still waits for the budget | `S03` in tests/depth-PROACTIVE.test.cjs | new_subscription is added to the deadline kinds | proven |
 | S04 | The dispute-by date is a deadline | a duplicate due for dispute tomorrow gets through | `S04` in tests/depth-PROACTIVE.test.cjs | duplicate_charge is left out of the deadline kinds | proven |
 | S05 | Amounts to the cent | $16.99 is 1699 | `S05` in tests/depth-PROACTIVE.test.cjs | dollars are floored into cents, so $16.99 is 1698 | proven |
@@ -42,4 +47,6 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S15 | The person's large-charge line | $60 is over a $50 line | `S15` in tests/depth-PROACTIVE.test.cjs | the person's line is not passed to the alerts | proven |
 | S15 | The person's quiet hours | at 11 p.m. the large charge is held | `S15` in tests/depth-PROACTIVE.test.cjs | quiet hours are not passed to the alerts | proven |
 | S15 | The person's watches | a balance watch fires | `S15` in tests/depth-PROACTIVE.test.cjs | the person's watches are not passed to the alerts | proven |
+| S16 | Deposits reach the insurance check | a $312,500 savings balance is flagged with its source and as-of; a brokerage is not | `S16` in tests/depth-PROACTIVE.test.cjs | the feed hands the monitors no accounts (the path found missing building this packet) | proven |
+| S16 | Only deposits are insured | a $400,000 brokerage cash sweep is never called over the deposit-insurance limit | `S16` in tests/depth-PROACTIVE.test.cjs | every account kind is handed to the insurance check | proven |
 <!-- results:end -->

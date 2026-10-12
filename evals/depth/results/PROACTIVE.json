@@ -1,9 +1,9 @@
 {
  "capability": "PROACTIVE",
- "run_at": "2026-10-12T06:14:23.544Z",
+ "run_at": "2026-10-12T06:44:57.914Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 17,
+ "sub_capabilities": 16,
+ "proven": 19,
  "problems": [],
  "rows": [
   {
@@ -35,7 +35,8 @@
     "S06",
     "S09",
     "S10",
-    "S13"
+    "S13",
+    "S16"
    ],
    "status": "proven"
   },
@@ -203,6 +204,28 @@
    "title": "The person's watches",
    "defect": "the person's watches are not passed to the alerts",
    "test": "a balance watch fires",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Deposits reach the insurance check",
+   "defect": "the feed hands the monitors no accounts (the path found missing building this packet)",
+   "test": "a $312,500 savings balance is flagged with its source and as-of; a brokerage is not",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16b",
+   "title": "Only deposits are insured",
+   "defect": "every account kind is handed to the insurance check",
+   "test": "a $400,000 brokerage cash sweep is never called over the deposit-insurance limit",
    "bites": true,
    "applied": true,
    "collateral": [],

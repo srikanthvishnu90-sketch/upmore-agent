@@ -150,3 +150,16 @@ test("[ADV] planted descriptor text never reaches a finding; a trial without a p
   assert.ok(f.proactive.some(p => p.text === "Nowhere TV trial ends tomorrow. The first charge lands 2026-10-13 unless it is cancelled first."), JSON.stringify(f.proactive.map(p => p.text)));
   for (const p of f.proactive) { assert.ok(p.key && p.reason, JSON.stringify(p)); assert.deepEqual(plain(Voice.lint(p.text, {})), [], p.key); }
 });
+
+test("[S16] a deposit over the insurance limit reaches the feed, with the balance's source and as-of; investments, sweeps and debts never do", () => {
+  const SAV = { id: "mock-sav", name: "High Yield Savings", kind: "savings", balance_cents: 31250000, source: "Mock Bank via SimpleFIN", as_of: "2026-10-12T06:00:00Z" };
+  const BRK = { id: "mock-brk", name: "Brokerage", kind: "brokerage", balance_cents: 90000000, source: "Mock Broker", as_of: "2026-10-12T06:00:00Z" };
+  // A brokerage's cash sweep ("Cash Management", kind cash) is not a bank deposit Upmore can call insured or not.
+  const SWEEP = { id: "mock-cash", name: "Cash Management", kind: "cash", balance_cents: 40000000, source: "Mock Broker", as_of: "2026-10-12T06:00:00Z" };
+  const f = feed([OLD()], { accounts: CHK.concat([SAV, BRK, SWEEP]) });
+  const p = f.proactive.filter(x => /^over_insurance_limit:/.test(x.key));
+  assert.deepEqual(p.map(x => x.key), ["over_insurance_limit:mock-sav"], JSON.stringify(keys(f)));
+  assert.match(p[0].text, /\$312,500\.00 in one account\. Deposit insurance covers \$250,000\.00 per person, per bank, per ownership type, so \$62,500\.00 may be uninsured\./);
+  assert.match(p[0].text, /Balance per Mock Bank via SimpleFIN, as of 2026-10-12 06:00 UTC\./);
+  assert.equal(p[0].amount_cents, 6250000);
+});

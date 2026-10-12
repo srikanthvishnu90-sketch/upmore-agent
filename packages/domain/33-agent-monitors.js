@@ -415,6 +415,7 @@
            Only one account at a time is known here, so this flags a single
            account over the limit and says what it cannot see. */
     const DEPOSIT_INSURANCE_LIMIT = 250000;
+    const asOfText = t => { const ms = typeof t === "number" ? t : Date.parse(t || ""); return Number.isFinite(ms) ? `, as of ${new Date(ms).toISOString().slice(0, 16).replace("T", " ")} UTC` : ""; };
     function overInsuranceLimit(input) {
       return (Array.isArray(input.accounts) ? input.accounts : []).map(a => {
         const bal = Number(a && a.balance);
@@ -425,7 +426,7 @@
           key: `over_insurance_limit:${a.id}`,
           kind: "over_insurance_limit", capabilityId: "banking.deposit_insurance_check",
           title: `${a.name || "An account"} is over the deposit insurance limit`,
-          detail: `${usd(bal)} in one account. Deposit insurance covers ${usd(DEPOSIT_INSURANCE_LIMIT)} per person, per bank, per ownership type, so ${usd(over)} may be uninsured. Joint accounts and other accounts at the same bank change the math; Upmore can only see this one.`,
+          detail: `${usd(bal)} in one account. Deposit insurance covers ${usd(DEPOSIT_INSURANCE_LIMIT)} per person, per bank, per ownership type, so ${usd(over)} may be uninsured. Joint accounts and other accounts at the same bank change the math; Upmore can only see this one.${a.source ? ` Balance per ${a.source}${asOfText(a.as_of)}.` : ""}`,
           counterparty: null, amount: over, dueOn: null,
           evidence: { rule: "An account balance above $250,000.", rows: [],
             computed: { account: a.name || a.id, balance: cents(bal), limit: DEPOSIT_INSURANCE_LIMIT, over } },

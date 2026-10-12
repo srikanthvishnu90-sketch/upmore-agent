@@ -26,7 +26,11 @@
       const compose = (kind, fields) => { if (!Voice) return { bubbles: [fields.finding ? `${fields.finding} ${fields.offer}` : fields.first_line || fields.text] }; return Voice.compose(kind, fields, {}); };
       // Monitors (Codex): findings with evidence rows; fraud-shaped ones are safety, the rest proactive with their rule as the reason.
       if (Monitors && input.transactions) {
-        const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live });
+        // The monitors read dollar balances; the feed is given accounts in cents (proactive.ts mapAccounts). Only USD
+        // checking and savings can be over the deposit-insurance limit, and each carries its source and as-of so the
+        // finding can say where the balance came from. Before this, nothing reached the check (found building PROACTIVE).
+        const deposits = list => (list || []).filter(a => a && ["checking", "savings"].includes(a.kind) && (!a.currency || a.currency === "USD") && Number.isSafeInteger(a.balance_cents)).map(a => ({ id: a.id, name: a.name, type: a.kind, balance: a.balance_cents / 100, source: a.source || null, as_of: a.as_of || null }));
+        const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live || deposits(input.accounts) });
         out.sources.monitors = { findings: m.findings.length, errors: m.errors };
         for (const f of m.findings) {
           if (f.kind === "low_balance" || f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.kind === "low_balance" ? "you asked me to watch your balance" : "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });

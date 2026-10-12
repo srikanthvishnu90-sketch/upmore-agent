@@ -90,3 +90,15 @@ said, what is true, and the source.
 - Then (run 79, the first to run): the deno job failed on one type error in the wiring test added in cd61602
   (`s.trade.loop.memory` typed as `{}`), which the local bar missed because it ran the edge suite with --no-check. The
   test is typed `any`; the local bar now type-checks the edge suite as CI does (403 passed, typed).
+
+## The deposit-insurance check could never fire (2026-10-12, morning)
+
+- Said (33-agent-monitors.js check 11, capability banking.deposit_insurance_check): a balance over $250,000 in one
+  account is flagged.
+- True: the proactive feed passed the monitors `input.accounts_live`, which plan() never sets, and the monitor reads a
+  dollar `balance` while the feed's accounts carry `balance_cents`. In production it never ran. Found by the PROACTIVE
+  packet's agent and left as a missing path; it is wired now.
+- Now: USD checking and savings reach the check in dollars with their source and as-of; the finding ends "Balance per
+  <source>, as of <time> UTC." (a money statement cites its source). Brokerage accounts and cash sweeps are never
+  handed to it. Red first (PROACTIVE S16), D16/D16b proven, and tests/edge/proactive.test.ts sees the message from
+  database rows through plan().

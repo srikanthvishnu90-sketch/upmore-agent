@@ -438,6 +438,7 @@
            Only one account at a time is known here, so this flags a single
            account over the limit and says what it cannot see. */
     const DEPOSIT_INSURANCE_LIMIT = 250000;
+    const asOfText = t => { const ms = typeof t === "number" ? t : Date.parse(t || ""); return Number.isFinite(ms) ? `, as of ${new Date(ms).toISOString().slice(0, 16).replace("T", " ")} UTC` : ""; };
     function overInsuranceLimit(input) {
       return (Array.isArray(input.accounts) ? input.accounts : []).map(a => {
         const bal = Number(a && a.balance);
@@ -448,7 +449,7 @@
           key: `over_insurance_limit:${a.id}`,
           kind: "over_insurance_limit", capabilityId: "banking.deposit_insurance_check",
           title: `${a.name || "An account"} is over the deposit insurance limit`,
-          detail: `${usd(bal)} in one account. Deposit insurance covers ${usd(DEPOSIT_INSURANCE_LIMIT)} per person, per bank, per ownership type, so ${usd(over)} may be uninsured. Joint accounts and other accounts at the same bank change the math; Upmore can only see this one.`,
+          detail: `${usd(bal)} in one account. Deposit insurance covers ${usd(DEPOSIT_INSURANCE_LIMIT)} per person, per bank, per ownership type, so ${usd(over)} may be uninsured. Joint accounts and other accounts at the same bank change the math; Upmore can only see this one.${a.source ? ` Balance per ${a.source}${asOfText(a.as_of)}.` : ""}`,
           counterparty: null, amount: over, dueOn: null,
           evidence: { rule: "An account balance above $250,000.", rows: [],
             computed: { account: a.name || a.id, balance: cents(bal), limit: DEPOSIT_INSURANCE_LIMIT, over } },
@@ -3624,7 +3625,11 @@
       const compose = (kind, fields) => { if (!Voice) return { bubbles: [fields.finding ? `${fields.finding} ${fields.offer}` : fields.first_line || fields.text] }; return Voice.compose(kind, fields, {}); };
       // Monitors (Codex): findings with evidence rows; fraud-shaped ones are safety, the rest proactive with their rule as the reason.
       if (Monitors && input.transactions) {
-        const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live });
+        // The monitors read dollar balances; the feed is given accounts in cents (proactive.ts mapAccounts). Only USD
+        // checking and savings can be over the deposit-insurance limit, and each carries its source and as-of so the
+        // finding can say where the balance came from. Before this, nothing reached the check (found building PROACTIVE).
+        const deposits = list => (list || []).filter(a => a && ["checking", "savings"].includes(a.kind) && (!a.currency || a.currency === "USD") && Number.isSafeInteger(a.balance_cents)).map(a => ({ id: a.id, name: a.name, type: a.kind, balance: a.balance_cents / 100, source: a.source || null, as_of: a.as_of || null }));
+        const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live || deposits(input.accounts) });
         out.sources.monitors = { findings: m.findings.length, errors: m.errors };
         for (const f of m.findings) {
           if (f.kind === "low_balance" || f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.kind === "low_balance" ? "you asked me to watch your balance" : "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });

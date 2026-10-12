@@ -265,3 +265,13 @@ Deno.test("rent offer: YES puts up the rent flow's own card (its yes is the appr
   assertEquals((await offerMessage("yes", old.deps, Date.UTC(2026, 9, 30, 12)))!.reply, "That offer has expired: October's rent was due Oct 14, so nothing was staged. Say \"pay my rent\" if you want a card.");
   assertEquals(old.calls.flows, [], "an expired offer runs nothing");
 });
+
+// The deposit-insurance check reaches a message from database rows (overnight 2026-10-12): the feed used to hand the
+// monitors no accounts, so a $312,500 savings balance was never mentioned. MOCK rows.
+Deno.test("plan: a savings balance over the deposit-insurance limit is said, with its source and as-of", () => {
+  const sav = { account_id: "sav-1", name: "High Yield Savings", institution: "First Bank", currency: "USD", account_kind: "savings", balance_cents: 31250000, available_cents: 31250000, balance_as_of: "2026-10-11T13:30:00Z", fetched_at: "2026-10-11T13:30:00Z", sync_error: false, status: "active" };
+  const p = plan(input({ accounts: accountRows(500000).concat([sav]) }), NOW);
+  const said = p.messages.find(m => /over the deposit insurance limit/.test(m.text));
+  assert(said, JSON.stringify({ messages: p.messages.map(m => m.text), suppressed: p.suppressed }));
+  assert(/\$62,500\.00 may be uninsured\..*Balance per First Bank via SimpleFIN, as of 2026-10-11 13:30 UTC\./.test(said.text), said.text);
+});

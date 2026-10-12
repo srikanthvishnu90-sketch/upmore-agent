@@ -56,6 +56,9 @@ test("[S05] a row states how reliable it is", () => {
 
 test("[S06] a row says the day it was last checked, as a date", () => {
   for (const last_checked of [undefined, "", "Oct 10", "2026-10-1", "10/10/2026"]) assert.deepEqual(errs(row({ last_checked })), ["mock-bank: last_checked date missing"], String(last_checked));
+  // A date of the right shape that is not on the calendar was accepted ("2026-02-30" passed validation).
+  for (const last_checked of ["2026-02-30", "2026-13-45", "2026-00-10", "2025-02-29", "2026-04-31"]) assert.deepEqual(errs(row({ last_checked })), [`mock-bank: last_checked ${last_checked} is not a real date`], last_checked);
+  for (const last_checked of ["2024-02-29", "2026-12-31", "2026-01-01"]) assert.deepEqual(errs(row({ last_checked })), [], last_checked);
 });
 
 test("[S07] a row powers at least one capability", () => {
@@ -99,14 +102,24 @@ test("[S13] a live session is labeled the least reliable class; a label that onl
 test("[S14] \"can you connect Gusto\" is answered from the table, word for word, with its gated writes", () => {
   const g = plain(K.answer(catalog, "Gusto"));
   assert.deepEqual([g.covered, g.rows.map(r => r.provider)], [true, ["gusto"]]);
-  assert.equal(g.text, "Gusto payroll: yes, via oauth (high); adapter not built yet");
-  assert.equal(plain(K.answer(catalog, "Zelle")).text, "Zelle (inside the user's bank): yes, via aggregator (high); adapter not built yet; send gated: bank partnership required; handoff pattern");
+  assert.equal(g.text, "Gusto payroll: not yet; it would connect via oauth (high); adapter not built yet");
+  assert.equal(plain(K.answer(catalog, "Zelle")).text, "Zelle (inside the user's bank): not yet; it would connect via aggregator (high); adapter not built yet; send gated: bank partnership required; handoff pattern");
 });
 
 test("[S15] a row whose adapter exists but is not live says so, never a bare yes", () => {
   const p = plain(K.answer(catalog, "Plaid"));
-  assert.equal(p.text, "Plaid (banks, cards, loans, investments): yes, via aggregator (high); adapter not live yet (edge function exists (plaid, plaid-sync); not yet wrapped in the five verbs); ACH between own accounts gated: needs a money-movement partner; Plaid Transfer requires its own agreement");
+  assert.equal(p.text, "Plaid (banks, cards, loans, investments): not yet; it would connect via aggregator (high); adapter not live yet (edge function exists (plaid, plaid-sync); not yet wrapped in the five verbs); ACH between own accounts gated: needs a money-movement partner; Plaid Transfer requires its own agreement");
   assert.equal(plain(K.answer({ connectors: [row({ adapter_state: "live" })] }, "Mock Bank")).text, "Mock Bank: yes, via aggregator (high)");
+});
+
+test("[S21] \"yes\" only when the adapter is live: with nothing live, every answer opens \"not yet\"", () => {
+  // Every catalog row's adapter is none, an edge function not yet wrapped, or a reference adapter; the answers opened "yes" anyway.
+  const all = catalog.connectors.map(c => plain(K.answer({ connectors: [c] }, c.provider)).text);
+  assert.equal(all.filter(t => / yes, via /.test(t)).length, 0, "an answer opened \"yes\" for a row with no live adapter");
+  assert.equal(all.filter(t => /: not yet; it would connect via /.test(t)).length, catalog.connectors.length);
+  assert.equal(plain(K.answer(catalog, "Venmo")).text.split(";")[0], "Venmo: not yet");
+  for (const adapter_state of ["none", "not live: awaiting partner", "live sandbox only"]) assert.match(plain(K.answer({ connectors: [row({ adapter_state })] }, "Mock Bank")).text, /^Mock Bank: not yet; it would connect via aggregator \(high\); adapter not /, adapter_state);
+  assert.equal(plain(K.answer({ connectors: [row({ adapter_state: "live since 2026-10-01" })] }, "Mock Bank")).text, "Mock Bank: yes, via aggregator (high)");
 });
 
 test("[S16] a service not in the catalog is an honest gap, with no promise of a CSV import that is not live", () => {

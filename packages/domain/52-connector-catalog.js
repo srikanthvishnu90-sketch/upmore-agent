@@ -10,6 +10,8 @@
     const ID = /^[A-Z]{3,4}-\d{3}$/;
     // Live means the adapter state says so first ("live", "live since ..."): "not live", "delivery ..." and a sandbox are not live.
     const isLive = state => /^live\b/i.test(String(state || "")) && !/\b(sandbox|mock|test|paper)\b/i.test(String(state || ""));
+    // A checked date is a day on the calendar: 2026-02-30 and 2026-13-45 have the shape of a date and are not one.
+    const realDate = s => { const [y, m, d] = String(s).split("-").map(Number), t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d; };
     function validate(catalog, registry) {
       const errors = [], ids = new Set((registry && registry.capabilities || []).map(c => c.id)), seen = new Set();
       for (const c of catalog && catalog.connectors || []) {
@@ -19,6 +21,7 @@
         if (![1, 2, 3].includes(c.wave)) errors.push(`${tag}: wave must be 1, 2 or 3`);
         if (!c.reliability_class) errors.push(`${tag}: reliability class missing`);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(String(c.last_checked || ""))) errors.push(`${tag}: last_checked date missing`);
+        else if (!realDate(c.last_checked)) errors.push(`${tag}: last_checked ${c.last_checked} is not a real date`);
         if (!Array.isArray(c.capabilities) || !c.capabilities.length) errors.push(`${tag}: no capabilities`);
         for (const id of c.capabilities || []) if (!ID.test(id) || !ids.has(id)) errors.push(`${tag}: capability ${id} is not in the registry`);
         for (const w of c.write_actions || []) { if (!w.capability || !ids.has(w.capability)) errors.push(`${tag}: write action cites unknown capability ${w.capability}`); if (!/^T[3-5]$/.test(w.tier || "")) errors.push(`${tag}: write action ${w.action} must be T3 or above`); if (!w.gated && !isLive(c.adapter_state)) errors.push(`${tag}: write action ${w.action} promised without a live adapter and no gated reason`); }
@@ -34,7 +37,8 @@
       const hits = (catalog.connectors || []).filter(c => c.display_name.toLowerCase().includes(s) || c.provider.includes(s.replace(/\s+/g, "-")) || c.domain.toLowerCase().includes(s));
       // The CSV floor is offered only when the table says its adapter is live.
       if (!hits.length) return { covered: false, text: `I can't connect ${String(surface).trim()} yet; it isn't in the connector catalog.${(catalog.connectors || []).some(c => c.provider === "manual-csv" && isLive(c.adapter_state)) ? " CSV import works as the floor." : ""}`, rows: [] };
-      return { covered: true, rows: hits, text: hits.map(c => `${c.display_name}: yes, via ${c.auth_method.toLowerCase().replace(/_/g, " ")} (${c.reliability_class})${c.adapter_state === "none" ? "; adapter not built yet" : !isLive(c.adapter_state) ? `; adapter not live yet (${c.adapter_state})` : ""}${c.gated_reason ? "; gated: " + c.gated_reason : ""}${(c.write_actions || []).filter(w => w.gated).map(w => `; ${w.action} gated: ${w.gated}`).join("")}`).join(". ") };
+      // "yes" only when the row's adapter is live; a row with no adapter, or one that exists but is not live, opens "not yet".
+      return { covered: true, rows: hits, text: hits.map(c => `${c.display_name}: ${isLive(c.adapter_state) ? "yes, via" : "not yet; it would connect via"} ${c.auth_method.toLowerCase().replace(/_/g, " ")} (${c.reliability_class})${c.adapter_state === "none" ? "; adapter not built yet" : !isLive(c.adapter_state) ? `; adapter not live yet (${c.adapter_state})` : ""}${c.gated_reason ? "; gated: " + c.gated_reason : ""}${(c.write_actions || []).filter(w => w.gated).map(w => `; ${w.action} gated: ${w.gated}`).join("")}`).join(". ") };
     }
     // Coverage: for a life described as surfaces, every surface answers yes via a connector or is an unlabeled gap.
     function coverage(catalog, lives) {

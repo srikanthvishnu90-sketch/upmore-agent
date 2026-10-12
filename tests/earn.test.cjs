@@ -24,7 +24,7 @@ function fixture(){
   add('bonus','2026-10-04',-5000,'ONLINE TRANSFER TO SAV',{is_transfer:true}); // control
   // a second bonus whose requirements are met and whose credit has posted
   add('bonus2','2026-08-02',300000,'PAYROLL DIRECT DEP');add('bonus2','2026-09-15',30000,'NEW ACCOUNT BONUS');
-  add('cc1','2026-09-28',-12999,'PELOTON');
+  add('cc1','2026-09-28',-12999,'PELOTON TREAD'); // names the product: a bare 'PELOTON' purchase is now an unconfirmed match worth $0 (EARN depth packet S24, 2026-10-12)
   return {today:TODAY,transactions:tx,statesLived:['TX','IL'],lastSearched:{IL:'2026-09-01'},
     bonuses:[{id:'b1',bank:'Example Bank',account_id:'bonus',amount_cents:30000,opened_on:'2026-09-20',requirements:[{kind:'direct_deposit',amount_cents:200000,by:'2026-10-17'},{kind:'debit_count',count:10,by:'2026-11-19'}],early_closure_until:'2027-03-20',time_minutes:30},
              {id:'b2',bank:'Other Bank',account_id:'bonus2',amount_cents:30000,opened_on:'2026-08-01',requirements:[{kind:'direct_deposit',amount_cents:250000,by:'2026-09-30'}],payout_expected_by:'2026-09-30'}],

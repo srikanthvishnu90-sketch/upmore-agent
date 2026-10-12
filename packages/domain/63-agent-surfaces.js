@@ -60,7 +60,10 @@
     const PORTALS = { as_of: "2026-10", source: "portal rate pages as published; rates change daily", rows: [{ id: "portal_a", name: "Portal A", rates_bps: { "bigshop": 300, "shoeco": 800, "hotelsite": 600, "electro": 150 }, payout: "quarterly by check or transfer", min_payout_cents: 500 }, { id: "portal_b", name: "Portal B", rates_bps: { "bigshop": 100, "shoeco": 1200, "flightco": 200 }, payout: "monthly, 30-day lock", min_payout_cents: 1000 }] };
     function portalEarnings(statements, transactions, today) {
       const rows = (statements || []).map(s => ({ portal: s.portal, pending_cents: s.pending_cents || 0, confirmed_cents: s.confirmed_cents || 0, paid_cents: s.paid_cents || 0, as_of: s.as_of, next_payout_on: s.next_payout_on || null }));
-      const paidRows = (transactions || []).filter(t => cents(t) > 0 && /rakuten|portal|cashback|cash back|topcashback|honey/i.test(String(t.merchant_raw || ""))).map(t => ({ id: t.id, on: ymd(t.posted_at), amount_cents: cents(t), merchant: t.merchant_raw }));
+      // Landed means a credit from a portal itself: one the person has a statement for (by its name) or a portal named on the
+      // credit. A card's own "cashback" or "cash back" statement credit is the card's reward, not portal money.
+      const portalNames = rows.map(r => norm(r.portal)).filter(Boolean), fromPortal = t => { const m = norm(t.merchant_raw); return /rakuten|topcashback|honey/i.test(m) || portalNames.some(p => (" " + m + " ").includes(" " + p + " ")); };
+      const paidRows = (transactions || []).filter(t => cents(t) > 0 && fromPortal(t)).map(t => ({ id: t.id, on: ymd(t.posted_at), amount_cents: cents(t), merchant: t.merchant_raw }));
       const confirmed = rows.reduce((s, r) => s + r.confirmed_cents, 0), pending = rows.reduce((s, r) => s + r.pending_cents, 0), landed = paidRows.reduce((s, r) => s + r.amount_cents, 0);
       return { portals: rows, payouts_landed: paidRows, confirmed_cents: confirmed, pending_cents: pending, landed_cents: landed, text: `${money(confirmed)} confirmed and ${money(pending)} pending across ${rows.length} portal${rows.length === 1 ? "" : "s"}; ${money(landed)} has actually landed in your accounts${rows.some(r => r.next_payout_on) ? `; next payout ${rows.filter(r => r.next_payout_on).map(r => `${r.portal} ${r.next_payout_on}`).join(", ")}` : ""}. Pending is the portal's number, not money.`, source: "portal statements and your transactions", as_of: today };
     }
@@ -74,8 +77,14 @@
     }
     function offersForPlan(plan, user, catalog) { return (plan || []).map(p => routePurchase(p, catalog, user)).filter(r => r.total_back_cents > 0); }
     // EARN-010: card-linked offer activation as a loop request (T3: it is a write on the issuer's site, confirmed once); the agent never clicks.
-    function activateOffer(offer, user) {
+    // Today comes in like the module's other functions take it (bestCard, portalEarnings; routePurchase reads user.today): an offer
+    // past its expiry is refused in words and nothing is staged; an offer expiring today is still open. With an expiry on file and no
+    // date to check it against, it asks rather than stage an offer that may be gone.
+    function activateOffer(offer, user, today) {
       if (!offer || !offer.id) return { ask: "Which offer? Give me the card and merchant." };
+      const on = ymd(today || (user && user.today));
+      if (offer.expires_on && !/^\d{4}-\d{2}-\d{2}$/.test(on)) return { ask: `What is today's date? The ${offer.card} offer at ${offer.merchant} runs through ${ymd(offer.expires_on)}, and I check it is still open before staging it.` };
+      if (offer.expires_on && ymd(offer.expires_on) < on) return { expired: true, text: `The ${offer.card} offer at ${offer.merchant} expired on ${ymd(offer.expires_on)}, so there is nothing to activate. Nothing is staged.` };
       if (offer.activated) return { done: true, text: `${offer.card} ${offer.merchant} is already activated${offer.expires_on ? ` through ${offer.expires_on}` : ""}.` };
       const key = `offer:${offer.card}:${offer.id}`;
       return { request: { capability_id: "EARN-010", key, idempotency_key: key, params: { card: offer.card, offer_id: offer.id, merchant: offer.merchant }, describe: `Activate the ${offer.card} offer at ${offer.merchant}`, confirm: { restate: `activate the ${offer.card} offer: ${offer.percent_bps ? offer.percent_bps / 100 + " percent" : money(offer.amount_cents || 0)} back at ${offer.merchant}${offer.expires_on ? `, through ${offer.expires_on}` : ""}.`, context: "On your card's offers page," } }, text: `I'll stage the activation; you approve it once. Activation is free and does not commit you to buying.` };
@@ -144,9 +153,17 @@
     function billCalendar(input) {
       const L = typeof AgentLedger !== "undefined" ? AgentLedger : null, today = input.today, items = [];
       if (L && input.transactions) for (const i of L.recurringCalendar(input.transactions, today, input.days || 30, input.rules).items.filter(i => i.direction === "debit" && ["housing", "utilities", "subscriptions", "insurance", "debt_payment"].includes(i.category))) items.push({ on: i.on, name: i.merchant, amount_cents: i.amount_cents, category: i.category, autopay: !!(input.autopay || []).find(a => norm(a) === norm(i.merchant)), source: "recurring pattern" });
-      for (const b of input.bills || []) if (b.due_on && b.due_on >= today && daysBetween(today, b.due_on) <= (input.days || 30)) items.push({ on: b.due_on, name: b.name, amount_cents: b.amount_cents, category: b.category || "bills", autopay: !!b.autopay, source: "you" });
+      // A bill the person names that is also one of their recurring rows (the same name, or one name the start of the other, due
+      // within 7 days of each other) is one bill: listed once, from what they told me, and it says the recurring rows show it too.
+      const sameBill = (a, b) => { const x = norm(a), y = norm(b); return !!x && !!y && (x === y || x.startsWith(y + " ") || y.startsWith(x + " ")); };
+      for (const b of input.bills || []) if (b.due_on && b.due_on >= today && daysBetween(today, b.due_on) <= (input.days || 30)) {
+        const twin = items.find(i => i.source === "recurring pattern" && sameBill(i.name, b.name) && Math.abs(daysBetween(i.on, b.due_on)) <= 7);
+        if (twin) items.splice(items.indexOf(twin), 1);
+        items.push(Object.assign({ on: b.due_on, name: b.name, amount_cents: b.amount_cents, category: b.category || (twin && twin.category) || "bills", autopay: !!b.autopay || !!(twin && twin.autopay), source: "you" }, twin ? { also_in: "recurring pattern", recurring: { on: twin.on, name: twin.name, amount_cents: twin.amount_cents } } : {}));
+      }
       items.sort((a, b) => a.on.localeCompare(b.on));
-      return { items, total_cents: items.reduce((s, i) => s + i.amount_cents, 0), manual: items.filter(i => !i.autopay), text: items.length ? `${items.length} bill${items.length === 1 ? "" : "s"} in the next ${input.days || 30} days, ${money(items.reduce((s, i) => s + i.amount_cents, 0))}: ${items.map(i => `${i.on} ${i.name} ${money(i.amount_cents)}${i.autopay ? " (autopay)" : ""}`).join("; ")}.${items.some(i => !i.autopay) ? ` ${items.filter(i => !i.autopay).length} need${items.filter(i => !i.autopay).length === 1 ? "s" : ""} a manual payment.` : ""}` : "No bills due in the window.", source: "your transactions and what you told me", as_of: today };
+      const said = i => i.also_in ? `${i.autopay ? "autopay; " : ""}as you told me, also in your recurring payments${i.recurring.amount_cents !== i.amount_cents ? ` at ${money(i.recurring.amount_cents)}` : ""}` : i.autopay ? "autopay" : "";
+      return { items, total_cents: items.reduce((s, i) => s + i.amount_cents, 0), manual: items.filter(i => !i.autopay), text: items.length ? `${items.length} bill${items.length === 1 ? "" : "s"} in the next ${input.days || 30} days, ${money(items.reduce((s, i) => s + i.amount_cents, 0))}: ${items.map(i => `${i.on} ${i.name} ${money(i.amount_cents)}${said(i) ? ` (${said(i)})` : ""}`).join("; ")}.${items.some(i => !i.autopay) ? ` ${items.filter(i => !i.autopay).length} need${items.filter(i => !i.autopay).length === 1 ? "s" : ""} a manual payment.` : ""}` : "No bills due in the window.", source: "your transactions and what you told me", as_of: today };
     }
 
     return { SURFACES, sideIncomeMatch, effective, BONUSES, bonusFinder, PORTALS, portalEarnings, routePurchase, offersForPlan, activateOffer, bestCard, DISPUTE_REASONS, disputePacket, complaintDraft, energyPlans, moveBudget, cryptoExport, billCalendar, money };

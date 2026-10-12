@@ -1,9 +1,9 @@
 {
  "capability": "CONNECTOR-CATALOG",
- "run_at": "2026-10-12T07:22:54.126Z",
+ "run_at": "2026-10-12T07:57:57.932Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 21,
+ "sub_capabilities": 21,
+ "proven": 23,
  "problems": [],
  "rows": [
   {
@@ -85,6 +85,17 @@
    "status": "proven"
   },
   {
+   "sub": "S06",
+   "id": "D06b",
+   "title": "A checked date is on the calendar",
+   "defect": "any date of the right shape passes (the bug fixed after merge)",
+   "test": "\"2026-02-30\" is refused",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
    "sub": "S07",
    "id": "D07",
    "title": "At least one capability",
@@ -147,7 +158,9 @@
    "test": "\"live sandbox only\" is refused",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S21"
+   ],
    "status": "proven"
   },
   {
@@ -180,7 +193,9 @@
    "test": "Gusto says adapter not built yet",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S21"
+   ],
    "status": "proven"
   },
   {
@@ -191,7 +206,9 @@
    "test": "Plaid says adapter not live yet",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S21"
+   ],
    "status": "proven"
   },
   {
@@ -247,6 +264,20 @@
    "bites": true,
    "applied": true,
    "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "\"yes\" only when live",
+   "defect": "every row in the catalog opens \"yes\" (the bug fixed after merge)",
+   "test": "no row with an adapter that is not live opens \"yes\"",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S14",
+    "S15"
+   ],
    "status": "proven"
   }
  ]

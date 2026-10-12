@@ -48,12 +48,22 @@ Bugs this packet pins, each written as a failing test first on the original modu
 - S18: a tiny crypto quantity was written in exponent form ("1.2e-7") in the tax CSV. It is written 0.00000012. D18.
 - S19 (words): one bill read "1 bills in the next 30 days" and "1 need a manual payment". Singular now.
 
-Noted, not changed (for the owner): `activateOffer` takes no date, so it stages an offer whose `expires_on` has passed;
-the bonus catalog and portal table are placeholder rows in a production module; a card with no base rate on file is
-assumed to earn 1 percent; portal payouts are matched by words like "cashback" and "honey", so a card's own cash-back
-credit counts as portal money landed; move-budget figures not given are typical amounts (marked "typical"); the crypto
-CSV does not neutralize a note starting with "=" for spreadsheet tools; a bill the person names and the same bill found
-in their recurring rows would both be listed (only the named-bill path is tested here).
+Fixed after merge (each red first in this file, logged in `docs/playbook-drift-2026-10-12.md`):
+- S21: `activateOffer` took no date, so it staged an offer whose `expires_on` had passed. It takes today like the
+  module's other functions (`activateOffer(offer, user, today)`, or `user.today`). An expired offer reads "The Mock Blue
+  offer at ShoeCo expired on 2026-10-11, so there is nothing to activate. Nothing is staged."; an offer expiring today
+  still stages; with an expiry and no date it asks for today. It stays staging only (S09 pins the request). D21, D21b.
+- S07: portal payouts were matched by words like "cashback", so a card's own cash-back credit counted as portal money
+  landed. Only a credit from a portal itself counts: one the person has a statement for, by name, or Rakuten,
+  TopCashback or Honey on the credit. D07b.
+- S22: a bill the person named and the same bill found in their recurring rows were both listed. It is listed once,
+  from what the person said ("as you told me, also in your recurring payments", with the recurring amount when it
+  differs), when the names match (equal, or one the start of the other) and the dates are within 7 days. D22, D22b.
+
+Noted, not changed (for the owner): the bonus catalog and portal table are placeholder rows in a production module; a
+card with no base rate on file is assumed to earn 1 percent; move-budget figures not given are typical amounts (marked
+"typical"); the crypto CSV does not neutralize a note starting with "=" for spreadsheet tools; a portal named on a credit
+is still matched by its letters ("honey" anywhere in the descriptor), as before.
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
@@ -67,6 +77,7 @@ in their recurring rows would both be listed (only the named-bill path is tested
 | S05 | Deposits over the window | $3,000 a month meets $5,000 within 60 days | `S05` in tests/depth-SURFACES.test.cjs | one month's pay must cover the window's total (the bug found building this packet) | proven |
 | S06 | A 365-day year | $15,000 for 90 days at 4 percent forgoes $147.95 | `S06` in tests/depth-SURFACES.test.cjs | interest is figured on a 360-day year | proven |
 | S07 | Landed means a credit | a Rakuten purchase is not a payout | `S07` in tests/depth-SURFACES.test.cjs | debits count as landed portal money | proven |
+| S07 | Only a portal's own credit has landed | a card's cash-back credits are not portal money | `S07` in tests/depth-SURFACES.test.cjs | any credit worded cashback or cash back counts as portal money (the bug fixed after merge) | proven |
 | S08 | Expired offers are gone | yesterday's $30.00 offer is left out | `S08` in tests/depth-SURFACES.test.cjs | the expiry is not checked | proven |
 | S08 | An offer expiring today still counts | o4 expiring Oct 12 is on the list | `S08` in tests/depth-SURFACES.test.cjs | the expiry day is dropped | proven |
 | S09 | Already activated is done | an activated offer stages nothing | `S09` in tests/depth-SURFACES.test.cjs | an activated offer is staged again | proven |
@@ -90,4 +101,8 @@ in their recurring rows would both be listed (only the named-bill path is tested
 | S19 | One bill, singular | "1 bill ... 1 needs a manual payment" | `S19` in tests/depth-SURFACES.test.cjs | one bill is written in the plural (the words bug found building this packet) | proven |
 | S20 | The calendar's as-of | the bill calendar says today as its as-of | `S20` in tests/depth-SURFACES.test.cjs | the bill calendar drops its as-of | proven |
 | S20 | The best card's as-of | the card pick says today as its as-of | `S20` in tests/depth-SURFACES.test.cjs | the card pick drops its as-of | proven |
+| S21 | An expired offer is not staged | yesterday's offer is refused, nothing staged | `S21` in tests/depth-SURFACES.test.cjs | the expiry is not checked before staging (the bug fixed after merge) | proven |
+| S21 | No date, no staging | with an expiry and no date it asks for today | `S21` in tests/depth-SURFACES.test.cjs | an offer is staged when there is no date to check its expiry against | proven |
+| S22 | One bill, listed once | the power bill named and recurring is one line | `S22` in tests/depth-SURFACES.test.cjs | a named bill and its recurring row are both listed (the bug fixed after merge) | proven |
+| S22 | The same bill is close in time | a named bill 15 days from the recurring one stays separate | `S22` in tests/depth-SURFACES.test.cjs | any named bill with the same name absorbs the recurring row, whatever the date | proven |
 <!-- results:end -->

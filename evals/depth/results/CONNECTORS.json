@@ -1,9 +1,9 @@
 {
  "capability": "CONNECTORS",
- "run_at": "2026-10-12T07:20:38.566Z",
+ "run_at": "2026-10-12T07:57:52.645Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 22,
+ "sub_capabilities": 21,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -130,8 +130,20 @@
    "applied": true,
    "collateral": [
     "S11",
-    "S16"
+    "S16",
+    "S21"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10b",
+   "title": "An outage is the HTTP status",
+   "defect": "any number from 500 to 599 in the message reads as an outage (the bug fixed after merge)",
+   "test": "\"account 512 not found\" is broken, not the provider down",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   },
   {
@@ -211,7 +223,8 @@
    "bites": true,
    "applied": true,
    "collateral": [
-    "S09"
+    "S09",
+    "S21"
    ],
    "status": "proven"
   },
@@ -238,6 +251,17 @@
    "status": "proven"
   },
   {
+   "sub": "S18",
+   "id": "D18b",
+   "title": "Dollars and as-of, not raw cents",
+   "defect": "the conflict prints raw cents with no as-of (the bug fixed after merge)",
+   "test": "the conflict says $4,212.08 as of its sync time",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
    "sub": "S19",
    "id": "D19",
    "title": "Due at exactly one cadence",
@@ -254,6 +278,17 @@
    "title": "A live session is the least reliable kind",
    "defect": "a live session is labeled high",
    "test": "describe() says low for a live session",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Only a good sync clears a sign-in",
+   "defect": "a health ping that answers OK clears NEEDS_REAUTH with no sync (the bug fixed after merge)",
+   "test": "an OK ping leaves NEEDS_REAUTH in place",
    "bites": true,
    "applied": true,
    "collateral": [],

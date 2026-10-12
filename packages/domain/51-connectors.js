@@ -112,7 +112,8 @@
         const a = adapters.get(rec.provider);
         let report; try { report = await a.health(rec); } catch (err) { report = { status: "BROKEN", error: String(err && err.message || err) }; }
         const stale = rec.lastSuccessAt !== null && clock() - rec.lastSuccessAt > (CADENCE_MS[a.cadence || "banking"] * 2);
-        const status = report.status === "NEEDS_REAUTH" ? "NEEDS_REAUTH" : report.status === "BROKEN" ? "BROKEN" : stale ? "STALE" : "HEALTHY";
+        // A sign-in that is needed stays needed until a sync succeeds: a ping that answers OK (or anything else) never clears it.
+        const status = report.status === "NEEDS_REAUTH" || rec.status === "NEEDS_REAUTH" ? "NEEDS_REAUTH" : report.status === "BROKEN" ? "BROKEN" : stale ? "STALE" : "HEALTHY";
         const changed = rec.status !== status; rec.status = status;
         const ev = status === "NEEDS_REAUTH" && changed ? reauthEvent(rec) : null;
         log("health", { connector: id, status, latency_ms: report.latency_ms || null });
@@ -138,7 +139,15 @@
       const describe = () => [...records.values()].map(r => ({ id: r.id, provider: r.provider, auth: r.authMethod, status: r.status, scopes: r.scopes, consent: r.consent.text, capabilities: r.capabilities, last_success_at: r.lastSuccessAt, reliability: r.reliability, retention_note: r.retention_note }));
       return { register, connect, sync, act, health, revoke, describe, records, audit, events, adapters };
     }
-    function classify(err) { const m = String(err && err.message || err); if (/reauth|login required|mfa|invalid_grant|token expired|ITEM_LOGIN_REQUIRED/i.test(m)) return { status: "NEEDS_REAUTH" }; if (/timeout|unavailable|5\d\d|killed|died/i.test(m)) return { status: "STALE" }; return { status: "BROKEN" }; }
+    // An outage is read from the HTTP status only: the error's own status field, or a number the message labels as one ("HTTP 503",
+    // "status code 500", "returned 502", "Error 500", "503 Service Unavailable"). Any other number ("account 512 not found") is not a status.
+    function httpStatus(err, m) {
+      const own = [err && err.status, err && err.statusCode, err && err.response && err.response.status].find(n => Number.isInteger(n));
+      if (own !== undefined) return own;
+      const hit = /\b(?:HTTP(?:\/\d(?:\.\d)?)?|status(?:\s+code)?|returned|responded\s+with|error)\s*:?\s*(\d{3})\b/i.exec(m) || /\b(\d{3})\s*:?\s+(?:internal server error|not implemented|bad gateway|service unavailable|gateway time-?out|http version not supported)\b/i.exec(m);
+      return hit ? Number(hit[1]) : null;
+    }
+    function classify(err) { const m = String(err && err.message || err), code = httpStatus(err, m); if (/reauth|login required|mfa|invalid_grant|token expired|ITEM_LOGIN_REQUIRED/i.test(m)) return { status: "NEEDS_REAUTH" }; if (/timeout|unavailable|killed|died/i.test(m) || (code !== null && code >= 500 && code <= 599)) return { status: "STALE" }; return { status: "BROKEN" }; }
     // Canonical schema. A money field that is missing or not a number is unknown (null), never $0.00.
     const toCents = v => v === undefined || v === null || v === "" || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 100);
     const currencyOf = x => String(x.currency || x.iso_currency_code || "USD").toUpperCase();
@@ -146,13 +155,18 @@
     const normalizeTransaction = x => ({ transaction_id: String(x.id || x.transaction_id), account_id: String(x.account_id), posted_on: String(x.date || x.posted_on || "").slice(0, 10), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : toCents(x.amount), currency: currencyOf(x), merchant_raw: String(x.name || x.merchant_raw || ""), merchant_key: merchantKey(x.name || x.merchant_raw || ""), is_pending: !!x.pending, is_transfer: !!x.is_transfer || /transfer/i.test(String(x.name || "")), category: x.category || null });
     const normalizeHolding = x => ({ account_id: String(x.account_id), symbol: String(x.symbol || x.ticker || ""), quantity: Number(x.quantity || 0), price_cents: Number.isSafeInteger(x.price_cents) ? x.price_cents : toCents(x.price), cost_cents: Number.isSafeInteger(x.cost_cents) ? x.cost_cents : toCents(x.cost_basis) });
     const normalizeBill = x => ({ bill_id: String(x.id || x.bill_id), payee: String(x.payee || x.name || ""), amount_cents: Number.isSafeInteger(x.amount_cents) ? x.amount_cents : toCents(x.amount), due_on: String(x.due || x.due_on || "").slice(0, 10), autopay: !!x.autopay });
+    const money = c => { const s = Math.abs(c); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
+    // An as-of is a sync time (epoch ms, as sync() stamps it) or a date given as text; none on file is said as unknown.
+    const asOf = t => { if (typeof t === "number" && Number.isFinite(t)) { const iso = new Date(t).toISOString(); return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`; } return t ? String(t) : "an unknown time"; };
     // Conflict resolution per datum: the better-ranked class wins; the losing readings are reported, never merged.
     function resolve(kind, readings) {
       const order = RANKING[kind]; if (!order) throw new Error(`no ranking for ${kind}`);
       const rows = (readings || []).filter(r => r && order.includes(r.auth)).sort((a, b) => order.indexOf(a.auth) - order.indexOf(b.auth) || (b.as_of || 0) - (a.as_of || 0));
       if (!rows.length) return { value: null, winner: null, conflict: false, readings: [] };
       const winner = rows[0], others = rows.slice(1).filter(r => JSON.stringify(r.value) !== JSON.stringify(winner.value));
-      return { value: winner.value, winner: { source: winner.source, auth: winner.auth, as_of: winner.as_of }, conflict: others.length > 0, readings: rows.map(r => ({ source: r.source, auth: r.auth, value: r.value, as_of: r.as_of })), statement: others.length ? `Sources disagree: ${rows.map(r => `${r.source} says ${JSON.stringify(r.value)}`).join(", ")}. Using ${winner.source} (${winner.auth}), the source of truth for ${kind}s.` : null };
+      // Said the way a person reads it: a balance or bill in dollars (the canonical value is cents), each reading with its own as-of.
+      const said = v => (kind === "balance" || kind === "bill") && Number.isSafeInteger(v) ? money(v) : typeof v === "number" ? String(v) : JSON.stringify(v);
+      return { value: winner.value, winner: { source: winner.source, auth: winner.auth, as_of: winner.as_of }, conflict: others.length > 0, readings: rows.map(r => ({ source: r.source, auth: r.auth, value: r.value, as_of: r.as_of })), statement: others.length ? `Sources disagree: ${rows.map(r => `${r.source} says ${said(r.value)} as of ${asOf(r.as_of)}`).join(", ")}. Using ${winner.source} (${winner.auth}), the source of truth for ${kind}s.` : null };
     }
     // Sync scheduling: webhooks first, polling as the fallback at the class cadence.
     function due(rec, cls, now, webhookSeen) { if (webhookSeen) return { due: true, why: "webhook" }; const cadence = CADENCE_MS[cls] || CADENCE_MS.banking; if (rec.lastSyncAt === null) return { due: true, why: "never synced" }; return now - rec.lastSyncAt >= cadence ? { due: true, why: "cadence" } : { due: false, next_at: rec.lastSyncAt + cadence }; }

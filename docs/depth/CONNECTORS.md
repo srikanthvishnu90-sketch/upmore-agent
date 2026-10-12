@@ -43,11 +43,20 @@ Bugs this packet pins, each written as a failing test first on the original modu
   `mfa_code`, `verification_code`, `card_pin`, `passcode`, `cvv`, `card_number` and `account_number` were written to
   it verbatim. They are now redacted; ordinary keys (`currency_code`, `amount_cents`, `recipient`) stay readable. D17.
 
-Noted, not changed (for the owner): the conflict statement in `resolve()` prints raw cents and no as-of ("Sources
-disagree: mock-plaid says 421208, ..."); a health ping that answers HEALTHY clears NEEDS_REAUTH set by a failed sync
-without a successful sync; revoking twice rewrites the retention date; `classify()` reads any number from 500 to 599
-in an error message as a provider outage; the fake aggregator and the sandbox OAuth stub (with a PLACE_ORDER scope)
-ship inside the module rather than under tests.
+Fixed after merge (each red first in this file, logged in `docs/playbook-drift-2026-10-12.md`):
+- S21: a health ping that answered HEALTHY cleared NEEDS_REAUTH set by a failed sync, without a successful sync, and a
+  confirmed transfer then reached the adapter on a connection still needing sign-in. Only a successful sync clears it
+  now; the ping adds no message. D21.
+- S10: `classify()` read any number from 500 to 599 in an error message as a provider outage ("account 512 not found"
+  was STALE). It reads the HTTP status only: the error's own status field, or a number the message labels as one
+  ("HTTP 502", "status code 500", "returned 503", "Error 500", "503 Service Unavailable"). D10b.
+- S18: the conflict statement in `resolve()` printed raw cents and no as-of ("Sources disagree: mock-plaid says 421208,
+  ..."). It says dollars for balances and bills and each source's as-of ("mock-plaid says $4,212.08 as of 2023-11-14
+  22:13 UTC"); `tests/connectors.test.cjs` pinned the old words and is corrected. D18b.
+
+Noted, not changed (for the owner): revoking twice rewrites the retention date; a failed sync of another kind (a
+timeout, a bad batch) still replaces NEEDS_REAUTH with STALE or BROKEN, as `tests/connectors.test.cjs` pins; the fake
+aggregator and the sandbox OAuth stub (with a PLACE_ORDER scope) ship inside the module rather than under tests.
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
@@ -62,16 +71,19 @@ ship inside the module rather than under tests.
 | S07 | The upload is what syncs | the CSV given at connect yields two rows | `S07` in tests/depth-CONNECTORS.test.cjs | the CSV given at connect is dropped (the bug found building this packet) | proven (also fails S08) |
 | S08 | Quoted cells are one cell | "STARBUCKS, SEATTLE WA" stays one description | `S08` in tests/depth-CONNECTORS.test.cjs | rows are split on every comma (the bug found building this packet) | proven |
 | S09 | Revoke destroys the token | the vault entry conn_001 is destroyed | `S09` in tests/depth-CONNECTORS.test.cjs | the vault entry is left in place | proven |
-| S10 | A sign-in error is a sign-in error | ITEM_LOGIN_REQUIRED asks for a sign-in | `S10` in tests/depth-CONNECTORS.test.cjs | the aggregator's login code reads as broken | proven (also fails S11, S16) |
+| S10 | A sign-in error is a sign-in error | ITEM_LOGIN_REQUIRED asks for a sign-in | `S10` in tests/depth-CONNECTORS.test.cjs | the aggregator's login code reads as broken | proven (also fails S11, S16, S21) |
+| S10 | An outage is the HTTP status | "account 512 not found" is broken, not the provider down | `S10` in tests/depth-CONNECTORS.test.cjs | any number from 500 to 599 in the message reads as an outage (the bug fixed after merge) | proven |
 | S11 | Said once, escalated once, then quiet | four failures make two messages | `S11` in tests/depth-CONNECTORS.test.cjs | a third message goes out | proven |
 | S12 | Exactly twice the cadence is not stale | two days after a banking sync is still healthy | `S12` in tests/depth-CONNECTORS.test.cjs | the boundary counts as stale | proven |
 | S13 | A yes before any move | an unconfirmed $5.00 transfer never reaches the adapter | `S13` in tests/depth-CONNECTORS.test.cjs | the person's yes is not checked | proven (also fails S15) |
 | S14 | No compliance gate, no move | without 53-compliance.js the transfer is refused | `S14` in tests/depth-CONNECTORS.test.cjs | a missing compliance gate lets the move through (the bug found building this packet) | proven |
 | S15 | The yes does not depend on the caller's gate | a T1 label or a lax gate still needs a yes | `S15` in tests/depth-CONNECTORS.test.cjs | the gate's confirm flag decides (the bug found building this packet) | proven |
 | S15 | T5 by its own tier | a T5 passed with a lax gate is still refused | `S15` in tests/depth-CONNECTORS.test.cjs | only the gate's always flag marks a T5 | proven |
-| S16 | Only a healthy connection acts | a connection needing sign-in is refused | `S16` in tests/depth-CONNECTORS.test.cjs | the health check before the adapter is dropped | proven (also fails S09) |
+| S16 | Only a healthy connection acts | a connection needing sign-in is refused | `S16` in tests/depth-CONNECTORS.test.cjs | the health check before the adapter is dropped | proven (also fails S09, S21) |
 | S17 | Codes and numbers stay out of the log | an MFA code, PIN and card number are redacted | `S17` in tests/depth-CONNECTORS.test.cjs | only passwords, tokens, OTPs and SSNs are redacted (the bug found building this packet) | proven |
 | S18 | The ranking decides, not the latest reading | the aggregator's balance beats a newer manual one | `S18` in tests/depth-CONNECTORS.test.cjs | the newest reading wins | proven |
+| S18 | Dollars and as-of, not raw cents | the conflict says $4,212.08 as of its sync time | `S18` in tests/depth-CONNECTORS.test.cjs | the conflict prints raw cents with no as-of (the bug fixed after merge) | proven |
 | S19 | Due at exactly one cadence | 15 minutes after a balance sync it is due | `S19` in tests/depth-CONNECTORS.test.cjs | the boundary waits another tick | proven |
 | S20 | A live session is the least reliable kind | describe() says low for a live session | `S20` in tests/depth-CONNECTORS.test.cjs | a live session is labeled high | proven |
+| S21 | Only a good sync clears a sign-in | an OK ping leaves NEEDS_REAUTH in place | `S21` in tests/depth-CONNECTORS.test.cjs | a health ping that answers OK clears NEEDS_REAUTH with no sync (the bug fixed after merge) | proven |
 <!-- results:end -->

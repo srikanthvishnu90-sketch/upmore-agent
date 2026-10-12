@@ -63,7 +63,7 @@ test('act() passes the autonomy gate and the compliance gate before any adapter 
 
 test('sync conflicts follow the source ranking and are reported, never merged; scheduling is webhook first',()=>{
   const r=C.resolve('balance',[{source:'manual',auth:'MANUAL',value:400000,as_of:5},{source:'plaid',auth:'AGGREGATOR',value:421208,as_of:3},{source:'scrape',auth:'LIVE_SESSION',value:418000,as_of:4}]);
-  assert.equal(r.value,421208);assert.equal(r.winner.auth,'AGGREGATOR');assert.equal(r.conflict,true);assert.match(r.statement,/^Sources disagree: plaid says 421208, scrape says 418000, manual says 400000\. Using plaid \(AGGREGATOR\), the source of truth for balances\./);
+  assert.equal(r.value,421208);assert.equal(r.winner.auth,'AGGREGATOR');assert.equal(r.conflict,true);assert.match(r.statement,/^Sources disagree: plaid says \$4,212\.08 as of [^,]+, scrape says \$4,180\.00 as of [^,]+, manual says \$4,000\.00 as of [^,]+\. Using plaid \(AGGREGATOR\), the source of truth for balances\./); // was "plaid says 421208, ..." with no as-of: raw cents a person reads as $421,208 (CONNECTORS depth packet, fixed 2026-10-12)
   const h=C.resolve('holding',[{source:'plaid',auth:'AGGREGATOR',value:10,as_of:1},{source:'schwab',auth:'OAUTH',value:10,as_of:1}]);assert.equal(h.winner.auth,'OAUTH');assert.equal(h.conflict,false);assert.equal(h.statement,null);
   assert.throws(()=>C.resolve('person',[]),/no ranking/);
   const rec={lastSyncAt:null};same(C.due(rec,'banking',1000,false),{due:true,why:'never synced'});

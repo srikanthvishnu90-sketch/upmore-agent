@@ -1,9 +1,9 @@
 {
  "capability": "SURFACES",
- "run_at": "2026-10-12T07:27:48.347Z",
+ "run_at": "2026-10-12T07:58:07.297Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 32,
+ "sub_capabilities": 22,
+ "proven": 37,
  "problems": [],
  "rows": [
   {
@@ -102,6 +102,17 @@
    "title": "Landed means a credit",
    "defect": "debits count as landed portal money",
    "test": "a Rakuten purchase is not a payout",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07b",
+   "title": "Only a portal's own credit has landed",
+   "defect": "any credit worded cashback or cash back counts as portal money (the bug fixed after merge)",
+   "test": "a card's cash-back credits are not portal money",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -355,6 +366,50 @@
    "title": "The best card's as-of",
    "defect": "the card pick drops its as-of",
    "test": "the card pick says today as its as-of",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "An expired offer is not staged",
+   "defect": "the expiry is not checked before staging (the bug fixed after merge)",
+   "test": "yesterday's offer is refused, nothing staged",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21b",
+   "title": "No date, no staging",
+   "defect": "an offer is staged when there is no date to check its expiry against",
+   "test": "with an expiry and no date it asks for today",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "One bill, listed once",
+   "defect": "a named bill and its recurring row are both listed (the bug fixed after merge)",
+   "test": "the power bill named and recurring is one line",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22b",
+   "title": "The same bill is close in time",
+   "defect": "any named bill with the same name absorbs the recurring row, whatever the date",
+   "test": "a named bill 15 days from the recurring one stays separate",
    "bites": true,
    "applied": true,
    "collateral": [],

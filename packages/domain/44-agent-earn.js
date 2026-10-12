@@ -35,7 +35,9 @@
           const inTime = t => !r.by || t.date <= ymd(r.by); // a deposit or purchase after the requirement's deadline does not meet it
           if (r.kind === "direct_deposit") { const rows = acct.filter(t => t.amount > 0 && inTime(t) && PAYROLL_RE.test(t.merchant) && (!r.min_each_cents || cents(t.amount) >= r.min_each_cents)); const got = rows.reduce((s, t) => s + cents(t.amount), 0); return { kind: r.kind, need_cents: r.amount_cents, have_cents: got, met: got >= r.amount_cents, by: ymd(r.by), rows: rows.map(proof) }; }
           if (r.kind === "debit_count") { const rows = acct.filter(t => t.amount < 0 && inTime(t) && !t.transfer && !/\bfees?\b/i.test(t.merchant)); return { kind: r.kind, need: r.count, have: rows.length, met: rows.length >= r.count, by: ymd(r.by), rows: rows.map(proof) }; }
-          if (r.kind === "min_balance") { const hist = (input.balance_history || []).filter(h => h.account_id === b.account_id && h.date >= ymd(b.opened_on)); const ok = new Set(hist.filter(h => h.balance_cents >= r.amount_cents).map(h => ymd(h.date))).size; return { kind: r.kind, need_cents: r.amount_cents, need_days: r.days, have_days: ok, met: hist.length ? ok >= r.days : null, by: ymd(r.by), rows: [], note: hist.length ? null : "no balance history for this account; cannot verify" }; }
+          // Days kept are distinct dates at or above the amount, counted in a run: a day with any reading below it (a dip) resets
+          // the count to zero. A day with no reading neither counts nor resets. Met once a run reaches the days asked for.
+          if (r.kind === "min_balance") { const hist = (input.balance_history || []).filter(h => h.account_id === b.account_id && h.date >= ymd(b.opened_on)); const low = new Map(); for (const h of hist) { const d = ymd(h.date); low.set(d, Math.min(low.has(d) ? low.get(d) : Infinity, h.balance_cents)); } let run = 0, best = 0; for (const d of [...low.keys()].sort()) { run = low.get(d) >= r.amount_cents ? run + 1 : 0; best = Math.max(best, run); } const ok = best >= r.days ? best : run; return { kind: r.kind, need_cents: r.amount_cents, need_days: r.days, have_days: ok, met: hist.length ? ok >= r.days : null, by: ymd(r.by), rows: [], note: hist.length ? null : "no balance history for this account; cannot verify" }; }
           return { kind: r.kind, met: null, by: ymd(r.by), note: "unknown requirement kind" };
         });
         const allMet = reqs.length > 0 && reqs.every(r => r.met === true), unknown = reqs.some(r => r.met === null), missed = reqs.some(r => r.met === false && r.by && r.by < input.today);
@@ -63,11 +65,19 @@
           evidence: { rule: "Salary times the uncaptured match band times the match rate.", rows: [], computed: { salary_cents: salary, contribution_pct: b.contribution_pct, match_up_to_pct: b.match.up_to_pct, match_rate_pct: b.match.rate_pct } }, verify: { how: "the next payroll shows the new contribution percent" } }));
       }
       if (b.espp && salary && b.espp.enrolled !== true && Number.isFinite(b.espp.discount_pct) && Number.isFinite(b.espp.max_pct)) {
-        const worth = divRound(salary * b.espp.max_pct * b.espp.discount_pct, 10000);
+        // The $25,000 limit, IRC section 423(b)(8): under a tax-qualified ESPP an employee may not accrue the right to buy stock
+        // under all of the employer's ESPPs (parent and subsidiaries included) at a rate above $25,000 of the stock's fair market
+        // value, determined when the option is granted, for each calendar year the option is outstanding. On this estimate's own
+        // assumption (the price does not move, and the purchase price is the grant-date price less the discount), $25,000 of stock
+        // at the grant-date price takes $25,000 x (100 - discount) percent of pay; contributions past that buy no discounted stock,
+        // so the estimate stops there. A plan stated as not qualified (section_423: false) is not under this limit.
+        const contribution_x100 = salary * b.espp.max_pct, limit_cents = divRound(2500000 * (100 - b.espp.discount_pct), 100), capped = b.espp.section_423 !== false && contribution_x100 > limit_cents * 100;
+        const worth = capped ? divRound(limit_cents * b.espp.discount_pct, 100) : divRound(salary * b.espp.max_pct * b.espp.discount_pct, 10000);
         const deadlines = b.espp.window_closes ? [{ what: "ESPP enrollment window closes", on: ymd(b.espp.window_closes) }] : [];
-        out.push(opp("E2_benefits", "espp_not_enrolled", { title: `Your ESPP discount is worth about ${money(worth)} a year and you're not enrolled`, capability_id: "EARN-006", tier: "T1", expected_cents: worth, confidence: "medium", time_minutes: 15, deadlines,
+        const limitNote = capped ? `A tax-qualified ESPP is capped at $25,000 of stock a calendar year, valued at the grant-date price (IRC section 423(b)(8)); at a ${b.espp.discount_pct} percent discount that is ${money(limit_cents)} of your pay, so the estimate counts ${money(limit_cents)}, not the ${money(divRound(contribution_x100, 100))} the plan maximum would take.` : null;
+        out.push(opp("E2_benefits", "espp_not_enrolled", Object.assign(capped ? { limit_note: limitNote } : {}, { title: `Your ESPP discount is worth about ${money(worth)} a year and you're not enrolled${capped ? "; the $25,000 yearly purchase limit caps it" : ""}`, capability_id: "EARN-006", tier: "T1", expected_cents: worth, confidence: "medium", time_minutes: 15, deadlines,
           action: { type: "enroll_reminder", capability_id: "EARN-006", note: "Discount captured at purchase if sold at once; holding adds market risk the user decides on." },
-          evidence: { rule: "Salary times the maximum contribution percent times the purchase discount; an estimate of the discount alone.", rows: [], computed: { salary_cents: salary, max_pct: b.espp.max_pct, discount_pct: b.espp.discount_pct } }, verify: { how: "enrollment confirmed and the first purchase posts" } }));
+          evidence: { rule: capped ? "The yearly $25,000 purchase limit (at the grant-date price) times the purchase discount, because the plan maximum is past it; an estimate of the discount alone." : "Salary times the maximum contribution percent times the purchase discount; an estimate of the discount alone.", rows: [], computed: Object.assign({ salary_cents: salary, max_pct: b.espp.max_pct, discount_pct: b.espp.discount_pct }, capped ? { purchase_limit_cents: 2500000, limit_contribution_cents: limit_cents } : {}) }, verify: { how: "enrollment confirmed and the first purchase posts" } })));
       }
       if (b.hsa_seed_cents > 0 && b.hsa_enrolled !== true) out.push(opp("E2_benefits", "hsa_seed_unclaimed", { title: `${money(b.hsa_seed_cents)} HSA employer seed not claimed`, capability_id: "EARN-005", tier: "T1", expected_cents: b.hsa_seed_cents, confidence: "high", time_minutes: 10, action: { type: "enroll_reminder", capability_id: "SAVE-020" }, evidence: { rule: "Stated employer HSA contribution with no HSA enrollment.", rows: [], computed: {} }, verify: { how: "the HSA shows the employer deposit" } }));
       for (const s of b.stipends || []) { const left = (s.amount_cents || 0) - (s.used_cents || 0); if (left > 0 && !(s.expires_on && ymd(s.expires_on) < input.today)) out.push(opp("E2_benefits", `stipend_unused:${key(s.name)}`, { title: `${money(left)} of the ${s.name} stipend unused`, capability_id: "EARN-005", tier: "T1", expected_cents: left, confidence: "high", time_minutes: 15, deadlines: s.expires_on ? [{ what: `${s.name} stipend expires`, on: ymd(s.expires_on) }] : [], action: { type: "claim_reminder", capability_id: "EARN-005" }, evidence: { rule: "Stipend amount minus what was reimbursed.", rows: [], computed: { amount_cents: s.amount_cents, used_cents: s.used_cents || 0 } }, verify: { how: "the reimbursement posts" } })); }
@@ -77,27 +87,42 @@
     // E3 Found money: unclaimed search cadence (from the monitors), settlements and recalls matched against the user's own merchants and states. A wrong-person match is worse than a missed one.
     function foundMoney(input) {
       const out = [], txs = M().clean(input.transactions || []);
-      const merchants = new Set(txs.map(t => t.key).filter(Boolean));
       const states = new Set((input.statesLived || []).map(s => String(s).toUpperCase()));
       for (const f of M().unclaimedSearchDue({ today: input.today, statesLived: input.statesLived || [], lastSearched: input.lastSearched || {} }))
         out.push(opp("E3_found", f.key, { title: f.title, capability_id: "EARN-007", tier: "T0", expected_cents: 0, confidence: "low", time_minutes: 10, due_on: f.dueOn, action: { type: "search", capability_id: "EARN-007", note: "Searching and claiming are free; the user signs the claim. Any hit is verified by name and address before it is shown." }, evidence: f.evidence, verify: { how: "a claim paid by the state" } }));
       for (const s of input.settlements || []) {
         if (!s || ymd(s.claim_deadline) < input.today || (s.status && s.status !== "open")) continue;
         const stateOk = !(s.eligibility_states || []).length || [...states].some(st => s.eligibility_states.includes(st));
-        const hits = (s.eligibility_merchants || []).map(key).filter(k => k && [...merchants].some(m => m === k || m.startsWith(k + " ") || k.startsWith(m + " ")));
+        // The class period, when the settlement gives one ({ from, to }, either end may be open), bounds the purchases that count:
+        // a purchase outside it is not a match. With no period on file the match is kept and says so.
+        const cp = s.class_period || null, period = cp ? { from: cp.from ? ymd(cp.from) : null, to: cp.to ? ymd(cp.to) : null } : null;
+        const inPeriod = t => !period || ((!period.from || t.date >= period.from) && (!period.to || t.date <= period.to));
+        const bought = [...new Set(txs.filter(inPeriod).map(t => t.key).filter(Boolean))];
+        const hits = (s.eligibility_merchants || []).map(key).filter(k => k && bought.some(m => m === k || m.startsWith(k + " ") || k.startsWith(m + " ")));
         if (!stateOk || !hits.length) continue;
-        const rows = txs.filter(t => hits.some(k => t.key === k || t.key.startsWith(k + " "))).slice(0, 5).map(proof);
-        out.push(opp("E3_found", `settlement:${s.id}`, { title: `${s.name}: you likely qualify (claim by ${ymd(s.claim_deadline)})`, capability_id: "EARN-008", tier: "T3", expected_cents: s.typical_payout_cents || 0, confidence: s.proof_required && s.proof_required !== "none" ? "medium" : "low", time_minutes: s.proof_required && s.proof_required !== "none" ? 25 : 10,
-          deadlines: [{ what: `${s.name} claim deadline`, on: ymd(s.claim_deadline) }], proof_required: s.proof_required || "none", claim_url: s.claim_url || null,
-          action: { type: "file_claim", capability_id: "EARN-008", note: "Likely, not certain: the settlement's own eligibility rules decide. The user files; the agent prepares the form from the evidence rows." },
-          evidence: { rule: "Purchases at a named merchant in the eligibility window and a state in the eligible list.", rows, computed: { merchants_matched: hits, states_ok: stateOk } }, verify: { how: "the settlement payment posts" } }));
+        const rows = txs.filter(t => inPeriod(t) && hits.some(k => t.key === k || t.key.startsWith(k + " "))).slice(0, 5).map(proof);
+        const span = period ? `${period.from || "any date"} to ${period.to || "now"}` : null;
+        out.push(opp("E3_found", `settlement:${s.id}`, { title: period ? `${s.name}: you likely qualify (claim by ${ymd(s.claim_deadline)})` : `${s.name}: you may qualify (claim by ${ymd(s.claim_deadline)}); no class period on file, so check your purchase dates`, capability_id: "EARN-008", tier: "T3", expected_cents: s.typical_payout_cents || 0, confidence: period && s.proof_required && s.proof_required !== "none" ? "medium" : "low", time_minutes: s.proof_required && s.proof_required !== "none" ? 25 : 10,
+          deadlines: [{ what: `${s.name} claim deadline`, on: ymd(s.claim_deadline) }], proof_required: s.proof_required || "none", claim_url: s.claim_url || null, class_period: period,
+          action: { type: "file_claim", capability_id: "EARN-008", note: `Likely, not certain: the settlement's own eligibility rules decide. ${period ? `Your purchases fall inside the class period, ${span}.` : "No class period is on file, so whether these purchases fall inside it is not checked."} The user files; the agent prepares the form from the evidence rows.` },
+          evidence: { rule: period ? `Purchases at a named merchant inside the class period (${span}) and a state in the eligible list.` : "Purchases at a named merchant and a state in the eligible list; no class period on file, so the eligibility window is not checked.", rows, computed: { merchants_matched: hits, states_ok: stateOk, class_period: period } }, verify: { how: "the settlement payment posts" } }));
       }
       for (const r of input.recalls || []) {
         if (r.deadline && ymd(r.deadline) < input.today) continue; // a refund window that closed is not money available
-        const k = key(r.merchant || ""), rows = txs.filter(t => k && (t.key === k || t.key.startsWith(k + " ")) && (!r.purchased_after || t.date >= ymd(r.purchased_after)) && (!r.amount_cents || Math.abs(cents(t.amount)) === r.amount_cents)).map(proof);
-        if (!rows.length) continue;
+        const k = key(r.merchant || ""), atMerchant = txs.filter(t => k && (t.key === k || t.key.startsWith(k + " ")) && (!r.purchased_after || t.date >= ymd(r.purchased_after)) && (!r.amount_cents || Math.abs(cents(t.amount)) === r.amount_cents));
+        if (!atMerchant.length) continue;
+        // The product, not only the store: a purchase confirms the recall when its record names every word of the product beyond
+        // the merchant's own name ("PELOTON TREAD" for the Peloton Tread). A purchase there that does not name it may be anything
+        // the store sells: said as unconfirmed, worth $0 here, with no claim offered and no refund deadline alert.
+        const merchantWords = new Set(k.split(" ")), productWords = key(r.product || "").split(" ").filter(w => w && !merchantWords.has(w));
+        const named = t => productWords.length > 0 && productWords.every(w => t.key.split(" ").includes(w)), rows = atMerchant.filter(named).map(proof);
+        if (!rows.length) {
+          out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: ${atMerchant.length} purchase${atMerchant.length === 1 ? "" : "s"} at ${r.merchant} may be the recalled product, but the record does not name it; check before claiming`, capability_id: "EARN-015", tier: "T0", expected_cents: 0, confidence: "low", time_minutes: 5, unconfirmed: true, check_by: r.deadline ? ymd(r.deadline) : null, action: null,
+            evidence: { rule: "A purchase at the recall's merchant whose record does not name the product: unconfirmed, never offered as money.", rows: atMerchant.slice(0, 5).map(proof), computed: { product_words: productWords } }, verify: { how: "n/a: unconfirmed until the person confirms the product" } }));
+          continue;
+        }
         out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: refund of ${money(r.refund_cents || 0)} available`, capability_id: "EARN-015", tier: "T3", expected_cents: r.refund_cents || 0, confidence: "medium", time_minutes: 20, deadlines: r.deadline ? [{ what: `${r.product} recall refund deadline`, on: ymd(r.deadline) }] : [],
-          action: { type: "file_refund", capability_id: "EARN-015" }, evidence: { rule: "A purchase at the recall's merchant matching the recall's date window or amount.", rows, computed: {} }, verify: { how: "the refund posts" } }));
+          action: { type: "file_refund", capability_id: "EARN-015" }, evidence: { rule: "A purchase at the recall's merchant whose record names the product, inside the recall's date window (and at its amount, when one is given).", rows, computed: {} }, verify: { how: "the refund posts" } }));
       }
       return out;
     }

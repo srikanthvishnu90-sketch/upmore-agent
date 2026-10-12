@@ -6,7 +6,8 @@
 // calendar. Nothing here calls a portal or an issuer. Not reachable in production today: no edge function or app path
 // loads it (it is in neither the router bundle nor the financial core). Its bonus catalog ("Example National" and
 // others) and portal table ("Portal A", "Portal B") are placeholder rows, labeled here as MOCK. It needs no other module
-// (AgentLedger is optional for the bill calendar and is left out: these tests use the bills the person names).
+// (AgentLedger is optional for the bill calendar: S19 uses the bills the person names; S22 loads 57-agent-ledger.js, with
+// 33 and 48 before it, to read recurring rows next to a named bill).
 // One test per sub-capability, tagged so evals/depth/run.cjs can prove its planted defect makes exactly this test fail.
 // Every card, offer, bill and row is MOCK.
 // Check: node --test tests/depth-SURFACES.test.cjs && node evals/depth/run.cjs SURFACES
@@ -68,6 +69,12 @@ test("[S07] portal money is pending, confirmed or landed, never mixed; only cred
     [{ id: "mock-r1", posted_at: "2026-08-15", amount: 21.5, merchant_raw: "RAKUTEN CASH BACK" }, { id: "mock-r2", posted_at: "2026-08-16", amount: -21.5, merchant_raw: "RAKUTEN" }], T));
   assert.equal(pe.text, "$39.00 confirmed and $12.50 pending across 2 portals; $21.50 has actually landed in your accounts; next payout Mock Portal A 2026-11-15. Pending is the portal's number, not money.");
   assert.deepEqual([pe.landed_cents, pe.source, pe.as_of], [2150, "portal statements and your transactions", T]);
+  // A card's own cash-back credit is the card's reward, not portal money; a credit from a portal the person has a statement for is.
+  const card = plain(S.portalEarnings([{ portal: "Mock Portal A", confirmed_cents: 3400 }],
+    [{ id: "mock-c1", posted_at: "2026-09-30", amount: 25, merchant_raw: "CASHBACK BONUS REDEMPTION" }, { id: "mock-c2", posted_at: "2026-10-01", amount: 12.4, merchant_raw: "MOCK CARD CASH BACK REWARD" },
+      { id: "mock-c3", posted_at: "2026-10-02", amount: 8, merchant_raw: "MOCK PORTAL A PAYOUT" }], T));
+  assert.deepEqual(card.payouts_landed.map(p => p.id), ["mock-c3"], "a card's $25.00 and $12.40 cash-back credits read as portal money landed");
+  assert.equal(card.text, "$34.00 confirmed and $0.00 pending across 1 portal; $8.00 has actually landed in your accounts. Pending is the portal's number, not money.");
 });
 
 test("[S08] a purchase is routed through the best portal and the best live card offer; expired or unmet offers are left out", () => {
@@ -79,14 +86,24 @@ test("[S08] a purchase is routed through the best portal and the best live card 
 });
 
 test("[S09] activating a card offer is only ever a staged request the person approves once; it never executes here", () => {
-  const a = plain(S.activateOffer({ id: "o1", card: "Mock Blue", merchant: "ShoeCo", percent_bps: 250, expires_on: "2026-10-31" }));
+  // Today is passed in, as bestCard and portalEarnings take it (the old calls here had no date, which is how an expired offer was staged).
+  const a = plain(S.activateOffer({ id: "o1", card: "Mock Blue", merchant: "ShoeCo", percent_bps: 250, expires_on: "2026-10-31" }, null, T));
   assert.deepEqual(Object.keys(a), ["request", "text"]);
   assert.deepEqual(a.request, { capability_id: "EARN-010", key: "offer:Mock Blue:o1", idempotency_key: "offer:Mock Blue:o1", params: { card: "Mock Blue", offer_id: "o1", merchant: "ShoeCo" }, describe: "Activate the Mock Blue offer at ShoeCo",
     confirm: { restate: "activate the Mock Blue offer: 2.5 percent back at ShoeCo, through 2026-10-31.", context: "On your card's offers page," } });
   assert.equal(a.text, "I'll stage the activation; you approve it once. Activation is free and does not commit you to buying.");
   assert.equal(plain(S.activateOffer({ id: "o2", card: "Mock Gold", merchant: "Mock Cafe", amount_cents: 1000 })).request.confirm.restate, "activate the Mock Gold offer: $10.00 back at Mock Cafe.");
-  assert.deepEqual(plain(S.activateOffer({ id: "o3", card: "Mock Gold", merchant: "Mock Cafe", activated: true, expires_on: "2026-11-30" })), { done: true, text: "Mock Gold Mock Cafe is already activated through 2026-11-30." });
+  assert.deepEqual(plain(S.activateOffer({ id: "o3", card: "Mock Gold", merchant: "Mock Cafe", activated: true, expires_on: "2026-11-30" }, null, T)), { done: true, text: "Mock Gold Mock Cafe is already activated through 2026-11-30." });
   assert.deepEqual(plain(S.activateOffer({ card: "Mock Gold" })), { ask: "Which offer? Give me the card and merchant." });
+});
+
+test("[S21] an offer that has expired is refused in words and nothing is staged; the last day still stages; no date, no staging", () => {
+  const o = { id: "o9", card: "Mock Blue", merchant: "ShoeCo", amount_cents: 3000, expires_on: "2026-10-11" };
+  assert.deepEqual(plain(S.activateOffer(o, null, T)), { expired: true, text: "The Mock Blue offer at ShoeCo expired on 2026-10-11, so there is nothing to activate. Nothing is staged." }, "yesterday's $30.00 offer was staged for activation");
+  assert.deepEqual(plain(S.activateOffer(o, { today: T })).expired, true, "today read from the person, as routePurchase reads it");
+  assert.equal(plain(S.activateOffer(Object.assign({}, o, { expires_on: T }), null, T)).request.key, "offer:Mock Blue:o9", "an offer expiring today is still open");
+  assert.deepEqual(plain(S.activateOffer(o)), { ask: "What is today's date? The Mock Blue offer at ShoeCo runs through 2026-10-11, and I check it is still open before staging it." });
+  assert.equal(plain(S.activateOffer(Object.assign({}, o, { activated: true }), null, T)).expired, true, "an expired offer is not \"already activated through\" a past date");
 });
 
 test("[S10] a rotating category counts only inside its own dates, whichever end is given", () => {
@@ -165,6 +182,22 @@ test("[S19] the bill calendar holds the bills due from today through the window'
   assert.equal(c.text, "2 bills in the next 30 days, $226.00: 2026-10-12 Mock Power $84.00; 2026-11-11 Mock Insurance $142.00 (autopay). 1 needs a manual payment.");
   assert.deepEqual([c.total_cents, c.manual.map(i => i.name)], [22600, ["Mock Power"]]);
   assert.equal(plain(S.billCalendar({ today: T, bills: [{ name: "Mock Power", amount_cents: 8400, due_on: T }] })).text, "1 bill in the next 30 days, $84.00: 2026-10-12 Mock Power $84.00. 1 needs a manual payment.", "it read \"1 bills ... 1 need a manual payment\"");
+});
+
+test("[S22] a bill the person names that is also in their recurring rows is listed once, from what they said, and says the rows show it too", () => {
+  // The recurring half needs AgentLedger (57-agent-ledger.js, with 33 and 48 it loads after), loaded here alongside the module.
+  const lctx = vm.createContext({});
+  vm.runInContext(["33-agent-monitors.js", "48-money-math.js", "57-agent-ledger.js", "63-agent-surfaces.js"].map(f => fs.readFileSync(path.join(dir, f), "utf8")).join("\n") + "\nthis.S = AgentSurfaces;", lctx);
+  const rows = [];
+  for (const m of ["07", "08", "09"]) rows.push({ id: `mock-p${m}`, account_id: "mock-chk", posted_at: `2026-${m}-15`, amount: -84, merchant_raw: "MOCK POWER CO" }, { id: `mock-i${m}`, account_id: "mock-chk", posted_at: `2026-${m}-20`, amount: -142, merchant_raw: "MOCK AUTO INSURANCE" });
+  const c = plain(lctx.S.billCalendar({ today: T, transactions: rows, days: 30, autopay: ["Mock Auto Insurance"], bills: [{ name: "Mock Power", amount_cents: 9000, due_on: "2026-10-16" }, { name: "Mock Water", amount_cents: 4000, due_on: "2026-10-25" }] }));
+  assert.equal(c.text, "3 bills in the next 30 days, $272.00: 2026-10-16 Mock Power $90.00 (as you told me, also in your recurring payments at $84.00); 2026-10-20 Mock Auto Insurance $142.00 (autopay); 2026-10-25 Mock Water $40.00. 2 need a manual payment.",
+    "it read \"4 bills ... $356.00: 2026-10-15 Mock Power Co $84.00; 2026-10-16 Mock Power $90.00; ...\", the power bill twice");
+  assert.deepEqual(c.items.map(i => [i.name, i.source, i.also_in || null, i.category]), [["Mock Power", "you", "recurring pattern", "utilities"], ["Mock Auto Insurance", "recurring pattern", null, "insurance"], ["Mock Water", "you", null, "bills"]]);
+  const auto = plain(lctx.S.billCalendar({ today: T, transactions: rows, days: 30, bills: [{ name: "Mock Auto Insurance", amount_cents: 14200, due_on: "2026-10-20", autopay: true }] }));
+  assert.equal(auto.text, "2 bills in the next 30 days, $226.00: 2026-10-15 Mock Power Co $84.00; 2026-10-20 Mock Auto Insurance $142.00 (autopay; as you told me, also in your recurring payments). 1 needs a manual payment.");
+  const far = plain(lctx.S.billCalendar({ today: T, transactions: rows, days: 30, bills: [{ name: "Mock Power", amount_cents: 9000, due_on: "2026-10-30" }] }));
+  assert.deepEqual(far.items.filter(i => /Mock Power/.test(i.name)).map(i => [i.on, i.source]), [["2026-10-15", "recurring pattern"], ["2026-10-30", "you"]], "15 days apart is not the same bill");
 });
 
 test("[S20] every money answer names its source and as-of", () => {

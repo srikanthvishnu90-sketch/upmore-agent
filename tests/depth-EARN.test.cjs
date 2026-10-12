@@ -72,15 +72,22 @@ test("[S05] met but unpaid past the payout date is overdue with a chase step; on
   assert.equal(one({ transactions: rows, bonuses: [bonus(reqs, { payout_expected_by: T })] }).status, "earned_awaiting_payout");
 });
 
-test("[S06] a minimum balance with no history is unknown, never met; two readings of one day count as one day", () => {
+test("[S06] a minimum balance with no history is unknown, never met; two readings of one day count as one day; a dip resets the count", () => {
   const req = [{ kind: "min_balance", amount_cents: 1500000, days: 2, by: "2026-12-31" }];
   const none = one({ transactions: [], bonuses: [bonus(req)] });
   assert.deepEqual([none.requirements[0].met, none.status, none.requirements[0].note], [null, "unknown", "no balance history for this account; cannot verify"]);
-  const hist = [{ account_id: "mock-bonus", date: "2026-10-01", balance_cents: 1500000 }, { account_id: "mock-bonus", date: "2026-10-01T18:00:00Z", balance_cents: 1600000 }, { account_id: "mock-bonus", date: "2026-10-02", balance_cents: 1499999 }];
-  const once = one({ transactions: [], balance_history: hist, bonuses: [bonus(req)] });
-  assert.deepEqual([once.requirements[0].have_days, once.requirements[0].met, once.status], [1, false, "in_progress"]);
-  const twice = one({ transactions: [], balance_history: hist.concat([{ account_id: "mock-bonus", date: "2026-10-03", balance_cents: 1500000 }]), bonuses: [bonus(req)] });
-  assert.deepEqual([twice.requirements[0].have_days, twice.requirements[0].met], [2, true]);
+  const day1 = [{ account_id: "mock-bonus", date: "2026-10-01", balance_cents: 1500000 }, { account_id: "mock-bonus", date: "2026-10-01T18:00:00Z", balance_cents: 1600000 }];
+  const dip = { account_id: "mock-bonus", date: "2026-10-02", balance_cents: 1499999 }, at = date => ({ account_id: "mock-bonus", date, balance_cents: 1500000 });
+  const kept = hist => one({ transactions: [], balance_history: hist, bonuses: [bonus(req)] }).requirements[0];
+  assert.deepEqual([kept(day1).have_days, kept(day1).met, one({ transactions: [], balance_history: day1, bonuses: [bonus(req)] }).status], [1, false, "in_progress"], "two readings on Oct 1 are one day");
+  assert.deepEqual([kept(day1.concat([at("2026-10-02")])).have_days, kept(day1.concat([at("2026-10-02")])).met], [2, true]);
+  // The dip to $14,999.99 on Oct 2 resets the count. These two read [1, false] and [2, true]: Oct 1 and Oct 3 were added up across
+  // the dip between them, so a two-day minimum balance read as kept when it was broken.
+  assert.deepEqual([kept(day1.concat([dip])).have_days, kept(day1.concat([dip])).met], [0, false]);
+  assert.deepEqual([kept(day1.concat([dip, at("2026-10-03")])).have_days, kept(day1.concat([dip, at("2026-10-03")])).met], [1, false], "Oct 1 and Oct 3 with a dip between are not two days kept");
+  assert.deepEqual([kept(day1.concat([dip, at("2026-10-03"), at("2026-10-05")])).have_days, kept(day1.concat([dip, at("2026-10-03"), at("2026-10-05")])).met], [2, true], "a day with no reading neither counts nor resets");
+  assert.deepEqual([kept([at("2026-10-01"), at("2026-10-02"), dip].map((h, i) => i === 2 ? Object.assign({}, h, { date: "2026-10-03" }) : h)).met], [true], "a run that reached the days asked for stays met after a later dip");
+  assert.deepEqual([kept([at("2026-10-01"), at("2026-10-02"), Object.assign({}, dip, { date: "2026-10-02T15:00:00Z" })]).have_days], [0], "a dip during a day breaks that day");
 });
 
 test("[S07] the early-closure reminder lands 30 days before the window ends", () => {
@@ -111,7 +118,9 @@ test("[S10] a settlement matches only on the person's own merchant AND an eligib
   const rows = [tx("mock-cc", "2026-08-11", -62.4, "KROGER #123"), tx("mock-cc", "2026-09-11", -40, "KROGER #123")];
   const s = o => Object.assign({ id: "ms1", name: "Mock pork settlement", claim_deadline: "2026-10-30", eligibility_merchants: ["Kroger"], eligibility_states: ["TX"], typical_payout_cents: 2500, status: "open" }, o);
   const got = byKey(detect({ transactions: rows, statesLived: ["tx"], settlements: [s()] }))["settlement:ms1"];
-  assert.deepEqual([got.title, got.expected_cents, got.tier, got.evidence.rows.length], ["Mock pork settlement: you likely qualify (claim by 2026-10-30)", 2500, "T3", 2]);
+  // This settlement has no class period on file. The title read "Mock pork settlement: you likely qualify (claim by 2026-10-30)"
+  // without checking any purchase date against one; it now says the window was not checked (S23 covers a period on file).
+  assert.deepEqual([got.title, got.expected_cents, got.tier, got.evidence.rows.length], ["Mock pork settlement: you may qualify (claim by 2026-10-30); no class period on file, so check your purchase dates", 2500, "T3", 2]);
   assert.match(got.action.note, /^Likely, not certain/);
   assert.equal(byKey(detect({ transactions: rows, statesLived: ["CA"], settlements: [s()] }))["settlement:ms1"], undefined, "wrong state");
   assert.equal(byKey(detect({ transactions: rows, statesLived: ["TX"], settlements: [s({ eligibility_merchants: ["Safeway"] })] }))["settlement:ms1"], undefined, "no purchase there");
@@ -121,7 +130,8 @@ test("[S10] a settlement matches only on the person's own merchant AND an eligib
 });
 
 test("[S11] a recall refund is offered on a matching purchase while its refund deadline has not passed", () => {
-  const rows = [tx("mock-cc", "2026-05-01", -129.99, "PELOTON")];
+  // The purchase names the product (it was the bare "PELOTON", which now reads as unconfirmed: S24).
+  const rows = [tx("mock-cc", "2026-05-01", -129.99, "PELOTON MOCK TREAD")];
   const r = o => byKey(detect({ transactions: rows, recalls: [Object.assign({ id: "mr1", product: "Mock Tread", merchant: "Peloton", refund_cents: 12999, purchased_after: "2026-01-01" }, o)] }))["recall:mr1"];
   assert.equal(r({ deadline: "2026-10-13" }).title, "Mock Tread recall: refund of $129.99 available");
   assert.equal(r({ deadline: T }).expected_cents, 12999);
@@ -208,6 +218,44 @@ test("[S21] a scan needs today's date, and every play stays an estimate with its
   const r = detect({ statesLived: ["TX"] });
   assert.equal(r.note, "Estimates with their time cost. Nothing is booked until a verify step confirms the credit posted.");
   assert.deepEqual(r.opportunities.map(o => [o.key, o.tier, o.estimate, o.expected_cents]), [["unclaimed_search:TX:first", "T0", true, 0]]);
+});
+
+test("[S22] the ESPP estimate stops at the $25,000 yearly purchase limit (IRC section 423(b)(8)) and says so", () => {
+  const espp = (salary_cents, max_pct, o) => byKey(detect({ benefits: { salary_cents, espp: Object.assign({ enrolled: false, discount_pct: 15, max_pct }, o) } })).espp_not_enrolled;
+  const big = espp(30000000, 15);
+  // It read "worth about $6,750.00 a year": 15 percent of $300,000 is $45,000 of contributions, past what the limit lets buy.
+  assert.deepEqual([big.title, big.expected_cents], ["Your ESPP discount is worth about $3,187.50 a year and you're not enrolled; the $25,000 yearly purchase limit caps it", 318750]);
+  assert.equal(big.limit_note, "A tax-qualified ESPP is capped at $25,000 of stock a calendar year, valued at the grant-date price (IRC section 423(b)(8)); at a 15 percent discount that is $21,250.00 of your pay, so the estimate counts $21,250.00, not the $45,000.00 the plan maximum would take.");
+  assert.deepEqual([big.evidence.computed.purchase_limit_cents, big.evidence.computed.limit_contribution_cents], [2500000, 2125000]);
+  const edge = espp(21250000, 10);
+  assert.deepEqual([edge.expected_cents, edge.limit_note, edge.title], [318750, undefined, "Your ESPP discount is worth about $3,187.50 a year and you're not enrolled"], "exactly at the limit is not capped");
+  assert.equal(espp(9000000, 10).expected_cents, 135000, "under the limit nothing changes");
+  assert.equal(espp(30000000, 15, { section_423: false }).expected_cents, 675000, "a plan stated as not qualified is not under section 423");
+});
+
+test("[S23] a settlement with a class period counts only purchases inside it; outside it is not offered", () => {
+  const rows = [tx("mock-cc", "2026-08-11", -62.4, "KROGER #123"), tx("mock-cc", "2026-09-11", -40, "KROGER #123")];
+  const s = o => Object.assign({ id: "ms2", name: "Mock dairy settlement", claim_deadline: "2026-10-30", eligibility_merchants: ["Kroger"], eligibility_states: ["TX"], typical_payout_cents: 2500, status: "open", proof_required: "receipt" }, o);
+  const inside = byKey(detect({ transactions: rows, statesLived: ["TX"], settlements: [s({ class_period: { from: "2026-09-01", to: "2026-12-31" } })] }))["settlement:ms2"];
+  assert.deepEqual([inside.title, inside.confidence, inside.evidence.rows.map(r => r.date), inside.class_period], ["Mock dairy settlement: you likely qualify (claim by 2026-10-30)", "medium", ["2026-09-11"], { from: "2026-09-01", to: "2026-12-31" }]);
+  assert.equal(inside.evidence.rule, "Purchases at a named merchant inside the class period (2026-09-01 to 2026-12-31) and a state in the eligible list.");
+  assert.equal(byKey(detect({ transactions: rows, statesLived: ["TX"], settlements: [s({ class_period: { from: "2019-01-01", to: "2025-12-31" } })] }))["settlement:ms2"], undefined, "purchases in 2026 were offered a claim for a 2019-2025 class");
+  assert.equal(byKey(detect({ transactions: rows, statesLived: ["TX"], settlements: [s({ class_period: { to: "2026-08-11" } })] }))["settlement:ms2"].evidence.rows.length, 1, "an open start and the last day of the period");
+  const none = byKey(detect({ transactions: rows, statesLived: ["TX"], settlements: [s()] }))["settlement:ms2"];
+  assert.deepEqual([none.confidence, none.class_period, none.evidence.rule], ["low", null, "Purchases at a named merchant and a state in the eligible list; no class period on file, so the eligibility window is not checked."]);
+  assert.match(none.action.note, /No class period is on file, so whether these purchases fall inside it is not checked\./);
+});
+
+test("[S24] a recall that names only a store is unconfirmed: never offered as money, no claim, no refund alert", () => {
+  const rows = [tx("mock-cc", "2026-05-01", -129.99, "PELOTON"), tx("mock-cc", "2026-06-01", -45, "PELOTON APPAREL")];
+  const rec = o => Object.assign({ id: "mr2", product: "Mock Tread", merchant: "Peloton", refund_cents: 12999, purchased_after: "2026-01-01", deadline: "2026-10-13" }, o);
+  const r = detect({ transactions: rows, recalls: [rec()] }), u = byKey(r)["recall:mr2"];
+  // It read "Mock Tread recall: refund of $129.99 available" for any purchase at the store, with a T3 claim and a refund alert.
+  assert.deepEqual([u.title, u.expected_cents, u.action, u.tier, u.deadlines, u.unconfirmed, u.check_by], ["Mock Tread recall: 2 purchases at Peloton may be the recalled product, but the record does not name it; check before claiming", 0, null, "T0", [], true, "2026-10-13"]);
+  assert.deepEqual([r.estimated_cents, r.deadlines.length], [0, 0]);
+  assert.equal(byKey(detect({ transactions: rows, recalls: [rec({ product: "Peloton" })] }))["recall:mr2"].expected_cents, 0, "a product named the same as the store can't be told apart from anything else bought there");
+  const named = byKey(detect({ transactions: rows.concat([tx("mock-cc", "2026-07-01", -129.99, "PELOTON MOCK TREAD")]), recalls: [rec()] }))["recall:mr2"];
+  assert.deepEqual([named.expected_cents, named.evidence.rows.map(x => x.merchant), named.action.type], [12999, ["PELOTON MOCK TREAD"], "file_refund"]);
 });
 
 test("[ADV] sloppy and empty input: no rows, a null row, a bonus with no requirements and unknown kinds never read as earned", () => {

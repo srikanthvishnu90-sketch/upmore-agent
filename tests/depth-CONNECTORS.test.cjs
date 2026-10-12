@@ -124,6 +124,10 @@ test("[S10] a sync that breaks is named for what broke: sign-in needed, provider
   s.agg.failNext("corrupt"); assert.deepEqual(plain(await s.store.sync(rec.id)), { ok: false, status: "BROKEN", error: "batch failed validation" });
   assert.equal((await s.store.sync(rec.id)).status, "HEALTHY");
   assert.deepEqual(["invalid_grant", "MFA required", "provider returned 503", "account 4471 not found"].map(m => C.classify(new Error(m)).status), ["NEEDS_REAUTH", "NEEDS_REAUTH", "STALE", "BROKEN"]);
+  // An outage is the HTTP status, not any number from 500 to 599 in the words: "account 512 not found" is a broken request.
+  assert.deepEqual(["account 512 not found", "order 599 rejected: insufficient buying power", "Request failed with status code 502", "HTTP/1.1 500 Internal Server Error", "502 Bad Gateway", "status: 504"].map(m => C.classify(new Error(m)).status),
+    ["BROKEN", "BROKEN", "STALE", "STALE", "STALE", "STALE"], "\"account 512 not found\" was read as the provider being down");
+  assert.deepEqual([C.classify(Object.assign(new Error("upstream said no"), { status: 503 })).status, C.classify(Object.assign(new Error("account 512 not found"), { status: 404 })).status], ["STALE", "BROKEN"]);
 });
 
 test("[S11] sign-in trouble is said once calmly, escalated once, then never again", async () => {
@@ -199,13 +203,33 @@ test("[S17] a code, PIN, passcode or card number in an action never lands in the
   assert.deepEqual([entry.action.amount_cents, entry.action.currency_code, entry.action.recipient, entry.action.mfa_code], [500, "USD", "mock-sav", "[redacted]"]);
 });
 
-test("[S18] conflicting sources follow the ranking per datum and are reported, never merged", () => {
-  const r = plain(C.resolve("balance", [{ source: "mock-manual", auth: "MANUAL", value: 400000, as_of: 5 }, { source: "mock-plaid", auth: "AGGREGATOR", value: 421208, as_of: 3 }, { source: "mock-session", auth: "LIVE_SESSION", value: 418000, as_of: 4 }]));
-  assert.deepEqual([r.value, r.winner, r.conflict], [421208, { source: "mock-plaid", auth: "AGGREGATOR", as_of: 3 }, true]);
-  assert.equal(r.statement, "Sources disagree: mock-plaid says 421208, mock-session says 418000, mock-manual says 400000. Using mock-plaid (AGGREGATOR), the source of truth for balances.");
+test("[S18] conflicting sources follow the ranking per datum and are reported in dollars with each source's as-of, never merged", () => {
+  // As-of values are sync times, as sync() stamps them (they were 5, 3 and 4 here: the order is kept, now on real clock times).
+  const r = plain(C.resolve("balance", [{ source: "mock-manual", auth: "MANUAL", value: 400000, as_of: T0 + 7200000 }, { source: "mock-plaid", auth: "AGGREGATOR", value: 421208, as_of: T0 }, { source: "mock-session", auth: "LIVE_SESSION", value: 418000, as_of: T0 + 3600000 }]));
+  assert.deepEqual([r.value, r.winner, r.conflict], [421208, { source: "mock-plaid", auth: "AGGREGATOR", as_of: T0 }, true]);
+  // It read "Sources disagree: mock-plaid says 421208, mock-session says 418000, mock-manual says 400000." (raw cents, no as-of).
+  assert.equal(r.statement, "Sources disagree: mock-plaid says $4,212.08 as of 2023-11-14 22:13 UTC, mock-session says $4,180.00 as of 2023-11-14 23:13 UTC, mock-manual says $4,000.00 as of 2023-11-15 00:13 UTC. Using mock-plaid (AGGREGATOR), the source of truth for balances.");
+  assert.equal(plain(C.resolve("bill", [{ source: "mock-biller", auth: "OAUTH", value: 8400, as_of: "2026-10-12" }, { source: "mock-csv", auth: "MANUAL", value: 9000 }])).statement, "Sources disagree: mock-biller says $84.00 as of 2026-10-12, mock-csv says $90.00 as of an unknown time. Using mock-biller (OAUTH), the source of truth for bills.");
+  assert.equal(plain(C.resolve("holding", [{ source: "mock-broker", auth: "OAUTH", value: 10, as_of: T0 }, { source: "mock-plaid", auth: "AGGREGATOR", value: 9.5, as_of: T0 }])).statement, "Sources disagree: mock-broker says 10 as of 2023-11-14 22:13 UTC, mock-plaid says 9.5 as of 2023-11-14 22:13 UTC. Using mock-broker (OAUTH), the source of truth for holdings.", "a share count is not dollars");
   const h = plain(C.resolve("holding", [{ source: "mock-plaid", auth: "AGGREGATOR", value: 10, as_of: 9 }, { source: "mock-broker", auth: "OAUTH", value: 10, as_of: 1 }]));
   assert.deepEqual([h.winner.source, h.conflict, h.statement], ["mock-broker", false, null]);
   assert.deepEqual(plain(C.resolve("bill", [])), { value: null, winner: null, conflict: false, readings: [] });
+});
+
+test("[S21] a sign-in that is needed stays needed until a sync succeeds; a health ping that answers OK does not clear it", async () => {
+  const s = setup(); const rec = await writable(s);
+  s.agg.failNext("reauth"); await s.store.sync(rec.id);
+  const ping = plain(await s.store.health(rec.id));
+  assert.deepEqual([ping.status, ping.changed, ping.degraded, ping.message], ["NEEDS_REAUTH", false, true, null], "the provider's OK ping turned NEEDS_REAUTH into HEALTHY with no sync");
+  assert.equal(s.store.records.get(rec.id).status, "NEEDS_REAUTH");
+  assert.equal(s.store.events.length, 1, "still one calm message, none added by the ping");
+  const act = plain(await s.store.act(rec.id, PAY009, Object.assign({ confirmed: true }, MOVE), LIVE));
+  assert.deepEqual([act.reached_adapter, act.reason], [false, "connector_needs_reauth"], "after the ping, a confirmed $5.00 transfer reached the adapter on a connection still needing sign-in");
+  assert.equal((await s.store.sync(rec.id)).status, "HEALTHY");
+  assert.equal(plain(await s.store.health(rec.id)).status, "HEALTHY", "a successful sync clears it");
+  s.store.register(C.stubOAuth());
+  const h = await s.store.connect("sandbox-oauth", "mock-user", {});
+  assert.equal(plain(await s.store.health(h.id)).status, "NEEDS_REAUTH", "a handoff the person has not finished is not healthy because the provider answers");
 });
 
 test("[S19] a sync is due on a webhook first, then on the class cadence; exactly one cadence later is due", () => {

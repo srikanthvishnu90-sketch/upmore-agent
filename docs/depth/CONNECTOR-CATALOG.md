@@ -33,9 +33,14 @@ Bugs this packet pins, each written as a failing test first on the original modu
 - S17: a blank question matched every row (`"".includes` is always true), so "can you connect" with nothing after it
   answered yes for all 126 rows. It now asks "Which service? Name the bank, app or company you want to connect." D17.
 
-Noted, not changed (for the owner): every covered answer still opens with "yes" even when the adapter is not built (the
-text then says so; changing the opening word would change every answer the CLI prints); `last_checked` accepts an
-impossible date like 2026-13-45 and never goes stale; matching is substring-based, so a short question ("bank") matches
+Fixed after merge (each red first in this file, logged in `docs/playbook-drift-2026-10-12.md`):
+- S21 (and S14, S15): every covered answer opened with "yes" even when the adapter was not built. It opens "not yet; it
+  would connect via ..." unless the row is live ("yes, via ..." then); all 126 rows answer "not yet" today. `covered`
+  still means the row is in the catalog, so the coverage check is unchanged. `tests/catalog.test.cjs` is corrected. D21.
+- S06: `last_checked` accepted an impossible date like 2026-02-30 or 2026-13-45. It is refused: "last_checked
+  2026-02-30 is not a real date". D06b.
+
+Noted, not changed (for the owner): `last_checked` never goes stale; matching is substring-based, so a short question ("bank") matches
 many rows and "Chase Bank" matches no row named "Chase"; the Zelle row reads "yes, via aggregator (high)" for what is a
 handoff inside the person's own bank (catalog data, not this module).
 
@@ -48,19 +53,21 @@ handoff inside the person's own bank (catalog data, not this module).
 | S04 | Three waves | wave 4 and "1" are refused | `S04` in tests/depth-CONNECTOR-CATALOG.test.cjs | any number counts as a wave | proven |
 | S05 | Reliability is stated | an empty reliability class is refused | `S05` in tests/depth-CONNECTOR-CATALOG.test.cjs | the reliability check is dropped | proven |
 | S06 | A checked date is a date | "2026-10-1" and "Oct 10" are refused | `S06` in tests/depth-CONNECTOR-CATALOG.test.cjs | any text counts as a checked date | proven |
+| S06 | A checked date is on the calendar | "2026-02-30" is refused | `S06` in tests/depth-CONNECTOR-CATALOG.test.cjs | any date of the right shape passes (the bug fixed after merge) | proven |
 | S07 | At least one capability | an empty list is refused | `S07` in tests/depth-CONNECTOR-CATALOG.test.cjs | an empty list passes | proven |
 | S08 | Capabilities by their exact id | ZZZ-999 and acct-001 are refused | `S08` in tests/depth-CONNECTOR-CATALOG.test.cjs | an id that looks right passes without the registry | proven |
 | S09 | Write actions cite a real capability | PAY-999 is refused | `S09` in tests/depth-CONNECTOR-CATALOG.test.cjs | only a missing capability is refused | proven |
 | S10 | Writes are T3 and up | a T2 write is refused | `S10` in tests/depth-CONNECTOR-CATALOG.test.cjs | T2 counts as a write tier | proven |
 | S11 | "not live" is not live | an ungated write on "not live: awaiting partner" is refused | `S11` in tests/depth-CONNECTOR-CATALOG.test.cjs | any state containing the letters "live" counts as a live adapter (the bug found building this packet) | proven |
-| S11 | A sandbox is not live | "live sandbox only" is refused | `S11` in tests/depth-CONNECTOR-CATALOG.test.cjs | a sandbox counts as live | proven |
+| S11 | A sandbox is not live | "live sandbox only" is refused | `S11` in tests/depth-CONNECTOR-CATALOG.test.cjs | a sandbox counts as live | proven (also fails S21) |
 | S12 | A gate says why | an empty gated reason is refused | `S12` in tests/depth-CONNECTOR-CATALOG.test.cjs | the empty-reason check is dropped | proven |
 | S13 | "follows" is not "low" | "high (follows the bank's own app)" is refused for a live session | `S13` in tests/depth-CONNECTOR-CATALOG.test.cjs | the letters "low" anywhere pass (the bug found building this packet) | proven |
-| S14 | No adapter, said | Gusto says adapter not built yet | `S14` in tests/depth-CONNECTOR-CATALOG.test.cjs | the missing adapter is not said | proven |
-| S15 | Not live, said | Plaid says adapter not live yet | `S15` in tests/depth-CONNECTOR-CATALOG.test.cjs | an existing but unwired adapter reads as a plain yes (the bug found building this packet) | proven |
+| S14 | No adapter, said | Gusto says adapter not built yet | `S14` in tests/depth-CONNECTOR-CATALOG.test.cjs | the missing adapter is not said | proven (also fails S21) |
+| S15 | Not live, said | Plaid says adapter not live yet | `S15` in tests/depth-CONNECTOR-CATALOG.test.cjs | an existing but unwired adapter reads as a plain yes (the bug found building this packet) | proven (also fails S21) |
 | S16 | No CSV promise without a live CSV adapter | the gap answer stops at the catalog | `S16` in tests/depth-CONNECTOR-CATALOG.test.cjs | CSV import is promised whatever its adapter state (the bug found building this packet) | proven |
 | S17 | A blank question asks which | an empty question covers nothing | `S17` in tests/depth-CONNECTOR-CATALOG.test.cjs | a blank question matches every row (the bug found building this packet) | proven |
 | S18 | Every gap named | Chime and the mock wallet are both gaps | `S18` in tests/depth-CONNECTOR-CATALOG.test.cjs | only the first gap per life is kept | proven |
 | S19 | Each in its own wave | wave 3 holds mock-b only | `S19` in tests/depth-CONNECTOR-CATALOG.test.cjs | a wave also collects the rows before it | proven |
 | S20 | "cash app" finds cash-app | spaces in a question match a hyphenated id | `S20` in tests/depth-CONNECTOR-CATALOG.test.cjs | spaces are not turned into hyphens for the id | proven |
+| S21 | "yes" only when live | no row with an adapter that is not live opens "yes" | `S21` in tests/depth-CONNECTOR-CATALOG.test.cjs | every row in the catalog opens "yes" (the bug fixed after merge) | proven (also fails S14, S15) |
 <!-- results:end -->

@@ -300,8 +300,11 @@ test('[S24] a timing Upmore cannot see (earnings, a halt) is named ahead of the 
 
 test('[S25] today\'s change is the broker\'s own per-position number, summed, signed and sourced; no reason is guessed; a position without it is said, never estimated',async()=>{
   const w=await world({mock:{positions:{VOO:2,NVDA:4},lastday:{VOO:51500,NVDA:10400}}});
-  const re=/^Today, per Alpaca mock server as of 14:00 UTC: your positions are up \$2\.00 in all, unrealized \(today's price against yesterday's close, or against what you paid for shares bought today\)\. NVDA \+\$8\.00 \(\+1\.9%\), VOO -\$6\.00 \(-0\.6%\)\. I don't know why a price moved, so I won't guess\.\nLIVE portfolio in your Alpaca account/;
+  const re=/^Today, per Alpaca mock server as of 14:00 UTC: your positions are up \$2\.00 in all, unrealized \(today's price against yesterday's close, or against what you paid for shares bought today\)\. NVDA \+\$8\.00 \(\+1\.9%\), VOO -\$6\.00 \(-0\.6%\)\. I don't know why a price moved, so I won't guess\.(?:\nPositions worth [^\n]+)?\nLIVE portfolio in your Alpaca account/;
   for(const m of ['why is my portfolio down today','give me my portfolio report',"how's my portfolio doing today"]){const r=await w.s.start(m);assert.equal(r.outcome,'answer',m);assert.match(r.text,re,m);assert.equal(r.today_cents,200);assert.equal(r.lint_ok,true);}
+  // VOO 2 x $512.00 = $1,024.00, NVDA 4 x $106.00 = $424.00 (the bid), $1,448.00 in all.
+  const rep=await w.s.start('give me my portfolio report');assert.match(rep.text,/\nPositions worth \$1,448\.00 in all: VOO 70\.7%, NVDA 29\.3%\.\nLIVE portfolio/,'a report adds the total and allocation');
+  assert.doesNotMatch((await w.s.start('why is my portfolio down today')).text,/Positions worth/,'the today answer stays short');
   const plain=await w.s.start("how's my portfolio");assert.doesNotMatch(plain.text,/^Today/,'no today block unless asked');
   const part=await world({mock:{positions:{VOO:2,NVDA:4},lastday:{VOO:51500}}});
   const p=await part.s.start('why is my portfolio down today');assert.match(p.text,/^I can't give today's change: the read doesn't carry it for NVDA\.\nLIVE portfolio/);

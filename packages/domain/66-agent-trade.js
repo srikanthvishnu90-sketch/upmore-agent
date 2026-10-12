@@ -620,7 +620,14 @@
           if (missing.length) return say("answer", `I can't give today's change: the read doesn't carry it for ${missing.map(x => x.symbol).join(", ")}.\n${list}`, { paper: false, live: !!a.live });
           const total = rows.reduce((t, x) => t + x.today_pl_cents, 0), signed = c => `${c < 0 ? "-" : "+"}${money(Math.abs(c))}`;
           const each = rows.slice().sort((x, y) => Math.abs(y.today_pl_cents) - Math.abs(x.today_pl_cents)).map(x => `${x.symbol} ${signed(x.today_pl_cents)}${Number.isFinite(x.today_pct) ? ` (${x.today_pct < 0 ? "-" : "+"}${(Math.round(Math.abs(x.today_pct) * 1000) / 10).toFixed(1)}%)` : ""}`).join(", ");
-          return say("answer", `Today, per ${h.source} as of ${hhmm(h.as_of)}: your positions are ${total === 0 ? "flat" : `${total < 0 ? "down" : "up"} ${money(Math.abs(total))}`} in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). ${each}. I don't know why a price moved, so I won't guess.\n${list}`, { paper: false, live: !!a.live, today_cents: total });
+          // A report adds the total and each position's share of it, from the same read (megadoc G13); a value the read
+          // lacks means no total, said.
+          let alloc = "";
+          if (/\breport\b/i.test(String(text || ""))) {
+            const unvalued = rows.filter(x => !Number.isSafeInteger(x.market_value_cents)), worth = rows.reduce((t, x) => t + (x.market_value_cents || 0), 0);
+            alloc = unvalued.length || worth <= 0 ? `\nNo total: the read doesn't carry a value for ${unvalued.map(x => x.symbol).join(", ") || "any position"}.` : `\nPositions worth ${money(worth)} in all: ${rows.slice().sort((x, y) => y.market_value_cents - x.market_value_cents).map(x => `${x.symbol} ${(Math.round((x.market_value_cents / worth) * 1000) / 10).toFixed(1)}%`).join(", ")}.`;
+          }
+          return say("answer", `Today, per ${h.source} as of ${hhmm(h.as_of)}: your positions are ${total === 0 ? "flat" : `${total < 0 ? "down" : "up"} ${money(Math.abs(total))}`} in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). ${each}. I don't know why a price moved, so I won't guess.${alloc}\n${list}`, { paper: false, live: !!a.live, today_cents: total });
         }
         const which = /\b(biggest|largest|top|smallest)\b/i.exec(String(text || ""));
         if (!which || !rows.length) return say("answer", list, { paper: false, live: !!a.live });

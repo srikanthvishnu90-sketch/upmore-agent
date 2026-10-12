@@ -26,3 +26,25 @@
   verified 0 / unverified 101 (48 researched, 53 unconfirmed). Suites: node 532/532, edge 283/283, Agent100 103/103,
   testing agent GREEN 70/70 critical 0, eval RELEASE OK, matrix --check OK.
 - Next: node-ci (verify CI green on every commit through this one).
+
+## 2026-10-12, session 1: benchmark node-ci -> stays FAILING (evidence below; the owner decides the reading)
+- Research: GitHub Actions run list for this branch (runs 1-32) and the run 28 job logs (node job: "# tests 532 / # pass
+  532 / # fail 0", eval "RELEASE OK", "11/11 mutations caught", "103/103"; deno job: "ok | 283 passed | 0 failed",
+  testing agent "GREEN 10/10 70/70; critical 0", "12/12 caught"); `git rev-list origin/main..HEAD`.
+- Finding 1: CI only runs on pushed heads. Runs 1-30 were all green, but 6 commits were pushed inside a batch and never
+  had a run of their own (dd5559b, 8e2f6df, 20c7407, 88e1998, a4aa3a5, 5b7c400; later 6c0ab7d). I replayed the node
+  and deno jobs on each in a clean worktree (scratchpad ci-replay.sh / edge-replay.sh; the deno type-check step can't
+  run here, deno.land is blocked): node 466/481/481/481/483/532/553 pass, 0 fail; edge 227/274/274/274/272/283/290
+  pass, 0 fail; Agent100 103/103 each; eval RELEASE OK each; none touches a migration or tests/db. One exception:
+  8e2f6df ships a stale supabase/functions/_shared/agent_core.js. The check that catches it was added to CI in the next
+  commit (20c7407, one minute later), so CI as it stood at 8e2f6df would pass, CI as it stands today would not.
+- Finding 2 (this session's own failure): run 31 on 1cb1770 (the sign-in window merge) is RED in the database job. The
+  agent's new tests/db/manual_connections.test.sql read vault.secrets as the service role; the agent could not run the
+  DB suite (root) and I pushed the merge without running it either. Fixed in 873ee73 (the check runs as the owner).
+  Lesson, now a rule for this run: a commit that touches supabase/migrations or tests/db is pushed only after
+  tests/db/run.sh passes locally (runuser -u postgres works once the scratchpad path is traversable).
+- Node suite at HEAD: 584/584 (floor 523).
+- Why not flipped: "CI green on every commit" is false as written (1cb1770 is red in CI; 8e2f6df fails today's checks).
+  History is not rewritten. Proposed reading for the owner: every commit from a given commit onward has its own green
+  CI run (push one commit at a time so none is skipped). Until the owner picks the reading, passes stays false.
+- Next: testing-agent (GREEN 70/70 today with "gaps 5, not run 3": decide what full-suite green requires).

@@ -166,10 +166,15 @@ test('spend: a word that is neither a category nor any merchant is said, never g
   assert.match(r, SOURCE);
 });
 
-test('spend: history that does not reach the prior period says so instead of comparing; a partial one is compared with a caveat', () => {
+test('spend: history that does not reach the asked period says so instead of a $0.00 total; one that does not reach the prior period says so instead of comparing; a partial one is compared with a caveat', () => {
   const short = [tx('2026-10-02', -4000, 'KROGER')];
   const r = M.spend(short, 'groceries last month', NOW);
-  assert.match(r, /Your linked transactions start Oct 2, 2026, so there's nothing to compare with in August yet\./);
+  // History that starts after the asked period: nothing to add up, said plainly, never "$0.00" (overnight G2 finding).
+  assert.match(r, /^Your linked transactions start Oct 2, 2026, so I can't see last month \(Sep 1-30\): there's nothing from then to add up\./);
+  assert.doesNotMatch(r, /\$0\.00/);
+  const noPrior = M.spend([tx('2026-09-03', -4000, 'KROGER')], 'groceries last month', NOW);
+  assert.match(noPrior, /^You spent \$40\.00 on groceries last month/);
+  assert.match(noPrior, /Your linked transactions start Sep 3, 2026, so there's nothing to compare with in August yet\./);
   const partial = M.spend([tx('2026-08-20', -4000, 'KROGER'), tx('2026-09-10', -5000, 'KROGER')], 'groceries last month', NOW);
   assert.match(partial, /That's \$10\.00 more than in August, when it was \$40\.00\. Your linked transactions start Aug 20, 2026, so that earlier total may be missing a few days\./);
   assert.match(M.spend([], 'how much did i spend', NOW), /^I don't see any posted transactions in your linked accounts yet/);

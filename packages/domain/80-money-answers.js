@@ -264,6 +264,8 @@
       const tz = (opts && opts.tz) || "UTC", p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
       const extra = "Transfers, card payments and pending charges are left out.";
       if (!all.length) return `I don't see any posted transactions in your linked accounts yet, so I can't add up your spending. ${txSource(transactions, tz)}`;
+      // A period that ends before the linked data begins has no rows to add up: saying "$0.00" would claim a fact we don't have.
+      if (start && start > p.to) return `Your linked transactions start ${dateLabel(start, true)}, so I can't see ${p.label}: there's nothing from then to add up.\n${txSource(transactions, tz, extra)}`;
       const out = all.filter(isSpend), cur = out.filter((r) => inRange(r, p)), prev = out.filter((r) => inRange(r, p.prior));
       const tg = target(words), lines = [];
       const partial = start && start > p.from ? ` Your linked transactions start ${dateLabel(start, true)}, so this covers only from then.` : "";

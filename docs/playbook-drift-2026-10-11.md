@@ -272,3 +272,9 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   the corpus results changed with the time of the run, and `node evals/scenarios/report.cjs --check` went stale after any
   `sim.ts` run. `userBroker` now takes an optional clock (the live handler passes none and keeps the wall clock); the
   corpus replay and the megadoc sim pass their stepped clock, so the evidence is the same on every run.
+
+## 2026-10-12 overnight (G2 property tests)
+
+| Where | What the test pinned | What is true | Source |
+| --- | --- | --- | --- |
+| `tests/money-answers.test.cjs` (spend, short history) | "groceries last month" with history starting Oct 2 answered "You spent $0.00 on groceries last month", and the test pinned it | September has no linked rows at all, so $0.00 claimed a fact Upmore doesn't have; it now says it can't see that period | `packages/domain/80-money-answers.js` spend(); `tests/money-math-properties.test.cjs` |

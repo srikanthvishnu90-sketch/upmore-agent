@@ -70,6 +70,8 @@ export function mapAccounts(rows: any[]) {
     id: r.account_id, name: r.name, institution: r.institution || null, kind: KIND[r.account_kind] || "other", currency: r.currency || "USD",
     balance_cents: r.balance_cents, available_cents: Number.isSafeInteger(r.available_cents) ? r.available_cents : undefined,
     as_of: r.balance_as_of || r.fetched_at || null, source: r.institution ? `${r.institution} via SimpleFIN` : "SimpleFIN", stale: !!r.sync_error,
+    // Kept apart for the connection notes (AgentProactive.connections): the bank's own date and when Upmore saved the read.
+    balance_as_of: r.balance_as_of || null, fetched_at: r.fetched_at || null,
   }));
 }
 export function mapTransactions(rows: any[]) {
@@ -132,6 +134,17 @@ export function plan(input: ProactiveInput, now: number) {
     for (const x of (AgentAlerts as any).evaluateWatches(plainWatches, { today, transactions, accounts })) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
   }
   if (s.alerts) {
+    // Item 5: a connection that stopped updating, or rows nobody has refreshed (AgentProactive.connections), before the
+    // findings so a stale number is never the only thing said; one note and one escalation each, within the daily budget,
+    // held in quiet hours like any finding.
+    for (const c of (AgentProactive as any).connections(accounts.map((a: any) => ({ account_id: a.id, name: a.name, institution: a.institution, balance_as_of: a.balance_as_of, fetched_at: a.fetched_at, status: "active" })), now)) {
+      const key = `finding:${c.key}`;
+      if (sentKeys.has(key)) continue;
+      if (quietNow) { out.suppressed.push({ key: c.key, reason: "quiet_hours" }); continue; }
+      const b = AgentLoop.budgetAllows(budgetTimes, { key: c.key, kind: c.kind, reason: "the numbers I read for you are out of date" } as any, now);
+      if (!b.allowed) { out.suppressed.push({ key: c.key, reason: b.reason }); continue; }
+      if (push({ key, kind: "finding", text: c.text, capability_id: "ACCT-005", urgent: false, cadence: b.reason !== "budget" }) && b.reason === "budget") budgetTimes.push(now);
+    }
     // subscriptions: the ones the person tracks in the app (save_subscriptions), which carry trial end dates.
     const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, subscriptions: input.subscriptions || [], watches: plainWatches, quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
     out.held = (f.held || []).length;

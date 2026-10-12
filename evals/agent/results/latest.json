@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 79,
-  "total": 79
+  "pass": 80,
+  "total": 80
  },
  "results": [
   {
@@ -231,6 +231,12 @@
    "family": "flow",
    "id": "F:ACCT-004",
    "title": "ACCT-004: chat: \"what's my net worth\" today, untyped and foreign accounts listed apart (TheNumbers)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:ACCT-005",
+   "title": "ACCT-005: scheduler: a bank SimpleFIN stopped updating, or rows nobody refreshed, said once with where to fix it",
    "status": "PASS"
   },
   {

@@ -108,6 +108,39 @@
       if (!lines.length) lines.push("Nothing to report this week. No verified changes, no open items, no deadlines.");
       return { text: lines.join("\n"), lines };
     }
-    return { feed, digest, offerText };
+    // Item 5, a connection that stopped updating (ACCT-005: one calm note, one escalation, then quiet). Two different
+    // things, said differently: the bank's own date on an account (balance_as_of, from SimpleFIN) is more than 3 days old
+    // while Upmore did read SimpleFIN in the last day, so the link between SimpleFIN and the bank needs the person (fixed on
+    // SimpleFIN Bridge, where they connected it); or no read of SimpleFIN has been saved for more than 2 days. Today the
+    // rows the agent reads are saved only when the person taps "Refresh connected bank" in the app (agent-workflows
+    // sync_finances; nothing refreshes them on a schedule), so that note says so and names the button. Accounts of one
+    // institution are one note. Keys carry the stuck date, so a connection that recovers and breaks again is said again;
+    // the second note comes at 10 days, then nothing.
+    // accounts: agent_financial_accounts rows (account_id, name, institution, balance_as_of, fetched_at, status).
+    function connections(accounts, now) {
+      const DAYMS = 86400000, out = [], live = (accounts || []).filter(a => a && a.status !== "disconnected");
+      const ms = v => (typeof v === "string" && Number.isFinite(Date.parse(v)) ? Date.parse(v) : null);
+      const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dateOf = t => { const d = new Date(t); return `${MON[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+      const days = t => Math.floor((now - t) / DAYMS);
+      const fetched = live.map(a => ms(a.fetched_at)).filter(x => x !== null);
+      const lastRead = fetched.length ? Math.max(...fetched) : null;
+      if (lastRead !== null && now - lastRead > 2 * DAYMS) {
+        const d = days(lastRead), level = d >= 10 ? 2 : 1, key = `connection:refresh:${new Date(lastRead).toISOString().slice(0, 10)}:${level}`;
+        out.push({ key, kind: "connection_refresh", capability_id: "ACCT-005", text: `${level === 2 ? "Still: your" : "Your"} linked accounts were last refreshed ${dateOf(lastRead)} (${d} days ago). I don't refresh them on my own yet, so what I tell you comes from ${dateOf(lastRead)}'s numbers. Tap "Refresh connected bank" in Upmore to bring them up to date.`, account_ids: live.map(a => a.account_id), days: d });
+        return out;
+      }
+      const stuck = live.filter(a => { const b = ms(a.balance_as_of), f = ms(a.fetched_at); return b !== null && f !== null && now - f <= DAYMS && now - b > 3 * DAYMS; });
+      const byInst = new Map();
+      for (const a of stuck) { const k = a.institution || "your bank"; byInst.set(k, (byInst.get(k) || []).concat([a])); }
+      for (const [inst, list] of [...byInst.entries()].sort((x, y) => x[0].localeCompare(y[0]))) {
+        const oldest = Math.min(...list.map(a => ms(a.balance_as_of))), d = days(oldest), level = d >= 10 ? 2 : 1;
+        const names = list.map(a => a.name || "an account").sort(), what = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+        const key = `connection:${list.map(a => a.account_id).sort().join("+")}:${new Date(oldest).toISOString().slice(0, 10)}:${level}`;
+        out.push({ key, kind: "connection_bank", capability_id: "ACCT-005", text: `${level === 2 ? "Still not updated: " : ""}${inst} ${what} ${names.length === 1 ? "hasn't" : "haven't"} updated since ${dateOf(oldest)} (${d} days), though I read SimpleFIN today. That usually means the link between SimpleFIN and ${inst} needs you: open SimpleFIN Bridge, where you connected ${inst}, and fix it there. Until then, numbers for ${names.length === 1 ? "that account" : "those accounts"} may be out of date.`, account_ids: list.map(a => a.account_id), days: d });
+      }
+      return out;
+    }
+    return { feed, digest, offerText, connections };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentProactive;

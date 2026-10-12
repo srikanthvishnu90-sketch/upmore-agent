@@ -295,6 +295,8 @@ async function flow() {
     const a = await moneyReply("how much did i spend on groceries this month", NOW, { accounts: async () => accountRows() as any, transactions: async () => txRows() as any }, { rules });
     return [!!r?.changed && rules.length === 1 && !!a && /By your category rule: "Uber" as groceries \$12\.00\./.test(a), `${r?.reply.split("\n")[0]} / ${String(a).split("\n").find((l) => /category rule/.test(l)) || String(a).split("\n")[0]}`];
   };
+  // Item 5: a bank whose own date stopped 5 days ago while the read is fresh gets one connection note.
+  ex["ACCT-005"] = async () => { const p = plan({ accounts: mapAccounts(accountRows().map((a: any) => ({ ...a, balance_as_of: "2026-10-06T12:00:00Z" }))), transactions: mapTransactions(txRows()), settings: null, sent: [] } as any, NOW); const n = p.messages.filter((m: any) => /^finding:connection:/.test(m.key)); return [n.length === 1 && /SimpleFIN Bridge/.test(n[0].text), n.map((m: any) => m.key).join(",") || "no note"]; };
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

@@ -69,6 +69,9 @@ const REACHABLE = {
   // read back by money_answers.ts and budget_answer.ts. Evidence: tests/edge/category-rules.test.ts,
   // tests/depth-CATEGORY-RULES.test.cjs (docs/depth/CATEGORY-RULES.md), tests/db/category_rules.test.sql.
   "TXN-003": "chat: \"recategorize Target as groceries\" saves the person's rule; spending answers and budgets count by it (CategoryRules)",
+  // Item 5 (2026-10-12): AgentProactive.connections through plan(). Evidence: tests/edge/connection-notes.test.ts,
+  // tests/depth-PROACTIVE.test.cjs S18-S22.
+  "ACCT-005": "scheduler: a bank SimpleFIN stopped updating, or rows nobody refreshed, said once with where to fix it",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -84,7 +87,7 @@ const MAP = [
   [2, "TXN-015", "part", "receipt attachment from email is a tested module; Gmail OAuth function exists, no reading pipeline in the chat", null],
   [3, "TXN-016 PAY-006", "part", "photos reach the chat model (spec 16, S16-11/12); no structured bill/statement/lease/pay-stub reader", null],
   [4, "ACCT-003 ACCT-016", "part", "list across linked institutions; finding forgotten accounts in email is not built", null],
-  [5, "ACCT-005", "part", "connector health is a module; the chat says when it can't read accounts; reconnect is for brokerage only", null],
+  [5, "ACCT-005", "part", "the hourly run says a bank SimpleFIN stopped updating (named, since when, fix it on SimpleFIN Bridge) and rows nobody refreshed (tap \"Refresh connected bank\"), one note and one escalation each; the chat says when it can't read accounts; reconnecting is the person's on SimpleFIN Bridge (brokerage reconnect is in the app); nothing refreshes bank rows on a schedule yet (owner decision)", null],
   // spending
   [6, "ANL-013 ANL-001 TXN-022", "part", "by merchant reachable (planner); by person/place not built", null],
   [7, "ANL-002 ANL-001", "full", "planner spending report over a date range", null],

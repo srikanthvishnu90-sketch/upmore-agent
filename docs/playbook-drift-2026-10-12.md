@@ -444,3 +444,10 @@ in the modules.
   "<service> free trial ends <date>", so the example answer does not parse and goes to the model; and "track my Hulu
   free trial ends Oct 20" is saved under the service name "track my Hulu". Its reminders (route_reminders) are only
   mentioned by the model when the person next writes; they do not ask "Should I cancel it for you?".
+
+## Bank rows are refreshed only by a tap (2026-10-12, morning; capability list item 5)
+
+| What the docs implied | What is true | Source | Now |
+| --- | --- | --- | --- |
+| CLAUDE.md and BUILD-STATUS describe the hourly "agent speaks first" run (`agent-proactive`, `scripts/launch/schedule-proactive.sql`) reading "the person's linked accounts", with no word on how fresh those rows are | The agent's tables (`agent_financial_accounts`, `agent_financial_transactions`) are written only by `agent-workflows` action `sync_finances` (`_shared/financial_service.ts` `syncFinancialEvidence`), which the app calls only when the person taps "Refresh connected bank" (`src/financial-review.js`). App load calls `simplefin-proxy` for its own screens and saves nothing. No cron or function refreshes them. So chat answers and every proactive alert ("charged $X today", low balance ahead, budgets at 80%) work from rows as old as the last tap | `src/upmore-app-template.html` (`initLiveTrackData`, `ledgerSync`), `supabase/functions/simplefin-proxy/index.ts`, `supabase/functions/_shared/workflow_service.ts:62`, `scripts/launch/*.sql` | The hourly run now says so when the newest saved read is more than 2 days old ("Your linked accounts were last refreshed Oct 9 (3 days ago). I don't refresh them on my own yet ... Tap \"Refresh connected bank\""), and separately when a bank's own date is stuck while reads are fresh (SimpleFIN Bridge). A scheduled server-side refresh is an owner decision (a new scheduled function reading each person's vaulted SimpleFIN access, as `cancel-watcher` already does): listed for the owner, not built |
+

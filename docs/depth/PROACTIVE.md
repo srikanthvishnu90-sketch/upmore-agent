@@ -50,4 +50,9 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S16 | Deposits reach the insurance check | a $312,500 savings balance is flagged with its source and as-of; a brokerage is not | `S16` in tests/depth-PROACTIVE.test.cjs | the feed hands the monitors no accounts (the path found missing building this packet) | proven |
 | S16 | Only deposits are insured | a $400,000 brokerage cash sweep is never called over the deposit-insurance limit | `S16` in tests/depth-PROACTIVE.test.cjs | every account kind is handed to the insurance check | proven |
 | S17 | Each fee is its own offer | two overdraft fees are two keys | `S17` in tests/depth-PROACTIVE.test.cjs | a fee refund offer is keyed by kind only, so a later fee is never said | proven |
+| S18 | One note per institution | Chase's two stuck accounts are one note | `S18` in tests/depth-PROACTIVE.test.cjs | each account is its own note | proven (also fails S21) |
+| S19 | Three days is not stuck | a balance exactly 3 days old says nothing | `S19` in tests/depth-PROACTIVE.test.cjs | the line is inclusive | proven |
+| S20 | Not refreshed is not the bank's fault | old reads give one refresh note naming the button | `S20` in tests/depth-PROACTIVE.test.cjs | stale reads fall through to per-bank SimpleFIN notes | proven |
+| S21 | One escalation | 10 days is level 2 and stays level 2 | `S21` in tests/depth-PROACTIVE.test.cjs | every day past 10 is a new level, so it repeats daily | proven |
+| S22 | Disconnected says nothing | a disconnected account is never called stuck | `S22` in tests/depth-PROACTIVE.test.cjs | disconnected accounts are checked | proven |
 <!-- results:end -->

@@ -173,3 +173,40 @@ test("[S17] each fee is its own offer: two overdraft fees of different amounts a
   const offers = feed([a, b]).proactive.filter(p => /^save:fee_refund:overdraft:/.test(p.key)).map(p => p.key).sort();
   assert.deepEqual(offers, [`save:fee_refund:overdraft:${a.id}`, `save:fee_refund:overdraft:${b.id}`]);
 });
+
+// Item 5 (ACCT-005): a connection that stopped updating, or rows nobody refreshed (AgentProactive.connections).
+const acct = (id, name, institution, balance_as_of, fetched_at, o) => Object.assign({ account_id: id, name, institution, balance_as_of, fetched_at, status: "active" }, o);
+const FRESH = "2026-10-12T15:00:00Z";
+
+test("[S18] a bank SimpleFIN stopped updating: one note per institution, its accounts named, the day it stopped, where to fix it", () => {
+  const c = plain(P.connections([acct("a1", "Everyday Checking", "Chase", "2026-10-08T12:00:00Z", FRESH), acct("a2", "Freedom Flex", "Chase", "2026-10-07T12:00:00Z", FRESH), acct("a3", "Savings", "Ally", "2026-10-12T05:00:00Z", FRESH)], NOON));
+  assert.equal(c.length, 1);
+  assert.equal(c[0].key, "connection:a1+a2:2026-10-07:1");
+  assert.equal(c[0].text, "Chase Everyday Checking and Freedom Flex haven't updated since Oct 7 (5 days), though I read SimpleFIN today. That usually means the link between SimpleFIN and Chase needs you: open SimpleFIN Bridge, where you connected Chase, and fix it there. Until then, numbers for those accounts may be out of date.");
+});
+
+test("[S19] three days is not yet stuck; three days and a minute is", () => {
+  assert.deepEqual(plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-09T16:00:00Z", FRESH)], NOON)), []);
+  assert.equal(plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-09T15:59:00Z", FRESH)], NOON)).length, 1);
+});
+
+test("[S20] rows nobody refreshed are said as that, with the button, never blamed on the bank", () => {
+  const c = plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-08T12:00:00Z", "2026-10-09T15:00:00Z"), acct("a2", "Savings", "Ally", "2026-10-09T12:00:00Z", "2026-10-09T15:00:00Z")], NOON));
+  assert.equal(c.length, 1, "one note, not one per bank");
+  assert.equal(c[0].key, "connection:refresh:2026-10-09:1");
+  assert.equal(c[0].text, "Your linked accounts were last refreshed Oct 9 (3 days ago). I don't refresh them on my own yet, so what I tell you comes from Oct 9's numbers. Tap \"Refresh connected bank\" in Upmore to bring them up to date.");
+  assert.deepEqual(plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-10T12:00:00Z", "2026-10-10T16:00:00Z")], NOON)), [], "two days is not yet");
+});
+
+test("[S21] one escalation at 10 days, then nothing new: the key says the level", () => {
+  const at10 = plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-02T12:00:00Z", FRESH)], NOON));
+  assert.equal(at10[0].key, "connection:a1:2026-10-02:2");
+  assert.match(at10[0].text, /^Still not updated: Chase Checking hasn't updated since Oct 2 \(10 days\)/);
+  const at30 = plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-02T12:00:00Z", "2026-11-01T15:00:00Z")], NOON + 20 * 86400000));
+  assert.equal(at30[0].key, at10[0].key, "the same key, so the once-only log keeps it quiet");
+});
+
+test("[S22] disconnected accounts and accounts with no dates say nothing", () => {
+  assert.deepEqual(plain(P.connections([acct("a1", "Checking", "Chase", "2026-10-01T12:00:00Z", FRESH, { status: "disconnected" }), acct("a2", "Savings", "Ally", null, null)], NOON)), []);
+});
+

@@ -1,9 +1,9 @@
 {
  "capability": "PROACTIVE",
- "run_at": "2026-10-12T07:32:48.302Z",
+ "run_at": "2026-10-12T08:46:46.041Z",
  "baseline_all_green": true,
- "sub_capabilities": 17,
- "proven": 20,
+ "sub_capabilities": 22,
+ "proven": 25,
  "problems": [],
  "rows": [
   {
@@ -237,6 +237,63 @@
    "title": "Each fee is its own offer",
    "defect": "a fee refund offer is keyed by kind only, so a later fee is never said",
    "test": "two overdraft fees are two keys",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "One note per institution",
+   "defect": "each account is its own note",
+   "test": "Chase's two stuck accounts are one note",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S21"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "Three days is not stuck",
+   "defect": "the line is inclusive",
+   "test": "a balance exactly 3 days old says nothing",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S20",
+   "id": "D20",
+   "title": "Not refreshed is not the bank's fault",
+   "defect": "stale reads fall through to per-bank SimpleFIN notes",
+   "test": "old reads give one refresh note naming the button",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "One escalation",
+   "defect": "every day past 10 is a new level, so it repeats daily",
+   "test": "10 days is level 2 and stays level 2",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "Disconnected says nothing",
+   "defect": "disconnected accounts are checked",
+   "test": "a disconnected account is never called stuck",
    "bites": true,
    "applied": true,
    "collateral": [],

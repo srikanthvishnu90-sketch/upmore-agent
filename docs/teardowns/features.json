@@ -6605,8 +6605,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "reconnecting a broken link (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -14284,8 +14284,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "connection health with reconnect (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -17197,8 +17197,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a better connection suggested (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -17219,8 +17219,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "connection status (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -17261,8 +17261,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "re-verifying a login (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -17305,8 +17305,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "sync failures and their reasons (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -22649,8 +22649,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a broken connection with steps to fix it (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -24496,8 +24496,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a link that needs re-verifying flagged (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -24689,8 +24689,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "broken connections and newly found accounts (4, 5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -24734,8 +24734,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "re-verifying a connection (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -31368,8 +31368,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a bank that needs signing in again (5)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,

@@ -20,21 +20,22 @@ Check: `node --test tests/depth-IOU.test.cjs && node evals/depth/run.cjs IOU`.
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
-| S01 | Restated with the note | you owe Mom $200.00, nothing paid | `S01` in tests/depth-IOU.test.cjs | the note that nothing moved is dropped | proven (also fails S02, S08, S09, S10, S15) |
-| S02 | Owed to the person | Jake owes you $20.00 | `S02` in tests/depth-IOU.test.cjs | owes-me is stored as i-owe | proven (also fails S05, S06, S07, S08, S09, S10) |
+| S01 | Restated with the note | you owe Mom $200.00, nothing paid | `S01` in tests/depth-IOU.test.cjs | the note that nothing moved is dropped | proven (also fails S02, S08, S09, S10, S15, S16) |
+| S02 | Owed to the person | Jake owes you $20.00 | `S02` in tests/depth-IOU.test.cjs | owes-me is stored as i-owe | proven (also fails S05, S06, S07, S08, S09, S10, S16) |
 | S03 | Other I-owe forms | I borrowed 50 from Dad | `S03` in tests/depth-IOU.test.cjs | the borrowed form is not read | proven |
 | S04 | No amount is asked | 'jake owes me money' asks how much | `S04` in tests/depth-IOU.test.cjs | no amount is taken as $20 | proven |
 | S05 | What I owe, totaled | $215.00 in all | `S05` in tests/depth-IOU.test.cjs | the total counts both sides | proven (also fails S06) |
 | S06 | Who still owes me | Jake and Maya, $60.00 | `S06` in tests/depth-IOU.test.cjs | owed-to-me is never listed | proven |
 | S07 | One person only | Jake owes you $20.00 | `S07` in tests/depth-IOU.test.cjs | every IOU is listed for one name | proven |
 | S07 | The running balance | Jake $20 and I owe $5: net $15 | `S07` in tests/depth-IOU.test.cjs | both directions are added | proven |
-| S08 | Settled stays settled | Jake paid me back marks it paid | `S08` in tests/depth-IOU.test.cjs | the status is never changed | proven (also fails S10) |
+| S08 | Settled stays settled | Jake paid me back marks it paid | `S08` in tests/depth-IOU.test.cjs | the status is never changed | proven (also fails S10, S16) |
 | S09 | Part paid | $5 of $20 leaves $15 | `S09` in tests/depth-IOU.test.cjs | a part payment settles it all | proven |
 | S10 | Which one is asked | two with Sam: asked | `S10` in tests/depth-IOU.test.cjs | the first is settled | proven |
-| S11 | Direction must match | Jake paid me back never settles what I owe Jake | `S11` in tests/depth-IOU.test.cjs | the direction is ignored | proven |
+| S11 | Direction must match | Jake paid me back never settles what I owe Jake | `S11` in tests/depth-IOU.test.cjs | the direction is ignored | proven (also fails S16) |
 | S12 | Not a person | 'i owe you one' is not an IOU | `S12` in tests/depth-IOU.test.cjs | pronouns pass as names | proven |
 | S13 | Forget one person | only Maya's is forgotten | `S13` in tests/depth-IOU.test.cjs | forget takes every IOU | proven |
 | S14 | Bounded | a full open log refuses | `S14` in tests/depth-IOU.test.cjs | the cap is not checked | proven |
 | S14 | No long digit run | an order number is masked | `S14` in tests/depth-IOU.test.cjs | the note keeps digits | proven |
 | S15 | The person's relation | my sister is your sister | `S15` in tests/depth-IOU.test.cjs | my is kept | proven |
+| S16 | Paid offline, as people say it | sam says he already paid cash settles it | `S16` in tests/depth-IOU.test.cjs | a relayed or cash payment is not read | proven |
 <!-- results:end -->

@@ -60,15 +60,20 @@
     // "i owe mom", "jake owes me money": an IOU with no amount, asked.
     const NO_AMOUNT = new RegExp(`^(?:${LOG_WORDS})?(?:i owe ${NAME}(?: money| some money)?|${NAME} owes me(?: money| some money)?|i lent ${NAME}(?: money| some money)?)$`);
 
+    // How it was paid, said and dropped: "in cash", "on venmo", "already", "yesterday".
+    const PAID_HOW = "(?: (?:in |with )?cash| on (?:venmo|zelle|cash app|paypal)| already| yesterday| today| last night)?";
     function settleOf(t) {
       let m;
       // "jake paid me back", "jake paid me 10", "jake paid me back the 20", "jake venmoed me the 20"
-      if ((m = new RegExp(`^${NAME} (?:paid|payed|sent|venmoed|zelled|gave) me(?: back)?(?: (?:the )?${AMT})?(?: back)?$`).exec(t))) return { direction: "owes_me", name: m[1], amount_cents: m[2] ? cents(m[2]) : null };
+      if ((m = new RegExp(`^${NAME} (?:already )?(?:paid|payed|sent|venmoed|zelled|gave) me(?: back)?(?: (?:the )?${AMT})?(?: back)?${PAID_HOW}$`).exec(t))) return { direction: "owes_me", name: m[1], amount_cents: m[2] ? cents(m[2]) : null };
       // "i paid mom back", "i paid back mom", "i paid mom the 200", "i paid mom 50"
       if ((m = new RegExp(`^i (?:paid|payed|sent|venmoed|zelled|gave)(?: back)? ${NAME}(?: back)?(?: (?:the )?${AMT})?(?: back)?$`).exec(t))) return { direction: "i_owe", name: m[1], amount_cents: m[2] ? cents(m[2]) : null };
       // "mark mom's 200 as paid", "mark jake as paid", "mark the iou with jake as settled", "jake and i are square"
       if ((m = new RegExp(`^mark (?:the iou (?:with|from|to) )?${NAME}(?:'s)?(?: (?:iou|debt))?(?: ${AMT})?(?: (?:iou|debt))? (?:as )?(?:paid|settled|done|paid back|square)$`).exec(t))) return { direction: null, name: m[1], amount_cents: m[2] ? cents(m[2]) : null, mark: true };
       if ((m = new RegExp(`^${NAME} and i are (?:square|even|settled|good)$`).exec(t))) return { direction: null, name: m[1], amount_cents: null, mark: true };
+      // Paid offline, as people say it (megadoc C10): "sam says he already paid cash", "sam settled up", "sam paid up".
+      if ((m = new RegExp(`^${NAME} (?:says|said|told me) (?:he|she|they) (?:already )?(?:paid|paid me|paid me back|paid up|settled up)(?: (?:the )?${AMT})?${PAID_HOW}$`).exec(t))) return { direction: "owes_me", name: m[1], amount_cents: m[2] ? cents(m[2]) : null };
+      if ((m = new RegExp(`^${NAME} (?:settled up|paid up|squared up|is paid up)(?: with me)?$`).exec(t))) return { direction: "owes_me", name: m[1], amount_cents: null };
       return null;
     }
     const LIST_ALL = /^(?:show|list|what are)(?: me)? my (?:ious|i\.o\.u\.s|debts to people|iou log)$|^who owes who$|^what do i owe people$|^what do i owe everyone$|^do i owe anyone(?: money)?$|^who do i owe(?: money)?$|^what do i owe(?: anyone| friends| my friends)?$|^who owes me$|^does anyone owe me(?: money)?$|^who still owes me(?: money)?$/;

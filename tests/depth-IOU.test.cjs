@@ -118,3 +118,13 @@ test("[S14] stored safely: at most 40 (a settled one makes room, a full open log
 test("[S15] a relation is said as the person's own: 'my sister' is 'your sister', and paying her uses their words", () => {
   assert.equal(last(["i owe my sister 50"]), `Logged: you owe your sister $50.00. ${NOTE} Say "pay my sister 50" when you want to send it.`);
 });
+
+test("[S16] paid offline, as people say it: 'sam paid me back in cash', 'sam says he already paid cash', 'sam settled up' settle it (megadoc C10)", () => {
+  for (const said of ["sam paid me back in cash", "sam says he already paid cash", "sam settled up", "sam paid me 37 cash", "sam already paid me back"]) {
+    const a = run(["sam owes me 37 for dinner", said]);
+    assert.equal(a.replies[1], `Marked paid: the $37.00 Sam owed you (dinner). ${NOTE}`, said);
+    assert.equal(a.log[0].status, "settled", said);
+  }
+  // Still a note about the person's own log: someone saying they paid never settles what the person owes them.
+  assert.notEqual(run(["i owe sam 37", "sam says he already paid cash"]).log[0].status, "settled");
+});

@@ -1,9 +1,9 @@
 {
  "capability": "IOU",
- "run_at": "2026-10-12T10:15:23.329Z",
+ "run_at": "2026-10-12T13:39:38.634Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 17,
+ "sub_capabilities": 16,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -19,7 +19,8 @@
     "S08",
     "S09",
     "S10",
-    "S15"
+    "S15",
+    "S16"
    ],
    "status": "proven"
   },
@@ -37,7 +38,8 @@
     "S07",
     "S08",
     "S09",
-    "S10"
+    "S10",
+    "S16"
    ],
    "status": "proven"
   },
@@ -118,7 +120,8 @@
    "bites": true,
    "applied": true,
    "collateral": [
-    "S10"
+    "S10",
+    "S16"
    ],
    "status": "proven"
   },
@@ -152,7 +155,9 @@
    "test": "Jake paid me back never settles what I owe Jake",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -205,6 +210,17 @@
    "title": "The person's relation",
    "defect": "my is kept",
    "test": "my sister is your sister",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Paid offline, as people say it",
+   "defect": "a relayed or cash payment is not read",
+   "test": "sam says he already paid cash settles it",
    "bites": true,
    "applied": true,
    "collateral": [],

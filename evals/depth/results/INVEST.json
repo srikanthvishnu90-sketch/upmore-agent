@@ -1,9 +1,9 @@
 {
  "capability": "INVEST",
- "run_at": "2026-10-12T07:10:25.652Z",
+ "run_at": "2026-10-12T07:15:47.225Z",
  "baseline_all_green": true,
  "sub_capabilities": 26,
- "proven": 30,
+ "proven": 33,
  "problems": [],
  "rows": [
   {
@@ -265,6 +265,17 @@
    "status": "proven"
   },
   {
+   "sub": "S20",
+   "id": "D20b",
+   "title": "Times say UTC",
+   "defect": "a UTC time is printed without saying so",
+   "test": "the portfolio read's times end in UTC",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
    "sub": "S21",
    "id": "D23",
    "title": "No as-of is said",
@@ -276,11 +287,33 @@
    "status": "proven"
   },
   {
+   "sub": "S21",
+   "id": "D21b",
+   "title": "A missing source is said",
+   "defect": "a missing source is called manual",
+   "test": "an account with no source reads \"source not on file\"",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
    "sub": "S22",
    "id": "D24",
    "title": "At the line fires",
    "defect": "the line is exclusive",
    "test": "$190.00 at a $190.00 line fires",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22b",
+   "title": "An alert cites per and as of",
+   "defect": "the alert gives \"(source, time)\" without per/as of, which the guard refuses",
+   "test": "a fired price alert passes the advice guard's grounding rule",
    "bites": true,
    "applied": true,
    "collateral": [],

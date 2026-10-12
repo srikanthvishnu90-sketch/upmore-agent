@@ -213,3 +213,6 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
 - True (50-agent-invest.js grounded()): a total across Fidelity read at 14:14 and Schwab read at 13:00 was stamped
   14:14; tests/invest.test.cjs pinned that. A total is only as current as its oldest read.
 - Now: the oldest read's time (INVEST S05, D05b proven, 30/30; INV-011 re-proven 17/17).
+- Same packet, also fixed: a fired price alert's "(Mock Quotes, <time>)" failed the advice guard's grounding rule (no
+  "per"/"as of"); it now says "(per <source>, as of <time>)" and the test runs it through the guard. The portfolio
+  read now says UTC on its times and "source not on file" instead of calling a missing source "manual". INVEST 33/33.

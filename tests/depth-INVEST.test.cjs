@@ -181,7 +181,7 @@ test("[S19] an order needs a positive quantity and an account", () => {
 
 test("[S20] the portfolio read names each account's value, source and as-of, and names an account older than a day", () => {
   const p = plain(I.portfolio(ACCTS, NOW));
-  assert.equal(p.text, "$5,200.00 across 2 accounts (mock-fidelity $4,450.00 per Fidelity (MOCK) as of 2026-10-12 14:00; mock-schwab $750.00 per Schwab (MOCK) as of 2026-10-10 13:00). mock-schwab is older than a day.");
+  assert.equal(p.text, "$5,200.00 across 2 accounts (mock-fidelity $4,450.00 per Fidelity (MOCK) as of 2026-10-12 14:00 UTC; mock-schwab $750.00 per Schwab (MOCK) as of 2026-10-10 13:00 UTC). mock-schwab is older than a day.");
   assert.deepEqual([p.total_cents, p.stale], [520000, ["mock-schwab"]]);
   assert.deepEqual(p.positions.find(x => x.symbol === "VTI").by_account.map(b => [b.account_id, b.quantity]), [["mock-fidelity", 10], ["mock-schwab", 2.5]]);
 });
@@ -189,12 +189,15 @@ test("[S20] the portfolio read names each account's value, source and as-of, and
 test("[S21] an account with no as-of time says so, rather than read as current", () => {
   const p = plain(I.portfolio([{ id: "mock-manual", source: "manual", holdings: [{ symbol: "CASH", value_cents: 100000 }] }], NOW));
   assert.equal(p.text, "$1,000.00 across 1 account (mock-manual $1,000.00 per manual, as-of time unknown).");
+  // A missing source is said, never called "manual" (merge review of this packet's notes).
+  assert.equal(plain(I.portfolio([{ id: "mock-x", holdings: [{ symbol: "CASH", value_cents: 100000 }] }], NOW)).text, "$1,000.00 across 1 account (mock-x $1,000.00 source not on file, as-of time unknown).");
 });
 
 test("[S22] a price alert fires at the person's line, inclusive, citing the quote", () => {
   const q = [{ symbol: "NVDA", price_cents: 19000, as_of: "2026-10-12T14:30:00Z", source: "Mock Quotes" }];
   const r = plain(I.priceAlerts([{ id: "a1", symbol: "NVDA", kind: "above", price_cents: 19000 }, { id: "a2", symbol: "NVDA", kind: "below", price_cents: 18999 }], q, NOW));
-  assert.deepEqual(r.fired.map(f => f.text), ["NVDA is $190.00, above your $190.00 line (Mock Quotes, 2026-10-12T14:30:00Z)."]);
+  assert.deepEqual(r.fired.map(f => f.text), ["NVDA is $190.00, above your $190.00 line (per Mock Quotes, as of 2026-10-12T14:30:00Z)."]);
+  assert.equal(G.response(r.fired[0].text, { analytics: true }).ok, true, "the alert passes the advice guard's grounding rule (it says per and as of)");
   assert.equal(r.checked.find(c => c.alert_id === "a2").reason, "condition not met");
 });
 
@@ -214,7 +217,7 @@ test("[S24] a quote more than a day old never fires; exactly a day old still doe
 test("[S25] a move alert fires on a drop as well as a rise, and says it to one decimal, half up", () => {
   const q = [{ symbol: "NVDA", price_cents: 8965, prev_close_cents: 10000, as_of: "2026-10-12T14:30:00Z", source: "Mock Quotes" }];
   const r = plain(I.priceAlerts([{ id: "a1", symbol: "NVDA", kind: "pct_move", bps: 1000 }], q, NOW));
-  assert.deepEqual(r.fired.map(f => f.text), ["NVDA moved down 10.4 percent today to $89.65 (Mock Quotes, 2026-10-12T14:30:00Z)."]);
+  assert.deepEqual(r.fired.map(f => f.text), ["NVDA moved down 10.4 percent today to $89.65 (per Mock Quotes, as of 2026-10-12T14:30:00Z)."]);
 });
 
 test("[S26] the indirect rollover's 60-day clock is said in plain words: 1 day, the last day, and a missed deadline", () => {

@@ -46,10 +46,11 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 
 Fixed after merge: `grounded()` gave every analytics result the newest account's as-of, though a total is only as
 current as its oldest read; it now gives the oldest (S05, D05b; `tests/invest.test.cjs` had pinned the newer time).
-Noted, not changed (for the owner): price-alert text cites
-"(Mock Quotes, 2026-10-12T14:30:00Z)" without the words "per"/"as of" that the advice guard's grounding regex looks for;
-`harvest()` takes prices with no source or as-of, so its statement cannot cite one; the portfolio read prints a UTC
-time without saying UTC and defaults a missing source to "manual"; a rollover's clock runs from the date the funds were
+Also fixed after merge: a fired price alert said "(Mock Quotes, 2026-10-12T14:30:00Z)", which the advice guard's own
+grounding rule refuses; it now says "(per Mock Quotes, as of ...)" and S22 runs it through the guard (D22b). The
+portfolio read printed UTC times without saying UTC (now "... 14:00 UTC", D20b) and called a missing source "manual"
+(now "source not on file", D21b). Noted, not changed (for the owner): `harvest()` takes prices with no source or
+as-of, so its statement cannot cite one; a rollover's clock runs from the date the funds were
 sent, which is earlier (so stricter) than the IRS's date of receipt.
 
 <!-- results:start -->
@@ -78,8 +79,11 @@ sent, which is earlier (so stricter) than the IRS's date of receipt.
 | S18 | A limit price is a limit order | "limit at $299.50", not "market at $299.50" | `S18` in tests/depth-INVEST.test.cjs | the type defaults to market whatever the price (the bug found building this packet) | proven |
 | S19 | A positive quantity | -1 shares is refused | `S19` in tests/depth-INVEST.test.cjs | only a missing or zero quantity is refused | proven |
 | S20 | Older than a day is named | Schwab's Oct 10 read is named | `S20` in tests/depth-INVEST.test.cjs | an account is stale only after a week | proven |
+| S20 | Times say UTC | the portfolio read's times end in UTC | `S20` in tests/depth-INVEST.test.cjs | a UTC time is printed without saying so | proven |
 | S21 | No as-of is said | "as-of time unknown" | `S21` in tests/depth-INVEST.test.cjs | an account with no as-of reads like a current one (the bug found building this packet) | proven |
+| S21 | A missing source is said | an account with no source reads "source not on file" | `S21` in tests/depth-INVEST.test.cjs | a missing source is called manual | proven |
 | S22 | At the line fires | $190.00 at a $190.00 line fires | `S22` in tests/depth-INVEST.test.cjs | the line is exclusive | proven |
+| S22 | An alert cites per and as of | a fired price alert passes the advice guard's grounding rule | `S22` in tests/depth-INVEST.test.cjs | the alert gives "(source, time)" without per/as of, which the guard refuses | proven |
 | S23 | No as-of, no alert | a quote with no time never fires | `S23` in tests/depth-INVEST.test.cjs | a quote with no as-of is treated as fresh (the bug found building this packet) | proven |
 | S24 | A day, not two | a quote 24 hours and a second old is stale | `S24` in tests/depth-INVEST.test.cjs | quotes are fresh for two days | proven |
 | S25 | A drop is a move | a 10.35 percent drop fires | `S25` in tests/depth-INVEST.test.cjs | only a rise is compared to the line | proven |

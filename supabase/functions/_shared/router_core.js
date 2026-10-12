@@ -4829,7 +4829,8 @@
         const a = (accts.value || [])[0] || {}, rows = h.value || [];
         const fmt = x => `${qty(x.qty !== undefined ? x.qty : x.quantity)} ${x.symbol}${Number.isSafeInteger(x.market_value_cents) ? ` (${money(x.market_value_cents)})` : ""}`;
         // The source once: "in your Alpaca account (****4417), your Alpaca account" said the account twice.
-        const where = a.name || "your account", srcSaid = String(where).toLowerCase().includes(String(h.source || "").toLowerCase().replace(/^your /, "")) ? "" : `, ${h.source}`;
+        const where = a.name || "your account", srcWords = String(h.source || "").toLowerCase().replace(/^your /, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const srcSaid = srcWords && new RegExp(`(^|[^a-z0-9])${srcWords}($|[^a-z0-9])`).test(String(where).toLowerCase()) ? "" : `, ${h.source}`;
         const list = `${a.live ? "LIVE portfolio" : "Portfolio"} in ${where}${srcSaid}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`;
         const which = /\b(biggest|largest|top|smallest)\b/i.exec(String(text || ""));
         if (!which || !rows.length) return say("answer", list, { paper: false, live: !!a.live });

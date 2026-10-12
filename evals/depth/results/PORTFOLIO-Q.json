@@ -1,0 +1,207 @@
+{
+ "capability": "PORTFOLIO-Q",
+ "run_at": "2026-10-12T10:36:53.314Z",
+ "baseline_all_green": true,
+ "sub_capabilities": 16,
+ "proven": 16,
+ "problems": [],
+ "rows": [
+  {
+   "sub": "S01",
+   "id": "D01",
+   "title": "Every position listed",
+   "defect": "the list keeps only the first",
+   "test": "what do I own: three positions with values",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S02",
+   "id": "D02",
+   "title": "Source said once",
+   "defect": "the source is never dropped",
+   "test": "the account name carries the source",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03",
+   "title": "Biggest by value",
+   "defect": "the first row is called biggest",
+   "test": "VOO $1,024.20, 53.8%",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S04"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S04",
+   "id": "D04",
+   "title": "Smallest is smallest",
+   "defect": "smallest sorts like biggest",
+   "test": "F $120.00",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05",
+   "title": "Only position said",
+   "defect": "a lone position gets a 100% share",
+   "test": "PLTR, your only position",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S06",
+   "id": "D06",
+   "title": "Unvalued: no ranking",
+   "defect": "unvalued rows are skipped and the rest ranked",
+   "test": "XYZ has no value",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S07",
+   "id": "D07",
+   "title": "None placed is said",
+   "defect": "the latest of nothing is read",
+   "test": "no order from this chat",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S08",
+   "id": "D08",
+   "title": "Filled with price and total",
+   "defect": "the total is dropped",
+   "test": "bought 0.01 VOO at $500.00, $5.00 total",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09",
+   "title": "Working is not filled",
+   "defect": "working is called filled",
+   "test": "working, with how to cancel",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S10",
+   "id": "D10",
+   "title": "Partly filled",
+   "defect": "the filled part is said as the whole",
+   "test": "0.004 of 0.01",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11",
+   "title": "Canceled said",
+   "defect": "canceled falls to the generic line",
+   "test": "nothing filled",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S12",
+   "id": "D12",
+   "title": "Rejected with its reason",
+   "defect": "the reason is dropped",
+   "test": "insufficient buying power",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S13",
+   "id": "D13",
+   "title": "A failed read is said",
+   "defect": "the last status is not said",
+   "test": "the last status read",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S14",
+   "id": "D14",
+   "title": "The named ticker",
+   "defect": "the ticker is ignored",
+   "test": "VOO picks ord-1",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S15",
+   "id": "D15",
+   "title": "Nothing placed by a question",
+   "defect": "a status ask goes on to a new order",
+   "test": "writes stay at 1",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Status asks read as status",
+   "defect": "the status words are not read",
+   "test": "did my buy fill is status",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15"
+   ],
+   "status": "proven"
+  }
+ ]
+}

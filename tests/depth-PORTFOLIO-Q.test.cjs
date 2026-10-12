@@ -1,0 +1,122 @@
+// Portfolio questions and order status in the trade flow (megadoc G01, G06, E16, E18; docs/depth/PORTFOLIO-Q.md). One
+// test per sub-capability, tagged so evals/depth/run.cjs can prove its planted defect makes exactly this test fail.
+// Broker reads are MOCK. Check: node --test tests/depth-PORTFOLIO-Q.test.cjs && node evals/depth/run.cjs PORTFOLIO-Q
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const vm = require("node:vm");
+const fs = require("node:fs");
+const path = require("node:path");
+const root = path.resolve(__dirname, "..");
+const dir = process.env.UPMORE_DOMAIN_DIR || path.join(root, "packages/domain");
+const ctx = vm.createContext({ setTimeout, clearTimeout });
+vm.runInContext(["33-agent-monitors.js", "41-agent-recovery.js", "43-agent-loop.js", "45-advice-guard.js", "46-voice.js", "47-data-guard.js", "50-agent-invest.js", "53-compliance.js", "66-agent-trade.js", "67-agent-cards.js"].map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n") + "\nthis.T=AgentTrade;this.C=Compliance;", ctx);
+const { T, C } = ctx;
+const Registry = require(path.join(root, "packages/capabilities/registry.js"));
+const registry = Registry.load(JSON.parse(fs.readFileSync(path.join(root, "packages/capabilities/registry.json"), "utf8")), (rel) => fs.existsSync(path.join(root, rel)));
+const T0 = Date.UTC(2026, 9, 12, 14, 0, 0);
+const instruments = [{ symbol: "VOO", name: "Vanguard S&P 500 ETF" }, { symbol: "VTI", name: "Vanguard Total Stock Market ETF" }];
+
+function world(holdings) {
+  const w = { now: T0, writes: [], records: {}, n: 0, holdings, failOrder: false };
+  const read = async (kind, p) => {
+    if (kind === "brokerage_accounts") return { value: [{ id: "acct-1", name: "Mock brokerage", fractional: true, cash_cents: 100000 }], source: "Mock Broker", as_of: w.now };
+    if (kind === "holdings") return { value: w.holdings, source: "Mock Broker", as_of: w.now };
+    if (kind === "quote") return { value: { price_cents: 50000 }, source: "Mock Quotes", as_of: w.now - 60000 };
+    if (kind === "order") { if (w.failOrder) throw new Error("down"); return { value: w.records[p.order_id], source: "Mock Broker", as_of: w.now }; }
+    return { value: 1, source: "x", as_of: w.now };
+  };
+  const write = async (id, p) => { w.writes.push({ id, p }); const ref = `ord-${++w.n}`; w.records[ref] = { order_id: ref, status: "filled", quantity: p.quantity, fill_price_cents: 50000, filled_at: w.now }; return { reference: ref }; };
+  w.conn = { read, write, verify: async (id, key, ref) => ({ confirmed: true, source: "Mock", reference: ref }) };
+  w.s = T.create({ registry, connectors: w.conn, clock: () => w.now, instruments, partners: { broker_dealer: { live: true } }, compliance: C });
+  return w;
+}
+const ROWS = [{ symbol: "PLTR", qty: 18.5, market_value_cents: 76035 }, { symbol: "VOO", qty: 2, market_value_cents: 102420 }, { symbol: "F", qty: 10, market_value_cents: 12000 }];
+const say = async (w, m) => (await w.s.start(m)).text;
+async function buy(w, sym) { await w.s.start(`buy $5 of ${sym}`); return w.s.reply("yes"); }
+
+test("[S01] what do I own: every position with its value, buying power, the source and as-of", async () => {
+  assert.equal(await say(world(ROWS), "what do I own"), "Portfolio in Mock brokerage, Mock Broker, as of 14:00 UTC: 18.5 PLTR ($760.35), 2 VOO ($1,024.20), 10 F ($120.00). Buying power $1,000.00.");
+});
+
+test("[S02] the source is said once when the account's name already carries it", async () => {
+  const w = world(ROWS);
+  w.conn.read = ((base) => async (k, p) => (k === "brokerage_accounts" ? { value: [{ id: "a", name: "your Mock Broker account", cash_cents: 100 }], source: "Mock Broker", as_of: w.now } : base(k, p)))(w.conn.read);
+  w.s = T.create({ registry, connectors: w.conn, clock: () => w.now, instruments, partners: { broker_dealer: { live: true } }, compliance: C });
+  assert.match(await say(w, "show my portfolio"), /^Portfolio in your Mock Broker account, as of 14:00 UTC: /);
+});
+
+test("[S03] the biggest position by the read's own value, with its share of the positions' value", async () => {
+  assert.match(await say(world(ROWS), "what's my biggest position"), /^Your biggest position is VOO: \$1,024\.20, 53\.8% of your positions' value\.\nPortfolio in Mock brokerage/);
+});
+
+test("[S04] the smallest is the smallest", async () => {
+  assert.match(await say(world(ROWS), "what's my smallest holding"), /^Your smallest position is F: \$120\.00, 6\.3% of your positions' value\./);
+});
+
+test("[S05] a single position is said as the only one, no share", async () => {
+  assert.match(await say(world([ROWS[0]]), "what's my largest position"), /^Your biggest position is PLTR: \$760\.35, your only position\.\n/);
+});
+
+test("[S06] a holding the read gives no value for: nothing is ranked, and which one is said", async () => {
+  const t = await say(world([ROWS[0], { symbol: "XYZ", qty: 1 }]), "what's my biggest position");
+  assert.match(t, /^I can't rank your positions: the read doesn't carry a value for XYZ\.\nPortfolio/);
+  assert.doesNotMatch(t, /biggest position is/);
+});
+
+test("[S07] order status with none placed from this chat says so and points to the brokerage app", async () => {
+  assert.equal(await say(world(ROWS), "what's my order status"), "I don't see an order placed from this chat, so there's none to read back. Your brokerage app lists every order.");
+});
+
+test("[S08] a filled order: the side, size, price, total, id, fill time, source and as-of", async () => {
+  const w = world(ROWS); await buy(w, "VOO");
+  assert.match(await say(w, "did my buy fill?"), /^Filled: bought 0\.01 VOO at \$500\.00, \$5\.00 total, order ord-1, filled 14:00 UTC, per Mock Broker \(as of 14:00 UTC\)\.$/);
+});
+
+test("[S09] a working order is not called filled, and how to cancel it is said", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); w.records["ord-1"].status = "working";
+  assert.match(await say(w, "is my VOO order filled"), /^Not filled yet: order ord-1 \(buy 0\.01 VOO\) is working, per Mock Broker \(as of 14:00 UTC\)\. Ask again anytime, or say "cancel my VOO order" to cancel it\.$/);
+});
+
+test("[S10] partly filled: how much filled at what price, and whether the rest still works", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); Object.assign(w.records["ord-1"], { status: "partial", filled_quantity: 0.004, fill_price_cents: 50000 });
+  assert.match(await say(w, "did my buy fill"), /^Partly filled: 0\.004 of 0\.01 VOO at \$500\.00, order ord-1, per Mock Broker \(as of 14:00 UTC\)\. The rest is still working\.$/);
+});
+
+test("[S11] canceled: nothing filled is said", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); w.records["ord-1"].status = "canceled";
+  assert.match(await say(w, "what's my order status"), /^Canceled: order ord-1 \(buy 0\.01 VOO\), nothing filled, per Mock Broker/);
+});
+
+test("[S12] rejected: the broker's reason, and that nothing was placed", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); Object.assign(w.records["ord-1"], { status: "rejected", reason: "insufficient buying power" });
+  assert.match(await say(w, "what's my order status"), /^The broker rejected order ord-1 \(buy 0\.01 VOO\): insufficient buying power, per Mock Broker \(as of 14:00 UTC\)\. Nothing was placed\.$/);
+});
+
+test("[S13] a read that fails says the last status read, never a guess", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); w.failOrder = true;
+  assert.equal(await say(w, "what's my order status"), "I can't read order ord-1 (buy 0.01 VOO) back right now. When I last read it, it was filled. Try again in a minute, or check your brokerage app.");
+});
+
+test("[S14] the ticker named picks that order; with several and none named, the latest, and the others are mentioned", async () => {
+  const w = world(ROWS); await buy(w, "VOO"); w.now += 120000; await buy(w, "VTI");
+  assert.match(await say(w, "did my VOO buy fill"), /^Filled: bought [\d.]+ VOO .*order ord-1,/);
+  assert.match(await say(w, "what's my order status"), /^Filled: bought [\d.]+ VTI .*order ord-2, .* You placed 2 orders from this chat; name the ticker for another\.$/);
+});
+
+test("[S15] a status or portfolio question places nothing and never turns into an order prompt", async () => {
+  const w = world(ROWS); await buy(w, "VOO");
+  for (const m of ["what's my order status", "did my buy fill", "what do I own", "what's my biggest position"]) {
+    const r = await w.s.start(m);
+    assert.equal(r.outcome, "answer", `${m}: ${r.text}`);
+    assert.doesNotMatch(r.text, /how much|confirm|reply yes/i, m);
+  }
+  assert.equal(w.writes.length, 1);
+});
+
+test("[S16] the ways people ask; a cancel stays a cancel", () => {
+  const a = (m) => T.parse(m).action;
+  for (const m of ["what's my order status", "did my buy fill?", "is my VOO order filled", "did my voo buy go through", "did it fill", "where is my sell"]) assert.equal(a(m), "status", m);
+  for (const m of ["what do I own", "what's my biggest position", "what am I holding"]) assert.equal(a(m), "portfolio", m);
+  assert.equal(a("cancel my VOO order"), "cancel");
+  assert.equal(a("buy $5 of VOO"), "new");
+});

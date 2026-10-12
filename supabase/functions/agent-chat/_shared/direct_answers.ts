@@ -17,9 +17,32 @@ const CONNECT_EMAIL = /^\s*(?:please |pls |can you |could you |can u )?(?:connec
 
 export function connectReply(message: string): string | null {
   if (CONNECT_EMAIL.test(message)) return ConnectCards.message("gmail");
+  // "Connect my Ally savings" is the bank, not Ally Invest: a bank account kind said with a bank's name is the bank's.
+  const bank = bankConnectReply(message);
+  if (bank && /\b(?:checking|savings|credit cards?|debit card|card|bank)\b/i.test(message)) return bank;
   const a = BrokerageConnectors.connectAnswer(PLATFORMS_JSON, message);
-  if (!a) return null;
+  if (!a) return bank;
   return a.card ? ConnectCards.message(a.card, { lead: a.text }) : a.text;
+}
+
+// "Link my Chase account", "connect my bank", "add my checking" (megadoc Q10): banks and cards connect in the app through
+// SimpleFIN Bridge (the app's Connect bank screen, src/upmore-app-template.html), read-only. The brokerage matrix answers
+// first ("connect my fidelity"); this takes only a bank, a bank account kind, or a bank's name. No card is drawn: only a
+// provider a person can connect from the link gets one, and SimpleFIN is a token pasted in the app. Whether SimpleFIN
+// lists a given bank is not on file, so it is never promised.
+const BANKS: [string, RegExp][] = [["Chase", /\bchase\b/], ["Bank of America", /\bbank of america\b|\bbofa\b|\bboa\b/], ["Wells Fargo", /\bwells fargo\b|\bwells\b/], ["Citi", /\bciti(?:bank)?\b/], ["Capital One", /\bcapital one\b|\bcap one\b/], ["U.S. Bank", /\bu\.?s\.? bank\b/], ["PNC", /\bpnc\b/], ["Ally", /\bally\b/], ["Discover", /\bdiscover\b/], ["American Express", /\bamerican express\b|\bamex\b/], ["Chime", /\bchime\b/], ["Navy Federal", /\bnavy federal\b/], ["USAA", /\busaa\b/], ["TD Bank", /\btd bank\b/], ["Truist", /\btruist\b/], ["Citizens", /\bcitizens(?: bank)?\b/], ["Varo", /\bvaro\b/], ["Marcus", /\bmarcus\b/], ["Synchrony", /\bsynchrony\b/], ["Barclays", /\bbarclays\b/]];
+const BANK_ASK = /^\s*(?:please |pls |can you |could you |can u |i want to |i wanna |help me |how do i |how can i )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+|our\s+|a\s+)?(.{1,60}?)\s*[?.!]*\s*$/i;
+const BANK_WORDS = /^(?:(?:new |other |second )?(?:bank|bank accounts?|checking(?: account)?|savings(?: account)?|credit cards?|debit card|card account|bank and cards?))$/;
+export function bankConnectReply(message: string): string | null {
+  const m = BANK_ASK.exec(String(message || ""));
+  if (!m) return null;
+  const what = m[1].toLowerCase().replace(/[’']/g, "'").trim();
+  const bank = BANKS.find(([, re]) => re.test(what));
+  // "Chase", "my chase account", "chase checking", "chase credit card"; or no name and only an account kind.
+  const rest = bank ? what.replace(bank[1], "").replace(/\s+/g, " ").trim() : what;
+  if (!(bank ? /^(?:(?:bank )?(?:account|accounts|checking|savings|credit card|card|cards|debit card|bank)(?: account)?)?$/.test(rest) : BANK_WORDS.test(rest))) return null;
+  const name = bank ? bank[0] : "your bank";
+  return `Nothing was connected yet. ${bank ? `To connect ${name}, open Home in the app and tap Connect bank.` : "Banks and cards connect from the app: open Home and tap Connect bank."} It goes through SimpleFIN Bridge: you pick ${bank ? name : "your bank"} on its list and sign in on the bank's own page, then paste the setup token it gives you into Upmore. Upmore never sees your bank password, and the connection is read-only: it reads balances and transactions and never moves money.${bank ? ` If ${name} isn't on SimpleFIN's list, it can't be connected yet.` : ""}`;
 }
 
 // "What's my credit score": no credit bureau or score feed is connected (capability items 37 and 101), and the reply guard

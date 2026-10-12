@@ -76,7 +76,7 @@
     ["sell my tesla", null],
     ["cancel netflix", null],
     ["cancel my gym membership", null],
-    ["connect my chase account", null],
+    ["connect my chase account", "connectReply"],
     ["connect fidelity", "connectReply"],
     ["what can you do", null],
     ["hi", null],
@@ -264,6 +264,13 @@
     ["remind me about my car insurance on 11/3", null],
     ["remind me to cancel netflix before the 20th", null],
     ["show my reminders", null],
-    ["stop the reminder to pay rent", null]
+    ["stop the reminder to pay rent", null],
+    ["link my Chase account", "connectReply"],
+    ["connect my bank", "connectReply"],
+    ["connect my ally savings", "connectReply"],
+    ["add my card", null],
+    ["add chase sapphire", null],
+    ["set up my savings goal", null],
+    ["connect my venmo", null]
   ]
 }

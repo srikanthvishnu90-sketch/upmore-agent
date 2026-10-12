@@ -531,3 +531,11 @@ themselves.
 
 Found, not fixed (for the owner): the legacy route-reminder reply still answers any "remind me" that the new path leaves
 (a route id, or something it can't read as a reminder); it is the route path's and is left as it is.
+
+
+## "Link my Chase account" went to the model (2026-10-12, megadoc Q10)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `tests/edge/fixtures/direct-asks.json` | "connect my chase account": null (no direct answer; the model) | A bank connect ask now gets the app's real path (Home, Connect bank, SimpleFIN Bridge, read-only) from `direct_answers.ts` bankConnectReply; the row says connectReply. | `tests/edge/direct-answers.test.ts` |
+| `packages/domain/77-brokerage-connectors.js` connectAnswer (through connectReply) | "connect my Ally savings" answered as Ally Invest (Plaid, read-only brokerage) | Ally Invest's alias "ally" took a bank account. A bank account kind (checking, savings, card, bank) said with a bank's name now gets the bank answer first; "ally invest" keeps the matrix. | same |

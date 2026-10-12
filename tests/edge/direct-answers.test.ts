@@ -17,6 +17,20 @@ Deno.test("connect my X answers from the connector matrix, never invented app st
   for (const t of ["connect my fidelity", "connect my webull", "connect my cash app", "connect my empower 401k"]) assert(!/SnapTrade|owner|keys/.test(connectReply(t)!), `${t}: no internal words`);
 });
 
+// Megadoc Q10 "link my Chase account": banks and cards connect in the app through SimpleFIN Bridge (the Connect bank
+// screen), read-only; the brokerage matrix keeps brokerages; a bank's list is never promised.
+Deno.test("link my Chase account: the app's real bank path in plain words, no card, no promise the bank is listed (Q10)", () => {
+  assertEquals(connectReply("link my Chase account"), "Nothing was connected yet. To connect Chase, open Home in the app and tap Connect bank. It goes through SimpleFIN Bridge: you pick Chase on its list and sign in on the bank's own page, then paste the setup token it gives you into Upmore. Upmore never sees your bank password, and the connection is read-only: it reads balances and transactions and never moves money. If Chase isn't on SimpleFIN's list, it can't be connected yet.");
+  assertMatch(connectReply("can you connect my bank")!, /^Nothing was connected yet\. Banks and cards connect from the app: open Home and tap Connect bank\. .*never moves money\.$/);
+  for (const t of ["add my checking account", "link my bofa checking", "sync my wells fargo", "connect my amex", "link my discover card"]) assertMatch(connectReply(t)!, /tap Connect bank\. It goes through SimpleFIN Bridge/, t);
+  // A bank account kind with a bank's name is the bank, not its brokerage arm; the brokerage words keep the matrix.
+  assertMatch(connectReply("connect my ally savings")!, /^Nothing was connected yet\. To connect Ally,/);
+  assertMatch(connectReply("link my chase investing account")!, /^J\.P\. Morgan Self-Directed Investing doesn't let apps place trades/);
+  assertMatch(connectReply("connect my fidelity")!, /^Fidelity /);
+  for (const t of ["add my card", "add chase sapphire", "set up my savings goal", "add my mom", "connect my venmo", "add rent to my budget"]) assertEquals(connectReply(t), null, t);
+  assert(!/https?:\/\//.test(connectReply("link my Chase account")!), "no link card: SimpleFIN is a token pasted in the app");
+});
+
 // S16-15 "pay my rent" is the standing rent flow now (packages/domain/81-standing-rent.js through the flow router;
 // tests/standing-rent.test.cjs, tests/edge/flow-router.test.ts). No direct answer may intercept it with "not built".
 Deno.test("pay my rent is not answered from here: no direct answer intercepts it, so the standing rent flow does (S16-15)", async () => {

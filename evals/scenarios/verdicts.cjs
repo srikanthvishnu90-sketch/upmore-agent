@@ -156,7 +156,8 @@ set("P12", "BUILT", "'yes but ...' is a correction, never an approval", "tests/d
 set("P13", "DIVERGES", "'ok' counts as a yes on a card; the DO prefers an explicit yes only", "tests/voice.test.cjs");
 set("P14", "MODEL", "'the other one' with no list goes to the chat model");
 // Q. misc
-set("Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09 Q10", "MODEL", "the chat model and the app's own settings flows");
+set("Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09", "MODEL", "the chat model and the app's own settings flows");
+set("Q10", "BUILT", "a bank or card connect ask gets the app's real path in plain words (Home, Connect bank, SimpleFIN Bridge, read-only, the bank signs you in, never a password in chat); that the bank is on SimpleFIN's list is never promised; a brokerage keeps the connector matrix answer", "tests/edge/direct-answers.test.ts");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

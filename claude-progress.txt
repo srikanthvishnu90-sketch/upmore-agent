@@ -210,3 +210,19 @@
 - Suites now: node 2069/2069 (start of night at 4ea437d, re-measured: 531/531), edge 526 (start 283), Agent100 103/103,
   testing agent 87/87 (start 70/70), mutation coverage 81/81 modules.
 - CI: runs 150-183 green through d41b1a9; 183+ pending at this entry.
+
+## 2026-10-12 overnight, wave 9 continued (14:55-15:31 UTC)
+- Card sweeps (every order type, market open and closed; send and split cards) and more probing as people type:
+  - 7d360b4 a limit without "$" ("limit 500", "at 500 or less", "under 500", "at 250 or better") carded a MARKET order;
+    and tonight's longer sale-fee line (S22, 12:06) pushed every limit, stop and trailing SELL card past two segments to
+    a last-resort line without the share count, the order type or "can't be undone". Both fixed (RAIL-2 S27, S28).
+  - f4f7bbd the last-resort card never said "Works from the open" for a closed market, nor GTC (S29).
+  - 34e71aa a memo over 40 characters went out with the send but was shown nowhere; now named on the card, quoted in
+    DETAILS (PAY-001 S21). 51bb788 "kill my VOO position" offers the sell words (BILL-003 S19).
+  - 5f8682b ee80a08 split: "i pay 50" was a person; "w sarah", "sarah and i split 90", "with sarah thx", "the 90
+    dollar dinner". ba4c160 "buy $4 of VOO thx" asked for "VOO thx" (K, TY and Ty kept).
+  - 025ca01 money sent "by mistake" and asked back: scam warning from code (SCAM-CHECK 17/17).
+  - 954a0fa 52ec813 3daf73b everyday money asks routed to the row answers: spending, checkup, balances, upcoming, paydays.
+- Depth: RAIL-2 30/30, RAIL-1 20/20, PAY-001 22/22, BILL-003 21/21, SCAM-CHECK 17/17; 1,430/1,430 defects across 70
+  packets; 81/81 modules. node 2,079/2,079; edge 526/526; testing agent 87/87; corpus PASS 39 FAIL 0.
+- CI: runs 81-195 green as checked through run 187; later runs pending at this entry.

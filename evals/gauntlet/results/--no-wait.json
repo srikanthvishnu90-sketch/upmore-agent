@@ -1,0 +1,556 @@
+{
+ "label": "--no-wait",
+ "run_at": "2026-10-12T22:22:44.842Z",
+ "endpoint": "https://<project>.supabase.co/functions/v1/agent-chat",
+ "total": 20,
+ "not_run": 0,
+ "understood": 13,
+ "understood_pct": 65,
+ "carded": 6,
+ "passed": 6,
+ "pct": 30,
+ "bar_pct": 95,
+ "meets_bar": false,
+ "rows": [
+  {
+   "id": "G01",
+   "text": "buy $500 of VOO",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy $500.00 of VOO",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G02",
+   "text": "buy like 500 bucks of voo",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy $500.00 of voo",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G03",
+   "text": "put 500 in the vanguard s&p fund",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": false,
+   "reasons": [
+    "outcome refuse, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "reply": "Vanguard doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 2,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "refuse",
+    "canonical": "buy $500.00 of the vanguard s&p fund",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G04",
+   "text": "buy five hundred dollars of VOO",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy $500.00 of VOO",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G05",
+   "text": "grab me $500 voo pls",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy $500.00 of voo",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G06",
+   "text": "buy $500 VOO in my roth",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\"",
+    "card lacks \"Roth\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy $500.00 of VOO in roth",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G07",
+   "text": "Buy 2 shares of vt",
+   "expected_flow": "trade",
+   "understood": true,
+   "understood_reasons": [],
+   "blocked_by": "the test account has no brokerage connected",
+   "pass": false,
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"2 shares\"",
+    "card lacks \"VT\""
+   ],
+   "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+   "segments": 1,
+   "route": {
+    "route": "buy_security",
+    "flow": "trade",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "blocked",
+    "canonical": "buy 2 shares of vt",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G08",
+   "text": "cancel netflix",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G09",
+   "text": "cancel my netflix pls",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G10",
+   "text": "can u cancel netflix for me",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G11",
+   "text": "i dont want netflix anymore",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G12",
+   "text": "get rid of that netflix thing",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G13",
+   "text": "cancle netflix",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G14",
+   "text": "stop netflix",
+   "expected_flow": "cancel",
+   "understood": false,
+   "understood_reasons": [
+    "asked about the person's words (ask)"
+   ],
+   "blocked_by": "the test account has no charge from that merchant",
+   "pass": false,
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+   "segments": 1,
+   "route": {
+    "route": "cancel_subscription",
+    "flow": "cancel",
+    "source": "model",
+    "understood": true,
+    "understood_first": false,
+    "outcome": "ask",
+    "canonical": "cancel netflix",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G15",
+   "text": "send sam $40",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "send $40.00 to sam",
+    "ask_reason": null,
+    "problems": [
+     "amount_cents 40 does not match \"$40\""
+    ]
+   }
+  },
+  {
+   "id": "G16",
+   "text": "venmo sam 40 for pizza",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, memo \"pizza\", for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "venmo $40.00 to sam for pizza",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G17",
+   "text": "pay sam back forty",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "send $40.00 to sam",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G18",
+   "text": "yo send sam 40 bucks",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "send $40.00 to sam",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G19",
+   "text": "send $40 to sam for the uber",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "send $40.00 to sam",
+    "ask_reason": null,
+    "problems": []
+   }
+  },
+  {
+   "id": "G20",
+   "text": "can you zelle sam forty dollars",
+   "expected_flow": "send",
+   "understood": true,
+   "understood_reasons": [],
+   "pass": true,
+   "reasons": [],
+   "reply": "Set up $40.00 to Sam (sam.test@upmore.test) in Zelle from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+   "segments": 2,
+   "route": {
+    "route": "send_money",
+    "flow": "send",
+    "source": "model",
+    "understood": true,
+    "understood_first": true,
+    "outcome": "confirm",
+    "canonical": "zelle $40.00 to sam",
+    "ask_reason": null,
+    "problems": []
+   }
+  }
+ ]
+}

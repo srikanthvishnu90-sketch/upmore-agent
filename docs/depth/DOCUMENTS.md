@@ -44,6 +44,10 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 - S13 (found here): a lapsed policy was listed like live cover ("$1,420.00 a year") and its premium added to the annual
   total. D18.
 - S20 (found here): no sessions said "0 active sessions: .". D25.
+- S03, S11 (fixed after merge, from this packet's notes): a "Receipt #" followed by a card number took the card number as the order
+  number, which goes into the stored attachment title; a 13-19 digit code passing the card checksum is never an order
+  number now (D03b; a long order number that is not a card is kept). A gift in another currency was added into the
+  dollar total; it is now said and left out (D11b).
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
@@ -52,6 +56,7 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S01 | A spaced SSN is an SSN | "123 45 6789" as text is refused | `S01` in tests/depth-DOCUMENTS.test.cjs | only the dashed SSN shape is recognized (the bug found building this packet) | proven |
 | S02 | The total, not the subtotal | $43.20 after a $40.00 subtotal | `S02` in tests/depth-DOCUMENTS.test.cjs | "total" matches inside "Subtotal" (the bug found building this packet) | proven |
 | S03 | An order number is a code | "Order Confirmation" is not order "Confirmation"; XKJQPL is kept | `S03` in tests/depth-DOCUMENTS.test.cjs | any word after "order" is taken as the order number (the bug found building this packet) | proven |
+| S03 | A card number is not an order number | a receipt code that is a card number gives no order number and its digits appear nowhere | `S03` in tests/depth-DOCUMENTS.test.cjs | any long digit code after Receipt # is the order number | proven |
 | S04 | No-reply mail is from the company | no-reply@doordash.com is doordash | `S04` in tests/depth-DOCUMENTS.test.cjs | the shared-mailbox check reads the domain instead of the mailbox, so the merchant is "no reply" (the bug found building this packet) | proven |
 | S05 | Same site is not a mismatch | www.mockbank.com linking to www.mockbank.com is clean | `S05` in tests/depth-DOCUMENTS.test.cjs | any link whose text names a site is called a mismatch (the bug found building this packet) | proven |
 | S06 | Domains from the address | "Mock Bank <alerts@mockbank.com>" replying from mockbank.com is clean | `S06` in tests/depth-DOCUMENTS.test.cjs | the domain is everything after the @, so a display name's closing ">" makes a mismatch (the bug found building this packet) | proven |
@@ -64,6 +69,7 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 | S10 | Received but late is overdue | received 50 days ago is overdue | `S10` in tests/depth-DOCUMENTS.test.cjs | the received stage wins over the window, so the text says "by about" a date already gone (the bug found building this packet) | proven |
 | S11 | Posted gifts only | $340.00, not $640.00 | `S11` in tests/depth-DOCUMENTS.test.cjs | a pending hold is counted as a second gift (the bug found building this packet) | proven |
 | S11 | The log cites its rows | source and as-of on the donation log | `S11` in tests/depth-DOCUMENTS.test.cjs | the log is returned without its source and as-of (the bug found building this packet) | proven |
+| S11 | Other currencies are not dollars | a EUR gift is said, not added to the dollar total | `S11` in tests/depth-DOCUMENTS.test.cjs | every gift's amount is added as dollars | proven |
 | S12 | A revoked device is not known | Chrome in Lisbon after a revoke is new | `S12` in tests/depth-DOCUMENTS.test.cjs | revoked sessions count as known devices (the bug found building this packet) | proven |
 | S13 | A lapsed policy is not a cost | $180.00 a year, not $1,600.00 | `S13` in tests/depth-DOCUMENTS.test.cjs | a lapsed policy's premium is still added (the bug found building this packet) | proven |
 | S14 | Day 45 is in the window | a renewal in 45 days is raised | `S14` in tests/depth-DOCUMENTS.test.cjs | the window ends a day early | proven |

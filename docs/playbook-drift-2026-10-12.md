@@ -216,3 +216,11 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
 - Same packet, also fixed: a fired price alert's "(Mock Quotes, <time>)" failed the advice guard's grounding rule (no
   "per"/"as of"); it now says "(per <source>, as of <time>)" and the test runs it through the guard. The portfolio
   read now says UTC on its times and "source not on file" instead of calling a missing source "manual". INVEST 33/33.
+
+## Documents: a card number as an order number, euros as dollars (2026-10-12, morning; from the DOCUMENTS packet's notes)
+
+- Said: identity and card digits are never stored; money statements are in the currency they happened in.
+- True (62-agent-documents.js): a "Receipt #" followed by a card number made the card number the receipt's order number, which goes
+  into the stored attachment title; the donation log added a EUR gift into its dollar total.
+- Now: a 13-19 digit code passing the card checksum is never an order number (and appears nowhere in the parse); other
+  currencies are said ("1 gift in another currency is not added in"), not added. DOCUMENTS 30/30 (D03b, D11b).

@@ -1,9 +1,9 @@
 {
  "capability": "DOCUMENTS",
- "run_at": "2026-10-12T06:55:19.439Z",
+ "run_at": "2026-10-12T07:21:03.928Z",
  "baseline_all_green": true,
  "sub_capabilities": 22,
- "proven": 28,
+ "proven": 30,
  "problems": [],
  "rows": [
   {
@@ -45,6 +45,17 @@
    "title": "An order number is a code",
    "defect": "any word after \"order\" is taken as the order number (the bug found building this packet)",
    "test": "\"Order Confirmation\" is not order \"Confirmation\"; XKJQPL is kept",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S03",
+   "id": "D03b",
+   "title": "A card number is not an order number",
+   "defect": "any long digit code after Receipt # is the order number",
+   "test": "a receipt code that is a card number gives no order number and its digits appear nowhere",
    "bites": true,
    "applied": true,
    "collateral": [],
@@ -179,6 +190,17 @@
    "title": "The log cites its rows",
    "defect": "the log is returned without its source and as-of (the bug found building this packet)",
    "test": "source and as-of on the donation log",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D11b",
+   "title": "Other currencies are not dollars",
+   "defect": "every gift's amount is added as dollars",
+   "test": "a EUR gift is said, not added to the dollar total",
    "bites": true,
    "applied": true,
    "collateral": [],

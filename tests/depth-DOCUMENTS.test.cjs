@@ -49,6 +49,11 @@ test("[S03] an order number is a real code: \"Order Confirmation\" is not order 
   assert.equal(D.parseReceipt({ from: "Mock Shop <orders@mockshop.example>", subject: "Your receipt", body: "Thanks for your order confirmation. Total: $9.99" }).order, null);
   assert.equal(D.parseReceipt({ subject: "Your Mock order #BS-77821 has shipped", body: "Order total: $212.40" }).order, "BS-77821");
   assert.equal(D.parseReceipt({ from: "Mock Air <trips@mockair.example>", subject: "Your trip confirmation", body: "Confirmation: XKJQPL. Total charged: $412.30" }).order, "XKJQPL", "an airline code is all capitals after an explicit marker");
+  // A card number after "Receipt #" is not an order number: it would be stored in the attachment title (merge review).
+  const card = D.parseReceipt({ from: "Mock Shop <orders@mockshop.example>", subject: "Receipt #4111111111111111", body: "Total: $20.00" });
+  assert.equal(card.order, null);
+  assert.ok(!JSON.stringify(card).includes("4111111111111111"), JSON.stringify(card));
+  assert.equal(D.parseReceipt({ subject: "Order #1234567890123", body: "Total: $5.00" }).order, "1234567890123", "a long order number that is not a card number is kept");
 });
 
 test("[S04] a receipt from a no-reply mailbox is from the sender's company, and matches that company's charge", () => {
@@ -118,6 +123,10 @@ test("[S11] the donation log counts posted gifts once (a pending hold is not a s
   assert.equal(dl.total_cents, 34000);
   assert.equal(dl.text, "2026: $340.00 to 2 organizations across 2 gifts. 1 gift of $250 or more has no written acknowledgment in the vault; the IRS wants one for each.");
   assert.deepEqual([dl.source, dl.as_of], ["your transactions", "2026-05-01"]);
+  // A gift in another currency is said, never added into dollars (merge review).
+  const eur = D.donationLog(rows.concat([tx("2026-06-01", -5000, "RED CROSS FRANCE", { currency: "EUR" })]), ["red cross", "food bank"], null, 2026);
+  assert.equal(eur.total_cents, 34000);
+  assert.equal(eur.text, "2026: $340.00 to 2 organizations across 2 gifts. 1 gift in another currency is not added in. 1 gift of $250 or more has no written acknowledgment in the vault; the IRS wants one for each.");
 });
 
 test("[S12] a device the person revoked is never \"known\": it signing in again is called out as new", () => {

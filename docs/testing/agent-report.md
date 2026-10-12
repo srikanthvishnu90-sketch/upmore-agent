@@ -26,7 +26,7 @@ Nothing.
 
 - R-01:1.02 corpus 1.02 Stranger, no history: DIVERGES: A first send to a new handle asks the person to type the handle back (PAY-002, confirmed in full) before the card; the corpus shows the card at once with a can't-verify line. Kept deliberately: it is the stronger check on a first, irreversible send to a stranger. Owner can overrule.
 - R-01:2.04 corpus 2.04 Rent: DIVERGES: The corpus shows rent already on file and paid by ACH on one yes. Upmore never moves rent itself (owner rule: it stages each month for the person to send in Zelle, Venmo, Cash App or PayPal; no ACH rail is live), and the corpus world has no rent rule saved, so 'pay rent' first asks the one
-- O-02s megadoc states: PROVEN 0, BUILT 107, LIMITED 35, DIVERGES 8, MODEL 23, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
+- O-02s megadoc states: PROVEN 0, BUILT 107, LIMITED 36, DIVERGES 8, MODEL 22, NOT_BUILT 67: 0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md
 
 ## Every check
 

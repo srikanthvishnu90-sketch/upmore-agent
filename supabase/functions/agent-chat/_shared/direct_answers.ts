@@ -171,6 +171,33 @@ export function adviceReply(message: string): string | null {
   return (g.reasons || []).includes("tips_or_good_buy") || SECURITIES.test(m) ? ADVICE_NONE : null;
 }
 
+// "I'm traveling in Japan" (megadoc Q09): Upmore can't file a travel notice (no bank or card write), so it says where
+// that lives, what still works, and offers the person's day on local time: "time zone Asia/Tokyo" is the settings
+// command (_shared/proactive.ts) that moves quiet hours, reminders and briefs. Only countries on one time zone get a zone
+// named; anywhere else the person is asked to name the zone. Nothing is changed here.
+const TRAVEL = /^\s*(?:(?:hey|fyi|ok|so|heads up)[,:!\s]+)*(?:i'?m|i am|i'?ll be|i will be|we'?re|we are|we'?ll be|i'?m going to be|going to be)\s+(?:travel(?:l)?ing|on (?:a )?(?:trip|vacation|holiday)|abroad|overseas|out of the country|flying|heading|going|in)\b([^?]{0,60})$/i;
+const COUNTRY_ZONES: Record<string, [string, string]> = {
+  japan: ["Japan", "Asia/Tokyo"], tokyo: ["Japan", "Asia/Tokyo"], korea: ["South Korea", "Asia/Seoul"], "south korea": ["South Korea", "Asia/Seoul"], seoul: ["South Korea", "Asia/Seoul"],
+  uk: ["the UK", "Europe/London"], england: ["the UK", "Europe/London"], london: ["the UK", "Europe/London"], scotland: ["the UK", "Europe/London"], ireland: ["Ireland", "Europe/Dublin"],
+  france: ["France", "Europe/Paris"], paris: ["France", "Europe/Paris"], italy: ["Italy", "Europe/Rome"], rome: ["Italy", "Europe/Rome"], germany: ["Germany", "Europe/Berlin"],
+  netherlands: ["the Netherlands", "Europe/Amsterdam"], amsterdam: ["the Netherlands", "Europe/Amsterdam"], switzerland: ["Switzerland", "Europe/Zurich"], greece: ["Greece", "Europe/Athens"],
+  turkey: ["Turkey", "Europe/Istanbul"], israel: ["Israel", "Asia/Jerusalem"], india: ["India", "Asia/Kolkata"], thailand: ["Thailand", "Asia/Bangkok"], vietnam: ["Vietnam", "Asia/Ho_Chi_Minh"],
+  singapore: ["Singapore", "Asia/Singapore"], philippines: ["the Philippines", "Asia/Manila"], iceland: ["Iceland", "Atlantic/Reykjavik"], colombia: ["Colombia", "America/Bogota"],
+  peru: ["Peru", "America/Lima"], "costa rica": ["Costa Rica", "America/Costa_Rica"], jamaica: ["Jamaica", "America/Jamaica"],
+};
+export function travelReply(message: string, tz: string): string | null {
+  const m = TRAVEL.exec(String(message || ""));
+  if (!m || /\b(?:spend|spent|cost|budget|how much|afford)\b/i.test(m[0])) return null;
+  const rest = ` ${m[1].toLowerCase().replace(/[.!,]/g, " ")} `;
+  const hit = Object.keys(COUNTRY_ZONES).sort((a, b) => b.length - a.length).find((k) => rest.includes(` ${k} `));
+  if (!hit && !/\b(?:abroad|overseas|out of the country|trip|vacation|holiday|traveling|travelling)\b/i.test(m[0])) return null;
+  const [place, zone] = hit ? COUNTRY_ZONES[hit] : [null, null];
+  const local = zone && zone !== tz
+    ? ` Want quiet hours, reminders and briefs on ${place} time while you're there? Say "time zone ${zone}", and "time zone ${tz}" when you're back.`
+    : zone ? "" : ` Want quiet hours, reminders and briefs on local time while you're away? Say "time zone" and the zone, like "time zone Europe/Paris", and "time zone ${tz}" when you're back.`;
+  return `Have a good trip. Upmore can't file a travel notice with your bank or card; if yours wants one, it's in that bank's or card's own app. Charges you make there still show up in your linked transactions, and alerts work as usual.${local} Nothing was changed.`;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

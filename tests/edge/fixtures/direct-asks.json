@@ -320,6 +320,8 @@
     ["what did i spend overnight", "moneyReply"],
     ["can you give me stock tips", "adviceReply"],
     ["whats the best stock rn", "adviceReply"],
-    ["is this a good buy at costco", null]
+    ["is this a good buy at costco", null],
+    ["I'm traveling in Japan", "travelReply"],
+    ["im going to costco", null]
   ]
 }

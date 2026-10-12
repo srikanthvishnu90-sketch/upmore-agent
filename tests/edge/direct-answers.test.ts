@@ -185,3 +185,23 @@ Deno.test("stock tips and the best stock: no pick, no ticker, what Upmore can do
   assertEquals((AgentTrade as any).parse("price of VOO").action, "quote");
   assertEquals((AgentTrade as any).parse("how's my portfolio").action, "portfolio");
 });
+
+// Megadoc Q09 "I'm traveling in Japan": no travel notice can be filed; the person's day can move to local time.
+import { parseCommand } from "../../supabase/functions/_shared/proactive.ts";
+Deno.test("traveling in Japan: no travel notice filed, alerts as usual, the time zone command offered and real (Q09)", () => {
+  const { travelReply } = DirectAnswers;
+  const t = travelReply("I'm traveling in Japan", "America/New_York")!;
+  assertMatch(t, /^Have a good trip\. Upmore can't file a travel notice with your bank or card; if yours wants one, it's in that bank's or card's own app\./);
+  assertMatch(t, /Say "time zone Asia\/Tokyo", and "time zone America\/New_York" when you're back\. Nothing was changed\.$/);
+  assertMatch(travelReply("heads up, we'll be in Paris next week", "America/Chicago")!, /on France time .*"time zone Europe\/Paris"/);
+  assertMatch(travelReply("i'm going abroad for 2 weeks", "America/New_York")!, /on local time while you're away\? Say "time zone" and the zone/);
+  // Already on that zone: no offer to change it.
+  assert(!/Say "time zone/.test(travelReply("I'm in Japan", "Asia/Tokyo")!));
+  for (const m of ["how much did i spend traveling", "i'm going to costco", "i'm in a meeting", "i'm going to be late on rent", "what's the time in japan", "i'm traveling, can i afford it?", "i'm flying to"]) assertEquals(travelReply(m, "America/New_York"), null, m);
+  // Every zone offered is a real zone the settings command accepts, and the reply after it names the zone.
+  for (const z of ["Asia/Tokyo", "Asia/Seoul", "Europe/London", "Europe/Dublin", "Europe/Paris", "Europe/Rome", "Europe/Berlin", "Europe/Amsterdam", "Europe/Zurich", "Europe/Athens", "Europe/Istanbul", "Asia/Jerusalem", "Asia/Kolkata", "Asia/Bangkok", "Asia/Ho_Chi_Minh", "Asia/Singapore", "Asia/Manila", "Atlantic/Reykjavik", "America/Bogota", "America/Lima", "America/Costa_Rica", "America/Jamaica"]) {
+    new Intl.DateTimeFormat("en-US", { timeZone: z });
+    const c: any = parseCommand(`time zone ${z}`, null, Date.parse("2026-10-12T15:00:00Z"));
+    assertEquals(c && c.settings && c.settings.time_zone, z, z);
+  }
+});

@@ -823,7 +823,7 @@
     function normalize(raw) {
       const r = raw || {};
       const errors = [];
-      const currency = text(r.currency || "USD", 3).toUpperCase();
+      const currency = text(r.currency || "USD", 16).toUpperCase(); // validated as written: "USDC" is not cut down to "USD"
       const due = r.due_on ? date(r.due_on) : null;
       if (r.due_on && !due) errors.push("invalid_due_date");
       if (!/^[A-Z]{3}$/.test(currency)) errors.push("invalid_currency");
@@ -895,8 +895,9 @@
       if (!["verified", "partially_paid"].includes(o.status)) return result("needs_review", "unverified", "Confirm who this bill belongs to and the current amount before paying.");
       if (o.amount_due_cents === null || !o.due_on) return result("needs_information", "missing_bill_details", "I need the current amount due and due date.",
         [o.amount_due_cents === null ? "amount_due_cents" : null, !o.due_on ? "due_on" : null].filter(Boolean));
-      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       if (!current(o, ctx.now, ctx.maxAgeMs || 48 * 3600000)) return result("needs_sync", "stale_obligation", "Refresh the bill before relying on its amount or payment status.", ["fresh_obligation"]);
+      // "Nothing due" relies on the amount too, so only a current bill can say it.
+      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       steps[0].state = "done";
       steps.push({ action: "check_existing_payment", state: "pending" });
       // A refreshed amount can still precede creditor allocation of an earlier
@@ -919,7 +920,8 @@
       const account = (ctx.accounts || []).find(a => a.id === o.funding_account_id && a.currency === o.currency && a.owned === true && a.payment_enabled === true);
       if (!account) return result("needs_connection", "funding_missing", "Choose a verified funding account that supports this payment.", ["funding_account"]);
       steps.push({ action: "check_funds", state: "pending" });
-      if (cents(account.available_cents) === null || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
+      // A negative balance is real (overdrawn) and is judged below as short of money; only an unknown one is refreshed.
+      if (!Number.isSafeInteger(account.available_cents) || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
         return result("needs_sync", "stale_funding", "Refresh available funds before approving this payment.", ["fresh_available_balance"]);
       }
       if (cents(adapter.fee_cents) === null) return result("needs_information", "fee_unknown", "The payment fee needs a verified quote.", ["fee_cents"]);
@@ -1312,13 +1314,15 @@ const AgentClassifiedLedger = (() => {
     const FEES = [
       ["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b/i],
       ["nsf", /\b(nsf|insufficient\s+funds|returned\s+item)\b/i],
-      ["monthly_maintenance", /\b(monthly\s+(maintenance|service)|maintenance|service\s+(charge|fee)|account\s+fee)\b/i],
+      // A fee or charge word is required: "VALLEY AUTO MAINTENANCE" or "XFINITY MONTHLY SERVICE" is a business, not the bank.
+      ["monthly_maintenance", /\b((monthly\s+)?(maintenance|service)\s+(charge|fee)|account\s+fee)\b/i],
       ["atm", /\b(atm|non[- ]?network|out[- ]of[- ]network)\b.*\bfee\b|\bfee\b.*\batm\b/i],
       ["foreign_transaction", /\b(foreign\s+(transaction|txn|exchange)|international\s+(transaction|purchase))\s*fee\b/i],
       ["late_payment", /\blate\s*(payment\s*)?fee\b/i],
       ["paper_statement", /\bpaper\s+statement\s+fee\b/i]
     ];
     const REVERSAL = /\b(refund|reversal|reversed|credit|waive[dr]?|courtesy|rebate|adjustment)\b/i;
+    const REVERSAL_WORDS = new RegExp(REVERSAL.source, "gi"); // every reversal word: "OD FEE REVERSAL CREDIT" names two
     const MAX_FEE_CENTS = 50000; // a fee label on a larger debit is not trusted as a fee
     const DUPLICATE_WINDOW_DAYS = 3, HOLD_STALE_DAYS = 7, REVERSAL_WINDOW_DAYS = 60;
 
@@ -1345,7 +1349,8 @@ const AgentClassifiedLedger = (() => {
     function retained(rows, accountId, today) {
       if (!Array.isArray(rows) || rows.length > 100000) throw new Error("Transaction history exceeds the processing limit.");
       const seen = new Map(), posted = [], pending = [];
-      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0;
+      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0, future = 0;
+      const nextDay = today >= "9999-12-31" ? today : new Date(Date.parse(today + "T00:00:00Z") + DAY).toISOString().slice(0, 10);
       for (const r of rows) {
         const id = identity(r);
         const signature = AgentWorkflows.stableJson([r.amount_cents, r.currency, r.posted_on, r.is_pending === true, r.is_transfer, r.merchant_key, r.merchant_raw, r.presence, r.fact_hash]);
@@ -1360,12 +1365,15 @@ const AgentClassifiedLedger = (() => {
         if (!Number.isSafeInteger(r.amount_cents)) throw new Error("Transaction amount is unknown or invalid.");
         if (r.is_pending === true && (r.posted_on == null || r.posted_on === "")) { unknownHoldDate++; continue; }
         if (typeof r.posted_on !== "string" || !AgentWorkflows.date(r.posted_on)) throw new Error("Transaction has an invalid date.");
-        if (r.posted_on > today) throw new Error("Transaction has a future date relative to the current scan.");
+        // Bank dates are UTC and the person's today is local, so an evening row is dated tomorrow: one day ahead is the
+        // same day and counts (a reversal posted this evening must link to its fee, or the draft asks for money already
+        // given back). Beyond that the row is left out and counted, never used.
+        if (r.posted_on > nextDay) { future++; continue; }
         (r.is_pending === true ? pending : posted).push(r);
       }
       posted.sort((a, b) => a.posted_on < b.posted_on ? -1 : a.posted_on > b.posted_on ? 1 : identity(a) < identity(b) ? -1 : 1);
       pending.sort((a, b) => identity(a) < identity(b) ? -1 : 1);
-      return {posted, pending, unsupported, unavailable, unknownHoldDate,
+      return {posted, pending, unsupported, unavailable, unknownHoldDate, future,
         coverage: {input_rows: rows.length, unique_facts: seen.size, duplicate_rows: duplicateRows, out_of_scope: outOfScope,
           included_posted: posted.length, included_pending: pending.length}};
     }
@@ -1380,7 +1388,7 @@ const AgentClassifiedLedger = (() => {
       for (const c of credits) {
         if (c.merchant_key) add(key(c.account_id, "merchant", c.merchant_key), c);
         if (REVERSAL.test(label(c))) {
-          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL, "")});
+          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL_WORDS, "")});
           if (kind) add(key(c.account_id, "fee", kind), c);
         }
       }
@@ -1439,7 +1447,7 @@ const AgentClassifiedLedger = (() => {
       const o = options || {};
       const today = o.today;
       if (typeof today !== "string" || !AgentWorkflows.date(today)) throw new Error("A real current date is required.");
-      const {posted, pending, unsupported, unavailable, unknownHoldDate, coverage} = retained(rows, o.accountId, today);
+      const {posted, pending, unsupported, unavailable, unknownHoldDate, future, coverage} = retained(rows, o.accountId, today);
       const work = {duplicate_pair_checks: 0, credit_index_node_visits: 0};
       const findPossibleRefund = creditMatcher(posted.filter(r => r.amount_cents > 0), work), candidates = [], claimed = new Set();
       const push = (kind, items, extra) => {
@@ -1500,7 +1508,7 @@ const AgentClassifiedLedger = (() => {
       return {currency: "USD", today, account_id: o.accountId || null, candidates,
         open_candidate_cents: safe(open), verified_recovered_cents: 0,
         recovery_verification: "unavailable_without_trusted_refund_linkage",
-        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate},
+        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate, future_dated: future},
         coverage, work,
         description: "Candidates only. Open amounts are not money owed or recovered. Credit matches are unverified leads; this scanner cannot certify recovery. Nothing is sent without the user."};
     }

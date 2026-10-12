@@ -823,7 +823,7 @@
     function normalize(raw) {
       const r = raw || {};
       const errors = [];
-      const currency = text(r.currency || "USD", 3).toUpperCase();
+      const currency = text(r.currency || "USD", 16).toUpperCase(); // validated as written: "USDC" is not cut down to "USD"
       const due = r.due_on ? date(r.due_on) : null;
       if (r.due_on && !due) errors.push("invalid_due_date");
       if (!/^[A-Z]{3}$/.test(currency)) errors.push("invalid_currency");
@@ -895,8 +895,9 @@
       if (!["verified", "partially_paid"].includes(o.status)) return result("needs_review", "unverified", "Confirm who this bill belongs to and the current amount before paying.");
       if (o.amount_due_cents === null || !o.due_on) return result("needs_information", "missing_bill_details", "I need the current amount due and due date.",
         [o.amount_due_cents === null ? "amount_due_cents" : null, !o.due_on ? "due_on" : null].filter(Boolean));
-      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       if (!current(o, ctx.now, ctx.maxAgeMs || 48 * 3600000)) return result("needs_sync", "stale_obligation", "Refresh the bill before relying on its amount or payment status.", ["fresh_obligation"]);
+      // "Nothing due" relies on the amount too, so only a current bill can say it.
+      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       steps[0].state = "done";
       steps.push({ action: "check_existing_payment", state: "pending" });
       // A refreshed amount can still precede creditor allocation of an earlier
@@ -919,7 +920,8 @@
       const account = (ctx.accounts || []).find(a => a.id === o.funding_account_id && a.currency === o.currency && a.owned === true && a.payment_enabled === true);
       if (!account) return result("needs_connection", "funding_missing", "Choose a verified funding account that supports this payment.", ["funding_account"]);
       steps.push({ action: "check_funds", state: "pending" });
-      if (cents(account.available_cents) === null || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
+      // A negative balance is real (overdrawn) and is judged below as short of money; only an unknown one is refreshed.
+      if (!Number.isSafeInteger(account.available_cents) || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
         return result("needs_sync", "stale_funding", "Refresh available funds before approving this payment.", ["fresh_available_balance"]);
       }
       if (cents(adapter.fee_cents) === null) return result("needs_information", "fee_unknown", "The payment fee needs a verified quote.", ["fee_cents"]);
@@ -974,13 +976,15 @@
     const FEES = [
       ["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b/i],
       ["nsf", /\b(nsf|insufficient\s+funds|returned\s+item)\b/i],
-      ["monthly_maintenance", /\b(monthly\s+(maintenance|service)|maintenance|service\s+(charge|fee)|account\s+fee)\b/i],
+      // A fee or charge word is required: "VALLEY AUTO MAINTENANCE" or "XFINITY MONTHLY SERVICE" is a business, not the bank.
+      ["monthly_maintenance", /\b((monthly\s+)?(maintenance|service)\s+(charge|fee)|account\s+fee)\b/i],
       ["atm", /\b(atm|non[- ]?network|out[- ]of[- ]network)\b.*\bfee\b|\bfee\b.*\batm\b/i],
       ["foreign_transaction", /\b(foreign\s+(transaction|txn|exchange)|international\s+(transaction|purchase))\s*fee\b/i],
       ["late_payment", /\blate\s*(payment\s*)?fee\b/i],
       ["paper_statement", /\bpaper\s+statement\s+fee\b/i]
     ];
     const REVERSAL = /\b(refund|reversal|reversed|credit|waive[dr]?|courtesy|rebate|adjustment)\b/i;
+    const REVERSAL_WORDS = new RegExp(REVERSAL.source, "gi"); // every reversal word: "OD FEE REVERSAL CREDIT" names two
     const MAX_FEE_CENTS = 50000; // a fee label on a larger debit is not trusted as a fee
     const DUPLICATE_WINDOW_DAYS = 3, HOLD_STALE_DAYS = 7, REVERSAL_WINDOW_DAYS = 60;
 
@@ -1007,7 +1011,8 @@
     function retained(rows, accountId, today) {
       if (!Array.isArray(rows) || rows.length > 100000) throw new Error("Transaction history exceeds the processing limit.");
       const seen = new Map(), posted = [], pending = [];
-      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0;
+      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0, future = 0;
+      const nextDay = today >= "9999-12-31" ? today : new Date(Date.parse(today + "T00:00:00Z") + DAY).toISOString().slice(0, 10);
       for (const r of rows) {
         const id = identity(r);
         const signature = AgentWorkflows.stableJson([r.amount_cents, r.currency, r.posted_on, r.is_pending === true, r.is_transfer, r.merchant_key, r.merchant_raw, r.presence, r.fact_hash]);
@@ -1022,12 +1027,15 @@
         if (!Number.isSafeInteger(r.amount_cents)) throw new Error("Transaction amount is unknown or invalid.");
         if (r.is_pending === true && (r.posted_on == null || r.posted_on === "")) { unknownHoldDate++; continue; }
         if (typeof r.posted_on !== "string" || !AgentWorkflows.date(r.posted_on)) throw new Error("Transaction has an invalid date.");
-        if (r.posted_on > today) throw new Error("Transaction has a future date relative to the current scan.");
+        // Bank dates are UTC and the person's today is local, so an evening row is dated tomorrow: one day ahead is the
+        // same day and counts (a reversal posted this evening must link to its fee, or the draft asks for money already
+        // given back). Beyond that the row is left out and counted, never used.
+        if (r.posted_on > nextDay) { future++; continue; }
         (r.is_pending === true ? pending : posted).push(r);
       }
       posted.sort((a, b) => a.posted_on < b.posted_on ? -1 : a.posted_on > b.posted_on ? 1 : identity(a) < identity(b) ? -1 : 1);
       pending.sort((a, b) => identity(a) < identity(b) ? -1 : 1);
-      return {posted, pending, unsupported, unavailable, unknownHoldDate,
+      return {posted, pending, unsupported, unavailable, unknownHoldDate, future,
         coverage: {input_rows: rows.length, unique_facts: seen.size, duplicate_rows: duplicateRows, out_of_scope: outOfScope,
           included_posted: posted.length, included_pending: pending.length}};
     }
@@ -1042,7 +1050,7 @@
       for (const c of credits) {
         if (c.merchant_key) add(key(c.account_id, "merchant", c.merchant_key), c);
         if (REVERSAL.test(label(c))) {
-          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL, "")});
+          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL_WORDS, "")});
           if (kind) add(key(c.account_id, "fee", kind), c);
         }
       }
@@ -1101,7 +1109,7 @@
       const o = options || {};
       const today = o.today;
       if (typeof today !== "string" || !AgentWorkflows.date(today)) throw new Error("A real current date is required.");
-      const {posted, pending, unsupported, unavailable, unknownHoldDate, coverage} = retained(rows, o.accountId, today);
+      const {posted, pending, unsupported, unavailable, unknownHoldDate, future, coverage} = retained(rows, o.accountId, today);
       const work = {duplicate_pair_checks: 0, credit_index_node_visits: 0};
       const findPossibleRefund = creditMatcher(posted.filter(r => r.amount_cents > 0), work), candidates = [], claimed = new Set();
       const push = (kind, items, extra) => {
@@ -1162,7 +1170,7 @@
       return {currency: "USD", today, account_id: o.accountId || null, candidates,
         open_candidate_cents: safe(open), verified_recovered_cents: 0,
         recovery_verification: "unavailable_without_trusted_refund_linkage",
-        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate},
+        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate, future_dated: future},
         coverage, work,
         description: "Candidates only. Open amounts are not money owed or recovered. Credit matches are unverified leads; this scanner cannot certify recovery. Nothing is sent without the user."};
     }
@@ -2488,25 +2496,34 @@
     const int = (v, what) => { if (!Number.isSafeInteger(v)) throw new Error(`${what} must be an integer number of cents`); return v; };
     const DAY = 86400000;
     const days = (a, b) => Math.round((Date.parse(String(b).slice(0, 10) + "T00:00:00Z") - Date.parse(String(a).slice(0, 10) + "T00:00:00Z")) / DAY);
+    // One decimal from whole basis points, half up in integers: 1035 bps is "10.4" ((10.35).toFixed(1) is "10.3" in binary).
+    const pct1 = bps => { const t = divRound(Math.abs(bps), 10); return Math.floor(t / 10) + "." + (t % 10); };
+    // Long term is held more than one year, by the calendar (IRS Pub. 544): sold after the anniversary, which a 366-day
+    // count across Feb 29 does not find. A Feb 29 purchase's anniversary is Feb 28.
+    const longTerm = (acquired, sold) => { const a = String(acquired || "").slice(0, 10), s = String(sold || "").slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; return s > (Number(a.slice(0, 4)) + 1) + (a.slice(4) === "-02-29" ? "-02-28" : a.slice(4)); };
+    const and = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
     const grounded = (result, accounts) => Object.assign(result, { sources: [...new Set(accounts.map(a => a.source))].sort(), as_of: accounts.map(a => a.as_of).sort().reverse()[0] || null, stale: accounts.some(a => a.stale === true) });
 
     // Holdings across every account, by symbol, with value and share in basis points. Accounts: [{id, source, as_of, holdings:[{symbol, quantity, price_cents, asset_class, sector, geography, cost_cents, lots}]}]
     function consolidate(accounts) {
-      const bySymbol = new Map(); let total = 0;
+      const bySymbol = new Map(), noCost = new Set(); let total = 0;
       for (const a of accounts || []) for (const h of a.holdings || []) {
         const value = int(h.value_cents !== undefined ? h.value_cents : divRound(Math.round(h.quantity * 10000) * h.price_cents, 10000), `${h.symbol} value`);
         total += value;
         const e = bySymbol.get(h.symbol) || { symbol: h.symbol, value_cents: 0, quantity: 0, accounts: [], asset_class: h.asset_class || "unknown", sector: h.sector || "unknown", geography: h.geography || "unknown", cost_cents: 0 };
+        if (!(Number.isSafeInteger(h.cost_cents) && h.cost_cents > 0)) noCost.add(h.symbol); // one lot without cost basis makes the gain unknown
         e.value_cents += value; e.quantity += h.quantity || 0; e.accounts.push(a.id); e.cost_cents += h.cost_cents || 0; bySymbol.set(h.symbol, e);
       }
-      const holdings = [...bySymbol.values()].map(h => Object.assign(h, { share_bps: total ? divRound(h.value_cents * 10000, total) : 0, unrealized_cents: h.cost_cents ? h.value_cents - h.cost_cents : null })).sort((a, b) => b.value_cents - a.value_cents || a.symbol.localeCompare(b.symbol));
+      const holdings = [...bySymbol.values()].map(h => Object.assign(h, { share_bps: total ? divRound(h.value_cents * 10000, total) : 0, unrealized_cents: h.cost_cents && !noCost.has(h.symbol) ? h.value_cents - h.cost_cents : null })).sort((a, b) => b.value_cents - a.value_cents || a.symbol.localeCompare(b.symbol));
       return grounded({ total_cents: total, holdings, accounts: (accounts || []).map(a => a.id) }, accounts || []);
     }
     const allocation = (accounts, by) => { const c = consolidate(accounts), out = {}; for (const h of c.holdings) { const k = h[by || "asset_class"]; out[k] = (out[k] || 0) + h.value_cents; } return grounded({ by: by || "asset_class", total_cents: c.total_cents, buckets: Object.entries(out).map(([k, v]) => ({ bucket: k, value_cents: v, share_bps: c.total_cents ? divRound(v * 10000, c.total_cents) : 0 })).sort((a, b) => b.value_cents - a.value_cents) }, accounts || []); };
     // Concentration: factual, threshold-based, decision-free. "NVDA is 22 percent of your invested assets."
     function concentration(accounts, threshold_bps) {
-      const c = consolidate(accounts), t = Number.isSafeInteger(threshold_bps) ? threshold_bps : 1000;
-      return grounded({ threshold_bps: t, flagged: c.holdings.filter(h => h.share_bps >= t).map(h => ({ symbol: h.symbol, share_bps: h.share_bps, value_cents: h.value_cents, statement: `${h.symbol} is ${(h.share_bps / 100).toFixed(1)} percent of your invested assets (${money(h.value_cents)} of ${money(c.total_cents)}).` })) }, accounts || []);
+      const c = consolidate(accounts), t = Number.isSafeInteger(threshold_bps) ? threshold_bps : 1000, list = accounts || [];
+      // Every money statement cites its source and as-of: a total is only as current as its oldest read.
+      const cited = list.length && list.every(a => a.source && a.as_of) ? `, per ${and([...new Set(list.map(a => a.source))].sort())}, as of ${list.map(a => a.as_of).sort()[0]}` : ", source or as-of time not on file";
+      return grounded({ threshold_bps: t, flagged: c.holdings.filter(h => h.share_bps >= t).map(h => ({ symbol: h.symbol, share_bps: h.share_bps, value_cents: h.value_cents, statement: `${h.symbol} is ${pct1(h.share_bps)} percent of your invested assets (${money(h.value_cents)} of ${money(c.total_cents)})${cited}.` })) }, list);
     }
     // Overlap with an index or between funds, by look-through weights the caller supplies: {VTI: {AAPL: 650, MSFT: 600, ...}} in basis points.
     function overlap(constituentsA, constituentsB) {
@@ -2540,7 +2557,7 @@
         const value = divRound(Math.round(lot.quantity * 10000) * price, 10000), loss = value - int(lot.cost_cents, "lot cost");
         if (loss >= 0) continue;
         const wash = washSale(lot.symbol, today, recentBuys || [], lots || [], lot.id);
-        out.push({ lot_id: lot.id, symbol: lot.symbol, account: lot.account || null, quantity: lot.quantity, cost_cents: lot.cost_cents, value_cents: value, unrealized_loss_cents: -loss, term: lot.acquired && days(lot.acquired, today) > 365 ? "long" : "short", wash_sale: wash });
+        out.push({ lot_id: lot.id, symbol: lot.symbol, account: lot.account || null, quantity: lot.quantity, cost_cents: lot.cost_cents, value_cents: value, unrealized_loss_cents: -loss, term: longTerm(lot.acquired, today) ? "long" : "short", wash_sale: wash });
       }
       const total = out.filter(o => !o.wash_sale.disallowed).reduce((s, o) => s + o.unrealized_loss_cents, 0);
       return { today, candidates: out.sort((a, b) => b.unrealized_loss_cents - a.unrealized_loss_cents), harvestable_loss_cents: total, statement: out.length ? `You hold ${money(out.reduce((s, o) => s + o.unrealized_loss_cents, 0))} in unrealized losses across ${out.length} lot${out.length === 1 ? "" : "s"}; ${money(total)} is outside any wash-sale window and would offset gains if realized. You decide and direct.` : "No lots with unrealized losses." };
@@ -2554,38 +2571,45 @@
     // Cost basis and realized gains by lot for a year, split short and long term. sales: [{symbol, date, quantity, proceeds_cents, lot_id}]
     function realized(lots, sales, year) {
       const byLot = new Map((lots || []).map(l => [l.id, l])); const rows = [];
-      for (const s of sales || []) { if (String(s.date).slice(0, 4) !== String(year)) continue; const lot = byLot.get(s.lot_id); if (!lot) continue; const basis = divRound(int(lot.cost_cents, "lot cost") * Math.round(s.quantity * 10000), Math.round(lot.quantity * 10000)); const gain = int(s.proceeds_cents, "proceeds") - basis; rows.push({ symbol: s.symbol, date: s.date, quantity: s.quantity, proceeds_cents: s.proceeds_cents, basis_cents: basis, gain_cents: gain, term: days(lot.acquired, s.date) > 365 ? "long" : "short" }); }
+      for (const s of sales || []) { if (String(s.date).slice(0, 4) !== String(year)) continue; const lot = byLot.get(s.lot_id); if (!lot) continue; const basis = divRound(int(lot.cost_cents, "lot cost") * Math.round(s.quantity * 10000), Math.round(lot.quantity * 10000)); const gain = int(s.proceeds_cents, "proceeds") - basis; rows.push({ symbol: s.symbol, date: s.date, quantity: s.quantity, proceeds_cents: s.proceeds_cents, basis_cents: basis, gain_cents: gain, term: longTerm(lot.acquired, s.date) ? "long" : "short" }); }
       const sum = term => rows.filter(r => r.term === term).reduce((a, r) => a + r.gain_cents, 0);
       return { year, rows, short_term_cents: sum("short"), long_term_cents: sum("long"), total_cents: sum("short") + sum("long") };
     }
     // Contribution room against limits the caller supplies for the year (never a number this code remembers).
     function contributionRoom(contributions, limits) {
       const out = {};
-      for (const [acct, limit] of Object.entries(limits || {})) { const made = (contributions || {})[acct] || 0; out[acct] = { limit_cents: limit, contributed_cents: made, room_cents: Math.max(0, limit - made), statement: `${acct}: ${money(Math.max(0, limit - made))} of room left this year (${money(made)} of ${money(limit)} contributed).` }; }
+      for (const [acct, limit] of Object.entries(limits || {})) { const made = (contributions || {})[acct] || 0, room = Math.max(0, limit - made), over = Math.max(0, made - limit);
+        out[acct] = { limit_cents: limit, contributed_cents: made, room_cents: room, excess_cents: over, statement: `${acct}: ${money(room)} of room left this year (${money(made)} of ${money(limit)} contributed).${over ? ` That is ${money(over)} over the limit.` : ""}` }; }
       return out;
     }
     // Order restatement for the confirmation step (doc 01 T3): ticker, side, shares, estimated cost, account, order type. The loop confirms before any rail fires.
     function restateOrder(order, quote) {
       const o = order || {}; if (!o.symbol || !o.side || !(o.quantity > 0) || !o.account) throw new Error("An order needs symbol, side, quantity and account.");
-      const type = o.type || "market", est = quote && Number.isSafeInteger(quote.price_cents) ? divRound(Math.round(o.quantity * 10000) * quote.price_cents, 10000) : null;
-      return { action: o.side === "buy" ? "Buy" : "Sell", symbol: o.symbol, quantity: o.quantity, type, account: o.account, estimated_cents: est, limit_cents: o.limit_cents || null,
-        confirm: { action: `${o.side === "buy" ? "Buy" : "Sell"} ${o.quantity} ${o.symbol} (${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""})`, amount: est !== null ? `about ${money(est)}` : "price at execution", recipient: null, from: o.account, fee: o.fee_cents ? money(o.fee_cents) : null, when: "at the next market open or now if the market is open" },
-        statement: `${o.side === "buy" ? "Buy" : "Sell"} ${o.quantity} ${o.symbol} ${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""} in ${o.account}${est !== null ? `, about ${money(est)} at ${money(quote.price_cents)} (${quote.source}, as of ${quote.as_of})` : ""}. Confirm?` };
+      const side = String(o.side).trim().toLowerCase();
+      if (side !== "buy" && side !== "sell") throw new Error("An order's side must be buy or sell."); // "BUY" was restated as a sell
+      if (o.limit_cents && o.type === "market") throw new Error("A market order has no limit price.");
+      const Side = side === "buy" ? "Buy" : "Sell", type = o.type || (o.limit_cents ? "limit" : "market");
+      // An estimate is a money statement: only from a quote that names its source and as-of.
+      const est = quote && Number.isSafeInteger(quote.price_cents) && quote.source && quote.as_of ? divRound(Math.round(o.quantity * 10000) * quote.price_cents, 10000) : null;
+      return { action: Side, symbol: o.symbol, quantity: o.quantity, type, account: o.account, estimated_cents: est, limit_cents: o.limit_cents || null,
+        confirm: { action: `${Side} ${o.quantity} ${o.symbol} (${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""})`, amount: est !== null ? `about ${money(est)}` : "price at execution", recipient: null, from: o.account, fee: o.fee_cents ? money(o.fee_cents) : null, when: "at the next market open or now if the market is open" },
+        statement: `${Side} ${o.quantity} ${o.symbol} ${type}${o.limit_cents ? " at " + money(o.limit_cents) : ""} in ${o.account}${est !== null ? `, about ${money(est)} at ${money(quote.price_cents)} (${quote.source}, as of ${quote.as_of})` : ""}. Confirm?` };
     }
     // INV-001: the portfolio read across brokerages: each account with its source and as-of, positions consolidated with the per-account breakdown, stale sources named.
     function portfolio(accounts, now) {
       const DAY = 86400000, rows = (accounts || []).map(a => ({ id: a.id, source: a.source || "manual", as_of: a.as_of || null, stale: !!(now && a.as_of && now - Date.parse(a.as_of) > DAY), value_cents: (a.holdings || []).reduce((s, h) => s + int(h.value_cents !== undefined ? h.value_cents : divRound(Math.round(h.quantity * 10000) * h.price_cents, 10000), `${h.symbol} value`), 0), positions: (a.holdings || []).length }));
       const c = consolidate(accounts);
-      return { accounts: rows, total_cents: rows.reduce((s, r) => s + r.value_cents, 0), positions: c.holdings.map(pos => Object.assign({}, pos, { by_account: (accounts || []).filter(a => (a.holdings || []).some(h => h.symbol === pos.symbol)).map(a => ({ account_id: a.id, source: a.source || "manual", quantity: (a.holdings || []).filter(h => h.symbol === pos.symbol).reduce((s, h) => s + h.quantity, 0) })) })), stale: rows.filter(r => r.stale).map(r => r.id), text: `${money(rows.reduce((s, r) => s + r.value_cents, 0))} across ${rows.length} account${rows.length === 1 ? "" : "s"} (${rows.map(r => `${r.id} ${money(r.value_cents)} per ${r.source}${r.as_of ? ` as of ${String(r.as_of).slice(0, 16).replace("T", " ")}` : ""}`).join("; ")}).${rows.some(r => r.stale) ? ` ${rows.filter(r => r.stale).map(r => r.id).join(", ")} is older than a day.` : ""}`, source: [...new Set(rows.map(r => r.source))].join(", "), as_of: rows.map(r => r.as_of).filter(Boolean).sort().pop() || null };
+      return { accounts: rows, total_cents: rows.reduce((s, r) => s + r.value_cents, 0), positions: c.holdings.map(pos => Object.assign({}, pos, { by_account: (accounts || []).filter(a => (a.holdings || []).some(h => h.symbol === pos.symbol)).map(a => ({ account_id: a.id, source: a.source || "manual", quantity: (a.holdings || []).filter(h => h.symbol === pos.symbol).reduce((s, h) => s + h.quantity, 0) })) })), stale: rows.filter(r => r.stale).map(r => r.id), text: `${money(rows.reduce((s, r) => s + r.value_cents, 0))} across ${rows.length} account${rows.length === 1 ? "" : "s"} (${rows.map(r => `${r.id} ${money(r.value_cents)} per ${r.source}${r.as_of ? ` as of ${String(r.as_of).slice(0, 16).replace("T", " ")}` : ", as-of time unknown"}`).join("; ")}).${rows.some(r => r.stale) ? ` ${rows.filter(r => r.stale).map(r => r.id).join(", ")} is older than a day.` : ""}`, source: [...new Set(rows.map(r => r.source))].join(", "), as_of: rows.map(r => r.as_of).filter(Boolean).sort().pop() || null };
     }
     // INV-009: price alerts the user set, evaluated against quotes with their own as-of; a stale quote never fires.
     function priceAlerts(alerts, quotes, now) {
       const out = [], DAY = 86400000;
-      for (const a of alerts || []) { if (a.status === "paused") continue; const q = (quotes || []).find(x => x.symbol === a.symbol); if (!q) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: "no quote" }); continue; } const stale = now && q.as_of && now - Date.parse(q.as_of) > DAY; if (stale) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: `quote is stale (${q.as_of})` }); continue; }
+      for (const a of alerts || []) { if (a.status === "paused") continue; const q = (quotes || []).find(x => x.symbol === a.symbol); if (!q) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: "no quote" }); continue; }
+        if (!q.as_of || !isFinite(Date.parse(q.as_of))) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: "quote has no as-of time" }); continue; } const stale = now && q.as_of && now - Date.parse(q.as_of) > DAY; if (stale) { out.push({ alert_id: a.id, symbol: a.symbol, fired: false, reason: `quote is stale (${q.as_of})` }); continue; }
         let fired = false, text = null; const pct = q.prev_close_cents ? divRound((q.price_cents - q.prev_close_cents) * 10000, q.prev_close_cents) : null;
         if (a.kind === "above" && q.price_cents >= a.price_cents) { fired = true; text = `${a.symbol} is ${money(q.price_cents)}, above your ${money(a.price_cents)} line (${q.source || "quote"}, ${q.as_of}).`; }
         if (a.kind === "below" && q.price_cents <= a.price_cents) { fired = true; text = `${a.symbol} is ${money(q.price_cents)}, below your ${money(a.price_cents)} line (${q.source || "quote"}, ${q.as_of}).`; }
-        if (a.kind === "pct_move" && pct != null && Math.abs(pct) >= a.bps) { fired = true; text = `${a.symbol} moved ${pct >= 0 ? "up" : "down"} ${(Math.abs(pct) / 100).toFixed(1)} percent today to ${money(q.price_cents)} (${q.source || "quote"}, ${q.as_of}).`; }
+        if (a.kind === "pct_move" && pct != null && Math.abs(pct) >= a.bps) { fired = true; text = `${a.symbol} moved ${pct >= 0 ? "up" : "down"} ${pct1(pct)} percent today to ${money(q.price_cents)} (${q.source || "quote"}, ${q.as_of}).`; }
         out.push({ alert_id: a.id, symbol: a.symbol, fired, text, price_cents: q.price_cents, as_of: q.as_of, reason: fired ? null : "condition not met" }); }
       return { fired: out.filter(o => o.fired), checked: out };
     }
@@ -2593,8 +2617,9 @@
     const ROLLOVER_STAGES = ["requested", "old_plan_processing", "funds_sent", "received", "invested"];
     function rolloverStatus(r, today) {
       const DAY = 86400000, idx = ROLLOVER_STAGES.indexOf(r.stage), indirect = r.method === "indirect", clock = indirect && r.funds_sent_on ? 60 - Math.round((Date.parse(today + "T00:00:00Z") - Date.parse(r.funds_sent_on + "T00:00:00Z")) / DAY) : null;
-      const next = idx < 0 ? "tell me the stage" : idx === 0 ? `${r.from || "the old plan"} has to process the request; call them if nothing in 10 business days` : idx === 1 ? "the old plan sends the funds; a direct transfer goes plan to plan, an indirect one mails you a check" : idx === 2 ? (indirect ? `deposit the full amount into ${r.to || "the new account"}${clock != null ? ` within ${clock} days` : " within 60 days"}; if 20 percent was withheld, you must make it up from other money or that part becomes a taxable distribution` : `${r.to || "the new account"} should show it within 5 business days`) : idx === 3 ? "the cash is in; it is not invested until you choose, so it sits uninvested" : "done";
-      return { stage: r.stage, stage_index: idx, method: r.method || "direct", days_left_on_60_day_clock: clock, overdue: clock != null && clock < 0, next, text: `${r.from || "Old plan"} to ${r.to || "new account"} (${r.method || "direct"}): ${r.stage.replace(/_/g, " ")}. Next: ${next}.${clock != null && clock < 0 ? " The 60-day window has passed; talk to a tax professional about a waiver." : ""}`, source: "what you and the plans told me", as_of: today };
+      const window60 = clock == null ? " within 60 days" : clock > 1 ? ` within ${clock} days` : clock === 1 ? " within 1 day" : clock === 0 ? " today, the last day of the 60-day window" : null;
+      const next = idx < 0 ? "tell me the stage" : idx === 0 ? `${r.from || "the old plan"} has to process the request; call them if nothing in 10 business days` : idx === 1 ? "the old plan sends the funds; a direct transfer goes plan to plan, an indirect one mails you a check" : idx === 2 ? (indirect ? (window60 === null ? `the deadline to deposit the full amount into ${r.to || "the new account"} was ${-clock} day${clock === -1 ? "" : "s"} ago` : `deposit the full amount into ${r.to || "the new account"}${window60}; if 20 percent was withheld, you must make it up from other money or that part becomes a taxable distribution`) : `${r.to || "the new account"} should show it within 5 business days`) : idx === 3 ? "the cash is in; it is not invested until you choose, so it sits uninvested" : "done";
+      return { stage: r.stage, stage_index: idx, method: r.method || "direct", days_left_on_60_day_clock: clock, overdue: clock != null && clock < 0, next, text: `${r.from || "Old plan"} to ${r.to || "new account"} (${r.method || "direct"}): ${String(r.stage || "stage unknown").replace(/_/g, " ")}. Next: ${next}.${clock != null && clock < 0 ? " The 60-day window has passed; talk to a tax professional about a waiver." : ""}`, source: "what you and the plans told me", as_of: today };
     }
     return { consolidate, allocation, concentration, overlap, drift, screen, harvest, washSale, realized, contributionRoom, restateOrder, portfolio, priceAlerts, rolloverStatus, ROLLOVER_STAGES, money };
   })();

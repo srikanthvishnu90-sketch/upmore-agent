@@ -35,7 +35,7 @@
     function normalize(raw) {
       const r = raw || {};
       const errors = [];
-      const currency = text(r.currency || "USD", 3).toUpperCase();
+      const currency = text(r.currency || "USD", 16).toUpperCase(); // validated as written: "USDC" is not cut down to "USD"
       const due = r.due_on ? date(r.due_on) : null;
       if (r.due_on && !due) errors.push("invalid_due_date");
       if (!/^[A-Z]{3}$/.test(currency)) errors.push("invalid_currency");
@@ -107,8 +107,9 @@
       if (!["verified", "partially_paid"].includes(o.status)) return result("needs_review", "unverified", "Confirm who this bill belongs to and the current amount before paying.");
       if (o.amount_due_cents === null || !o.due_on) return result("needs_information", "missing_bill_details", "I need the current amount due and due date.",
         [o.amount_due_cents === null ? "amount_due_cents" : null, !o.due_on ? "due_on" : null].filter(Boolean));
-      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       if (!current(o, ctx.now, ctx.maxAgeMs || 48 * 3600000)) return result("needs_sync", "stale_obligation", "Refresh the bill before relying on its amount or payment status.", ["fresh_obligation"]);
+      // "Nothing due" relies on the amount too, so only a current bill can say it.
+      if (o.amount_due_cents === 0) return result("resolved", "nothing_due", "No amount is currently due.");
       steps[0].state = "done";
       steps.push({ action: "check_existing_payment", state: "pending" });
       // A refreshed amount can still precede creditor allocation of an earlier
@@ -131,7 +132,8 @@
       const account = (ctx.accounts || []).find(a => a.id === o.funding_account_id && a.currency === o.currency && a.owned === true && a.payment_enabled === true);
       if (!account) return result("needs_connection", "funding_missing", "Choose a verified funding account that supports this payment.", ["funding_account"]);
       steps.push({ action: "check_funds", state: "pending" });
-      if (cents(account.available_cents) === null || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
+      // A negative balance is real (overdrawn) and is judged below as short of money; only an unknown one is refreshed.
+      if (!Number.isSafeInteger(account.available_cents) || !current({ observed_at: account.observed_at, evidence: {} }, ctx.now, 15 * 60000)) {
         return result("needs_sync", "stale_funding", "Refresh available funds before approving this payment.", ["fresh_available_balance"]);
       }
       if (cents(adapter.fee_cents) === null) return result("needs_information", "fee_unknown", "The payment fee needs a verified quote.", ["fee_cents"]);

@@ -131,7 +131,7 @@ test('unknown facts stay excluded and conflicting facts stop the scan',()=>{
   const eur=tx({currency:'EUR',merchant_raw:'OVERDRAFT FEE',amount_cents:-3500});
   const gone=tx({presence:'superseded',merchant_raw:'OVERDRAFT FEE',amount_cents:-3500});
   const r=scan([eur,gone]);
-  assert.equal(r.candidates.length,0);assert.equal(JSON.stringify(r.excluded),JSON.stringify({unsupported_currency:1,unavailable:1,unknown_hold_date:0}));
+  assert.equal(r.candidates.length,0);assert.equal(JSON.stringify(r.excluded),JSON.stringify({unsupported_currency:1,unavailable:1,unknown_hold_date:0,future_dated:0}));
   const x=tx({merchant_raw:'OVERDRAFT FEE',amount_cents:-3500});
   assert.throws(()=>scan([x,{...x,amount_cents:-100}]),/Conflicting/);
   assert.deepEqual(scan([x,{...x}]).candidates.length,1);
@@ -203,8 +203,16 @@ test('unknown hold age is explicitly excluded while valid fees remain reviewable
 });
 
 test('future dated posted charges, credits and holds cannot influence current recovery candidates',()=>{
-  for(const patch of [{},{amount_cents:100},{is_pending:true}])
-    assert.throws(()=>scan([tx({...patch,posted_on:'2026-10-11'})]),/future/);
+  // Bank dates are UTC and the person's today is local, so a row dated the day after is today's and counts; anything
+  // later is left out and counted rather than failing the whole scan (tests/depth-RECOVERY.test.cjs S18).
+  for(const patch of [{merchant_raw:'OVERDRAFT FEE',amount_cents:-3500},{merchant_raw:'OVERDRAFT FEE REVERSAL',amount_cents:3500},{merchant_raw:'HOTEL',amount_cents:-20000,is_pending:true}]){
+    const r=scan([tx({...patch,posted_on:'2026-10-12'})]);
+    assert.equal(r.candidates.length,0);assert.equal(r.excluded.future_dated,1);
+  }
+  assert.equal(scan([tx({merchant_raw:'OVERDRAFT FEE',amount_cents:-3500,posted_on:'2026-10-11'})]).excluded.future_dated,0,'the day after is the same evening');
+  const fee=tx({merchant_raw:'OVERDRAFT FEE',amount_cents:-3500,posted_on:'2026-10-02'});
+  assert.equal(scan([fee,tx({merchant_raw:'OVERDRAFT FEE REVERSAL',amount_cents:3500,posted_on:'2026-10-12'})]).candidates[0].refund_linkage_status,'not_found');
+  assert.notEqual(scan([fee,tx({merchant_raw:'OVERDRAFT FEE REVERSAL',amount_cents:3500,posted_on:'2026-10-11'})]).candidates[0].refund_linkage_status,'not_found','this evening\'s reversal links');
 });
 
 test('indexed matching preserves earliest eligible unused credit and greedy duplicate pairing',()=>{

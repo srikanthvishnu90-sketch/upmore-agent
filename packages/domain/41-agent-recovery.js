@@ -17,13 +17,15 @@
     const FEES = [
       ["overdraft", /\b(overdraft|od)\s*(item\s*)?fee\b|\bOD\s+FEE\b/i],
       ["nsf", /\b(nsf|insufficient\s+funds|returned\s+item)\b/i],
-      ["monthly_maintenance", /\b(monthly\s+(maintenance|service)|maintenance|service\s+(charge|fee)|account\s+fee)\b/i],
+      // A fee or charge word is required: "VALLEY AUTO MAINTENANCE" or "XFINITY MONTHLY SERVICE" is a business, not the bank.
+      ["monthly_maintenance", /\b((monthly\s+)?(maintenance|service)\s+(charge|fee)|account\s+fee)\b/i],
       ["atm", /\b(atm|non[- ]?network|out[- ]of[- ]network)\b.*\bfee\b|\bfee\b.*\batm\b/i],
       ["foreign_transaction", /\b(foreign\s+(transaction|txn|exchange)|international\s+(transaction|purchase))\s*fee\b/i],
       ["late_payment", /\blate\s*(payment\s*)?fee\b/i],
       ["paper_statement", /\bpaper\s+statement\s+fee\b/i]
     ];
     const REVERSAL = /\b(refund|reversal|reversed|credit|waive[dr]?|courtesy|rebate|adjustment)\b/i;
+    const REVERSAL_WORDS = new RegExp(REVERSAL.source, "gi"); // every reversal word: "OD FEE REVERSAL CREDIT" names two
     const MAX_FEE_CENTS = 50000; // a fee label on a larger debit is not trusted as a fee
     const DUPLICATE_WINDOW_DAYS = 3, HOLD_STALE_DAYS = 7, REVERSAL_WINDOW_DAYS = 60;
 
@@ -50,7 +52,8 @@
     function retained(rows, accountId, today) {
       if (!Array.isArray(rows) || rows.length > 100000) throw new Error("Transaction history exceeds the processing limit.");
       const seen = new Map(), posted = [], pending = [];
-      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0;
+      let unsupported = 0, unavailable = 0, unknownHoldDate = 0, duplicateRows = 0, outOfScope = 0, future = 0;
+      const nextDay = today >= "9999-12-31" ? today : new Date(Date.parse(today + "T00:00:00Z") + DAY).toISOString().slice(0, 10);
       for (const r of rows) {
         const id = identity(r);
         const signature = AgentWorkflows.stableJson([r.amount_cents, r.currency, r.posted_on, r.is_pending === true, r.is_transfer, r.merchant_key, r.merchant_raw, r.presence, r.fact_hash]);
@@ -65,12 +68,15 @@
         if (!Number.isSafeInteger(r.amount_cents)) throw new Error("Transaction amount is unknown or invalid.");
         if (r.is_pending === true && (r.posted_on == null || r.posted_on === "")) { unknownHoldDate++; continue; }
         if (typeof r.posted_on !== "string" || !AgentWorkflows.date(r.posted_on)) throw new Error("Transaction has an invalid date.");
-        if (r.posted_on > today) throw new Error("Transaction has a future date relative to the current scan.");
+        // Bank dates are UTC and the person's today is local, so an evening row is dated tomorrow: one day ahead is the
+        // same day and counts (a reversal posted this evening must link to its fee, or the draft asks for money already
+        // given back). Beyond that the row is left out and counted, never used.
+        if (r.posted_on > nextDay) { future++; continue; }
         (r.is_pending === true ? pending : posted).push(r);
       }
       posted.sort((a, b) => a.posted_on < b.posted_on ? -1 : a.posted_on > b.posted_on ? 1 : identity(a) < identity(b) ? -1 : 1);
       pending.sort((a, b) => identity(a) < identity(b) ? -1 : 1);
-      return {posted, pending, unsupported, unavailable, unknownHoldDate,
+      return {posted, pending, unsupported, unavailable, unknownHoldDate, future,
         coverage: {input_rows: rows.length, unique_facts: seen.size, duplicate_rows: duplicateRows, out_of_scope: outOfScope,
           included_posted: posted.length, included_pending: pending.length}};
     }
@@ -85,7 +91,7 @@
       for (const c of credits) {
         if (c.merchant_key) add(key(c.account_id, "merchant", c.merchant_key), c);
         if (REVERSAL.test(label(c))) {
-          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL, "")});
+          const kind = feeKind({merchant_raw: label(c).replace(REVERSAL_WORDS, "")});
           if (kind) add(key(c.account_id, "fee", kind), c);
         }
       }
@@ -144,7 +150,7 @@
       const o = options || {};
       const today = o.today;
       if (typeof today !== "string" || !AgentWorkflows.date(today)) throw new Error("A real current date is required.");
-      const {posted, pending, unsupported, unavailable, unknownHoldDate, coverage} = retained(rows, o.accountId, today);
+      const {posted, pending, unsupported, unavailable, unknownHoldDate, future, coverage} = retained(rows, o.accountId, today);
       const work = {duplicate_pair_checks: 0, credit_index_node_visits: 0};
       const findPossibleRefund = creditMatcher(posted.filter(r => r.amount_cents > 0), work), candidates = [], claimed = new Set();
       const push = (kind, items, extra) => {
@@ -205,7 +211,7 @@
       return {currency: "USD", today, account_id: o.accountId || null, candidates,
         open_candidate_cents: safe(open), verified_recovered_cents: 0,
         recovery_verification: "unavailable_without_trusted_refund_linkage",
-        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate},
+        excluded: {unsupported_currency: unsupported, unavailable, unknown_hold_date: unknownHoldDate, future_dated: future},
         coverage, work,
         description: "Candidates only. Open amounts are not money owed or recovered. Credit matches are unverified leads; this scanner cannot certify recovery. Nothing is sent without the user."};
     }

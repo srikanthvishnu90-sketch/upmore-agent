@@ -5,7 +5,7 @@ Reviewed locally on October 10, 2026. Scope: `packages/domain/41-agent-recovery.
 ## Corrected behavior
 
 - Same-merchant credits and generic fee-refund labels are unverified leads. They cannot establish charge-specific refund linkage. Candidates remain open, `recovered_cents` is unknown, and `verified_recovered_cents` remains zero. Caller approval or verification labels cannot grant authority. A possibly related credit requires review before sending a draft request.
-- Known malformed, nonexistent or future calendar dates fail closed. Unknown pending-hold dates are excluded explicitly without stopping dated fee findings. A valid leap-day boundary remains supported; no ingestion timestamp is substituted for a hold start date.
+- Known malformed or nonexistent calendar dates fail closed. A row dated the day after the scan is the same evening (bank dates are UTC, the person's today is local) and counts; a row dated later (2026-10-12: it used to fail the whole scan too) is left out and counted in `excluded.future_dated` and never influences a candidate, because bank dates are UTC and the person's today is local; see `docs/playbook-drift-2026-10-12.md`. Unknown pending-hold dates are excluded explicitly without stopping dated fee findings. A valid leap-day boundary remains supported; no ingestion timestamp is substituted for a hold start date.
 - Repeated provider identities with contradictory transfer flags or fact hashes fail in either input order instead of silently choosing the first record.
 - Draft dollar strings use BigInt integer quotient/remainder arithmetic. Large safe-integer cent amounts retain every cent without binary floating-point rounding.
 

@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, creditScoreReply, paperTradingReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
@@ -617,6 +617,17 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         }, { onConflict: "user_id,route_id" });
       }
       return json(cors, { thread_id: tid, reply: capReply, action: null });
+    }
+
+    // No phone calls (standing rule): an ask for Upmore to place a call that no script above answered gets a plain no,
+    // never a model promise to call (tests/edge/phone-call-answer.test.ts).
+    const noCall = bypassDeterministic ? null : phoneCallReply(message);
+    if (noCall) {
+      await supabase.from("agent_messages").insert([
+        { thread_id: tid, role: "user", content: userContent },
+        { thread_id: tid, role: "assistant", content: noCall, meta: { capability: true, guard: true } },
+      ]);
+      return json(cors, { thread_id: tid, reply: noCall, action: null });
     }
 
     // Deterministic reminder intent: the user asked to be reminded about a

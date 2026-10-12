@@ -45,6 +45,21 @@ export function paperTradingReply(message: string): string | null {
   return PAPER_TRADING.test(String(message || "")) ? PAPER_TRADING_NONE : null;
 }
 
+// No phone calls (standing rule). An ask for Upmore itself to place a call is answered here, after the capability
+// scripts (which tell the person what to say when they call), so the model never promises one. "Call me when...",
+// call options, margin calls, a phone bill, "how do I call" and "should I call" are not asks to place a call.
+const NOT_A_CALL = "(?!me\\b|you\\b|it\\b|this\\b|that\\b|or\\b|bill|number|plan|line|case|charger|options?\\b|puts?\\b|on\\b)";
+const PHONE_ASK = [
+  new RegExp(`^\\s*(?:(?:hey|ok|okay|so|um)[,\\s]+)?(?:(?:can|could|would|will) (?:you|u|upmore) (?:please |pls )?|please |pls |plz )?(?:call|phone|ring|dial)(?: up)? ${NOT_A_CALL}\\S`, "i"),
+  new RegExp(`\\b(?:need|want|get) (?:you|upmore) to (?:call|phone|ring)(?: up)? ${NOT_A_CALL}\\S`, "i"),
+];
+export const PHONE_CALL_NONE =
+  "I don't make phone calls, so I haven't called anyone. If you call them yourself, I can tell you what to say and what to ask for; or tell me what it's about and I'll check whether it can be done online instead.";
+export function phoneCallReply(message: string): string | null {
+  const m = String(message || "");
+  return PHONE_ASK.some((re) => re.test(m)) ? PHONE_CALL_NONE : null;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

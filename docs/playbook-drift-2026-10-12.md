@@ -374,3 +374,16 @@ the source.
   paragraph says the test person connects their own live account; chat answers paper-trading asks from code
   (paperTradingReply: live only, after your yes, $5 per order, nothing placed), tests/edge/paper-trading-answer.test.ts,
   with paper towels, a paper statement fee, a paper check or return not taken.
+
+## Rule guards: phone calls, crypto shorthand, prediction-market wording (2026-10-12, morning)
+
+- Said (CLAUDE.md): no phone calls; crypto and prediction markets stay off; Kalshi and Polymarket: never encourage a
+  decision, anything said rests on numbers only.
+- True: "can you call my bank about the fee" reached the model (no code answer), which could promise a call; "buy some
+  ETH", "put $5 in btc", "buy solana" passed the crypto guard (it knew only crypto/bitcoin/ethereum); a Kalshi or
+  Polymarket ask got the sports-betting lecture ("most retail traders lose", "how gambling problems start"), an opinion
+  pushing a decision.
+- Now: phoneCallReply answers asks to place a call after the capability scripts (which still tell the person what to say
+  when they call) and before the model; the crypto guard knows the common shorthand (look-alikes like "ripple effect",
+  "tether my phone", "sol" left out); prediction markets get a neutral "off for now, nothing placed"; sports betting's
+  refusal is unchanged. tests/edge/phone-call-answer.test.ts, tests/edge/rule-guards.test.ts (red first).

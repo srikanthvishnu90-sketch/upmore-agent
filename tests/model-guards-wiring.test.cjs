@@ -35,7 +35,7 @@ test('both model paths drop any sentence that asks for a password, a code or a f
 });
 
 test('the direct answers (connect my X, find me money, nothing linked) run after the safety guards and before the flows and the model; "pay my rent" is left to the standing rent flow',()=>{
-  assert.ok(/import \{ connectReply, (?:creditScoreReply, )?(?:paperTradingReply, )?noDataReply, findMoneyReply, NO_ACCOUNTS \} from "\.\/_shared\/direct_answers\.ts";/.test(h));
+  assert.ok(/import \{ connectReply, (?:creditScoreReply, )?(?:paperTradingReply, )?(?:phoneCallReply, )?noDataReply, findMoneyReply, NO_ACCOUNTS \} from "\.\/_shared\/direct_answers\.ts";/.test(h));
   assert.ok(!/rentReply|RENT_NOT_BUILT/.test(h),'no "not built" rent answer intercepts the rent flow');
   const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message);'), flows=h.indexOf('flow = await routeFlows(message');
   assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');

@@ -663,12 +663,17 @@ export function tryServerGuards(message: string): string | null {
 // ---------- 3. gambling / prediction-market guard ----------
 const GAMBLE_RX = /\bpolymarket\b|\bkalshi\b|prediction markets?\b|\bpoly\s?market\b|\bsportsbook\b|\bparlay\b|\bfanduel\b|\bdraftkings\b|\bsports betting\b|\bbetting\b|\bbet\b/i;
 
+// Prediction markets are off until the owner decides (decision 2), and anything said about them rests on numbers only,
+// never an opinion that pushes a decision (owner rule, 2026-10-11): a neutral "off", no lecture.
+const PREDICTION_MARKET_RX = /\bpolymarket\b|\bkalshi\b|prediction markets?\b|\bpoly\s?market\b/i;
+export const PREDICTION_MARKETS_OFF = "Prediction markets (Kalshi, Polymarket) are off in Upmore for now, so I can't place, track or look up a position there. Nothing was placed.";
 export function tryGamblingGuard(message: string): string | null {
   if (!GAMBLE_RX.test(message)) return null;
+  if (PREDICTION_MARKET_RX.test(message)) return PREDICTION_MARKETS_OFF;
   return (
     `I can't help with betting — it's a way to lose money, not earn it. Upmore has a hard rule: no betting, no crypto, and no routes where you can lose your own money.\n\n` +
     `Critical thinking on this one, because the math matters:\n\n` +
-    `A prediction market is betting, not earning. Every dollar you win is a dollar someone else lost — ` +
+    `Betting is not earning. Every dollar you win is a dollar someone else lost — ` +
     `it's zero-sum before costs, and negative-sum after spreads and fees. That means the average trader loses money, ` +
     `and most retail traders lose. You put real money up first, you can lose all of it, and winning depends on being ` +
     `right about uncertain events — not on doing work.\n\n` +
@@ -696,7 +701,9 @@ export function tryContestGuard(message: string): string | null {
 }
 
 // Crypto: standing rule — no betting, no crypto.
-const CRYPTO_RX = /\b(crypto|bitcoin|ethereum|cryptocurrency)\b/i;
+// Shorthand included ("buy some ETH" slipped past, 2026-10-12); words that only look alike ("ripple effect", "tether my
+// phone", "sol") are left out.
+const CRYPTO_RX = /\b(crypto|bitcoin|ethereum|cryptocurrency|btc|eth|ether|solana|dogecoin|doge|litecoin|xrp|cardano|usdc|usdt|stablecoins?|altcoins?|memecoins?|shiba inu)\b/i;
 const CRYPTO_REFUSAL = "I can't help with that — Upmore has a hard rule: no betting, no crypto, and no routes where you can lose your own money. If you want to earn extra cash, ask me about verified routes with fixed payouts.";
 export function tryCryptoGuard(message: string): string | null {
   if (!CRYPTO_RX.test(message)) return null;

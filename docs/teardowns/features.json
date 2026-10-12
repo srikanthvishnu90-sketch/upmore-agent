@@ -7087,7 +7087,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
-   "capability_note": "a review queue, bookkeeping",
+   "capability_note": "a review queue, bookkeeping; no capability-list item, but Upmore's chat \"what's new?\" (92-whats-new.js, overnight H1) lists what posted since the person last asked and flags what deserves a look",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -18401,7 +18401,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
-   "capability_note": "a review flag, bookkeeping",
+   "capability_note": "a review flag, bookkeeping; no capability-list item, but Upmore's chat \"what's new?\" (92-whats-new.js, overnight H1) lists what posted since the person last asked and flags what deserves a look",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -18421,7 +18421,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
-   "capability_note": "a review flag, bookkeeping",
+   "capability_note": "a review flag, bookkeeping; no capability-list item, but Upmore's chat \"what's new?\" (92-whats-new.js, overnight H1) lists what posted since the person last asked and flags what deserves a look",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -25364,7 +25364,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
-   "capability_note": "a review inbox, bookkeeping",
+   "capability_note": "a review inbox, bookkeeping; no capability-list item, but Upmore's chat \"what's new?\" (92-whats-new.js, overnight H1) lists what posted since the person last asked and flags what deserves a look",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -27253,7 +27253,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
-   "capability_note": "a review card, bookkeeping",
+   "capability_note": "a review card, bookkeeping; no capability-list item, but Upmore's chat \"what's new?\" (92-whats-new.js, overnight H1) lists what posted since the person last asked and flags what deserves a look",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },

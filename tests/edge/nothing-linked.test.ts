@@ -11,13 +11,14 @@ import { priceDropReply } from "../../supabase/functions/agent-chat/_shared/pric
 import { moneyOwedReply } from "../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import { airlineReply } from "../../supabase/functions/agent-chat/_shared/airline_answer.ts";
 import { unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
+import { whatsNewReply } from "../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 import { cardOffersReply } from "../../supabase/functions/agent-chat/_shared/card_offers_answer.ts";
 import { winBackReply } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 
 const T = "2026-10-12", NOW = new Date("2026-10-12T15:00:00Z"), none = async () => [] as any[];
 const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
-  ["money", (m) => moneyReply(m, NOW, { accounts: none, transactions: none })], ["dispute", (m) => disputeReply(m, T, none, { hasPhoto: false })],
+  ["money", (m) => moneyReply(m, NOW, { accounts: none, transactions: none })], ["what's new", (m) => whatsNewReply(m, T, none, none)], ["dispute", (m) => disputeReply(m, T, none, { hasPhoto: false })],
   ["win-back", (m) => winBackReply(m, T, none, none)], ["subscription", (m) => subscriptionReply(m, T, none)], ["substitutes", (m) => substitutesReply(m, T, none)], ["find money", (m) => findMoneyReply(m, T, none)], ["card offers", (m) => cardOffersReply(m, T, none, none)], ["rewards", (m) => rewardsReply(m, T, none, none)],
   ["price drop", (m) => priceDropReply(m, T, none)], ["airline", (m) => airlineReply(m, T, none)], ["unclaimed", (m) => unclaimedReply(m, T, none, none)],
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],

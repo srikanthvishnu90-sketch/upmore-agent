@@ -42,6 +42,7 @@ import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { airlineReply } from "./_shared/airline_answer.ts";
 import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
+import { whatsNewReply } from "./_shared/whats_new_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { cardOffersReply } from "./_shared/card_offers_answer.ts";
@@ -269,16 +270,21 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (a.error) throw new Error("Accounts unavailable.");
         return mergeKinds(a.data || [], p.error ? [] : p.data || []);
       })();
+      // The thread's last messages, newest first: "show me the math" explains the answer just given, and "what's new"
+      // reads its own last "reviewed through" date (_shared/whats_new_answer.ts).
+      const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20); return h.error ? [] : h.data || []; };
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,
         // "show me the math" explains the answer just given in this thread.
-        previous: async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(6); return h.error ? [] : h.data || []; },
+        previous: readPrevious,
       });
       // "dispute this charge", "find me money" and an airline refund (_shared/airline_answer.ts, DOT rules from the offer
       // book): a failed read says so plainly instead of failing the whole turn.
       const today = new Date().toISOString().slice(0, 10);
       try {
+        // "what's new": the review inbox in chat, since the person last asked (_shared/whats_new_answer.ts).
+        if (!direct) direct = await whatsNewReply(message, today, readTx, readPrevious);
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
         // A pasted "come back" offer from a service they cancelled (_shared/win_back_answer.ts): the sender checked, the
         // offer as the email states it, their own last charge beside it; resubscribing is theirs. Before the savings answer,

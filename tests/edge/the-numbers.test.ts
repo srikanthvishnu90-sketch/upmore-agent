@@ -115,7 +115,8 @@ Deno.test("show me the math explains the last answer in the thread, line by line
 
 Deno.test("handler wiring: the thread's last messages are read for the math; a bare math ask never gets the nothing-linked line", () => {
   const src = Deno.readTextFileSync(new URL("../../supabase/functions/agent-chat/handler.ts", import.meta.url));
-  assert(src.includes('previous: async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid)'), "previous() reads this thread through the RLS client");
+  // One shared thread reader (also used by "what's new"), passed as previous().
+  assert(src.includes('const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid)') && src.includes("previous: readPrevious,"), "previous() reads this thread through the RLS client");
   assert(src.includes('linkedCount === 0 && moneyKind(message) && moneyKind(message) !== "explain" ? NO_ACCOUNTS : null'), "bare 'show me the math' goes on to the model when nothing is linked");
 });
 

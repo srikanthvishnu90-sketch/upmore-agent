@@ -99,6 +99,11 @@
     ["From: Netflix <info@mailer.netflix.com>\nDate: Oct 10, 2026\nWe miss you! Come back for $6.99/month for 3 months, then $15.49/month. Offer ends Oct 31, 2026.", "winBackReply"],
     ["is there a free alternative to my streaming services", "substitutesReply"],
     ["should i buy generic tide", "substitutesReply"],
-    ["should i buy generic AAPL", null]
+    ["should i buy generic AAPL", null],
+    ["what's new?", "whatsNewReply"],
+    ["anything new", "whatsNewReply"],
+    ["what did i miss", "whatsNewReply"],
+    ["what's new with tesla stock", null],
+    ["whats the news today", null]
   ]
 }

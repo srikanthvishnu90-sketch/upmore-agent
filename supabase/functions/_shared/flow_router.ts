@@ -15,7 +15,7 @@
 //      extracts; code grounds every span; approvals never come from the model; model failure falls back to the regex net.
 //   5. Save the state and any recipient the person saved (a completed send, or an explicit SAVE) before the reply goes
 //      out, and return route metadata for the gauntlet.
-import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, StandingRent, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
+import { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, StandingRent, AgentTransfer, BrokerAccounts, MerchantTerms, MERCHANT_TERMS_JSON, Compliance, CapabilityRegistry, REGISTRY_JSON } from "./router_core.js";
 import { reserveModelCall, recordModelUsage, ModelUnavailableError } from "./model_calls.ts";
 import { callModel, type CallOptions, type ModelConfig } from "./model_gateway.ts";
 import { playbookRegistry } from "../agent-exec/merchant-catalog.ts";
@@ -163,6 +163,17 @@ export function liveConnectors(data: FlowData, now: () => number) {
       write: notWired("money requests: staged for the person to tap Request; no rail is written"),
       verify: notWired("request read-back: no partner rail"),
     },
+    // Own-account transfers (PAY-009): reads come from the person's linked bank rows; no money-movement
+    // partner rail is connected in production, so writes report NOT_WIRED and the loop's compliance gate
+    // stops the staging first with its specific partner message. A rail arrives only by injection (tests).
+    transfer: {
+      read: async () => {
+        if (!data.bankAccounts || !data.bankAccounts.length) throw new NotWired("no bank account linked");
+        return { value: data.bankAccounts, source: "your linked bank accounts", as_of: now() };
+      },
+      write: notWired("own-account transfers: no money-movement partner rail"),
+      verify: notWired("transfer read-back: no money-movement partner rail"),
+    },
   };
 }
 
@@ -180,7 +191,8 @@ export function localDate(ms: number, tz: string | null | undefined): string | n
   try { return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms)); } catch { return null; }
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: UserBroker | null = null, termsFetch: typeof fetch | null = null, tz: string | null = null) {
+export interface TransferRail { connectors?: any; partners?: Record<string, unknown>; kyc?: any }
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: UserBroker | null = null, termsFetch: typeof fetch | null = null, tz: string | null = null, transferRail: TransferRail | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
@@ -189,6 +201,9 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
     trade: AgentTrade.create({ registry, connectors: broker && broker.connectors ? broker.connectors : c.trade, clock: now, tz, instruments: data.instruments, partners: broker && broker.partners ? broker.partners : LIVE_PARTNERS, connect: broker && broker.connect ? broker.connect : null, compliance: Compliance, state: s.trade }),
     cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, tz, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send, balances: () => data.bankAccounts ?? null }),
+    // Own-account transfers (PAY-009, C30): staged from chat on the transfer session; the rail, partner and
+    // identity state arrive only by injection (a test's sandbox rail, a future licensed partner).
+    transfer: AgentTransfer.create({ registry, connectors: transferRail && transferRail.connectors ? transferRail.connectors : c.transfer, clock: now, compliance: Compliance, partners: transferRail && transferRail.partners ? transferRail.partners : LIVE_PARTNERS, kyc: transferRail && transferRail.kyc ? transferRail.kyc : null, accounts: () => data.bankAccounts ?? [], state: s.transfer }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
     // Saved nicknames ("mom is Anita Srikanth"): restated, then saved on a yes, only for someone already saved.
     nickname: AgentRecipients.nicknames({ book: recipients, clock: now, state: s.nickname }),
@@ -221,6 +236,7 @@ export function hasLiveCard(saved: any): boolean {
   if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer || saved.send.funds_check)) return true;
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
   if (saved.rent && (saved.rent.pending || saved.rent.asking)) return true;
+  if (saved.transfer && saved.transfer.pending) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
   if (saved.nickname && saved.nickname.pending) return true;
   return false;
@@ -239,10 +255,11 @@ function liveCardWords(sessions: any): string[] {
   if (sessions.cancel && sessions.cancel.pending) out.push("the cancellation");
   if (sessions.nickname && sessions.nickname.pending) out.push(`the "${sessions.nickname.pending.nickname}" nickname`);
   if (sessions.rent && sessions.rent.pending) out.push("the rent card");
+  if (sessions.transfer && sessions.transfer.pending) out.push(`the ${m(sessions.transfer.pending.amount_cents)} transfer to ${sessions.transfer.pending.recipient}`);
   return out;
 }
 
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null; tz?: string | null }): Promise<FlowReply | FlowFallthrough | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null; tz?: string | null; transfer?: TransferRail | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!needsRouter(saved, now()) && !AgentRouter.maybeFlow(message)) return null;
@@ -254,7 +271,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   // The brokerage connection (a row read and a Vault token read) is resolved only here, after the message is known to be
   // a flow or a live card exists: small talk never touches it.
   const broker = deps.broker ?? (deps.brokerFactory ? await deps.brokerFactory() : null);
-  const built = buildSessions(data, saved, now, deps.channel ?? null, broker, deps.termsFetch === undefined ? fetch : deps.termsFetch, deps.tz ?? null);
+  const built = buildSessions(data, saved, now, deps.channel ?? null, broker, deps.termsFetch === undefined ? fetch : deps.termsFetch, deps.tz ?? null, deps.transfer ?? null);
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.
@@ -270,7 +287,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
       dropNote = `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
     }
   }
-  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), router: out.memo || memo };
+  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), transfer: sessions.transfer.snapshot(), router: out.memo || memo };
   // Recipients saved on evidence (a completed send, or a handle typed back and SAVE) are written before the reply.
   const rows = recipients.drain();
   let saveError = false;
@@ -285,7 +302,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   }
   if (out.route === "fallthrough") {
     // A dropped card is still a state change; keep it, then let the existing handler answer.
-    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, nickname: saved?.nickname ?? state.nickname, rent: saved?.rent ?? state.rent, router: saved?.router ?? state.router })) await deps.db.saveState(state);
+    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, nickname: saved?.nickname ?? state.nickname, rent: saved?.rent ?? state.rent, transfer: saved?.transfer ?? state.transfer, router: saved?.router ?? state.router })) await deps.db.saveState(state);
     return dropNote ? { fallthrough: true, note: dropNote } : null;
   }
   // Saved before the reply leaves, so a crash never leaves a card the person can see without the state that makes it safe.
@@ -320,7 +337,7 @@ export async function dropLiveCards(db: FlowDb, now: () => number = () => Date.n
   const words = liveCardWords(sessions);
   if (!words.length) return null;
   for (const k of Object.keys(sessions)) if ((sessions as any)[k] && (sessions as any)[k].pending) await (sessions as any)[k].reply("never mind");
-  await db.saveState({ trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), router: (saved && saved.router) || {} });
+  await db.saveState({ trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), transfer: sessions.transfer.snapshot(), router: (saved && saved.router) || {} });
   return `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
 }
 

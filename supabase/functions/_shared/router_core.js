@@ -3940,6 +3940,311 @@
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentProactive;
 
+  /* Money plans (Instinct spec docs 06, 07, 02: PAY-003/007/008/009/023/025, SAVE-001/006, SOC-002/005/006/008/010):
+     the pure half of requests for money, scheduled and recurring sends, own-account
+     transfers, autosave rules, the overdraft-prevention move, failed-payment triage,
+     group expenses, shared goals, gifts and the household permission model. Every
+     plan produces a loop request with an idempotency key, exact confirm fields and
+     the tier the registry assigns; nothing here moves money. A plan that would
+     overdraw, exceed a limit or reach a stranger says so instead. Loads after
+     MoneyMath and AgentMoney (optional). */
+  const AgentMoneyPlans = (() => {
+    const DAY = 86400000;
+    const money = c => { const s = Math.abs(c); return (c < 0 ? "-$" : "$") + Math.floor(s / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + String(s % 100).padStart(2, "0"); };
+    const cents = t => Number.isInteger(t.amount_cents) ? t.amount_cents : Math.round(Number(t.amount || 0) * 100);
+    const ymd = s => String(s || "").slice(0, 10);
+    const dayMs = s => Date.parse(ymd(s) + "T00:00:00Z");
+    const addDays = (s, n) => new Date(dayMs(s) + n * DAY).toISOString().slice(0, 10);
+    const daysBetween = (a, b) => Math.round((dayMs(b) - dayMs(a)) / DAY);
+    const divRound = (n, d) => { const q = Math.trunc(n / d), r = n - q * d; return Math.abs(r) * 2 >= Math.abs(d) ? q + Math.sign(n) * Math.sign(d) : q; };
+    const monthOf = s => ymd(s).slice(0, 7);
+    const addMonths = (s, n) => { const d = new Date(dayMs(s)); const day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n); d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate())); return d.toISOString().slice(0, 10); };
+    const businessDaysBefore = (s, n) => { let d = ymd(s), left = n; while (left > 0) { d = addDays(d, -1); const w = new Date(dayMs(d)).getUTCDay(); if (w !== 0 && w !== 6) left--; } return d; };
+    // People resolve through the one recipient layer (42-agent-recipients.js): exact handle, then full name, then first
+    // name; an ambiguous or look-alike name is asked about, never picked. A stored id is looked up directly.
+    const Rec = () => { if (typeof AgentRecipients === "undefined") throw new Error("AgentMoneyPlans needs AgentRecipients loaded: every person-to-person flow resolves recipients through one layer."); return AgentRecipients; };
+    const person = (people, who) => (people || []).find(p => p.id && p.id === who) || (() => { const r = Rec().resolve(who, people); return r.status === "saved" ? r.person : null; })();
+    const askFor = (people, who, fallback) => { const r = Rec().resolve(who, people); return ["ambiguous", "lookalike", "unavailable"].includes(r.status) ? r.ask : fallback; };
+    const request = (capability_id, key, params, describe, confirm, extra) => Object.assign({ capability_id, key, idempotency_key: key, params, describe, confirm }, extra || {});
+    const acct = (accounts, id) => (accounts || []).find(a => a.id === id || a.nickname === id || a.kind === id) || null;
+    // Rails are said by their names ("PayPal", "Cash App"), never by their ids.
+    const RAIL_NAMES = { venmo: "Venmo", cash_app: "Cash App", paypal: "PayPal", zelle: "Zelle", ach: "ACH" };
+    const railName = r => RAIL_NAMES[r] || String(r).toUpperCase();
+    // A day the calendar has: 2026-02-30 is refused, never scheduled for a day that never comes.
+    const realDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(dayMs(s)) && new Date(dayMs(s)).toISOString().slice(0, 10) === s;
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+
+    // PAY-003: a request for money. Staged on the rail the person uses (the user taps send on the request), reminders in the tone asked for, settled when the matching credit lands.
+    const TONES = { friendly: ["Hey {name}, when you get a sec: {amount} for {what}. No rush!", "Gentle nudge on the {amount} for {what} whenever works."], plain: ["Reminder: {amount} for {what} is still open.", "Second reminder: {amount} for {what}."], firm: ["{name}, the {amount} for {what} is now {days} days old. Can you send it today?", "Final reminder: {amount} for {what}, {days} days outstanding."] };
+    function requestMoney(spec, ctx) {
+      const c = ctx || {}, p = person(c.people, spec.from); if (!p) return { ask: askFor(c.people, spec.from, `Who is ${spec.from}? I only request money from people in your list, so a wrong name never gets a bill.`) };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
+      const rail = (p.rails || []).find(r => ["venmo", "cash_app", "paypal", "zelle"].includes(r)) || null;
+      const r = { id: `req-${c.today}-${p.id}-${spec.amount_cents}`, from: p.id, name: p.name, amount_cents: spec.amount_cents, what: spec.what || "what you owe", rail, status: "open", created_on: c.today, tone: spec.tone || "friendly", reminders_sent: 0, handoff: rail ? `${railName(rail)} request to ${p.name}${p.handle ? ` (${p.handle})` : ""} for ${money(spec.amount_cents)}, note "${spec.what || "what you owe"}": staged, you tap Request.` : `${p.name} has no request rail on file; I'll draft the message and you pick how to collect.` };
+      r.capability_id = "PAY-003"; r.tier = "T3";
+      return { request: r, text: r.handoff };
+    }
+    function reminder(req, today) {
+      const days = daysBetween(req.created_on, today), set = TONES[req.tone] || TONES.friendly, n = Math.min(req.reminders_sent, set.length - 1);
+      if (req.status !== "open") return null;
+      if (days < (req.tone === "firm" ? 3 : 7) * (req.reminders_sent + 1)) return null;
+      return { request_id: req.id, text: set[n].replace("{name}", req.name.split(" ")[0]).replace(/\{amount\}/g, money(req.amount_cents)).replace(/\{what\}/g, req.what).replace("{days}", String(days)), tone: req.tone, days_open: days, capability_id: "SOC-009" };
+    }
+    function settleRequests(requests, transactions, people) {
+      const credits = (transactions || []).filter(t => cents(t) > 0), out = [], used = new Set();
+      for (const r of requests || []) { if (r.status !== "open") continue; const p = person(people, r.from); const hit = credits.find(t => !used.has(t) && cents(t) === r.amount_cents && ymd(t.posted_at) >= r.created_on && (!p || [p.name, p.handle].filter(Boolean).some(n => String(t.merchant_raw || "").toLowerCase().includes(String(n).toLowerCase().replace("@", ""))))); if (hit) { used.add(hit); r.status = "settled"; r.settled_by = hit.id; r.settled_on = ymd(hit.posted_at); out.push({ request_id: r.id, transaction_id: hit.id, text: `${r.name} paid the ${money(r.amount_cents)} for ${r.what} on ${ymd(hit.posted_at)}.` }); } }
+      return out;
+    }
+
+    // C13 bridge: the shared-expense ledger. The chat IOU log (105-iou-log.js) holds per-person lines; these plans hold
+    // the requests (PAY-003) that collect them. Until this bridge the two never met: a tagged transaction made no
+    // line, a request settled without clearing the line. Three seams, all pure:
+    //   fromTaggedTransaction(tx, tag)   a posted charge the user tagged as shared (tag.shared_with, tag.paid_by
+    //                                    default "me", tag.what) -> ledger lines in the IOU log's own shape, one per
+    //                                    person whose share touches the user, dated and sourced from the transaction
+    //   requestFromIou(entry, ctx)       an owes_me line -> its PAY-003 request, stamped with the line's id, the source
+    //                                    transaction id, and its rail reference: the rail id when staged on a
+    //                                    handoff rail (staged, never delivered), or "NOT_WIRED" when the person has
+    //                                    no request rail on file
+    //   settleIous(ious, requests, txs)  settleRequests over the requests, then the lines those requests name are
+    //                                    marked settled against the received payment row (settled_by = its id).
+    //                                    No matching received payment: the line stays open, untouched.
+    function fromTaggedTransaction(tx, tag) {
+      if (!tx || !tag || !Array.isArray(tag.shared_with) || !tag.shared_with.length) return null;
+      if (tx.is_pending) return null;
+      const total = -cents(tx);
+      if (!Number.isSafeInteger(total) || total <= 0) return null;
+      const on = ymd(tx.posted_at || tx.posted_on);
+      if (!on) return null;
+      const payer = tag.paid_by || "me";
+      const folks = [payer].concat(tag.shared_with.filter(n => typeof n === "string" && n.trim() && n !== payer));
+      if (!folks.includes("me")) folks.push("me"); // the user is always a participant in their own shared expense
+      if (folks.length < 2) return null;
+      const MM = typeof MoneyMath !== "undefined" ? MoneyMath : null;
+      const shares = MM ? MM.split(total, folks.length) : folks.map((_, i) => Math.trunc(total / folks.length) + (i < total % folks.length ? 1 : 0));
+      const note = String(tag.what || tx.merchant_raw || "shared expense").replace(/\d{9,}/g, "#").replace(/\s+/g, " ").trim().slice(0, 40);
+      const slug = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const entries = [];
+      folks.forEach((who, i) => {
+        if (who === payer || shares[i] <= 0) return;
+        const name = payer === "me" ? who : who === "me" ? payer : null;
+        if (!name) return; // a share between two other people is their ledger, not the user's
+        entries.push({ id: `iou-${tx.id || "tx"}-${slug(name)}`, name, direction: payer === "me" ? "owes_me" : "i_owe", amount_cents: shares[i], original_cents: shares[i], note, created_on: on, status: "open", transaction_id: tx.id || null });
+      });
+      return { transaction_id: tx.id || null, total_cents: total, payer, shares: folks.map((who, i) => ({ who, cents: shares[i] })), entries };
+    }
+    function requestFromIou(entry, ctx) {
+      if (!entry || typeof entry.name !== "string" || !entry.name) return { ask: "Which IOU? Name the person and the amount." };
+      if (entry.direction !== "owes_me") return { ask: `You owe ${entry.name} ${money(entry.amount_cents || 0)} — a request is only for money owed to you. Nothing was staged.` };
+      const r = requestMoney({ from: entry.name, amount_cents: entry.amount_cents, what: entry.note || "what you owe" }, ctx || {});
+      if (!r.request) return r;
+      r.request.iou_id = entry.id || null;
+      r.request.source_transaction_id = entry.transaction_id || null;
+      r.request.rail_reference = r.request.rail || "NOT_WIRED";
+      r.request.delivery = r.request.rail ? "staged" : "NOT_WIRED";
+      return r;
+    }
+    function settleIous(ious, requests, transactions, people) {
+      const settled = settleRequests(requests, transactions, people);
+      if (!settled.length) return { ious, settled: [] };
+      const byId = new Map((requests || []).map(r => [r.id, r]));
+      const next = (ious || []).map(e => {
+        const hit = settled.find(s => { const rq = byId.get(s.request_id); return rq && rq.iou_id === e.id; });
+        if (!hit) return e;
+        return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id });
+      });
+      return { ious: next, settled: settled.map(s => Object.assign({}, s, { iou_id: (byId.get(s.request_id) || {}).iou_id || null })) };
+    }
+
+    // PAY-007 / PAY-008: schedule a future payment and cancel it before the rail's cutoff.
+    function schedulePayment(spec, ctx) {
+      const c = ctx || {};
+      const on = spec.on ? ymd(spec.on) : null;
+      if (on && !realDay(on)) return { ask: "Which date? I could not read that as a calendar day." };
+      if (!on || dayMs(on) <= dayMs(c.today)) return { ask: "Which date? It has to be after today." };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
+      const p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}? Add them first so a scheduled payment never goes to a stranger.`) };
+      const rail = spec.rail || (p.bank_account ? "ach" : (p.rails || [])[0] || null), cutoff = rail === "ach" ? businessDaysBefore(on, 1) : addDays(on, -1);
+      const s = { id: `sched-${on}-${p.id}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, on, rail, cutoff_on: cutoff, memo: spec.memo || null, status: "scheduled", created_on: c.today, capability_id: "PAY-007", tier: "T3" };
+      s.text = `Scheduled: ${money(s.amount_cents)} to ${p.name} on ${s.on} by ${rail ? railName(rail) : "a rail you choose"}. You can cancel until ${cutoff}; after that it is in flight. I confirm with you the day before it goes.`;
+      return { schedule: s, text: s.text };
+    }
+    function cancelScheduled(s, today) {
+      if (s.status !== "scheduled") return { cancelled: false, text: `That payment is ${s.status}; nothing to cancel.` };
+      if (dayMs(today) > dayMs(s.cutoff_on)) return { cancelled: false, in_flight: true, text: `The ${money(s.amount_cents)} to ${s.name} passed its cutoff on ${s.cutoff_on} and is in flight. ${s.rail === "ach" ? "An ACH can be recalled the same day through the bank; I can draft that request." : "I can draft a return request to the recipient."}` };
+      s.status = "cancelled"; s.cancelled_on = today;
+      return { cancelled: true, text: `Cancelled: ${money(s.amount_cents)} to ${s.name} on ${s.on}. Nothing will be sent.` };
+    }
+    // The scheduled payments that go out today, as loop requests (the loop still confirms per tier).
+    function dueScheduled(schedules, today) {
+      return (schedules || []).filter(s => s.status === "scheduled" && s.on === today).map(s => request("PAY-007", `${s.id}:send`, { amount_cents: s.amount_cents, recipient: s.name, rail: s.rail, memo: s.memo }, `Scheduled payment: ${money(s.amount_cents)} to ${s.name}`, { action: "Send", amount: money(s.amount_cents), recipient: s.name, timing: s.rail === "ach" ? "lands in 1-3 business days" : "today" }, { scheduled_id: s.id }));
+    }
+
+    // PAY-009: a transfer between the user's own accounts. Never overdraws the source; confirm fields name both ends.
+    function ownTransfer(spec, ctx) {
+      const c = ctx || {}, from = acct(c.accounts, spec.from), to = acct(c.accounts, spec.to);
+      if (!from || !to) return { ask: `Which accounts? I know ${(c.accounts || []).map(a => a.nickname || a.id).join(", ")}.` };
+      if (from.id === to.id) return { ask: "Those are the same account." };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
+      const avail = Number.isInteger(from.available_cents) ? from.available_cents : from.balance_cents;
+      if (spec.amount_cents > avail) return { stop: true, reason: "insufficient", text: `${from.nickname || from.id} has ${money(avail)} available; ${money(spec.amount_cents)} would overdraw it. Nothing moved.` };
+      const key = `transfer:${from.id}:${to.id}:${spec.amount_cents}:${c.today}`;
+      return { request: request("PAY-009", key, { amount_cents: spec.amount_cents, from: from.id, to: to.id, recipient: to.id }, `Move ${money(spec.amount_cents)} from ${from.nickname || from.id} to ${to.nickname || to.id}`, { action: "Move", amount: money(spec.amount_cents), recipient: to.nickname || to.id, from: from.nickname || from.id, timing: from.institution && from.institution === to.institution ? "instant" : "1-2 business days", fee_cents: 0 }, { amount_cents: spec.amount_cents, recipient: to.id }), leaves_cents: avail - spec.amount_cents };
+    }
+
+    // SAVE-001: autosave rules. Round-ups on card spend, a payday sweep, a threshold sweep. Each run yields one transfer request with the rows that justify it.
+    function autosave(rules, ctx) {
+      const c = ctx || {}, rows = (c.transactions || []).map(t => Object.assign({}, t, { amount_cents: cents(t), posted_at: ymd(t.posted_at) })), out = [];
+      for (const r of rules || []) {
+        if (r.status === "paused") continue;
+        const to = acct(c.accounts, r.to), from = acct(c.accounts, r.from); if (!to || !from) { out.push({ rule_id: r.id, skipped: "unknown account" }); continue; }
+        const avail = Number.isInteger(from.available_cents) ? from.available_cents : from.balance_cents, floor = Number.isInteger(r.keep_at_least_cents) ? r.keep_at_least_cents : 10000;
+        let amount = 0, basis = [], why = "";
+        if (r.kind === "round_up") { const period = rows.filter(t => t.amount_cents < 0 && !t.is_transfer && !t.is_pending && (!r.account_id || t.account_id === r.account_id) && t.posted_at > (r.last_run_on || "0000") && t.posted_at <= c.today); amount = period.reduce((s, t) => s + ((100 - (-t.amount_cents % 100)) % 100), 0); basis = period.map(t => t.id); why = `round-ups on ${period.length} purchases since ${r.last_run_on || "the start"}`; }
+        else if (r.kind === "payday_sweep") { const pay = rows.find(t => t.amount_cents > 0 && t.posted_at === c.today && /payroll|direct dep|salary/i.test(t.merchant_raw || "")); if (!pay) continue; amount = r.percent_bps ? divRound(pay.amount_cents * r.percent_bps, 10000) : r.amount_cents || 0; basis = [pay.id]; why = r.percent_bps ? `${r.percent_bps / 100} percent of today's ${money(pay.amount_cents)} paycheck` : `your fixed ${money(amount)} on payday`; }
+        else if (r.kind === "threshold") { if (avail <= r.above_cents) continue; amount = avail - r.above_cents; basis = []; why = `${from.nickname || from.id} is ${money(amount)} above your ${money(r.above_cents)} line`; }
+        if (amount <= 0) continue;
+        if (r.max_cents && amount > r.max_cents) amount = r.max_cents;
+        if (avail - amount < floor) { const cut = Math.max(0, avail - floor); if (cut <= 0) { out.push({ rule_id: r.id, skipped: `would leave ${from.nickname || from.id} under its ${money(floor)} floor` }); continue; } amount = cut; why += `, trimmed to keep ${money(floor)} in ${from.nickname || from.id}`; }
+        const key = `autosave:${r.id}:${c.today}`;
+        out.push({ rule_id: r.id, request: request("SAVE-001", key, { amount_cents: amount, from: from.id, to: to.id, recipient: to.id }, `Autosave ${money(amount)} to ${to.nickname || to.id} (${why})`, { action: "Move", amount: money(amount), recipient: to.nickname || to.id, from: from.nickname || from.id, timing: "today", fee_cents: 0 }, { amount_cents: amount, recipient: to.id, evidence: { rows: basis, rule: r.kind, computed: { amount_cents: amount, available_cents: avail, floor_cents: floor } } }) });
+      }
+      return out;
+    }
+
+    // SAVE-006: the overdraft-prevention move. From the first day under the buffer, the smallest transfer from savings that keeps checking above it, with the day it must land.
+    function overdraftPrevention(ctx) {
+      const c = ctx || {}, L = typeof AgentLedger !== "undefined" ? AgentLedger : null; if (!L) return null;
+      const checking = (c.accounts || []).find(a => a.kind === "checking" && !a.hidden), savings = (c.accounts || []).filter(a => a.kind === "savings" && !a.hidden).sort((a, b) => b.balance_cents - a.balance_cents)[0];
+      if (!checking || !savings) return null;
+      const f = L.cashflowForecast({ today: c.today, accounts: [checking], transactions: c.transactions, rules: c.rules, horizons: [30] }), buffer = Number.isInteger(c.buffer_cents) ? c.buffer_cents : 10000;
+      const first = (f.daily || []).find(d => d.balance_cents < buffer); if (!first) return { needed: false, text: `Checking stays above your ${money(buffer)} buffer for the next 30 days.` };
+      const savAvail = Number.isInteger(savings.available_cents) ? savings.available_cents : savings.balance_cents, need = buffer - f.low_point.balance_cents, amount = Math.min(need, savAvail), landBy = addDays(first.on, -1);
+      // Nothing in savings is not a $0.00 transfer to confirm: say so and ask for nothing.
+      if (amount <= 0) return { needed: true, first_below: first, low_point: f.low_point, amount_cents: 0, short_cents: need, land_by: landBy, request: null, text: `Checking goes under your ${money(buffer)} buffer on ${first.on} and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}. Savings has ${money(savAvail)} available, so there is nothing to move from it; checking is ${money(need)} short of the line.` };
+      const key = `overdraft_prevention:${first.on}:${amount}`;
+      return { needed: true, first_below: first, low_point: f.low_point, amount_cents: amount, short_cents: need - amount, land_by: landBy, request: request("SAVE-006", key, { amount_cents: amount, from: savings.id, to: checking.id, recipient: checking.id }, `Move ${money(amount)} from ${savings.nickname || savings.id} to ${checking.nickname || checking.id} before ${first.on}`, { action: "Move", amount: money(amount), recipient: checking.nickname || checking.id, from: savings.nickname || savings.id, timing: `by ${landBy}`, fee_cents: 0 }, { amount_cents: amount, recipient: checking.id, deadline: dayMs(landBy), urgent: f.low_point.balance_cents < 0, reason: `checking goes under ${money(buffer)} on ${first.on}` }), text: `Checking goes under your ${money(buffer)} buffer on ${first.on} and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}. Moving ${money(amount)} from ${savings.nickname || savings.id} by ${landBy} keeps it above the line${need > amount ? `; savings covers ${money(amount)} of the ${money(need)} needed` : ""}.` };
+    }
+
+    // PAY-023: failed-payment triage. The cause decides the step; a retry is a new key that names the original, never a blind resend.
+    const CAUSES = [[/insufficient|nsf|balance/i, "insufficient_funds"], [/closed|no account|invalid account|account not found/i, "account_closed"], [/routing|account number|details|invalid/i, "wrong_details"], [/limit|velocity|exceed/i, "limit"], [/timeout|unavailable|down|maintenance|rail/i, "rail_down"], [/declined|refused|risk/i, "declined"]];
+    function triageFailed(outcome, ctx) {
+      const c = ctx || {}, reason = String(outcome.reason || outcome.message || ""), cause = (CAUSES.find(([re]) => re.test(reason)) || [null, "unknown"])[1];
+      const amount = outcome.amount_cents || (outcome.params && outcome.params.amount_cents) || 0, from = acct(c.accounts, outcome.params && outcome.params.from) || (c.accounts || []).find(a => a.kind === "checking");
+      const avail = from ? (Number.isInteger(from.available_cents) ? from.available_cents : from.balance_cents) : null;
+      const plan = { cause, original_key: outcome.idempotency_key || null, amount_cents: amount };
+      if (cause === "insufficient_funds") { const nextIncome = c.next_income_on || null; plan.step = avail != null && avail >= amount ? "funds are there now; retry" : nextIncome ? `retry on ${nextIncome} when income lands, or move ${money(amount - (avail || 0))} from savings first` : "fund the account, then retry"; plan.retry_on = avail != null && avail >= amount ? c.today : nextIncome; plan.retry = avail != null && avail >= amount; }
+      else if (cause === "account_closed" || cause === "wrong_details") { plan.step = "fix the recipient details with them before any retry; a retry with the same details fails the same way"; plan.retry = false; }
+      else if (cause === "limit") { plan.step = "over a limit; split across days or raise the limit with the bank; I will not retry today"; plan.retry = false; }
+      else if (cause === "rail_down") { plan.step = "the rail was unavailable; retry in an hour"; plan.retry = true; plan.retry_on = c.today; }
+      else if (cause === "declined") { plan.step = "the rail declined it; the bank's reason decides the next step, I do not resend"; plan.retry = false; }
+      else { plan.step = "unknown cause; I do not retry blind. Check the bank's message, then tell me"; plan.retry = false; }
+      if (plan.retry && outcome.params) plan.request = request(outcome.capability_id || "PAY-001", `${outcome.idempotency_key || "send"}:retry:${c.today}`, Object.assign({}, outcome.params), `Retry: ${outcome.describe || "the failed payment"} (original ${outcome.idempotency_key || "?"})`, outcome.confirm || { action: "Send", amount: money(amount), recipient: outcome.params.recipient || "?" }, { retry_of: outcome.idempotency_key || null });
+      plan.text = `${outcome.describe || "The payment"} failed: ${cause.replace(/_/g, " ")}. ${plan.step.charAt(0).toUpperCase() + plan.step.slice(1)}.${plan.request ? " The retry is a new confirmation." : ""}`;
+      return plan;
+    }
+
+    // PAY-025: allowance or recurring family send. A saved person, a fixed amount, a cadence, a cap; one request per period under its own key.
+    function allowance(spec, ctx) {
+      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}? Allowances only go to people in your list.`) };
+      if (!(p.history && p.history.length) && !spec.first_send_confirmed) return { ask: `${p.name} has never received money from you. The first send is confirmed in full; after that the allowance runs on its cadence.`, new_recipient: true };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much each time?" };
+      if (!["weekly", "biweekly", "monthly"].includes(spec.cadence)) return { ask: "Weekly, every two weeks, or monthly?" };
+      if (spec.day != null && !(Number.isInteger(spec.day) && (spec.cadence === "monthly" ? spec.day >= 1 && spec.day <= 31 : spec.day >= 0 && spec.day <= 6))) return { ask: spec.cadence === "monthly" ? "Which day of the month, 1 to 31?" : "Which day of the week?" };
+      const a = { id: `allow-${p.id}-${spec.cadence}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, cadence: spec.cadence, day: spec.day != null ? spec.day : null, rail: (p.rails || [])[0] || (p.bank_account ? "ach" : null), status: "active", created_on: c.today, max_per_month_cents: spec.max_per_month_cents || null, capability_id: "PAY-025", tier: "T4" };
+      // Exact terms, and the truth about running it: envelope autonomy is off, so every send waits for the person's yes.
+      const when = a.cadence === "monthly" ? `monthly on the ${ordinal(a.day || 1)}${(a.day || 1) > 28 ? " (the last day in shorter months)" : ""}` : `${a.cadence === "weekly" ? "every" : "every other"} ${WEEKDAYS[a.day != null ? a.day : 5]}`;
+      a.text = `Allowance: ${money(a.amount_cents)} to ${p.name} ${when} by ${a.rail ? railName(a.rail) : "a rail you pick"}${a.max_per_month_cents ? `, never more than ${money(a.max_per_month_cents)} a month` : ""}. I ask for your yes before each send.`;
+      return { allowance: a, text: a.text };
+    }
+    // Every other week counts from the allowance's own first day (the first chosen weekday on or after it was set), not
+    // from 1970, so the first send is that day, then every 14 days. With no start on file it can't be placed: no send.
+    function everyOther(a, today, dow) {
+      const want = a.day != null ? a.day : 5;
+      if (dow !== want || !a.created_on) return false;
+      const startDow = new Date(dayMs(a.created_on)).getUTCDay(), first = addDays(a.created_on, (want - startDow + 7) % 7);
+      const days = Math.round((dayMs(today) - dayMs(first)) / DAY);
+      return days >= 0 && days % 14 === 0;
+    }
+    function dueAllowances(list, today, sentThisMonthByAllowance) {
+      const out = [];
+      for (const a of list || []) {
+        if (a.status !== "active") continue;
+        const d = new Date(dayMs(today)), dow = d.getUTCDay(), dom = d.getUTCDate(), lastDom = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+        // A monthly day past the month's end (the 31st in November, the 29th in February 2027) goes on its last day.
+        const fires = a.cadence === "weekly" ? dow === (a.day != null ? a.day : 5) : a.cadence === "monthly" ? dom === Math.min(a.day || 1, lastDom) : everyOther(a, today, dow);
+        if (!fires) continue;
+        const sent = (sentThisMonthByAllowance || {})[a.id] || 0;
+        if (a.max_per_month_cents && sent + a.amount_cents > a.max_per_month_cents) { out.push({ allowance_id: a.id, skipped: `this month's ${money(a.max_per_month_cents)} cap would be passed` }); continue; }
+        out.push({ allowance_id: a.id, request: request("PAY-025", `${a.id}:${today}`, { amount_cents: a.amount_cents, recipient: a.name, rail: a.rail }, `Allowance: ${money(a.amount_cents)} to ${a.name}`, { action: "Send", amount: money(a.amount_cents), recipient: a.name, timing: a.rail === "ach" ? "lands in 1-3 business days" : "lands in minutes", fee_cents: 0 }, { amount_cents: a.amount_cents, recipient: a.name, cadence_requested: true }) });
+      }
+      return out;
+    }
+
+    // SOC-002 / SOC-005 / SOC-008 / SOC-010: group expenses, shared goals, gifts with a note, and the settled-debts feed that is off unless asked.
+    function group(spec) {
+      const g = { id: spec.id || `group-${String(spec.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, name: spec.name, members: spec.members.slice(), expenses: [], goal: spec.goal ? { name: spec.goal.name, target_cents: spec.goal.target_cents, by: spec.goal.by || null, contributions: [] } : null };
+      return g;
+    }
+    function addExpense(g, e) {
+      const MM = typeof MoneyMath !== "undefined" ? MoneyMath : null, among = e.among || g.members, shares = MM ? MM.split(e.amount_cents, among.length) : among.map((_, i) => Math.trunc(e.amount_cents / among.length) + (i < e.amount_cents % among.length ? 1 : 0));
+      const row = { id: e.id || `exp-${g.expenses.length + 1}`, what: e.what, amount_cents: e.amount_cents, payer: e.payer, on: e.on, shares: among.map((m, i) => ({ who: m, cents: shares[i] })) };
+      g.expenses.push(row); return row;
+    }
+    function groupBalances(g) {
+      const net = {}; for (const m of g.members) net[m] = 0;
+      for (const e of g.expenses) { net[e.payer] += e.amount_cents; for (const s of e.shares) net[s.who] -= s.cents; }
+      const debts = []; for (const e of g.expenses) for (const s of e.shares) if (s.who !== e.payer) debts.push({ from: s.who, to: e.payer, amount_cents: s.cents });
+      const M = typeof AgentMoney !== "undefined" ? AgentMoney : null;
+      const settle = M ? M.settleGroup(debts).transfers : debts;
+      return { balances: g.members.map(m => ({ who: m, net_cents: net[m], statement: net[m] > 0 ? `${m} is owed ${money(net[m])}` : net[m] < 0 ? `${m} owes ${money(-net[m])}` : `${m} is settled` })), settle_up: settle, total_cents: g.expenses.reduce((s, e) => s + e.amount_cents, 0) };
+    }
+    function goalPlan(g, today) {
+      if (!g.goal) return null; const saved = g.goal.contributions.reduce((s, c) => s + c.amount_cents, 0), left = Math.max(0, g.goal.target_cents - saved), months = g.goal.by ? Math.max(1, Math.round(daysBetween(today, g.goal.by) / 30)) : 1;
+      const MM = typeof MoneyMath !== "undefined" ? MoneyMath : null, shares = MM ? MM.split(left, g.members.length) : g.members.map(() => Math.trunc(left / g.members.length));
+      // Rounded up to the cent, so the monthly amounts reach each share ("gets there" is true, not a cent short).
+      const perMonth = shares.map(s => Math.ceil(s / months));
+      return { name: g.goal.name, target_cents: g.goal.target_cents, saved_cents: saved, remaining_cents: left, by: g.goal.by, per_member: g.members.map((m, i) => ({ who: m, remaining_cents: shares[i], per_month_cents: perMonth[i] })), text: left ? `${g.goal.name}: ${money(saved)} of ${money(g.goal.target_cents)} in. ${g.members.map((m, i) => `${m} ${money(perMonth[i])}/month`).join(", ")} gets there${g.goal.by ? ` by ${g.goal.by}` : ""}.` : `${g.goal.name} is fully funded.` };
+    }
+    function contribute(g, who, amount_cents, on, ctx) { g.goal.contributions.push({ who, amount_cents, on }); return request("SOC-005", `goal:${g.id}:${who}:${on}:${amount_cents}`, { amount_cents, recipient: g.goal.account || g.name, from: ctx && ctx.from || null }, `${who}: ${money(amount_cents)} to ${g.goal.name}`, { action: "Move", amount: money(amount_cents), recipient: g.goal.name, timing: "today", fee_cents: 0 }, { amount_cents, recipient: g.goal.account || g.name }); }
+    function gift(spec, ctx) {
+      const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}?`) };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
+      if (!spec.occasion) return { ask: "What is the occasion? It goes in the note." };
+      const on = spec.on || c.today, note = `${spec.occasion}${spec.message ? ": " + spec.message : ""}`;
+      const r = request("SOC-008", `gift:${p.id}:${on}:${spec.amount_cents}`, { amount_cents: spec.amount_cents, recipient: p.name, memo: note, rail: (p.rails || [])[0] || null }, `Gift ${money(spec.amount_cents)} to ${p.name} for ${spec.occasion}`, { action: "Send", amount: money(spec.amount_cents), recipient: p.name, timing: on === c.today ? "today" : `on ${on}`, fee_cents: 0 }, { amount_cents: spec.amount_cents, recipient: p.name, send_on: on, occasion: spec.occasion });
+      return { request: r, text: `${money(spec.amount_cents)} to ${p.name} ${on === c.today ? "today" : "on " + on} with the note "${note}". ${on === c.today ? "Confirm and it goes." : "I'll confirm with you that morning."}` };
+    }
+    function socialFeed(settled, prefs) {
+      const on = !!(prefs && prefs.social_feed === true);
+      if (!on) return { enabled: false, items: [], text: "The settled-debts feed is off. It stays off unless you turn it on; nothing is shared." };
+      return { enabled: true, items: (settled || []).map(s => ({ text: `${s.from} and ${s.to} settled ${s.what || "up"}`, on: s.on })), text: `${(settled || []).length} settled.` };
+    }
+
+    // SOC-006: household roles. What each member may see and do; applied to account views and to loop requests.
+    const ROLES = { owner: { see: "all", act: "all" }, partner: { see: "shared", act: "shared" }, viewer: { see: "shared", act: "none" }, teen: { see: "own", act: "own_limited" } };
+    function household(spec) { return { id: spec.id || "household", members: spec.members.map(m => ({ id: m.id, name: m.name, role: ROLES[m.role] ? m.role : "viewer", limit_cents: m.limit_cents || null })) }; }
+    function visibleTo(h, memberId, accounts) {
+      const m = h.members.find(x => x.id === memberId); if (!m) return [];
+      const r = ROLES[m.role];
+      return (accounts || []).filter(a => r.see === "all" || (r.see === "shared" && (a.owners || []).length > 1) || (r.see === "own" && (a.owners || []).length === 1 && (a.owners || [])[0] === memberId) || (a.owners || []).includes(memberId) && r.see !== "shared");
+    }
+    function mayAct(h, memberId, req, accounts) {
+      const m = h.members.find(x => x.id === memberId); if (!m) return { allowed: false, reason: "not in the household" };
+      const r = ROLES[m.role]; if (r.act === "all") return { allowed: true };
+      if (r.act === "none") return { allowed: false, reason: `${m.name} can see but not act` };
+      const from = acct(accounts, req.params && req.params.from); const owners = from ? from.owners || [] : [];
+      if (r.act === "shared") return owners.length > 1 && owners.includes(memberId) ? { allowed: true } : { allowed: false, reason: `${m.name} may only act on shared accounts` };
+      if (owners.length !== 1 || owners[0] !== memberId) return { allowed: false, reason: `${m.name} may only act on their own account` };
+      if (m.limit_cents && (req.params.amount_cents || 0) > m.limit_cents) return { allowed: false, reason: `over ${m.name}'s ${money(m.limit_cents)} limit; the owner approves above it` };
+      return { allowed: true };
+    }
+
+    return { requestMoney, reminder, settleRequests, fromTaggedTransaction, requestFromIou, settleIous, schedulePayment, cancelScheduled, dueScheduled, ownTransfer, autosave, overdraftPrevention, triageFailed, allowance, dueAllowances, group, addExpense, groupBalances, goalPlan, contribute, gift, socialFeed, household, visibleTo, mayAct, ROLES, TONES, businessDaysBefore, money };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = AgentMoneyPlans;
+
   /* Send to a saved recipient, end to end (Instinct spec docs 01, 06, 11; depth protocol docs/depth/PAY-001.md).
      The dialogue and state machine over AgentMoney (rails, recipient, scam and
      velocity checks), AgentLoop (tiers, confirmation, idempotency, crash recovery),
@@ -6397,6 +6702,19 @@
         if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
         return { route: "mover_explainer", source: "deterministic", flow: "trade", canonical: text, result, understood: true, understood_first: true, problems: [], dropped };
       }
+      // Own-account transfers (PAY-009, real-world C30): "move $500 from Everyday Checking to High Yield
+      // Savings" stages the transfer's confirmation card deterministically, ahead of the model — but only
+      // when the session's own check resolves both ends to the person's own accounts, so a transfer to a
+      // person is never captured here and still reaches the send flow.
+      if (sessions.transfer && typeof sessions.transfer.matches === "function" && await sessions.transfer.matches(text)) {
+        if (memo.queue && memo.queue.text !== text) memo.queue = null;
+        const dropped = [];
+        for (const k of live) if (k !== "transfer") { await sessions[k].reply("never mind"); dropped.push(k); }
+        for (const k of Object.keys(sessions)) if (k !== "transfer" && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+        const result = await sessions.transfer.start(text);
+        if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+        return { route: "own_transfer", source: "deterministic", flow: "transfer", capability: "PAY-009", canonical: text, result, understood: true, understood_first: true, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -6474,7 +6792,7 @@
     // Follow-ups that only make sense against an open card or list ("make it 50", "the other one") reach the router so it
     // can say nothing is open, instead of the model guessing at one.
     const FOLLOW_UP = /^\s*(?:(?:make|change)\s+(?:it|that|this)(?:\s+to)?\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:dollars|bucks|usd)?|(?:the\s+)?(?:other|second|first|last|2nd|1st)\s+one)\s*[.!?]*\s*$/i;
-    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || FOLLOW_UP.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || FOLLOW_UP.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)) || (typeof AgentTransfer !== "undefined" && !!AgentTransfer.intent(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();
@@ -16548,6 +16866,214 @@
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = TipFees;
 
+  /* Own-account transfers (PAY-009; real-world C30, and the preventive move C29 stages): "move $500 from
+     Everyday Checking to High Yield Savings" stages the money-plans transfer (60-agent-money-plans.js) on a
+     confirmation card in chat, and a yes executes it through the loop (43-agent-loop.js) on the injected rail,
+     verified by read-back before anything is called done. Pure and deterministic: accounts, connectors, the
+     capability registry, compliance and the clock are injected, so the whole path runs in tests on a fake rail.
+     The loop's own gates decide what may stage: the registry status, the compliance partner check (a real rail
+     needs a licensed money-movement partner and a verified identity) and the confirmation itself. With no
+     partner in place the staging stops at that gate with its specific message; nothing is staged that the
+     stack cannot honor, and a card is never answered with a success the rail did not confirm. */
+  const AgentTransfer = (() => {
+    const CAPABILITY = "PAY-009";
+    const DAY = 86400000;
+    const money = c => "$" + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const ymd = ms => new Date(ms).toISOString().slice(0, 10);
+    const norm = s => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+    const KINDS = { checking: "checking", savings: "savings", cash: "cash", money_market: "savings", moneymarket: "savings" };
+
+    // Accounts arrive as bank rows (account_id, name, account_kind, cents) or as domain rows (id, nickname,
+    // kind); both normalize to the one shape the money-plans builder reads. Disconnected rows never resolve.
+    function normalizeAccounts(rows) {
+      return (Array.isArray(rows) ? rows : []).filter(a => a && a.status !== "disconnected").map(a => {
+        const id = a.account_id || a.id, name = a.name || a.nickname || id;
+        const kind = KINDS[norm(a.account_kind || a.kind).replace(/ /g, "_")] || "other";
+        return { id, nickname: name, name, kind, institution: a.institution || null, currency: a.currency || "USD",
+          balance_cents: Number.isSafeInteger(a.balance_cents) ? a.balance_cents : null,
+          available_cents: Number.isSafeInteger(a.available_cents) ? a.available_cents : undefined, source: a.source || null, as_of: a.as_of || a.balance_as_of || a.fetched_at || null };
+      }).filter(a => a.id);
+    }
+
+    // One account by the words the person used: its full name, its id, or its kind ("savings", "my checking
+    // account"). More than one match is ambiguity, never a guess.
+    function resolve(query, accounts) {
+      let q = norm(query).replace(/^(my|the)\s+/, "").replace(/\s+account$/, "").trim();
+      if (!q) return null;
+      const byId = accounts.find(a => a.id === query || norm(a.id) === q);
+      if (byId) return { account: byId };
+      const exact = accounts.filter(a => norm(a.name) === q);
+      if (exact.length === 1) return { account: exact[0] };
+      if (exact.length > 1) return { ambiguous: exact };
+      const kind = KINDS[q.replace(/ /g, "_")];
+      if (kind) { const ks = accounts.filter(a => a.kind === kind); if (ks.length === 1) return { account: ks[0] }; if (ks.length > 1) return { ambiguous: ks }; }
+      const part = accounts.filter(a => q.length >= 3 && (norm(a.name).includes(q) || norm(`${a.institution || ""} ${a.name}`).includes(q)));
+      if (part.length === 1) return { account: part[0] };
+      if (part.length > 1) return { ambiguous: part };
+      return null;
+    }
+
+    // "move/transfer/shift $A from X to Y", or "... to Y" with the source inferred only when exactly one other
+    // deposit account could fund it. Send/pay verbs are person flows and never parse here.
+    function parse(text) {
+      const t = String(text || "");
+      if (!/\b(move|transfer|shift)\b/i.test(t)) return null;
+      const amt = /\$\s?([\d,]+(?:\.\d{1,2})?)/.exec(t) || /\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars|bucks|usd)\b/i.exec(t);
+      const amount_cents = amt ? Math.round(Number(amt[1].replace(/,/g, "")) * 100) : null;
+      const fromM = /\bfrom\s+(.+?)(?=\s+to\s+|$)/i.exec(t);
+      const toM = /\bto\s+(.+?)\s*[.!?]*\s*$/i.exec(t);
+      const clean = s => s ? s.replace(/\s+(please|now|today|for me)\s*$/i, "").trim() : null;
+      const from_query = fromM ? clean(fromM[1]) : null, to_query = toM ? clean(toM[1]) : null;
+      if (!from_query && !to_query) return null;
+      return { amount_cents, from_query, to_query, text: t };
+    }
+    const intent = text => { const p = parse(text); return !!p && !!(p.from_query || p.to_query); };
+
+    // Both ends resolved to distinct own accounts, or the precise gap: which end is missing or ambiguous.
+    function resolveMove(parsed, accounts) {
+      const p = parsed || {};
+      let to = null, from = null;
+      if (p.to_query) { const r = resolve(p.to_query, accounts); if (r && r.ambiguous) return { ambiguous: { which: "to", options: r.ambiguous } }; if (r) to = r.account; }
+      if (p.from_query) { const r = resolve(p.from_query, accounts); if (r && r.ambiguous) return { ambiguous: { which: "from", options: r.ambiguous } }; if (r) from = r.account; }
+      if (to && !from) {
+        const others = accounts.filter(a => a.id !== to.id && (a.kind === "checking" || a.kind === "savings" || a.kind === "cash"));
+        const fund = to.kind === "savings" ? others.filter(a => a.kind === "checking") : to.kind === "checking" ? others.filter(a => a.kind === "savings") : others;
+        if (fund.length === 1) from = fund[0];
+      }
+      if (from && !to) {
+        const others = accounts.filter(a => a.id !== from.id && (a.kind === "checking" || a.kind === "savings" || a.kind === "cash"));
+        if (others.length === 1) to = others[0];
+      }
+      if (!to) return { missing: "to" };
+      if (!from) return { missing: "from" };
+      if (from.id === to.id) return { same: true };
+      return { from, to };
+    }
+
+    function create(opts) {
+      const o = opts || {}, clock = o.clock || (() => Date.now());
+      const Plans = typeof AgentMoneyPlans !== "undefined" ? AgentMoneyPlans : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
+      if (!Plans || !Loop) throw new Error("AgentTransfer needs AgentMoneyPlans and AgentLoop loaded.");
+      const st = o.state || {}, ls = st.loop || {};
+      const log = Array.isArray(ls.log) ? ls.log : [], memoryInit = ls.memory || null;
+      const loop = Loop.create({ registry: o.registry, connectors: o.connectors, clock, log, memory: memoryInit, sent: ls.sent, pending: ls.pending || null, control: o.control || null, envelopes: o.envelopes || [], confirm_ttl_ms: o.confirm_ttl_ms || 10 * 60000, guard: Guard, compliance: o.compliance || null, partners: o.partners || {}, kyc: o.kyc || null });
+      let pending = st.pending || null; // { confirmation_id, request, amount_cents, from_name, to_name, from_id, to_id, timing }
+      const readAccounts = async () => normalizeAccounts(typeof o.accounts === "function" ? await o.accounts() : o.accounts);
+
+      const names = list => list.map(a => a.name).join(", ");
+      function cardText(p) {
+        const when = p.timing === "instant" ? "Between your own accounts at the same bank it lands instantly." : "Between banks it lands in 1-2 business days.";
+        return `Move ${money(p.amount_cents)} from ${p.from_name} to ${p.to_name}? No fee. ${when} You can move it back the same way any time. Reply YES to move it, or NO to drop it.`;
+      }
+      function detailsText(p, accounts) {
+        const from = accounts.find(a => a.id === p.from_id);
+        const avail = from ? (Number.isSafeInteger(from.available_cents) ? from.available_cents : from.balance_cents) : null;
+        return `Move ${money(p.amount_cents)} from ${p.from_name} to ${p.to_name}. No fee; ${p.timing === "instant" ? "lands instantly" : "lands in 1-2 business days"}; fully reversible by moving it back.${Number.isSafeInteger(avail) ? ` ${p.from_name} has ${money(avail)} available, so this leaves ${money(avail - p.amount_cents)}.` : ""} Reply YES to move it, or NO to drop it.`;
+      }
+
+      async function stage(parsed) {
+        const p = parsed || {};
+        const accounts = await readAccounts();
+        if (!accounts.length) return { outcome: "unavailable", reason: "accounts_unreadable", text: "I can't read your linked accounts right now, so I can't set that up. Nothing was moved." };
+        if (!Number.isSafeInteger(p.amount_cents) || p.amount_cents <= 0) return { outcome: "ask", reason: "amount", text: "How much should I move?" };
+        const mv = resolveMove(p, accounts);
+        if (mv.ambiguous) return { outcome: "ask", reason: "account", text: `Which ${mv.ambiguous.which === "to" ? "account should it go to" : "account should it come from"}? You have ${names(mv.ambiguous.options)}. Name one and I'll put up the card.` };
+        if (mv.missing) return { outcome: "ask", reason: "account", text: mv.missing === "to" ? `Move it to which account? I can see ${names(accounts)}.` : `Move it from which account? I can see ${names(accounts)}.` };
+        if (mv.same) return { outcome: "ask", reason: "account", text: "Those are the same account. Name two different accounts and I'll put up the card." };
+        const built = Plans.ownTransfer({ from: mv.from.id, to: mv.to.id, amount_cents: p.amount_cents }, { accounts, today: ymd(clock()) });
+        if (built.ask) return { outcome: "ask", reason: "account", text: built.ask };
+        if (built.stop) return { outcome: "stop", reason: built.reason, text: built.text };
+        const r = await loop.wake({ kind: "message", request: built.request });
+        if (r.outcome === "awaiting_confirmation") {
+          pending = { confirmation_id: r.confirmation_id, request: built.request, amount_cents: p.amount_cents, from_id: mv.from.id, to_id: mv.to.id, from_name: mv.from.name, to_name: mv.to.name, timing: built.request.confirm.timing || null, leaves_cents: built.leaves_cents };
+          return { outcome: "confirm", confirmation_id: r.confirmation_id, text: cardText(pending), transfer: { amount_cents: pending.amount_cents, from: pending.from_name, to: pending.to_name } };
+        }
+        if (r.outcome === "already_done") { pending = null; return { outcome: "already_done", text: r.message }; }
+        if (r.outcome === "blocked") { pending = null; return { outcome: "blocked", reason: r.reason, text: r.message }; }
+        return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
+      }
+
+      // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
+      async function start(text) {
+        if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; }
+        const p = parse(text);
+        if (!p) return { outcome: "ask", reason: "unread", text: "Say it like \"move $500 from checking to savings\" and I'll put up the card." };
+        return stage(p);
+      }
+
+      // True only when the words name a move between two of the person's own accounts: the router's gate for
+      // taking the message deterministically, so a transfer to a person is never captured here.
+      async function matches(text) {
+        const p = parse(text);
+        if (!p || !Number.isSafeInteger(p.amount_cents)) return false;
+        const accounts = await readAccounts();
+        const mv = resolveMove(p, accounts);
+        return !!(mv.from && mv.to);
+      }
+
+      function settle(r, p) {
+        if (r.outcome === "confirmed") return { outcome: "confirmed", text: r.message, reference: r.outcome_record && r.outcome_record.reference || null, transfer: { amount_cents: p.amount_cents, from: p.from_name, to: p.to_name } };
+        if (r.outcome === "unknown") return { outcome: "unknown", text: r.message };
+        if (r.outcome === "failed") return { outcome: "failed", text: r.message };
+        if (r.outcome === "declined") return { outcome: "declined", text: r.message };
+        return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
+      }
+
+      async function reply(text) {
+        const p = pending;
+        if (!p) return { outcome: "nothing_pending", text: "There is no transfer waiting on you." };
+        const t = String(text || "");
+        // A fresh restatement of a move (the yes-after-edit gate) is a correction, never an approval of the old
+        // card: the old card is dropped and the new one staged for its own yes.
+        if (await matches(t)) {
+          await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+          const again = await stage(parse(t));
+          return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
+        }
+        let cls = Voice ? Voice.classify(t, { pending_confirmation: true }) : { type: /^\s*y/i.test(t) ? "confirmation" : "question", approved: /^\s*y/i.test(t) };
+        // An amount correction without a restatement ("make it $300", "$300 instead") corrects the card the
+        // same way: re-stage the same two accounts at the new amount, for a fresh yes.
+        const amtM = /\$\s?([\d,]+(?:\.\d{1,2})?)/.exec(t) || /\b([\d,]+(?:\.\d{1,2})?)\s*(?:dollars|bucks|usd)\b/i.exec(t);
+        const newAmt = amtM ? Math.round(Number(amtM[1].replace(/,/g, "")) * 100) : null;
+        if (cls.type !== "confirmation" && newAmt && newAmt !== p.amount_cents && /\b(make it|instead|change|actually|no,)\b/i.test(t)) cls = { type: "correction", amount_only: true };
+        if (cls.type === "correction") {
+          await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+          const again = await stage({ amount_cents: cls.amount_only ? newAmt : p.amount_cents, from_query: p.from_name, to_query: p.to_name, text: t });
+          return Object.assign({ corrected: true }, again, again.outcome === "confirm" ? { text: `Got it. ${again.text}` } : {});
+        }
+        if (cls.type === "hold") return { outcome: "held", text: `Holding it. Nothing moved. Say yes to move ${money(p.amount_cents)} from ${p.from_name} to ${p.to_name}, or no to drop it.` };
+        if (cls.type === "confirmation" && cls.approved === false) { const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null; return settle(r, p); }
+        if (cls.type === "confirmation" && cls.approved === true) {
+          // Stop-on-change: the move is rebuilt from the accounts as they stand now. If it no longer clears
+          // (the money left, an account closed), nothing moves and the card comes down.
+          const accounts = await readAccounts();
+          const rebuilt = Plans.ownTransfer({ from: p.from_id, to: p.to_id, amount_cents: p.amount_cents }, { accounts, today: ymd(clock()) });
+          if (!rebuilt.request) {
+            await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: false }); pending = null;
+            return { outcome: "changed", text: `Stopped before moving: ${rebuilt.text || rebuilt.ask || "the accounts changed"}. Nothing was moved.` };
+          }
+          const r = await loop.wake({ kind: "confirmation", confirmation_id: p.confirmation_id, approved: true }); pending = null;
+          // A stale yes never fires: the card expired, nothing moved, and a fresh card goes up for a fresh yes.
+          if (r.outcome === "expired") {
+            const again = await stage({ amount_cents: p.amount_cents, from_query: p.from_name, to_query: p.to_name, text: t });
+            if (again.outcome === "confirm") return Object.assign({}, again, { expired: true, text: `That card expired, so nothing was moved. Here's a fresh one: ${again.text}` });
+            return { outcome: "expired", text: `That card expired, so nothing was moved. ${again.text || ""}`.trim() };
+          }
+          return settle(r, p);
+        }
+        if (/^\s*(3|details?|more|terms|full terms)\s*[.!?]*\s*$/i.test(t)) return { outcome: "details", text: detailsText(p, await readAccounts()), details: true };
+        return { outcome: "ask", text: `Yes or no? ${cardText(p)}` };
+      }
+
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), pending }));
+      return { start, reply, parse, intent, matches, snapshot, loop,
+        get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.amount_cents, recipient: pending.to_name, from: pending.from_name } : null; },
+        get awaiting_input() { return false; } };
+    }
+    return { create, parse, intent, resolveMove, normalizeAccounts, CAPABILITY };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = AgentTransfer;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -16633,4 +17159,4 @@ const BNPL_PROVIDERS_JSON = {"about":"Buy now, pay later providers as they show 
 const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and on ask (packages/domain/99-deadlines.js; owner's capability list item 39). Read-only: dates only, never what to file, pay or pick. Researched 2026-10-12 by web search restricted to the official sites (irs.gov, cms.gov, medicare.gov, healthcare.gov); the pages themselves could not be opened from the build environment (DNS), so every row says what the official page's search result states and how it was checked. 'date' is the date as the source prints it or, for a tax date the IRS has not printed yet, as the rule sets it; a tax date ('rolls': true) moves to the next business day after a Saturday, Sunday or legal holiday (federal holidays and Washington, D.C.'s Emancipation Day), computed in the module and checked against 'published_on' where the IRS printed the year's date. State tax dates differ and the IRS can postpone dates for disaster areas; a person's own plan or employer dates come only from what they say. Re-check every row on its page; past its fresh_days (a year for a federal tax date set by law, 90 days for an enrollment window, the file's fresh_days otherwise) the answer says the dates on file may have changed. Class-action claim dates are not here: no verified settlement list is on file.","checked_on":"2026-10-12","fresh_days":90,"roll_rule":{"text":"If a due date falls on a Saturday, Sunday or legal holiday, it moves to the next business day; a legal holiday includes Washington, D.C.'s Emancipation Day (April 16, observed on a weekday).","source":{"title":"IRS estimated tax questions and answers","url":"https://www.irs.gov/faqs/estimated-tax"},"also":{"title":"IRS Publication 509 for 2026","url":"https://www.irs.gov/publications/p509"},"checked_on":"2026-10-12"},"deadlines":[{"id":"fed-extended-2025","group":"tax","audience":"extension","what":"extended 2025 federal income tax returns (Form 1040)","verb":"are due","date":"2026-10-15","rolls":true,"published_on":"2026-10-15","source":{"title":"IRS fourth-quarter tax calendar, Publication 509 for 2026","url":"https://www.irs.gov/businesses/small-businesses-self-employed/fourth-quarter-tax-calendar"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: \"10/15/2026 | Individuals: File Form 1040 if you timely requested a 6-month extension.\""},{"id":"fed-est-2026-q4","group":"tax","audience":"estimated_tax","what":"the 4th estimated tax payment for 2026 (Form 1040-ES)","verb":"is due","date":"2027-01-15","rolls":true,"published_on":"2027-01-15","source":{"title":"IRS 2026 Form 1040-ES","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: 2026 Form 1040-ES lists payments April 15, June 15 and Sept. 15, 2026 and Jan. 15, 2027"},{"id":"fed-return-2026","group":"tax","audience":"everyone","what":"2026 federal income tax returns (Form 1040) and extension requests (Form 4868)","verb":"are due","date":"2027-04-15","rolls":true,"published_on":null,"source":{"title":"IRS Publication 509 for 2027, draft","url":"https://www.irs.gov/pub/irs-dft/p509--dft.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: the 2027 draft of Publication 509 has the April 15 entry for Form 1040 and the Form 4868 extension; the final 2027 calendar is not out, so this is the date the rule sets (the 15th day of the 4th month after the tax year)"},{"id":"fed-est-2027-q1","group":"tax","audience":"estimated_tax","what":"the 1st estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-04-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-est-2027-q2","group":"tax","audience":"estimated_tax","what":"the 2nd estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-06-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-est-2027-q3","group":"tax","audience":"estimated_tax","what":"the 3rd estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-09-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-extended-2026","group":"tax","audience":"extension","what":"extended 2026 federal income tax returns (Form 1040)","verb":"are due","date":"2027-10-15","rolls":true,"published_on":null,"source":{"title":"IRS Publication 509 for 2026, Form 4868 six-month extension","url":"https://www.irs.gov/publications/p509"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"six months after the April 15 date, as Publication 509 describes Form 4868; the 2027 calendar is not out"},{"id":"fed-est-2027-q4","group":"tax","audience":"estimated_tax","what":"the 4th estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2028-01-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; January 15, 2028 is a Saturday and January 17 is Martin Luther King Jr. Day, so the rule moves it"},{"id":"medicare-oe-2027","group":"enrollment","audience":"medicare","what":"Medicare Open Enrollment for 2027 coverage","verb":"ends","opens_on":"2026-10-15","date":"2026-12-07","rolls":false,"published_on":"2026-12-07","source":{"title":"Medicare.gov Open Enrollment page","url":"https://www.medicare.gov/health-drug-plans/open-enrollment"},"also":{"title":"CMS press release on 2027 Medicare Advantage and Part D","url":"https://www.cms.gov/newsroom/press-releases/medicare-advantage-medicare-prescription-drug-programs-expected-remain-stable-2027"},"checked_on":"2026-10-12","fresh_days":90,"how_checked":"cms.gov and medicare.gov search results: Medicare Open Enrollment runs October 15, 2026 to December 7, 2026; changes take effect January 1, 2027"},{"id":"aca-2027-jan1","group":"enrollment","audience":"marketplace","what":"the last day to enroll in or change a HealthCare.gov plan for coverage starting January 1, 2027","verb":"is","opens_on":"2026-11-01","date":"2026-12-15","rolls":false,"published_on":"2026-12-15","source":{"title":"HealthCare.gov dates and deadlines","url":"https://www.healthcare.gov/quick-guide/dates-and-deadlines/"},"checked_on":"2026-10-12","fresh_days":90,"how_checked":"healthcare.gov search results: Open Enrollment starts November 1; December 15 is the last day to enroll in or change plans for coverage to start January 1","note":"When open enrollment for 2027 itself closes could not be confirmed: HealthCare.gov's pages say January 15, while a 2025 CMS rule (CMS-9884-F) set December 15 for the federal platform from 2027. State marketplaces set their own dates."}]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer };

@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, AgentMoneyPlans, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -53,10 +53,14 @@ export interface RentOffer { kind: "rent_month"; standing_id: string; month: str
 // A send the person scheduled (megadoc A08): at its time, yes puts up the send flow's own card for their words.
 export interface ScheduledSendOffer { kind: "scheduled_send"; id: string; command: string; name: string; amount_cents: number; at_ms: number }
 // A windfall sweep the person was offered (SAVE-022): the deposit, the exact sweep the alert named, and the two
-// accounts. A yes answers the sweep question; the move itself is an own-account transfer, which needs its own
-// confirmation card, so the answer to a yes is honest about what chat can and cannot stage (see windfallOfferAnswer).
-export interface WindfallOffer { kind: "windfall_sweep"; key: string; transaction_id: string; deposit_cents: number; sweep_cents: number; from_account_id: string; to_account_id: string; classification: string }
-export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer | WindfallOffer;
+// accounts, by id and by the names chat knows them by. A yes answers the sweep question; the move itself is an
+// own-account transfer (PAY-009) and gets its own confirmation card from the transfer flow, staged by restating
+// the move in the flow's own words (see windfallOfferAnswer).
+export interface WindfallOffer { kind: "windfall_sweep"; key: string; transaction_id: string; deposit_cents: number; sweep_cents: number; from_account_id: string; to_account_id: string; from_name: string | null; to_name: string | null; classification: string }
+// The exact preventive transfer for a low-balance warning (SAVE-006, real-world C29): the warning names the
+// move, and a yes stages it through the same transfer flow as the windfall sweep (PAY-009's card).
+export interface PreventiveOffer { kind: "preventive_transfer"; key: string; amount_cents: number; from_account_id: string; to_account_id: string; from_name: string; to_name: string; first_below_on: string; land_by: string }
+export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer | WindfallOffer | PreventiveOffer;
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
 // standing: the person's active rows of public.standing_payments (their rent rule).
@@ -192,7 +196,15 @@ export function plan(input: ProactiveInput, now: number) {
     const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, subscriptions: input.subscriptions || [], watches: plainWatches, quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
     out.held = (f.held || []).length;
     for (const x of f.safety || []) push({ key: `safety:${x.key}`, kind: "safety", text: x.text, capability_id: x.capability_id || "SEC-001", urgent: true, cadence: true });
-    for (const x of f.watches || []) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
+    for (const x of f.watches || []) {
+      // C29: a low-balance watch (the feed routes the ALRT-001 dip here) carries the preventive move as its
+      // offer, exactly like the finding below — one offer per run, so a later finding's offer waits.
+      if (typeof x.key === "string" && x.key.startsWith("low_balance:") && !out.messages.some(m => m.offer)) {
+        const offer = preventiveOffer(x, { accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
+        if (offer) { push({ key: `watch:${x.key}`, kind: "watch", text: `${x.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.`, capability_id: x.capability_id || "ALRT-001", urgent: true, cadence: true, offer }); continue; }
+      }
+      push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
+    }
     for (const p of f.proactive || []) {
       const key = `finding:${p.key}`;
       if (sentKeys.has(key)) continue;
@@ -201,13 +213,31 @@ export function plan(input: ProactiveInput, now: number) {
       if (!b.allowed) { out.suppressed.push({ key: p.key, reason: b.reason }); continue; }
       // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
       const exempt = b.reason !== "budget";
-      const offer = trialOffer(p, input.subscriptions || []) || windfallOffer(p);
+      const offer = trialOffer(p, input.subscriptions || []) || windfallOffer(p, accounts) || preventiveOffer(p, { accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
       // One offer per run, so one yes answers exactly one question; this one waits for the next hour.
       if (offer && out.messages.some(m => m.offer)) { out.suppressed.push({ key: p.key, reason: "one_offer_at_a_time" }); continue; }
       // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
       // A windfall finding already ends with its own question ("Sweep $X to savings? Reply yes…"), so no suffix.
-      const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
+      const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : offer && offer.kind === "preventive_transfer" ? `${p.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.` : p.text;
       if (push({ key, kind: "finding", text, capability_id: offer && offer.kind === "cancel_trial" ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
+    }
+    // C29: the checking-level dip the total-cash warning (ALRT-001) cannot see — checking goes under the
+    // buffer on its own while savings covers it, so no alert fired above. The SAVE-006 computation names the
+    // exact preventive transfer; warn with it, under the same log key the alert would have used, so the two
+    // never both fire for the same day.
+    if (!out.messages.some(m => m.key.includes("low_balance:"))) {
+      const pv = computePreventive({ accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
+      if (pv) {
+        const key = `finding:${pv.offer.key}`;
+        if (sentKeys.has(key)) { /* the same dip was already warned about in an earlier run */ }
+        else if (quietNow && !pv.urgent) out.suppressed.push({ key: pv.offer.key, reason: "quiet_hours" });
+        else if (out.messages.some(m => m.offer)) out.suppressed.push({ key: pv.offer.key, reason: "one_offer_at_a_time" });
+        else {
+          const b = AgentLoop.budgetAllows(budgetTimes, { key: pv.offer.key, kind: "low_balance", reason: "your checking is heading under your buffer", deadline: Date.parse(pv.offer.first_below_on + "T00:00:00Z"), urgent: pv.urgent } as any, now);
+          if (!b.allowed) out.suppressed.push({ key: pv.offer.key, reason: b.reason });
+          else if (push({ key, kind: "finding", text: `${pv.text} Moving ${money(pv.offer.amount_cents)} from ${pv.offer.from_name} to ${pv.offer.to_name} by ${fmtDay(pv.offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.`, capability_id: "ALRT-001", urgent: pv.urgent, cadence: b.reason !== "budget", offer: pv.offer }) && b.reason === "budget") budgetTimes.push(now);
+        }
+      }
     }
   }
   // Category budgets: 80% and 100% of each, once per budget per month (the log key), counted from the same rows and the
@@ -310,11 +340,35 @@ function trialOffer(p: any, subs: any[]): TrialOffer | null {
 
 // The windfall finding's offer, built from the alert's own computed evidence (59-agent-alerts.js): only when the
 // alert named an exact sweep between two of the person's accounts. No destination named, no offer.
-function windfallOffer(p: any): WindfallOffer | null {
+function windfallOffer(p: any, accounts: any[] = []): WindfallOffer | null {
   if (!p || typeof p.key !== "string" || !p.key.startsWith("windfall:")) return null;
   const c = p.evidence && p.evidence.computed;
   if (!c || !Number.isInteger(c.sweep_cents) || !(c.sweep_cents > 0) || !c.from_account_id || !c.to_account_id) return null;
-  return { kind: "windfall_sweep", key: p.key, transaction_id: p.key.slice("windfall:".length), deposit_cents: Number.isInteger(p.amount_cents) ? p.amount_cents : 0, sweep_cents: c.sweep_cents, from_account_id: String(c.from_account_id), to_account_id: String(c.to_account_id), classification: String(c.classification || "unusual deposit") };
+  const nameOf = (id: string) => { const a = (accounts || []).find(x => x && String(x.id) === String(id)); return a ? String(a.name || a.nickname || id) : null; };
+  return { kind: "windfall_sweep", key: p.key, transaction_id: p.key.slice("windfall:".length), deposit_cents: Number.isInteger(p.amount_cents) ? p.amount_cents : 0, sweep_cents: c.sweep_cents, from_account_id: String(c.from_account_id), to_account_id: String(c.to_account_id), from_name: nameOf(c.from_account_id), to_name: nameOf(c.to_account_id), classification: String(c.classification || "unusual deposit") };
+}
+
+// The preventive move for a low-balance warning, computed by the money-plans module (SAVE-006) from the
+// person's rows: the smallest transfer from savings that keeps checking above the buffer, and the day it
+// must land. No move exists (no savings, nothing to move, no dip) or an account can't be named: null, and
+// any warning stands on its own.
+function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: string; buffer_cents?: number }): { offer: PreventiveOffer; text: string; urgent: boolean } | null {
+  let mv: any = null;
+  try { mv = (AgentMoneyPlans as any).overdraftPrevention({ accounts: ctx.accounts, transactions: ctx.transactions, today: ctx.today, buffer_cents: ctx.buffer_cents }); } catch { return null; }
+  if (!mv || !mv.needed || !mv.request || !(mv.amount_cents > 0)) return null;
+  const fromId = String(mv.request.params.from), toId = String(mv.request.params.to);
+  const nameOf = (id: string) => { const a = (ctx.accounts || []).find(x => x && String(x.id) === id); return a ? String(a.name || a.nickname || id) : null; };
+  const from_name = nameOf(fromId), to_name = nameOf(toId);
+  if (!from_name || !to_name) return null;
+  const offer: PreventiveOffer = { kind: "preventive_transfer", key: `low_balance:${String(mv.first_below.on)}`, amount_cents: mv.amount_cents, from_account_id: fromId, to_account_id: toId, from_name, to_name, first_below_on: String(mv.first_below.on), land_by: String(mv.land_by) };
+  return { offer, text: String(mv.text), urgent: !!(mv.low_point && mv.low_point.balance_cents < 0) };
+}
+
+// The offer on an ALRT-001 finding (key low_balance:<date>): the same computation, keyed to the finding.
+function preventiveOffer(p: any, ctx: { accounts: any[]; transactions: any[]; today: string; buffer_cents?: number }): PreventiveOffer | null {
+  if (!p || typeof p.key !== "string" || !p.key.startsWith("low_balance:")) return null;
+  const pv = computePreventive(ctx);
+  return pv ? Object.assign({}, pv.offer, { key: p.key }) : null;
 }
 
 // ---- The answer to an offer: "yes" starts the cancellation (its own card is the one explicit approval), "no" keeps
@@ -324,11 +378,12 @@ const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now
 export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
 export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
   const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
-  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send", "windfall_sweep"].includes(d.offer.kind)) return null;
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send", "windfall_sweep", "preventive_transfer"].includes(d.offer.kind)) return null;
   if (await d.liveCard()) return null;
   if (d.offer.kind === "rent_month") return rentOfferAnswer(yes, d, now);
   if (d.offer.kind === "scheduled_send") return scheduledSendAnswer(yes, d, now);
   if (d.offer.kind === "windfall_sweep") return windfallOfferAnswer(yes, d, now);
+  if (d.offer.kind === "preventive_transfer") return preventiveOfferAnswer(yes, d, now);
   const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
   await d.clear();
   if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
@@ -369,14 +424,32 @@ async function scheduledSendAnswer(yes: boolean, d: OfferDeps, now: number): Pro
 }
 
 // The answer to "Your $3,240.00 tax refund landed — sweep $810.00 to savings?": no leaves the money where it
-// landed. A yes wants the sweep, but the move is an own-account transfer (PAY-009) and chat has no transfer card
-// to put up for its own confirmation yet, so nothing moves and the answer says exactly that, with the move
-// restated. Never staged, never claimed moved: the honest NOT_WIRED answer until the transfer flow exists.
+// landed. A yes restates the exact move in the transfer flow's own words ("move $810.00 from Everyday Checking
+// to High Yield Savings") and the flow stages the PAY-009 confirmation card; the sweep then moves only on the
+// card's own yes, through the loop, on whatever rail is connected. When the flow cannot stage it (no rail, a
+// gate, the accounts changed), its own reply says why and nothing is claimed moved.
 async function windfallOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
   const o = d.offer;
   await d.clear();
   if (!yes) return { reply: `Okay, I'll leave the ${money(o.deposit_cents)} where it landed. Nothing moved.` };
-  return { reply: `You said yes to sweeping ${money(o.sweep_cents)} to savings, but I can't put up that move from chat yet, so nothing moved: the ${money(o.deposit_cents)} is still in your checking. Moving money between your own accounts isn't wired here yet.` };
+  if (!o.from_name || !o.to_name) return { reply: `You said yes to sweeping ${money(o.sweep_cents)}, but I can't name both accounts anymore, so I didn't put up the move and nothing moved. Say "move ${money(o.sweep_cents)}" with the two accounts and I'll put up the card.` };
+  const restated = `move ${money(o.sweep_cents)} from ${o.from_name} to ${o.to_name}`;
+  const flow = await d.runFlow(restated);
+  if (flow && !(flow as any).fallthrough && flow.reply) return { reply: flow.reply, route: flow.route };
+  return { reply: `I couldn't put up that move right now, so nothing moved. Say "${restated}" and I'll put up the card.` };
+}
+
+// The answer to the low-balance warning's preventive move (C29): a no leaves the accounts as they are and
+// restates the risk; a yes restates the exact move into the transfer flow, whose PAY-009 card is the tap that
+// stages it — the move itself still takes the card's own yes, like every transfer.
+async function preventiveOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
+  const o = d.offer;
+  await d.clear();
+  if (!yes) return { reply: `Okay, I won't move anything. ${o.to_name} still goes under your buffer on ${fmtDay(o.first_below_on)} on the current path.` };
+  const restated = `move ${money(o.amount_cents)} from ${o.from_name} to ${o.to_name}`;
+  const flow = await d.runFlow(restated);
+  if (flow && !(flow as any).fallthrough && flow.reply) return { reply: flow.reply, route: flow.route };
+  return { reply: `I couldn't put up that move right now, so nothing moved. Say "${restated}" and I'll put up the card.` };
 }
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----

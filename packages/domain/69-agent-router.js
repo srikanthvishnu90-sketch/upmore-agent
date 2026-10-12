@@ -417,6 +417,19 @@
         if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
         return { route: "mover_explainer", source: "deterministic", flow: "trade", canonical: text, result, understood: true, understood_first: true, problems: [], dropped };
       }
+      // Own-account transfers (PAY-009, real-world C30): "move $500 from Everyday Checking to High Yield
+      // Savings" stages the transfer's confirmation card deterministically, ahead of the model — but only
+      // when the session's own check resolves both ends to the person's own accounts, so a transfer to a
+      // person is never captured here and still reaches the send flow.
+      if (sessions.transfer && typeof sessions.transfer.matches === "function" && await sessions.transfer.matches(text)) {
+        if (memo.queue && memo.queue.text !== text) memo.queue = null;
+        const dropped = [];
+        for (const k of live) if (k !== "transfer") { await sessions[k].reply("never mind"); dropped.push(k); }
+        for (const k of Object.keys(sessions)) if (k !== "transfer" && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+        const result = await sessions.transfer.start(text);
+        if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+        return { route: "own_transfer", source: "deterministic", flow: "transfer", capability: "PAY-009", canonical: text, result, understood: true, understood_first: true, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -494,7 +507,7 @@
     // Follow-ups that only make sense against an open card or list ("make it 50", "the other one") reach the router so it
     // can say nothing is open, instead of the model guessing at one.
     const FOLLOW_UP = /^\s*(?:(?:make|change)\s+(?:it|that|this)(?:\s+to)?\s+\$?\d[\d,]*(?:\.\d{1,2})?\s*(?:dollars|bucks|usd)?|(?:the\s+)?(?:other|second|first|last|2nd|1st)\s+one)\s*[.!?]*\s*$/i;
-    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || FOLLOW_UP.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || FOLLOW_UP.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)) || (typeof AgentTransfer !== "undefined" && !!AgentTransfer.intent(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();

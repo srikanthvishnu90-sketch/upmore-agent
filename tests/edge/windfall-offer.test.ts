@@ -1,7 +1,9 @@
 // SAVE-022 windfall offer (C30), the answer side: plan() attaches a windfall_sweep offer to the windfall finding,
-// and offerMessage answers the person's yes/no in the thread. A no leaves the money where it landed. A yes wants
-// the sweep, but the move is an own-account transfer (PAY-009) and chat has no transfer card to stage for its own
-// confirmation yet, so the answer must say nothing moved — never claim a sweep that did not happen.
+// with both accounts named, and offerMessage answers the person's yes/no in the thread. A no leaves the money
+// where it landed. A yes restates the exact move into the transfer flow (PAY-009), which stages its own
+// confirmation card — the sweep moves only on that card's yes. When the flow cannot stage it, the answer says
+// nothing moved and restates the move — never claim a sweep that did not happen. The end-to-end chain (offer
+// yes -> card -> card yes -> balances) is proven in tests/edge/transfer-flow.test.ts.
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { plan, offerMessage, mapAccounts, mapTransactions } from "../../supabase/functions/_shared/proactive.ts";
 
@@ -39,14 +41,26 @@ Deno.test("windfall offer: plan() attaches the exact sweep the alert named", () 
   assertEquals(o.classification, "tax refund");
 });
 
-Deno.test("windfall offer: a yes moves nothing and says so, with the sweep restated", async () => {
+Deno.test("windfall offer: a yes the flow cannot stage moves nothing and says so, with the move restated in the flow's words", async () => {
   const cleared = { n: 0 };
   const r = await offerMessage("yes", deps(storedOffer(), cleared), NOW);
   assert(r, "the yes is answered");
   assert(/nothing moved/.test(r!.reply), r!.reply);
-  assert(/\$2,100\.00 to savings/.test(r!.reply), r!.reply);
+  assert(/move \$2,100\.00 from Everyday Checking to High Yield Savings/.test(r!.reply), r!.reply);
   assert(!/moved \$|swept|transferred/.test(r!.reply), r!.reply);
   assertEquals(cleared.n, 1, "the offer is consumed by the answer");
+});
+
+Deno.test("windfall offer: a yes stages the transfer card through the flow, restating the exact move", async () => {
+  const cleared = { n: 0 };
+  const seen: string[] = [];
+  const d = Object.assign({}, deps(storedOffer(), cleared), { runFlow: async (text: string) => { seen.push(text); return { reply: "Move $2,100.00 from Everyday Checking to High Yield Savings? No fee. Reply YES to move it, or NO to drop it.", route: { route: "own_transfer", flow: "transfer", outcome: "confirm" } }; } });
+  const r = await offerMessage("yes", d, NOW);
+  assert(r, "the yes is answered");
+  assertEquals(seen, ["move $2,100.00 from Everyday Checking to High Yield Savings"], "the flow is handed the exact restated move");
+  assertEquals(r!.reply, "Move $2,100.00 from Everyday Checking to High Yield Savings? No fee. Reply YES to move it, or NO to drop it.", "the card is the reply");
+  assertEquals(r!.route.outcome, "confirm");
+  assertEquals(cleared.n, 1);
 });
 
 Deno.test("windfall offer: a no leaves the deposit where it landed", async () => {

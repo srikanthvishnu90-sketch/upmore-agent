@@ -166,7 +166,8 @@
     const QUESTION = /^\s*(?:did|does|do (?:i|we|you)|what|what'?s|whats|how|when|where|why|who|whose|which|is|are|was|were|am i|have i|has|any)\b/i;
     // Questions a flow answers from its own records stay with the flow: a cancellation's terms or state (cancel), the
     // live portfolio (trade). "Did anyone pay me back?" is read from transactions by the assistant, not a send.
-    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions)\b/i;
+    // "What do I own" and "what's my biggest position" are the live portfolio's too (megadoc G01, G06).
+    const FLOW_QUESTION = /\b(cancel\w*|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock))\b/i;
     const ASK_TO_DO = /^\s*(?:can|could|would|will) you\b|\b(?:send|pay|buy|sell|cancel|split|request)\s+(?:@?[a-z]+\s+)?\$?\d/i;
     const INJECTION = /\b(?:ignore (?:all |any )?(?:previous|prior|above|earlier|your) (?:instructions|rules|prompts?)|disregard (?:all |the )?(?:previous|prior|above) (?:instructions|rules)|system prompt|you are now|new instructions:|developer mode)\b/i;
     const SECRET_SEND = /\b(?:send|text|email|share|give|forward)\b.{0,30}\b(?:account (?:number|#)|routing (?:number|#)|card (?:number|#)|social security|ssn|password|passcode|pin\b|one[- ]time code|verification code|otp)\b/i;
@@ -174,7 +175,7 @@
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
     const NO_ONLY = /^\s*(n|no|nope|nah|no thanks|no thank you|never ?mind|nvm|forget it|scratch that)\s*[.!]*\s*$/i;
-    const ORDER_WORDS = /\b(orders?|portfolio|holdings|positions?|shares?|stocks?|limit|stop|trailing|what do i own|brokerage)\b/i;
+    const ORDER_WORDS = /\b(orders?|portfolio|holdings?|positions?|shares?|stocks?|limit|stop|trailing|what do i own|what am i holding|brokerage)\b/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
     const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "working", "partial", "declined", "expired"]);
     // An order still working at the broker is settled as a card (the yes was used) but not final: it can still be canceled.
@@ -348,7 +349,7 @@
       if (!e) {
         // Safety net: the regex parsers route alone, and the result says so.
         source = "regex_net";
-        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own)\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) && !BILL_NOT_PERSON.test(text.split(/\bfor\b/i)[0]) ? "send_money" : "other";
+        const guess = /\bsplit\b/i.test(text) && /\d/.test(text) ? "split_expense" : /\b(cancel|change|move|modify|update|raise|lower)\b[\w\s$.,'%-]{0,40}\border\b|\b(portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock))\b/i.test(text) ? "manage_order" : /\bsell\b/i.test(text) && !/\bbuy\b/i.test(text) || /\b(put|set|place)\s+a\s+(trailing\s+)?stop\b/i.test(text) ? "sell_security" : /\b(buy|purchase|invest|grab|get me)\b|\bput\b[\w$ ]{0,20}\b(in|into)\b/i.test(text) && !/\bsell\b/i.test(text) ? "buy_security" : /\b(cancel|cancle|cancl|unsubscribe|stop paying|get rid of|end my|kill my)\b|\bstop\s+\w+|\bdon'?t want\b[\w ]{1,30}\banymore\b/i.test(text) ? "cancel_subscription" : /\b(send|pay|venmo|zelle|cash ?app|paypal|owe)\b/i.test(text) && !BILL_NOT_PERSON.test(text.split(/\bfor\b/i)[0]) ? "send_money" : "other";
         e = { intent: guess };
       }
       if (e.intent === "card_reply") {
@@ -397,7 +398,7 @@
     // Cheap pre-filter so ordinary chat does not pay for an extra model call: a message is sent to the extractor only when
     // it could be one of the flows (or answers a live card, which the host checks from saved state). Broad on
     // purpose: a false positive costs one small model call that returns "other"; a false negative loses the request.
-    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|(?:limit|stop|trailing) order|my \w+ order)\b/i;
+    const MAYBE = /\b(buy|purchase|invest|put \$?\d|put [\w ]{0,20}\b(in|into)\b|grab|get me|cancel|cancle|cancl|unsubscribe|stop (paying|my|the|that)?|get rid of|don'?t want [\w ]{1,30} anymore|end my|kill my|send|pay|venmo|zelle|cash ?app|paypal|owe|transfer|wire|split|sell|portfolio|holdings|positions|what do i own|what am i holding|(?:biggest|largest|top|smallest) (?:position|holding|stock)|(?:limit|stop|trailing) order|my \w+ order)\b/i;
     // How people text, cleaned before any parser or the model sees it (corpus variants: "cancle netflix", "buy 100 of nvda
     // rn pls", "3 friends!!"): a misspelled leading verb, trailing filler and trailing ! or . are not part of the request.
     // A trailing ? is kept (it can make a question). Nothing else is rewritten.

@@ -251,3 +251,23 @@ test('rent: the answer, the card and the yes stay in the rent flow; the month is
   const second=await R.handle('yes',{extract,sessions:ss,parsers,memo:staged.memo});
   assert.equal(second.result.outcome,'already_done');assert.match(second.result.text,/^That's already staged: \$900\.00 to Sam K for you to send in Venmo\. A second yes doesn't stage it again\./);
 });
+
+// Megadoc G01 "what do I own" and G06 "what's my biggest position": questions, so they used to fall to the model; the
+// live portfolio read answers them now, with no model call, and the biggest position is ranked by the read's own values.
+test('portfolio questions reach the live read with no model: "what do I own", "what\'s my biggest position" ranked, an unvalued holding said',async()=>{
+  const w=world();const base=w.conn.read;let rows=[{symbol:'PLTR',qty:18.5,market_value_cents:76035},{symbol:'VOO',qty:2,market_value_cents:102420},{symbol:'F',qty:10,market_value_cents:12000}];
+  w.conn.read=async(kind,p)=>kind==='holdings'?{value:rows,source:'Example Broker',as_of:w.clock.now}:base(kind,p);
+  const ss=sessions(w);const none=async()=>{throw new Error('no model call for a portfolio question');};
+  const a=await R.handle('what do I own',{extract:none,sessions:ss,parsers});
+  assert.equal(a.result.outcome,'answer');assert.match(a.result.text,/^Portfolio in Schwab brokerage, Example Broker, as of \d\d:\d\d UTC: 18\.5 PLTR \(\$760\.35\), 2 VOO \(\$1,024\.20\), 10 F \(\$120\.00\)\. Buying power \$10,000\.00\.$/);
+  const b=await R.handle("what's my biggest position",{extract:none,sessions:ss,parsers});
+  assert.match(b.result.text,/^Your biggest position is VOO: \$1,024\.20, 53\.8% of your positions' value\.\nPortfolio in Schwab brokerage/);
+  const c=await R.handle("what's my smallest holding",{extract:none,sessions:ss,parsers});
+  assert.match(c.result.text,/^Your smallest position is F: \$120\.00, 6\.3% of your positions' value\./);
+  rows=[{symbol:'PLTR',qty:18.5,market_value_cents:76035},{symbol:'XYZ',qty:1}];
+  const d=await R.handle("what's my biggest position",{extract:none,sessions:ss,parsers});
+  assert.match(d.result.text,/^I can't rank your positions: the read doesn't carry a value for XYZ\.\n/);
+  assert.equal(w.writes.length,0,'nothing is placed');
+  // Still questions for the model: a stock's price, how to invest.
+  for(const q of ['what is a position in poker','how do i own a house'])assert.equal((await R.handle(q,{extract:none,sessions:ss,parsers})).route,'fallthrough',q);
+});

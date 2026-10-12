@@ -77,7 +77,7 @@
       const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
       const action = /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
-        : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
+        : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage)|(?:biggest|largest|top|smallest) (?:position|holding|stock))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
       const terms = orderTerms(t, side);
       const limit = terms.limit_cents !== null ? { 0: "" } : null; // kept for the scope check below
       const another = /\b(another|again|one more|a second)\b/i.test(t);
@@ -286,7 +286,7 @@
         // Stops across every holding at once are not built (megadoc E13): one holding at a time.
         if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
-        if (parsed.action === "portfolio") return portfolio();
+        if (parsed.action === "portfolio") return portfolio(parsed.text);
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
         if (parsed.asset === "crypto") return say("refuse", "Upmore can't trade crypto yet, so nothing was placed. Want to name a stock-listed fund instead? I'll put up a card for it.", { reason: "crypto_venue" });
@@ -540,14 +540,26 @@
         return say(s.status === "filled" ? "filled" : "replaced", `${P}Changed: order ${target.order_id} is replaced by order ${ref}, ${fresh.side === "sell" ? "sell" : "buy"} ${qty(fresh.quantity)} ${fresh.symbol}${terms(fresh).head}, ${s.status === "filled" ? `filled at ${money(s.fill_price_cents)}` : s.status} per ${rb.source} (as of ${hhmm(rb.as_of)}).`, { order_id: ref, replaced: target.order_id });
       }
       // The portfolio answer: positions and buying power from the account's own read, LIVE said first.
-      async function portfolio() {
+      // "What's my biggest position" (megadoc G06) leads with it by market value and its share of the positions' value,
+      // from the same read; a value the read doesn't carry is said, never estimated.
+      async function portfolio(text) {
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
         const h = await readOr("holdings", {});
         if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
         const a = (accts.value || [])[0] || {}, rows = h.value || [];
         const fmt = x => `${qty(x.qty !== undefined ? x.qty : x.quantity)} ${x.symbol}${Number.isSafeInteger(x.market_value_cents) ? ` (${money(x.market_value_cents)})` : ""}`;
-        return say("answer", `${a.live ? "LIVE portfolio" : "Portfolio"} in ${a.name || "your account"}, ${h.source}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`, { paper: false, live: !!a.live });
+        // The source once: "in your Alpaca account (****4417), your Alpaca account" said the account twice.
+        const where = a.name || "your account", srcSaid = String(where).toLowerCase().includes(String(h.source || "").toLowerCase().replace(/^your /, "")) ? "" : `, ${h.source}`;
+        const list = `${a.live ? "LIVE portfolio" : "Portfolio"} in ${where}${srcSaid}, as of ${hhmm(h.as_of)}: ${rows.length ? rows.map(fmt).join(", ") : "no positions"}. Buying power ${Number.isSafeInteger(a.cash_cents) ? money(a.cash_cents) : "unreadable"}.`;
+        const which = /\b(biggest|largest|top|smallest)\b/i.exec(String(text || ""));
+        if (!which || !rows.length) return say("answer", list, { paper: false, live: !!a.live });
+        const valued = rows.filter(x => Number.isSafeInteger(x.market_value_cents));
+        if (valued.length < rows.length) return say("answer", `I can't rank your positions: the read doesn't carry a value for ${rows.filter(x => !Number.isSafeInteger(x.market_value_cents)).map(x => x.symbol).join(", ")}.\n${list}`, { paper: false, live: !!a.live });
+        const total = valued.reduce((t, x) => t + x.market_value_cents, 0), small = /smallest/i.test(which[1]);
+        const pick = valued.slice().sort((x, y) => small ? x.market_value_cents - y.market_value_cents : y.market_value_cents - x.market_value_cents)[0];
+        const share = total > 0 ? Math.round((pick.market_value_cents / total) * 1000) / 10 : null;
+        return say("answer", `Your ${small ? "smallest" : "biggest"} position is ${pick.symbol}: ${money(pick.market_value_cents)}${share !== null && rows.length > 1 ? `, ${share}% of your positions' value` : rows.length === 1 ? ", your only position" : ""}.\n${list}`, { paper: false, live: !!a.live });
       }
 
       async function recheck(ord) {

@@ -560,3 +560,10 @@ would move every answer that uses it, so it is listed rather than changed overni
 | `docs/capability-list/map.cjs` item 134 | "IOU and running-balance modules; the chat says the IOU log is not built" (MODULE_ONLY) | Reachable in chat: log, settle in part or full, list both ways, the net with one person (IN_PRODUCT, part: splits from the split flow are not added). | same |
 | `evals/scenarios/verdicts.cjs` C05, D08, D09, D10 | MODEL / NOT_BUILT | BUILT with `tests/edge/iou.test.ts` | same |
 | `evals/depth/run.cjs` (the depth protocol) | A planted defect that makes its test fail is proven | A patch whose replacement held "$`" was applied by String.replace as a pattern and left the module unparseable; every test then fails, which would count as proven. Replacements are now inserted as written and a patch that leaves the module unparseable is not applied. All 1,274 recorded patches were re-checked: none breaks parsing, so no recorded proof changes. | the runner |
+
+## "What do I own" went to the model (2026-10-12, megadoc G01, G06)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `evals/scenarios/verdicts.cjs` G01, G06 | MODEL: "the chat model with the brokerage read" | The trade flow already parsed "what do I own" as a portfolio ask, but the router's gate (MAYBE) never let a question with those words reach it, so it fell to the model. The gate and the question rule now include "what do I own", "what am I holding" and "biggest/largest/smallest position"; the read answers with no model call, and the biggest position is ranked by the read's own values. BUILT with `tests/router.test.cjs`. | router test 17 |
+| `packages/domain/66-agent-trade.js` portfolio answer | "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of ..." | The source is said once when the account's name already carries it. | megadoc sim G01 |

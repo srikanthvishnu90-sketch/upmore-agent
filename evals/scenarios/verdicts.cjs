@@ -215,6 +215,7 @@ set("C07", "NOT_BUILT", "a request to a group chat: no group members are known; 
 set("C10", "BUILT", "a debt paid offline is marked settled in the person's own IOU log from how people say it ('sam says he already paid cash', 'sam paid me back in cash', 'sam settled up'); a note only, nothing paid or sent; never settles what the person owes", "tests/depth-IOU.test.cjs");
 set("E15", "LIMITED", "'sell VTI buy VOO' with no 'and' is now two requests in order (sell card first, then buy), never one card with the other dropped; settlement timing and tax notes are not said", "tests/router.test.cjs");
 set("D05", "LIMITED", "a landlord or company that \"changed where to send\" money, said without new details, gets the payment-redirection warning from code before any flow (call them on a number you already have, not the message); new details go only through a new rent card the person confirms; no step-up sign-in beyond that yes", "tests/depth-SCAM-CHECK.test.cjs");
+set("A10", "NOT_BUILT", "'the usual' from history: Upmore keeps no record of past sends to read it from, so the amount is asked and the reason said ('I don't keep a record of what you usually send Maya, so I won't guess the amount'); never a guessed amount", "tests/depth-PAY-001.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

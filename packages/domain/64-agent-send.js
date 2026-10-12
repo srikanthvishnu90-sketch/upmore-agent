@@ -216,6 +216,8 @@
         if (parsed.one_decimal && parsed.amount_cents && !parsed.amount_checked && !pick) { pendingAmountCheck = parsed; return { outcome: "ask", reason: "amount_format", text: `Do you mean ${money(parsed.amount_cents)}? Checking since it could also be ${money(parsed.amount_cents * 10)} or ${money(parsed.amount_cents * 1000)}.` }; }
         // "Send Maya my share" with no amount: a share of something said before, which this message doesn't carry (megadoc B10).
         if (!parsed.amount_cents && /\b(?:my|her|his|their|our|your) (?:share|half|part|cut|portion)\b/i.test(String(parsed.text || ""))) return { outcome: "ask", reason: "share_of_what", text: `${beat}Your share of what? Say the amount, like "send ${parsed.recipient ? String(parsed.recipient).replace(/\b\w/g, (c) => c.toUpperCase()) : "Maya"} $40 for dinner".` };
+        // "The usual" (megadoc A10): no record of past sends is kept here, so the amount is asked, never guessed, and why.
+        if (!parsed.amount_cents && /\b(?:the usual|my usual|usual amount|same as (?:last time|usual|always|before)|same amount|what i (?:always|usually) (?:send|pay|give))\b/i.test(String(parsed.text || ""))) return { outcome: "ask", reason: "usual_unknown", text: `${beat}How much? I don't keep a record of what you usually send${parsed.recipient && !DESCRIBED.test(parsed.recipient_raw || "") ? ` ${String(parsed.recipient).replace(/\s+(?:the|my|same|usual|what)\b.*$/i, "").replace(/\b\w/g, c => c.toUpperCase())}` : ""}, so I won't guess the amount.` };
         if (!parsed.amount_cents) return { outcome: "ask", text: `${beat}How much?` };
         if (!parsed.recipient && !pick) return { outcome: "ask", text: `${beat}Who should I send it to?` };
         identity = null; waiting = null; saveOffer = null;

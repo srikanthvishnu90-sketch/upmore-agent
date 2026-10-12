@@ -87,7 +87,7 @@
    "typed": "send maya the usual",
    "flow": "send",
    "outcome": "ask",
-   "reply": "How much?",
+   "reply": "How much? I don't keep a record of what you usually send Maya, so I won't guess the amount.",
    "executed": false,
    "mock_orders": 0
   },

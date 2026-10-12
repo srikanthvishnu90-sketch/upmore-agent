@@ -175,3 +175,10 @@ test('[S17] "send Maya my share" with no amount asks "Your share of what?" and s
   assert.equal(r.writes.length,0);assert.equal(s.pending,null);
   assert.equal((await s.start('send sam')).text,'How much?');
 });
+
+test('[S18] "send Maya the usual" asks how much and says no record of past sends is kept, never a guessed amount',async()=>{
+  const {s,r}=session();
+  for(const [m,who] of [['send sam the usual',' Sam'],['pay sarah same as last time',' Sarah'],['venmo sam my usual',' Sam']]){const a=await s.start(m);assert.equal(a.outcome,'ask',m);assert.equal(a.reason,'usual_unknown',m);assert.equal(a.text,`How much? I don't keep a record of what you usually send${who}, so I won't guess the amount.`,m);}
+  assert.equal(r.writes.length,0);assert.equal(s.pending,null);
+  assert.equal((await s.start('send sam')).text,'How much?','no note without "the usual"');
+});

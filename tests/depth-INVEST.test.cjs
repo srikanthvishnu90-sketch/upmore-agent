@@ -67,6 +67,8 @@ test("[S05] a concentration statement names its source and as-of, so the advice 
   assert.equal(G.response(con.flagged[1].statement, { analytics: true }).ok, true);
   // Two accounts read at different times: the total is only as current as the older read.
   const both = plain(I.concentration(ACCTS, 2000));
+  assert.equal(both.as_of, "2026-10-10T13:00:00Z", "the result's own as-of is the older read too (grounded)");
+  assert.equal(plain(I.consolidate(ACCTS)).as_of, "2026-10-10T13:00:00Z");
   assert.equal(both.flagged[0].statement, "VTI is 72.1 percent of your invested assets ($3,750.00 of $5,200.00), per Fidelity (MOCK) and Schwab (MOCK), as of 2026-10-10T13:00:00Z.");
   assert.equal(plain(I.concentration(one([{ symbol: "AAA", value_cents: 100 }], { source: undefined }), 1000)).flagged[0].statement,
     "AAA is 100.0 percent of your invested assets ($1.00 of $1.00), source or as-of time not on file.");

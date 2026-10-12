@@ -40,7 +40,7 @@ test('consolidation math on fixture portfolios: totals, shares in basis points, 
   assert.equal(c.total_cents,926650+1200000+900000+750000+650000);
   const vti=c.holdings.find(h=>h.symbol==='VTI');assert.equal(vti.value_cents,2100000);assert.deepEqual(vti.accounts,['fidelity-taxable','schwab-ira']);assert.equal(vti.unrealized_cents,500000);
   assert.equal(c.holdings[0].symbol,'VTI');assert.equal(c.holdings.reduce((s,h)=>s+h.share_bps,0)>=9998,true);
-  assert.deepEqual(c.sources,['Fidelity','Schwab']);assert.equal(c.as_of,'2026-10-10T14:14:00Z');
+  assert.deepEqual(c.sources,['Fidelity','Schwab']);assert.equal(c.as_of,'2026-10-10T13:00:00Z'); // a total across accounts is only as current as its older read (was the newer, 14:14)
   const a=I.allocation(accounts,'asset_class');assert.equal(a.buckets.find(b=>b.bucket==='bond').value_cents,750000);
   const g=I.allocation(accounts,'geography');assert.equal(g.buckets.find(b=>b.bucket==='intl').share_bps,Math.round(650000*10000/4426650));
 });

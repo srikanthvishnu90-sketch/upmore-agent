@@ -206,3 +206,10 @@ behavior back. Each line: what the doc or code said, what is true now, and the s
   bare "RETURNED ITEM" (a deposited check bouncing back) an NSF fee, each with a refund draft to "your bank".
 - Now: all fixed in the fee table (RECOVERY S22, D22/D22b/D22c proven, 25/25). Over 74,774 quoted strings in the repo,
   exactly 25 classifications changed, all of them these cases.
+
+## A portfolio total carried its newest read's time (2026-10-12, morning; from the INVEST packet's notes)
+
+- Said: every money statement cites its source and as-of time.
+- True (50-agent-invest.js grounded()): a total across Fidelity read at 14:14 and Schwab read at 13:00 was stamped
+  14:14; tests/invest.test.cjs pinned that. A total is only as current as its oldest read.
+- Now: the oldest read's time (INVEST S05, D05b proven, 30/30; INV-011 re-proven 17/17).

@@ -44,8 +44,9 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
   days" on the last day but one; a rollover with no stage threw. It now says "within 1 day", "today, the last day of
   the 60-day window", "the deadline ... was 12 days ago", and "stage unknown. Next: tell me the stage." D28, D29.
 
-Noted, not changed (for the owner): `grounded()` gives every analytics result the newest account's as-of, though a
-total is only as current as its oldest read (the statements now cite the oldest); price-alert text cites
+Fixed after merge: `grounded()` gave every analytics result the newest account's as-of, though a total is only as
+current as its oldest read; it now gives the oldest (S05, D05b; `tests/invest.test.cjs` had pinned the newer time).
+Noted, not changed (for the owner): price-alert text cites
 "(Mock Quotes, 2026-10-12T14:30:00Z)" without the words "per"/"as of" that the advice guard's grounding regex looks for;
 `harvest()` takes prices with no source or as-of, so its statement cannot cite one; the portfolio read prints a UTC
 time without saying UTC and defaults a missing source to "manual"; a rollover's clock runs from the date the funds were
@@ -59,6 +60,7 @@ sent, which is earlier (so stricter) than the IRS's date of receipt.
 | S03 | No gain without every cost | VTI without Schwab's cost basis has no gain | `S03` in tests/depth-INVEST.test.cjs | the costs on file are netted against the whole value (the bug found building this packet) | proven |
 | S04 | Half-up percent | 1035 bps is 10.4 percent | `S04` in tests/depth-INVEST.test.cjs | the percent is formatted with toFixed on a binary fraction, so 10.35 is 10.3 (the bug found building this packet) | proven (also fails S05, S25) |
 | S05 | The statement cites its source | AAA's share says per Mock Brokerage, as of | `S05` in tests/depth-INVEST.test.cjs | the statement drops its source and as-of (the bug found building this packet) | proven |
+| S05 | A total is as old as its oldest read | Fidelity read Oct 12 and Schwab read Oct 10 give an Oct 10 as-of | `S05` in tests/depth-INVEST.test.cjs | the newest account's read time stamps the whole total | proven |
 | S05 | As of the older read | Fidelity and Schwab, as of Schwab's Oct 10 read | `S05` in tests/depth-INVEST.test.cjs | the newest account's time is given for the whole | proven |
 | S06 | The line is inclusive | exactly 10.0 percent is flagged | `S06` in tests/depth-INVEST.test.cjs | the line is exclusive | proven |
 | S07 | By asset class by default | equity, bond, unknown | `S07` in tests/depth-INVEST.test.cjs | with no grouping named, every holding falls in one undefined bucket | proven |

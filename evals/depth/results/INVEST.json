@@ -1,9 +1,9 @@
 {
  "capability": "INVEST",
- "run_at": "2026-10-12T06:54:06.892Z",
+ "run_at": "2026-10-12T07:10:25.652Z",
  "baseline_all_green": true,
  "sub_capabilities": 26,
- "proven": 29,
+ "proven": 30,
  "problems": [],
  "rows": [
   {
@@ -59,6 +59,17 @@
    "title": "The statement cites its source",
    "defect": "the statement drops its source and as-of (the bug found building this packet)",
    "test": "AAA's share says per Mock Brokerage, as of",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S05",
+   "id": "D05b",
+   "title": "A total is as old as its oldest read",
+   "defect": "the newest account's read time stamps the whole total",
+   "test": "Fidelity read Oct 12 and Schwab read Oct 10 give an Oct 10 as-of",
    "bites": true,
    "applied": true,
    "collateral": [],

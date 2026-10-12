@@ -20,7 +20,7 @@
     // count across Feb 29 does not find. A Feb 29 purchase's anniversary is Feb 28.
     const longTerm = (acquired, sold) => { const a = String(acquired || "").slice(0, 10), s = String(sold || "").slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(a) || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; return s > (Number(a.slice(0, 4)) + 1) + (a.slice(4) === "-02-29" ? "-02-28" : a.slice(4)); };
     const and = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
-    const grounded = (result, accounts) => Object.assign(result, { sources: [...new Set(accounts.map(a => a.source))].sort(), as_of: accounts.map(a => a.as_of).sort().reverse()[0] || null, stale: accounts.some(a => a.stale === true) });
+    const grounded = (result, accounts) => Object.assign(result, { sources: [...new Set(accounts.map(a => a.source))].sort(), as_of: accounts.map(a => a.as_of).filter(Boolean).sort()[0] || null, stale: accounts.some(a => a.stale === true) });
 
     // Holdings across every account, by symbol, with value and share in basis points. Accounts: [{id, source, as_of, holdings:[{symbol, quantity, price_cents, asset_class, sector, geography, cost_cents, lots}]}]
     function consolidate(accounts) {

@@ -106,6 +106,18 @@ const OWNER: [string, string | null][] = [
   ["text me when I spend over 100 on one thing", null],
   ["weekly spending summary every Sunday", null],
   ["tell me when free trials are about to convert", null],
+  // This month against last month and the average, and spending by card (capability list items 12 and 13): money
+  // answers (94-spending-views.js), ahead of the budget answer; a budget, advice or another period goes on.
+  ["am i spending more than usual", "moneyReply"],
+  ["did i spend more on food this month than last", "moneyReply"],
+  ["this month vs last month", "moneyReply"],
+  ["spending by card", "moneyReply"],
+  ["which card do i use most", "moneyReply"],
+  ["how much did i put on my amex this month", "moneyReply"],
+  ["what's on my chase card", "moneyReply"],
+  ["am i spending more than my grocery budget", null],
+  ["which amex offers should i use this month", "cardOffersReply"],
+  ["should i spend less than last month", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

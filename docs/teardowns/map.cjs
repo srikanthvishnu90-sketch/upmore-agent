@@ -233,6 +233,10 @@ const ROWS = {
   "T2-MONARCH-115": { feature: "Planned, Actual and Remaining", items: [], coverage: "none", note: "planned, spent and left this month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only" },
   "T2-COPILOT-121": { feature: "Same budget for all months", items: [], coverage: "none", note: "the same amount every month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only" },
   "T2-YNAB-124": { feature: "Focused View: Overspent", items: [], coverage: "none", note: "\"am i over budget\" names each budget over and by how much; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only" },
+  // This month against the person's own average (item 12, in chat from 2026-10-12, 94-spending-views.js): rows in "none"
+  // sections whose numbers are that comparison.
+  "T2-MONARCH-275": { feature: "Spending trend widget", items: [12], coverage: "part", note: "this month against the person's own average (12; in chat over the last 3 full months, not 12); year to date against last year is not built" },
+  "T2-COPILOT-109": { feature: "Key Metrics", items: [12], coverage: "part", note: "a category's average month over complete months (12; in chat over the last 3 full months, \"on food\"); a yearly total per category is not built" },
   "T2-ROCKET-066": { feature: "Amount Left After Bills", items: [14], coverage: "part", note: "income minus bills, the core of safe to spend (14)" },
   "T2-ROCKET-067": { feature: "Debt paydown", items: [91], coverage: "full", note: "a payoff plan (91)" },
   "T2-ROCKET-075": { feature: "Bank fee notification", items: [81], coverage: "full", note: "catching a fee and asking for it back (81)" },

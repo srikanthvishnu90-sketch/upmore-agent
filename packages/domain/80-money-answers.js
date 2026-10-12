@@ -381,7 +381,9 @@
     }
 
     // CATEGORIES, isSpend, display, txSource and todayIn are shared with category budgets (93-budgets.js), so "groceries",
-    // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries".
-    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, display, txSource, todayIn };
+    // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries". The same ones,
+    // plus isIncome (a credit that is not a transfer or card payment), termMatch, acctName and kindOf, are shared with
+    // the month comparison and spending by card (94-spending-views.js).
+    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;

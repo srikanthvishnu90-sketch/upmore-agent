@@ -282,6 +282,11 @@ async function flow() {
   ex["ANL-007"] = money("what bills are coming up", /^Coming up in the next 30 days \(Oct 11-Nov 10\): .*\n- Oct 15: Oak Property Mgmt Rent, \$1,450\.00 \(monthly bill\)/s);
   // TXN-005: the repeating charges come from the rows themselves (the rent detected as a monthly bill, never typed in).
   ex["TXN-005"] = money("what bills are coming up", /\(monthly bill\)/);
+  // Spending items 12 and 13 (94-spending-views.js): this month against the same days of last month and the average,
+  // a category narrowing it to its own average, and spending per linked card or account.
+  ex["TXN-021"] = money("how does this month compare to last month", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d\.\nSame days last month \(Sep 1-\d+, day (\d+) vs day \1\): \$/);
+  ex["ANL-009"] = money("am i spending more than usual on food", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d on food[:.]/);
+  ex["CARD-001"] = money("spending by card", /^Spending by card and account this month so far \(Oct 1-\d+\), \$[\d,]+\.\d\d in all:\n- /);
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

@@ -9,7 +9,10 @@
 // "how much can i spend" (safe to spend until payday), "what bills are coming up", "how long will my money last",
 // "can i afford a $600 trip next month", "what's my net worth", "forecast", and "show me the math" for any of them
 // (the last answer in the thread, read through the optional previous() reader). tests/edge/the-numbers.test.ts.
-import { MoneyAnswers, TheNumbers } from "../../_shared/router_core.js";
+// This month against last month and the person's own average ("am i spending more than usual", "this month vs last
+// month") and spending by card ("spending by card", "how much did i put on my amex") come from
+// packages/domain/94-spending-views.js (SpendingViews; capability list items 12 and 13). tests/edge/spending-views.test.ts.
+import { MoneyAnswers, SpendingViews, TheNumbers } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -23,7 +26,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | NumbersKind;
 
 const LEAD = String.raw`^\s*(?:hey|hi|ok|okay|so|yo|pls|please|quick q:?)?[,\s]*`;
 const END = String.raw`(?:\s+(?:now|right now|today|pls|please))?\s*[?.!]*\s*$`;
@@ -66,6 +69,9 @@ export function moneyKind(message: string): MoneyKind | null {
   const m = String(message || "");
   if (CHECKUP.test(m)) return "checkup";
   if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m)) return "through";
+  // Before spend: "how much did i spend on my amex" is a card, "did i spend more on food than last month" a comparison.
+  const view = SpendingViews.ask(m) as "compare" | "cards" | null;
+  if (view) return view;
   if (SPEND.test(m) && !ADVICE.test(m)) return "spend";
   if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m)) return "balance";
   return numbersKind(m);
@@ -91,6 +97,8 @@ export async function moneyReply(message: string, now: Date | number | string, r
   let tx: MoneyTxRow[];
   try { tx = (await read.transactions()) || []; } catch { return MONEY_UNAVAILABLE; }
   if (kind === "spend") return MoneyAnswers.spend(tx, message, now, { tz });
+  if (kind === "compare") return SpendingViews.compare(tx, message, now, { tz });
+  if (kind === "cards") return SpendingViews.byCard(accounts, tx, message, now, { tz });
   if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz });
   if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
   if (kind === "math" || kind === "explain") {

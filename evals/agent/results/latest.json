@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 75,
-  "total": 75
+  "pass": 78,
+  "total": 78
  },
  "results": [
   {
@@ -325,6 +325,12 @@
   },
   {
    "family": "flow",
+   "id": "F:ANL-009",
+   "title": "ANL-009: chat: \"am I spending more than usual\" against the average of the last 3 full months, by category with \"on food\" (SpendingViews)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:ANL-013",
    "title": "ANL-013: chat: planner tool get_posted_flow_report (top merchants)",
    "status": "PASS"
@@ -351,6 +357,12 @@
    "family": "flow",
    "id": "F:BILL-010",
    "title": "BILL-010: scheduler: a trial the person tracks in the app warns within 7 days of the first charge",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:CARD-001",
+   "title": "CARD-001: chat: \"spending by card\", each linked card and account with its spending, share and top places (SpendingViews)",
    "status": "PASS"
   },
   {
@@ -465,6 +477,12 @@
    "family": "flow",
    "id": "F:TXN-011",
    "title": "TXN-011: chat: planner tool get_pending_transactions",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:TXN-021",
+   "title": "TXN-021: chat: \"how does this month compare to last month\", this month so far against the same days of last month (SpendingViews)",
    "status": "PASS"
   },
   {

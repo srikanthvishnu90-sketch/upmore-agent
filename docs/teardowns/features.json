@@ -7216,8 +7216,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "this month against a past month (12)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -22823,10 +22823,13 @@
    "id": "T2-MONARCH-275",
    "gates": [],
    "hard_gated": false,
-   "capability_items": [],
-   "capability_coverage": "none",
-   "upmore_today": "NO_ITEM",
-   "upmore_today_row": "NO_ITEM"
+   "capability_items": [
+    12
+   ],
+   "capability_coverage": "part",
+   "capability_note": "this month against the person's own average (12; in chat over the last 3 full months, not 12); year to date against last year is not built",
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "PART"
   },
   {
    "teardown": 2,
@@ -26213,10 +26216,13 @@
    "id": "T2-COPILOT-109",
    "gates": [],
    "hard_gated": false,
-   "capability_items": [],
-   "capability_coverage": "none",
-   "upmore_today": "NO_ITEM",
-   "upmore_today_row": "NO_ITEM"
+   "capability_items": [
+    12
+   ],
+   "capability_coverage": "part",
+   "capability_note": "a category's average month over complete months (12; in chat over the last 3 full months, \"on food\"); a yearly total per category is not built",
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "PART"
   },
   {
    "teardown": 2,
@@ -27344,8 +27350,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "this month against last month to date (12)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,

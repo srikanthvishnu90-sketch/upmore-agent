@@ -63,16 +63,16 @@ that are on the list and that a build may reach.
 | dub | 144 | 0 | 4 | 8 | 0 | 15 | 3 | 114 | 49 | 15 |
 | Alinea | 79 | 0 | 3 | 4 | 0 | 7 | 2 | 63 | 40 | 6 |
 | Autopilot | 67 | 0 | 9 | 2 | 0 | 16 | 2 | 38 | 44 | 5 |
-| Origin | 209 | 0 | 33 | 29 | 0 | 3 | 6 | 138 | 48 | 59 |
+| Origin | 209 | 0 | 34 | 28 | 0 | 3 | 6 | 138 | 48 | 59 |
 | Albert | 148 | 0 | 26 | 10 | 0 | 2 | 6 | 104 | 82 | 30 |
 | Rocket Money | 132 | 0 | 47 | 18 | 0 | 11 | 3 | 53 | 20 | 72 |
-| Monarch | 330 | 0 | 46 | 66 | 0 | 2 | 14 | 202 | 28 | 112 |
-| Copilot Money | 311 | 0 | 80 | 38 | 0 | 7 | 12 | 174 | 6 | 131 |
+| Monarch | 330 | 0 | 46 | 66 | 0 | 2 | 15 | 201 | 28 | 113 |
+| Copilot Money | 311 | 0 | 81 | 37 | 0 | 7 | 13 | 173 | 6 | 132 |
 | YNAB | 242 | 0 | 18 | 13 | 0 | 3 | 3 | 205 | 0 | 37 |
 | Cleo | 156 | 0 | 14 | 7 | 0 | 0 | 4 | 131 | 86 | 22 |
-| **all** | 1818 | 0 | 280 | 195 | 0 | 66 | 55 | 1222 | 403 | 489 |
+| **all** | 1818 | 0 | 282 | 193 | 0 | 66 | 57 | 1220 | 403 | 491 |
 
-Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 934.
+Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 936.
 
 ## Gaps Upmore's list does not cover
 
@@ -143,7 +143,7 @@ The last line per app counts the ungated rows with no item inside sections place
 - **Goals** (18 ungated rows): personal save-up goals; the list has no personal goal (136 is a goal shared with others); the pay-down rows map to 91 one by one
 - **Business Tracking** (5 ungated rows): business books, P&L and Schedule C exports
 - **Estate planning** (2 ungated rows): a partner's will and trust offer
-- **Dashboard and navigation** (13 ungated rows): dashboard cards and navigation; the numbers they show are mapped in their own sections
+- **Dashboard and navigation** (12 ungated rows): dashboard cards and navigation; the numbers they show are mapped in their own sections
 - **Mobile home screen widgets** (5 ungated rows): home screen widgets
 - **Data export** (7 ungated rows): CSV downloads of transactions and balances
 - **Platforms and countries** (6 ungated rows): Monarch's apps and country support
@@ -153,7 +153,7 @@ The last line per app counts the ungated rows with no item inside sections place
 
 ### Copilot Money
 
-- **Categories and budgets** (29 ungated rows): category budgets, groups and rollovers; the list has no budget. Upmore's chat now tracks one monthly budget per category, the same every month (93-budgets.js, overnight H1); no custom, renamed or grouped categories, rollovers, rebalancing or month-by-month amounts
+- **Categories and budgets** (28 ungated rows): category budgets, groups and rollovers; the list has no budget. Upmore's chat now tracks one monthly budget per category, the same every month (93-budgets.js, overnight H1); no custom, renamed or grouped categories, rollovers, rebalancing or month-by-month amounts
 - **Goals and savings** (19 ungated rows): personal savings goals; the list has no personal goal (136 is a goal shared with others)
 - **Widgets and Apple integrations** (14 ungated rows): home screen widgets, icons and Apple platform features
 - **Platforms and accessibility** (9 ungated rows): Copilot's apps and display settings
@@ -228,9 +228,11 @@ Every row counted PART above, each placed on its own with the half the list does
 | T2-MONARCH-192 | Monarch | Import grant from documents | 3 | MODULE_ONLY | reading a grant agreement (3); the equity tracking it feeds has no item |
 | T2-MONARCH-199 | Monarch | Portfolio treemap | 65 | MODULE_ONLY | holdings by asset class and sector (65); Upmore gives the numbers in words, the chart itself is not built |
 | T2-MONARCH-224 | Monarch | Forecast tables | 21 | IN_PRODUCT | the calculation behind each figure (21); the lifetime forecast it explains has no item |
+| T2-MONARCH-275 | Monarch | Spending trend widget | 12 | IN_PRODUCT | this month against the person's own average (12; in chat over the last 3 full months, not 12); year to date against last year is not built |
 | T2-COPILOT-032 | Copilot Money | Net Worth graph | 15 | IN_PRODUCT | net worth over time (15); Upmore gives the numbers in words, the chart itself is not built |
 | T2-COPILOT-052 | Copilot Money | Real Estate accounts with Zillow | 15 | IN_PRODUCT | a home counts in net worth (15); an automatic market-value feed for it is the rest |
 | T2-COPILOT-053 | Copilot Money | Real Estate accounts with RentCast | 15 | IN_PRODUCT | a home counts in net worth (15); an automatic market-value estimate for it is the rest |
+| T2-COPILOT-109 | Copilot Money | Key Metrics | 12 | IN_PRODUCT | a category's average month over complete months (12; in chat over the last 3 full months, "on food"); a yearly total per category is not built |
 | T2-COPILOT-158 | Copilot Money | Free to Spend | 14 | IN_PRODUCT | money left to spend this month (14); Copilot counts it against the month's budget, 14 counts to payday |
 | T2-COPILOT-220 | Copilot Money | Daily briefings | 9 | IN_PRODUCT | unusual charges and spending patterns (9); budgets running hot have no item |
 | T2-COPILOT-224 | Copilot Money | Proactive suggestions | 8 | MODULE_ONLY | category changes (8); budget changes have no item |
@@ -268,6 +270,8 @@ Rows in sections that are not placed row by row whose placement differs from the
 | T2-MONARCH-115 | Planned, Actual and Remaining | none | none | planned, spent and left this month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
 | T2-COPILOT-121 | Same budget for all months | none | none | the same amount every month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
 | T2-YNAB-124 | Focused View: Overspent | none | none | "am i over budget" names each budget over and by how much; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-MONARCH-275 | Spending trend widget | 12 | part | this month against the person's own average (12; in chat over the last 3 full months, not 12); year to date against last year is not built |
+| T2-COPILOT-109 | Key Metrics | 12 | part | a category's average month over complete months (12; in chat over the last 3 full months, "on food"); a yearly total per category is not built |
 | T2-ROCKET-066 | Amount Left After Bills | 14 | part | income minus bills, the core of safe to spend (14) |
 | T2-ROCKET-067 | Debt paydown | 91 | full | a payoff plan (91) |
 | T2-MONARCH-101 | Flex number | 14 | part | income minus fixed and non-monthly costs, the core of safe to spend (14) |
@@ -344,7 +348,7 @@ suggests is in its own "Build order suggestion" section.
 | Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Onboarding and account linking | 15 | 15 | 0 | 0 | 0 | T1-ORIGIN-001 .. T1-ORIGIN-015 (15) | 1, 4, 5, 11 | part (row by row): linking accounts (1), one list including manual ones (4), reconnecting (5) and itemising Amazon orders (11); CSV and Monarch imports and closed or excluded accounts have no item, and a home's automatic value feed is the half not covered | IN_PRODUCT 6, MODULE_ONLY 2, NOT_BUILT 1, PART 1, NO_ITEM 5 |
-| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) | 6, 7, 8, 11, 12 | part (row by row): spending by category and month (6, 12), finding transactions (7), category fixes and rules (8) and splits (11); tags, custom categories, bulk edits, the review queue, transfer matching and CSV export are bookkeeping with no item | IN_PRODUCT 7, MODULE_ONLY 5, NOT_BUILT 1, PART 1, NO_ITEM 9 |
+| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) | 6, 7, 8, 11, 12 | part (row by row): spending by category and month (6, 12), finding transactions (7), category fixes and rules (8) and splits (11); tags, custom categories, bulk edits, the review queue, transfer matching and CSV export are bookkeeping with no item | IN_PRODUCT 8, MODULE_ONLY 4, NOT_BUILT 1, PART 1, NO_ITEM 9 |
 | Budgeting | 13 | 12 | 0 | 1 | 0 | T1-ORIGIN-039 .. T1-ORIGIN-051 (13) | none | none | NO_ITEM 13 |
 | Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) | 10, 18, 31, 106 | full | IN_PRODUCT 8 |
 | Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) | 20 | part (row by row): what-if scenarios such as a home purchase or a new income (20); a lifetime plan with Monte Carlo odds, retirement, Social Security, equity and tax modeling has no item (16 forecasts 90 days) | MODULE_ONLY 8, NO_ITEM 12 |
@@ -420,7 +424,7 @@ suggests is in its own "Build order suggestion" section.
 | AI features | 10 | 8 | 0 | 2 | 1 | T2-MONARCH-235 .. T2-MONARCH-243 (9) | 7, 21, 24 | part (row by row): questions over the person's data, one charge included (7), why a number changed (21) and the weekly recap (24); product help, feedback buttons and the MCP connector have no item | IN_PRODUCT 5, NO_ITEM 5 |
 | Collaboration | 15 | 8 | 6 | 1 | 0 | T2-MONARCH-244 .. T2-MONARCH-258 (15) | 137 | part (row by row): mine, theirs and shared views for a household (137); adviser, professional and support access have no item | MODULE_ONLY 7, NO_ITEM 8 |
 | Notifications and digests | 10 | 3 | 0 | 7 | 1 | T2-MONARCH-259 .. T2-MONARCH-268 (9) | 5, 28, 37 | part (row by row): bill and recurring reminders (28), credit score changes (37) and broken connections (5); budget thresholds, review assignments, receipt notices and the price-change notice have no item | IN_PRODUCT 2, MODULE_ONLY 2, NO_ITEM 6 |
-| Dashboard and navigation | 14 | 14 | 0 | 0 | 1 | T2-MONARCH-269 .. T2-MONARCH-282 (13) | none | none | NO_ITEM 14 |
+| Dashboard and navigation | 14 | 14 | 0 | 0 | 1 | T2-MONARCH-269 .. T2-MONARCH-282 (13) | none | none | PART 1, NO_ITEM 13 |
 | Mobile home screen widgets | 5 | 5 | 0 | 0 | 0 | T2-MONARCH-283 .. T2-MONARCH-287 (5) | none | none | NO_ITEM 5 |
 | Credit score | 5 | 3 | 1 | 1 | 5 | none | 101 | full | MODULE_ONLY 5 |
 | Data export | 7 | 0 | 7 | 0 | 0 | T2-MONARCH-293 .. T2-MONARCH-299 (7) | none | none | NO_ITEM 7 |
@@ -436,9 +440,9 @@ suggests is in its own "Build order suggestion" section.
 | Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) | 4, 5, 15 | part (row by row): one list of accounts (4), connections needing attention (5) and net worth over time (15); utilization dots, renames, hiding and support merges have no item | IN_PRODUCT 5, MODULE_ONLY 6, PART 1, NO_ITEM 9 |
 | Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) | 15 | part (row by row): property and other assets in net worth, net of their mortgage (15); automatic home value feeds are the half not covered | IN_PRODUCT 4, PART 2, NO_ITEM 1 |
 | Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) | 6, 7, 8, 11 | part (row by row): the categorisation model and name rules (6, 8), finding and totalling transactions (7) and splits (11); the review inbox, tags, notes, bulk edits, transaction types and keyboard shortcuts are bookkeeping with no item | IN_PRODUCT 9, MODULE_ONLY 9, NOT_BUILT 4, NO_ITEM 24 |
-| Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) | none | none | NO_ITEM 29 |
+| Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) | none | none | PART 1, NO_ITEM 28 |
 | Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) | 10, 18 | full | IN_PRODUCT 23 |
-| Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) | 7, 12, 14, 18 | part (row by row): free to spend (14), upcoming recurrings (18), this month against last (12) and search (7); the pace chart and budgets card are budget features, and the review card, referral card and tab order are app chrome | IN_PRODUCT 2, MODULE_ONLY 1, PART 1, NO_ITEM 7 |
+| Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) | 7, 12, 14, 18 | part (row by row): free to spend (14), upcoming recurrings (18), this month against last (12) and search (7); the pace chart and budgets card are budget features, and the review card, referral card and tab order are app chrome | IN_PRODUCT 3, PART 1, NO_ITEM 7 |
 | Cash flow | 10 | 8 | 2 | 0 | 0 | T2-COPILOT-168 .. T2-COPILOT-177 (10) | 6, 12 | full | IN_PRODUCT 10 |
 | Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 4, 22, 64, 65 | part (row by row): returns against a benchmark (64), allocation (65), top movers (22) and hand-tracked holdings (4); live balance estimates have no item | IN_PRODUCT 4, MODULE_ONLY 12, NO_ITEM 6 |
 | Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) | none | none | NO_ITEM 19 |

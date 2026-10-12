@@ -59,6 +59,12 @@ const REACHABLE = {
   "BILL-002": "scheduler: the save engine's price-rise finding",
   "BILL-010": "scheduler: a trial the person tracks in the app warns within 7 days of the first charge",
   "CORE-004": "chat: \"every Friday tell me my food spend\" saves a standing report; the scheduler sends it",
+  // Section 1 "Spending" items 12 and 13 (2026-10-12): direct chat answers through agent-chat/_shared/money_answers.ts
+  // (SpendingViews, 94-spending-views.js). Evidence: tests/edge/spending-views.test.ts (through moneyReply),
+  // tests/spending-views.test.cjs, tests/depth-SPEND-VIEWS.test.cjs (docs/depth/SPEND-VIEWS.md).
+  "TXN-021": "chat: \"how does this month compare to last month\", this month so far against the same days of last month (SpendingViews)",
+  "ANL-009": "chat: \"am I spending more than usual\" against the average of the last 3 full months, by category with \"on food\" (SpendingViews)",
+  "CARD-001": "chat: \"spending by card\", each linked card and account with its spending, share and top places (SpendingViews)",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -82,8 +88,8 @@ const MAP = [
   [9, "ALRT-003 TXN-010", "part", "chat: \"anything unusual?\" lists, from the person's own rows over the last 30 days (7 for \"this week\"), charges over twice their usual, new merchants, same-day duplicates and fees (WhatsNew.unusual, tests/depth-WHATS-NEW S16-S18); the scheduler sends unusual and large charges (ALRT-003); triage of one unrecognized charge is the dispute answer", null],
   [10, "TXN-005 BILL-001 BILL-011 BILL-010", "part", "chat: \"what bills are coming up\" lists the repeating charges from the person's rows for the next 30 days, yearly renewals included; trials the person tracks warn through the scheduler; a trial nobody tracked is not found", null],
   [11, "TXN-006", "full", "", null],
-  [12, "TXN-021 ANL-009", "part", "module only; the planner can compare two ranges on request", null],
-  [13, "CARD-001 ANL-001", "part", "module only", null],
+  [12, "TXN-021 ANL-009", "full", "chat: \"am I spending more than usual\", \"this month vs last month\": this month so far against the same days of last month (day 12 vs day 12, said) and the average of the last 3 full months on file (how many said; none invented), the 3 categories that moved most; \"on food\" narrows it to that category and its average", null],
+  [13, "CARD-001 ANL-001", "full", "chat: \"spending by card\", \"how much did I put on my amex\": each linked card and account for the period asked, its total, share and top 3 places, names as stored; the last 4 only where a row carries a mask, and the live account table has none yet", null],
   // the numbers
   [14, "ANL-005", "full", "chat: \"how much can I spend\" answers cash minus bills due by the payday read from deposits, total and per day (none found: 30 days, said); the opt-in morning brief gives the same number from the same function (tests/edge/proactive.test.ts)", null],
   [15, "ACCT-004 ANL-017", "part", "today's net worth in chat (untyped and foreign accounts listed apart); over time (ANL-017) is not reachable: no balance history is read", null],

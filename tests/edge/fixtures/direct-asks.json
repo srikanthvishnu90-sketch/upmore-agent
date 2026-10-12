@@ -147,6 +147,25 @@
     ["weekly spending summary every Sunday", null],
     ["send me a weekly spending report on fridays", null],
     ["tell me when free trials are about to convert", null],
-    ["let me know before my free trials charge me", null]
+    ["let me know before my free trials charge me", null],
+    ["how does this month compare to last month", "moneyReply"],
+    ["am i spending more than usual", "moneyReply"],
+    ["this month vs last month", "moneyReply"],
+    ["hows my spending compared to normal", "moneyReply"],
+    ["did i spend more on food this month than last", "moneyReply"],
+    ["am i spending more this month", "moneyReply"],
+    ["is my spending up from last month", "moneyReply"],
+    ["my spending this month vs my average", "moneyReply"],
+    ["spending by card", "moneyReply"],
+    ["which card do i use most", "moneyReply"],
+    ["how much did i put on my amex this month", "moneyReply"],
+    ["whats on my chase card", "moneyReply"],
+    ["how much did i spend on my freedom flex", "moneyReply"],
+    ["spending by card last month", "moneyReply"],
+    ["do i spend more than the average american on food", null],
+    ["should i spend less than last month", null],
+    ["which card should i use for groceries", null],
+    ["how did last month compare", null],
+    ["what's on my credit report", null]
   ]
 }

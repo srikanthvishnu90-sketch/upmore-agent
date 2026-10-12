@@ -87,3 +87,6 @@ said, what is true, and the source.
   fix, not a product choice, so it is fixed.
 - Now: `FINISHED_STATE` names the finishing state of all 24 provider-record items from their done_when; any other
   expectation is not done, an item without one is unknown, "canceled" equals "cancelled". Red first (S09), D09b proven.
+- Then (run 79, the first to run): the deno job failed on one type error in the wiring test added in cd61602
+  (`s.trade.loop.memory` typed as `{}`), which the local bar missed because it ran the edge suite with --no-check. The
+  test is typed `any`; the local bar now type-checks the edge suite as CI does (403 passed, typed).

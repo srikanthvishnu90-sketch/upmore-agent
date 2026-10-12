@@ -22,6 +22,7 @@ jobs:
           node scripts/build-connect-cards.cjs --check
           node scripts/build-connector-matrix.cjs --check
           node scripts/build-teardowns.cjs --check
+          node scripts/build-methods.cjs --check
           python3 scripts/build-standalone-gauntlet.py --check
           node evals/parity/build-matrix.cjs --check
           node scripts/realworld-audit.cjs --check

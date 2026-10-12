@@ -37,7 +37,7 @@ here. The morning report is the last section.
 
 ## Block A: intake (first)
 
-- [ ] **A1. Methods 1-3 as spec items.** `docs/methods/` verbatim (done at 04:00), plus `scripts/build-methods.cjs`:
+- [x] **A1. Methods 1-3 as spec items.** `docs/methods/` verbatim (done at 04:00), plus `scripts/build-methods.cjs`:
   every `###` card (194: 88 + 74 + 32) becomes an item with a stable id (`M1-BANK-01`), section, what it is, the real
   example, payout, effort, odds, frequency, the three "How Upmore runs it" steps, needs, tags and source URL; every
   field present or the build fails. Gates from the standing rules (as the teardowns): `[Flag]`, decision 2 (the

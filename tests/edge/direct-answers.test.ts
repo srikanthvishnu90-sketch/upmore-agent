@@ -229,3 +229,16 @@ Deno.test("YOLO on options: can't be traded here, nothing placed, one plain risk
   // The same fact the trade flow refuses with, so the two never disagree.
   assertMatch(SRC_TRADE, /Upmore can't trade options, so nothing was placed\./);
 });
+
+// Money actions not built yet (packages/domain/111-not-yet.js, depth packet NOT-YET): in the first direct line, before
+// the flows, so the send parser never sees "transfer 1000 from savings to brokerage".
+Deno.test("money actions not built yet are said before any flow can misread them (F03 M02 K08-K11 D06 J09 M12 E25)", () => {
+  const { notYetReply } = DirectAnswers;
+  assertMatch(notYetReply("transfer 1000 from savings to brokerage")!, /^Moving money between your own accounts isn't built yet, so nothing was moved\./);
+  assertMatch(notYetReply("report my card stolen")!, /^Report it to your card issuer now/);
+  assertEquals(notYetReply("send sam 50 from savings"), null);
+  const line = SRC_HANDLER_SCAM.indexOf("?? notYetReply(message) ??"), flows = SRC_HANDLER_SCAM.indexOf("flow = await routeFlows(message");
+  assert(line > 0 && line < flows, "before the flows");
+  // The phrases it offers really are handled: rent is its own flow, a cancel is the cancel flow, a buy the trade flow.
+  assertEquals((AgentTrade as any).parse("buy $5 of VOO").action, "new");
+});

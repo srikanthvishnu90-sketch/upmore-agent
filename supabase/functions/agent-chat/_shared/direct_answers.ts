@@ -11,7 +11,7 @@
 //   - balance and spending with nothing linked: the planner's fallback spoke in internal terms ("retained USD posted
 //     records"). Now one plain line says nothing is connected and how to connect it.
 // Pure apart from the injected readers, so tests/edge/direct-answers.test.ts drives them with fixtures.
-import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON, AdviceGuard } from "../../_shared/router_core.js";
+import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON, AdviceGuard, NotYet } from "../../_shared/router_core.js";
 
 const CONNECT_EMAIL = /^\s*(?:please |pls |can you |could you |can u )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+)?(?:gmail|google mail|email|inbox)\b/i;
 
@@ -210,6 +210,13 @@ export function optionsReply(message: string): string | null {
   if (!OPTIONS.test(m) || !OPTIONS_INTENT.test(m) || OPTIONS_NOT.test(m)) return null;
   const sized = /\$?\d[\d,.]*\s*(?:k|grand|thousand|dollars|bucks)?\b/i.test(m.replace(/\b(?:0dte|\d+ ?(?:shares?|contracts?))\b/gi, "")) && /\d/.test(m);
   return `Upmore can't trade options, so nothing was placed. It can buy or sell stocks and ETFs in your own Alpaca account, each behind your yes${sized ? ", and every order is capped at $5 for now" : ""}. Plainly: options you buy can expire worthless, losing everything paid for them.`;
+}
+
+// Money actions Upmore can't do yet (packages/domain/111-not-yet.js, megadoc D06 D07 E25 F03 J09 J14 K08-K11 M02
+// M12): said plainly here, ahead of the flows, so "transfer 1000 from savings to brokerage" is never a payment to
+// someone called "brokerage" and the model never says a card was locked.
+export function notYetReply(message: string): string | null {
+  return (NotYet as any).answer(String(message || ""));
 }
 
 export const NO_ACCOUNTS =

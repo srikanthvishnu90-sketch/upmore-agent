@@ -187,6 +187,14 @@ set("N15", "BUILT", "a 'safe account' ask is a scam: stop, nothing moved, call t
 set("O09", "BUILT", "answered from code: Upmore can't trade options, nothing placed (the trade flow's own refusal, now reached even when the message isn't order-shaped), the $5 cap when a size was named, and one plain risk line; no lecture, no pick", "tests/edge/direct-answers.test.ts");
 set("O03", "BUILT", "answered from rows (money kind rentshort, 106-rent-short.js): rent read from the repeating payment or asked, the cash today and the paychecks and bills before the due date, a part-now-rest-later message to the landlord, and local help (211) when still short; nothing paid or sent", "tests/depth-RENT-SHORT.test.cjs");
 set("M05", "LIMITED", "answered from rows (110-savings-rate.js): no bank or rate is named (no verified, dated rate source exists); what each linked savings account paid in interest last full month and a rough yearly rate from it, and that switching means opening an account yourself; LIMITED until a dated rate source lets it compare", "tests/depth-SAVINGS-RATE.test.cjs");
+set("F03 M02", "NOT_BUILT", "a transfer between the person's own accounts is said not built before any flow can read it as a payment to 'brokerage' or 'savings'; nothing moved; the bank's own app (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("K09 K10", "NOT_BUILT", "locking or unlocking a card is said not possible here; the card's own app or the number on the back; nothing changed (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("K11", "NOT_BUILT", "a lost or stolen card: report it to the issuer now in their app or by phone (number on their website and statements); Upmore can't report or cancel a card; even mid-sentence (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("K08", "NOT_BUILT", "blocking a merchant is said not possible; cancel a subscription by name, or the card's app; nothing changed (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("D06 D07", "NOT_BUILT", "bill pay is said not built; nothing paid; the biller's own app; rent is the one bill set up here (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("J09 J14", "NOT_BUILT", "pausing or downgrading a subscription is said not built; the service's own page, or cancel by name (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("M12", "NOT_BUILT", "Upmore opens no accounts; the bank's or broker's own site, then connect it (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
+set("E25", "NOT_BUILT", "recurring investing is said not built; buy now behind a yes, $5 cap (said from code, 111-not-yet.js)", "tests/depth-NOT-YET.test.cjs");
 module.exports = V;
 
 // 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);

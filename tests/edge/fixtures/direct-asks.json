@@ -324,6 +324,11 @@
     ["I'm traveling in Japan", "travelReply"],
     ["im going to costco", null],
     ["I want to YOLO 10k on options", "optionsReply"],
-    ["what are my options for paying rent", null]
+    ["what are my options for paying rent", null],
+    ["transfer 1000 from savings to brokerage", "notYetReply"],
+    ["lock my card", "notYetReply"],
+    ["report my card stolen", "notYetReply"],
+    ["pay the electric bill", "notYetReply"],
+    ["pay my rent", null]
   ]
 }

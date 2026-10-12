@@ -66,7 +66,7 @@ set("D04", "BUILT", "with rent on file, a card restates the new amount and nothi
 set("D06 D07", "NOT_BUILT", "bill pay end to end is not built (no bill-pay rail)");
 set("D14", "BUILT", "answered from code over the person's own rows (money_answers.ts, not the model): posted with the date and account, or pending with the day it was first seen, with the source and as-of", "tests/edge/money-answers.test.ts");
 set("D12", "NOT_BUILT", "splitting rent across two accounts; the rent flow says rent comes from one account a month and asks which", "tests/standing-rent.test.cjs");
-set("D13", "NOT_BUILT", "a rent shortfall plan (balance vs rent due) is not built; the message is not a rent command and goes to the chat model");
+set("D13", "BUILT", "rent from the person's repeating rent payment (or the amount and due date they give) against the cash they say or their linked cash: the gap to the cent, paychecks and bills before the due date and what is left after rent; still short, a draft to the landlord they send; no rent found is asked; nothing is paid, moved or sent", "tests/edge/megadoc-money-asks.test.ts");
 set("D05", "NOT_BUILT", "saved landlord payee change from text: never taken from text; a payee change is a new rent setup card the person confirms");
 set("D08", "BUILT", "logged in the IOU log, restated, nothing moved; \"pay mom 200\" named for when the person wants to send it", "tests/edge/iou.test.ts");
 set("D09", "BUILT", "what the person owes from their IOU log, totaled, said as their own log and not checked against accounts", "tests/edge/iou.test.ts");

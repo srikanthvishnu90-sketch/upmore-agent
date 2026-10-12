@@ -84,3 +84,18 @@ Deno.test("J08: charged after a cancel, from the cancel flow's own record and th
   const unreadable = await moneyReply("I got charged for something I cancelled", new Date("2026-10-12T15:00:00Z"), { accounts: async () => acc as any, transactions: async () => [], cancellations: async () => { throw new Error("down"); } }, { tz: "America/New_York" });
   assertMatch(unreadable!, /^I can't read the cancellations I've done for you right now/);
 });
+
+Deno.test("D13: rent against cash from the rows, through the handler's chain; paying rent stays the rent flow's", async () => {
+  const [k, r] = await first("rent is due and I only have 1900");
+  assertEquals(k, "moneyReply");
+  // The MOCK rows have no repeating rent, so the rent is asked for, never guessed.
+  assertMatch(r, /^I don't see a rent payment that repeats in your linked accounts; .*How much is rent and when is it due\?/);
+  assertMatch(r, SRC);
+  assertEquals((await first("pay my rent"))[0], null);
+  const { moneyReply } = await import("../../supabase/functions/agent-chat/_shared/money_answers.ts");
+  const acc = [{ account_id: "chk", name: "Everyday Checking", institution: "Mock Bank", account_kind: "checking", balance_cents: 50000, available_cents: 50000, balance_as_of: "2026-10-12T12:00:00Z", fetched_at: "2026-10-12T12:00:00Z", status: "active", currency: "USD" }];
+  const rows = ["2026-07-01", "2026-08-01", "2026-09-01", "2026-10-01"].map((d, i) => ({ account_id: "chk", provider_transaction_id: `rent-${i}`, posted_on: d, amount_cents: -240000, merchant_raw: "OAK PROPERTY MGMT RENT", is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T12:00:00Z" }));
+  const t = await moneyReply("i can't pay rent this month", new Date("2026-10-12T15:00:00Z"), { accounts: async () => acc as any, transactions: async () => rows as any }, { tz: "America/New_York" });
+  assertMatch(t!, /^Rent: \$2,400\.00 due Nov 1 \(your repeating payment to Oak Property Mgmt Rent\)\.\nCash: \$500\.00 \(your linked checking and savings\)\.\nShort by \$1,900\.00 today\./);
+  assertMatch(t!, /\nNothing was paid, moved or sent\.\n/);
+});

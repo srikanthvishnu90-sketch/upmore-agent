@@ -282,6 +282,9 @@
     ["what's my order status", null],
     ["did my buy fill?", null],
     ["what do I own", null],
-    ["what's my biggest position", null]
+    ["what's my biggest position", null],
+    ["rent is due and I only have 1900", "moneyReply"],
+    ["i can't pay rent this month", "moneyReply"],
+    ["will i have enough for rent", "moneyReply"]
   ]
 }

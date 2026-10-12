@@ -247,3 +247,9 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
 - **Matrix wording vs "unverified until a real account connects" (owner, 2026-10-12).** The README showed "researched"
   beside "unverified", which reads like a verification level. Now every row reads "unverified (researched)" or
   "unverified (unconfirmed)" until a real account connects through it, and the summary shows verified vs unverified.
+- **The chat's self-description vs the product (found live 2026-10-12).** The system prompt, the server guards and the
+  app's offline fallback said "Upmore never touches your accounts", "I don't move your money" and "I help with earning
+  extra money ... not investing". True since the flows went live: Upmore places an order the person names in their own
+  brokerage, sets up payments to people and cancels subscriptions, each on a card with their yes; moving money between
+  accounts is not built. All three now say that (`agent-chat/_shared/agent.ts`, `capabilities.ts`, the app template), and
+  "what can't you do" answers from a fixed list. Source: live replies, `docs/gauntlet/live-2026-10-12.md`.

@@ -6133,7 +6133,7 @@
         (has("buy") && has("shares", "share") && has("for me")) ||
         (has("trade") && has("for me", "my") && has("stock", "shares", "options"))) {
       return { paras: [
-        "I can't move money for you -- Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap.",
+        "I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap.",
         "To place the trade yourself: open your brokerage app, find the position, choose sell or buy, pick a market or limit order, then review and confirm. Tell me the numbers and I'll sanity-check the math before you tap." ] };
     }
     return null;
@@ -7124,7 +7124,7 @@
     { const _x = " " + String(t).toLowerCase() + " ";
       if (/\binvest\b[^.]{0,60}\bfor me\b/.test(_x) || /\bdo it for me\b/.test(_x) ||
           (/\bbuy\b[^.]{0,40}\bfor me\b/.test(_x) && /(stock|share|etf|fund|crypto|\$|ticker)/.test(_x)))
-        return { paras: ["I can't move money for you — Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] }; }
+        return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] }; }
     // OWN-HOLDINGS WALL (2026-09-27): checked BEFORE the broad capital walls —
     // the Guide never discusses the user's own holdings, so "is my portfolio
     // OK?" reliably redirects to the Investments X-ray instead of a refusal.
@@ -7149,9 +7149,9 @@
     if (has("fake direct deposit", "fake a direct deposit", "spoof direct deposit", "manufacture direct deposit", "fraud", "fake account", "fake identity", "fake pay stub", "fake documents"))
       return { paras: ["I can't help with that — faking deposits or documents is fraud, and it gets accounts closed and bonuses clawed back. If you want a bank bonus honestly, I can walk you through one whose requirements you actually meet."] };
     if (has("move my money", "move $", "transfer my money", "transfer $", "invest for me", "invest my", "auto-invest", "buy stock for me", "withdraw for me", "withdraw $", "send money for me"))
-      return { paras: ["I can't move money for you \u2014 Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] };
+      return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] };
     if (/\bwithdraw\b.{0,25}\bfor me\b/.test(t))
-      return { paras: ["I can't move money for you \u2014 Upmore never touches your accounts. I can do the math and lay out the steps; you always make the final tap."] };
+      return { paras: ["I can't move money between your accounts, so nothing was moved. An order runs only on a card you approve, in your own connected brokerage. I can do the math and lay out the steps; you make the final tap."] };
     if (has("ignore your rules", "ignore your instructions", "disregard your rules", "guarantee me", "guaranteed $", "100% certain", "promise me $"))
       return { paras: ["I can't promise payouts — anyone who guarantees you money is selling something. What I can do is show you routes with verified terms and honest odds. Want that?"] };
 

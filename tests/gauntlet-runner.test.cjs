@@ -78,3 +78,16 @@ test('the single-file gauntlet is current with run-live.cjs and its corpora, and
     const res=JSON.parse(fs.readFileSync(path.join(dir,'results','standalone-selftest.spec16.json'),'utf8'));assert.equal(res.total,20);assert.equal(res.not_run,1,'the single file carries the three photos');assert.doesNotMatch(out.o,/test/.source==='x'?/x/:/Bearer/,'the token is never printed');}
   finally{if(server.closeAllConnections)server.closeAllConnections();server.close();fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('Upmore\'s own 429 is NOT RUN, never a FAIL, and the sloppy bar is not met while anything did not run (live 2026-10-12)',async()=>{
+  const http=require('node:http'),{execFile}=require('node:child_process');
+  let n=0;const srv=http.createServer((req,res)=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{n++;res.writeHead(429,{'content-type':'application/json'});res.end(JSON.stringify({error:'rate_limited',message:'Slow down a little'}));});});
+  await new Promise(r=>srv.listen(0,'127.0.0.1',r));
+  const url=`http://127.0.0.1:${srv.address().port}/functions/v1/agent-chat`;
+  const run=suite=>new Promise(r=>execFile('node',[path.join(root,'evals/gauntlet/run-live.cjs'),'--suite',suite,'--label','mock-429-'+suite,'--no-wait'],{cwd:root,env:Object.assign({},process.env,{UPMORE_CHAT_URL:url,UPMORE_TEST_JWT:'mock'})},(e,out)=>r({code:e?e.code:0,out})));
+  try{
+    const sp=await run('spec16');assert.match(sp.out,/NOT RUN S16-01 \(rate limited\)/);assert.doesNotMatch(sp.out,/^FAIL /m);
+    const sl=await run('sloppy');assert.match(sl.out,/20 NOT RUN \(rate limited\)/);assert.match(sl.out,/bar 95%: NOT MET/);assert.equal(sl.code,1);
+    const l3=await run('l3');assert.match(l3.out,/NOT RUN \(rate limited\)/);assert.doesNotMatch(l3.out,/^FAIL /m);assert.equal(l3.code,1,'not a pass either');
+  }finally{srv.close();for(const f of fs.readdirSync(path.join(root,'evals/gauntlet/results')))if(f.startsWith('mock-429-'))fs.unlinkSync(path.join(root,'evals/gauntlet/results',f));}
+});

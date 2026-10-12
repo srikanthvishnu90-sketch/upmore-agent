@@ -571,21 +571,24 @@ export function tryPlanStack(
 // no model call, no grounding check needed (fixed strings).
 
 const SECURITIES_REFUSAL =
-  "I can't recommend what to invest in — that's outside what I do. I help with earning extra money through verified routes, not investing. " +
-  "If you're looking to grow money you've already earned, that's a conversation for a fee-only financial advisor — they can match a strategy to your timeline and risk tolerance in ways I can't.";
+  "I can't recommend what to invest in — that's your call, and it's outside what I do. " +
+  "If you decide on an order, tell me exactly what to buy (\"buy $5 of VOO\") and I'll put it on a card for your yes. For a plan matched to your timeline and risk, a fee-only financial advisor is the right person.";
 
+// Moving money between accounts is not built (orders, payments to people and cancellations are: each through its own card
+// and the person's yes). The old line, "Upmore never touches your accounts", stopped being true when the flows went live,
+// and it was what the live gauntlet got for "buy $500 VOO in my roth" (2026-10-12).
 const MONEY_MOVE_REFUSAL =
-  "I can't move money for you — Upmore never touches your accounts. I can do the math and lay out the exact steps; you always make the final tap yourself.";
+  "I can't move money between your accounts yet, so nothing was moved. What I can do, each on a card you approve: buy or sell in your own connected brokerage, set up a payment to a person for you to send, or cancel a subscription.";
 
 const CREDIT_CARD_REFUSAL =
   "I can't help with credit cards — Upmore never recommends them, not for bonuses, not for points. If you want cash without a card, tell me what you're open to and I'll find a real route.";
 
-// Securities advice: "should I buy AAPL", "is Tesla a good investment",
-// "best ETF to buy", "what stocks should I invest in", "buy 10 shares of X".
+// Securities ADVICE: "should I buy AAPL", "is Tesla a good investment", "best ETF to buy", "what stocks should I invest
+// in". An order the person gives ("buy 2 shares of vt", "buy like 500 bucks of voo") is not advice: the trade flow takes
+// it (their own connected brokerage, a card, their yes, the $5 cap). The old "(buy|sell|short) [A-Z]{2,5}" branch ran
+// case-insensitive, so it matched "buy like" and "buy five" and refused real orders (live gauntlet, 2026-10-12).
 const SECURITIES_RX = new RegExp(
   "\\b(should i|should we|do you think i should)\\b.{0,40}\\b(buy|sell|short|invest in)\\b" +
-  "|\\b(buy|sell|short)\\s+[A-Z]{2,5}\\b" +
-  "|\\binvest\\s+\\$[\\d,]+\\s+in\\s+[A-Z]" +
   "|\\bis\\s+[A-Z][a-zA-Z&., ]{1,40}\\s+a good investment\\b" +
   "|\\b(are|is)\\b.{0,30}\\b(good investment|good buy|worth buying|worth investing in)\\b" +
   "|\\bbest\\b.{0,25}\\b(stocks?|etfs?|crypto|mutual funds?|index funds?)\\b.{0,25}\\b(to buy|to invest|right now|today)\\b" +
@@ -599,11 +602,11 @@ const SECURITIES_RX = new RegExp(
 // Money movement: "invest $500 for me", "buy X for me", "sell my shares",
 // "withdraw for me", "trade for me". (Cancellation requests are handled by
 // the execution agent in the Save tab, not by chat.)
+// Money movement the flows do not do: withdrawals and moving money between accounts. Buying, selling and investing are
+// orders for the trade flow, which runs before the model (never refused here).
 const MONEY_MOVE_RX = new RegExp(
-  "\\b(invest|buy|sell|trade|withdraw|transfer|move)\\b.{0,30}\\b(for me|on my behalf|my money)\\b" +
-  "|\\bfor me\\b.{0,20}\\b(invest|buy|sell|trade)\\b" +
-  "|^(buy|sell|invest|withdraw)\\b.{0,40}\\bfor me\\b" +
-  "|\\b(sell|buy)\\b.{0,20}\\bmy\\b",
+  "\\b(withdraw|transfer|move)\\b.{0,30}\\b(for me|on my behalf|my money)\\b" +
+  "|^(withdraw)\\b.{0,40}\\bfor me\\b",
   "i"
 );
 // Credit-card recommendations are out of the product (owner rule 2026-09-23).
@@ -618,7 +621,24 @@ const NEWS_BOUNDARY =
   "I don't have live market or news data, so I can't tell you what happened today — and I won't guess. " +
   "For today's numbers, check your brokerage app or a market site directly. What I can do: explain what market moves mean for your money, or help you earn extra cash through a verified route.";
 
+// "What can't you do?" (spec 16 item 20: the honest list, no marketing). The model answered it live (2026-10-12) with
+// the old earn-only persona ("I don't move your money"), which is no longer true. A fixed list, kept to what the code
+// enforces today: each line is a rule in CLAUDE.md or a gate in the flows.
+const LIMITS_RX = /\bwhat (?:can'?t|cannot|can not|won'?t) (?:you|u|upmore) do\b|\bwhat (?:are|r) (?:your|ur) limits\b|\bwhat (?:don'?t|do) you not do\b/i;
+export const LIMITS_ANSWER = [
+  "What I can't do, plainly:",
+  "- I don't give investment advice or pick stocks. I place an order only when you name it, in your own connected brokerage, and only after your yes on its card (up to $5 an order for now).",
+  "- I can't trade at Robinhood, Fidelity or Vanguard: they don't let apps place orders. I can track them through Plaid.",
+  "- I don't send money myself. I set up a payment to a person for you to send in your app, after your yes.",
+  "- I can't move money between your accounts or withdraw it.",
+  "- I never ask for or keep passwords or one-time codes in chat. You sign in yourself on the company's own page.",
+  "- No crypto, betting or prediction markets.",
+  "- No phone calls, and I don't file taxes or legal claims for you.",
+  "- I can't see an account you haven't connected.",
+].join("\n");
+
 export function tryServerGuards(message: string): string | null {
+  if (LIMITS_RX.test(message)) return LIMITS_ANSWER;
   if (SECURITIES_RX.test(message)) return SECURITIES_REFUSAL;
   if (MONEY_MOVE_RX.test(message)) return MONEY_MOVE_REFUSAL;
   if (CREDIT_CARD_RX.test(message)) return CREDIT_CARD_REFUSAL;

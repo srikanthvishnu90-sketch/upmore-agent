@@ -148,3 +148,57 @@ test('safety net: a bill is not a person; a bill word in the memo still pays the
     assert.equal(g&&g.route,'send_money',t);
   }
 });
+
+// Live gauntlet, 2026-10-12 (gpt-5-nano, the deployed handler): the model returned these extractions and the flows asked
+// "How much?" / "Cancel what?", a dispute photo got the brokerage link, and a bare "no" reached the model. Each case
+// below is the model's real omission, replayed through the real flows.
+test('live 2026-10-12: a detail the model dropped is filled from the regex net, so the card goes up instead of "How much?"',async()=>{
+  const w=world(),ss=sessions(w);
+  const extract=stub({
+    'send sam $40':{intent:'send_money',recipient_span:'sam',amount_span:null,amount_cents:null},
+    'venmo sam 40 for pizza':{intent:'send_money',recipient_span:'sam',memo_span:'pizza'},
+    'pay sam back forty':{intent:'send_money',recipient_span:'sam'},
+    'can u cancel netflix':{intent:'cancel_subscription',merchant_span:null}, // the router tidies "for me" off before the model reads it
+  });
+  const a=await R.handle('send sam $40',{extract,sessions:ss,parsers});
+  assert.equal(a.result.outcome,'confirm',a.result.text);assert.match(a.result.text,/\$40\.00 to Sam K/);assert.deepEqual(Array.from(a.filled_from_net),['amount']);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const b=await R.handle('venmo sam 40 for pizza',{extract,sessions:ss,parsers});
+  assert.equal(b.result.outcome,'confirm',b.result.text);assert.match(b.result.text,/\$40\.00 to Sam K/);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const c=await R.handle('pay sam back forty',{extract,sessions:ss,parsers});
+  assert.equal(c.result.outcome,'confirm',c.result.text);assert.match(c.result.text,/\$40\.00/);
+  await R.handle('no',{extract,sessions:ss,parsers});
+  const d=await R.handle('can u cancel netflix for me',{extract,sessions:ss,parsers});
+  assert.equal(d.result.outcome,'confirm',d.result.text);assert.match(d.result.text,/^Cancel Netflix/);
+  assert.equal(w.writes.length,0,'nothing runs before a yes');
+});
+
+test('live 2026-10-12: a model reading two different amounts still asks; the net only fills what is missing',async()=>{
+  const w=world(),ss=sessions(w);
+  const a=await R.handle('send sam $40',{extract:stub({'send sam $40':{intent:'send_money',recipient_span:'sam',amount_span:'$40',amount_cents:4000}}),sessions:ss,parsers});
+  assert.deepEqual(Array.from(a.filled_from_net),[],'nothing filled when the model read it');
+  assert.equal(a.result.outcome,'confirm');
+});
+
+test('live 2026-10-12: "dispute this charge" is never an order, whatever the model says',async()=>{
+  const w=world(),ss=sessions(w);
+  const r=await R.handle('dispute this charge',{extract:stub({'dispute this charge':{intent:'manage_order'}}),sessions:ss,parsers});
+  assert.equal(r.route,'fallthrough');assert.equal(r.reason,'not an order');
+  const p=await R.handle('show my portfolio',{extract:stub({'show my portfolio':{intent:'manage_order'}}),sessions:ss,parsers});
+  assert.notEqual(p.route,'fallthrough','a real portfolio ask still goes to the trade flow');
+});
+
+test('live 2026-10-12: a bare "no" with no live card drops what was asked and says nothing happened, never the model',async()=>{
+  const w=world(),ss=sessions(w);let calls=0;
+  const extract=async raw=>{calls++;return raw==='send sam'?{intent:'send_money',recipient_span:'sam'}:{intent:'other'};};
+  const ask=await R.handle('send sam',{extract,sessions:ss,parsers});
+  assert.equal(ask.result.outcome,'ask');
+  const n0=calls;
+  const no=await R.handle('no',{extract,sessions:ss,parsers});
+  assert.equal(no.source,'deterministic');assert.equal(calls,n0,'no model call');
+  assert.match(no.result.text,/^Okay(, dropped)?\. Nothing (was sent, bought or cancelled|is waiting on you, and nothing was changed)\.$/);
+  const again=await R.handle('nope',{extract,sessions:ss,parsers});
+  assert.equal(again.result.text,'Okay. Nothing is waiting on you, and nothing was changed.');
+  assert.equal(w.writes.length,0);
+});

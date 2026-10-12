@@ -97,8 +97,15 @@ function loadMedia(id) {
 }
 async function post(body) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt}` }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({ error: `HTTP ${r.status}, not JSON` })); if (!r.ok && !j.error) j.error = `HTTP ${r.status}`; return j;
+  const j = await r.json().catch(() => ({ error: `HTTP ${r.status}, not JSON` })); if (!r.ok && !j.error) j.error = `HTTP ${r.status}`;
+  if (r.status === 429) j.rate_limited = true;
+  return j;
 }
+// Upmore's own limit (60 messages an hour per person, agent_rl_bump) answers 429 before any code runs: that is no
+// behaviour at all, so the item is NOT RUN, never a FAIL (live run 2026-10-12: 87 messages in one hour from the test
+// user turned most of L3 and the end of sloppy into "fails"). go-live.sh resets the test user's window before each suite.
+const LIMITED = "rate_limited: Upmore's own limit (60 messages an hour per person) answered 429 before any code ran; not a behaviour result";
+const limited = res => !!(res && (res.rate_limited || res.error === "rate_limited"));
 const suite = args.includes("--suite") ? args[args.indexOf("--suite") + 1] : "sloppy";
 const resume = args.includes("--resume") ? args[args.indexOf("--resume") + 1] : null;
 const noWait = args.includes("--no-wait"), maxWait = (args.includes("--max-wait-min") ? Number(args[args.indexOf("--max-wait-min") + 1]) : 15) * 60000;
@@ -116,6 +123,7 @@ async function runSpec16() {
     const body = Object.assign(thread ? { thread_id: thread } : {}, { message: item.text }, photo ? { images: [photo] } : {});
     let res; try { res = await post(body); } catch (e) { res = { error: String(e && e.message || e) }; }
     if (res && res.thread_id) thread = res.thread_id;
+    if (limited(res)) { rows.push({ id: item.id, text: item.text, status: "NOT RUN", reasons: [LIMITED] }); console.log(`NOT RUN ${item.id} (rate limited)`); continue; }
     const reasons = check(item.checks || {}, res);
     rows.push({ id: item.id, text: item.text, expect: item.expect, media: photo ? item.needs_media : undefined, status: reasons.length ? "FAIL" : "PASS", reasons, reply: res && res.reply || null, route: res && res.route || null, error: res && res.error || null, failure_code: res && res.failure_code || null, segments: segments(res && res.reply || "") });
     console.log(`${reasons.length ? "FAIL" : "PASS"} ${item.id} ${JSON.stringify(item.text)}${reasons.length ? " | " + reasons.join("; ") : ""}`);
@@ -146,15 +154,16 @@ async function runL3(pendingIn) {
       for (const r of results) if (r && r.thread_id) thread = r.thread_id;
       const c = t.checks || {};
       const reasons = c.at_most_one_matches ? (results.filter(r => new RegExp(c.at_most_one_matches).test(String(r && r.reply || ""))).length > 1 ? [`more than one reply matched /${c.at_most_one_matches}/`] : []) : check(c, results[0]);
-      turns.push({ text: t.text, replies: results.map(r => r && r.reply || null), routes: results.map(r => r && r.route || null), errors: results.map(r => r && (r.error || r.failure_code) || null), checks: c, reasons });
+      turns.push({ text: t.text, replies: results.map(r => r && r.reply || null), routes: results.map(r => r && r.route || null), errors: results.map(r => r && (r.error || r.failure_code) || null), checks: c, reasons, limited: results.some(limited) });
     }
     if (saved) continue;
+    if (turns.some(x => x.limited)) { out.push({ id: cs.id, name: cs.name, status: "NOT RUN", reason: LIMITED, turns }); console.log(`NOT RUN ${cs.id} ${cs.name} (rate limited)`); continue; }
     const pass = turns.every(x => !x.reasons.length);
     if (thread) { try { await post({ thread_id: thread, message: "never mind" }); } catch (_) {} }
     out.push({ id: cs.id, name: cs.name, status: pass ? "PASS" : "FAIL", turns });
     console.log(`${pass ? "PASS" : "FAIL"} ${cs.id} ${cs.name}${pass ? "" : " | " + turns.filter(x => x.reasons.length).map(x => `${JSON.stringify(x.text)}: ${x.reasons.join("; ")}`).join(" / ")}`);
   }
-  return { suite: "l3", total: sc.cases.length, finished: out.length, passed: out.filter(x => x.status === "PASS").length, pending, cases: out };
+  return { suite: "l3", total: sc.cases.length, finished: out.filter(x => x.status !== "NOT RUN").length, not_run: out.filter(x => x.status === "NOT RUN").length, passed: out.filter(x => x.status === "PASS").length, pending, cases: out };
 }
 
 // Record every FAIL as a replay fixture (inside the repo only; the single-file build has no replay folder).
@@ -171,25 +180,27 @@ if (require.main === module) (async () => {
     const file = path.join(__dirname, "results", `${resume || label}.${resume ? "l3" : suite}.json`);
     const prior = resume && fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
     const r = suite === "spec16" && !resume ? await runSpec16() : await runL3(prior ? prior.pending : null);
-    if (prior) { r.cases = prior.cases.concat(r.cases); r.finished = r.cases.length; r.passed = r.cases.filter(x => x.status === "PASS").length; }
+    if (prior) { r.cases = prior.cases.concat(r.cases); r.finished = r.cases.filter(x => x.status !== "NOT RUN").length; r.not_run = r.cases.filter(x => x.status === "NOT RUN").length; r.passed = r.cases.filter(x => x.status === "PASS").length; }
     const result = Object.assign({ label: resume || label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>.") }, r);
     fs.writeFileSync(file, JSON.stringify(result, null, 1));
     recordReplays(result);
     if (r.suite === "spec16") console.log(`\nspec 16 20-text gauntlet against the live handler: ${r.passed}/${r.ran} behaved as specified (${r.not_run} not run: media or wait). Raw replies: ${path.relative(root, file)}`);
-    else console.log(`\nL3 against the live handler: ${r.passed}/${r.finished} cases passed${r.pending.length ? `, ${r.pending.length} waiting (resume later)` : ""}. Spec 16 needs 100%. Raw replies: ${path.relative(root, file)}`);
-    process.exit(r.suite === "spec16" ? (r.passed === r.ran ? 0 : 1) : (r.passed === r.finished && !r.pending.length ? 0 : 1));
+    else console.log(`\nL3 against the live handler: ${r.passed}/${r.finished} cases passed${r.not_run ? `, ${r.not_run} NOT RUN (rate limited)` : ""}${r.pending.length ? `, ${r.pending.length} waiting (resume later)` : ""}. Spec 16 needs 100%. Raw replies: ${path.relative(root, file)}`);
+    process.exit(r.suite === "spec16" ? (r.passed === r.ran ? 0 : 1) : (r.passed === r.finished && !r.pending.length && !r.not_run ? 0 : 1));
   }
   const rows = [];
   for (const item of corpus.items) {
     let res; try { res = await post({ message: item.text }); } catch (e) { res = { error: String(e && e.message || e) }; }
+    if (limited(res)) { rows.push({ id: item.id, text: item.text, expected_flow: item.flow, not_run: true, reason: LIMITED }); console.log(`NOT RUN    ${item.id} ${JSON.stringify(item.text)} (rate limited)`); continue; }
     const g = grade(item, res), u = understood(item, res); rows.push(Object.assign({ id: item.id, text: item.text, expected_flow: item.flow, understood: u.pass, understood_reasons: u.reasons }, g));
     if (res && res.thread_id) { try { await post({ thread_id: res.thread_id, message: "no" }); } catch (_) {} }
     console.log(`${u.pass ? "UNDERSTOOD" : "MISSED    "} ${g.pass ? "CARDED" : "NO CARD"} ${item.id} ${JSON.stringify(item.text)}${u.pass ? "" : " | understanding: " + u.reasons.join("; ")}${g.pass ? "" : " | card: " + g.reasons.join("; ")}`);
   }
-  const passed = rows.filter(r => r.pass).length, und = rows.filter(r => r.understood).length;
-  const score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, understood: und, understood_pct: Math.round(und * 1000 / rows.length) / 10, carded: passed, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: und / rows.length >= 0.95, rows };
+  // The bar is measured on every item: an item that did not run is not a pass, and the bar is NOT MET until it runs.
+  const passed = rows.filter(r => r.pass).length, und = rows.filter(r => r.understood).length, notRun = rows.filter(r => r.not_run).length;
+  const score = { label, run_at: new Date().toISOString(), endpoint: url.replace(/\/\/([^.]+)\./, "//<project>."), total: rows.length, not_run: notRun, understood: und, understood_pct: Math.round(und * 1000 / rows.length) / 10, carded: passed, passed, pct: Math.round(passed * 1000 / rows.length) / 10, bar_pct: 95, meets_bar: !notRun && und / rows.length >= 0.95, rows };
   fs.writeFileSync(path.join(__dirname, "results", `${label}.json`), JSON.stringify(score, null, 1));
   recordReplays(Object.assign({ suite: "sloppy" }, score));
-  console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)`);
+  console.log(`\nsloppy-20 against the live handler: understood ${und}/${rows.length} (${score.understood_pct}%, spec 16 bar 95%: ${score.meets_bar ? "MET" : "NOT MET"}); carded ${passed}/${rows.length} (${score.pct}%)${notRun ? `; ${notRun} NOT RUN (rate limited)` : ""}`);
   process.exit(score.meets_bar ? 0 : 1);
 })();

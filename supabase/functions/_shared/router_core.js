@@ -5079,6 +5079,8 @@
     const CORRECTED = /^(.*?)(\$?\d[\d,]*(?:\.\d+)?)(.*?)\b(?:no,? wait|wait,? no|no,? make it|make it|make that|actually|i mean|i meant|scratch that,?)\s+(\$?\d[\d,]*(?:\.\d+)?)\s*$/i;
     const PICK = /^\s*(1|2|one|two|first|second|the first(?: one)?|the second(?: one)?|#1|#2)\s*[.!]*\s*$/i;
     const YES_ONLY = /^\s*(y|yes|yep|yeah|yup|ya|ok|okay|sure|confirm|do it|go ahead|send it)\s*[.!]*\s*(y|yes|yep|yeah|ya)?\s*[.!]*\s*$/i;
+    const NO_ONLY = /^\s*(n|no|nope|nah|no thanks|no thank you|never ?mind|nvm|forget it|scratch that)\s*[.!]*\s*$/i;
+    const ORDER_WORDS = /\b(orders?|portfolio|holdings|positions?|shares?|stocks?|limit|stop|trailing|what do i own|brokerage)\b/i;
     const UNDO = /^\s*(?:wait,?\s*|oh no,?\s*)?(?:cancel|undo|stop|reverse|take back)\s+(?:that|it|this|the (?:last )?(?:one|send|payment|order|transfer))\b|^\s*(?:undo|undo that|take it back)\s*[.!]*\s*$/i;
     const SETTLED = new Set(["staged", "sent", "confirmed", "filled", "accepted", "executed", "placed", "working", "partial", "declined", "expired"]);
     // An order still working at the broker is settled as a card (the yes was used) but not final: it can still be canceled.
@@ -5205,6 +5207,15 @@
         remember(memo, flow, result, now);
         return afterSettle({ route: "card_reply", source: "deterministic", flow, result, understood: true, understood_first: true }, c, memo, now);
       }
+      // A bare "no" with no live card (it answers "How much?" or comes after a card was settled) drops whatever was asked
+      // and says nothing happened. It never reaches the model, which answered live gauntlet "no"s with offers to proceed
+      // with a payment (2026-10-12, sloppy suite).
+      if (!live.length && NO_ONLY.test(text)) {
+        let dropped = false;
+        for (const k of Object.keys(sessions)) if (sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped = true; }
+        memo.queue = null;
+        return done({ route: "card_reply", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "declined", text: dropped ? "Okay, dropped. Nothing was sent, bought or cancelled." : "Okay. Nothing is waiting on you, and nothing was changed." } });
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -5223,9 +5234,23 @@
         remember(memo, flow, result, now);
         return afterSettle({ route: "card_reply", source: "deterministic", flow, result, understood_first: true, note: "the model said card_reply; the flow's classifier decided" }, c, memo, now);
       }
+      // Managing an order or showing the portfolio needs words about one: "dispute this charge" (live gauntlet S16-17,
+      // 2026-10-12) came back from the model as manage_order and got the brokerage connect link.
+      if (e.intent === "manage_order" && !ORDER_WORDS.test(text)) return { route: "fallthrough", source, intent: e.intent, reason: "not an order", problems: v.problems || [] };
       const f = FLOWS[e.intent];
       if (!f || !sessions[f.flow]) return { route: "fallthrough", source, intent: e.intent, problems: v.problems || [] };
       const n = net(f.flow, text, c.parsers);
+      // The model sometimes drops a detail the person wrote (live gauntlet 2026-10-12, gpt-5-nano: "send sam $40", "venmo sam
+      // 40 for pizza" and "pay sam back forty" came back with no amount, "can u cancel netflix for me" with no merchant, and
+      // the flows asked "How much?" / "Cancel what?"). The regex net read it from the same words, so it fills the gap; a
+      // detail both read differently still asks (disagreements, below).
+      const filled = [];
+      if (source === "model" && n) {
+        if (!e.amount_cents && !e.quantity && n.amount_cents) { e.amount_cents = n.amount_cents; e.unit = "dollars"; filled.push("amount"); }
+        if (!e.amount_cents && !e.quantity && n.quantity) { e.quantity = n.quantity; e.unit = "shares"; filled.push("quantity"); }
+        const key = f.flow === "trade" ? "instrument_span" : f.flow === "send" || f.flow === "split" ? "recipient_span" : "merchant_span";
+        if (!e[key] && n.name && grounded(n.name, text)) { e[key] = n.name; filled.push(key); }
+      }
       const dis = source === "model" ? disagreements(f.flow, e, n) : [];
       if (dis.length) return { route: "ask", source, flow: f.flow, disagreements: dis, problems: v.problems || [], understood: false, understood_first: false, result: { outcome: "ask", reason: "disagreement", text: dis.map(d => `Did you mean ${d.model} or ${d.net} for ${d.field}?`).join(" ") } };
       // Two cards never stack: a new flow drops the other flow's live card and says so.
@@ -5243,7 +5268,7 @@
       const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap"];
       const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
-      return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped };
+      return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped, filled_from_net: filled };
     }
     // Cheap pre-filter so ordinary chat does not pay for an extra model call: a message is sent to the extractor only when
     // it could be one of the flows (or answers a live card, which the host checks from saved state). Broad on

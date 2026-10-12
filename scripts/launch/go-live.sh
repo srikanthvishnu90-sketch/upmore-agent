@@ -107,7 +107,7 @@ else
 fi
 
 say "5. live gauntlet on $SHA"
-if [[ -n "$DRY" ]]; then echo "DRY: mint a 1-hour JWT for gauntlet-test@upmore.test (password grant, anon key from index.html), run scripts/launch/verify-security-live.cjs (vault refuses a password, chat removes one, no reply asks for one; STOP on a FAIL), then run spec16, sloppy, l3 against $BASE/functions/v1/agent-chat"
+if [[ -n "$DRY" ]]; then echo "DRY: mint a 1-hour JWT for gauntlet-test@upmore.test (password grant, anon key from index.html), run scripts/launch/verify-security-live.cjs (vault refuses a password, chat removes one, no reply asks for one; STOP on a FAIL), then run spec16, sloppy, l3 against $BASE/functions/v1/agent-chat, resetting the test user's hourly message window before each suite"
 else
   ANON="$(grep -o 'UPMORE_ANON_KEY = "[^"]*"' index.html | head -1 | sed 's/.*= "//;s/"$//')"
   UPMORE_TEST_JWT="$(curl -s -X POST "$BASE/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'content-type: application/json' \
@@ -116,7 +116,12 @@ else
   export UPMORE_TEST_JWT UPMORE_CHAT_URL="$BASE/functions/v1/agent-chat"
   # The security changes are what answers: the vault refuses a password, chat removes one, no reply asks for one.
   UPMORE_BASE="$BASE" node scripts/launch/verify-security-live.cjs || { echo "FAIL: the live project does not run the security changes; stopped before the gauntlet"; unset UPMORE_TEST_JWT; exit 1; }
-  for s in spec16 sloppy l3; do node evals/gauntlet/run-live.cjs --suite "$s" --label "go-live-$SHA-$s" $NOWAIT || true; done
+  # Each suite starts with a fresh hour for the test user only (Upmore allows 60 messages an hour per person; the three
+  # suites together send about 95). Nobody else's limit is touched.
+  for s in spec16 sloppy l3; do
+    psql "$SUPABASE_DB_URL" -X -q -v ON_ERROR_STOP=1 -c "update public.agent_rate_limits set count = 0, window_start = now() where user_id = '2e8cb31d-59ab-4b2c-99bb-d4c5de8613a3'"
+    node evals/gauntlet/run-live.cjs --suite "$s" --label "go-live-$SHA-$s" $NOWAIT || true
+  done
   unset UPMORE_TEST_JWT
 fi
 

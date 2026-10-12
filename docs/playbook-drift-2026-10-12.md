@@ -550,3 +550,13 @@ Found, not fixed (for the owner): the legacy route-reminder reply still answers 
 Found, not fixed (for the owner): `80-money-answers.js` termMatch, which several answers share, still matches a name
 squashed inside a longer word ("hulu" in "HULULAND"); this answer uses a whole-token match instead. Changing termMatch
 would move every answer that uses it, so it is listed rather than changed overnight.
+
+
+## The IOU log (2026-10-12, megadoc C05, D08-D10, capability list item 134)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `packages/domain/69-agent-router.js` (the chat's reply) | "Upmore doesn't keep an IOU log yet, so nothing was saved" | The IOU log is built (105-iou-log.js through the settings path, its own column `ious`); the router line now only meets an IOU the log couldn't read, and says the form it reads. | `tests/edge/iou.test.ts` |
+| `docs/capability-list/map.cjs` item 134 | "IOU and running-balance modules; the chat says the IOU log is not built" (MODULE_ONLY) | Reachable in chat: log, settle in part or full, list both ways, the net with one person (IN_PRODUCT, part: splits from the split flow are not added). | same |
+| `evals/scenarios/verdicts.cjs` C05, D08, D09, D10 | MODEL / NOT_BUILT | BUILT with `tests/edge/iou.test.ts` | same |
+| `evals/depth/run.cjs` (the depth protocol) | A planted defect that makes its test fail is proven | A patch whose replacement held "$`" was applied by String.replace as a pattern and left the module unparseable; every test then fails, which would count as proven. Replacements are now inserted as written and a patch that leaves the module unparseable is not applied. All 1,274 recorded patches were re-checked: none breaks parsing, so no recorded proof changes. | the runner |

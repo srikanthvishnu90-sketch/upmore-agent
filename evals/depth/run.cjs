@@ -30,11 +30,17 @@ if (tags.length < 15) problems.push(`only ${tags.length} tagged sub-capability t
 for (const [tag, ok] of Object.entries(baseline.results)) if (!ok) problems.push(`baseline: ${tag} fails before any defect is planted`);
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "upmore-depth-"));
+function parses(file) {
+  return spawnSync(process.execPath, ["--check", file], { stdio: "pipe" }).status === 0;
+}
 for (const m of mutations) {
   const dir = path.join(tmp, m.id); fs.mkdirSync(dir, { recursive: true });
   for (const f of fs.readdirSync(domainDir)) fs.copyFileSync(path.join(domainDir, f), path.join(dir, f));
   let applied = true, note = "";
-  for (const p of m.patches) { const file = path.join(dir, p.file); const src = fs.readFileSync(file, "utf8"); const n = src.split(p.find).length - 1; if (n !== 1) { applied = false; note = `patch for ${p.file} matches ${n} times`; break; } fs.writeFileSync(file, src.replace(p.find, p.replace)); }
+  // The replacement is inserted as written (a function, so "$`" or "$&" in it is never a replace pattern), and a patch
+  // that leaves the module unparseable is not a planted defect: every test would fail and "prove" nothing.
+  for (const p of m.patches) { const file = path.join(dir, p.file); const src = fs.readFileSync(file, "utf8"); const n = src.split(p.find).length - 1; if (n !== 1) { applied = false; note = `patch for ${p.file} matches ${n} times`; break; } fs.writeFileSync(file, src.replace(p.find, () => p.replace)); }
+  if (applied) for (const f of new Set(m.patches.map((p) => p.file))) if (/\.c?js$/.test(f) && !parses(path.join(dir, f))) { applied = false; note = `the patched ${f} does not parse`; break; }
   let bites = false, collateral = [];
   if (applied) { const r = runTests(dir); bites = r.results[m.sub] === false; collateral = sameOneTag(r.results, m.sub).filter(t => t !== "ADV"); if (bites && !m.also_breaks) { /* ok */ } }
   const status = !applied ? "patch did not apply" : bites ? "proven" : "NOT PROVEN: test passed with the defect in place";

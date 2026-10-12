@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 85,
-  "total": 85
+  "pass": 87,
+  "total": 87
  },
  "results": [
   {
@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 87, LIMITED 26, DIVERGES 13, MODEL 41, NOT_BUILT 73",
+   "title": "megadoc states: PROVEN 0, BUILT 91, LIMITED 26, DIVERGES 13, MODEL 40, NOT_BUILT 70",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },
@@ -457,6 +457,12 @@
   },
   {
    "family": "flow",
+   "id": "F:PAY-017",
+   "title": "PAY-017: chat: the IOU log (105-iou-log.js through _shared/proactive.ts parseCommand; tests/edge/iou.test.ts), not 54-agent-money's ledger",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:PAY-020",
    "title": "PAY-020: chat: daily and weekly send limits",
    "status": "PASS"
@@ -471,6 +477,12 @@
    "family": "flow",
    "id": "F:SAVE-004",
    "title": "SAVE-004: chat: planner tool get_recovery_report (fees)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:SOC-003",
+   "title": "SOC-003: chat: \"how much does Jake owe me\" gives the net with one person from the IOU log (105-iou-log.js)",
    "status": "PASS"
   },
   {

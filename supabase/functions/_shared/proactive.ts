@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -41,6 +41,7 @@ export interface ProactiveSettings {
   watches: any[];                   // AgentAlerts.parseWatch conditions the person asked for, and their category budgets (Budgets)
   control: any | null;              // AgentControl state: the person's standing reports
   category_rules?: any[];           // CategoryRules: "count Target as groceries" (its own column, 20261012040000)
+  ious?: any[];                     // IouLog: "Jake owes me $20", "I owe Mom $200" (its own column, 20261012050000)
 }
 // The time zone default is an assumption the person can change by saying "my time zone is Pacific"; it decides what
 // "today", "Sunday" and quiet hours mean, never a number.
@@ -373,6 +374,11 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // A route reminder ("... for R0119") and a free trial with its end date are left to their own paths.
   const rc: any = (Reminders as any).command(t, s.watches || [], now, zone);
   if (rc) return { settings: rc.watches ? { watches: capWatches(rc.watches) } : {}, reply: rc.reply };
+  // IOU log (megadoc C05, D08-D10; packages/domain/105-iou-log.js): "Jake owes me $20", "I owe Mom $200 for groceries",
+  // "Jake paid me back", "mark Mom's 200 as paid", "what do I owe people", "forget the IOU with Jake". A note in the
+  // person's own words: nothing is paid, requested or sent, and nobody else is messaged.
+  const ic: any = (IouLog as any).command(t, (s as any).ious || [], now);
+  if (ic) return { settings: ic.ious ? { ious: ic.ious } : {}, reply: ic.reply };
   // "Tell me when free trials are about to convert" (megadoc J15): said as it is, nothing saved. plan() asks "Should I
   // cancel it for you?" before a trial the person tracks in the app bills (save_subscriptions, billing "trial" with its
   // end date, within the 7 days before; AgentMonitors.trialsConverting), with alerts on, for people the hourly run

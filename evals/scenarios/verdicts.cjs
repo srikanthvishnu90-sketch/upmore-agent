@@ -44,7 +44,8 @@ set("B14", "MODEL", "a mistaken send to a look-alike: the chat model answers; no
 set("C01", "LIMITED", "asks which Sam, then one card for the three requests; requests are made by the person in their app (handoff)", "tests/depth-PAY-001.test.cjs");
 set("C02 C03", "BUILT", "odd cent named ($33.34 is yours), asks who the others are", "tests/money.test.cjs");
 set("C04", "NOT_BUILT", "named groups ('roommates'); asks who");
-set("C05 C08 C12", "MODEL", "answered by the chat model (IOU log and request status reads are not flows)");
+set("C08 C12", "MODEL", "answered by the chat model (request status reads are not flows)");
+set("C05", "BUILT", "logged in the IOU log from the person's words (IouLog, 105-iou-log.js, the settings path): restated exactly as a note; nothing is requested from Jake or sent; no amount is asked, never guessed", "tests/edge/iou.test.ts");
 set("C06", "NOT_BUILT", "itemized splits; says so", "tests/edge/megadoc-sim.test.ts");
 set("C07", "NOT_BUILT", "group-chat member lists");
 set("C09", "NOT_BUILT", "reminders sent to other people");
@@ -67,8 +68,9 @@ set("D14", "BUILT", "answered from code over the person's own rows (money_answer
 set("D12", "NOT_BUILT", "splitting rent across two accounts; the rent flow says rent comes from one account a month and asks which", "tests/standing-rent.test.cjs");
 set("D13", "NOT_BUILT", "a rent shortfall plan (balance vs rent due) is not built; the message is not a rent command and goes to the chat model");
 set("D05", "NOT_BUILT", "saved landlord payee change from text: never taken from text; a payee change is a new rent setup card the person confirms");
-set("D08", "NOT_BUILT", "IOU log; says so and moves nothing", "tests/edge/megadoc-sim.test.ts");
-set("D09 D10", "NOT_BUILT", "IOU log");
+set("D08", "BUILT", "logged in the IOU log, restated, nothing moved; \"pay mom 200\" named for when the person wants to send it", "tests/edge/iou.test.ts");
+set("D09", "BUILT", "what the person owes from their IOU log, totaled, said as their own log and not checked against accounts", "tests/edge/iou.test.ts");
+set("D10", "BUILT", "the IOU marked paid by its amount (a part payment leaves the rest open; two with one person ask which); nothing moved", "tests/edge/iou.test.ts");
 set("D11", "BUILT", "the settings path saves a reminder from the person's words (Reminders, 103-reminders.js) restated with the day and 9 a.m. in their time zone, and that nothing is paid or moved; the hourly run says it on that day once, monthly on the 28th when asked; no day said is asked, never guessed", "tests/edge/reminders.test.ts");
 set("D15", "NOT_BUILT", "alert rules");
 // E. trades

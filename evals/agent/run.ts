@@ -325,6 +325,21 @@ async function flow() {
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);
   ex["CORE-004"] = async () => { const db = { settings: null as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } }; const r = await settingsMessage("every friday tell me my food spend", db, NOW); const p = base([], db.settings, Date.UTC(2026, 9, 16, 14)); return [!!r?.changed && p.messages.some(m => m.kind === "standing_report"), r?.reply || "no reply"]; };
+  // Item 134 (105-iou-log.js): the IOU log through the settings path the handler calls, saved in the person's row
+  // (MOCK db), settled in part, and the net with one person; nothing is paid, requested or sent.
+  const iouDb = () => ({ settings: { ious: [] } as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } });
+  ex["PAY-017"] = async () => {
+    const db = iouDb(), out: string[] = [];
+    for (const m of ["jake owes me 20", "log that I owe mom 200", "jake paid me 5", "what do I owe people"]) out.push(String((await settingsMessage(m, db, NOW))?.reply || "none"));
+    const ok = /^Logged: Jake owes you \$20\.00\. It's a note only: nothing was paid, requested or sent\.$/.test(out[0]) && /\$15\.00 is still open/.test(out[2]) && /^You owe: Mom \$200\.00\./.test(out[3]) && db.settings.ious.length === 2;
+    return [ok, out.map((x) => x.split("\n")[0].slice(0, 60)).join(" / ")];
+  };
+  ex["SOC-003"] = async () => {
+    const db = iouDb();
+    for (const m of ["jake owes me 20", "i owe jake 5 for coffee"]) await settingsMessage(m, db, NOW);
+    const r = String((await settingsMessage("how much does jake owe me", db, NOW))?.reply || "none");
+    return [/ Net: Jake owes you \$15\.00\.\n/.test(r), r.split("\n")[0]];
+  };
   const evidence: string[] = [];
   for (const id of Object.keys(REACHABLE).sort()) {
     const f = ex[id];

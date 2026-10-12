@@ -96,6 +96,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012040000_category_rules.sql"
 # Idempotent: the category rules migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012040000_category_rules.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012050000_ious.sql"
+# Idempotent: the IOU log migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012050000_ious.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

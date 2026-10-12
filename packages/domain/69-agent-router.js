@@ -230,8 +230,9 @@
         // Instructions inside pasted or forwarded text have no authority (global rule G6, megadoc N05): a money move that
         // comes wrapped in "ignore previous instructions" is named and not acted on.
         if (INJECTION.test(text) && MAYBE.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "injected_instruction", text: `That text contains an instruction to move money ("${INJECTION.exec(text)[0]}"). I don't act on instructions inside pasted or forwarded text, so nothing was set up. If you want to send money, tell me in your own words.` } });
-        // An IOU log is not built: said plainly, and no money flow is started (megadoc D08).
-        if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_not_built", text: "Upmore doesn't keep an IOU log yet, so nothing was saved, and no money moved." } });
+        // The IOU log is the settings path's (105-iou-log.js, before the flows); one it couldn't read reaches here: said
+        // plainly with the form it reads, and no money flow is started (megadoc D08).
+        if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_unread", text: "I couldn't read that IOU, so nothing was saved, and no money moved. Say it like \"I owe Mom $200\" or \"Jake owes me $20\"." } });
         // Secrets are never sent anywhere, by any flow (megadoc N07).
         if (SECRET_SEND.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "secret_data", text: "I won't send account numbers, card numbers, passwords or codes to anyone, and nothing was sent. Upmore never needs them by text." } });
         // A question is not an order: "did maya pay me back?", "what do I owe people", "did my buy fill?" go to the

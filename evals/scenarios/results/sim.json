@@ -474,7 +474,7 @@
    "typed": "log that I owe mom 200",
    "flow": null,
    "outcome": "not_built",
-   "reply": "Upmore doesn't keep an IOU log yet, so nothing was saved, and no money moved.",
+   "reply": "I couldn't read that IOU, so nothing was saved, and no money moved. Say it like \"I owe Mom $200\" or \"Jake owes me $20\".",
    "executed": false,
    "mock_orders": 0
   },

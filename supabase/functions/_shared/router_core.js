@@ -10,7 +10,7 @@
     // descriptors ("NETFLIX.COM", "TRADER JOE S #552") pass unchanged. Matching still uses the raw text (merchantKey).
     const INSTRUCTION_RE = /\b(?:system|assistant|user|developer)\s*:|\b(?:ignore|disregard|reply|visit|click|confirm|verify|password|passcode|ssn|social security|one[- ]time code|send \$|approved? (?:a )?transfer|you have been)\b/i;
     function safeMerchant(raw) {
-      let s = String(raw || "").replace(/<[^>]*>/g, " ").replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, " ").replace(/\S+@\S+\.\S+/g, " ").replace(/(^|\s)@\w+/g, " ");
+      let s = String(raw || "").replace(/<[^>]*>/g, " ").replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, " ").replace(/\S+@\S+\.\S+/g, " ").replace(/(^|\s)@[\w.-]+/g, " ");
       const cut = INSTRUCTION_RE.exec(s);
       if (cut) s = s.slice(0, cut.index);
       s = s.replace(/[\s,.;:!-]+$/, "").replace(/\s+/g, " ").trim();

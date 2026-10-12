@@ -23,14 +23,17 @@
     function normalizeSimplefin(payload, metadata) {
       const p = payload || {}, m = metadata || {}, errors = [], accounts = [], transactions = [];
       if (!Array.isArray(p.accounts) || !Array.isArray(p.transactions) || p.accounts.length>500 || p.transactions.length>20000) return {ok:false,errors:["invalid_bank_response"],accounts,transactions};
-      const fetched = iso(m.fetched_at), seen = new Set();
+      const fetched = iso(m.fetched_at), seen = new Set(), skipped = new Set();
       if (!fetched) return {ok:false,errors:["fetch_time_required"],accounts,transactions};
       for (const raw of p.accounts) {
         const providerId = identity(raw && raw.id), currency = String(raw && raw.currency || "").toUpperCase();
-        if (!providerId || !/^[A-Z]{3}$/.test(currency) || seen.has(providerId)) {
+        if (!providerId || !currency || seen.has(providerId)) {
           return {ok:false,errors:["invalid_or_duplicate_account"],accounts:[],transactions:[]};
         }
         seen.add(providerId);
+        // A custom currency (SimpleFIN allows a URL, e.g. reward points) is not money the table can hold: that account
+        // and its rows are left out and said, and every other account still syncs.
+        if (!/^[A-Z]{3}$/.test(currency)) { errors.push("unsupported_currency:"+providerId+":custom"); skipped.add(providerId); continue; }
         const balance = signedCents(raw.balance,currency), available = signedCents(raw.available_balance,currency);
         let balanceAsOf = iso(raw.balance_date);
         if (balanceAsOf && balanceAsOf > fetched) { errors.push("future_balance_timestamp:"+providerId); balanceAsOf = null; }
@@ -48,6 +51,7 @@
       const byId = new Map(accounts.map(a=>[a.provider_account_id,a]));
       const transactionIds = new Set();
       for (const raw of p.transactions) {
+        if (raw && skipped.has(raw.account_id)) continue;
         const account = byId.get(raw && raw.account_id), id = identity(raw && raw.id);
         const posted = raw && raw.posted_at ? date(raw.posted_at) : null;
         if (!account || !id || (raw.posted_at && !posted) || (!raw.is_pending && !posted)) {

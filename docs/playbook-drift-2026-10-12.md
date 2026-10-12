@@ -348,3 +348,7 @@ the source.
 - Now: fetched_at is stamped when the bank's answer arrives; the request window still starts from the time before the
   call. Red first in tests/edge/financial-service.test.ts. The module's own rule (a balance dated after the fetch is not
   current) is unchanged.
+- Same notes, also fixed: one points account (a URL as its SimpleFIN currency) failed the whole sync, so nothing at all
+  was stored; it is now left out with "unsupported_currency:<id>:custom" and every other account syncs (FINANCIAL-MODEL
+  S06, D06b; 26/26). Still for the owner: any entry in a batch's errors (this one, a euro account) sets sync_error on
+  every account in the ingest SQL, so the cash position reads unknown; changing that is a migration.

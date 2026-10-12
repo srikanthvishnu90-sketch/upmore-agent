@@ -70,11 +70,18 @@ test("[S05] without the fetch time nothing is kept; the fetch time is never the 
   assert.deepEqual([noDate.accounts[0].balance_as_of, noDate.errors], [null, ["balance_timestamp_unknown:mock-chk"]]);
 });
 
-test("[S06] a repeated or malformed account stops the whole batch", () => {
+test("[S06] a repeated or malformed account stops the whole batch; a points account is left out, not fatal", () => {
   const empty = { accounts: [], transactions: [] };
   assert.deepEqual(sync([acct(), acct()], []), Object.assign({ ok: false, errors: ["invalid_or_duplicate_account"] }, empty));
   assert.deepEqual(sync([acct({ id: "bad\nid" })], []), Object.assign({ ok: false, errors: ["invalid_or_duplicate_account"] }, empty));
-  assert.deepEqual(sync([acct({ currency: "https://mock.example/points" })], []).errors, ["invalid_or_duplicate_account"]);
+  // A points account (SimpleFIN allows a URL as a custom currency) is left out and said, never the whole batch (merge
+  // review of this packet's notes: one rewards account used to stop every account's sync).
+  const pts = sync([acct(), acct({ id: "mock-pts", currency: "https://mock.example/points", balance: "52000" })], [raw(), raw({ id: "mock-p1", account_id: "mock-pts", amount: "500" })]);
+  assert.equal(pts.ok, true);
+  assert.deepEqual(pts.accounts.map(a => a.provider_account_id), ["mock-chk"]);
+  assert.deepEqual(pts.transactions.map(t => t.provider_transaction_id), ["mock-t1"]);
+  assert.deepEqual(pts.errors, ["unsupported_currency:mock-pts:custom"]);
+  assert.deepEqual(sync([acct(), acct({ id: "mock-pts", currency: "https://mock.example/points" }), acct({ id: "mock-pts", currency: "https://mock.example/points" })], []).errors, ["invalid_or_duplicate_account"], "a repeated id still stops the batch");
 });
 
 test("[S07] one transaction id twice on an account stops the batch; the same id on two accounts is two transactions", () => {

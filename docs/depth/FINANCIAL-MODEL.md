@@ -49,8 +49,9 @@ Noted, not changed (for the owner):
 - Fixed after merge: `fetched_at` was taken before the proxy call, so a balance the bank stamped during the call was
   discarded (`future_balance_timestamp`) and that error marked every account's sync as failed. The service now stamps
   `fetched_at` when the answer arrives (tests/edge/financial-service.test.ts); this module's rule is unchanged.
-- An account whose currency is not a three-letter code (SimpleFIN allows a URL for custom currencies such as points)
-  fails the whole batch (S06), because the table requires `^[A-Z]{3}$`. A missing `available-balance` (optional in
+- Fixed after merge: an account whose currency is not a three-letter code (SimpleFIN allows a URL for custom
+  currencies such as points) failed the whole batch; it is now left out with `unsupported_currency:<id>:custom` and
+  every other account still syncs (S06, D06b). A missing `available-balance` (optional in
   SimpleFIN) leaves that account out of cash rather than falling back to the ledger balance (S24).
 - A monthly charge shifted by a weekend and a holiday can be 33 days apart and is then not inferred (S16); a price change
   over $1.00 and 5% ends the pattern (S17). Both miss a bill rather than invent one.
@@ -65,6 +66,7 @@ Noted, not changed (for the owner):
 | S04 | A balance stamped at the fetch is current | a balance stamped exactly at the fetch keeps its as-of | `S04` in tests/depth-FINANCIAL-MODEL.test.cjs | the guard is off by one: a balance stamped at the fetch second is called future | proven |
 | S05 | No fetch time, nothing kept | a batch without fetched_at is refused | `S05` in tests/depth-FINANCIAL-MODEL.test.cjs | the fetch-time guard is dropped | proven |
 | S06 | A repeated account stops the batch | the same account id twice is refused | `S06` in tests/depth-FINANCIAL-MODEL.test.cjs | account ids are not checked for repeats | proven |
+| S06 | A points account is left out, not fatal | a URL currency skips that account; the checking account still syncs | `S06` in tests/depth-FINANCIAL-MODEL.test.cjs | a custom currency stops the whole batch | proven |
 | S07 | A repeated transaction stops the batch | one id with -$15.49 and -$1.00 is refused | `S07` in tests/depth-FINANCIAL-MODEL.test.cjs | transaction ids are not checked for repeats | proven |
 | S08 | A posted row needs a date | a posted row with no date is refused | `S08` in tests/depth-FINANCIAL-MODEL.test.cjs | a posted row without a date is let through | proven |
 | S09 | Unreadable dollars stop the batch | -12.345 is refused, not kept as unknown | `S09` in tests/depth-FINANCIAL-MODEL.test.cjs | an unreadable USD amount is kept as null | proven |

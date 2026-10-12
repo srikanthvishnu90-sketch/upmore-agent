@@ -78,7 +78,7 @@ test("[S13] the strongest warning wins: a caller asking for a code and a safe ac
 });
 
 test("[S14] every reply names one safe next step through the company's own channel or the person's own hands", () => {
-  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/, payee_change: /Call them on a number you already have \(your lease or an old bill, not the message\)/ };
+  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/, payee_change: /Call them on a number you already have \(your lease or an old bill, not the message\)/, mistaken_payment: /ask them to cancel or dispute it in the app, or contact the app's support from inside the app/ };
   for (const k of S.KINDS) assert.match(S.TEXT[k], STEP[k], k);
 });
 
@@ -89,7 +89,7 @@ test("[S15] where money or a code may already be gone, the report path is said: 
 
 test("[S12] the reply never asks for anything back: no code, password, card or account number", () => {
   for (const k of S.KINDS) assert.doesNotMatch(S.TEXT[k], /\b(?:send|tell|give|share) me\b|\bwhat(?:'s| is) your (?:code|password|card|account)\b/i, k);
-  assert.equal(S.KINDS.length, 8);
+  assert.equal(S.KINDS.length, 9);
 });
 
 test("[S16] a landlord or company that 'changed where to send' money, with no new details, is checked on a number the person already has before anything changes; details go to the rent card", () => {
@@ -98,4 +98,13 @@ test("[S16] a landlord or company that 'changed where to send' money, with no ne
     assert.match(S.answer(t), /^Check that before anything changes: .* Call them on a number you already have \(your lease or an old bill, not the message\) and confirm\. .* nothing changes without your yes\. Nothing was changed\.$/, t);
   }
   for (const t of ["my landlord changed to zelle jane@example.com, pay rent 1500 on the 1st", "landlord raised the rent to 1600", "my landlord changed the due date", "pay my rent", "is my landlord allowed to raise rent", "I changed banks"]) assert.notEqual(kind(t), "payee_change", t);
+});
+
+test("[S17] money sent \"by mistake\" and asked back: don't send it back yourself; the money in can be pulled back, what goes out can't; a person's own mistaken send is not this", () => {
+  for (const t of ["someone sent me $50 by mistake and wants it back", "a stranger venmoed me 200 by accident and asked me to send it back", "somebody accidentally zelled me $300, they want it back", "got $40 on cash app from a random person who says it was the wrong person, asking me to send it back"]) {
+    assert.equal(kind(t), "mistaken_payment", t);
+    assert.match(S.answer(t), /^Careful: money that arrives "by mistake" .* what you send can't\. Don't send it back yourself: .* Nothing was sent\.$/, t);
+    assert.doesNotMatch(S.answer(t), /\$\d/, "no amount echoed");
+  }
+  for (const t of ["i sent sam 40 by mistake", "i accidentally paid the wrong person", "sam sent me 40 for dinner", "did sam send me the 40"]) assert.notEqual(kind(t), "mistaken_payment", t);
 });

@@ -14943,7 +14943,7 @@
      locked or needs verifying, with a link), pasted_transfer (a pasted receipt, document or message says to move money
      "to verify"), password (what's my password), code_ask (a person asks for a sign-in or verification code),
      unknown_request (a payment request from someone they don't know), payee_change (a landlord or company "changed where to
-     send" money, said without new details), safe_account (move money to a "safe account").
+     send" money, said without new details), mistaken_payment (money sent "by mistake" and asked back), safe_account (move money to a "safe account").
      Each reply says it is a scam or the warning sign, what not to do, and the one safe next step through the company's
      own app or number. A link or a number from the message is never repeated back. Nothing is moved, paid or stored.
      Pure. Depth packet SCAM-CHECK. */
@@ -14961,6 +14961,9 @@
       // A payee who "changed where to send" money, said with no new details (megadoc D05): payment redirection, the way
       // rent and invoices get stolen. With details (an amount, a handle) the rent flow puts up its own card and warns.
       ["payee_change", /\b(?:landlord|landlady|property manager|management company|leasing office|contractor|vendor|supplier|lawyer|title company|daycare|babysitter|nanny)\b[^.?!]{0,60}\b(?:changed|changing|new|updated|updating|different|switched|switching|moved)\b[^.?!]{0,40}\b(?:where (?:to |i )?(?:send|pay)|bank|account|payment (?:details|info|information|instructions|method)|wire (?:details|instructions|info)|routing|zelle|venmo|cash app|paypal)\b|\b(?:landlord|landlady|property manager|contractor|vendor|lawyer|title company)\b[^.?!]{0,40}\b(?:wants|asks|asked|told me|says|said|emailed|texted)\b[^.?!]{0,30}\b(?:send|pay|wire)\b[^.?!]{0,30}\b(?:new|different|another) (?:account|bank|zelle|venmo|handle|number)\b/],
+      // "Someone sent me $50 by mistake and wants it back": the money in can be pulled back later (a stolen card, a
+      // disputed payment); what the person sends can't (found by probing, 2026-10-12).
+      ["mistaken_payment", /\b(?:sent|venmoed|zelled|paid|cash ?apped|transferred)\s+me\b[^.?!]{0,40}\b(?:by mistake|by accident|accidentally|on accident|in error|to the wrong (?:person|account|number))\b|\b(?:accidentally|mistakenly)\s+(?:sent|venmoed|zelled|paid|transferred)\s+me\b|\b(?:wrong person|by mistake|by accident|accidentally)\b[^.?!]{0,60}\b(?:send|pay|give|refund|return|venmo|zelle)\b[^.?!]{0,12}\b(?:it |them |the money )?back\b/],
       ["unknown_request", /\b(?:payment|money|venmo|zelle|cash app|paypal) request\b[^.?!]{0,50}\b(?:unknown|don'?t know|do not know|stranger|random|never met)\b|\b(?:unknown|random|stranger|someone i (?:don'?t|do not) know)\b[^.?!]{0,50}\b(?:request(?:ed|ing|s)? (?:money|payment|\$|\d)|sent me a (?:payment |money )?request|is requesting)\b/],
     ];
     // Ordinary life that shares the words: a gift card as a present. (A page, site or app asking for the code just sent
@@ -14989,6 +14992,7 @@
       password: `I don't have your password and never will: Upmore never asks for or stores one (your bank and broker connections sign in on their own pages). If you've forgotten one, use "Forgot password" on that company's own site or app; for Upmore itself, it's on the sign-in screen.`,
       code_ask: `Don't share it. A sign-in or verification code is only for you to type in yourself; no real support team, Upmore's included, will ever ask you for it. Stop replying or hang up, then contact the company through its own app or the number on its website. If you already shared it, change that account's password now.`,
       payee_change: `Check that before anything changes: a message saying your landlord or a company now takes payment somewhere new is the most common way rent and bills get stolen, and their email or phone may be the one that was hacked. Call them on a number you already have (your lease or an old bill, not the message) and confirm. If it's real, say "pay my rent to" with the name, amount, day and app, and I'll put up a card with the new details; nothing changes without your yes. Nothing was changed.`,
+      mistaken_payment: `Careful: money that arrives "by mistake" with a request to send it back is a common scam. The money they sent can be pulled back later (from a stolen card or a disputed payment), but what you send can't. Don't send it back yourself: ask them to cancel or dispute it in the app, or contact the app's support from inside the app. Upmore never sends anything on its own. Nothing was sent.`,
       unknown_request: `Don't pay it. A payment request from someone you don't know is often a scam or a mistake, and money sent on Zelle, Venmo or Cash App usually can't be pulled back. Decline it in the app it came from. Upmore never pays a request on its own; every payment needs your yes.`,
     };
     function answer(words) {

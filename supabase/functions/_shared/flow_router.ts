@@ -174,7 +174,13 @@ export function termsReader(fetchFn: typeof fetch, now: () => number) {
   return { read: (merchant: string) => MerchantTerms.read(merchant, { config: termsConfig, fetch: fetchFn, clock: now, timeout_ms: 6000 }), facts: (r: any) => MerchantTerms.facts(r, { config: termsConfig }) };
 }
 
-export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: UserBroker | null = null, termsFetch: typeof fetch | null = null) {
+// The person's local date for a time zone, or null (an unknown zone falls back to the session's own UTC day).
+export function localDate(ms: number, tz: string | null | undefined): string | null {
+  if (!tz) return null;
+  try { return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms)); } catch { return null; }
+}
+
+export function buildSessions(data: FlowData, saved: any, now: () => number, channel: string | null = null, broker: UserBroker | null = null, termsFetch: typeof fetch | null = null, tz: string | null = null) {
   const registry = flowRegistry(), c = liveConnectors(data, now), s = saved || {};
   // One recipient book for every person-to-person flow in this message.
   const recipients = AgentRecipients.book({ rows: data.recipients || [], people: data.people || [], unavailable: data.recipients_ok === false, clock: now, channel });
@@ -186,7 +192,8 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
     // Saved nicknames ("mom is Anita Srikanth"): restated, then saved on a yes, only for someone already saved.
     nickname: AgentRecipients.nicknames({ book: recipients, clock: now, state: s.nickname }),
     // Rent stages each month for the person to send in their own app; it has no connector because it writes to no rail.
-    rent: StandingRent.create({ clock: now, rule: StandingRent.activeRule(data.standing || []), unavailable: data.standing_ok === false, recipients, state: s.rent }),
+    // Rent's month is the person's own (their time zone), the same day the proactive rent offer counts in.
+    rent: StandingRent.create({ clock: now, today: localDate(now(), tz) || undefined, rule: StandingRent.activeRule(data.standing || []), unavailable: data.standing_ok === false, recipients, state: s.rent }),
     recipients,
   };
 }
@@ -231,7 +238,7 @@ function liveCardWords(sessions: any): string[] {
   return out;
 }
 
-export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null }): Promise<FlowReply | FlowFallthrough | null> {
+export async function routeFlows(message: string, deps: { db: FlowDb; extract: ((m: string) => Promise<any>) | null; now?: () => number; timeoutMs?: number; channel?: string | null; broker?: UserBroker | null; brokerFactory?: () => Promise<UserBroker>; termsFetch?: typeof fetch | null; tz?: string | null }): Promise<FlowReply | FlowFallthrough | null> {
   const now = deps.now ?? (() => Date.now());
   const saved = await deps.db.loadState();
   if (!needsRouter(saved, now()) && !AgentRouter.maybeFlow(message)) return null;
@@ -243,7 +250,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   // The brokerage connection (a row read and a Vault token read) is resolved only here, after the message is known to be
   // a flow or a live card exists: small talk never touches it.
   const broker = deps.broker ?? (deps.brokerFactory ? await deps.brokerFactory() : null);
-  const built = buildSessions(data, saved, now, deps.channel ?? null, broker, deps.termsFetch === undefined ? fetch : deps.termsFetch);
+  const built = buildSessions(data, saved, now, deps.channel ?? null, broker, deps.termsFetch === undefined ? fetch : deps.termsFetch, deps.tz ?? null);
   const { recipients, ...sessions } = built;
   // Money that landed since the last message: a staged send whose debit posted is complete (and saves its recipient);
   // a split request whose credit posted is paid. Said once, ahead of the reply.

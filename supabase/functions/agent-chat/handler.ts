@@ -244,6 +244,11 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // dated offer-book prices (_shared/subscription_answer.ts, read-only), and balance,
     // spending, "how am i doing" and "did it go through" from the person's own rows (_shared/money_answers.ts). "pay my
     // rent" is not answered here: it is the standing rent flow (flow router, below).
+    // The person's own day: their time zone from their settings (the morning brief's default when none is set), so a
+    // window's days, a due date or "this month" are counted in their day, not UTC's (a 9 p.m. New York question is
+    // still that day). One column, read once per turn; the flows (rent's month) count in it too.
+    const tzRead = await supabase.from("agent_proactive_settings").select("time_zone").eq("user_id", user.id).maybeSingle();
+    const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
     {
       let direct: string | null = connectReply(message);
       let linkedCount = 0;
@@ -273,11 +278,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The thread's last messages, newest first: "show me the math" explains the answer just given, and "what's new"
       // reads its own last "reviewed through" date (_shared/whats_new_answer.ts).
       const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20); return h.error ? [] : h.data || []; };
-      // The person's own day: their time zone from their settings (the morning brief's default when none is set), so a
-      // window's days, a due date or "this month" are counted in their day, not UTC's (a 9 p.m. New York question is
-      // still that day). One column, read once per turn.
-      const tzRead = await supabase.from("agent_proactive_settings").select("time_zone").eq("user_id", user.id).maybeSingle();
-      const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,
@@ -330,7 +330,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const flowDb = supabaseFlowDb(supabase, user.id, tid);
         const o = await offerMessage(message, supabaseOfferDeps(supabase, user.id, tid, offer, {
           liveCard: async () => { try { return hasLiveCard(await flowDb.loadState()); } catch { return true; } },
-          runFlow: async (text) => { const f: any = await routeFlows(text, { db: flowDb, extract: null, channel: "in-app" }); return f && !f.fallthrough ? f : null; },
+          runFlow: async (text) => { const f: any = await routeFlows(text, { db: flowDb, extract: null, channel: "in-app", tz }); return f && !f.fallthrough ? f : null; },
         }), Date.now());
         if (o) {
           const saved = await supabase.from("agent_messages").insert([
@@ -370,7 +370,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // talk); a 401 is marked for Reconnect (flush) before the reply goes out.
         let broker: any = null;
         const brokerFactory = async () => (broker = await userBroker(Deno.env, user.id, brokerSource(supabase, flowAdmin, user.id), (line) => console.log(line)));
-        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app", brokerFactory });
+        flow = await routeFlows(message, { db: supabaseFlowDb(supabase, user.id, tid), extract, channel: "in-app", brokerFactory, tz });
         if (broker && broker.flush) await broker.flush();
       } catch (e) {
         console.error("flow router failed:", e instanceof Error ? e.message : String(e));

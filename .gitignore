@@ -12,3 +12,6 @@ corpus/drafts/
 
 # Supabase CLI cache (created by any supabase command; never committed)
 supabase/.temp/
+
+# Claude Code agent worktrees (temporary working copies; never committed)
+.claude/worktrees/

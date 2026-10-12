@@ -72,6 +72,10 @@ const REACHABLE = {
   // Item 5 (2026-10-12): AgentProactive.connections through plan(). Evidence: tests/edge/connection-notes.test.ts,
   // tests/depth-PROACTIVE.test.cjs S18-S22.
   "ACCT-005": "scheduler: a bank SimpleFIN stopped updating, or rows nobody refreshed, said once with where to fix it",
+  // Item 26 (2026-10-12): the year in money, a direct chat answer through agent-chat/_shared/money_answers.ts
+  // (YearInMoney, 96-year-in-money.js). Evidence: tests/edge/year-in-money.test.ts (through moneyReply),
+  // tests/year-in-money.test.cjs, tests/depth-YEAR.test.cjs (docs/depth/YEAR.md).
+  "ANL-012": "chat: \"my year in money\", \"how did 2026 go\": this year so far or a named year from the person's own rows; dollars Upmore saved only from a confirmed record, and none is on record yet (YearInMoney)",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -111,7 +115,7 @@ const MAP = [
   [23, "NEWS-004 ANL-005", "part", "morning brief wired (opt-in by chat, 8 a.m. local): cash, safe to spend, bills due today; news and overnight actions not in it", null],
   [24, "ANL-020", "full", "weekly recap wired: money in, money out, top categories, the next 7 days; Sundays by default, day set by chat", null],
   [25, "ANL-002 ANL-012", "part", "monthly close wired on the 1st: in, out, kept, the biggest category change; not \"90 seconds\" of detail", null],
-  [26, "ANL-012 SAVE-007 EARN-004", "part", "not wired: no yearly send yet; confirmed savings are 0 until live outcomes exist", null],
+  [26, "ANL-012 SAVE-007 EARN-004", "part", "chat: \"my year in money\", \"year in review\", \"how did 2026 go\", \"annual review\": this calendar year so far in the person's zone, or a named past year read from its Jan 1: in, out and the net, categories by their own rules, the top 5 places, the biggest and the quietest full month, what repeating bills charged, refunds, pending and other currencies said; where the rows start or end is said, never a $0.00 year. Confirmed dollars Upmore saved or recovered: no record the chat can read confirms one (recovery cases carry no recovered amount; action_ledger rows are client-writable), so the review says none is on record and estimates nothing; SAVE-007 negotiated-bill savings and EARN-004 referral payouts are not in it; no yearly message is sent on its own", null],
   [27, "CORE-004 ALRT-010", "part", "standing reports wired for spending by category (\"every Friday tell me my food spend\"); other report kinds not yet", null],
   // alerts
   [28, "BILL-007 ALRT-001", "part", "the low-balance warning covers \"balance won't cover what's due\"; the brief and recap list bills due; no per-bill due alert", null],

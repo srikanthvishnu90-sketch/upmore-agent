@@ -172,6 +172,20 @@
     ["target isn't shopping, it's groceries", null],
     ["stop counting target as groceries", null],
     ["show my category rules", null],
-    ["my biggest expense is groceries", null]
+    ["my biggest expense is groceries", null],
+    ["my year in money", "moneyReply"],
+    ["year in review", "moneyReply"],
+    ["how did my year go financially", "moneyReply"],
+    ["how did 2026 go", "moneyReply"],
+    ["annual review", "moneyReply"],
+    ["show me my year", "moneyReply"],
+    ["how did 2025 go?", "moneyReply"],
+    ["hey can you show me my year in money", "moneyReply"],
+    ["how much did i spend this year", "moneyReply"],
+    ["how much did i spend last year", "moneyReply"],
+    ["how can i do better next year", null],
+    ["how did this year go", null],
+    ["how did the market do this year", null],
+    ["my annual review at work is tomorrow, how do i ask for a raise", null]
   ]
 }

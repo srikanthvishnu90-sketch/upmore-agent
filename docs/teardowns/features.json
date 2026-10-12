@@ -28915,8 +28915,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "the year in review (26)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,

@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 80,
-  "total": 80
+  "pass": 81,
+  "total": 81
  },
  "results": [
   {
@@ -333,6 +333,12 @@
    "family": "flow",
    "id": "F:ANL-009",
    "title": "ANL-009: chat: \"am I spending more than usual\" against the average of the last 3 full months, by category with \"on food\" (SpendingViews)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:ANL-012",
+   "title": "ANL-012: chat: \"my year in money\", \"how did 2026 go\": this year so far or a named year from the person's own rows; dollars Upmore saved only from a confirmed record, and none is on record yet (YearInMoney)",
    "status": "PASS"
   },
   {

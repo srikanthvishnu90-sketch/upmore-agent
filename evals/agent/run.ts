@@ -287,6 +287,8 @@ async function flow() {
   ex["TXN-021"] = money("how does this month compare to last month", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d\.\nSame days last month \(Sep 1-\d+, day (\d+) vs day \1\): \$/);
   ex["ANL-009"] = money("am i spending more than usual on food", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d on food[:.]/);
   ex["CARD-001"] = money("spending by card", /^Spending by card and account this month so far \(Oct 1-\d+\), \$[\d,]+\.\d\d in all:\n- /);
+  // Item 26 (96-year-in-money.js): the year so far from the fixture's own rows, and no saving counted without a record.
+  ex["ANL-012"] = money("my year in money", /^Your 2026 so far \(Jan 1-Oct \d+\): \$[\d,]+\.\d\d in, \$[\d,]+\.\d\d out, .*\nSaved or recovered by Upmore: no confirmed savings are on record yet, so none is counted here/s);
   // Item 8 (95-category-rules.js): the rule is saved by the settings command, then the spending answer counts by it.
   ex["TXN-003"] = async () => {
     const db = { settings: null as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } };

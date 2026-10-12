@@ -451,3 +451,18 @@ in the modules.
 | --- | --- | --- | --- |
 | CLAUDE.md and BUILD-STATUS describe the hourly "agent speaks first" run (`agent-proactive`, `scripts/launch/schedule-proactive.sql`) reading "the person's linked accounts", with no word on how fresh those rows are | The agent's tables (`agent_financial_accounts`, `agent_financial_transactions`) are written only by `agent-workflows` action `sync_finances` (`_shared/financial_service.ts` `syncFinancialEvidence`), which the app calls only when the person taps "Refresh connected bank" (`src/financial-review.js`). App load calls `simplefin-proxy` for its own screens and saves nothing. No cron or function refreshes them. So chat answers and every proactive alert ("charged $X today", low balance ahead, budgets at 80%) work from rows as old as the last tap | `src/upmore-app-template.html` (`initLiveTrackData`, `ledgerSync`), `supabase/functions/simplefin-proxy/index.ts`, `supabase/functions/_shared/workflow_service.ts:62`, `scripts/launch/*.sql` | The hourly run now says so when the newest saved read is more than 2 days old ("Your linked accounts were last refreshed Oct 9 (3 days ago). I don't refresh them on my own yet ... Tap \"Refresh connected bank\""), and separately when a bank's own date is stuck while reads are fresh (SimpleFIN Bridge). A scheduled server-side refresh is an owner decision (a new scheduled function reading each person's vaulted SimpleFIN access, as `cancel-watcher` already does): listed for the owner, not built |
 
+## Year in money: "confirmed savings are 0" (2026-10-12, capability list item 26)
+
+- Said: `docs/capability-list/map.cjs` item 26 (and the generated README row): "not wired: no yearly send yet;
+  confirmed savings are 0 until live outcomes exist".
+- True: there is no number to call $0: no record the chat can read confirms a dollar saved or recovered.
+  `agent_recovery_case_json` (migration 20261010190000_recovery_cases.sql) returns `recovered_cents: null` and
+  `recovery_verification: "unavailable_user_report_only"`; the save engine's ledger (`packages/domain/49-agent-save.js`)
+  books verified deltas in memory only, with no table; the cancel watcher's "Avoided" rows go to `action_ledger`, whose
+  `action_ledger_owner_insert` policy (20260928_000001_chat_reminders.sql) lets the app's own client insert any row, so
+  such a row proves nothing. The review is now reachable in chat ("my year in money", `96-year-in-money.js` through
+  `money_answers.ts`), and it says "no confirmed savings are on record yet, so none is counted here" instead of a $0.00.
+- Now: the map note says what the chat answers and what it cannot (no confirmed record, SAVE-007 and EARN-004 not in
+  it, no yearly send); ANL-012 is on the REACHABLE list with a flow check in `evals/agent/run.ts`.
+- Found, not fixed (for the owner): a confirmed savings figure needs a record the client cannot write (for example the
+  cancel watcher writing to a service-role-only table, or `action_ledger` inserts restricted to the service role).

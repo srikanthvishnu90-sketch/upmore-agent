@@ -118,6 +118,17 @@ const OWNER: [string, string | null][] = [
   ["am i spending more than my grocery budget", null],
   ["which amex offers should i use this month", "cardOffersReply"],
   ["should i spend less than last month", null],
+  // The year in money (capability list item 26, 96-year-in-money.js): a money answer; "how much did i spend this year"
+  // and "last year" stay the spending answer's (the same answer function, kind "spend"); advice, the market and small
+  // talk about the year go on.
+  ["my year in money", "moneyReply"],
+  ["year in review", "moneyReply"],
+  ["how did 2026 go", "moneyReply"],
+  ["annual review", "moneyReply"],
+  ["how much did i spend last year", "moneyReply"],
+  ["how can i do better next year", null],
+  ["how did this year go", null],
+  ["is my sapphire annual fee worth it", "rewardsReply"],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

@@ -286,6 +286,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,
+        // A past year's review ("how did 2025 go") reads from that year's Jan 1, further back than the shared read.
+        history: (from: string) => readRecentTransactions(supabase, user.id, Date.now(), { days: Math.ceil((Date.now() - Date.parse(`${from}T00:00:00Z`)) / 86400000) + 2 }),
         // "show me the math" explains the answer just given in this thread.
         previous: readPrevious,
       }, { tz, rules });

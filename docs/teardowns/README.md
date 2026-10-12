@@ -67,10 +67,10 @@ that are on the list and that a build may reach.
 | Albert | 148 | 0 | 26 | 10 | 0 | 2 | 6 | 104 | 82 | 30 |
 | Rocket Money | 132 | 0 | 52 | 13 | 0 | 11 | 3 | 53 | 20 | 72 |
 | Monarch | 330 | 0 | 60 | 52 | 0 | 2 | 15 | 201 | 28 | 113 |
-| Copilot Money | 311 | 0 | 96 | 22 | 0 | 7 | 13 | 173 | 6 | 132 |
+| Copilot Money | 311 | 0 | 97 | 21 | 0 | 7 | 13 | 173 | 6 | 132 |
 | YNAB | 242 | 0 | 21 | 10 | 0 | 3 | 3 | 205 | 0 | 37 |
 | Cleo | 156 | 0 | 15 | 6 | 0 | 0 | 4 | 131 | 86 | 22 |
-| **all** | 1818 | 0 | 325 | 150 | 0 | 66 | 57 | 1220 | 403 | 491 |
+| **all** | 1818 | 0 | 326 | 149 | 0 | 66 | 57 | 1220 | 403 | 491 |
 
 Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 936.
 
@@ -447,7 +447,7 @@ suggests is in its own "Build order suggestion" section.
 | Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 4, 22, 64, 65 | part (row by row): returns against a benchmark (64), allocation (65), top movers (22) and hand-tracked holdings (4); live balance estimates have no item | IN_PRODUCT 4, MODULE_ONLY 12, NO_ITEM 6 |
 | Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) | none | none | NO_ITEM 19 |
 | AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) | 7, 8, 9 | part (row by row): answers from the person's data (7), category and rule fixes by chat (8) and unusual-charge briefings (9); charts in chat, tag suggestions, nudges and the MCP connector have no item | IN_PRODUCT 3, PART 5, NO_ITEM 11 |
-| Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) | 25, 26 | part (row by row): the month (25) and year (26) in review; slide sharing and CSV export have no item | IN_PRODUCT 2, MODULE_ONLY 1, NO_ITEM 5 |
+| Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) | 25, 26 | part (row by row): the month (25) and year (26) in review; slide sharing and CSV export have no item | IN_PRODUCT 3, NO_ITEM 5 |
 | Notifications | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-246 .. T2-COPILOT-256 (11) | 24, 29, 30, 34 | part (row by row): low balance (29), big expenses (34), income (30) and the weekly spending update (24); budget, recurring-paid, transfer and Venmo notices have no item | IN_PRODUCT 4, PART 2, NO_ITEM 5 |
 | Widgets and Apple integrations | 14 | 11 | 3 | 0 | 0 | T2-COPILOT-257 .. T2-COPILOT-270 (14) | none | none | NO_ITEM 14 |
 | Platforms and accessibility | 9 | 7 | 2 | 0 | 0 | T2-COPILOT-271 .. T2-COPILOT-279 (9) | none | none | NO_ITEM 9 |

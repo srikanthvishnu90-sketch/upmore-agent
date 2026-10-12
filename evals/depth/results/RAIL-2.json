@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T15:02:25.453Z",
+ "run_at": "2026-10-12T15:05:54.030Z",
  "baseline_all_green": true,
- "sub_capabilities": 28,
- "proven": 28,
+ "sub_capabilities": 29,
+ "proven": 29,
  "problems": [],
  "rows": [
   {
@@ -56,7 +56,8 @@
    "collateral": [
     "S24",
     "S27",
-    "S28"
+    "S28",
+    "S29"
    ],
    "status": "proven"
   },
@@ -123,7 +124,9 @@
    "test": "a closed market queues and says so",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S29"
+   ],
    "status": "proven"
   },
   {
@@ -179,7 +182,8 @@
     "S24",
     "S26",
     "S27",
-    "S28"
+    "S28",
+    "S29"
    ],
    "status": "proven"
   },
@@ -270,7 +274,8 @@
    "applied": true,
    "collateral": [
     "S24",
-    "S28"
+    "S28",
+    "S29"
    ],
    "status": "proven"
   },
@@ -340,6 +345,17 @@
    "collateral": [
     "S27"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S29",
+   "id": "D29",
+   "title": "A closed market is always said",
+   "defect": "the shortest card drops the timing, so a closed-market order reads as if it fills now",
+   "test": "a short-form card says Works from the open",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

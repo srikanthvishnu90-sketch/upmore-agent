@@ -247,7 +247,7 @@
           const r = Cards ? Cards.compactText(f, channel || "sms") : { text: `${head}. ${f.fee_cents ? `Fee ${money(f.fee_cents)}, total ${money(f.total_cents)}.` : f.fee_text ? `${f.fee_text}.` : "No fee."} ${f.when}. Can't be undone once filled. Reply YES or NO within 10 min, or DETAILS.`, segments: { segments: Math.ceil((head.length + f.when.length + 80) / 153) } };
           if (r.segments.segments <= 2) return r.text;
         }
-        return `${MODE(ord.account)}${V} ${size} ${ord.symbol}${T.head}: ${money(ord.estimated_cents)}${saleFees(ord) ? ", less SEC and FINRA fees" : ""}. ${quote}. Can't be undone once filled. Reply YES, NO or DETAILS.`;
+        return `${MODE(ord.account)}${V} ${size} ${ord.symbol}${T.head}: ${money(ord.estimated_cents)}${saleFees(ord) ? ", less SEC and FINRA fees" : ""}. ${quote}.${tif === "good till canceled" ? " GTC." : tif ? " Day order." : ""}${timing ? ` ${timing}.` : ""} Can't be undone once filled. Reply YES, NO or DETAILS.`;
       }
       function confirmText(ord) {
         const size = ord.notional_cents ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;

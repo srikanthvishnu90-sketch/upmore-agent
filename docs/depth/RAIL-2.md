@@ -74,17 +74,17 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S01 | Live only, the person's own token | a paper host or the Broker API is refused | `S01` in tests/depth-RAIL-2.test.cjs | the live host check is skipped, so a paper or shared-account base URL is accepted | proven |
 | S02 | Numbers as strings | limit_price goes out as a string | `S02` in tests/depth-RAIL-2.test.cjs | the limit price is sent as a JSON number | proven (also fails S03, S13) |
 | S03 | The order-type matrix | the broker receives the side the person said | `S03` in tests/depth-RAIL-2.test.cjs | the connector sends every order as a buy | proven (also fails S09, S17) |
-| S04 | A quote with source and as-of on every card | the card names the quote, its source and its time | `S04` in tests/depth-RAIL-2.test.cjs | the quote line is dropped from the card | proven (also fails S24, S27, S28) |
+| S04 | A quote with source and as-of on every card | the card names the quote, its source and its time | `S04` in tests/depth-RAIL-2.test.cjs | the quote line is dropped from the card | proven (also fails S24, S27, S28, S29) |
 | S05 | Buying power before a buy | a $500 buy with $320 stops | `S05` in tests/depth-RAIL-2.test.cjs | the buying-power check is skipped | proven |
 | S06 | The position before a sell | selling 9 of 7 shares stops | `S06` in tests/depth-RAIL-2.test.cjs | the oversell check is skipped | proven |
 | S07 | A fresh, single-use, context-bound yes | a yes after 10 minutes places nothing | `S07` in tests/depth-RAIL-2.test.cjs | the confirmation expiry is not enforced | proven |
 | S08 | Partial is partial | half filled reads as partly filled | `S08` in tests/depth-RAIL-2.test.cjs | partially_filled is mapped to filled | proven |
 | S09 | The receipt | the receipt names the order id | `S09` in tests/depth-RAIL-2.test.cjs | the receipt drops the order id | proven |
-| S10 | Market closed means queued | a closed market queues and says so | `S10` in tests/depth-RAIL-2.test.cjs | the broker's clock is read but treated as always open | proven |
+| S10 | Market closed means queued | a closed market queues and says so | `S10` in tests/depth-RAIL-2.test.cjs | the broker's clock is read but treated as always open | proven (also fails S29) |
 | S11 | A thrown write is never retried blind | a lost response is reconciled, never re-sent | `S11` in tests/depth-RAIL-2.test.cjs | a write that threw is retried with a fresh client id | proven |
 | S12 | A broker refusal is a failure | a 403 is failed with the reason | `S12` in tests/depth-RAIL-2.test.cjs | a definite refusal is treated as an unknown outcome | proven |
 | S13 | Canceled only when the record says so | pending_cancel is reported as requested | `S13` in tests/depth-RAIL-2.test.cjs | any read-back after a cancel is reported as canceled | proven |
-| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28) |
+| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28, S29) |
 | S15 | The broker's order rules before sending | a dollar amount on a limit asks for shares | `S15` in tests/depth-RAIL-2.test.cjs | a dollar amount is allowed on a limit order | proven |
 | S16 | Stop-on-change | a moved price stops the order | `S16` in tests/depth-RAIL-2.test.cjs | the re-verification result is ignored | proven |
 | S17 | Cross-person isolation: the caller's own account | a leaked row for another person opens nothing | `S17` in tests/depth-RAIL-2.test.cjs | rows are not checked against the caller, so a broken read hands A's request B's older account | proven |
@@ -92,7 +92,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S19 | The token reference is the person's own | a row pointing at another person's secret opens nothing | `S19` in tests/depth-RAIL-2.test.cjs | the row's vault reference is trusted without checking it names this person and this row | proven |
 | S20 | LIVE ONLY at the account layer | a paper row is never opened | `S20` in tests/depth-RAIL-2.test.cjs | a paper row counts as live | proven |
 | S21 | Only built providers are opened | a Schwab row is never sent to Alpaca | `S21` in tests/depth-RAIL-2.test.cjs | a designed-but-unbuilt provider is opened with the Alpaca adapter | proven |
-| S22 | A sale is never carded "No fee." | an Alpaca sell card says SEC and FINRA fees come out | `S22` in tests/depth-RAIL-2.test.cjs | the adapter stops declaring Alpaca's pass-through sale fees, so a sale is carded "No fee." | proven (also fails S24, S28) |
+| S22 | A sale is never carded "No fee." | an Alpaca sell card says SEC and FINRA fees come out | `S22` in tests/depth-RAIL-2.test.cjs | the adapter stops declaring Alpaca's pass-through sale fees, so a sale is carded "No fee." | proven (also fails S24, S28, S29) |
 | S23 | A restricted account is said before any card | Alpaca's restriction flags and a non-ACTIVE status refuse with the source and time, nothing staged | `S23` in tests/depth-RAIL-2.test.cjs | the adapter stops reading the restriction, so a blocked account is carded and the broker refuses the order after the yes | proven |
 | S24 | A timing Upmore can't see is named first | 'sell my NVDA before earnings' says Upmore has no earnings dates before asking the size | `S24` in tests/depth-RAIL-2.test.cjs | the situation note is dropped, so the flow asks the size as if the timing had been understood | proven |
 | S25 | Today's change is the broker's own number | 'why is my portfolio down today' sums Alpaca's unrealized_intraday_pl per position, signed and sourced | `S25` in tests/depth-RAIL-2.test.cjs | the adapter stops reading unrealized_intraday_pl, so today's change is never available | proven |
@@ -100,4 +100,5 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S27 | A limit without $ | buy 1 VOO limit 500 is a $500 limit | `S27` in tests/depth-RAIL-2.test.cjs | a limit price without '
  is dropped, so the card is a market order | proven |
 | S28 | A sell card keeps its terms | sell 1 AAPL at $250 says 1 share and the limit | `S28` in tests/depth-RAIL-2.test.cjs | only the long fee line is tried, so a limit sell falls to the last-resort line | proven (also fails S27) |
+| S29 | A closed market is always said | a short-form card says Works from the open | `S29` in tests/depth-RAIL-2.test.cjs | the shortest card drops the timing, so a closed-market order reads as if it fills now | proven |
 <!-- results:end -->

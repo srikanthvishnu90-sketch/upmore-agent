@@ -334,6 +334,12 @@ test('[S28] a sell card keeps its size, order type and "can\'t be undone" inside
   assert.equal(posts(w.m).length,0);
 });
 
+test('[S29] when the market is closed a card always says when it works, even on the shortest form, with its order type, time in force and "can\'t be undone"',async()=>{
+  const w=await world({mock:{positions:{AAPL:7},is_open:false}});
+  for(const [m,re] of [['buy 1 VOO if it rises to $520',/^LIVE: Buy 1 share of VOO if it rises to \$520\.00 \(stop\): \$520\.00\. .* Works from the 9:30 ET open on Tue Oct 13\. Can't be undone once filled\./],['sell 2 AAPL with a 5% trailing stop',/^LIVE: Sell 2 shares of AAPL with a 5% trailing stop: \$440\.00, less SEC and FINRA fees\. .* Works from the 9:30 ET open on Tue Oct 13\. Can't be undone/],['sell 1 AAPL at $250 gtc',/^LIVE: Sell 1 share of AAPL at a \$250\.00 limit: .* GTC\. Works from the 9:30 ET open on Tue Oct 13\./]]){const r=await w.s.start(m);assert.equal(r.outcome,'confirm',m);assert.ok(r.text.length<=306,m);assert.match(r.text,re,m);await w.s.reply('no');}
+  assert.equal(posts(w.m).length,0);
+});
+
 test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const w=await world({mock:{positions:{VOO:3}}});
   assert.equal((await w.s.start('sell 500 VOO')).reason,'size_ambiguous');

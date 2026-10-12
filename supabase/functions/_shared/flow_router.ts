@@ -183,6 +183,8 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
     cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
     send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send, balances: () => data.bankAccounts ?? null }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
+    // Saved nicknames ("mom is Anita Srikanth"): restated, then saved on a yes, only for someone already saved.
+    nickname: AgentRecipients.nicknames({ book: recipients, clock: now, state: s.nickname }),
     // Rent stages each month for the person to send in their own app; it has no connector because it writes to no rail.
     rent: StandingRent.create({ clock: now, rule: StandingRent.activeRule(data.standing || []), unavailable: data.standing_ok === false, recipients, state: s.rent }),
     recipients,
@@ -209,6 +211,7 @@ export function hasLiveCard(saved: any): boolean {
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
   if (saved.rent && (saved.rent.pending || saved.rent.asking)) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
+  if (saved.nickname && saved.nickname.pending) return true;
   return false;
 }
 
@@ -223,6 +226,7 @@ function liveCardWords(sessions: any): string[] {
   if (sessions.split && sessions.split.pending) out.push(`the ${m(sessions.split.pending.amount_cents)} split request`);
   if (sessions.trade && sessions.trade.pending) out.push(`the ${sessions.trade.pending.symbol} order`);
   if (sessions.cancel && sessions.cancel.pending) out.push("the cancellation");
+  if (sessions.nickname && sessions.nickname.pending) out.push(`the "${sessions.nickname.pending.nickname}" nickname`);
   if (sessions.rent && sessions.rent.pending) out.push("the rent card");
   return out;
 }
@@ -255,7 +259,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
       dropNote = `(I dropped ${words.join(" and ")} since you moved on; nothing was sent. Say it again when you want it.)`;
     }
   }
-  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), rent: sessions.rent.snapshot(), router: out.memo || memo };
+  const state = { trade: sessions.trade.snapshot(), cancel: sessions.cancel.snapshot(), send: sessions.send.snapshot(), split: sessions.split.snapshot(), nickname: sessions.nickname.snapshot(), rent: sessions.rent.snapshot(), router: out.memo || memo };
   // Recipients saved on evidence (a completed send, or a handle typed back and SAVE) are written before the reply.
   const rows = recipients.drain();
   let saveError = false;
@@ -270,7 +274,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   }
   if (out.route === "fallthrough") {
     // A dropped card is still a state change; keep it, then let the existing handler answer.
-    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, rent: saved?.rent ?? state.rent, router: saved?.router ?? state.router })) await deps.db.saveState(state);
+    if (JSON.stringify(state) !== JSON.stringify({ trade: saved?.trade ?? state.trade, cancel: saved?.cancel ?? state.cancel, send: saved?.send ?? state.send, split: saved?.split ?? state.split, nickname: saved?.nickname ?? state.nickname, rent: saved?.rent ?? state.rent, router: saved?.router ?? state.router })) await deps.db.saveState(state);
     return dropNote ? { fallthrough: true, note: dropNote } : null;
   }
   // Saved before the reply leaves, so a crash never leaves a card the person can see without the state that makes it safe.
@@ -279,6 +283,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   let reply = typeof r.text === "string" && r.text.trim() ? r.text : r.outcome === "nothing_pending" ? "There's nothing waiting on you." : "Okay.";
   // Never claim a save that did not reach the database.
   if (saveError && r.outcome === "saved") reply = "I couldn't save that right now, so nothing was saved. Reply SAVE again in a moment.";
+  if (saveError && r.outcome === "nickname_saved") reply = `I couldn't save "${r.nickname}" right now, so nothing was saved. Say it again in a moment.`;
   // A rent rule, change, stop or staged month that did not reach the database is not claimed: nothing changed.
   const rentLost = standingError && !!RENT_WRITES[r.outcome];
   if (rentLost) reply = `I couldn't save that right now, so ${RENT_WRITES[r.outcome]}. Nothing was sent. Try again in a moment.`;
@@ -287,7 +292,7 @@ export async function routeFlows(message: string, deps: { db: FlowDb; extract: (
   return {
     reply,
     withhold_user_text: !!out.withhold_text,
-    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: (saveError && r.outcome === "saved") || rentLost ? "not_saved" : r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems },
+    route: { route: out.route, flow: out.flow ?? null, source: out.source, understood: !!out.understood, understood_first: !!out.understood_first, outcome: (saveError && (r.outcome === "saved" || r.outcome === "nickname_saved")) || rentLost ? "not_saved" : r.outcome ?? null, canonical: out.canonical ?? null, ask_reason: out.ask_reason ?? null, problems },
   };
 }
 
@@ -328,15 +333,21 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
     async loadData(): Promise<FlowData> {
       // Newest first, so the cap drops the oldest rows and never this month (_shared/recent_transactions.ts); the flows
       // get them oldest first, as before. A failed read is the "transactions" gap, never an answer from part of them.
-      const [tx, accts, snaps, recs, standing, bank, prefs] = await Promise.all([
+      const [tx, accts, snaps, recsRead, standing, bank, prefs] = await Promise.all([
         readRecentTransactions(supabase, userId, now()).then((rows) => ({ data: rows.slice().reverse(), error: null }), (error) => ({ data: null, error })),
         supabase.from("brokerage_accounts").select("id,provider,label,paper,status").eq("user_id", userId),
         supabase.from("portfolio_snapshots").select("brokerage_account_id,cash,snapshot_at").eq("user_id", userId).order("snapshot_at", { ascending: false }).limit(50),
-        supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500),
+        supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at,nickname").eq("user_id", userId).limit(500),
         supabase.from("standing_payments").select("id,kind,payee_name,payee_handle,rail,amount_cents,day_of_month,funding,status,created_at,updated_at,last_staged_month").eq("user_id", userId).eq("kind", "rent").eq("status", "active").limit(5),
         supabase.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", userId).eq("status", "active"),
         supabase.from("agent_account_preferences").select("account_id,account_kind").eq("user_id", userId),
       ]);
+      let recs: any = recsRead;
+      // Until the owner applies 20261012030000_saved_recipient_nicknames.sql the nickname column does not exist (Postgres
+      // 42703): read the rows without it, so sends keep working and nobody has a nickname yet.
+      if (recs.error && (recs.error.code === "42703" || /nickname/i.test(String(recs.error.message || "")))) {
+        recs = await supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500);
+      }
       const empty = { transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} };
       if (tx.error) return { ok: false, missing: "transactions", ...empty };
       if (accts.error || snaps.error) return { ok: false, missing: "brokerage accounts", ...empty };
@@ -347,18 +358,33 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
     },
     async saveRecipients(rows: any[]) {
       for (const row of rows) {
+        // A nickname the person said yes to: moved off any other row first (one nickname per person per word, enforced by
+        // the unique index), then written on exactly one of this person's rows. Zero rows written is a failure, never "saved".
+        if (row.op === "nickname") {
+          if ((row.clear_row_ids || []).length) {
+            const clr = await supabase.from("saved_recipients").update({ nickname: null }).eq("user_id", userId).in("id", row.clear_row_ids);
+            if (clr.error) throw new Error("Nickname could not be moved.");
+          }
+          const set = await supabase.from("saved_recipients").update({ nickname: row.nickname }).eq("user_id", userId).eq("id", row.row_id).select("id");
+          if (set.error || !Array.isArray(set.data) || set.data.length !== 1) throw new Error("Nickname could not be saved.");
+          continue;
+        }
         const at = row.last_used_at ?? new Date(now()).toISOString();
         if (row.op === "insert") {
-          const ins = await supabase.from("saved_recipients").insert({ user_id: userId, handle: row.handle, display_name: row.display_name, channel: row.channel, source: row.source, rail: row.rail, evidence_ref: row.evidence_ref, last_used_at: at });
+          const ins = await supabase.from("saved_recipients").insert({ user_id: userId, handle: row.handle, display_name: row.display_name, channel: row.channel, source: row.source, rail: row.rail, evidence_ref: row.evidence_ref, last_used_at: at, ...(row.nickname ? { nickname: row.nickname } : {}) });
           if (!ins.error) continue;
           if (ins.error.code !== "23505") throw new Error("Recipient could not be saved.");
         }
         // Already saved (or saved by a concurrent message): touch it, and a completed send upgrades a confirmed save.
-        let q = supabase.from("saved_recipients").update(row.source === "completed_send" ? { last_used_at: at, source: "completed_send" } : { last_used_at: at }).eq("user_id", userId);
+        // A nickname kept with SAVE goes on that row too, and must land on exactly one row (never claimed otherwise).
+        const touch: Record<string, unknown> = row.source === "completed_send" ? { last_used_at: at, source: "completed_send" } : { last_used_at: at };
+        if (row.op === "insert" && row.nickname) touch.nickname = row.nickname;
+        let q = supabase.from("saved_recipients").update(touch).eq("user_id", userId);
         q = row.handle ? q.ilike("handle", String(row.handle).replace(/[\\%_]/g, (c: string) => "\\" + c)) : q.eq("display_name", row.display_name);
         if (row.rail) q = q.eq("rail", row.rail);
-        const up = await q;
+        const up = touch.nickname ? await q.select("id") : await q;
         if (up.error) throw new Error("Recipient could not be updated.");
+        if (touch.nickname && (!Array.isArray(up.data) || up.data.length !== 1)) throw new Error("Nickname could not be saved.");
       }
     },
     // Through the caller's RLS client (owner-only policies); every write names the caller's own user id.
@@ -412,7 +438,7 @@ export function merchantDirectory(): Record<string, any> {
 // When the flow layer itself fails (state or data unreadable), a message that could be a flow, or a short reply that
 // could answer a card, gets one honest line; anything else falls through to the existing handler.
 export function flowErrorReply(message: string): FlowReply | null {
-  const short = /^\s*(1|2|3|y|yes|n|no|ok|okay|sure|confirm|details?|never ?mind|save|new|\d{4,8})\s*[.!?]*\s*$/i.test(message) || /^\s*[@$][\w.-]{1,40}\s*$/.test(message);
+  const short = /^\s*(1|2|3|y|ya|yes|n|no|ok|okay|sure|confirm|details?|never ?mind|save|new|\d{4,8})\s*[.!?]*\s*$/i.test(message) || /^\s*[@$][\w.-]{1,40}\s*$/.test(message);
   if (!short && !AgentRouter.maybeFlow(message)) return null;
   return { reply: "Something went wrong reading this conversation's pending card or your accounts, so I did nothing. Nothing was changed. Try again in a moment.", withhold_user_text: /^\s*\d{4,8}\s*$/.test(message),
     route: { route: "error", flow: null, source: "deterministic", understood: false, understood_first: false, outcome: "error", canonical: null, ask_reason: null, problems: ["flow layer error"] } };

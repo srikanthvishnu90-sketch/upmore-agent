@@ -90,6 +90,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012020000_standing_payments.sql"
 # Idempotent: the standing payments migration applies cleanly a second time (the ledger below replays it once more).
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012020000_standing_payments.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012030000_saved_recipient_nicknames.sql"
+# Idempotent: the nickname migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012030000_saved_recipient_nicknames.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

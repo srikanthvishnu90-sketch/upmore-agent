@@ -127,30 +127,25 @@
    "id": "1.06",
    "file": 1,
    "title": "Typo'd, rushed",
-   "status": "NOT_BUILT",
-   "failed": [
-    "\"sned mom 100 rn\": card (expected a confirmation card, got outcome ask)"
-   ],
-   "triage": "Saved nicknames ('mom' for Anita Srikanth): saved_recipients has no nickname column, so 'mom' is not a saved name. The flow does not guess: it names the nearest saved person and asks, or takes NEW.",
+   "status": "PASS",
+   "failed": [],
+   "triage": null,
    "mock_orders": 0,
    "variants": {
     "total": 2,
-    "pass": 0,
-    "failed": [
-     "case_punct: \"Sned mom 100 rn!!\": card (expected a confirmation card, got outcome ask)",
-     "slang: \"sned mom 100 rn rn pls\": card (expected a confirmation card, got outcome ask)"
-    ]
+    "pass": 2,
+    "failed": []
    },
    "turns": [
     {
      "user": "sned mom 100 rn",
-     "reply": "I don't have mom saved. What's their Venmo, Cash App, PayPal or Zelle handle, or phone number?",
-     "outcome": "ask"
+     "reply": "Set up $100.00 to Anita Srikanth (mom, @anitas) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
+     "outcome": "confirm"
     },
     {
      "user": "ya",
-     "reply": "",
-     "outcome": "needs_model"
+     "reply": "Staged, not sent. In Venmo: 1. Open Venmo and tap Pay/Request; 2. Search @anitas; 3. Enter $100.00; 4. Keep it private, then Pay. I'll confirm when $100.00 to Anita Srikanth posts; if it hasn't by tonight, I'll ask.",
+     "outcome": "staged"
     }
    ]
   },

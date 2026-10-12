@@ -257,6 +257,9 @@
           }
         }
         const send = Object.assign({ memo_flagged, staged_at: null, landed: null }, prep);
+        // The family word the person used for someone confirmed by read-back in this same send ("send my mom 40", then the
+        // handle typed back) may be kept as their nickname, but only when the SAVE offer restates it and they say SAVE.
+        if (person.readback_id && Rec.isKin(parsed.recipient_raw || "") && book.nicknameCheck) { const nc = book.nicknameCheck(null, Rec.nickNorm(parsed.recipient_raw)); if (nc.ok && !nc.holder) send.nickname_offer = nc.nickname; }
         const handoff = send.rail.mode === "handoff";
         const request = { capability_id: person.readback_id ? "PAY-002" : CAPABILITY, key: prep.request.key, idempotency_key: prep.request.key, params: { amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name, recipient_name: send.recipient.name, rail: send.rail.id, memo: memo || null, funding: send.confirm.from }, describe: send.confirm.action, confirm: { action: send.confirm.action, amount: send.confirm.amount, recipient: send.confirm.recipient, from: send.confirm.from, fee: send.confirm.fee, when: send.confirm.when }, draft_only: handoff, amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name };
         send.request_key = request.key;
@@ -278,8 +281,8 @@
           const h = Money.handoff(send); send.staged_at = clock(); send.watch = h.watch; sends.push(send);
           // Staged is not sent: a new recipient is saved when the money lands, or now if the person says SAVE.
           const nu = send.recipient.readback_id && !send.recipient.saved;
-          if (nu) saveOffer = { name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id, readback_id: send.recipient.readback_id, offered_at: clock() };
-          return { outcome: "staged", text: nu ? `${h.text} Reply SAVE to keep ${send.recipient.name} for next time; otherwise I'll save them once the money lands.` : h.text, steps: h.steps, app: h.app, watch: h.watch, send, save_offered: !!nu };
+          if (nu) saveOffer = { name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id, readback_id: send.recipient.readback_id, nickname: send.nickname_offer || null, offered_at: clock() };
+          return { outcome: "staged", text: nu ? `${h.text} Reply SAVE to keep ${send.recipient.name}${send.nickname_offer ? ` as "${send.nickname_offer}"` : ""} for next time; otherwise I'll save them once the money lands.` : h.text, steps: h.steps, app: h.app, watch: h.watch, send, save_offered: !!nu };
         }
         if (r.outcome === "confirmed") {
           const rc = Money.receipt(send, { reference: r.outcome_record && r.outcome_record.reference || (r.message.match(/ref ([^)]+)\)/) || [])[1] || "confirmed" });
@@ -336,8 +339,8 @@
         }
         if (saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text))) {
           const so = saveOffer; saveOffer = null;
-          const sv = book.save({ name: so.name, handle: so.handle, rail: so.rail }, { kind: "confirmed", approved: true, readback: true, confirmation_id: so.readback_id });
-          return sv.ok ? { outcome: "saved", text: `Saved ${so.name} (${Rec.railName(so.rail)} ${so.handle}). Next time a send to them goes straight to the card.`, row: sv.row } : { outcome: "not_saved", text: sv.text };
+          const sv = book.save({ name: so.name, handle: so.handle, rail: so.rail, nickname: so.nickname || null }, { kind: "confirmed", approved: true, readback: true, confirmation_id: so.readback_id });
+          return sv.ok ? { outcome: "saved", text: `Saved ${so.name} (${Rec.railName(so.rail)} ${so.handle})${so.nickname ? ` as "${so.nickname}"` : ""}. Next time a send to ${so.nickname ? `"${so.nickname}"` : "them"} goes straight to the card.`, row: sv.row } : { outcome: "not_saved", text: sv.text };
         }
         const p = pending;
         if (!p) return { outcome: "nothing_pending", text: "There is no send waiting on you." };

@@ -1,7 +1,7 @@
 // Phase 1 wiring of the chat handler (supabase/functions/_shared/flow_router.ts). These run the real wiring code in Deno
 // with an in-memory database and a STUB model. They prove the wiring, not the spec 16 score: the score comes only from
 // evals/gauntlet/run-live.cjs against the deployed handler with the real model.
-import { routeFlows as routeFlowsTyped, routeExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, userBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
+import { routeFlows as routeFlowsTyped, routeExtractor, mapFlowData, hasLiveCard, flowErrorReply, merchantDirectory, supabaseFlowDb, userBroker, brokerSource, LIVE_PARTNERS, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 const anthropicRouteExtractor = (a: any, u: string, t: string, model: string, apiKey: string, request: any) => routeExtractor(a, u, t, { provider: "anthropic", model, apiKey, reasoningEffort: null }, { request });
 import { AgentRouter, AgentCards } from "../../supabase/functions/_shared/router_core.js";
 function assert(v: unknown, m = "assertion failed") { if (!v) throw new Error(m); }
@@ -31,7 +31,7 @@ function memDb(opts: { fail?: string; people?: any[]; recipients?: any[]; tx?: a
     async loadState() { if (opts.fail === "state") throw new Error("Flow state unavailable."); return store.state ? JSON.parse(JSON.stringify(store.state)) : null; },
     async saveState(s: any) { store.saves++; store.state = JSON.parse(JSON.stringify(s)); },
     async loadData() { if (opts.fail === "data") return { ok: false, missing: "transactions", transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} }; const d = mapFlowData(txRows().concat(opts.tx || []), [{ id: "acct-1", provider: "alpaca", label: "main", paper: true, status: "active" }], [{ brokerage_account_id: "acct-1", cash: 2500, snapshot_at: "2026-10-12T13:00:00Z" }], opts.fail === "recipients" ? null : JSON.parse(JSON.stringify(store.recipients))); if (opts.people) d.people = opts.people; return { ok: true, ...d }; },
-    async saveRecipients(rows: any[]) { if (opts.failSave) throw new Error("recipient store down"); for (const r of rows) { store.recipientWrites.push(r); if (r.op === "insert") store.recipients.push({ id: "rec-" + store.recipients.length, handle: r.handle, display_name: r.display_name, channel: r.channel, source: r.source, rail: r.rail, last_used_at: r.last_used_at }); } },
+    async saveRecipients(rows: any[]) { if (opts.failSave) throw new Error("recipient store down"); for (const r of rows) { store.recipientWrites.push(r); if (r.op === "insert") store.recipients.push({ id: "rec-" + store.recipients.length, handle: r.handle, display_name: r.display_name, channel: r.channel, source: r.source, rail: r.rail, last_used_at: r.last_used_at, nickname: r.nickname ?? null }); if (r.op === "nickname") { for (const x of store.recipients) if ((r.clear_row_ids || []).includes(x.id)) x.nickname = null; const t = store.recipients.find(x => x.id === r.row_id); if (!t || store.recipients.some(x => x !== t && x.nickname === r.nickname)) throw new Error("Nickname could not be saved."); t.nickname = r.nickname; } } },
   };
   return { db, store };
 }
@@ -489,4 +489,78 @@ Deno.test("Trade by company name (corpus 3.05): a sell resolves against the call
   const one = await go("buy $3 of nvidia");
   eq(one.route.outcome, "confirm"); assert(/^LIVE: Buy \$3\.00 of NVDA/.test(one.reply), one.reply);
   eq(stub.calls.filter(x => x.method === "POST").length, 1, "only the one approved order was ever sent");
+});
+
+// Saved nicknames (corpus 1.06; migration 20261012020000). MOCK rows in the in-memory store; the restated nickname is
+// written only after a yes, through the same outbox the recipient saves use.
+const MOCK_ANITA = { id: "mock-r1", handle: "@anitas", display_name: "Anita Srikanth", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: "2026-10-01T00:00:00Z", nickname: null as string | null };
+const MOCK_MIKE = { id: "mock-r2", handle: "@mikereyes", display_name: "Mike Reyes", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: "2026-09-30T00:00:00Z", nickname: null as string | null };
+
+Deno.test("nicknames: \"mom is Anita Srikanth\" is restated, saved on the yes, survives the next message, and \"sned mom 100 rn\" cards the real name", async () => {
+  const { db, store } = memDb({ recipients: [MOCK_ANITA, MOCK_MIKE].map(r => ({ ...r })) }); let now = T0, calls = 0;
+  const extract = async (m: string) => { calls++; return m === "send mom 100" ? { intent: "send_money", amount_span: "100", amount_cents: 10000, recipient_span: "mom" } : { intent: "other" }; };
+  const go = (m: string) => routeFlows(m, { db, extract, now: () => now, channel: "sms" });
+  eq(AgentRouter.maybeFlow("mom is Anita Srikanth"), true);
+  const a = await go("mom is Anita Srikanth");
+  eq(a!.route.flow, "nickname"); eq(a!.route.outcome, "confirm_nickname"); eq(calls, 0, "a nickname message never reaches the model");
+  eq(a!.reply, "Save \"mom\" as your name for Anita Srikanth (@anitas)? Then \"send mom 20\" goes to Anita Srikanth. Reply YES to save it or NO.");
+  eq(store.recipientWrites.length, 0, "nothing is written before the yes"); assert(hasLiveCard(store.state), "the restatement is a live card");
+  now += 30000;
+  const y = await go("ya");
+  eq(y!.route.outcome, "nickname_saved"); eq(y!.reply, "Saved: \"mom\" is Anita Srikanth (mom, @anitas).");
+  eq(store.recipientWrites.length, 1); eq(store.recipientWrites[0].op, "nickname"); eq(store.recipients.find(r => r.id === "mock-r1")!.nickname, "mom");
+  now += 30000;
+  const s = await go("sned mom 100 rn");
+  eq(s!.route.flow, "send"); eq(s!.route.outcome, "confirm"); assert(/\$100\.00 to Anita Srikanth \(mom, @anitas\)/.test(s!.reply), s!.reply);
+  assert(AgentCards.segments(s!.reply).segments <= 2);
+});
+
+Deno.test("nicknames: a no saves nothing; a nickname for a stranger is refused; ordinary talk falls through; a failed write is never claimed", async () => {
+  const { db, store } = memDb({ recipients: [{ ...MOCK_ANITA }] }); const now = T0;
+  const go = (m: string) => routeFlows(m, { db, extract: async () => ({ intent: "other" }), now: () => now });
+  await go("save anita as mom"); const n = await go("no");
+  eq(n!.route.outcome, "declined"); eq(store.recipientWrites.length, 0);
+  const z = await go("save zed as bro"); eq(z!.route.outcome, "refuse"); assert(/I don't have Zed saved/.test(z!.reply), z!.reply);
+  const d = await go("save anita as 4111"); eq(d!.route.outcome, "refuse"); assert(/not a number/.test(d!.reply), d!.reply);
+  eq(await go("mom is sick"), null, "ordinary talk is answered by the assistant, not the nickname flow");
+  eq(store.recipientWrites.length, 0);
+  const { db: d2, store: s2 } = memDb({ recipients: [{ ...MOCK_ANITA }], failSave: true });
+  await routeFlows("save anita as mom", { db: d2, extract: null, now: () => now });
+  const f = await routeFlows("yes", { db: d2, extract: null, now: () => now });
+  eq(f!.route.outcome, "not_saved"); eq(f!.reply, "I couldn't save \"mom\" right now, so nothing was saved. Say it again in a moment."); eq(s2.recipients[0].nickname, null);
+});
+
+// A fake of the supabase-js query builder: every call is logged; the result comes from `answer` for the finished chain.
+function fakeSupabase(answer: (chain: any[]) => any) {
+  const log: any[][] = [];
+  const from = (table: string) => {
+    const chain: any[] = [["from", table]]; log.push(chain);
+    const b: any = new Proxy({}, { get(_t, k: string) { if (k === "then") return (res: any, rej: any) => Promise.resolve(answer(chain)).then(res, rej); return (...args: any[]) => { chain.push([k, ...args]); return b; }; } });
+    return b;
+  };
+  return { client: { from }, log };
+}
+
+Deno.test("nicknames, Supabase wiring: the column is read; before the migration is applied the rows are read without it; a nickname moves then lands on exactly one row", async () => {
+  const rows = [{ id: "mock-r1", handle: "@anitas", display_name: "Anita Srikanth", channel: "sms", source: "completed_send", rail: "venmo", last_used_at: null, nickname: "mom" }];
+  const ok = (data: any) => ({ data, error: null });
+  let migrated = true;
+  const fake = fakeSupabase(chain => {
+    const table = chain[0][1], sel = chain.find((c: any[]) => c[0] === "select");
+    if (table === "saved_recipients" && sel && !chain.some((c: any[]) => c[0] === "update")) return !migrated && /nickname/.test(sel[1]) ? { data: null, error: { code: "42703", message: "column saved_recipients.nickname does not exist" } } : ok(rows.map(r => /nickname/.test(sel[1]) ? r : (({ nickname: _n, ...x }) => x)(r)));
+    if (table === "saved_recipients") { const id = chain.find((c: any[]) => c[0] === "eq" && c[1] === "id"); return ok(id && id[2] === "mock-r1" ? [{ id: "mock-r1" }] : []); }
+    return ok([]);
+  });
+  const fdb = supabaseFlowDb(fake.client, "u-1", "t-1", () => T0);
+  const d1 = await fdb.loadData(); eq(d1.recipients_ok, true); eq(d1.recipients![0].nickname, "mom");
+  migrated = false;
+  const d2 = await fdb.loadData(); eq(d2.recipients_ok, true, "an unapplied migration never blocks sends"); eq(d2.recipients![0].nickname, undefined);
+  fake.log.length = 0;
+  await fdb.saveRecipients!([{ op: "nickname", row_id: "mock-r1", nickname: "mom", clear_row_ids: ["mock-r9"], display_name: "Anita Srikanth" }]);
+  const ups = fake.log.filter(c => c.some((x: any[]) => x[0] === "update"));
+  eq(ups.length, 2); eq(ups[0].find((x: any[]) => x[0] === "update")[1], { nickname: null }, "the old holder lets go first"); assert(ups[0].some((x: any[]) => x[0] === "in" && x[1] === "id"));
+  eq(ups[1].find((x: any[]) => x[0] === "update")[1], { nickname: "mom" }); assert(ups.every(c => c.some((x: any[]) => x[0] === "eq" && x[1] === "user_id" && x[2] === "u-1")), "every write is scoped to the caller");
+  let threw = false;
+  try { await fdb.saveRecipients!([{ op: "nickname", row_id: "mock-gone", nickname: "mom", clear_row_ids: [] }]); } catch { threw = true; }
+  assert(threw, "zero rows written is a failure, never saved");
 });

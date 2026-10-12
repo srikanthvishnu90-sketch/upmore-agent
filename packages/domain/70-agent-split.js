@@ -62,7 +62,8 @@
         const s0 = Rec.identityStart(spec, clock()); identity = s0.state; waiting = { parsed, resolved, index }; pending = null;
         return Object.assign({ outcome: "ask", reason, text: s0.text }, extra || {});
       }
-      const who = a => `${a.name}${a.handle && a.handle !== a.name ? ` (${a.handle}${a.readback_id ? ", new" : ""})` : a.readback_id ? " (new)" : ""}`;
+      // The real name, then a saved nickname and the handle: "Anita Srikanth (mom, @anitas)".
+      const who = a => `${a.name}${a.handle && a.handle !== a.name ? ` (${a.nickname ? a.nickname + ", " : ""}${a.handle}${a.readback_id ? ", new" : ""})` : a.readback_id ? " (new)" : a.nickname ? ` (${a.nickname})` : ""}`;
       const list = xs => xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
       function cardText(sp, channel) {
         const same = sp.asks.every(a => a.amount_cents === sp.asks[0].amount_cents), oneRail = sp.asks.every(a => a.rail === sp.asks[0].rail);
@@ -119,7 +120,7 @@
           const rail = parsed.rail && (p0.rails || []).includes(parsed.rail) ? parsed.rail : (p0.rails || []).find(x => REQUEST_RAILS.includes(x));
           if (!rail) return { outcome: "ask", reason: "gap", text: `${p0.name} has no Venmo, Cash App, PayPal or Zelle on file, so I can't stage a request to them. Which app do they use?` };
           const p = Rec.forRail(p0, rail);
-          asks.push({ name: p.name, handle: p.handle || null, rail, readback_id: p.readback_id || null, saved: !!p.saved, id: p.id || null });
+          asks.push({ name: p.name, handle: p.handle || null, nickname: p.nickname || null, rail, readback_id: p.readback_id || null, saved: !!p.saved, id: p.id || null });
         }
         // Equal shares (any odd cent is the person's), or the person's fixed share and the rest split among the others.
         const fixed = parsed.mine_cents && parsed.mine_cents < parsed.amount_cents ? parsed.mine_cents : null;

@@ -21,14 +21,6 @@
   },
   {
    "family": "response",
-   "id": "R-01:1.06",
-   "title": "corpus 1.06 Typo'd, rushed",
-   "status": "GAP",
-   "actual": "NOT_BUILT: Saved nicknames ('mom' for Anita Srikanth): saved_recipients has no nickname column, so 'mom' is not a saved name. The flow does not guess: it names the nearest saved person and asks, or takes NEW.",
-   "path": "evals/corpus/triage.json"
-  },
-  {
-   "family": "response",
    "id": "R-01:2.04",
    "title": "corpus 2.04 Rent",
    "status": "GAP",

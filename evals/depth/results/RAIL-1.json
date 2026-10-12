@@ -1,6 +1,6 @@
 {
  "capability": "RAIL-1",
- "run_at": "2026-10-11T22:12:58.387Z",
+ "run_at": "2026-10-12T04:18:06.148Z",
  "baseline_all_green": true,
  "sub_capabilities": 16,
  "proven": 16,
@@ -49,7 +49,7 @@
   {
    "sub": "S03",
    "id": "D03",
-   "title": "First name third",
+   "title": "First name, after the handle and the nickname",
    "defect": "the first-name step is skipped, so every first name is a stranger",
    "test": "a unique first name goes straight to the card",
    "bites": true,

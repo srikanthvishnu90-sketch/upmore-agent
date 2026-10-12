@@ -135,7 +135,7 @@
       if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity || n.fraction) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
       return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
-    const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
+    const YES_NO = /^\s*(1|2|3|y|ya|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
 
     // Two requests in one text ("send sam 40 and cancel netflix", "send $40 to sam and $20 to marcus") are never half-done
@@ -325,6 +325,19 @@
         // Asking who, how much and which day is a data gap (no rent on file), not a misunderstanding.
         return { route: "pay_rent", source: "deterministic", flow: "rent", capability: Rent.CAPABILITY, canonical: text, result, understood: true, understood_first: true, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
       }
+      // A nickname message ("mom is Anita Srikanth", "save Anita as mom") goes to the recipient layer, never to the model: it
+      // restates the nickname and saves it only on a yes. It returns nothing when the message was ordinary talk after all.
+      if (sessions.nickname && typeof sessions.nickname.start === "function" && NICK && NICK.parseNickname(text)) {
+        const result = sessions.nickname.start(text);
+        if (result) {
+          const dropped = [];
+          for (const k of live) if (k !== "nickname") { await sessions[k].reply("never mind"); dropped.push(k); }
+          for (const k of Object.keys(sessions)) if (k !== "nickname" && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+          memo.queue = null;
+          if (dropped.length && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+          return { route: "save_nickname", source: "deterministic", flow: "nickname", result, understood: true, understood_first: result.outcome !== "ask", ask_reason: result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
+        }
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -397,7 +410,9 @@
       for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
       return t;
     }
-    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)); };
+    // Nickname messages are read by the recipient layer (42-agent-recipients.js), loaded before this module.
+    const NICK = typeof AgentRecipients !== "undefined" && AgentRecipients && typeof AgentRecipients.parseNickname === "function" ? AgentRecipients : null;
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();

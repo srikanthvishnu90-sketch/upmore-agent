@@ -23,8 +23,8 @@
       const c = ctx || {};
       if (!t) return { type: "smalltalk" };
       // "Yes, but use the other account" is a correction that invalidates the proposal, never an approval of it.
-      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
-      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
+      if (c.pending_confirmation && /^(y|ya|yes|yep|yeah|yup|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
+      if (c.pending_confirmation && /^(y|ya|yes|yep|yeah|yup|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
       // "no wait" / "hold on" keeps the card and moves nothing (scenario P05); "wait no", "nah", "scratch that" drop it
       // (response-style corpus 1.09).
       if (c.pending_confirmation && /^(no,?\s*wait|wait|hold on|hang on|one sec(ond)?|give me a (sec|second|minute))\s*[.!]*$/i.test(t)) return { type: "hold" };

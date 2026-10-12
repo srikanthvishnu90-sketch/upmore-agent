@@ -16,7 +16,7 @@ Not live: the migration is not applied to the live project (owner step). Until i
 | --- | --- | --- |
 | S01 | Exact handle first, and a handle is only a handle | "@marcus" resolves to the person with that handle; "@sarah_m" never matches the name "Sarah M"; a bare word is read as a name first. |
 | S02 | Full name second | "Sam" picks the saved "Sam" over "Sam K"; "Marcus T" picks Marcus T. |
-| S03 | First name third | "sarah" resolves to the only Sarah, straight to the card. |
+| S03 | First name, after the handle and the nickname | "sarah" resolves to the only Sarah, straight to the card. |
 | S04 | Two matches ask and stage nothing | "Which Marcus: Marcus L (@marcus) or Marcus T ($mtee)?" (handles shown, response-style corpus 1.04); no card, no loop confirmation; "T" or "Marcus T" continues to the card. |
 | S05 | A handle look-alike is named | "@sarah-m" when "@sarah_m" is saved: "is one character away from Sarah M (@sarah_m). Did you mean Sarah M?"; NEW starts the stranger path; nothing is staged. |
 | S06 | A name look-alike is asked about | "sarha" asks "Did you mean Sarah M?" instead of guessing or calling her a stranger. |
@@ -59,7 +59,7 @@ Not live: the migration is not applied to the live project (owner step). Until i
 | --- | --- | --- | --- | --- | --- |
 | S01 | Exact handle first, and a handle is only a handle | @marcus resolves by handle; a bare "marcus" shared by two people asks | `S01` in tests/depth-RAIL-1.test.cjs | the handle step runs for every query, so a first name that equals someone's handle resolves silently | proven (also fails S04, S13, S16) |
 | S02 | Full name second | "sam" picks the saved Sam, not Sam K | `S02` in tests/depth-RAIL-1.test.cjs | the full-name step is skipped, so a first-name match wins | proven (also fails S01, S03, S04, S05, S06, S07, S09, S10, S11, S12, S13, S15, S16) |
-| S03 | First name third | a unique first name goes straight to the card | `S03` in tests/depth-RAIL-1.test.cjs | the first-name step is skipped, so every first name is a stranger | proven (also fails S01, S04, S11, S13, S16) |
+| S03 | First name, after the handle and the nickname | a unique first name goes straight to the card | `S03` in tests/depth-RAIL-1.test.cjs | the first-name step is skipped, so every first name is a stranger | proven (also fails S01, S04, S11, S13, S16) |
 | S04 | Two matches ask and stage nothing | "Which Marcus: Marcus L or Marcus T?" with no card and no loop confirmation | `S04` in tests/depth-RAIL-1.test.cjs | an ambiguous first name takes the first match | proven (also fails S01, S13, S16) |
 | S05 | A handle look-alike is named | @sarah-m next to a saved @sarah_m is named, never resolved | `S05` in tests/depth-RAIL-1.test.cjs | the look-alike window is zero edits, so a near handle is a stranger with no warning | proven (also fails S13) |
 | S06 | A name look-alike is asked about | "sarha" asks "Did you mean Sarah M?" | `S06` in tests/depth-RAIL-1.test.cjs | names are never compared for near misses | proven |

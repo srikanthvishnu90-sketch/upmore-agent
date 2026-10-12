@@ -1134,13 +1134,19 @@
   /* Recipient memory and resolution for every person-to-person money flow (Rail 1, BUILD-STATUS): pay (AgentSend,
      PAY-001/PAY-002), split (AgentSplit, PAY-004), and AgentMoney.resolveRecipient for anything else that names a person.
      One layer, so a name means the same person in every flow and the same safety rules apply everywhere.
-       resolve(query)  exact handle, then full name, then first name. Two or more matches at the first step that matches
+       resolve(query)  exact handle, then a saved nickname (exactly), then full name, then first name. Two or more matches at the first step that matches
                        ask "Which Marcus: Marcus L or Marcus T?" and nothing is staged. A handle within two edits of a saved
                        one (@sarah_m vs @sarah-m), or a name one edit from a saved one, is named and asked about, never
                        silently resolved. No match is a stranger.
        identity        the follow-up a flow keeps in its state: choose (answer to "Which Marcus"), lookalike (YES for the
                        saved one, NEW for someone else), and the stranger path: who (the app and handle), then the handle
                        typed back exactly, then the flow's full card. A saved recipient skips all of it.
+       nicknames       the person's own word for someone ("mom" for Anita Srikanth), migration 20261012020000. Matched
+                       exactly, never fuzzily: "mum" is not "mom", and a family word is still never offered as a look-alike
+                       name. A nickname is set only by an explicit message ("mom is Anita Srikanth", "save Anita as mom"),
+                       restated back and saved on a yes, and only for someone already saved (or confirmed by read-back in the
+                       same send and kept with SAVE). It is a word: no digits, nothing handle-shaped. Cards show the real
+                       name with it: "Anita Srikanth (mom, @anitas)".
        book.save()     only with evidence: a completed send (the debit posted, or the rail confirmed with a reference) or an
                        explicitly confirmed save (handle typed back, then SAVE). A name in a message is never saved. Rows go
                        to an outbox the host writes to public.saved_recipients (migration 20261011020000).
@@ -1172,6 +1178,24 @@
     const railName = id => RAILS[id] || id;
     const railFor = h => /^\$/.test(String(h || "")) ? "cash_app" : EMAIL.test(String(h || "")) || PHONE.test(String(h || "")) ? "zelle" : null;
     const handlesOf = p => p.handles ? Object.values(p.handles) : p.handle ? [p.handle] : [];
+    // Nicknames (migration 20261012020000): lowercase letters, a space or an apostrophe, 2 to 24 characters, at most three
+    // words. Words that answer a card can never be someone's nickname.
+    const NICK_SHAPE = /^[a-z][a-z' ]*[a-z]$/;
+    const NICK_RESERVED = /^(y|ya|yes|yeah|yep|yup|ok|okay|sure|confirm|no|nope|nah|new|save|stop|cancel|details?|more|terms|never ?mind|nvm|me|myself|i|you|we|us|they|them|him|her|it|everyone|everybody|all|nobody|someone|somebody|anyone|the|a|an|my)$/;
+    const nickNorm = s => String(s == null ? "" : s).trim().toLowerCase().replace(/^["'“‘]+|["'”’.!?]+$/g, "").replace(/^(?:my|our|the)\s+/, "").replace(/\s+/g, " ").trim();
+    // Why a word cannot be a nickname, or null when it can. Never identity digits, never a handle.
+    function nicknameError(raw) {
+      const t = String(raw == null ? "" : raw).trim(), n = nickNorm(t);
+      if (!n) return { reason: "empty", text: "What should the nickname be?" };
+      if (/\d/.test(n)) return { reason: "digits", text: "A nickname is a word, not a number. I never save numbers as names." };
+      if (/[@$_.]/.test(n) || EMAIL.test(t) || PHONE.test(t) || looksLikeHandle(n)) return { reason: "handle_shaped", text: `"${t}" looks like a handle, not a nickname. A nickname is the word you call them, like "mom".` };
+      if (n.length < 2 || n.length > 24 || !NICK_SHAPE.test(n) || n.split(" ").length > 3) return { reason: "shape", text: "A nickname is a short word or two, letters only, like \"mom\" or \"big sis\"." };
+      if (NICK_RESERVED.test(n)) return { reason: "reserved", text: `"${n}" can't be a nickname: I read it as a reply to a card.` };
+      return null;
+    }
+    // The real name with the nickname and the handle, as every card shows a saved person: "Anita Srikanth (mom, @anitas)".
+    const display = p => { if (!p) return ""; const tags = [p.nickname || null, p.handle && p.handle !== p.name ? p.handle : null].filter(Boolean); return `${p.name}${tags.length ? ` (${tags.join(", ")})` : ""}`; };
+    const isKin = s => KIN.test(nickNorm(s));
 
     // Rows of public.saved_recipients as the flows read them: one person per display name, a handle per app.
     function fromRows(rows) {
@@ -1180,8 +1204,10 @@
       for (const r of sorted) {
         const key = r.display_name ? normName(r.display_name) : null;
         let p = key ? byName.get(key) : null;
-        if (!p) { p = { id: r.id || null, name: r.display_name || r.handle, handle: r.handle || null, handles: {}, rails: [], channel: r.channel || null, source: r.source, saved: true, last_used_at: r.last_used_at || null, row_ids: [], history: [] }; out.push(p); if (key) byName.set(key, p); }
+        if (!p) { p = { id: r.id || null, name: r.display_name || r.handle, handle: r.handle || null, handles: {}, rails: [], channel: r.channel || null, source: r.source, saved: true, last_used_at: r.last_used_at || null, row_ids: [], nickname: null, nicknames: [], nickname_rows: [], history: [] }; out.push(p); if (key) byName.set(key, p); }
         p.row_ids.push(r.id || null);
+        // A nickname a row carries belongs to the person; one the rules refuse (a hand-edited row) is ignored, never matched.
+        if (r.nickname && !nicknameError(r.nickname)) { const n = nickNorm(r.nickname); if (!p.nicknames.includes(n)) p.nicknames.push(n); if (!p.nickname) p.nickname = n; if (r.id) p.nickname_rows.push(r.id); }
         if (r.rail && r.handle && !p.handles[r.rail]) { p.handles[r.rail] = r.handle; p.rails.push(r.rail); }
         if (r.source === "completed_send") p.source = "completed_send";
       }
@@ -1217,26 +1243,35 @@
       const handleShaped = looksLikeHandle(raw);
       if (handleShaped && byHandle.length === 1) return { status: "saved", person: byHandle[0], matched_by: "handle" };
       if (handleShaped && byHandle.length > 1) return ambiguous(raw, byHandle);
-      // 2. Full name (or a full alias).
+      // 2. A nickname, exactly ("mom" is the person's own word for Anita Srikanth; "mum" is not "mom"). When the same word is
+      // also someone else's name, the person is asked which: a nickname never silently beats a real name.
+      const nq = nickNorm(raw);
+      const byNick = handleShaped || !nq ? [] : list.filter(p => (p.nicknames || (p.nickname ? [p.nickname] : [])).includes(nq));
+      if (byNick.length) {
+        const others = list.filter(p => !byNick.includes(p) && (normName(p.name) === qn || normName(p.name).startsWith(qn + " ") || (p.aliases || []).some(a => normName(a) === qn)));
+        if (byNick.length === 1 && !others.length) return { status: "saved", person: byNick[0], matched_by: "nickname" };
+        return ambiguous(raw, byNick.concat(others));
+      }
+      // 3. Full name (or a full alias).
       // A handle-shaped query is only ever a handle: "@sarah_m" must not match the name "Sarah M" once punctuation is gone.
       const byFull = handleShaped ? [] : list.filter(p => normName(p.name) === qn || (p.aliases || []).some(a => normName(a) === qn));
       if (byFull.length === 1) return { status: "saved", person: byFull[0], matched_by: "full_name" };
       if (byFull.length > 1) return ambiguous(raw, byFull);
-      // 3. First name (or the leading words of the full name).
+      // 4. First name (or the leading words of the full name).
       const byFirst = qn && !handleShaped ? list.filter(p => normName(p.name).startsWith(qn + " ")) : [];
       if (byFirst.length === 1) return { status: "saved", person: byFirst[0], matched_by: "first_name" };
       if (byFirst.length > 1) return ambiguous(raw, byFirst);
       // A bare word that is nobody's name but is exactly one saved handle without its "@".
       if (byHandle.length === 1) return { status: "saved", person: byHandle[0], matched_by: "handle" };
       if (byHandle.length > 1) return ambiguous(raw, byHandle);
-      // 4. Look-alikes are named, never resolved.
+      // 5. Look-alikes are named, never resolved (names and handles only: a nickname matches exactly or not at all).
       if (looksLikeHandle(raw)) {
         for (const p of list) for (const h of handlesOf(p)) { const d = editDistance(qh, normHandle(h)); if (d >= 1 && d <= 2) return { status: "lookalike", suspect: p, distance: d, query: raw, handle: raw, ask: `${raw} is not on file, but it is ${d === 1 ? "one character" : "two characters"} away from ${p.name} (${h}). Did you mean ${p.name}? If this is someone new, say NEW and I'll confirm them in full.` }; }
       } else if (qn.length >= 3 && !KIN.test(qn)) {
         // A family word ("mom", "dad", "sis") is a relationship, not a misspelled name: never offer "Tom" for "mom".
         for (const p of list) { const n = normName(p.name), f = n.split(" ")[0]; if ((f.length >= 3 && editDistance(qn, f) === 1) || editDistance(qn, n) === 1) return { status: "lookalike", suspect: p, distance: 1, query: raw, handle: null, ask: `I don't have ${title(raw)} on file, but ${p.name}${p.handle ? ` (${p.handle})` : ""} is one letter away. Did you mean ${p.name}? If ${title(raw)} is someone new, say NEW and I'll confirm them in full.` }; }
       }
-      // 5. A stranger.
+      // 6. A stranger.
       return { status: "stranger", query: raw, name: looksLikeHandle(raw) ? null : title(raw), handle: looksLikeHandle(raw) ? raw : null };
     }
 
@@ -1342,6 +1377,35 @@
         if (ev.approved === true && ev.readback === true && ev.confirmation_id) return { ok: true, ref: `readback:${ev.confirmation_id}` };
         return { ok: false, reason: "not_confirmed", text: "I only save someone after you type their handle back and say SAVE." };
       }
+      // Whether `person` may carry the nickname: the word itself, then the rest of the book. A nickname that is someone
+      // else's name is refused (it would make "send sam 40" ambiguous); one that is someone else's nickname is a move, which
+      // the caller restates before it happens.
+      function nicknameCheck(person, raw) {
+        const bad = nicknameError(raw); if (bad) return Object.assign({ ok: false }, bad);
+        const n = nickNorm(raw);
+        const named = people.find(p => p !== person && (normName(p.name) === n || normName(p.name).split(" ")[0] === n));
+        if (named) return { ok: false, reason: "name_clash", text: `"${n}" is already how ${named.name} is found by name, so it can't be a nickname for someone else.` };
+        const holder = people.find(p => p !== person && (p.nicknames || (p.nickname ? [p.nickname] : [])).includes(n)) || null;
+        const same = !!person && (person.nicknames || (person.nickname ? [person.nickname] : [])).includes(n);
+        return { ok: true, nickname: n, holder, same, replacing: person && person.nickname && person.nickname !== n ? person.nickname : null };
+      }
+      // A nickname is written only for a saved row (paid before, or confirmed by read-back and SAVE) and only on the person's
+      // explicit yes to the restated nickname. It replaces the person's earlier nickname and moves it off anyone else.
+      function setNickname(person, raw, approval) {
+        if (!approval || approval.approved !== true) return { ok: false, reason: "not_approved", text: "I only save a nickname after you say yes to it." };
+        if (!person || !person.saved) return { ok: false, reason: "not_saved", text: "I only save a nickname for someone you've already paid or confirmed." };
+        const target = (person.nickname_rows || [])[0] || (person.row_ids || []).find(Boolean) || person.id || null;
+        if (!target) return { ok: false, reason: "not_saved", text: "I only save a nickname for someone you've already paid or confirmed." };
+        const c = nicknameCheck(person, raw); if (!c.ok) return c;
+        if (c.same) return { ok: true, op: "none", nickname: c.nickname, person };
+        const clear = [];
+        if (c.holder) { clear.push(...(c.holder.nickname_rows || [])); c.holder.nicknames = (c.holder.nicknames || []).filter(x => x !== c.nickname); c.holder.nickname = c.holder.nicknames[0] || null; }
+        clear.push(...(person.nickname_rows || []).filter(id => id !== target));
+        Object.assign(person, { nickname: c.nickname, nicknames: [c.nickname], nickname_rows: [target] });
+        const row = { op: "nickname", row_id: target, nickname: c.nickname, clear_row_ids: clear, display_name: person.name };
+        outbox.push(row);
+        return { ok: true, op: "nickname", row, person, moved_from: c.holder ? c.holder.name : null, replaced: c.replacing };
+      }
       function save(entry, evidence) {
         const e = entry || {}, ev = evidenceRef(evidence);
         if (!ev.ok) return ev;
@@ -1350,23 +1414,107 @@
         if (/\d{13,}/.test(handle || "") || /\d{9,}/.test(name || "")) return { ok: false, reason: "identity_digits", text: "That looks like an account or card number. I never store those." };
         if (channel && !CHANNELS.includes(channel)) return { ok: false, reason: "channel", text: "Unknown channel." };
         const existing = handle ? find(handle, rail) : people.find(p => normName(p.name) === normName(name));
+        // A nickname rides on a save only when the person said SAVE to it, restated ("keep them as \"mom\""), and never on
+        // a save that evidence alone made (a send that landed).
+        let nick = null;
+        if (e.nickname) {
+          if (evidence.kind !== "confirmed") return { ok: false, reason: "nickname_needs_confirmation", text: "I only save a nickname after you say SAVE to it." };
+          const c = nicknameCheck(existing || null, e.nickname);
+          if (!c.ok) return c;
+          if (c.holder) return { ok: false, reason: "nickname_taken", text: `"${c.nickname}" already means ${c.holder.name}, so I didn't save it. Nothing was saved.` };
+          nick = c.nickname;
+        }
         if (existing && existing.saved) {
           existing.last_used_at = iso(); if (evidence.kind === "completed_send") existing.source = "completed_send";
           const row = { op: "touch", handle: handle || existing.handle, display_name: existing.name, rail: rail || (existing.rails || [])[0] || null, source: existing.source, evidence_ref: ev.ref, channel, last_used_at: existing.last_used_at };
-          outbox.push(row); return { ok: true, op: "touch", row, person: existing };
+          outbox.push(row);
+          if (nick) setNickname(existing, nick, { approved: true });
+          return { ok: true, op: "touch", row, person: existing };
         }
         const person = existing || { id: null, name: name || handle, handle, rails: rail ? [rail] : [], history: [] };
         Object.assign(person, { saved: true, source: evidence.kind, channel, last_used_at: iso() });
+        if (nick) Object.assign(person, { nickname: nick, nicknames: [nick] });
         if (handle && rail) { person.handles = Object.assign({}, person.handles || {}, { [rail]: handle }); if (!person.rails.includes(rail)) person.rails.push(rail); }
         delete person.readback_id; delete person.new_recipient;
         if (!existing) people.push(person);
         const row = { op: "insert", handle, display_name: name || handle, rail, source: evidence.kind, evidence_ref: ev.ref, channel, last_used_at: person.last_used_at };
+        if (nick) row.nickname = nick;
         outbox.push(row);
         return { ok: true, op: "insert", row, person };
       }
-      return { people, unavailable: !!o.unavailable, resolve: q => resolve(q, people, { unavailable: o.unavailable }), save, find, drain: () => outbox.splice(0), outbox };
+      return { people, unavailable: !!o.unavailable, resolve: q => resolve(q, people, { unavailable: o.unavailable }), save, find, nicknameCheck, setNickname, drain: () => outbox.splice(0), outbox };
     }
-    return { book, resolve, fromRows, forRail, choose, editDistance, looksLikeHandle, railOf, railName, identityStart, identityStep, identityAccepts, handleIn, normHandle, CHANNELS, SOURCES, RAILS, TTL };
+    // A nickname message, or null. Only these shapes:
+    //   "save Anita as mom", "remember anita srikanth as my mom"   explicit: always answered
+    //   "mom is Anita Srikanth", "anita is my mom", "my mom is anita" the family word is the nickname; answered when the other
+    //                                                                 side is a saved person, or a capitalized full name
+    // so ordinary talk ("mom is sick", "my wife is at work") falls through to the assistant. A question is never one.
+    // Any other nickname ("landlord", "bestie") is set with "save X as Y". Returns { name, nick, explicit, proper }.
+    const NICK_SAVE = /^\s*(?:please\s+)?(?:save|remember|nickname|label)\s+(.+?)\s+as\s+(?:my\s+|our\s+)?(.+?)\s*[.!]*\s*$/i;
+    const NICK_IS = /^\s*(.+?)\s+(?:is|=)\s+(.+?)\s*[.!]*\s*$/i;
+    const wordsOk = s => { const w = String(s || "").trim().split(/\s+/); return w.length >= 1 && w.length <= 4 && w.every(x => /^[@$]?[\w.'’-]+$/.test(x)); };
+    function parseNickname(text) {
+      const t = String(text || "").trim();
+      if (!t || /\?/.test(t) || t.length > 80) return null;
+      const s = NICK_SAVE.exec(t);
+      if (s) return wordsOk(s[1]) && wordsOk(s[2]) ? { name: s[1].trim(), nick: s[2].trim(), explicit: true, proper: true } : null;
+      const m = NICK_IS.exec(t); if (!m) return null;
+      const a = m[1].trim().replace(/^(?:my|our)\s+/i, ""), b = m[2].trim().replace(/^(?:my|our)\s+/i, "");
+      if (!wordsOk(a) || !wordsOk(b)) return null;
+      const kA = isKin(a), kB = isKin(b);
+      if (kA === kB) return null;
+      const name = kA ? b : a;
+      // "Anita Srikanth" as typed: every word capitalized and at least two words reads as a person's full name.
+      const proper = name.split(/\s+/).length >= 2 && name.split(/\s+/).every(w => /^[A-Z][a-z'’-]+$/.test(w));
+      return { name, nick: kA ? a : b, explicit: false, proper };
+    }
+
+    // The nickname conversation: one message names it, the reply restates it in full, a yes saves it (the host writes the
+    // outbox row to public.saved_recipients.nickname). Nothing is inferred: no yes, no nickname. State is snapshot() for a
+    // stateless host. Returns null from start() when the message is not about a saved person after all (it falls through).
+    function nicknames(opts) {
+      const o = opts || {}, bk = o.book, clock = o.clock || (() => Date.now());
+      let pending = (o.state && o.state.pending) || null; // { name, nick, key, row_ids, at, moved_from, replaced }
+      const keyOf = p => (p.row_ids || []).filter(Boolean).join(",") || p.id || normName(p.name);
+      const findAgain = k => bk.people.find(p => keyOf(p) === k) || null;
+      function start(text) {
+        const ask = parseNickname(text); if (!ask || !bk) return null;
+        pending = null;
+        if (bk.unavailable) return { outcome: "unavailable", reason: "recipients_unreadable", text: resolve("", [], { unavailable: true }).ask };
+        const r = bk.resolve(ask.name);
+        // "mom is sick" is ordinary talk: an "is" message is about a nickname only when the other side is a saved person or a
+        // full name as typed ("mom is Anita Srikanth").
+        if (r.status !== "saved" && !ask.explicit && !ask.proper) return null;
+        const nickWord = nickNorm(ask.nick) || ask.nick;
+        if (r.status === "ambiguous") return { outcome: "ask", reason: "ambiguous", text: `${r.ask} Say it again with the full name, like "save ${r.candidates[0].name} as ${nickWord}". Nothing was saved.` };
+        if (r.status === "lookalike") return { outcome: "ask", reason: "lookalike", text: `I don't have ${title(ask.name)} saved, so I didn't save "${nickWord}". Did you mean ${r.suspect.name}? Then say "save ${r.suspect.name} as ${nickWord}".` };
+        if (r.status !== "saved") return { outcome: "refuse", reason: "not_saved", text: `I don't have ${looksLikeHandle(ask.name) ? ask.name : title(ask.name)} saved, so I didn't save "${nickWord}". Nicknames go on people you've already paid or confirmed; once you have, say it again.` };
+        const p = r.person;
+        if (!p.saved) return { outcome: "refuse", reason: "not_saved", text: `${p.name} isn't saved yet, so I didn't save "${nickWord}". Nicknames go on people you've already paid or confirmed.` };
+        const c = bk.nicknameCheck(p, ask.nick);
+        if (!c.ok) return { outcome: "refuse", reason: c.reason, text: `${c.text} Nothing was saved.` };
+        if (c.same) return { outcome: "already_done", reason: "nickname_same", text: `"${c.nickname}" already means ${display(p)}. Nothing changed.` };
+        pending = { name: p.name, nick: c.nickname, key: keyOf(p), at: clock(), moved_from: c.holder ? c.holder.name : null, replaced: c.replacing };
+        const extra = [c.holder ? `"${c.nickname}" means ${c.holder.name} now; this moves it.` : null, c.replacing ? `It replaces "${c.replacing}".` : null].filter(Boolean).join(" ");
+        return { outcome: "confirm_nickname", reason: "nickname", nickname: c.nickname, person: p.name, text: `Save "${c.nickname}" as your name for ${p.name}${p.handle ? ` (${p.handle})` : ""}? Then "send ${c.nickname} 20" goes to ${p.name}.${extra ? " " + extra : ""} Reply YES to save it or NO.` };
+      }
+      const YES_N = /^\s*(y|ya|yes|yep|yeah|yup|ok|okay|sure|confirm|save|save it|do it)\s*[.!]*\s*$/i;
+      function reply(text) {
+        const pd = pending; if (!pd) return { outcome: "nothing_pending", text: "There's nothing waiting on you." };
+        if (/^\s*(wait|hold on|hang on|one sec|details?|more)\s*[.!]*\s*$/i.test(String(text || "")) && clock() - pd.at <= TTL) return { outcome: "held", text: `Holding it. Nothing saved yet. Reply YES to save "${pd.nick}" for ${pd.name}, or NO.` };
+        pending = null;
+        if (clock() - pd.at > TTL) return { outcome: "expired", text: `That expired, so "${pd.nick}" wasn't saved. Nothing changed. Say it again to start over.` };
+        if (!YES_N.test(String(text || ""))) return { outcome: "declined", text: `Okay, I didn't save "${pd.nick}". Nothing changed.` };
+        const p = findAgain(pd.key);
+        if (!p || p.name !== pd.name) return { outcome: "changed", text: `${pd.name} is no longer saved as before, so I didn't save "${pd.nick}". Nothing changed.` };
+        const sv = bk.setNickname(p, pd.nick, { approved: true });
+        if (!sv.ok) return { outcome: "not_saved", text: `${sv.text} Nothing was saved.` };
+        return { outcome: "nickname_saved", nickname: pd.nick, row: sv.row || null, text: `Saved: "${pd.nick}" is ${display(p)}.` };
+      }
+      return { start, reply, parse: parseNickname, snapshot: () => ({ pending }), awaiting_input: false,
+        get pending() { return pending ? { nickname: pending.nick, recipient: pending.name } : null; } };
+    }
+    return { book, resolve, fromRows, forRail, choose, editDistance, looksLikeHandle, railOf, railName, identityStart, identityStep, identityAccepts, handleIn, normHandle, nicknameError, nickNorm, display, isKin, parseNickname, nicknames, CHANNELS, SOURCES, RAILS, TTL };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentRecipients;
 
@@ -1750,8 +1898,8 @@
       const c = ctx || {};
       if (!t) return { type: "smalltalk" };
       // "Yes, but use the other account" is a correction that invalidates the proposal, never an approval of it.
-      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
-      if (c.pending_confirmation && /^(y|yes|yep|yeah|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
+      if (c.pending_confirmation && /^(y|ya|yes|yep|yeah|yup|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t) && /\b(but|except|instead|actually|change|make it|use the other|not the|rather)\b/i.test(t)) return { type: "correction", qualified_approval: true };
+      if (c.pending_confirmation && /^(y|ya|yes|yep|yeah|yup|ok|okay|sure|do it|go ahead|confirm)\b/i.test(t)) return { type: "confirmation", approved: true };
       // "no wait" / "hold on" keeps the card and moves nothing (scenario P05); "wait no", "nah", "scratch that" drop it
       // (response-style corpus 1.09).
       if (c.pending_confirmation && /^(no,?\s*wait|wait|hold on|hang on|one sec(ond)?|give me a (sec|second|minute))\s*[.!]*$/i.test(t)) return { type: "hold" };
@@ -2613,7 +2761,8 @@
       const rail = sel.rail, big = req.amount_cents >= (c.large_cents || 50000);
       const tier = first || rail.tier_min === "T5" ? "T5" : "T3";
       const verify_question = first && big ? `This is a first send to ${person.name} and it is ${money(req.amount_cents)}. Did ${person.name} ask you for this in person or on a call you placed yourself?` : null;
-      const confirm = { action: rail.mode === "handoff" ? `Stage ${money(req.amount_cents)} to ${person.name} on ${rail.name}` : `Send ${money(req.amount_cents)} to ${person.name} by ${rail.name}`, amount: money(req.amount_cents), recipient: `${person.name}${person.handle ? " (" + person.handle + ")" : ""}${first ? ", first time" : ""}`, from: req.funding || c.default_funding || "checking", fee: rail.fee_cents ? money(rail.fee_cents) : null, when: rail.speed };
+      // A saved nickname rides with the real name and the handle ("Anita Srikanth (mom, @anitas)"); the name is never replaced.
+      const confirm = { action: rail.mode === "handoff" ? `Stage ${money(req.amount_cents)} to ${person.name} on ${rail.name}` : `Send ${money(req.amount_cents)} to ${person.name} by ${rail.name}`, amount: money(req.amount_cents), recipient: `${person.name}${[person.nickname, person.handle].filter(Boolean).length ? " (" + [person.nickname, person.handle].filter(Boolean).join(", ") + ")" : ""}${first ? ", first time" : ""}`, from: req.funding || c.default_funding || "checking", fee: rail.fee_cents ? money(rail.fee_cents) : null, when: rail.speed };
       const statement = `${confirm.action} from ${confirm.from}? ${rail.fee_cents ? "Fee " + money(rail.fee_cents) : "Free"}, ${rail.speed}. ${rail.reversible.charAt(0).toUpperCase() + rail.reversible.slice(1)}.${first ? " First time to this recipient, so I'll read everything back before anything moves." : ""} ${sel.comparison}`;
       return Object.assign(out, { recipient: person, amount_cents: req.amount_cents, memo: req.memo || null, rail, tier, first_time: first, verify_question, confirm, statement, comparison: sel.comparison,
         request: { capability_id: rail.capability_id, key: `send:${person.id || person.name}:${req.amount_cents}:${ymd(c.today)}`, amount_cents: req.amount_cents, recipient: person.id || person.name, first_time: first, params: { amount_cents: req.amount_cents, recipient: person.id || person.name, rail: rail.id, memo: req.memo || null, funding: confirm.from }, describe: confirm.action, confirm } });
@@ -3744,6 +3893,9 @@
           }
         }
         const send = Object.assign({ memo_flagged, staged_at: null, landed: null }, prep);
+        // The family word the person used for someone confirmed by read-back in this same send ("send my mom 40", then the
+        // handle typed back) may be kept as their nickname, but only when the SAVE offer restates it and they say SAVE.
+        if (person.readback_id && Rec.isKin(parsed.recipient_raw || "") && book.nicknameCheck) { const nc = book.nicknameCheck(null, Rec.nickNorm(parsed.recipient_raw)); if (nc.ok && !nc.holder) send.nickname_offer = nc.nickname; }
         const handoff = send.rail.mode === "handoff";
         const request = { capability_id: person.readback_id ? "PAY-002" : CAPABILITY, key: prep.request.key, idempotency_key: prep.request.key, params: { amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name, recipient_name: send.recipient.name, rail: send.rail.id, memo: memo || null, funding: send.confirm.from }, describe: send.confirm.action, confirm: { action: send.confirm.action, amount: send.confirm.amount, recipient: send.confirm.recipient, from: send.confirm.from, fee: send.confirm.fee, when: send.confirm.when }, draft_only: handoff, amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name };
         send.request_key = request.key;
@@ -3765,8 +3917,8 @@
           const h = Money.handoff(send); send.staged_at = clock(); send.watch = h.watch; sends.push(send);
           // Staged is not sent: a new recipient is saved when the money lands, or now if the person says SAVE.
           const nu = send.recipient.readback_id && !send.recipient.saved;
-          if (nu) saveOffer = { name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id, readback_id: send.recipient.readback_id, offered_at: clock() };
-          return { outcome: "staged", text: nu ? `${h.text} Reply SAVE to keep ${send.recipient.name} for next time; otherwise I'll save them once the money lands.` : h.text, steps: h.steps, app: h.app, watch: h.watch, send, save_offered: !!nu };
+          if (nu) saveOffer = { name: send.recipient.name, handle: send.recipient.handle, rail: send.rail.id, readback_id: send.recipient.readback_id, nickname: send.nickname_offer || null, offered_at: clock() };
+          return { outcome: "staged", text: nu ? `${h.text} Reply SAVE to keep ${send.recipient.name}${send.nickname_offer ? ` as "${send.nickname_offer}"` : ""} for next time; otherwise I'll save them once the money lands.` : h.text, steps: h.steps, app: h.app, watch: h.watch, send, save_offered: !!nu };
         }
         if (r.outcome === "confirmed") {
           const rc = Money.receipt(send, { reference: r.outcome_record && r.outcome_record.reference || (r.message.match(/ref ([^)]+)\)/) || [])[1] || "confirmed" });
@@ -3823,8 +3975,8 @@
         }
         if (saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text))) {
           const so = saveOffer; saveOffer = null;
-          const sv = book.save({ name: so.name, handle: so.handle, rail: so.rail }, { kind: "confirmed", approved: true, readback: true, confirmation_id: so.readback_id });
-          return sv.ok ? { outcome: "saved", text: `Saved ${so.name} (${Rec.railName(so.rail)} ${so.handle}). Next time a send to them goes straight to the card.`, row: sv.row } : { outcome: "not_saved", text: sv.text };
+          const sv = book.save({ name: so.name, handle: so.handle, rail: so.rail, nickname: so.nickname || null }, { kind: "confirmed", approved: true, readback: true, confirmation_id: so.readback_id });
+          return sv.ok ? { outcome: "saved", text: `Saved ${so.name} (${Rec.railName(so.rail)} ${so.handle})${so.nickname ? ` as "${so.nickname}"` : ""}. Next time a send to ${so.nickname ? `"${so.nickname}"` : "them"} goes straight to the card.`, row: sv.row } : { outcome: "not_saved", text: sv.text };
         }
         const p = pending;
         if (!p) return { outcome: "nothing_pending", text: "There is no send waiting on you." };
@@ -5186,7 +5338,7 @@
       if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity || n.fraction) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
       return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
-    const YES_NO = /^\s*(1|2|3|y|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
+    const YES_NO = /^\s*(1|2|3|y|ya|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
 
     // Two requests in one text ("send sam 40 and cancel netflix", "send $40 to sam and $20 to marcus") are never half-done
@@ -5376,6 +5528,19 @@
         // Asking who, how much and which day is a data gap (no rent on file), not a misunderstanding.
         return { route: "pay_rent", source: "deterministic", flow: "rent", capability: Rent.CAPABILITY, canonical: text, result, understood: true, understood_first: true, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
       }
+      // A nickname message ("mom is Anita Srikanth", "save Anita as mom") goes to the recipient layer, never to the model: it
+      // restates the nickname and saves it only on a yes. It returns nothing when the message was ordinary talk after all.
+      if (sessions.nickname && typeof sessions.nickname.start === "function" && NICK && NICK.parseNickname(text)) {
+        const result = sessions.nickname.start(text);
+        if (result) {
+          const dropped = [];
+          for (const k of live) if (k !== "nickname") { await sessions[k].reply("never mind"); dropped.push(k); }
+          for (const k of Object.keys(sessions)) if (k !== "nickname" && !live.includes(k) && sessions[k] && sessions[k].awaiting_input && typeof sessions[k].accepts === "function" && sessions[k].accepts("never mind")) { await sessions[k].reply("never mind"); dropped.push(k); }
+          memo.queue = null;
+          if (dropped.length && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+          return { route: "save_nickname", source: "deterministic", flow: "nickname", result, understood: true, understood_first: result.outcome !== "ask", ask_reason: result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
+        }
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }
@@ -5448,7 +5613,9 @@
       for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
       return t;
     }
-    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)); };
+    // Nickname messages are read by the recipient layer (42-agent-recipients.js), loaded before this module.
+    const NICK = typeof AgentRecipients !== "undefined" && AgentRecipients && typeof AgentRecipients.parseNickname === "function" ? AgentRecipients : null;
+    const maybeFlow = text => { const t = tidy(text); return MAYBE.test(t) || (typeof StandingRent !== "undefined" && !!StandingRent.intent(t)) || !!(NICK && NICK.parseNickname(t)); };
     async function handleWithMemo(raw, ctx) { const c = ctx || {}; c.memo = c.memo || {}; const out = await handle(tidy(raw), c); out.memo = c.memo; return out; }
     return { handle: handleWithMemo, splitRequests, validate, canonical, disagreements, numberIn, maybeFlow, tidy, TOOL, SYSTEM, INTENTS, FLOWS };
   })();
@@ -5518,7 +5685,8 @@
         const s0 = Rec.identityStart(spec, clock()); identity = s0.state; waiting = { parsed, resolved, index }; pending = null;
         return Object.assign({ outcome: "ask", reason, text: s0.text }, extra || {});
       }
-      const who = a => `${a.name}${a.handle && a.handle !== a.name ? ` (${a.handle}${a.readback_id ? ", new" : ""})` : a.readback_id ? " (new)" : ""}`;
+      // The real name, then a saved nickname and the handle: "Anita Srikanth (mom, @anitas)".
+      const who = a => `${a.name}${a.handle && a.handle !== a.name ? ` (${a.nickname ? a.nickname + ", " : ""}${a.handle}${a.readback_id ? ", new" : ""})` : a.readback_id ? " (new)" : a.nickname ? ` (${a.nickname})` : ""}`;
       const list = xs => xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
       function cardText(sp, channel) {
         const same = sp.asks.every(a => a.amount_cents === sp.asks[0].amount_cents), oneRail = sp.asks.every(a => a.rail === sp.asks[0].rail);
@@ -5575,7 +5743,7 @@
           const rail = parsed.rail && (p0.rails || []).includes(parsed.rail) ? parsed.rail : (p0.rails || []).find(x => REQUEST_RAILS.includes(x));
           if (!rail) return { outcome: "ask", reason: "gap", text: `${p0.name} has no Venmo, Cash App, PayPal or Zelle on file, so I can't stage a request to them. Which app do they use?` };
           const p = Rec.forRail(p0, rail);
-          asks.push({ name: p.name, handle: p.handle || null, rail, readback_id: p.readback_id || null, saved: !!p.saved, id: p.id || null });
+          asks.push({ name: p.name, handle: p.handle || null, nickname: p.nickname || null, rail, readback_id: p.readback_id || null, saved: !!p.saved, id: p.id || null });
         }
         // Equal shares (any odd cent is the person's), or the person's fixed share and the rest split among the others.
         const fixed = parsed.mine_cents && parsed.mine_cents < parsed.amount_cents ? parsed.mine_cents : null;

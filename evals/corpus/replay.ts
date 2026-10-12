@@ -6,10 +6,11 @@
 import { routeFlows, mapFlowData, userBroker, type FlowDb } from "../../supabase/functions/_shared/flow_router.ts";
 
 export const T0 = Date.UTC(2026, 9, 14, 19, 14, 0); // Wed 2:14 PM CT
-const person = (id: string, name: string, handle: string, rail = "venmo") => ({ id, handle, display_name: name, channel: "in-app", source: "completed_send", rail, last_used_at: "2026-10-01T00:00:00Z" });
+const person = (id: string, name: string, handle: string, rail = "venmo", nickname: string | null = null) => ({ id, handle, display_name: name, channel: "in-app", source: "completed_send", rail, last_used_at: "2026-10-01T00:00:00Z", nickname });
+// Anita Srikanth is saved with the nickname "mom" (corpus 1.06: "Send $100.00 to Mom (Anita Srikanth, saved)").
 export const PEOPLE = [
   person("r1", "Mike Reyes", "@mikereyes"), person("r2", "Priya Nair", "@priyan"), person("r3", "Sam Okafor", "@samokafor"), person("r4", "Sam Okoro", "@samokoro"),
-  person("r5", "Jordan Lee", "@jlee"), person("r6", "Anita Srikanth", "@anitas"), person("r7", "Chris Park", "@chrispark"), person("r8", "Ana Ruiz", "@anaruiz"),
+  person("r5", "Jordan Lee", "@jlee"), person("r6", "Anita Srikanth", "@anitas", "venmo", "mom"), person("r7", "Chris Park", "@chrispark"), person("r8", "Ana Ruiz", "@anaruiz"),
   person("r9", "Dave Kim", "@davekim"), person("r10", "Jess Tran", "@jesstran"), person("r11", "Leo Marsh", "@leomarsh"), person("r12", "Tom Hale", "@tomhale"),
   person("r13", "Alex Cho", "@alexcho"), person("r14", "Jake Wu", "@jakewu"),
 ];

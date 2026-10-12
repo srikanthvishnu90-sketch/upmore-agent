@@ -1,0 +1,13 @@
+# claude-progress.txt: append-only log of the autonomous benchmark run (owner's prompt v2, 2026-10-12).
+# Every session appends: what it did, what it learned, what's next, with commit hashes. Never edit earlier entries.
+# The benchmarks live in benchmark_list.json; a passes field flips to true only with end-to-end evidence recorded here.
+
+## 2026-10-12, session 1 (initializer)
+- Created benchmark_list.json (5 benchmarks, all passes:false) and this file.
+- State at start: branch claude/upmore-16-spec-instinct-0qyuqj at 4ea437d. Last full local run (7dc2d83): node 531/531,
+  edge 283/283, Agent100 103/103, testing agent GREEN 10/10 70/70 (critical 0, gaps 5, not run 3), mutations 12/12,
+  eval harness RELEASE OK, connector matrix --check OK.
+- Known hard stops: live-suite and security-gate need the deployed build (owner runs scripts/launch/owner-go-live.sh).
+  Decisions 2 and 3 stay OFF (owner, this prompt), superseding the earlier Kalshi/Coinbase approval request.
+- Four feature builds are running in agent worktrees (dispute drafting, money answers, monthly rent, live sign-in window);
+  they are merged only after every suite passes.

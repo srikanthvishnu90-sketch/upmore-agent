@@ -79,7 +79,8 @@ set("E01 E02 E05 E07 E14 E19 F01 F02", "LIMITED", CAP, "tests/depth-BROKER-CONNE
 set("E03", "LIMITED", "BRK.A resolves as a ticker (class shares kept whole); in a live account it is over the $5 cap; the mock world does not list it", "tests/edge/megadoc-sim.test.ts");
 set("E04 E12 E23", "BUILT", "asks the missing size or ticker; never guesses", "tests/depth-INV-011.test.cjs");
 set("E06", "LIMITED", "\"when it hits 100\" (with or without $) waits for that price the way the live quote says: a limit when the stock is above it, a stop when below; the size is asked; the card defaults to a day order and says so (good till canceled on request) instead of asking", "tests/depth-INV-011.test.cjs");
-set("E08 E26 F12 F15", "DIVERGES", "the message describes a situation (a limit already below, earnings, a halt, a restricted account); the flow asks the size instead of naming the situation");
+set("E08", "LIMITED", "the message itself names no stock, so the size and stock are asked; a real order with a crossed limit (\"buy 2 VOO with a limit at $600\" with VOO at $512.10) says on the card that it fills right away near the quote, never above the limit, and gives the ceiling", "tests/depth-INV-011.test.cjs");
+set("E26 F12 F15", "DIVERGES", "the message describes a situation (a limit already below, earnings, a halt, a restricted account); the flow asks the size instead of naming the situation");
 set("E09 E10 E11", "BUILT", "sell reads the live position first; with none held says so, nothing placed", "tests/depth-RAIL-2.test.cjs");
 set("E13", "NOT_BUILT", "stops on every holding at once; says so", "tests/edge/megadoc-sim.test.ts");
 set("E15", "NOT_BUILT", "sell-then-buy chained orders");

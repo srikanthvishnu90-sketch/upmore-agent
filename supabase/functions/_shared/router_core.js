@@ -4478,6 +4478,8 @@
       const tifWords = ord => ord.type === "market" ? null : ord.time_in_force === "gtc" ? "good till canceled" : "day order, expires at today's close";
       function terms(ord) {
         const L = ord.limit_cents !== null && ord.limit_cents !== undefined ? money(ord.limit_cents) : null, S = ord.stop_cents !== null && ord.stop_cents !== undefined ? money(ord.stop_cents) : null;
+        // A limit the quote has already crossed fills right away near the quote (megadoc E08), never worse than the limit.
+        if (ord.type === "limit" && ord.marketable) return { head: ` at a ${L} limit`, note: `That's ${ord.side === "buy" ? "above" : "below"} the ${money(ord.price_cents)} quote, so it fills right away at about the quote, never ${ord.side === "buy" ? "above" : "below"} ${L}` };
         if (ord.type === "limit") return { head: ` at a ${L} limit`, note: `Fills only at ${L} or ${ord.side === "buy" ? "lower" : "higher"}` };
         if (ord.type === "stop") return { head: ` if it ${ord.side === "sell" ? "falls" : "rises"} to ${S} (stop)`, note: `A stop ${ord.side === "sell" ? "sells" : "buys"} at market once hit; on a gap it can fill ${ord.side === "sell" ? "below" : "above"} ${S}` };
         if (ord.type === "stop_limit") return { head: ` with a ${S} stop and ${L} limit`, note: `Once ${S} trades it becomes a ${L} limit and may not fill` };
@@ -4489,7 +4491,7 @@
         // for about $1,024.20; the card says 2 shares and the real figure, never the $1,200 that was asked for.
         const dollars = ord.notional_cents && !ord.leftover_cents;
         const size = dollars ? `${money(ord.notional_cents)} of` : `${qty(ord.quantity)} share${ord.quantity === 1 ? "" : "s"} of`;
-        const est = dollars ? "" : `, about ${money(ord.estimated_cents)}${ord.leftover_cents ? ` (whole shares only; ${money(ord.leftover_cents)} stays in cash)` : ""},`;
+        const est = dollars ? "" : `, ${ord.marketable ? "up to" : "about"} ${money(ord.estimated_cents)}${ord.leftover_cents ? ` (whole shares only; ${money(ord.leftover_cents)} stays in cash)` : ""},`;
         const side = ord.side || "buy", V = side === "sell" ? "Sell" : "Buy", T = terms(ord), tif = tifWords(ord);
         const heads = [`${MODE(ord.account)}${V} ${size} ${ord.symbol} (${ord.name})${T.head}${est} in ${ord.account.name}`, `${MODE(ord.account)}${V} ${size} ${ord.symbol}${T.head}${est} in ${ord.account.name}`];
         const quote = `Quote ${money(ord.price_cents)} (${ord.quote_source}, ${hhmm(ord.quote_as_of)})`;
@@ -4728,7 +4730,8 @@
           if (cash < estimated + fee) return say("stop", `${money(cash)} settled in ${account.name} (${accts.source}, as of ${new Date(accts.as_of).toISOString().slice(0, 16).replace("T", " ")} UTC); ${money(estimated + fee)} needs ${money(estimated + fee - cash)} more. Nothing was placed.`, { reason: "insufficient_cash", shortfall_cents: estimated + fee - cash });
         }
         const ses = await session(now), open = ses.open, when = ses.when;
-        const order = { side, type, symbol: inst.symbol, name: inst.name, account, quantity, notional_cents: parsed.notional_cents && type === "market" ? parsed.notional_cents : null, price_cents: price, estimated_cents: estimated, fee_cents: fee, leftover_cents: leftover, quote_source: q.source, quote_as_of: q.as_of, market_open: open, when, staged_at: now,
+        const marketable = type === "limit" && Number.isSafeInteger(lim) && (side === "buy" ? lim >= price : lim <= price);
+        const order = { marketable, side, type, symbol: inst.symbol, name: inst.name, account, quantity, notional_cents: parsed.notional_cents && type === "market" ? parsed.notional_cents : null, price_cents: price, estimated_cents: estimated, fee_cents: fee, leftover_cents: leftover, quote_source: q.source, quote_as_of: q.as_of, market_open: open, when, staged_at: now,
           limit_cents: type === "limit" || type === "stop_limit" ? lim : null, stop_cents: type === "stop" || type === "stop_limit" ? stop : null, trail_percent: type === "trailing_stop" ? parsed.trail_percent || null : null, trail_cents: type === "trailing_stop" ? parsed.trail_cents || null : null, time_in_force: tif, held: held ? held.qty : null, capability_id: CAP };
         // S13: the same order on the same day carries the same key; "another" asks for a new one on purpose.
         const sizeKey = order.notional_cents ? "n" + order.notional_cents : "q" + qty(quantity), termKey = type === "market" ? "" : `:${type}:${order.limit_cents || ""}:${order.stop_cents || ""}:${order.trail_percent || order.trail_cents || ""}:${tif}`;

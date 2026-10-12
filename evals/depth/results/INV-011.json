@@ -1,9 +1,9 @@
 {
  "capability": "INV-011",
- "run_at": "2026-10-12T11:25:25.805Z",
+ "run_at": "2026-10-12T11:31:08.407Z",
  "baseline_all_green": true,
- "sub_capabilities": 18,
- "proven": 19,
+ "sub_capabilities": 19,
+ "proven": 20,
  "problems": [],
  "rows": [
   {
@@ -216,6 +216,17 @@
    "title": "A store order is not a stock order",
    "defect": "store orders read as missing stock orders",
    "test": "Uber Eats cancel is said, not read as an order",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "A crossed limit is said",
+   "defect": "the crossed limit is not detected",
+   "test": "a $600 limit with VOO at $512.10 fills now, up to $1,200",
    "bites": true,
    "applied": true,
    "collateral": [],

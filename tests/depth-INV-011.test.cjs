@@ -251,6 +251,15 @@ test('[S18] a store or delivery order is not a brokerage order: said, with where
   assert.match(keep(await s.start('cancel my VOO order')).text,/^I don't see an open order for VOO that I placed/);
 });
 
+test('[S19] a limit the quote has already crossed fills right away near the quote: the card says so and gives the ceiling, not an estimate at the limit',async()=>{
+  const {s}=session();
+  const a=keep(await s.start('buy 2 VOO with a limit at $600'));assert.equal(a.outcome,'confirm');
+  assert.match(a.text,/at a \$600\.00 limit, up to \$1,200\.00, in Schwab brokerage\./);
+  assert.match(a.text,/That's above the \$512\.10 quote, so it fills right away at about the quote, never above \$600\.00\./);
+  await s.reply('no');
+  const b=keep(await s.start('buy 2 VOO with a limit at $500'));assert.match(b.text,/about \$1,000\.00/);assert.match(b.text,/Fills only at \$500\.00 or lower/);
+});
+
 test('[ADV] adversarial log: stale quote, size ambiguity, look-alike symbol, decision words, duplicate text, stale yes, cross-order yes, timeout after send, rejection, no partner, sell, crypto, limit, injection',async()=>{
   const stale=session({},{quote_age_ms:2*3600000});assert.equal((await stale.s.start('buy $500 of VOO')).reason,'stale_quote');
   const {s,r,t}=session();

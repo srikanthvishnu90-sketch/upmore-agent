@@ -247,9 +247,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     // rent" is not answered here: it is the standing rent flow (flow router, below).
     // The person's own day: their time zone from their settings (the morning brief's default when none is set), so a
     // window's days, a due date or "this month" are counted in their day, not UTC's (a 9 p.m. New York question is
-    // still that day). One column, read once per turn; the flows (rent's month) count in it too.
-    const tzRead = await supabase.from("agent_proactive_settings").select("time_zone").eq("user_id", user.id).maybeSingle();
+    // still that day). Read once per turn; the flows (rent's month) count in it too. The same row carries the person's
+    // category rules ("recategorize Target as groceries", 95-category-rules.js), which every spending answer and budget
+    // counts by; a failed read or no column yet means no rules, never a guess.
+    const tzRead = await supabase.from("agent_proactive_settings").select("*").eq("user_id", user.id).maybeSingle();
     const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
+    const rules = !tzRead.error && tzRead.data && Array.isArray(tzRead.data.category_rules) ? tzRead.data.category_rules : [];
     {
       // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so.
       let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message);
@@ -285,7 +288,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         transactions: readTx,
         // "show me the math" explains the answer just given in this thread.
         previous: readPrevious,
-      }, { tz });
+      }, { tz, rules });
       // "dispute this charge", "find me money" and an airline refund (_shared/airline_answer.ts, DOT rules from the offer
       // book): a failed read says so plainly instead of failing the whole turn.
       const today = localClock(Date.now(), tz).date;
@@ -293,7 +296,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // Category budgets (_shared/budget_answer.ts): "how am i doing on my grocery budget", "am i over budget", from the
         // budgets the person set (their settings row, RLS) and their own rows, counted in their month. Setting or stopping
         // one is a settings command (below, _shared/proactive.ts); this answer leaves those alone.
-        if (!direct) direct = await budgetReply(message, new Date(), { budgets: () => readBudgets(supabase, user.id), transactions: readTx }, { tz });
+        if (!direct) direct = await budgetReply(message, new Date(), { budgets: () => readBudgets(supabase, user.id), transactions: readTx }, { tz, rules });
         // "what's new": the review inbox in chat, since the person last asked (_shared/whats_new_answer.ts).
         if (!direct) direct = await whatsNewReply(message, today, readTx, readPrevious);
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });

@@ -63,14 +63,14 @@ that are on the list and that a build may reach.
 | dub | 144 | 0 | 4 | 8 | 0 | 15 | 3 | 114 | 49 | 15 |
 | Alinea | 79 | 0 | 3 | 4 | 0 | 7 | 2 | 63 | 40 | 6 |
 | Autopilot | 67 | 0 | 9 | 2 | 0 | 16 | 2 | 38 | 44 | 5 |
-| Origin | 209 | 0 | 34 | 28 | 0 | 3 | 6 | 138 | 48 | 59 |
+| Origin | 209 | 0 | 38 | 24 | 0 | 3 | 6 | 138 | 48 | 59 |
 | Albert | 148 | 0 | 26 | 10 | 0 | 2 | 6 | 104 | 82 | 30 |
-| Rocket Money | 132 | 0 | 47 | 18 | 0 | 11 | 3 | 53 | 20 | 72 |
-| Monarch | 330 | 0 | 46 | 66 | 0 | 2 | 15 | 201 | 28 | 113 |
-| Copilot Money | 311 | 0 | 81 | 37 | 0 | 7 | 13 | 173 | 6 | 132 |
-| YNAB | 242 | 0 | 18 | 13 | 0 | 3 | 3 | 205 | 0 | 37 |
-| Cleo | 156 | 0 | 14 | 7 | 0 | 0 | 4 | 131 | 86 | 22 |
-| **all** | 1818 | 0 | 282 | 193 | 0 | 66 | 57 | 1220 | 403 | 491 |
+| Rocket Money | 132 | 0 | 51 | 14 | 0 | 11 | 3 | 53 | 20 | 72 |
+| Monarch | 330 | 0 | 55 | 57 | 0 | 2 | 15 | 201 | 28 | 113 |
+| Copilot Money | 311 | 0 | 93 | 25 | 0 | 7 | 13 | 173 | 6 | 132 |
+| YNAB | 242 | 0 | 20 | 11 | 0 | 3 | 3 | 205 | 0 | 37 |
+| Cleo | 156 | 0 | 15 | 6 | 0 | 0 | 4 | 131 | 86 | 22 |
+| **all** | 1818 | 0 | 314 | 161 | 0 | 66 | 57 | 1220 | 403 | 491 |
 
 Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 936.
 
@@ -235,7 +235,7 @@ Every row counted PART above, each placed on its own with the half the list does
 | T2-COPILOT-109 | Copilot Money | Key Metrics | 12 | IN_PRODUCT | a category's average month over complete months (12; in chat over the last 3 full months, "on food"); a yearly total per category is not built |
 | T2-COPILOT-158 | Copilot Money | Free to Spend | 14 | IN_PRODUCT | money left to spend this month (14); Copilot counts it against the month's budget, 14 counts to payday |
 | T2-COPILOT-220 | Copilot Money | Daily briefings | 9 | IN_PRODUCT | unusual charges and spending patterns (9); budgets running hot have no item |
-| T2-COPILOT-224 | Copilot Money | Proactive suggestions | 8 | MODULE_ONLY | category changes (8); budget changes have no item |
+| T2-COPILOT-224 | Copilot Money | Proactive suggestions | 8 | IN_PRODUCT | category changes (8); budget changes have no item |
 | T2-COPILOT-226 | Copilot Money | Refund matching | 38 | MODULE_ONLY | matching a refund to its purchase (38); the promised-window watch is the rest |
 | T2-COPILOT-229 | Copilot Money | Idle cash guidance | 59 | NOT_BUILT | idle cash (59); suggesting where it goes is advice |
 | T2-COPILOT-230 | Copilot Money | Assistant edits with approval | 8, 10 | IN_PRODUCT | transaction, recurring and rule fixes (8, 10); category scheme and budget edits have no item |
@@ -348,7 +348,7 @@ suggests is in its own "Build order suggestion" section.
 | Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Onboarding and account linking | 15 | 15 | 0 | 0 | 0 | T1-ORIGIN-001 .. T1-ORIGIN-015 (15) | 1, 4, 5, 11 | part (row by row): linking accounts (1), one list including manual ones (4), reconnecting (5) and itemising Amazon orders (11); CSV and Monarch imports and closed or excluded accounts have no item, and a home's automatic value feed is the half not covered | IN_PRODUCT 6, MODULE_ONLY 2, NOT_BUILT 1, PART 1, NO_ITEM 5 |
-| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) | 6, 7, 8, 11, 12 | part (row by row): spending by category and month (6, 12), finding transactions (7), category fixes and rules (8) and splits (11); tags, custom categories, bulk edits, the review queue, transfer matching and CSV export are bookkeeping with no item | IN_PRODUCT 8, MODULE_ONLY 4, NOT_BUILT 1, PART 1, NO_ITEM 9 |
+| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) | 6, 7, 8, 11, 12 | part (row by row): spending by category and month (6, 12), finding transactions (7), category fixes and rules (8) and splits (11); tags, custom categories, bulk edits, the review queue, transfer matching and CSV export are bookkeeping with no item | IN_PRODUCT 12, NOT_BUILT 1, PART 1, NO_ITEM 9 |
 | Budgeting | 13 | 12 | 0 | 1 | 0 | T1-ORIGIN-039 .. T1-ORIGIN-051 (13) | none | none | NO_ITEM 13 |
 | Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) | 10, 18, 31, 106 | full | IN_PRODUCT 8 |
 | Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) | 20 | part (row by row): what-if scenarios such as a home purchase or a new income (20); a lifetime plan with Monte Carlo odds, retirement, Social Security, equity and tax modeling has no item (16 forecasts 90 days) | MODULE_ONLY 8, NO_ITEM 12 |
@@ -395,13 +395,13 @@ suggests is in its own "Build order suggestion" section.
 | Subscriptions and recurring bills | 11 | 11 | 0 | 0 | 0 | T2-ROCKET-010 .. T2-ROCKET-020 (11) | 10, 14, 18, 106 | full | IN_PRODUCT 11 |
 | Cancellation concierge | 8 | 2 | 6 | 0 | 0 | T2-ROCKET-021 .. T2-ROCKET-028 (8) | 106, 112, 114 | full | IN_PRODUCT 8 |
 | Bill negotiation | 11 | 3 | 6 | 2 | 2 | T2-ROCKET-030 .. T2-ROCKET-039 (9) | 122 | full | MODULE_ONLY 2, NOT_BUILT 9 |
-| Spending and transactions | 22 | 21 | 0 | 1 | 1 | T2-ROCKET-040 .. T2-ROCKET-061 (21) | 6, 7, 8, 11, 25 | part (row by row): spending views (6), search (7), category fixes and rules (8), splits (11) and the monthly report (25); tags, notes, CSV export and the tax-deductible list have no item | IN_PRODUCT 7, MODULE_ONLY 3, NOT_BUILT 1, PART 1, NO_ITEM 10 |
+| Spending and transactions | 22 | 21 | 0 | 1 | 1 | T2-ROCKET-040 .. T2-ROCKET-061 (21) | 6, 7, 8, 11, 25 | part (row by row): spending views (6), search (7), category fixes and rules (8), splits (11) and the monthly report (25); tags, notes, CSV export and the tax-deductible list have no item | IN_PRODUCT 10, NOT_BUILT 1, PART 1, NO_ITEM 10 |
 | Budgets and habits | 9 | 9 | 0 | 0 | 0 | T2-ROCKET-062 .. T2-ROCKET-070 (9) | none | none | MODULE_ONLY 1, PART 1, NO_ITEM 7 |
 | Alerts and notifications | 7 | 7 | 0 | 0 | 1 | T2-ROCKET-071 .. T2-ROCKET-077 (6) | 28, 29, 34 | part (row by row): upcoming charges (28), low balance (29) and unusual charges (34); the fee and credit rows are mapped one by one, and challenge reminders have no item | IN_PRODUCT 3, MODULE_ONLY 2, NO_ITEM 2 |
 | Net worth | 5 | 5 | 0 | 0 | 0 | T2-ROCKET-078 .. T2-ROCKET-082 (5) | 15 | full | IN_PRODUCT 5 |
 | Credit | 4 | 4 | 0 | 0 | 4 | none | 37, 101 | full | MODULE_ONLY 4 |
 | Financial Goals and savings | 10 | 0 | 5 | 5 | 10 | none | none | none | NO_ITEM 10 |
-| Rowan AI agent | 16 | 10 | 4 | 2 | 1 | T2-ROCKET-097 .. T2-ROCKET-112 (15) | 7 | part (row by row): an agent over text answering from the person's data (7); its other rows are list items mapped one by one, and support handoff and app navigation have no item of their own | IN_PRODUCT 7, MODULE_ONLY 3, NOT_BUILT 1, NO_ITEM 5 |
+| Rowan AI agent | 16 | 10 | 4 | 2 | 1 | T2-ROCKET-097 .. T2-ROCKET-112 (15) | 7 | part (row by row): an agent over text answering from the person's data (7); its other rows are list items mapped one by one, and support handoff and app navigation have no item of their own | IN_PRODUCT 8, MODULE_ONLY 2, NOT_BUILT 1, NO_ITEM 5 |
 | Sharing | 4 | 1 | 3 | 0 | 0 | T2-ROCKET-113 .. T2-ROCKET-116 (4) | 137 | part (row by row): a partner with their own login sees the household's accounts (137); couple mode also keeps personal spending private, which this sharing does not | MODULE_ONLY 2, PART 1, NO_ITEM 1 |
 | Platforms, security and support | 16 | 15 | 1 | 0 | 1 | T2-ROCKET-117 .. T2-ROCKET-131 (15) | none | none | NO_ITEM 16 |
 
@@ -410,7 +410,7 @@ suggests is in its own "Build order suggestion" section.
 | Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Onboarding and account linking | 34 | 12 | 19 | 3 | 3 | T2-MONARCH-001 .. T2-MONARCH-034 (31) | 1, 4, 5 | part (row by row): linking accounts through several aggregators (1), manual accounts in one list (4) and connection health with provider switching (5); CSV and Mint imports, balance-history edits and the data transfer tool have no item | IN_PRODUCT 11, MODULE_ONLY 6, PART 3, NO_ITEM 14 |
-| Transactions | 45 | 34 | 0 | 11 | 0 | T2-MONARCH-035 .. T2-MONARCH-079 (45) | 6, 7, 8, 11 | part (row by row): categorisation, merchant cleanup and rules (6, 8), finding transactions (7) and splits (11); tags, notes, attachments, review flags, bulk edits and the category scheme are bookkeeping with no item | IN_PRODUCT 6, MODULE_ONLY 9, NOT_BUILT 2, NO_ITEM 28 |
+| Transactions | 45 | 34 | 0 | 11 | 0 | T2-MONARCH-035 .. T2-MONARCH-079 (45) | 6, 7, 8, 11 | part (row by row): categorisation, merchant cleanup and rules (6, 8), finding transactions (7) and splits (11); tags, notes, attachments, review flags, bulk edits and the category scheme are bookkeeping with no item | IN_PRODUCT 15, NOT_BUILT 2, NO_ITEM 28 |
 | Receipts and retail sync | 19 | 8 | 2 | 9 | 0 | T2-MONARCH-080 .. T2-MONARCH-098 (19) | 2, 3, 11 | full | MODULE_ONLY 19 |
 | Budgeting | 23 | 22 | 0 | 1 | 0 | T2-MONARCH-099 .. T2-MONARCH-121 (23) | none | none | PART 1, NO_ITEM 22 |
 | Cash flow and reports | 14 | 13 | 1 | 0 | 0 | T2-MONARCH-122 .. T2-MONARCH-135 (14) | 6, 12, 25, 27 | part (row by row): income and spending by category, merchant and owner over any period, in every chart (6, 12), saved reports (27) and the monthly review (25); chart sharing is presentation | IN_PRODUCT 7, PART 5, NO_ITEM 2 |
@@ -436,17 +436,17 @@ suggests is in its own "Build order suggestion" section.
 
 | Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account linking | 30 | 5 | 20 | 5 | 5 | T2-COPILOT-001 .. T2-COPILOT-030 (25) | 1 | part (row by row): linking banks, cards, brokerages and Apple accounts through several aggregators (1); the Venmo and Amazon rows map one by one, and the test drive, first budget and onboarding restart have no item | IN_PRODUCT 16, MODULE_ONLY 6, NOT_BUILT 3, NO_ITEM 5 |
+| Onboarding and account linking | 30 | 5 | 20 | 5 | 5 | T2-COPILOT-001 .. T2-COPILOT-030 (25) | 1 | part (row by row): linking banks, cards, brokerages and Apple accounts through several aggregators (1); the Venmo and Amazon rows map one by one, and the test drive, first budget and onboarding restart have no item | IN_PRODUCT 17, MODULE_ONLY 5, NOT_BUILT 3, NO_ITEM 5 |
 | Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) | 4, 5, 15 | part (row by row): one list of accounts (4), connections needing attention (5) and net worth over time (15); utilization dots, renames, hiding and support merges have no item | IN_PRODUCT 5, MODULE_ONLY 6, PART 1, NO_ITEM 9 |
 | Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) | 15 | part (row by row): property and other assets in net worth, net of their mortgage (15); automatic home value feeds are the half not covered | IN_PRODUCT 4, PART 2, NO_ITEM 1 |
-| Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) | 6, 7, 8, 11 | part (row by row): the categorisation model and name rules (6, 8), finding and totalling transactions (7) and splits (11); the review inbox, tags, notes, bulk edits, transaction types and keyboard shortcuts are bookkeeping with no item | IN_PRODUCT 9, MODULE_ONLY 9, NOT_BUILT 4, NO_ITEM 24 |
+| Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) | 6, 7, 8, 11 | part (row by row): the categorisation model and name rules (6, 8), finding and totalling transactions (7) and splits (11); the review inbox, tags, notes, bulk edits, transaction types and keyboard shortcuts are bookkeeping with no item | IN_PRODUCT 18, NOT_BUILT 4, NO_ITEM 24 |
 | Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) | none | none | PART 1, NO_ITEM 28 |
 | Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) | 10, 18 | full | IN_PRODUCT 23 |
 | Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) | 7, 12, 14, 18 | part (row by row): free to spend (14), upcoming recurrings (18), this month against last (12) and search (7); the pace chart and budgets card are budget features, and the review card, referral card and tab order are app chrome | IN_PRODUCT 3, PART 1, NO_ITEM 7 |
 | Cash flow | 10 | 8 | 2 | 0 | 0 | T2-COPILOT-168 .. T2-COPILOT-177 (10) | 6, 12 | full | IN_PRODUCT 10 |
 | Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 4, 22, 64, 65 | part (row by row): returns against a benchmark (64), allocation (65), top movers (22) and hand-tracked holdings (4); live balance estimates have no item | IN_PRODUCT 4, MODULE_ONLY 12, NO_ITEM 6 |
 | Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) | none | none | NO_ITEM 19 |
-| AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) | 7, 8, 9 | part (row by row): answers from the person's data (7), category and rule fixes by chat (8) and unusual-charge briefings (9); charts in chat, tag suggestions, nudges and the MCP connector have no item | IN_PRODUCT 1, MODULE_ONLY 2, PART 5, NO_ITEM 11 |
+| AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) | 7, 8, 9 | part (row by row): answers from the person's data (7), category and rule fixes by chat (8) and unusual-charge briefings (9); charts in chat, tag suggestions, nudges and the MCP connector have no item | IN_PRODUCT 3, PART 5, NO_ITEM 11 |
 | Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) | 25, 26 | part (row by row): the month (25) and year (26) in review; slide sharing and CSV export have no item | IN_PRODUCT 2, MODULE_ONLY 1, NO_ITEM 5 |
 | Notifications | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-246 .. T2-COPILOT-256 (11) | 24, 29, 30, 34 | part (row by row): low balance (29), big expenses (34), income (30) and the weekly spending update (24); budget, recurring-paid, transfer and Venmo notices have no item | IN_PRODUCT 4, PART 2, NO_ITEM 5 |
 | Widgets and Apple integrations | 14 | 11 | 3 | 0 | 0 | T2-COPILOT-257 .. T2-COPILOT-270 (14) | none | none | NO_ITEM 14 |
@@ -462,7 +462,7 @@ suggests is in its own "Build order suggestion" section.
 | The method and plan behaviour | 34 | 11 | 17 | 6 | 0 | T2-YNAB-001 .. T2-YNAB-034 (34) | none | none | NO_ITEM 34 |
 | Onboarding and plan setup | 14 | 3 | 11 | 0 | 0 | T2-YNAB-035 .. T2-YNAB-048 (14) | none | none | NO_ITEM 14 |
 | Accounts and account linking | 23 | 4 | 15 | 4 | 0 | T2-YNAB-049 .. T2-YNAB-071 (23) | 1, 4, 5 | part (row by row): linking banks (1), unlinked and tracking accounts in one list (4) and repairing a broken connection (5); file imports and reconciliation-style balances have no item | IN_PRODUCT 8, MODULE_ONLY 7, NO_ITEM 8 |
-| Transactions | 43 | 10 | 24 | 9 | 0 | T2-YNAB-072 .. T2-YNAB-114 (43) | 6, 7, 8, 11 | part (row by row): payee cleanup and auto-categorisation (6, 8), search (7) and splits (11); scheduled entries, approval, matching, flags, reconciling and bulk actions are ledger tools with no item | IN_PRODUCT 5, MODULE_ONLY 2, NOT_BUILT 3, PART 1, NO_ITEM 32 |
+| Transactions | 43 | 10 | 24 | 9 | 0 | T2-YNAB-072 .. T2-YNAB-114 (43) | 6, 7, 8, 11 | part (row by row): payee cleanup and auto-categorisation (6, 8), search (7) and splits (11); scheduled entries, approval, matching, flags, reconciling and bulk actions are ledger tools with no item | IN_PRODUCT 7, NOT_BUILT 3, PART 1, NO_ITEM 32 |
 | Categories and category groups | 12 | 6 | 6 | 0 | 0 | T2-YNAB-115 .. T2-YNAB-126 (12) | none | none | NO_ITEM 12 |
 | Targets | 16 | 3 | 2 | 11 | 0 | T2-YNAB-127 .. T2-YNAB-142 (16) | none | none | NO_ITEM 16 |
 | Loan planner and debt payoff | 10 | 4 | 5 | 1 | 0 | T2-YNAB-143 .. T2-YNAB-152 (10) | 91, 92 | part (row by row): the payoff path (91) and extra-payment simulator (92); loan interest, escrow and paired-category bookkeeping and the celebration image have no item | MODULE_ONLY 2, PART 1, NO_ITEM 7 |
@@ -483,7 +483,7 @@ suggests is in its own "Build order suggestion" section.
 | Onboarding and bank linking | 6 | 6 | 0 | 0 | 0 | T2-CLEO-001 .. T2-CLEO-006 (6) | 1 | part (row by row): linking and removing banks (1); hiding an account and the unsupported-account list have no item | IN_PRODUCT 4, NO_ITEM 2 |
 | AI chat | 14 | 10 | 4 | 0 | 4 | T2-CLEO-007 .. T2-CLEO-020 (10) | 7, 19 | part (row by row): questions over the person's data (7) and can-I-afford-this (19); roast, hype, voice and memory are tone and channel, and deposits, withdrawals and advance repayments move money in Cleo's own products | IN_PRODUCT 3, NO_ITEM 11 |
 | Autopilot | 9 | 5 | 3 | 1 | 3 | T2-CLEO-021 .. T2-CLEO-028 (6) | none | none | IN_PRODUCT 1, PART 1, NO_ITEM 7 |
-| Budgeting and spending insights | 16 | 16 | 0 | 0 | 0 | T2-CLEO-030 .. T2-CLEO-045 (16) | 8, 10, 14, 18, 91 | part (row by row): left to spend (14), bills due (18), recurring and subscription detection (10), category fixes (8) and the debt paydown plan (91); the monthly plan view and essential-spending grouping are budget features with no item | IN_PRODUCT 6, MODULE_ONLY 5, PART 2, NO_ITEM 3 |
+| Budgeting and spending insights | 16 | 16 | 0 | 0 | 0 | T2-CLEO-030 .. T2-CLEO-045 (16) | 8, 10, 14, 18, 91 | part (row by row): left to spend (14), bills due (18), recurring and subscription detection (10), category fixes (8) and the debt paydown plan (91); the monthly plan view and essential-spending grouping are budget features with no item | IN_PRODUCT 7, MODULE_ONLY 4, PART 2, NO_ITEM 3 |
 | Cash advance | 18 | 6 | 10 | 2 | 18 | none | none | none | NO_ITEM 18 |
 | Pay Later | 10 | 5 | 3 | 2 | 10 | none | none | none | NO_ITEM 10 |
 | Credit builder card and credit score | 18 | 6 | 9 | 3 | 18 | none | none | none | MODULE_ONLY 2, PART 1, NO_ITEM 15 |

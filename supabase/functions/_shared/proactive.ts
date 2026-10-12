@@ -19,7 +19,7 @@
 // "category_budget". Once at 80% and once at 100% of it each month the agent says so, as a watch: what the person asked
 // to hear, outside the daily budget, once only by its log key (budget:<id>:<month>:<threshold>). Tracking only: nothing
 // is blocked or moved.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -33,6 +33,7 @@ export interface ProactiveSettings {
   large_threshold_cents: number | null;
   watches: any[];                   // AgentAlerts.parseWatch conditions the person asked for, and their category budgets (Budgets)
   control: any | null;              // AgentControl state: the person's standing reports
+  category_rules?: any[];           // CategoryRules: "count Target as groceries" (its own column, 20261012040000)
 }
 // The time zone default is an assumption the person can change by saying "my time zone is Pacific"; it decides what
 // "today", "Sunday" and quiet hours mean, never a number.
@@ -155,7 +156,7 @@ export function plan(input: ProactiveInput, now: number) {
   const budgets = (Budgets as any).budgetsIn(s.watches || []);
   if (budgets.length) {
     const nr = numbersRows(accounts, transactions);
-    for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
+    for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys], rules: s.category_rules || [] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
   }
   // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
   rentLater();
@@ -320,6 +321,11 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   const zone = validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone;
   const bc: any = (Budgets as any).command(t, s.watches || [], now, zone);
   if (bc) return { settings: bc.watches ? { watches: capWatches(bc.watches) } : {}, reply: bc.reply };
+  // Category rules: "recategorize Target as groceries", "count Costco as groceries", "stop counting Target as
+  // groceries", "show my category rules" (packages/domain/95-category-rules.js). Restated exactly; they change how
+  // spending is counted, nothing at the bank, and never move money.
+  const cr: any = (CategoryRules as any).command(t, s.category_rules || [], now);
+  if (cr) return { settings: cr.rules ? { category_rules: cr.rules } : {}, reply: cr.reply };
   // "Tell me when free trials are about to convert" (megadoc J15): said as it is, nothing saved. plan() asks "Should I
   // cancel it for you?" before a trial the person tracks in the app bills (save_subscriptions, billing "trial" with its
   // end date, within the 7 days before; AgentMonitors.trialsConverting), with alerts on, for people the hourly run
@@ -372,6 +378,8 @@ export function describe(s0: Partial<ProactiveSettings> | null) {
   if (plain.length) parts.push(`You asked me to watch: ${plain.map((w: any) => AgentAlerts.restateWatch(w).replace(/^I'll tell you /, "").replace(/\.$/, "")).join("; ")}.`);
   const budgetLine = (Budgets as any).describe(s.watches || []);
   if (budgetLine) parts.push(budgetLine);
+  const ruleLine = (CategoryRules as any).describe(s.category_rules || []);
+  if (ruleLine) parts.push(ruleLine);
   const reports = s.control && Array.isArray(s.control.instructions) ? s.control.instructions.filter((i: any) => i.status === "active") : [];
   if (reports.length) parts.push(`Reports: ${reports.map((i: any) => `${i.params && i.params.label || "spending"} ${whenText(i)}`).join("; ")}.`);
   parts.push(s.weekly_recap_dow != null ? `Weekly recap on ${DOW[s.weekly_recap_dow]}s.` : "No weekly recap.");

@@ -41,7 +41,11 @@
     const cents = (r) => (r && r.amount_cents !== null && r.amount_cents !== undefined && Number.isFinite(Number(r.amount_cents)) ? Math.round(Number(r.amount_cents)) : NaN);
     const usd = (r) => !r.currency || String(r.currency).toUpperCase() === "USD";
     const dayOf = (r) => (typeof r.posted_on === "string" ? r.posted_on.slice(0, 10) : null);
-    const groupOf = (r) => { const c = MA.classify(r.merchant_raw); return c ? c.group : null; };
+    // The person's category rules (95-category-rules.js) for the call in progress: compare() and byCard() set them on
+    // entry and clear them on the way out. Both run start to finish without yielding, so no other call sees them.
+    let RULES = null;
+    const withRules = (opts, fn) => { RULES = (opts && opts.rules) || null; try { return fn(); } finally { RULES = null; } };
+    const groupOf = (r) => { const c = MA.classify(r.merchant_raw, RULES); return c ? c.group : null; };
     const REFUND = /\b(?:refunds?|returns?|reversal|merchandise credit|price adjustment)\b/i;
     const isRefund = (r) => MA.isIncome(r) && (groupOf(r) !== null || REFUND.test(String(r.merchant_raw || "")));
     const GROUP_LABEL = { groceries: "groceries", restaurants: "restaurants", delivery: "delivery", gas: "gas", subscriptions: "subscriptions", transport: "transport", shopping: "shopping" };
@@ -132,7 +136,8 @@
       const a = list[list.length - 1], b = list[0], years = a[0] !== y || b[0] !== y;
       return `${MON[a[1] - 1]}${years ? ` ${a[0]}` : ""}-${MON[b[1] - 1]}${years ? ` ${b[0]}` : ""}`;
     }
-    function compare(transactions, words, now, opts) {
+    function compare(transactions, words, now, opts) { return withRules(opts, () => compareIn(transactions, words, now, opts)); }
+    function compareIn(transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rows = transactions || [], today = MA.todayIn(now, tz);
       if (!posted(rows).length) return `I don't see any posted transactions in your linked accounts yet, so there's nothing to compare. ${MA.txSource(rows, tz)}`;
       const y = +today.slice(0, 4), m = +today.slice(5, 7), d = +today.slice(8, 10), start = earliest(rows);
@@ -176,6 +181,9 @@
       if (pend.length) lines.push(`Pending, not added yet: ${pendingText(pend)}.`);
       if (fx.length) lines.push(`In another currency, not added: ${foreignText(fx)}.`);
       if (!nw.merchant) {
+        // What the person's own rules moved into the totals this month, said with its amount.
+        const ruled = MA.ruleLine(posted(rows).filter((r) => within(r, cur.from, cur.to) && keep(r) && (MA.isSpend(r) || isRefund(r))), RULES);
+        if (ruled) lines.push(ruled);
         const unc = net(rows, cur.from, cur.to, (r) => groupOf(r) === null).total;
         if (unc > 0 && nw.cat) lines.push(`${money(unc)} of your other spending this month matched no category I know, so none of it is counted as ${nw.cat.label}.`);
         else if (unc > 0) {
@@ -206,7 +214,8 @@
       return accounts.filter((a) => { const hay = ` ${norm(`${a.institution || ""} ${a.name || ""}`)} `; return variants.some((v) => hay.includes(` ${v} `)); });
     }
     const TAIL = "Transfers and card payments are left out, so a card paid from checking isn't counted twice.";
-    function byCard(accounts, transactions, words, now, opts) {
+    function byCard(accounts, transactions, words, now, opts) { return withRules(opts, () => byCardIn(accounts, transactions, words, now, opts)); }
+    function byCardIn(accounts, transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rows = transactions || [], today = MA.todayIn(now, tz), w = String(words || "").toLowerCase();
       const list = (accounts || []).filter((a) => a && a.status !== "disconnected");
       if (!posted(rows).length) return `I don't see any posted transactions in your linked accounts yet, so I can't split your spending by card. ${MA.txSource(rows, tz)}`;

@@ -13,7 +13,9 @@
        checkup(accounts, transactions, now)     "how am I doing": cash now, in vs out this month so far vs the same day last
                                                 month, one sentence of what changed
        didItGoThrough(transactions, words, now) posted (date) or pending, or "not yet" since a named date
-     Pure: rows and the clock are passed in; opts.tz (an IANA zone, default UTC) sets the person's "today". */
+     Pure: rows and the clock are passed in; opts.tz (an IANA zone, default UTC) sets the person's "today"; opts.rules,
+     the person's category rules (95-category-rules.js), place a merchant where they said (classify(raw, rules)), and an
+     answer a rule changed says so with its amount (ruleLine). Spend adds up charges; a refund is not taken off there. */
   const MoneyAnswers = (() => {
     const HOUR = 3600 * 1000, DAY = 24 * HOUR, STALE_MS = DAY;
     const CASH_KINDS = ["checking", "savings", "cash"];
@@ -133,10 +135,41 @@
     ];
     const NOT_SPENDING = /\b(?:credit card payment|card payment|payment thank you|autopay|online transfer|transfer (?:to|from)|internal transfer)\b/i;
     const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9&'+.\/*-]+/g, " ").replace(/\s+/g, " ").trim();
-    function classify(raw) {
+    // The person's category rules (95-category-rules.js, "recategorize Target as groceries"): a rule's words, whole, in
+    // the bank's descriptor (apostrophes dropped, a bank's "JOE S" read as "joes"); the longest matching term wins. A
+    // known merchant more specific than the term keeps its own group: a "Costco" rule leaves Costco Gas as gas, an "Uber"
+    // rule leaves Uber Eats as delivery. A stored rule naming no group the chat counts is ignored.
+    const ruleKey = (s) => String(s || "").toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\b([a-z0-9]+) s\b/g, "$1s").trim();
+    function ruleFor(raw, rules) {
+      if (!Array.isArray(rules) || !rules.length) return null;
+      const d = ` ${ruleKey(raw)} `;
+      let best = null, bestLen = 0;
+      for (const r of rules) {
+        if (!r || typeof r.term !== "string" || !GROUP_LABEL[r.group]) continue;
+        const k = ruleKey(r.term);
+        if (k && k.length > bestLen && d.includes(` ${k} `)) { best = r; bestLen = k.length; }
+      }
+      return best;
+    }
+    function classify(raw, rules) {
       const t = norm(raw);
-      for (const [group, name, re] of MERCHANTS) if (re.test(t)) return { group, name: name || cleanName(raw) };
-      return null;
+      let def = null;
+      for (const [group, name, re] of MERCHANTS) if (re.test(t)) { def = { group, name: name || cleanName(raw) }; break; }
+      const r = ruleFor(raw, rules);
+      if (!r) return def;
+      const named = def && MERCHANTS.find((m) => m[1] === def.name) ? ruleKey(def.name) : "", k = ruleKey(r.term);
+      if (named && named !== k && named.length > k.length && ` ${named} `.includes(` ${k} `)) return def;
+      return { group: r.group, name: def ? def.name : cleanName(raw), rule: r };
+    }
+    // "By your category rule: "Target" as groceries $212.40." for the rows a rule placed (spending only), "" for none.
+    function ruleLine(rows, rules) {
+      if (!Array.isArray(rules) || !rules.length) return "";
+      const by = new Map();
+      for (const r of rows || []) { const c = classify(r.merchant_raw, rules); if (c && c.rule) { const e = by.get(c.rule) || 0; by.set(c.rule, e - (Number(r.amount_cents) || 0)); } }
+      const hit = [...by.entries()].filter(([, v]) => v !== 0);
+      if (!hit.length) return "";
+      const nm = (term) => String(term).replace(/(^|[\s\-\/&.])([a-z])/g, (_, a, b) => a + b.toUpperCase());
+      return `By your category rule${hit.length === 1 ? "" : "s"}: ${hit.map(([r, v]) => `"${nm(r.term)}" as ${GROUP_LABEL[r.group]} ${v < 0 ? "-" : ""}${money(Math.abs(v))}`).join(", ")}.`;
     }
     // A readable name for a merchant not on the list: card-network noise and store numbers removed, nothing invented.
     const label = raw => (typeof MerchantLabel !== "undefined" ? MerchantLabel : require("./32-merchant-label.js")).safe(raw);
@@ -263,7 +296,7 @@
       return `That's ${money(Math.abs(d))} ${d > 0 ? "more" : "less"} than ${p.prior.label}, when it was ${money(prior$)}.${caveat}`;
     }
     function spend(transactions, words, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
       const extra = "Transfers, card payments and pending charges are left out.";
       if (!all.length) return `I don't see any posted transactions in your linked accounts yet, so I can't add up your spending. ${txSource(transactions, tz)}`;
       // A period that ends before the linked data begins has no rows to add up: saying "$0.00" would claim a fact we don't have.
@@ -272,14 +305,16 @@
       const tg = target(words), lines = [];
       const partial = start && start > p.from ? ` Your linked transactions start ${dateLabel(start, true)}, so this covers only from then.` : "";
       if (tg.kind === "category") {
-        const pick = (rows) => rows.filter((r) => { const c = classify(r.merchant_raw); return c && tg.cat.groups.includes(c.group); });
+        const pick = (rows) => rows.filter((r) => { const c = classify(r.merchant_raw, rules); return c && tg.cat.groups.includes(c.group); });
         const a = pick(cur), b = pick(prev), total = sum(a);
-        const split = tg.cat.groups.length > 1 ? tg.cat.groups.map((g) => [g, sum(a.filter((r) => classify(r.merchant_raw).group === g))]).filter((x) => x[1] > 0) : [];
+        const split = tg.cat.groups.length > 1 ? tg.cat.groups.map((g) => [g, sum(a.filter((r) => classify(r.merchant_raw, rules).group === g))]).filter((x) => x[1] > 0) : [];
         lines.push(`You spent ${money(total)} on ${tg.cat.label} ${p.label}${split.length > 1 ? `: ${split.map(([g, c]) => `${money(c)} ${GROUP_LABEL[g]}`).join(", ")}` : ""}.${partial}`);
         lines.push(compareText(total, sum(b), p, start));
         const top = topPlaces(a);
         if (top.length) lines.push(`Top: ${top.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
-        const unc = cur.filter((r) => !classify(r.merchant_raw));
+        const ruled = ruleLine(a, rules);
+        if (ruled) lines.push(ruled);
+        const unc = cur.filter((r) => !classify(r.merchant_raw, rules));
         if (unc.length) lines.push(`${money(sum(unc))} of your other spending in that period didn't match a category I know, so I didn't count any of it as ${tg.cat.label}.`);
       } else if (tg.kind === "merchant") {
         const ever = out.filter((r) => termMatch(r.merchant_raw, tg.term));
@@ -304,7 +339,7 @@
 
     // ---- checkup ----
     function checkup(accounts, transactions, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
       const lines = [];
       const when = Number.isFinite(s.oldest) ? timeLabel(s.oldest, tz) : null;
       if (s.cash.length) lines.push(`Cash: ${money(s.cash_cents)} across ${s.cash.length} account${s.cash.length === 1 ? "" : "s"}${when ? `, as of ${when}` : ""}${s.stale.length ? " (more than a day old)" : ""}.`);
@@ -321,7 +356,7 @@
         const d = outN - outP;
         if (d === 0) lines.push(`Your spending is exactly where it was at this point last month.`);
         else {
-          const key = (r) => { const c = classify(r.merchant_raw); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
+          const key = (r) => { const c = classify(r.merchant_raw, rules); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
           const diff = new Map();
           for (const r of cur.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) + Math.abs(cents(r)));
           for (const r of prev.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) - Math.abs(cents(r)));
@@ -384,6 +419,6 @@
     // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries". The same ones,
     // plus isIncome (a credit that is not a transfer or card payment), termMatch, acctName and kindOf, are shared with
     // the month comparison and spending by card (94-spending-views.js).
-    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
+    return { money, period, classify, ruleFor, ruleLine, MERCHANT_NAMES: MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;

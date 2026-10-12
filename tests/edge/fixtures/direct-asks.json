@@ -166,6 +166,12 @@
     ["should i spend less than last month", null],
     ["which card should i use for groceries", null],
     ["how did last month compare", null],
-    ["what's on my credit report", null]
+    ["what's on my credit report", null],
+    ["recategorize Target as groceries", null],
+    ["count costco as groceries from now on", null],
+    ["target isn't shopping, it's groceries", null],
+    ["stop counting target as groceries", null],
+    ["show my category rules", null],
+    ["my biggest expense is groceries", null]
   ]
 }

@@ -287,6 +287,14 @@ async function flow() {
   ex["TXN-021"] = money("how does this month compare to last month", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d\.\nSame days last month \(Sep 1-\d+, day (\d+) vs day \1\): \$/);
   ex["ANL-009"] = money("am i spending more than usual on food", /^This month so far \(Oct 1-\d+\), you spent \$[\d,]+\.\d\d on food[:.]/);
   ex["CARD-001"] = money("spending by card", /^Spending by card and account this month so far \(Oct 1-\d+\), \$[\d,]+\.\d\d in all:\n- /);
+  // Item 8 (95-category-rules.js): the rule is saved by the settings command, then the spending answer counts by it.
+  ex["TXN-003"] = async () => {
+    const db = { settings: null as any, async read() { return { ok: true, settings: this.settings }; }, async save(c: any) { this.settings = Object.assign({}, this.settings, c); return true; } };
+    const r = await settingsMessage("recategorize uber trip as groceries", db, NOW);
+    const rules = (db.settings && db.settings.category_rules) || [];
+    const a = await moneyReply("how much did i spend on groceries this month", NOW, { accounts: async () => accountRows() as any, transactions: async () => txRows() as any }, { rules });
+    return [!!r?.changed && rules.length === 1 && !!a && /By your category rule: "Uber" as groceries \$12\.00\./.test(a), `${r?.reply.split("\n")[0]} / ${String(a).split("\n").find((l) => /category rule/.test(l)) || String(a).split("\n")[0]}`];
+  };
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

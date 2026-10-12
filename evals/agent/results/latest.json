@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 78,
-  "total": 78
+  "pass": 79,
+  "total": 79
  },
  "results": [
   {
@@ -109,7 +109,7 @@
   {
    "family": "outcome",
    "id": "O-02s",
-   "title": "megadoc states: PROVEN 0, BUILT 68, LIMITED 26, DIVERGES 13, MODEL 59, NOT_BUILT 74",
+   "title": "megadoc states: PROVEN 0, BUILT 69, LIMITED 26, DIVERGES 13, MODEL 59, NOT_BUILT 73",
    "status": "GAP",
    "actual": "0 proven live: needs the deploy and provider records; every unproven state is labeled in docs/scenarios/README.md"
   },
@@ -459,6 +459,12 @@
    "family": "flow",
    "id": "F:TXN-002",
    "title": "TXN-002: chat: planner tool search_transactions",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:TXN-003",
+   "title": "TXN-003: chat: \"recategorize Target as groceries\" saves the person's rule; spending answers and budgets count by it (CategoryRules)",
    "status": "PASS"
   },
   {

@@ -16,7 +16,8 @@ export function isBudgetAsk(message: string): boolean {
   return !!p && p.kind === "status";
 }
 
-export async function budgetReply(message: string, now: Date | number | string, read: BudgetReaders, opts?: { tz?: string }): Promise<string | null> {
+// opts.rules: the person's category rules (95-category-rules.js), counted the same way as the spending answer.
+export async function budgetReply(message: string, now: Date | number | string, read: BudgetReaders, opts?: { tz?: string; rules?: any[] }): Promise<string | null> {
   const p: any = (Budgets as any).parse(message);
   if (!p || p.kind !== "status") return null;
   let budgets: any[];
@@ -26,7 +27,7 @@ export async function budgetReply(message: string, now: Date | number | string, 
   if (p.bare && !(Budgets as any).budgetsIn(budgets).length) return null;
   // No budget to count against: the transactions are never read.
   const tx = (Budgets as any).budgetsIn(budgets).length ? (await read.transactions()) || [] : [];
-  return (Budgets as any).answer(p, { budgets, transactions: tx, now, tz: opts?.tz || "UTC" })?.text ?? null;
+  return (Budgets as any).answer(p, { budgets, transactions: tx, now, tz: opts?.tz || "UTC", rules: Array.isArray(opts?.rules) ? opts!.rules : [] })?.text ?? null;
 }
 
 // The person's budgets, through their own session (RLS): the watches column of their settings row. A failed read throws,

@@ -65,6 +65,10 @@ const REACHABLE = {
   "TXN-021": "chat: \"how does this month compare to last month\", this month so far against the same days of last month (SpendingViews)",
   "ANL-009": "chat: \"am I spending more than usual\" against the average of the last 3 full months, by category with \"on food\" (SpendingViews)",
   "CARD-001": "chat: \"spending by card\", each linked card and account with its spending, share and top places (SpendingViews)",
+  // Item 8 (2026-10-12): the person's category rules (95-category-rules.js), a settings command in _shared/proactive.ts
+  // read back by money_answers.ts and budget_answer.ts. Evidence: tests/edge/category-rules.test.ts,
+  // tests/depth-CATEGORY-RULES.test.cjs (docs/depth/CATEGORY-RULES.md), tests/db/category_rules.test.sql.
+  "TXN-003": "chat: \"recategorize Target as groceries\" saves the person's rule; spending answers and budgets count by it (CategoryRules)",
 };
 const NO_PHONE = "No phone calls (owner rule)";
 // Owner, 2026-10-11 night: automations are per-person toggles the person turns on in exact terms; until the owner says
@@ -84,7 +88,7 @@ const MAP = [
   // spending
   [6, "ANL-013 ANL-001 TXN-022", "part", "by merchant reachable (planner); by person/place not built", null],
   [7, "ANL-002 ANL-001", "full", "planner spending report over a date range", null],
-  [8, "TXN-003 CORE-006", "part", "category override rules are a module; not wired to chat", null],
+  [8, "TXN-003 CORE-006", "part", "chat: \"recategorize Target as groceries\" (and \"count Costco as shopping\", \"stop counting Target as groceries\", \"show my category rules\") saves the person's rule by merchant; every spending answer, the month comparison, spending by card, category budgets and their alerts count by it and say when a rule moved money; one charge on its own (\"that $40 Target run was groceries\") is not fixable yet, and the ledger's alert categories don't read the rules", null],
   [9, "ALRT-003 TXN-010", "part", "chat: \"anything unusual?\" lists, from the person's own rows over the last 30 days (7 for \"this week\"), charges over twice their usual, new merchants, same-day duplicates and fees (WhatsNew.unusual, tests/depth-WHATS-NEW S16-S18); the scheduler sends unusual and large charges (ALRT-003); triage of one unrecognized charge is the dispute answer", null],
   [10, "TXN-005 BILL-001 BILL-011 BILL-010", "part", "chat: \"what bills are coming up\" lists the repeating charges from the person's rows for the next 30 days, yearly renewals included; trials the person tracks warn through the scheduler; a trial nobody tracked is not found", null],
   [11, "TXN-006", "full", "", null],

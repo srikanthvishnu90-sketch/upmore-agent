@@ -100,7 +100,7 @@ Deno.test("the budgets are read through the person's own session from their sett
 
 Deno.test("handler wiring: the status answer runs first in the direct chain with the person's zone; set and stop reach the settings path", () => {
   const h = SRC_HANDLER;
-  const at = h.indexOf("direct = await budgetReply(message, new Date(), { budgets: () => readBudgets(supabase, user.id), transactions: readTx }, { tz });");
+  const at = h.indexOf("direct = await budgetReply(message, new Date(), { budgets: () => readBudgets(supabase, user.id), transactions: readTx }, { tz, rules });");
   assert(at > 0, "budgetReply is wired with the RLS client, the shared transaction read and tz");
   assert(at < h.indexOf("direct = await whatsNewReply("), "before what's new");
   assert(h.indexOf("direct = await budgetReply(") < h.indexOf("const s = await settingsMessage(message"), "status asks are answered before the settings path, which takes set and stop");

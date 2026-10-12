@@ -14,8 +14,9 @@
        { id, kind: "category_budget", category, amount_cents, period: "month", created_at, created_on, status, text }
      with no run of 9 or more digits anywhere (the table's check refuses one), and at most one per category.
      One per category; setting it again replaces it (the reply says the old amount). The categories are exactly the ones
-     "how much did i spend on groceries" uses (MoneyAnswers.CATEGORIES and its merchant list, 80-money-answers.js): a
-     merchant it doesn't know is never guessed into one, and the uncategorized total is said instead.
+     "how much did i spend on groceries" uses (MoneyAnswers.CATEGORIES and its merchant list, 80-money-answers.js), with
+     the person's own category rules applied the same way (95-category-rules.js; answer's input.rules, alerts' opts.rules):
+     a merchant it doesn't know is never guessed into one, and the uncategorized total is said instead.
      What counts: posted rows in US dollars in the person's own calendar month (their time zone), transfers and card
      payments left out, a refund in the category taken off. Pending charges and other currencies are said, never added.
      Bank posted dates are UTC, so a row dated the day after the person's today is this evening's and counts today (on the
@@ -185,11 +186,12 @@
       return { today, from: `${y}-${pad(m)}-01`, to: addDays(today, 1), y, m, day: d, days: lastDay(y, m), name: MONTHS[m - 1], key: `${y}-${pad(m)}` };
     }
     const inWindow = (r, w) => { const d = dayOf(r); return d !== null && d >= w.from && d <= w.to; };
-    const groupOf = (r) => { const c = MA.classify(r.merchant_raw); return c ? c.group : null; };
+    // The person's category rules (95-category-rules.js) place a merchant the same way here as in the spending answer.
+    const groupOf = (r, rules) => { const c = MA.classify(r.merchant_raw, rules); return c ? c.group : null; };
     // One budget's month: net spent (charges minus refunds), what's pending, what's in another currency, top 3 places.
-    function tally(budget, rows, w) {
+    function tally(budget, rows, w, rules) {
       const cat = byKey(budget.category), groups = cat ? cat.groups : [];
-      const inCat = (r) => groups.includes(groupOf(r));
+      const inCat = (r) => groups.includes(groupOf(r, rules));
       const usable = rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_transfer && inCat(r));
       const posted = usable.filter((r) => !r.is_pending && usd(r) && inWindow(r, w));
       const charges = posted.filter((r) => cents(r) < 0 && MA.isSpend(r)), refunds = posted.filter((r) => cents(r) > 0);
@@ -200,11 +202,11 @@
       for (const r of charges.concat(refunds)) { const k = MA.display(r.merchant_raw); by.set(k, (by.get(k) || 0) - cents(r)); }
       const top = [...by.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
       const spent = charged - refunded;
-      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top };
+      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, counted: charges.concat(refunds) };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
-    function uncategorized(rows, w) {
-      return rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_pending && usd(r) && inWindow(r, w) && cents(r) < 0 && MA.isSpend(r) && !groupOf(r)).reduce((s, r) => s - cents(r), 0);
+    function uncategorized(rows, w, rules) {
+      return rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_pending && usd(r) && inWindow(r, w) && cents(r) < 0 && MA.isSpend(r) && !groupOf(r, rules)).reduce((s, r) => s - cents(r), 0);
     }
     // An even pace: the budget spread evenly over the month's days, so far. Within $1.00 or 1% of the budget is on pace.
     function pace(t, w) {
@@ -237,7 +239,7 @@
       if (!rows.some((r) => r && !r.is_pending && typeof r.posted_on === "string")) {
         return { text: `${pick.length === 1 ? `Your ${labelOf(pick[0].category)} budget is ${money(pick[0].amount_cents)} a month` : `You have ${pick.length} budgets`}, but I don't see a linked bank or card with posted transactions yet, so there's nothing to count against ${pick.length === 1 ? "it" : "them"}.` };
       }
-      const ts = pick.map((b) => tally(b, rows, w)), unc = uncategorized(rows, w), lines = [];
+      const rules = i.rules || null, ts = pick.map((b) => tally(b, rows, w, rules)), unc = uncategorized(rows, w, rules), lines = [];
       if (ts.length === 1 && !p.over) {
         const t = ts[0];
         lines.push(`${cap(t.label)} budget for ${w.name}: ${money(t.spent)} spent of ${money(t.amount)}, ${leftText(t)}.`);
@@ -258,6 +260,8 @@
       if (pend.length) lines.push(`Pending, not added yet: ${pend.map((t) => `${ts.length > 1 ? `${t.label} ` : ""}${money(t.pending.reduce((s, r) => s - cents(r), 0))} (${t.pending.length} charge${t.pending.length === 1 ? "" : "s"})`).join(", ")}.`);
       const fx = ts.filter((t) => t.foreign.length);
       if (fx.length) lines.push(`In another currency, not added: ${fx.map((t) => `${ts.length > 1 ? `${t.label} ` : ""}${foreignText(t.foreign)}`).join(", ")}.`);
+      const ruled = MA.ruleLine(ts.flatMap((t) => t.counted), rules);
+      if (ruled) lines.push(ruled);
       if (unc > 0) lines.push(`${money(unc)} of your spending this month matched no category I know, so it isn't counted in any budget.`);
       lines.push(MA.txSource(rows, tz, TAIL));
       return { text: lines.join("\n"), tallies: ts, uncategorized_cents: unc, month: w.key };
@@ -272,7 +276,7 @@
       const thru = `Transactions through ${MON[+through.slice(5, 7) - 1]} ${+through.slice(8, 10)}, ${through.slice(0, 4)}.`;
       for (const b of budgetsIn(budgets)) {
         if (!(b.amount_cents > 0)) continue;
-        const t = tally(b, rows, w), base = `budget:${b.id}:${w.key}:`;
+        const t = tally(b, rows, w, o.rules || null), base = `budget:${b.id}:${w.key}:`;
         if (t.spent >= t.amount) {
           if (sent.has(base + "100")) continue;
           out.push({ key: base + "100", threshold: 100, category: b.category, budget_id: b.id, month: w.key, spent_cents: t.spent, amount_cents: t.amount,

@@ -6920,8 +6920,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -6942,8 +6942,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "what a remembered fix can change (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -6964,8 +6964,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule checked before it applies (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -7028,8 +7028,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "correcting a transaction's category or merchant (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -15250,8 +15250,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "confirming or fixing categories (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -15272,8 +15272,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a category or name (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -15396,8 +15396,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -16392,8 +16392,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "category fixes by chat (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -17925,8 +17925,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a transaction's category or merchant (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18151,8 +18151,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18174,8 +18174,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "what a remembered fix can change, splits included (8, 11)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18196,8 +18196,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "one rule over several matches (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18219,8 +18219,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a split applied by rule (8, 11)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18241,8 +18241,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule applied to past rows (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18263,8 +18263,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule made from a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18285,8 +18285,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "rules on pending rows (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -18488,8 +18488,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a category or splitting from a review card (8, 11)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -24366,8 +24366,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "setting a category from a Venmo note (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25353,8 +25353,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a category from the model's guesses (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25415,8 +25415,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a category (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25437,8 +25437,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a transaction's name or category (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25581,8 +25581,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25603,8 +25603,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25625,8 +25625,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25647,8 +25647,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule that remembers a fix (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25669,8 +25669,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule checked before it applies (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -25691,8 +25691,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a rule replaced and history refixed (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -28597,7 +28597,7 @@
    ],
    "capability_coverage": "part",
    "capability_note": "category changes (8); budget changes have no item",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -28619,8 +28619,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "category fixes proposed (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -28751,8 +28751,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "name rules by chat (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -32282,8 +32282,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a remembered fix to payee names (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -32327,8 +32327,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "a payee's category set by hand and kept (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -35916,8 +35916,8 @@
    ],
    "capability_coverage": "full",
    "capability_note": "fixing a category, once or for the merchant (8)",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,

@@ -93,6 +93,9 @@ done
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012030000_saved_recipient_nicknames.sql"
 # Idempotent: the nickname migration must apply cleanly a second time.
 "${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012030000_saved_recipient_nicknames.sql"
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012040000_category_rules.sql"
+# Idempotent: the category rules migration must apply cleanly a second time.
+"${QUIET[@]}" -f "$ROOT/supabase/migrations/20261012040000_category_rules.sql"
 
 for t in "$HERE"/*.test.sql; do
   echo "== $(basename "$t")"

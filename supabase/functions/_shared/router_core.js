@@ -7244,7 +7244,9 @@
        checkup(accounts, transactions, now)     "how am I doing": cash now, in vs out this month so far vs the same day last
                                                 month, one sentence of what changed
        didItGoThrough(transactions, words, now) posted (date) or pending, or "not yet" since a named date
-     Pure: rows and the clock are passed in; opts.tz (an IANA zone, default UTC) sets the person's "today". */
+     Pure: rows and the clock are passed in; opts.tz (an IANA zone, default UTC) sets the person's "today"; opts.rules,
+     the person's category rules (95-category-rules.js), place a merchant where they said (classify(raw, rules)), and an
+     answer a rule changed says so with its amount (ruleLine). Spend adds up charges; a refund is not taken off there. */
   const MoneyAnswers = (() => {
     const HOUR = 3600 * 1000, DAY = 24 * HOUR, STALE_MS = DAY;
     const CASH_KINDS = ["checking", "savings", "cash"];
@@ -7364,10 +7366,41 @@
     ];
     const NOT_SPENDING = /\b(?:credit card payment|card payment|payment thank you|autopay|online transfer|transfer (?:to|from)|internal transfer)\b/i;
     const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9&'+.\/*-]+/g, " ").replace(/\s+/g, " ").trim();
-    function classify(raw) {
+    // The person's category rules (95-category-rules.js, "recategorize Target as groceries"): a rule's words, whole, in
+    // the bank's descriptor (apostrophes dropped, a bank's "JOE S" read as "joes"); the longest matching term wins. A
+    // known merchant more specific than the term keeps its own group: a "Costco" rule leaves Costco Gas as gas, an "Uber"
+    // rule leaves Uber Eats as delivery. A stored rule naming no group the chat counts is ignored.
+    const ruleKey = (s) => String(s || "").toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\b([a-z0-9]+) s\b/g, "$1s").trim();
+    function ruleFor(raw, rules) {
+      if (!Array.isArray(rules) || !rules.length) return null;
+      const d = ` ${ruleKey(raw)} `;
+      let best = null, bestLen = 0;
+      for (const r of rules) {
+        if (!r || typeof r.term !== "string" || !GROUP_LABEL[r.group]) continue;
+        const k = ruleKey(r.term);
+        if (k && k.length > bestLen && d.includes(` ${k} `)) { best = r; bestLen = k.length; }
+      }
+      return best;
+    }
+    function classify(raw, rules) {
       const t = norm(raw);
-      for (const [group, name, re] of MERCHANTS) if (re.test(t)) return { group, name: name || cleanName(raw) };
-      return null;
+      let def = null;
+      for (const [group, name, re] of MERCHANTS) if (re.test(t)) { def = { group, name: name || cleanName(raw) }; break; }
+      const r = ruleFor(raw, rules);
+      if (!r) return def;
+      const named = def && MERCHANTS.find((m) => m[1] === def.name) ? ruleKey(def.name) : "", k = ruleKey(r.term);
+      if (named && named !== k && named.length > k.length && ` ${named} `.includes(` ${k} `)) return def;
+      return { group: r.group, name: def ? def.name : cleanName(raw), rule: r };
+    }
+    // "By your category rule: "Target" as groceries $212.40." for the rows a rule placed (spending only), "" for none.
+    function ruleLine(rows, rules) {
+      if (!Array.isArray(rules) || !rules.length) return "";
+      const by = new Map();
+      for (const r of rows || []) { const c = classify(r.merchant_raw, rules); if (c && c.rule) { const e = by.get(c.rule) || 0; by.set(c.rule, e - (Number(r.amount_cents) || 0)); } }
+      const hit = [...by.entries()].filter(([, v]) => v !== 0);
+      if (!hit.length) return "";
+      const nm = (term) => String(term).replace(/(^|[\s\-\/&.])([a-z])/g, (_, a, b) => a + b.toUpperCase());
+      return `By your category rule${hit.length === 1 ? "" : "s"}: ${hit.map(([r, v]) => `"${nm(r.term)}" as ${GROUP_LABEL[r.group]} ${v < 0 ? "-" : ""}${money(Math.abs(v))}`).join(", ")}.`;
     }
     // A readable name for a merchant not on the list: card-network noise and store numbers removed, nothing invented.
     const label = raw => (typeof MerchantLabel !== "undefined" ? MerchantLabel : require("./32-merchant-label.js")).safe(raw);
@@ -7494,7 +7527,7 @@
       return `That's ${money(Math.abs(d))} ${d > 0 ? "more" : "less"} than ${p.prior.label}, when it was ${money(prior$)}.${caveat}`;
     }
     function spend(transactions, words, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
       const extra = "Transfers, card payments and pending charges are left out.";
       if (!all.length) return `I don't see any posted transactions in your linked accounts yet, so I can't add up your spending. ${txSource(transactions, tz)}`;
       // A period that ends before the linked data begins has no rows to add up: saying "$0.00" would claim a fact we don't have.
@@ -7503,14 +7536,16 @@
       const tg = target(words), lines = [];
       const partial = start && start > p.from ? ` Your linked transactions start ${dateLabel(start, true)}, so this covers only from then.` : "";
       if (tg.kind === "category") {
-        const pick = (rows) => rows.filter((r) => { const c = classify(r.merchant_raw); return c && tg.cat.groups.includes(c.group); });
+        const pick = (rows) => rows.filter((r) => { const c = classify(r.merchant_raw, rules); return c && tg.cat.groups.includes(c.group); });
         const a = pick(cur), b = pick(prev), total = sum(a);
-        const split = tg.cat.groups.length > 1 ? tg.cat.groups.map((g) => [g, sum(a.filter((r) => classify(r.merchant_raw).group === g))]).filter((x) => x[1] > 0) : [];
+        const split = tg.cat.groups.length > 1 ? tg.cat.groups.map((g) => [g, sum(a.filter((r) => classify(r.merchant_raw, rules).group === g))]).filter((x) => x[1] > 0) : [];
         lines.push(`You spent ${money(total)} on ${tg.cat.label} ${p.label}${split.length > 1 ? `: ${split.map(([g, c]) => `${money(c)} ${GROUP_LABEL[g]}`).join(", ")}` : ""}.${partial}`);
         lines.push(compareText(total, sum(b), p, start));
         const top = topPlaces(a);
         if (top.length) lines.push(`Top: ${top.map(([n, c]) => `${n} ${money(c)}`).join(", ")}.`);
-        const unc = cur.filter((r) => !classify(r.merchant_raw));
+        const ruled = ruleLine(a, rules);
+        if (ruled) lines.push(ruled);
+        const unc = cur.filter((r) => !classify(r.merchant_raw, rules));
         if (unc.length) lines.push(`${money(sum(unc))} of your other spending in that period didn't match a category I know, so I didn't count any of it as ${tg.cat.label}.`);
       } else if (tg.kind === "merchant") {
         const ever = out.filter((r) => termMatch(r.merchant_raw, tg.term));
@@ -7535,7 +7570,7 @@
 
     // ---- checkup ----
     function checkup(accounts, transactions, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
       const lines = [];
       const when = Number.isFinite(s.oldest) ? timeLabel(s.oldest, tz) : null;
       if (s.cash.length) lines.push(`Cash: ${money(s.cash_cents)} across ${s.cash.length} account${s.cash.length === 1 ? "" : "s"}${when ? `, as of ${when}` : ""}${s.stale.length ? " (more than a day old)" : ""}.`);
@@ -7552,7 +7587,7 @@
         const d = outN - outP;
         if (d === 0) lines.push(`Your spending is exactly where it was at this point last month.`);
         else {
-          const key = (r) => { const c = classify(r.merchant_raw); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
+          const key = (r) => { const c = classify(r.merchant_raw, rules); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
           const diff = new Map();
           for (const r of cur.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) + Math.abs(cents(r)));
           for (const r of prev.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) - Math.abs(cents(r)));
@@ -7615,7 +7650,7 @@
     // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries". The same ones,
     // plus isIncome (a credit that is not a transfer or card payment), termMatch, acctName and kindOf, are shared with
     // the month comparison and spending by card (94-spending-views.js).
-    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
+    return { money, period, classify, ruleFor, ruleLine, MERCHANT_NAMES: MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;
 
@@ -11553,8 +11588,9 @@
        { id, kind: "category_budget", category, amount_cents, period: "month", created_at, created_on, status, text }
      with no run of 9 or more digits anywhere (the table's check refuses one), and at most one per category.
      One per category; setting it again replaces it (the reply says the old amount). The categories are exactly the ones
-     "how much did i spend on groceries" uses (MoneyAnswers.CATEGORIES and its merchant list, 80-money-answers.js): a
-     merchant it doesn't know is never guessed into one, and the uncategorized total is said instead.
+     "how much did i spend on groceries" uses (MoneyAnswers.CATEGORIES and its merchant list, 80-money-answers.js), with
+     the person's own category rules applied the same way (95-category-rules.js; answer's input.rules, alerts' opts.rules):
+     a merchant it doesn't know is never guessed into one, and the uncategorized total is said instead.
      What counts: posted rows in US dollars in the person's own calendar month (their time zone), transfers and card
      payments left out, a refund in the category taken off. Pending charges and other currencies are said, never added.
      Bank posted dates are UTC, so a row dated the day after the person's today is this evening's and counts today (on the
@@ -11724,11 +11760,12 @@
       return { today, from: `${y}-${pad(m)}-01`, to: addDays(today, 1), y, m, day: d, days: lastDay(y, m), name: MONTHS[m - 1], key: `${y}-${pad(m)}` };
     }
     const inWindow = (r, w) => { const d = dayOf(r); return d !== null && d >= w.from && d <= w.to; };
-    const groupOf = (r) => { const c = MA.classify(r.merchant_raw); return c ? c.group : null; };
+    // The person's category rules (95-category-rules.js) place a merchant the same way here as in the spending answer.
+    const groupOf = (r, rules) => { const c = MA.classify(r.merchant_raw, rules); return c ? c.group : null; };
     // One budget's month: net spent (charges minus refunds), what's pending, what's in another currency, top 3 places.
-    function tally(budget, rows, w) {
+    function tally(budget, rows, w, rules) {
       const cat = byKey(budget.category), groups = cat ? cat.groups : [];
-      const inCat = (r) => groups.includes(groupOf(r));
+      const inCat = (r) => groups.includes(groupOf(r, rules));
       const usable = rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_transfer && inCat(r));
       const posted = usable.filter((r) => !r.is_pending && usd(r) && inWindow(r, w));
       const charges = posted.filter((r) => cents(r) < 0 && MA.isSpend(r)), refunds = posted.filter((r) => cents(r) > 0);
@@ -11739,11 +11776,11 @@
       for (const r of charges.concat(refunds)) { const k = MA.display(r.merchant_raw); by.set(k, (by.get(k) || 0) - cents(r)); }
       const top = [...by.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3);
       const spent = charged - refunded;
-      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top };
+      return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, counted: charges.concat(refunds) };
     }
     // Spending this month that matched no category: said as its own total, never guessed into a budget.
-    function uncategorized(rows, w) {
-      return rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_pending && usd(r) && inWindow(r, w) && cents(r) < 0 && MA.isSpend(r) && !groupOf(r)).reduce((s, r) => s - cents(r), 0);
+    function uncategorized(rows, w, rules) {
+      return rows.filter((r) => r && Number.isFinite(cents(r)) && !r.is_pending && usd(r) && inWindow(r, w) && cents(r) < 0 && MA.isSpend(r) && !groupOf(r, rules)).reduce((s, r) => s - cents(r), 0);
     }
     // An even pace: the budget spread evenly over the month's days, so far. Within $1.00 or 1% of the budget is on pace.
     function pace(t, w) {
@@ -11776,7 +11813,7 @@
       if (!rows.some((r) => r && !r.is_pending && typeof r.posted_on === "string")) {
         return { text: `${pick.length === 1 ? `Your ${labelOf(pick[0].category)} budget is ${money(pick[0].amount_cents)} a month` : `You have ${pick.length} budgets`}, but I don't see a linked bank or card with posted transactions yet, so there's nothing to count against ${pick.length === 1 ? "it" : "them"}.` };
       }
-      const ts = pick.map((b) => tally(b, rows, w)), unc = uncategorized(rows, w), lines = [];
+      const rules = i.rules || null, ts = pick.map((b) => tally(b, rows, w, rules)), unc = uncategorized(rows, w, rules), lines = [];
       if (ts.length === 1 && !p.over) {
         const t = ts[0];
         lines.push(`${cap(t.label)} budget for ${w.name}: ${money(t.spent)} spent of ${money(t.amount)}, ${leftText(t)}.`);
@@ -11797,6 +11834,8 @@
       if (pend.length) lines.push(`Pending, not added yet: ${pend.map((t) => `${ts.length > 1 ? `${t.label} ` : ""}${money(t.pending.reduce((s, r) => s - cents(r), 0))} (${t.pending.length} charge${t.pending.length === 1 ? "" : "s"})`).join(", ")}.`);
       const fx = ts.filter((t) => t.foreign.length);
       if (fx.length) lines.push(`In another currency, not added: ${fx.map((t) => `${ts.length > 1 ? `${t.label} ` : ""}${foreignText(t.foreign)}`).join(", ")}.`);
+      const ruled = MA.ruleLine(ts.flatMap((t) => t.counted), rules);
+      if (ruled) lines.push(ruled);
       if (unc > 0) lines.push(`${money(unc)} of your spending this month matched no category I know, so it isn't counted in any budget.`);
       lines.push(MA.txSource(rows, tz, TAIL));
       return { text: lines.join("\n"), tallies: ts, uncategorized_cents: unc, month: w.key };
@@ -11811,7 +11850,7 @@
       const thru = `Transactions through ${MON[+through.slice(5, 7) - 1]} ${+through.slice(8, 10)}, ${through.slice(0, 4)}.`;
       for (const b of budgetsIn(budgets)) {
         if (!(b.amount_cents > 0)) continue;
-        const t = tally(b, rows, w), base = `budget:${b.id}:${w.key}:`;
+        const t = tally(b, rows, w, o.rules || null), base = `budget:${b.id}:${w.key}:`;
         if (t.spent >= t.amount) {
           if (sent.has(base + "100")) continue;
           out.push({ key: base + "100", threshold: 100, category: b.category, budget_id: b.id, month: w.key, spent_cents: t.spent, amount_cents: t.amount,
@@ -11874,7 +11913,11 @@
     const cents = (r) => (r && r.amount_cents !== null && r.amount_cents !== undefined && Number.isFinite(Number(r.amount_cents)) ? Math.round(Number(r.amount_cents)) : NaN);
     const usd = (r) => !r.currency || String(r.currency).toUpperCase() === "USD";
     const dayOf = (r) => (typeof r.posted_on === "string" ? r.posted_on.slice(0, 10) : null);
-    const groupOf = (r) => { const c = MA.classify(r.merchant_raw); return c ? c.group : null; };
+    // The person's category rules (95-category-rules.js) for the call in progress: compare() and byCard() set them on
+    // entry and clear them on the way out. Both run start to finish without yielding, so no other call sees them.
+    let RULES = null;
+    const withRules = (opts, fn) => { RULES = (opts && opts.rules) || null; try { return fn(); } finally { RULES = null; } };
+    const groupOf = (r) => { const c = MA.classify(r.merchant_raw, RULES); return c ? c.group : null; };
     const REFUND = /\b(?:refunds?|returns?|reversal|merchandise credit|price adjustment)\b/i;
     const isRefund = (r) => MA.isIncome(r) && (groupOf(r) !== null || REFUND.test(String(r.merchant_raw || "")));
     const GROUP_LABEL = { groceries: "groceries", restaurants: "restaurants", delivery: "delivery", gas: "gas", subscriptions: "subscriptions", transport: "transport", shopping: "shopping" };
@@ -11965,7 +12008,8 @@
       const a = list[list.length - 1], b = list[0], years = a[0] !== y || b[0] !== y;
       return `${MON[a[1] - 1]}${years ? ` ${a[0]}` : ""}-${MON[b[1] - 1]}${years ? ` ${b[0]}` : ""}`;
     }
-    function compare(transactions, words, now, opts) {
+    function compare(transactions, words, now, opts) { return withRules(opts, () => compareIn(transactions, words, now, opts)); }
+    function compareIn(transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rows = transactions || [], today = MA.todayIn(now, tz);
       if (!posted(rows).length) return `I don't see any posted transactions in your linked accounts yet, so there's nothing to compare. ${MA.txSource(rows, tz)}`;
       const y = +today.slice(0, 4), m = +today.slice(5, 7), d = +today.slice(8, 10), start = earliest(rows);
@@ -12009,6 +12053,9 @@
       if (pend.length) lines.push(`Pending, not added yet: ${pendingText(pend)}.`);
       if (fx.length) lines.push(`In another currency, not added: ${foreignText(fx)}.`);
       if (!nw.merchant) {
+        // What the person's own rules moved into the totals this month, said with its amount.
+        const ruled = MA.ruleLine(posted(rows).filter((r) => within(r, cur.from, cur.to) && keep(r) && (MA.isSpend(r) || isRefund(r))), RULES);
+        if (ruled) lines.push(ruled);
         const unc = net(rows, cur.from, cur.to, (r) => groupOf(r) === null).total;
         if (unc > 0 && nw.cat) lines.push(`${money(unc)} of your other spending this month matched no category I know, so none of it is counted as ${nw.cat.label}.`);
         else if (unc > 0) {
@@ -12039,7 +12086,8 @@
       return accounts.filter((a) => { const hay = ` ${norm(`${a.institution || ""} ${a.name || ""}`)} `; return variants.some((v) => hay.includes(` ${v} `)); });
     }
     const TAIL = "Transfers and card payments are left out, so a card paid from checking isn't counted twice.";
-    function byCard(accounts, transactions, words, now, opts) {
+    function byCard(accounts, transactions, words, now, opts) { return withRules(opts, () => byCardIn(accounts, transactions, words, now, opts)); }
+    function byCardIn(accounts, transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rows = transactions || [], today = MA.todayIn(now, tz), w = String(words || "").toLowerCase();
       const list = (accounts || []).filter((a) => a && a.status !== "disconnected");
       if (!posted(rows).length) return `I don't see any posted transactions in your linked accounts yet, so I can't split your spending by card. ${MA.txSource(rows, tz)}`;
@@ -12093,6 +12141,202 @@
     return { ask, cardTerm, compare, byCard, matchAccounts };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = SpendingViews;
+
+  /* Category rules in chat (owner's capability list item 8; megadoc L07 "recategorize Target as groceries"; teardown 2
+     Copilot Money/Categories and budgets, Monarch rules). A person moves a merchant into one of the categories the chat
+     already counts ("how much did i spend on groceries", category budgets): every later answer and budget counts that
+     merchant's charges there. It changes how Upmore counts, never anything at the bank or card, and never moves money.
+       parse(words)                     what a message asks: set, stop, list, or null (anything else goes on)
+       command(words, rules, now)       the new rule list and the restating reply (null when the words are not a rule)
+       describe(rules)                  one line for "what are my alerts" style summaries ("" with none)
+     A rule is { id, term, group, created_at, text }: term is the merchant words as typed (no run of 5 or more digits,
+     never a pronoun, an amount or a category word), group one of MoneyAnswers' single groups. Stored in
+     agent_proactive_settings.category_rules (migration 20261012020000; at most 40 rules, no run of 9 or more digits).
+     Matching and precedence live with the classifier (MoneyAnswers.classify(raw, rules), 80-money-answers.js): the
+     term's whole words in the bank's descriptor, the longest term wins, and a known merchant more specific than the term
+     keeps its own category (a "Costco" rule leaves Costco Gas as gas; the reply says so). Pure: no I/O, no clock reads.
+     Depth packet CATEGORY-RULES (tests/depth-CATEGORY-RULES.test.cjs). */
+  const CategoryRules = (() => {
+    const MA = typeof MoneyAnswers !== "undefined" ? MoneyAnswers : require("./80-money-answers.js");
+    const MAX_RULES = 40;
+    // The groups a merchant can be moved into, by the words a person uses for each. "Food" spans three groups, so it is
+    // asked about, never guessed.
+    const GROUPS = [
+      ["delivery", "food delivery", /^(?:food delivery|delivery|deliveries|take-?out|take out)$/],
+      ["groceries", "groceries", /^(?:grocer(?:y|ies)|grocery stores?|supermarkets?)$/],
+      ["restaurants", "restaurants", /^(?:restaurants?|eating out|dining(?: out)?|coffee|coffee shops?|fast food)$/],
+      ["gas", "gas", /^(?:gas|fuel|gasoline|gas stations?)$/],
+      ["subscriptions", "subscriptions", /^(?:subscriptions?|streaming)$/],
+      ["transport", "transport", /^(?:transport(?:ation)?|rides?|rideshare|transit|commut(?:e|ing)|parking)$/],
+      ["shopping", "shopping", /^(?:shopping|clothes|clothing)$/],
+    ];
+    const LABEL = Object.fromEntries(GROUPS.map(([g, l]) => [g, l]));
+    const LIST = "food delivery, groceries, restaurants (eating out, dining, coffee), gas, subscriptions, transport, shopping";
+    const FILLER = /\s+(?:category|categories|spending|purchases?|charges?|stuff|things?|bucket)$/;
+    // The group a category phrase names: a group key, "food" (ambiguous), or null (not a category).
+    function groupOf(y) {
+      let s = String(y || "").trim().replace(/[,;]?\s*(?:not|instead of|rather than)\s+.+$/, "").replace(/^(?:the|a|an|my)\s+/, "").trim();
+      for (let i = 0; i < 2; i++) s = s.replace(FILLER, "").trim();
+      if (/^(?:food|meals?|eating)$/.test(s)) return "food";
+      const hit = GROUPS.find(([, , re]) => re.test(s));
+      return hit ? hit[0] : null;
+    }
+
+    // ---- the person's words ----
+    const LEAD = /^\s*(?:(?:hey|hi|ok|okay|so|yo|pls|please|upmore)[,\s]+)*(?:(?:can|could|would|will) you\s+(?:please\s+)?|please\s+|pls\s+|i want (?:you )?to\s+|i'd like (?:you )?to\s+)?/i;
+    const TAIL = /(?:\s+(?:from now on|going forward|always|instead|please|pls|thanks|thank you|for me|too|now|anymore|any more))+$/;
+    const clean = (m) => String(m || "").toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(LEAD, "").replace(/\s+/g, " ").replace(/[\s?.!]+$/, "").replace(TAIL, "").trim();
+    const QUESTION = /^(?:how|what|why|when|where|which|who|should|could|would|do|does|did|can|is|are|am|if|was|were)\b/;
+    const PRONOUN = /^(?:it|that|this|them|those|these|that one|this one|that charge|this charge|the last one|the last charge|my last charge|the charge)$/;
+    const AMOUNT = /^\$?\s?\d[\d,]*(?:\.\d{1,2})?(?:\s*(?:dollars|bucks|usd))?$/;
+    const GENERIC = /^(?:the|a|an|inc|llc|co|corp|store|stores|shop|pos|debit|credit|card|purchase|purchases|payment|payments|transfer|transfers|ach|atm|online|web|recurring|checkcard|charge|charges|transaction|transactions|everything|all|stuff|money|spending|merchant|merchants)$/;
+    // The merchant words: "my target purchases" is "target", "all charges from costco" is "costco".
+    function termOf(x) {
+      let s = String(x || "").trim().replace(/^["']+|["']+$/g, "");
+      s = s.replace(/^(?:all\s+(?:of\s+)?)?(?:(?:my|the|our)\s+)?/, "").replace(/^(?:charges?|purchases?|transactions?|payments?|orders?|spending)\s+(?:from|at|to|with|on)\s+/, "");
+      s = s.replace(/^(?:my|the|our)\s+/, "").replace(/(?:'s)?\s+(?:charges?|purchases?|transactions?|payments?|orders?|trips?|runs?|visits?|stuff|spending)$/, "").replace(/^["']+|["']+$/g, "").trim();
+      return s;
+    }
+    const key = (s) => String(s || "").toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    // Why a term can't be a rule ("" when it can).
+    function badTerm(term) {
+      const k = key(term);
+      if (!k || PRONOUN.test(term)) return "pronoun";
+      if (AMOUNT.test(term)) return "amount";
+      if (/\d{5,}/.test(term.replace(/[\s-]/g, ""))) return "digits";
+      if (k.replace(/[^a-z]/g, "").length < 2 || k.length > 40 || term.length > 60) return "length";
+      if (GENERIC.test(k)) return "generic";
+      if (groupOf(term)) return "category";
+      return "";
+    }
+
+    const SET_STRONG = /^(?:always\s+)?(?:re-?categori[sz]e|categori[sz]e|re-?classify|classify)\s+(.+?)\s+(?:as|under|in|into|to)\s+(.+)$/;
+    const SET_WEAK = /^(?:always\s+)?(?:count|treat|mark|file|tag|label|put|move)\s+(.+?)\s+(?:as|under|in|into)\s+(.+)$/;
+    const CHANGE = /^(?:change|switch|set)\s+(?:the\s+category\s+(?:of|for)\s+)?(.+?)(?:(?:'s)?\s+category)?\s+(?:to|into)\s+(.+)$/;
+    const ISNT_ITS = /^(.+?)\s+(?:isn'?t|is not|isnt|aint|ain't)\s+(?:a\s+|an\s+)?(.+?)[,;]?\s+(?:it'?s|it is|that'?s|thats)\s+(?:a\s+|an\s+)?(.+)$/;
+    const IS = /^(.+?)\s+(?:should be|should count as|counts as|is|are|goes under|go under|belongs (?:in|under)|should go (?:in|under)|should be in)\s+(?:a\s+|an\s+|in\s+|under\s+)?(.+)$/;
+    const STOP_COUNT = /^(?:(?:stop|quit)\s+counting|(?:don'?t|do not|dont|never)\s+count)\s+(.+?)\s+as\s+(?:a\s+|an\s+)?(.+)$/;
+    const REMOVE = /^(?:delete|remove|forget|undo|drop|clear|cancel|stop)\s+(?:my\s+|the\s+)?(?:(category\s+)?rule\s+(?:for|on|about)\s+(.+)|(.+?)\s+(category\s+)?rule)$/;
+    const REMOVE_ALL = /^(?:delete|remove|clear|forget|reset|erase|drop|undo)\s+(?:all\s+)?(?:of\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$/;
+    const LIST_ASK = /^(?:(?:show|list|see|view|give|tell)(?: me)?|what are|whats|what's|what is)\s+(?:all\s+)?(?:my|the)\s+(?:category|categori[sz]ation)\s+rules$|^(?:my\s+)?(?:category|categori[sz]ation)\s+rules$/;
+    const NOT_A_NAME = /^(?:my|our|your|the|a|an|this|that|it|most|all|half|some|everything|what|which)\b|\b(?:biggest|largest|most|main|top|favorite|favourite|expenses?|spending|problem|weakness|habit|category|money|bills?|budget|thing|things|cost|costs)\b/;
+    // Money places, and words that make it a dispute or a tax question ("classify this charge as fraud", "mark Staples as
+    // a business expense"): not a category rule, so they go on to the dispute flow or the model.
+    const NOT_OURS = /\b(?:budget|account|savings|checking|brokerage|portfolio|wallet|vault|fraud\w*|scam|unauthori[sz]ed|disputed?|stolen|business|tax|deductible|reimburs\w*|work expenses?)\b/;
+
+    function parse(words) {
+      const t = clean(words);
+      if (!t || t.length > 160) return null;
+      if (LIST_ASK.test(t)) return { kind: "list" };
+      if (REMOVE_ALL.test(t)) return { kind: "stop", all: true, term: null, group: null, explicit: true };
+      if (QUESTION.test(t)) return null;
+      let m;
+      if ((m = REMOVE.exec(t))) {
+        const term = termOf(m[2] || m[3]);
+        return term ? { kind: "stop", all: false, term, group: null, explicit: !!(m[1] || m[4]) } : null;
+      }
+      if ((m = STOP_COUNT.exec(t))) {
+        const g = groupOf(m[2]);
+        return g && g !== "food" ? { kind: "stop", all: false, term: termOf(m[1]), group: g, explicit: true } : null;
+      }
+      const set = (x, y, strong) => {
+        if (NOT_OURS.test(y)) return null;
+        const term = termOf(x), g = groupOf(y), named = /\bcategor/.test(y) || strong;
+        if (!g && !named) return null;
+        if (AMOUNT.test(term)) return null; // "move 500 into savings" is a money move, not a rule
+        const unknown = g ? null : String(y).replace(/^(?:the|a|an|my)\s+/, "").replace(FILLER, "").replace(/\d{5,}/g, "#").slice(0, 30).trim();
+        return { kind: "set", term, group: g === "food" ? null : g, food: g === "food", unknown };
+      };
+      if ((m = ISNT_ITS.exec(t))) { const p = set(m[1], m[3], false); if (p) return p; }
+      if ((m = SET_STRONG.exec(t))) return set(m[1], m[2], true);
+      if ((m = SET_WEAK.exec(t))) return set(m[1], m[2], false);
+      if ((m = CHANGE.exec(t))) return set(m[1], m[2], false);
+      if ((m = IS.exec(t))) {
+        // "target is groceries": only when the rest is exactly a category, so "gas is expensive" or "netflix is a
+        // subscription i want to cancel" goes on; and only when the subject reads like a merchant's name, so "my biggest
+        // expense is groceries" or "most of it is shopping" is a statement, not a rule.
+        const g = groupOf(m[2]), subj = m[1].trim();
+        if (g && g !== "food" && !NOT_OURS.test(m[2]) && !NOT_A_NAME.test(subj) && subj.split(/\s+/).length <= 4) return { kind: "set", term: termOf(subj), group: g, food: false, unknown: null };
+      }
+      return null;
+    }
+
+    // ---- the replies ----
+    const nameOf = (term) => {
+      const c = MA.classify(term);
+      if (c && c.name && key(c.name) === key(term)) return c.name;
+      return String(term).replace(/(^|[\s\-\/&.])([a-z])/g, (_, a, b) => a + b.toUpperCase());
+    };
+    const q = (term) => `"${nameOf(term)}"`;
+    const rulesIn = (rules) => (Array.isArray(rules) ? rules : []).filter((r) => r && typeof r.term === "string" && LABEL[r.group]);
+    const same = (a, b) => key(a) === key(b);
+    // Known merchants more specific than the term, which keep their own category (Costco Gas under a Costco rule).
+    function exceptions(term, group) {
+      const k = key(term), out = [];
+      for (const [g, name] of MA.MERCHANT_NAMES || []) {
+        const n = key(name);
+        if (n !== k && ` ${n} `.includes(` ${k} `) && g !== group && !out.some((o) => o[0] === name)) out.push([name, g]);
+      }
+      return out;
+    }
+    const BAD = {
+      pronoun: `Tell me the merchant's name, like "count Target as groceries". I set rules by merchant, not for one charge, so nothing changed.`,
+      amount: `That reads like an amount, not a merchant, so nothing changed. Say "count Target as groceries" with the merchant's name.`,
+      digits: `That has a long number in it. Use the merchant's name, like "count Target as groceries"; nothing changed.`,
+      length: `I need the merchant's name, like "count Target as groceries", so nothing changed.`,
+      generic: `That word is on almost every bank line, so a rule for it would move far more than you mean. Use the merchant's name, like "count Target as groceries"; nothing changed.`,
+      category: `I can move a merchant into a category, not one category into another, so nothing changed. Say "count Target as groceries" with the merchant's name.`,
+    };
+    function defaultGroup(term) { const c = MA.classify(term); return c ? c.group : null; }
+    function command(words, rules, now) {
+      const p = parse(words);
+      if (!p) return null;
+      const have = rulesIn(rules);
+      if (p.kind === "list") return { rules: null, reply: have.length ? `Your category rules: ${have.map((r) => `${q(r.term)} counts as ${LABEL[r.group]}`).join("; ")}. They change how I count, nothing at your bank.` : `You don't have any category rules. Say "count Target as groceries" to add one.` };
+      if (p.kind === "stop") {
+        if (p.all) {
+          if (!have.length) return { rules: null, reply: "You don't have any category rules, so nothing changed." };
+          return { rules: [], reply: `Removed all ${have.length === 1 ? "1 category rule" : `${have.length} category rules`}: ${have.map((r) => `${q(r.term)} (${LABEL[r.group]})`).join(", ")}. Those merchants count where they did before. Nothing else changed.` };
+        }
+        const mine = have.find((r) => same(r.term, p.term));
+        if (!mine) {
+          // "delete my autosave rule" is someone else's: without the word category, a rule we don't have goes on.
+          if (!p.explicit) return null;
+          const d = p.group && defaultGroup(p.term) === p.group;
+          if (d) return { rules: null, reply: `${q(p.term)} counts as ${LABEL[p.group]} by default, not by a rule of yours. Tell me where it should go instead, like "count ${nameOf(p.term)} as shopping". Nothing changed.` };
+          return { rules: null, reply: `You don't have a category rule for ${q(p.term)}, so nothing changed.${have.length ? ` Your rules: ${have.map((r) => `${q(r.term)} as ${LABEL[r.group]}`).join("; ")}.` : ""}` };
+        }
+        if (p.group && p.group !== mine.group) return { rules: null, reply: `Your rule counts ${q(mine.term)} as ${LABEL[mine.group]}, not ${LABEL[p.group]}, so nothing changed.` };
+        const d = defaultGroup(mine.term);
+        return { rules: have.filter((r) => r !== mine), reply: `Removed your rule: charges that say ${q(mine.term)} ${d ? `count as ${LABEL[d]} again` : "are back to no category (shown as spending I couldn't place)"}, as they did before. Nothing else changed.` };
+      }
+      // Set.
+      const bad = badTerm(p.term);
+      if (bad) return { rules: null, reply: BAD[bad] };
+      if (p.food) return { rules: null, reply: `"Food" covers groceries, restaurants and food delivery. Which one should ${q(p.term)} count as? Nothing changed yet.` };
+      if (!p.group) return { rules: null, reply: `I don't have a${p.unknown ? ` "${p.unknown}"` : ""} category to put it in, so nothing changed. Categories I can put a merchant in: ${LIST}.` };
+      const old = have.find((r) => same(r.term, p.term));
+      if (old && old.group === p.group) return { rules: null, reply: `Charges that say ${q(p.term)} already count as ${LABEL[p.group]} (your rule), so nothing changed.` };
+      const d = defaultGroup(p.term);
+      if (!old && d === p.group) return { rules: null, reply: `Charges that say ${q(p.term)} already count as ${LABEL[p.group]}, so nothing changed.` };
+      if (!old && have.length >= MAX_RULES) return { rules: null, reply: `You have ${MAX_RULES} category rules, the most I keep, so nothing changed. Say "show my category rules" and remove one first.` };
+      const nowMs = typeof now === "number" ? now : Date.parse(now);
+      // The settings table refuses any run of 9 or more digits: the id carries the time in base 36.
+      const rule = { id: `cr-${nowMs.toString(36)}`, term: String(p.term).slice(0, 60), group: p.group, created_at: new Date(nowMs).toISOString(), text: String(words || "").replace(/\d{5,}/g, "#").slice(0, 160) };
+      const next = have.filter((r) => r !== old).concat([rule]);
+      const was = old ? `instead of ${LABEL[old.group]} (that replaces your earlier rule)` : d ? `instead of ${LABEL[d]}` : "(I didn't place them in any category before)";
+      const ex = exceptions(p.term, p.group);
+      const lines = [
+        `Done: charges that say ${q(p.term)} now count as ${LABEL[p.group]} ${was}, in your spending answers and budgets, past charges included.${ex.length ? ` ${ex.map(([n, g]) => `${n} stays ${LABEL[g]}`).join("; ")}.` : ""}`,
+        `This changes how I count, nothing at your bank or card. Say "stop counting ${nameOf(p.term)} as ${LABEL[p.group]}" to undo it.`,
+      ];
+      return { rules: next, reply: lines.join("\n") };
+    }
+    function describe(rules) { const r = rulesIn(rules); return r.length ? `Category rules: ${r.map((x) => `${q(x.term)} as ${LABEL[x.group]}`).join("; ")}.` : ""; }
+
+    return { MAX_RULES, GROUPS, LABEL, LIST, parse, command, describe, rulesIn, groupOf, termOf, badTerm };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = CategoryRules;
 
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
@@ -12177,4 +12421,4 @@ const FAILED_BANKS_JSON = {"about":"Failed banks Upmore matches old bank names a
 const UNCLAIMED_PROGRAMS_JSON = {"about":"State unclaimed-property programs that send money or letters on their own (packages/domain/91-unclaimed.js; owner card M2-UNCLAIMED-01). A letter or email is called matching only when its sender's domain is the program's official domain on file; a mailed letter has no sender to check, so it is never called real: the person checks it on the official site they type in themselves. Facts come only from the owner's method cards (checked October 2026); add a state only from its official page. Re-check monthly; past fresh_days it is said to may have changed.","fresh_days":30,"programs":[{"id":"il.money_match","state":"IL","state_name":"Illinois","name":"Illinois Money Match","words":["money match","illinois treasurer","illinois state treasurer","treasurer frerichs","illinois unclaimed"],"official_domains":["illinoistreasurer.gov"],"page":{"title":"Illinois Treasurer: Money Match","url":"https://www.illinoistreasurer.gov/?p=310"},"checked_on":"2026-10-11","method_cards":["M2-UNCLAIMED-01"],"stated":"Illinois Money Match sends a letter naming the amount and source, then mails a check for simple single-owner cash claims, with no claim to file."}]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules };

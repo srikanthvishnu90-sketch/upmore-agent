@@ -85,10 +85,12 @@ export function mergeKinds(accounts: AccountRow[], prefs: { account_id: string; 
 
 export const MONEY_UNAVAILABLE = "I can't read your linked accounts right now, so I won't guess at a number. Try again in a minute.";
 
-export async function moneyReply(message: string, now: Date | number | string, read: MoneyReaders, opts?: { tz?: string }): Promise<string | null> {
+// opts.rules: the person's category rules (95-category-rules.js), so "Target" counts where they said in spending, the
+// month comparison, spending by card and "how am i doing".
+export async function moneyReply(message: string, now: Date | number | string, read: MoneyReaders, opts?: { tz?: string; rules?: any[] }): Promise<string | null> {
   const kind = moneyKind(message);
   if (!kind) return null;
-  const tz = opts?.tz || "UTC";
+  const tz = opts?.tz || "UTC", rules = Array.isArray(opts?.rules) ? opts!.rules : [];
   let accounts: AccountRow[];
   try { accounts = ((await read.accounts()) || []).filter((a) => a && a.status !== "disconnected"); } catch { return MONEY_UNAVAILABLE; }
   if (!accounts.length) return null;
@@ -96,10 +98,10 @@ export async function moneyReply(message: string, now: Date | number | string, r
   if (kind === "networth") return TheNumbers.netWorth(accounts, now, { tz })?.text ?? null;
   let tx: MoneyTxRow[];
   try { tx = (await read.transactions()) || []; } catch { return MONEY_UNAVAILABLE; }
-  if (kind === "spend") return MoneyAnswers.spend(tx, message, now, { tz });
-  if (kind === "compare") return SpendingViews.compare(tx, message, now, { tz });
-  if (kind === "cards") return SpendingViews.byCard(accounts, tx, message, now, { tz });
-  if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz });
+  if (kind === "spend") return MoneyAnswers.spend(tx, message, now, { tz, rules });
+  if (kind === "compare") return SpendingViews.compare(tx, message, now, { tz, rules });
+  if (kind === "cards") return SpendingViews.byCard(accounts, tx, message, now, { tz, rules });
+  if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz, rules });
   if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
   if (kind === "math" || kind === "explain") {
     // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed

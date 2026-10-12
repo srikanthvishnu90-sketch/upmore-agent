@@ -46,7 +46,7 @@ here. The morning report is the last section.
   README per section and per gate, `--check` in CI, tests that pin the counts and the gates.
 - [~] **A2.** (teardowns mapped; method cards next) Map methods and teardowns to the owner's capability list.** The teardown map (running) plus the same for the
   194 cards: each card to the capability-list items and registry capabilities it would use, and what Upmore has today.
-- [ ] **A3. Offer book with freshness.** `packages/domain/8x-offer-book.js` + `packages/offers/*.json`: every term a
+- [x] **A3. Offer book with freshness.** `packages/domain/8x-offer-book.js` + `packages/offers/*.json`: every term a
   method relies on (prices, windows, caps, rates, rule numbers) as data with `source`, `checked_on` and a freshness
   window by kind (promo 7 days, price 30, federal rule 365). `OfferBook.term(id, today)` returns the value with "checked
   <date>" or a stale flag; nothing reads a raw number from a doc. Tests: stale terms never presented as current; every

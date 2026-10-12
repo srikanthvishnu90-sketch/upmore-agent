@@ -143,3 +143,20 @@
     Logged in the drift doc; the note now says so. PROACTIVE 25/25.
 - Capability list: 44 items in product (39 at the start of the night's merges). 65/65 domain modules with proven defects.
 - CI: runs 107-110 green; 111+ pending at this check-in. Running: year in money (item 26), BNPL plans (items 85, 87).
+
+## 2026-10-12 overnight, wave 7 (09:00-10:20 UTC)
+- Merged: year in money (item 26, YEAR 26/26), BNPL (items 85/87, BNPL 29/29), deadlines (item 39, DEADLINES 22/22).
+- Built, each with its depth packet (every planted defect proven), the full bar and the corpus before the push:
+  - ebea1ee "did my refund arrive?" (K07), REFUND-CHECK 16/16.
+  - a3dacb9 numbers asks the model had (G16 L02 L08 L11 L12), NUMBERS 23/23; three stale verdicts corrected.
+  - 628b60c "what subscriptions do I have?" (J03), SUBS-LIST 15/15; the shared merchant key now groups "*AB1" codes.
+  - 60e6f52 money coming in (M04, C08), MONEY-IN 15/15.
+  - 8c956c4 "what's this charge?" (K01 K02 K05), CHARGE-CHECK 16/16; dispute "never authorized" fixed red first.
+  - b22b8e4 reminders in chat (D11), REMINDERS 21/21: every "remind me ..." used to get "Which route is this reminder for?".
+  - 4e2d927 "link my Chase account" (Q10): the app's real SimpleFIN path; "Ally savings" no longer read as Ally Invest.
+  - 833caaa "I got charged for something I cancelled" (J08), CANCELLED-CHARGE 16/16.
+  - (this push) IOU log (C05 D08 D09 D10, item 134), IOU 17/17, migration + SQL test 15/15; testing agent 87/87.
+  - Depth runner: a "$`" in a replacement could leave a module unparseable and count as proof; patches now inserted as
+    written and an unparseable patch is not applied. All 1,274 recorded patches re-checked: none breaks parsing.
+- Megadoc BUILT 78 -> 91; capability list IN_PRODUCT 48 -> 49; 75/75 domain modules with proven defects.
+- CI: runs 116-126 green; 127+ pending at this check-in.

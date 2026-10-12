@@ -110,3 +110,19 @@
   node-ci benchmark stays false (it was not green on every commit).
 - Mutation coverage 48/62. Agents running: depth WORKFLOWS/RECOVERY/INVEST (router-bundle modules) and MONEY-PLANS/
   CREDIT/DOCUMENTS.
+
+## 2026-10-12 07:35 UTC overnight wave 5 (check-in)
+- Merged depth packets (each re-proven on the merged code, full bar before every push): WORKFLOWS/RECOVERY/INVEST
+  (52dc3d4), MONEY-PLANS/CREDIT/DOCUMENTS (07a4a5c), FINANCIAL-MODEL/BILLER-MODEL/POSTED-FLOW/CLASSIFIED-LEDGER (8cece12).
+  53 real bugs found by those agents, each red first. Merge review caught one harmful fix: dropping rows dated tomorrow
+  hid an evening reversal, so the draft asked for money already returned (the day after now counts as the same evening).
+- My own fixes from the agents' "not fixed" lists, red first with planted defects: a cancellation proof trusting the
+  read-back's own expected state (02838c0); the deposit-insurance check that never ran (f5c3a72); "what's my credit
+  score" answered from code with no number guessed (d348086); the reply guard now catches made-up rates and scores, 0 of
+  122 replies on file newly flagged (de299f4); bank fee names (Courtesy Pay, INTL, MAINT; merchant service fees and a
+  bounced deposit no longer fees; 25 of 74,774 strings changed, all intended) (5000c9a); portfolio as-of is the oldest
+  read (4145463); alerts cite "per ... as of" so the advice guard accepts them (91264d7); card number never an order
+  number, euros not added to dollars (a17cfa9); biweekly anchor and credit wording (30278f3); envelope wording (e257dc9).
+- CI green on every run since the YAML fix (runs 81-89 checked; later runs pending at this check-in).
+- Mutation coverage 58/62 modules. Running: depth EARN/CONNECTORS/CONNECTOR-CATALOG/SURFACES; category budgets (H1,
+  T2 step 4). Next: the planner's date in the person's zone once the handler is free.

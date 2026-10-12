@@ -102,3 +102,13 @@ said, what is true, and the source.
   <source>, as of <time> UTC." (a money statement cites its source). Brokerage accounts and cash sweeps are never
   handed to it. Red first (PROACTIVE S16), D16/D16b proven, and tests/edge/proactive.test.ts sees the message from
   database rows through plan().
+
+## "What's my credit score" went to the model with nothing to answer from (2026-10-12, morning)
+
+- Said (capability items 37 and 101): the score modules run over a credit feed that is not connected.
+- True: chat sent "what's my credit score" to the model with the general FICO facts; the reply guard polices dollar
+  amounts only, so a made-up score ("your score is 720") would have gone out. The routing corpus pinned it to the model.
+- Now: creditScoreReply (direct_answers.ts) answers the person's own score from code, right after the connect answers:
+  no bureau or score source is connected, no number guessed, where a free score and free reports are. How-to questions,
+  credit cards, limits, reports and rewards are not taken (tests/edge/credit-score-answer.test.ts; the routing corpus
+  and the order table check it takes none of their asks).

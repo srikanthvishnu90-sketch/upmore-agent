@@ -22,6 +22,19 @@ export function connectReply(message: string): string | null {
   return a.card ? ConnectCards.message(a.card, { lead: a.text }) : a.text;
 }
 
+// "What's my credit score": no credit bureau or score feed is connected (capability items 37 and 101), and the reply guard
+// polices dollar amounts only, so the model could state a made-up score. Code answers the person's own score; how-to
+// questions ("how do I improve my credit score", "does closing a card hurt it") still go to the model with the FICO facts,
+// and anything about a credit card, limit or report is not a score.
+const MY_SCORE = /\b(?:what(?:'?s| is)|whats|check|see|show(?: me)?|tell me|look up|pull|get|know|did|has|how(?:'?s| is| has))\b[^?.!]{0,30}?\bmy (?:credit(?: score)?|fico(?: score)?|vantage ?score)s?\b(?! (?:cards?|limits?|lines?|reports?|union|balance))/i;
+const SCORE_HOWTO = /\bhow (?:do|can|could|should|to|would)\b|\bwhat (?:affects|hurts|helps|lowers|raises|impacts)\b|\b(?:does|do|will|would|could|should)\b(?! you\b| u\b)|\bwhat(?:'?s| is) a (?:good|bad)\b/i;
+export const CREDIT_SCORE_NONE =
+  "I can't see your credit score: no credit bureau or score source is connected to Upmore, so I won't guess at a number. Many card issuers and banks show a free score in their app, and AnnualCreditReport.com gives you your free credit reports from all three bureaus (reports, not scores).";
+export function creditScoreReply(message: string): string | null {
+  const m = String(message || "");
+  return MY_SCORE.test(m) && !SCORE_HOWTO.test(m) ? CREDIT_SCORE_NONE : null;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

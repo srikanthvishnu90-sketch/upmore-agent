@@ -407,3 +407,17 @@ test('negations, money received and relayed advice never become a card; a reques
   const m=await R.handle('maya wants me to send her 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(m.route,'send_money');
   const s=await R.handle('send sam 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(s.route,'send_money');
 });
+
+// The cancel flow too (found 2026-10-12, worst-case model): "cancel" is on the flow-question list so "how do i cancel
+// netflix" reaches the cancel flow, and that exemption let "dont cancel netflix", "did i cancel netflix", "i already
+// cancelled netflix last month" and "netflix cancelled me" become cancel cards. Now they fall through; "cancel netflix",
+// "how do i cancel netflix" and "should i cancel netflix" (an offer, still behind a yes) keep the cancel flow.
+test('a negated, past or questioned cancel never becomes a cancel card; asking to cancel still does',async()=>{
+  let calls=0;const worst=async()=>{calls++;return {intent:'cancel_subscription',merchant_span:'netflix'};};
+  for(const t of ['dont cancel netflix','do not cancel my netflix','never mind cancelling netflix','did i cancel netflix','have i cancelled netflix yet','i cancelled netflix','i already cancelled netflix last month','netflix cancelled me','my netflix got cancelled']){
+    const w=world();const r=await R.handle(t,{extract:worst,sessions:sessions(w),parsers});
+    assert.equal(r.route,'fallthrough',t);assert.equal(w.writes.length,0,t);
+  }
+  assert.equal(calls,0);
+  for(const t of ['cancel netflix','should i cancel netflix']){const r=await R.handle(t,{extract:worst,sessions:sessions(world()),parsers});assert.equal(r.route,'cancel_subscription',t);}
+});

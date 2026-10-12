@@ -172,12 +172,12 @@
     // "dont send sam 40", "never mind sending", "i would never buy", "not buying"; "sam sent me 40"; "my friend told me to
     // buy 2 VOO", "everyone is buying VOO". A request made of the person ("maya wants me to send her 40") is theirs.
     const NEGATED = /^\s*(?:(?:stop|wait|no|nah|ok|okay|hmm)[,!.\s]+)*(?:don'?t|do not|dont|never|never ?mind|nvm|not|i don'?t want to|i do not want to|i dont want to|i would never|i'?d never|no need to)\b/i;
-    const CAME_IN = /^\s*(?!i\b|we\b)[a-z][a-z.'-]{1,20} (?:just |already )?(?:sent|paid|venmoed|zelled|gave|transferred|repaid)(?: me| us)\b/i;
+    const CAME_IN = /^\s*(?!i\b|we\b)[a-z][a-z.'-]{1,20} (?:just |already )?(?:sent|paid|venmoed|zelled|gave|transferred|repaid|cancell?ed)(?: me| us)\b|\bmy [a-z+ ]{2,30} (?:got|was|has been) (?:cancell?ed|closed|shut off)\b/i;
     const RELAYED = /\b(?:said|says|told me|tells me|suggested|recommended|recommends)\b[^.?!]{0,8}\b(?:to )?(?:send|pay|buy|sell|invest)\b|\b(?:everyone|everybody|people|they|he|she|my friends?) (?:is|are) (?:buying|selling|sending|paying|investing)\b/i;
     const SHOULD = /^\s*(?:(?:hey|ok|so|um|hmm)[,\s]+)?(?:should|shall) (?:i|we)\b/i;
     const DID = /^\s*(?:(?:hey|ok|so|um|hmm)[,\s]+)?(?:did|have|has|had) (?:i|we|my|you)\b/i;
     const UNSURE = /^\s*(?:(?:hey|ok|so|um|hmm)[,\s]+)?(?:maybe|perhaps|i might|i may|i wish|i should(?:'ve| have)|i could(?:'ve| have)?)\b/i;
-    const REPORT = /^\s*(?:(?:hey|ok|so|um|fyi)[,\s]+)?(?:i|we) (?:already |just )?(?:bought|sold|paid|sent|transferred|venmoed|zelled|purchased)\b[^.?!]{0,60}(?:\b(?:already|yesterday|last (?:night|week|month)|this morning|earlier(?: today)?|ago)\b|$)|^\s*(?:i|we) already\b/i;
+    const REPORT = /^\s*(?:(?:hey|ok|so|um|fyi)[,\s]+)?(?:i|we) (?:already |just )?(?:bought|sold|paid|sent|transferred|venmoed|zelled|purchased|cancell?ed|unsubscribed)\b[^.?!]{0,60}(?:\b(?:already|yesterday|last (?:night|week|month)|this morning|earlier(?: today)?|ago)\b|$)|^\s*(?:i|we) already\b/i;
     const ASK_TO_DO = /^\s*(?:can|could|would|will) you\b|\b(?:send|pay|buy|sell|cancel|split|request)\s+(?:@?[a-z]+\s+)?\$?\d/i;
     const INJECTION = /\b(?:ignore (?:all |any )?(?:previous|prior|above|earlier|your) (?:instructions|rules|prompts?)|disregard (?:all |the )?(?:previous|prior|above) (?:instructions|rules)|system prompt|you are now|new instructions:|developer mode)\b/i;
     const SECRET_SEND = /\b(?:send|text|email|share|give|forward)\b.{0,30}\b(?:account (?:number|#)|routing (?:number|#)|card (?:number|#)|social security|ssn|password|passcode|pin\b|one[- ]time code|verification code|otp)\b/i;
@@ -259,7 +259,11 @@
         // "Should i buy/sell X" asks for a decision: refused here in the trade flow's own words (its advice guard), even
         // when a model would have read it as an order and handed the flow a clean "buy 2 VOO".
         if (SHOULD.test(text) && /\b(?:buy|sell|hold|trim|dump|invest|short|get (?:into|out of))\b/i.test(text)) return done({ route: "refuse", source: "deterministic", flow: "trade", understood: true, understood_first: true, result: { outcome: "refuse", reason: "advice", text: "I can't tell you what to buy or sell. If you decide, name the ticker and the amount and I'll put up a card. Want to see your current holdings?" } });
-        const notOrder = FLOW_QUESTION.test(text) ? null : NEGATED.test(text) ? "negated" : CAME_IN.test(text) ? "received" : RELAYED.test(text) ? "relayed" : SHOULD.test(text) ? "should" : DID.test(text) ? "question" : UNSURE.test(text) ? "unsure" : REPORT.test(text) && !/\b(?:split|request|ask (?:him|her|them)|pay me back|get it back|owe|owes|refund|dispute)\b/i.test(text) ? "report" : null;
+        // Negations, money or a cancel that already happened, and relayed advice are never orders, whatever the flow; the
+        // flow-question exemption (status, portfolio, "how do i cancel X") applies only to asking whether, maybes and
+        // "should", and a "did i cancel" is a question about the past, not a cancel.
+        const flowQ = FLOW_QUESTION.test(text) && !(DID.test(text) && /\bcancel/i.test(text));
+        const notOrder = NEGATED.test(text) ? "negated" : CAME_IN.test(text) ? "received" : RELAYED.test(text) ? "relayed" : REPORT.test(text) && !/\b(?:split|request|ask (?:him|her|them)|pay me back|get it back|owe|owes|refund|dispute)\b/i.test(text) ? "report" : flowQ ? null : SHOULD.test(text) ? "should" : DID.test(text) ? "question" : UNSURE.test(text) ? "unsure" : REPORT.test(text) && !/\b(?:split|request|ask (?:him|her|them)|pay me back|get it back|owe|owes|refund|dispute)\b/i.test(text) ? "report" : null;
         if (notOrder) return done({ route: "fallthrough", source: "deterministic", reason: notOrder, problems: [] });
         // "send me a reminder / report / summary" asks for a message, not money (megadoc G12).
         if (/^\s*(?:can you |could you |please )?send me\b/i.test(text) && !/\$|\d/.test(text.replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, ""))) return done({ route: "fallthrough", source: "deterministic", reason: "message_to_self", problems: [] });

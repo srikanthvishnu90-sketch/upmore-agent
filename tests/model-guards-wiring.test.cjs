@@ -41,3 +41,13 @@ test('the direct answers (connect my X, pay my rent, find me money, nothing link
   assert.ok(h.includes('meta: { capability: true, direct: true }'));
   assert.ok(h.includes('.eq("presence", "observed")'),'find me money reads only observed rows');
 });
+
+test('dispute this charge (S16-17) is answered inside the direct block: after connect and rent, before find me money, from observed rows',()=>{
+  assert.ok(h.includes('import { disputeReply } from "./_shared/dispute_answer.ts";'));
+  const start=h.indexOf('let direct: string | null = connectReply(message) ?? rentReply(message);'), end=h.indexOf('return json(cors, { thread_id: tid, reply: direct, action: null });');
+  const dispute=h.indexOf('if (!direct) direct = await disputeReply(message, today, readTx, { hasPhoto: imageBlocks.length > 0 });'), money=h.indexOf('if (!direct) direct = await findMoneyReply(message, today, readTx);');
+  assert.ok(start>0 && start<dispute && dispute<money && money<end,'connect/rent, then dispute, then find me money, all before the direct reply is returned');
+  const block=h.slice(start,end);
+  assert.ok(block.includes('.eq("presence", "observed").gte("posted_on", since)'),'the dispute reads the same observed rows');
+  assert.ok(block.includes('Date.now() - 400 * 86400000'),'last 400 days');
+});

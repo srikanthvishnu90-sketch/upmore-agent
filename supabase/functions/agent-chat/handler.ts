@@ -37,6 +37,7 @@ import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
 import { connectReply, rentReply, noDataReply, findMoneyReply } from "./_shared/direct_answers.ts";
+import { disputeReply } from "./_shared/dispute_answer.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps } from "../_shared/proactive.ts";
@@ -225,20 +226,24 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
 
     // Answers from code, each from a live gauntlet failure (2026-10-12, _shared/direct_answers.ts): "connect my X" from the
     // connector matrix, "pay my rent" (not built, said plainly), "find me money" from the person's own transactions, and
-    // balance or spending with nothing linked in one plain line.
+    // balance or spending with nothing linked in one plain line, and "dispute this charge" as a pre-filled draft the
+    // person sends themselves (_shared/dispute_answer.ts; a photo with nothing in the text goes on to the model).
     {
       let direct: string | null = connectReply(message) ?? rentReply(message);
       if (!direct && NEEDS_ACCOUNTS.test(message)) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");
         if (!linked.error) direct = noDataReply(message, linked.count ?? 0);
       }
-      if (!direct) direct = await findMoneyReply(message, new Date().toISOString().slice(0, 10), async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const readTx = async () => {
         const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
         const r = await supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
           .eq("user_id", user.id).eq("presence", "observed").gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000);
         if (r.error) throw new Error("Transactions unavailable.");
         return r.data || [];
-      });
+      };
+      if (!direct) direct = await disputeReply(message, today, readTx, { hasPhoto: imageBlocks.length > 0 });
+      if (!direct) direct = await findMoneyReply(message, today, readTx);
       if (direct) {
         const saved = await supabase.from("agent_messages").insert([
           { thread_id: tid, role: "user", content: userContent },

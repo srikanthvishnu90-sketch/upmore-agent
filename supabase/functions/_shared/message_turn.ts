@@ -55,6 +55,7 @@ export async function messageTurnRequest(req:Request,admin:any,serviceKey:string
     } else {
       const result=await brain(new Request(req.url,{method:"POST",headers:{Authorization:`Bearer ${serviceKey}`,"Content-Type":"application/json"},body:JSON.stringify({
         message:context.text,thread_id:context.thread_id||undefined,as_user_id:context.user_id,
+        runtime_context:{inbox_id:input.inbox_id,lease_token:input.lease_token},
       })}));
       status=result.status;response=await result.json();
       if(result.ok && (typeof response.reply!=="string" || !response.reply.trim())) throw new Error("Missing brain receipt.");

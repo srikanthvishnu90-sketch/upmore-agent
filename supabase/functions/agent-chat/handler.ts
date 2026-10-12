@@ -29,6 +29,8 @@ import { runFinancialPlanner, isPersonalFinancialRequest } from "../_shared/fina
 import { reserveModelCall, recordModelUsage, anthropicPlannerModel } from "../_shared/model_calls.ts";
 import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLesson } from "./_shared/chat_lesson_write.ts";
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
+import {runtimeWake} from "../_shared/agent_runtime_service.ts";
+import {runtimeWorkerContext,loadRuntimeState,saveRuntimeState} from "../_shared/agent_runtime_store.ts";
 // Learning-from-mistakes helpers (2026-09-28): the SAME pure functions the
 // real-trust fixtures exercise. index.ts calls them, never re-implements.
 import {
@@ -92,6 +94,7 @@ export async function handleChat(req: Request): Promise<Response> {
     // The key itself is never logged.
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const isBridgeCall = serviceKey !== "" && authM[1] === serviceKey;
+    const runtimeContext=runtimeWorkerContext(body,isBridgeCall);
     const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let bridgeUserId: string | null = null;
     if (isBridgeCall) {
@@ -180,6 +183,24 @@ export async function handleChat(req: Request): Promise<Response> {
     catch(error) {
       if(error instanceof ChatThreadError) return json(cors,{error:error.code},error.status);
       throw error;
+    }
+
+    // Message workers bind runtime memory to their durable inbox and lease.
+    // The older bridge has no such binding and receives a paused, read-only
+    // wake without permission to persist control changes. Linking a channel
+    // never grants financial execution authority.
+    const storedRuntime=(!bridgeUserId || runtimeContext)
+      ? await loadRuntimeState(supabase,user.id,tid,runtimeContext) : null;
+    const runtime=await runtimeWake({text:message,now:Date.now(),
+      state:storedRuntime?.state??{paused:true,sent:[]},persistent:!!storedRuntime});
+    if(storedRuntime) await saveRuntimeState(supabase,storedRuntime,runtime.state,runtimeContext);
+    if(runtime.handled) {
+      const saved=await supabase.from("agent_messages").insert([
+        {thread_id:tid,role:"user",content:message},
+        {thread_id:tid,role:"assistant",content:runtime.reply,meta:{runtime:true,execution:"NOT_WIRED"}},
+      ]);
+      if(saved.error) throw saved.error;
+      return json(cors,{thread_id:tid,reply:runtime.reply,action:null});
     }
 
     // Catalog-independent safety guards run BEFORE the heavy parallel fetches

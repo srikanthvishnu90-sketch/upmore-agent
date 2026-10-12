@@ -1,0 +1,10 @@
+test_actual_deno_import_resolves_shared_lexical_dependencies_and_keeps_statuses (__main__.RuntimeBuild.test_actual_deno_import_resolves_shared_lexical_dependencies_and_keeps_statuses) ... ok
+test_generated_bytes_match_exact_inputs_and_registry (__main__.RuntimeBuild.test_generated_bytes_match_exact_inputs_and_registry) ... ok
+test_isolated_source_change_is_detected_without_rewriting_bundle_or_original (__main__.RuntimeBuild.test_isolated_source_change_is_detected_without_rewriting_bundle_or_original) ... ok
+test_registry_drift_and_missing_dependency_fail_without_touching_current_artifact (__main__.RuntimeBuild.test_registry_drift_and_missing_dependency_fail_without_touching_current_artifact) ... ok
+test_repeated_builds_are_identical_across_different_fixture_roots (__main__.RuntimeBuild.test_repeated_builds_are_identical_across_different_fixture_roots) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 4.698s
+
+OK

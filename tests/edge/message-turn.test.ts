@@ -25,6 +25,7 @@ Deno.test('brain receives owner, thread and text exclusively from the durable in
   const a=admin();let sent:any;
   const r=await messageTurnRequest(request(),a,key,async req=>{sent=await req.json();assert(a.state==='started');return new Response(JSON.stringify({thread_id:a.context.thread_id,reply:'Rent is due tomorrow.'}));});
   assert(r.status===200);assert(sent.as_user_id===a.context.user_id && sent.message===a.context.text && sent.thread_id===a.context.thread_id);
+  assert(sent.runtime_context.inbox_id===inbox && sent.runtime_context.lease_token===lease);
   assert(a.calls[1].name==='agent_message_turn_finish');assert(a.calls[1].args.p_replies[0]==='Rent is due tomorrow.');
 });
 Deno.test('completed turn retries reuse the receipt without another model or financial turn',async()=>{

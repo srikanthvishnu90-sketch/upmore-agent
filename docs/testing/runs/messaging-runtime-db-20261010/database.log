@@ -1,0 +1,4 @@
+2026-10-10 22:28:56.546 CDT [43620] FATAL:  could not create shared memory segment: Operation not permitted
+2026-10-10 22:28:56.546 CDT [43620] DETAIL:  Failed system call was shmget(key=31999346, size=56, 03600).
+child process exited with exit code 1
+initdb: removing data directory "/var/folders/w6/1_xff_bj4g72rzc33dnv5t1r0000gn/T/upmore-db-test.fiGFun/data"

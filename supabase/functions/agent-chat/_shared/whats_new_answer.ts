@@ -10,6 +10,8 @@ export function isWhatsNew(message: string): boolean {
 }
 
 export async function whatsNewReply(message: string, today: string, readTx: () => Promise<TxRow[]>, readPrevious: () => Promise<{ role: string; content: string }[]>): Promise<string | null> {
+  // "Anything unusual?" (capability list item 9): the same flags over the last 30 days (7 for "this week"), read-only.
+  if (WhatsNew.isUnusualAsk(message)) return WhatsNew.unusual(message, { today, transactions: await readTx() })?.text ?? null;
   if (!WhatsNew.isAsk(message)) return null;
   const [transactions, previous] = await Promise.all([readTx(), readPrevious().catch(() => [])]);
   return WhatsNew.answer(message, { today, transactions, previous })?.text ?? null;

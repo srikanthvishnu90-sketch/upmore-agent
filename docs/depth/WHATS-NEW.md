@@ -17,11 +17,14 @@ and same-day double charges flagged; the "reviewed through" date is read back fr
 | S06 | Transfers are not spending | a $500 transfer to savings is not new spending | `S06` in tests/depth-WHATS-NEW.test.cjs | transfers are counted | proven |
 | S07 | In and out apart | $7.00 out, $2,500.00 in | `S07` in tests/depth-WHATS-NEW.test.cjs | money in is netted against money out | proven |
 | S08 | No foreign money in dollars | a EUR row is counted apart | `S08` in tests/depth-WHATS-NEW.test.cjs | the currency check is gone | proven |
-| S09 | Fees flagged | OVERDRAFT FEE is a fee | `S09` in tests/depth-WHATS-NEW.test.cjs | overdraft is not in the fee words | proven |
+| S09 | Fees flagged | OVERDRAFT FEE is a fee | `S09` in tests/depth-WHATS-NEW.test.cjs | overdraft is not in the fee words | proven (also fails S16) |
 | S10 | Twice the usual, $20 over | a $26 fill-up against $12.50 is not flagged | `S10` in tests/depth-WHATS-NEW.test.cjs | the $20 floor is gone | proven |
-| S11 | A new merchant | NEWSTREAM.TV is new | `S11` in tests/depth-WHATS-NEW.test.cjs | new merchants are never flagged | proven |
-| S12 | A same-day double charge, once | the double Kroger charge is flagged once | `S12` in tests/depth-WHATS-NEW.test.cjs | the pair is flagged twice | proven |
+| S11 | A new merchant | NEWSTREAM.TV is new | `S11` in tests/depth-WHATS-NEW.test.cjs | new merchants are never flagged | proven (also fails S16, S18) |
+| S12 | A same-day double charge, once | the double Kroger charge is flagged once | `S12` in tests/depth-WHATS-NEW.test.cjs | the pair is flagged twice | proven (also fails S16, S18) |
 | S13 | Nothing new keeps the marker | the marker stays Oct 1 | `S13` in tests/depth-WHATS-NEW.test.cjs | with nothing new the marker jumps to today | proven |
 | S14 | Source and the late-posting caveat | the caveat appears once a marker exists | `S14` in tests/depth-WHATS-NEW.test.cjs | the caveat is dropped | proven |
 | S15 | Nothing linked | no rows says no connected bank | `S15` in tests/depth-WHATS-NEW.test.cjs | no rows says nothing new | proven |
+| S16 | Unusual looks back 30 days | the window is Sep 13 to Oct 12 | `S16` in tests/depth-WHATS-NEW.test.cjs | the window is one day short | proven (also fails S17, S18) |
+| S17 | Nothing standing out is said, not silence | no flags says what was checked | `S17` in tests/depth-WHATS-NEW.test.cjs | no flags returns nothing | proven |
+| S18 | Only an unusual ask | how-to questions are not this ask | `S18` in tests/depth-WHATS-NEW.test.cjs | any message with 'unusual' is taken | proven |
 <!-- results:end -->

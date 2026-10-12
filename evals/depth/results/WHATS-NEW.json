@@ -1,9 +1,9 @@
 {
  "capability": "WHATS-NEW",
- "run_at": "2026-10-12T05:46:56.510Z",
+ "run_at": "2026-10-12T08:04:53.856Z",
  "baseline_all_green": true,
- "sub_capabilities": 15,
- "proven": 15,
+ "sub_capabilities": 18,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -104,7 +104,9 @@
    "test": "OVERDRAFT FEE is a fee",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16"
+   ],
    "status": "proven"
   },
   {
@@ -126,7 +128,10 @@
    "test": "NEWSTREAM.TV is new",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16",
+    "S18"
+   ],
    "status": "proven"
   },
   {
@@ -137,7 +142,10 @@
    "test": "the double Kroger charge is flagged once",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S16",
+    "S18"
+   ],
    "status": "proven"
   },
   {
@@ -168,6 +176,42 @@
    "title": "Nothing linked",
    "defect": "no rows says nothing new",
    "test": "no rows says no connected bank",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S16",
+   "id": "D16",
+   "title": "Unusual looks back 30 days",
+   "defect": "the window is one day short",
+   "test": "the window is Sep 13 to Oct 12",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S17",
+    "S18"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Nothing standing out is said, not silence",
+   "defect": "no flags returns nothing",
+   "test": "no flags says what was checked",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "Only an unusual ask",
+   "defect": "any message with 'unusual' is taken",
+   "test": "how-to questions are not this ask",
    "bites": true,
    "applied": true,
    "collateral": [],

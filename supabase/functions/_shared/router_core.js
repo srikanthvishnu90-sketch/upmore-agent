@@ -11454,13 +11454,33 @@
     const keyOf = r => String(r.merchant_raw || "").toUpperCase().replace(/[#*]?\d[\d\-*#]*/g, " ").replace(/[^A-Z& ]+/g, " ").replace(/\s+/g, " ").trim();
     const median = xs => { const s = xs.slice().sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : Math.round((s[s.length / 2 - 1] + s[s.length / 2]) / 2)) : null; };
 
+    // The flags shared by "what's new" and "anything unusual?": a charge more than twice that merchant's median of
+    // earlier charges (at least $20 more), a first-time merchant, the same amount twice on a day, a fee. Newest first.
+    const day = r => String(r.posted_on).slice(0, 10);
+    function flagsFor(fresh, earlier) {
+      const flags = [];
+      for (const r of fresh) {
+        if (r.amount_cents >= 0) continue;
+        const k = keyOf(r), name = label(r.merchant_raw);
+        const prior = earlier.filter(x => keyOf(x) === k).map(x => -x.amount_cents);
+        if (FEE.test(String(r.merchant_raw || ""))) flags.push(`${name}, ${money(-r.amount_cents)} on ${nice(day(r))}, is a fee.`);
+        else if (!prior.length && earlier.length) flags.push(`${name} (${money(-r.amount_cents)} on ${nice(day(r))}) is new: no earlier charge from it in your history.`);
+        else if (prior.length >= 2) {
+          const med = median(prior);
+          if (-r.amount_cents > 2 * med && -r.amount_cents - med >= 2000) flags.push(`${name} charged ${money(-r.amount_cents)} on ${nice(day(r))}, more than twice its usual ${money(med)}.`);
+        }
+        const twin = fresh.find(x => x !== r && keyOf(x) === k && day(x) === day(r) && x.amount_cents === r.amount_cents && x.account_id === r.account_id);
+        if (twin && fresh.indexOf(twin) > fresh.indexOf(r)) flags.push(`${name} charged ${money(-r.amount_cents)} twice on ${nice(day(r))}; if that's one purchase, say "dispute the ${money(-r.amount_cents)} charge on ${nice(day(r))}".`);
+      }
+      return flags;
+    }
+
     function answer(message, ctx) {
       if (!isAsk(message)) return null;
       const c = ctx || {}, today = c.today, rows = (c.transactions || []).filter(r => r && validYmd(String(r.posted_on || "").slice(0, 10)) && Number.isFinite(r.amount_cents) && !r.is_transfer);
       if (!(c.transactions || []).length) return { kind: "none_linked", text: "I don't see a connected bank or card yet, so there's nothing to review. Connect one in the app (Home, then Connect bank) and ask again." };
       const marker = markerFrom(c.previous);
       const from = marker ? addDays(marker, 1) : addDays(today, -(FIRST_DAYS - 1));
-      const day = r => String(r.posted_on).slice(0, 10);
       const fresh = rows.filter(r => day(r) >= from && day(r) <= today).sort((a, b) => (day(a) < day(b) ? 1 : day(a) > day(b) ? -1 : Math.abs(b.amount_cents) - Math.abs(a.amount_cents)));
       const through = rows.map(day).filter(d => d <= today).sort().slice(-1)[0] || null;
       const since = marker ? `since you last checked (reviewed through ${nice(marker)})` : `in the last ${FIRST_DAYS} days`;
@@ -11473,21 +11493,7 @@
         const foreign = fresh.filter(r => !usd(r)).length;
         lines.push(`${fresh.length} new ${fresh.length === 1 ? "transaction" : "transactions"} ${since}: ${money(out)} out, ${money(inn)} in${foreign ? ` (and ${foreign} in another currency, not added in)` : ""}.`);
         // What deserves a look, each flag from the person's own earlier rows.
-        const flags = [];
-        const earlier = rows.filter(r => day(r) < from && r.amount_cents < 0);
-        for (const r of fresh) {
-          if (r.amount_cents >= 0) continue;
-          const k = keyOf(r), name = label(r.merchant_raw);
-          const prior = earlier.filter(x => keyOf(x) === k).map(x => -x.amount_cents);
-          if (FEE.test(String(r.merchant_raw || ""))) flags.push(`${name}, ${money(-r.amount_cents)} on ${nice(day(r))}, is a fee.`);
-          else if (!prior.length && earlier.length) flags.push(`${name} (${money(-r.amount_cents)} on ${nice(day(r))}) is new: no earlier charge from it in your history.`);
-          else if (prior.length >= 2) {
-            const med = median(prior);
-            if (-r.amount_cents > 2 * med && -r.amount_cents - med >= 2000) flags.push(`${name} charged ${money(-r.amount_cents)} on ${nice(day(r))}, more than twice its usual ${money(med)}.`);
-          }
-          const twin = fresh.find(x => x !== r && keyOf(x) === k && day(x) === day(r) && x.amount_cents === r.amount_cents && x.account_id === r.account_id);
-          if (twin && fresh.indexOf(twin) > fresh.indexOf(r)) flags.push(`${name} charged ${money(-r.amount_cents)} twice on ${nice(day(r))}; if that's one purchase, say "dispute the ${money(-r.amount_cents)} charge on ${nice(day(r))}".`);
-        }
+        const flags = flagsFor(fresh, rows.filter(r => day(r) < from && r.amount_cents < 0));
         if (flags.length) { lines.push("Worth a look:"); for (const f of flags.slice(0, 6)) lines.push(`- ${f}`); }
         lines.push("Everything new:");
         for (const r of fresh.slice(0, SHOW)) lines.push(`- ${nice(day(r))}: ${label(r.merchant_raw)}, ${r.amount_cents < 0 ? money(-r.amount_cents) : `+${money(r.amount_cents)}`}${usd(r) ? "" : ` ${r.currency}`}${r.is_pending ? " (pending)" : ""}`);
@@ -11499,7 +11505,28 @@
       return { kind: "whats_new", count: fresh.length, from, marker, through: markTo, text: lines.join("\n") };
     }
 
-    return { isAsk, answer, markerFrom, FEE };
+
+    // "Anything unusual?" (capability list item 9): the same flags over the last 30 days, or 7 when the person says
+    // "this week", against their own earlier rows. Read-only: nothing is changed or disputed.
+    const UNUSUAL_ASK = /^\s*(?:(?:hey|hi|ok|okay|so|yo)[,\s]+)?(?:(?:are there|is there|were there|was there|do i have|did i have|did you see|have you seen|can you|could you|pls|please)\s+)?(?:(?:any|anything)\s+(?:unusual|weird|strange|odd|off|suspicious|out of the ordinary|i should (?:look at|check|worry about|know about))(?:\s+(?:charges?|transactions?|spending|activity|purchases?))?|any (?:charges?|transactions?) i should (?:look at|check|worry about|know about)|(?:flag|show me|find) (?:anything|any) (?:unusual|weird|strange|odd|suspicious)(?:\s+(?:charges?|transactions?|spending|activity))?|did anything look (?:off|weird|strange|odd|suspicious))\b(?:\s+(?:in|on|with)\s+(?:my|the)\s+(?:account|accounts|card|cards|spending|transactions|bank))?(?:\s+(?:this week|this month|lately|recently))?\s*[?.!]*\s*$/i;
+    function isUnusualAsk(message) { return UNUSUAL_ASK.test(String(message || "")); }
+    function unusual(message, ctx) {
+      if (!isUnusualAsk(message)) return null;
+      const c = ctx || {}, today = c.today;
+      if (!c.transactions || !c.transactions.length) return { kind: "none_linked", text: "I don't see a connected bank or card yet, so there's nothing to look through. Connect one in the app (Home, then Connect bank) and ask again." };
+      const rows = c.transactions.filter(r => r && validYmd(String(r.posted_on || "").slice(0, 10)) && Number.isFinite(r.amount_cents) && !r.is_transfer && !r.is_pending);
+      const days = /\bthis week\b/i.test(message) ? 7 : 30, from = addDays(today, -(days - 1));
+      const fresh = rows.filter(r => day(r) >= from && day(r) <= today).sort((a, b) => (day(a) < day(b) ? 1 : day(a) > day(b) ? -1 : Math.abs(b.amount_cents) - Math.abs(a.amount_cents)));
+      const flags = flagsFor(fresh, rows.filter(r => day(r) < from && r.amount_cents < 0));
+      const through = rows.map(day).filter(d => d <= today).sort().slice(-1)[0] || null;
+      const src = `From your linked accounts, transactions through ${through ? nice(through) + ", " + through.slice(0, 4) : "none yet"}.`;
+      const span = `the last ${days} days (${nice(from)} to ${nice(today)})`;
+      if (!flags.length) return { kind: "unusual", count: 0, text: `Nothing stood out in ${span}: no charge more than twice its usual amount, no new merchant, no same-day duplicate and no fee. ${src}` };
+      const shown = flags.slice(0, 8);
+      return { kind: "unusual", count: flags.length, text: [`In ${span}, ${flags.length} ${flags.length === 1 ? "thing stands" : "things stand"} out:`].concat(shown.map(f => `- ${f}`), flags.length > shown.length ? [`- and ${flags.length - shown.length} more.`] : [], [`Nothing was changed or disputed. ${src}`]).join("\n") };
+    }
+
+    return { isAsk, answer, markerFrom, FEE, isUnusualAsk, unusual };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = WhatsNew;
 

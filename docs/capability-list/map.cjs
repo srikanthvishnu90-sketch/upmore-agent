@@ -79,7 +79,7 @@ const MAP = [
   [6, "ANL-013 ANL-001 TXN-022", "part", "by merchant reachable (planner); by person/place not built", null],
   [7, "ANL-002 ANL-001", "full", "planner spending report over a date range", null],
   [8, "TXN-003 CORE-006", "part", "category override rules are a module; not wired to chat", null],
-  [9, "ALRT-003 TXN-010", "part", "module only", null],
+  [9, "ALRT-003 TXN-010", "part", "chat: \"anything unusual?\" lists, from the person's own rows over the last 30 days (7 for \"this week\"), charges over twice their usual, new merchants, same-day duplicates and fees (WhatsNew.unusual, tests/depth-WHATS-NEW S16-S18); the scheduler sends unusual and large charges (ALRT-003); triage of one unrecognized charge is the dispute answer", null],
   [10, "TXN-005 BILL-001 BILL-011 BILL-010", "part", "chat: \"what bills are coming up\" lists the repeating charges from the person's rows for the next 30 days, yearly renewals included; trials the person tracks warn through the scheduler; a trial nobody tracked is not found", null],
   [11, "TXN-006", "full", "", null],
   [12, "TXN-021 ANL-009", "part", "module only; the planner can compare two ranges on request", null],

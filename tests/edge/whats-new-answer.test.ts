@@ -38,3 +38,13 @@ Deno.test("the handler asks it after the money answers and before dispute, with 
   assert(wn > 0 && disp > wn);
   assert(h.includes("previous: readPrevious,"));
 });
+
+// "Anything unusual?" through the chat answer (capability list item 9, overnight 2026-10-12). MOCK rows.
+Deno.test("an unusual-spending ask is answered from the person's rows, with the source line, and changes nothing", async () => {
+  const rows: any[] = [["2026-08-02", -1200, "SHELL OIL 1234"], ["2026-09-02", -1300, "SHELL OIL 1234"], ["2026-09-05", -1250, "SHELL OIL 1234"], ["2026-10-08", -4200, "SHELL OIL 1234"]]
+    .map(([d, c, m], i) => ({ account_id: "mock-chk", provider_transaction_id: "mock-u" + i, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false }));
+  const r = (await whatsNewReply("any unusual charges?", "2026-10-12", async () => rows, async () => []))!;
+  assertEquals(r.split("\n")[0], "In the last 30 days (Sep 13 to Oct 12), 1 thing stands out:");
+  assert(/SHELL OIL 1234 charged \$42\.00 on Oct 8, more than twice its usual \$12\.50\./.test(r), r);
+  assert(r.endsWith("Nothing was changed or disputed. From your linked accounts, transactions through Oct 8, 2026."), r);
+});

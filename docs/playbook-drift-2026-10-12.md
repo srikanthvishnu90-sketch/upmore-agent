@@ -387,3 +387,12 @@ the source.
   when they call) and before the model; the crypto guard knows the common shorthand (look-alikes like "ripple effect",
   "tether my phone", "sol" left out); prediction markets get a neutral "off for now, nothing placed"; sports betting's
   refusal is unchanged. tests/edge/phone-call-answer.test.ts, tests/edge/rule-guards.test.ts (red first).
+
+## "Anything unusual?" had no answer from the person's rows (2026-10-12, morning)
+
+- Said (capability list item 9, "Spot spending that is unusual for this user"): "module only".
+- True: "any unusual charges?", "did anything look off this week" went to the model, which has none of the person's rows.
+- Now: the review inbox's flags (more than twice the usual, a new merchant, a same-day duplicate, a fee) are shared, and
+  "anything unusual?" runs them over the last 30 days (7 for "this week") from the person's own rows, read-only, with the
+  source line (92-whats-new.js unusual, through whatsNewReply; depth WHATS-NEW S16-S18, red first; routing corpus rows).
+  The capability map's item 9 note says so.

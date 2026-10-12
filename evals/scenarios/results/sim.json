@@ -679,9 +679,9 @@
   {
    "id": "E16",
    "typed": "what's my order status",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "answer",
+   "reply": "I don't see an order placed from this chat, so there's none to read back. Your brokerage app lists every order.",
    "executed": false,
    "mock_orders": 0
   },
@@ -697,9 +697,9 @@
   {
    "id": "E18",
    "typed": "did my buy fill?",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "answer",
+   "reply": "I don't see an order placed from this chat, so there's none to read back. Your brokerage app lists every order.",
    "executed": false,
    "mock_orders": 0
   },

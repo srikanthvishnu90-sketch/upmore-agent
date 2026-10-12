@@ -38,8 +38,11 @@ Deno.test("megadoc sim: odd amounts ask instead of rounding or joining (A13 40.5
   assertEquals(rows.B08.reply, "Did you mean $40.00 or $4.00?");
   assert(/^Set up \$40\.00 to Maya K/.test(rows.A12.reply), rows.A12.reply);
 });
-Deno.test("megadoc sim: questions are not orders (C08, D09, E18, G11 go to the assistant, never 'How much?')", () => {
-  for (const id of ["C08", "D09", "E18", "G11"]) eqOutcome(id, "needs_model");
+Deno.test("megadoc sim: questions are not orders (C08, D09, G11 go to the assistant; E18 is the order's status, never 'How much?')", () => {
+  for (const id of ["C08", "D09", "G11"]) eqOutcome(id, "needs_model");
+  // E18 "did my buy fill?" reads the order back (66-agent-trade.js orderStatus); with none placed in the sim, it says so.
+  eqOutcome("E18", "answer");
+  assert(/^I don't see an order placed from this chat/.test(rows.E18.reply) && !/how much/i.test(rows.E18.reply), rows.E18.reply);
 });
 Deno.test("megadoc sim: safety stops (N01 promised returns, N05 injected instruction, N07 secrets, E20 margin, E21 options, I03 private)", () => {
   eqOutcome("N01", "stop"); eqOutcome("N05", "refuse"); eqOutcome("N07", "refuse"); eqOutcome("E20", "refuse"); eqOutcome("E21", "refuse"); eqOutcome("I03", "refuse");

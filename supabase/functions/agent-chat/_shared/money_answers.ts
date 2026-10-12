@@ -101,7 +101,9 @@ export function moneyKind(message: string): MoneyKind | null {
   if (SubscriptionList.ask(m)) return "subs";
   if (MoneyIn.ask(m)) return "moneyin";
   if (ChargeCheck.ask(m)) return "charge";
-  if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m)) return "through";
+  // "Did my VOO buy go through" is a trade's order status (the trade flow), not a card charge; "did my Amazon order go
+  // through" stays here.
+  if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m) && !/\b(?:buy|sell|sale|trade|shares?|stocks?)\b/i.test(m)) return "through";
   // "my year in money", "year in review", "how did 2026 go": a whole year. "how much did i spend this year" is spend's.
   if (YearInMoney.ask(m)) return "year";
   // Before the spending views and "can i afford": "can i afford a $200 klarna pay in 4" is a pay-later check.

@@ -75,7 +75,10 @@
       const protect = /\b(?:put|set|place|add)\s+(?:a\s+)?(?:trailing\s+)?stop\b/i.test(t) && /\bmy\b/i.test(t) && !/\bbuy\b/i.test(t);
       const side = (/\bsell\b/i.test(t) && !/\bbuy\b/i.test(t)) || protect ? "sell" : "buy";
       const asset = /\b(btc|bitcoin|eth|ethereum|sol|solana|doge|crypto|coins?|tokens?|memecoin)\b/i.test(t) ? "crypto" : "equity";
-      const action = /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
+      // "What's my order status", "did my buy fill?", "is my VOO order filled" (megadoc E16, E18): a read of the order.
+      const STATUS = /\b(?:order status|status of (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)|did (?:my|the|that) (?:\w+ )?(?:buy|sell|order|trade|purchase)(?: order)? (?:fill|go through|execute|complete)|(?:is|has) (?:my|the|that) (?:\w+ )?(?:order|buy|sell|trade)(?: order)? (?:filled|done|through|executed|complete|gone through)|did (?:it|that) fill|where(?:'s| is) my (?:\w+ )?(?:order|buy|sell))\b/i;
+      const action = STATUS.test(t) && !/\bcancel\b/i.test(t) ? "status"
+        : /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
         : /\b(portfolio|holdings|positions|what do i own|what am i holding|what'?s in my (?:account|brokerage)|(?:biggest|largest|top|smallest) (?:position|holding|stock))\b/i.test(t) && !/\b(buy|sell)\b/i.test(t) ? "portfolio" : "new";
       const terms = orderTerms(t, side);
@@ -285,7 +288,8 @@
         if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
         // Stops across every holding at once are not built (megadoc E13): one holding at a time.
         if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
-        if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify") { const c = connectStop(); if (c) return c; }
+        if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
+        if (parsed.action === "status") return orderStatus(parsed.text);
         if (parsed.action === "portfolio") return portfolio(parsed.text);
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
@@ -560,6 +564,29 @@
         const pick = valued.slice().sort((x, y) => small ? x.market_value_cents - y.market_value_cents : y.market_value_cents - x.market_value_cents)[0];
         const share = total > 0 ? Math.round((pick.market_value_cents / total) * 1000) / 10 : null;
         return say("answer", `Your ${small ? "smallest" : "biggest"} position is ${pick.symbol}: ${money(pick.market_value_cents)}${share !== null && rows.length > 1 ? `, ${share}% of your positions' value` : rows.length === 1 ? ", your only position" : ""}.\n${list}`, { paper: false, live: !!a.live });
+      }
+
+      // Order status (megadoc E16, E18): the latest order placed from this chat, or the one whose ticker the person names,
+      // read back from the broker now and said as its record says. Only orders this chat placed are known here; the
+      // broker's app lists the rest. A read that fails says the last status read and when, never a guess.
+      async function orderStatus(text) {
+        const placed = orders.filter(x => x.order_id && !x.action);
+        if (!placed.length) return say("answer", "I don't see an order placed from this chat, so there's none to read back. Your brokerage app lists every order.");
+        const named = placed.filter(x => new RegExp(`\\b${x.symbol}\\b`, "i").test(String(text || "")));
+        const x = (named.length ? named : placed)[(named.length ? named : placed).length - 1];
+        const what = `${x.side === "sell" ? "sell" : "buy"} ${x.quantity ? `${qty(x.quantity)} ` : ""}${x.symbol}`;
+        const others = placed.length > 1 && !named.length ? ` You placed ${placed.length} orders from this chat; name the ticker for another.` : "";
+        const rb = await readOr("order", { order_id: x.order_id }), st = rb && rb.value ? canon(JSON.parse(JSON.stringify(rb.value))) : null;
+        if (!st) return say("answer", `I can't read order ${x.order_id} (${what}) back right now.${x.readback && x.readback.status ? ` When I last read it, it was ${String(x.readback.status).replace(/_/g, " ")}.` : ""} Try again in a minute, or check your brokerage app.${others}`, { order_id: x.order_id });
+        x.readback = st;
+        const per = `per ${rb.source} (as of ${hhmm(rb.as_of)})`;
+        if (st.status === "filled") { const n = Number.isFinite(st.quantity) ? st.quantity : x.quantity, tot = Number.isFinite(n) && Number.isSafeInteger(st.fill_price_cents) ? Math.round(n * st.fill_price_cents) : null; return say("answer", `Filled: ${x.side === "sell" ? "sold" : "bought"} ${Number.isFinite(n) ? `${qty(n)} ` : ""}${x.symbol} at ${money(st.fill_price_cents)}${tot !== null ? `, ${money(tot)} total` : ""}, order ${x.order_id}${st.filled_at ? `, filled ${hhmm(st.filled_at)}` : ""}, ${per}.${others}`, { order_id: x.order_id, status: st.status }); }
+        if (st.status === "partial" || st.status === "partial_final") return say("answer", `Partly filled: ${qty(st.filled_quantity)} of ${qty(x.quantity)} ${x.symbol} at ${money(st.fill_price_cents)}, order ${x.order_id}, ${per}.${st.status === "partial_final" ? " The broker ended the rest; it won't fill." : " The rest is still working."}${others}`, { order_id: x.order_id, status: st.status });
+        if (st.status === "working" || st.status === "queued") return say("answer", `Not filled yet: order ${x.order_id} (${what}${terms(x).head}) is ${st.status === "queued" ? "queued for the next open" : "working"}, ${per}. Ask again anytime, or say "cancel my ${x.symbol} order" to cancel it.${others}`, { order_id: x.order_id, status: st.status });
+        if (st.status === "canceled") return say("answer", `Canceled: order ${x.order_id} (${what}), nothing filled, ${per}.${others}`, { order_id: x.order_id, status: st.status });
+        if (st.status === "rejected") return say("answer", `The broker rejected order ${x.order_id} (${what}): ${st.reason || "no reason given"}, ${per}. Nothing was placed.${others}`, { order_id: x.order_id, status: st.status });
+        if (st.status === "replaced") return say("answer", `Order ${x.order_id} (${what}) was replaced${st.replaced_by ? ` by order ${st.replaced_by}` : ""}, ${per}.${others}`, { order_id: x.order_id, status: st.status });
+        return say("answer", `Order ${x.order_id} (${what}) reads ${String(st.status || "unknown").replace(/_/g, " ")}, ${per}.${others}`, { order_id: x.order_id, status: st.status });
       }
 
       async function recheck(ord) {

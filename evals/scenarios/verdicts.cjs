@@ -82,7 +82,7 @@ set("E08 E26 F12 F15", "DIVERGES", "the message describes a situation (a limit a
 set("E09 E10 E11", "BUILT", "sell reads the live position first; with none held says so, nothing placed", "tests/depth-RAIL-2.test.cjs");
 set("E13", "NOT_BUILT", "stops on every holding at once; says so", "tests/edge/megadoc-sim.test.ts");
 set("E15", "NOT_BUILT", "sell-then-buy chained orders");
-set("E16 E18", "MODEL", "order status questions go to the chat model");
+set("E16 E18", "BUILT", "the order this chat placed (or the one named by ticker), read back from the broker now and said as its record says: filled with price and total, partly filled, working or queued, canceled, rejected; a failed read says the last status read; none placed says so; nothing is placed or promised; no model call", "tests/router.test.cjs");
 set("E17", "BUILT", "cancels a working order Upmore placed; none open says so", "tests/depth-RAIL-2.test.cjs");
 set("E20 E21 E22", "BUILT", "margin, options and crypto refused plainly, nothing placed", "tests/edge/megadoc-sim.test.ts");
 set("E24", "BUILT", "a $5 order gets a LIVE card inside the cap", "tests/depth-BROKER-CONNECT.test.cjs");

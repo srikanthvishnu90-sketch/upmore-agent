@@ -271,3 +271,23 @@ test('portfolio questions reach the live read with no model: "what do I own", "w
   // Still questions for the model: a stock's price, how to invest.
   for(const q of ['what is a position in poker','how do i own a house'])assert.equal((await R.handle(q,{extract:none,sessions:ss,parsers})).route,'fallthrough',q);
 });
+
+// Megadoc E16 "what's my order status" and E18 "did my buy fill?": the order this chat placed, read back from the broker
+// now and said as its record says, with no model call; nothing placed, nothing promised.
+test('order status: the order this chat placed, read back now (filled, working, unreadable), and none placed is said',async()=>{
+  const w=world();const ss=sessions(w);const none=async()=>{throw new Error('no model call for an order status');};
+  const n=await R.handle("what's my order status",{extract:none,sessions:ss,parsers});
+  assert.equal(n.result.text,"I don't see an order placed from this chat, so there's none to read back. Your brokerage app lists every order.");
+  const ex=stub({'buy $5 of VOO':{intent:'buy_security',amount_span:'$5',amount_cents:500,unit:'dollars',instrument_span:'VOO'}});
+  await R.handle('buy $5 of VOO',{extract:ex,sessions:ss,parsers});await R.handle('yes',{extract:ex,sessions:ss,parsers});
+  assert.equal(w.writes.length,1);
+  const a=await R.handle('did my buy fill?',{extract:none,sessions:ss,parsers});
+  assert.match(a.result.text,/^Filled: bought [\d.]+ VOO at \$512\.10, \$\d+\.\d\d total, order ref-1, filled \d\d:\d\d UTC, per Example Broker \(as of \d\d:\d\d UTC\)\.$/);
+  w.records['ref-1'].status='working';
+  const b=await R.handle('is my VOO order filled',{extract:none,sessions:ss,parsers});
+  assert.match(b.result.text,/^Not filled yet: order ref-1 \(buy [\d.]+ VOO\) is working, per Example Broker \(as of \d\d:\d\d UTC\)\. Ask again anytime, or say "cancel my VOO order" to cancel it\.$/);
+  delete w.records['ref-1'];
+  const c=await R.handle("what's my order status",{extract:none,sessions:ss,parsers});
+  assert.match(c.result.text,/^I can't read order ref-1 \(buy [\d.]+ VOO\) back right now\. When I last read it, it was working\. Try again in a minute, or check your brokerage app\.$/);
+  assert.equal(w.writes.length,1,'a status question places nothing');
+});

@@ -276,6 +276,12 @@
     ["netflix charged me after i cancelled", "moneyReply"],
     ["i cancelled hulu on sep 20 but they still charged me", "moneyReply"],
     ["still being billed for planet fitness even though i cancelled", "moneyReply"],
-    ["how do i cancel netflix", null]
+    ["how do i cancel netflix", null],
+    ["did my voo buy go through", null],
+    ["did my amazon order go through", "moneyReply"],
+    ["what's my order status", null],
+    ["did my buy fill?", null],
+    ["what do I own", null],
+    ["what's my biggest position", null]
   ]
 }

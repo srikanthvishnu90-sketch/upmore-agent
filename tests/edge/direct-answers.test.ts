@@ -151,3 +151,24 @@ Deno.test("what are your fees: the Terms' own price, billing not live, no Upmore
   // The sale fees are the ones the trade card says (66-agent-trade.js SALE_FEES).
   assertMatch(SRC_TRADE, /SEC and FINRA fees on a sale/);
 });
+
+// Megadoc Q07 "do this while I'm asleep": the standing rules and the person's own quiet hours, nothing set up.
+import SRC_FLOWS from "../../supabase/functions/_shared/flow_router.ts" with { type: "text" };
+import SRC_PROACTIVE from "../../supabase/functions/_shared/proactive.ts" with { type: "text" };
+Deno.test("do this while I'm asleep: every money move waits for a yes, cards expire, quiet hours are the person's own (Q07)", () => {
+  const { sleepReply } = DirectAnswers;
+  const def = sleepReply("can you do this while i'm asleep", { start: 22, end: 7 })!;
+  assertMatch(def, /^Nothing that moves money happens while you're asleep: every order, payment and cancellation waits for your one-line yes, and a card you don't answer expires after 10 minutes with nothing done\./);
+  assertMatch(def, /Your quiet hours are 10 p\.m\. to 7 a\.m\. your time: only safety alerts and things you asked me to watch come through then/);
+  assertMatch(def, /Nothing was set up\.$/);
+  assertMatch(sleepReply("handle it overnight", { start: 23, end: 6 })!, /Your quiet hours are 11 p\.m\. to 6 a\.m\./);
+  assertMatch(sleepReply("buy it while i sleep", { start: null, end: null })!, /You have no quiet hours set, so alerts come through at any hour/);
+  for (const t of ["what did i spend overnight", "i can't sleep, how much do i have", "sleep number bed price", "remind me tonight"]) assertEquals(sleepReply(t, { start: 22, end: 7 }), null, t);
+  // The facts it states are the code's: the default quiet hours, the quiet-hours rule and command, the 10-minute card,
+  // and no envelope (the only path that moves money without a yes) is ever handed to the flows.
+  assertMatch(SRC_PROACTIVE, /quiet_start: 22, quiet_end: 7/);
+  assertMatch(SRC_PROACTIVE, /Only safety alerts and things you asked me to watch come through then\./);
+  assertMatch(SRC_PROACTIVE, /quiet hours\?\(\?: \(\?:from\|are\|is\)\)\?/);
+  assertMatch(SRC_TRADE, /confirm_ttl_ms: o\.confirm_ttl_ms \|\| 10 \* 60000/);
+  assert(!/envelopes\s*:/.test(SRC_FLOWS) && !/envelope_autonomy\s*:\s*true/.test(SRC_FLOWS), "no envelope reaches the live flows");
+});

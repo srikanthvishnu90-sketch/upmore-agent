@@ -315,6 +315,8 @@
     ["can i update my email", "accountPrivacyReply"],
     ["what are your fees", "accountPrivacyReply"],
     ["is upmore free?", "accountPrivacyReply"],
-    ["what are the fees on my chase card", null]
+    ["what are the fees on my chase card", null],
+    ["can you do this while i'm asleep", "sleepReply"],
+    ["what did i spend overnight", "moneyReply"]
   ]
 }

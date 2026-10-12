@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
@@ -258,7 +258,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so. So do
       // the account and privacy asks (full account number, delete my data, who can see my messages, change my phone or
       // email): from the app's real screens and the privacy policy, the AI provider named from this deployment's config.
-      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider);
+      // "Do this while I'm asleep" gets the standing rules and the person's own quiet hours (default 10 p.m. to 7 a.m.).
+      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end });
       let linkedCount = 0;
       if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");

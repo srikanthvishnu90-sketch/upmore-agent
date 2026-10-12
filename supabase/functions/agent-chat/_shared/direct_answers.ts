@@ -140,6 +140,20 @@ export function accountPrivacyReply(message: string, provider: "openai" | "anthr
   return null;
 }
 
+// "do this while I'm asleep" (megadoc Q07): what runs with nobody watching, from the standing rules and the person's own
+// quiet hours (agent_proactive_settings, or the default 10 p.m. to 7 a.m.): nothing that moves money happens without
+// that person's one-line yes, an unanswered card expires in 10 minutes with nothing done, and only safety alerts and
+// their own watches come through in quiet hours (_shared/proactive.ts). Nothing is set up here.
+const ASLEEP = /\bwhile (?:i(?:'?m| am) (?:asleep|sleeping|in bed)|i (?:sleep|am sleeping))\b|\b(?:do|handle|run|take care of) (?:it|this|that|them|everything) (?:overnight|tonight while)\b|\b(?:overnight|while i sleep) (?:without|w\/o) (?:me|asking)\b/i;
+const hour12 = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
+export function sleepReply(message: string, quiet: { start: number | null; end: number | null }): string | null {
+  if (!ASLEEP.test(String(message || ""))) return null;
+  const q = quiet.start != null && quiet.end != null
+    ? `Your quiet hours are ${hour12(quiet.start)} to ${hour12(quiet.end)} your time: only safety alerts and things you asked me to watch come through then; the rest waits until they end. Change them with "quiet hours 11pm to 6am".`
+    : `You have no quiet hours set, so alerts come through at any hour; set them with "quiet hours 10pm to 7am".`;
+  return `Nothing that moves money happens while you're asleep: every order, payment and cancellation waits for your one-line yes, and a card you don't answer expires after 10 minutes with nothing done. What runs on its own are the checks you've turned on (alerts, watches and reminders). ${q} Nothing was set up.`;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

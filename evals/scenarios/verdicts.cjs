@@ -22,7 +22,7 @@ set("A14 B15", "LIMITED", HANDOFF + "; two asks run one card at a time", "tests/
 set("A07", "LIMITED", "the daily send limit ($1,000) stops it before a card; no 'larger than usual' card", "tests/depth-PAY-001.test.cjs");
 set("A02", "LIMITED", HANDOFF + "; a saved nickname ('brother', saved_recipients.nickname) goes to the card with the real name and handle, two matches ask which, none saved asks for the handle (the sim world has no 'brother', so it asks)", "tests/recipient-nicknames.test.cjs");
 set("A03", "BUILT", "asks Sarah's Venmo handle; never claims a Venmo connection (Venmo is a handoff)", "tests/depth-RAIL-1.test.cjs");
-set("A08", "NOT_BUILT", "scheduled sends; says so and offers a send now", "tests/edge/megadoc-sim.test.ts");
+set("A08", "LIMITED", "restated with the day and time in the person's zone (am or pm said when guessed), saved, cancelable any time before; at that time the hourly run asks whether to put up the send card, and the card needs its own yes (ScheduledSend, 113-scheduled-send.js, through parseCommand, plan() and offerMessage). The megadoc expects it to execute at the time; a yes per send stands", "tests/edge/scheduled-send.test.ts");
 set("A09", "NOT_BUILT", "Upmore does not execute transfers, so none to cancel; says where to stop one", "tests/edge/megadoc-sim.test.ts");
 set("A10", "NOT_BUILT", "'the usual' from history; asks how much");
 set("A13", "BUILT", "asks $40.55 or $40.56, verbatim", "tests/edge/megadoc-sim.test.ts");

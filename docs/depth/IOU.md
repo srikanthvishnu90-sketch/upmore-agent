@@ -32,6 +32,7 @@ Check: `node --test tests/depth-IOU.test.cjs && node evals/depth/run.cjs IOU`.
 | S09 | Part paid | $5 of $20 leaves $15 | `S09` in tests/depth-IOU.test.cjs | a part payment settles it all | proven |
 | S10 | Which one is asked | two with Sam: asked | `S10` in tests/depth-IOU.test.cjs | the first is settled | proven |
 | S11 | Direction must match | Jake paid me back never settles what I owe Jake | `S11` in tests/depth-IOU.test.cjs | the direction is ignored | proven (also fails S16) |
+| S11 | A possessive is not a name | mark mom's 200 as paid names Mom | `S11` in tests/depth-IOU.test.cjs | the reply names "Mom's" | proven |
 | S12 | Not a person | 'i owe you one' is not an IOU | `S12` in tests/depth-IOU.test.cjs | pronouns pass as names | proven |
 | S13 | Forget one person | only Maya's is forgotten | `S13` in tests/depth-IOU.test.cjs | forget takes every IOU | proven (also fails S18) |
 | S14 | Bounded | a full open log refuses | `S14` in tests/depth-IOU.test.cjs | the cap is not checked | proven |

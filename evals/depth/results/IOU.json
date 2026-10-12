@@ -1,9 +1,9 @@
 {
  "capability": "IOU",
- "run_at": "2026-10-12T14:35:26.306Z",
+ "run_at": "2026-10-12T21:05:32.848Z",
  "baseline_all_green": true,
  "sub_capabilities": 19,
- "proven": 21,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -161,6 +161,17 @@
    "collateral": [
     "S16"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S11",
+   "id": "D20",
+   "title": "A possessive is not a name",
+   "defect": "the reply names \"Mom's\"",
+   "test": "mark mom's 200 as paid names Mom",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   },
   {

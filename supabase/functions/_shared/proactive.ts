@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -50,7 +50,9 @@ export const DEFAULT_SETTINGS: ProactiveSettings = { alerts: true, morning_brief
 export interface TrialOffer { kind: "cancel_trial"; merchant: string; subscription_id: string; ends_on: string; amount_cents: number | null; cancel_url: string | null; cancel_steps: string | null }
 // The month's rent card, offered: what the person would be asked to say yes to. Nothing here is staged.
 export interface RentOffer { kind: "rent_month"; standing_id: string; month: string; due_on: string; amount_cents: number; payee_name: string; rail: string }
-export type ProactiveOffer = TrialOffer | RentOffer;
+// A send the person scheduled (megadoc A08): at its time, yes puts up the send flow's own card for their words.
+export interface ScheduledSendOffer { kind: "scheduled_send"; id: string; command: string; name: string; amount_cents: number; at_ms: number }
+export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer;
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
 // standing: the person's active rows of public.standing_payments (their rent rule).
@@ -135,6 +137,14 @@ export function plan(input: ProactiveInput, now: number) {
     sentKeys.add(r.key);
     out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "ALRT-010", urgent: false, cadence: true, source: "the reminder you set in chat", as_of: new Date(now).toISOString() });
   }
+  // Scheduled sends (megadoc A08; packages/domain/113-scheduled-send.js): at the time the person asked, the question
+  // whether to put up the send card, as an offer (their yes puts up the card, which needs its own yes). One offer per run,
+  // so one yes answers one question; another waits for the next hour. Asked for, so it comes through quiet hours.
+  for (const r of (ScheduledSend as any).due(s.watches || [], now, tz, [...sentKeys])) {
+    if (out.messages.some(m => m.offer)) { out.suppressed.push({ key: r.key, reason: "one_offer_at_a_time" }); continue; }
+    sentKeys.add(r.key);
+    out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "PAY-001", urgent: false, cadence: true, source: "the send you scheduled in chat", as_of: new Date(now).toISOString(), offer: r.offer });
+  }
   // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs,
   // and so are the dates they told Upmore about and their reminders; a public date needs no account either.
   if (!accounts.length) { deadlinesLater(); rentLater(); return out; }
@@ -181,6 +191,8 @@ export function plan(input: ProactiveInput, now: number) {
       // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
       const exempt = b.reason !== "budget";
       const offer = trialOffer(p, input.subscriptions || []);
+      // One offer per run, so one yes answers exactly one question; this one waits for the next hour.
+      if (offer && out.messages.some(m => m.offer)) { out.suppressed.push({ key: p.key, reason: "one_offer_at_a_time" }); continue; }
       // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
       const text = offer ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
       if (push({ key, kind: "finding", text, capability_id: offer ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
@@ -291,9 +303,10 @@ const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now
 export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
 export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
   const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
-  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || (d.offer.kind !== "cancel_trial" && d.offer.kind !== "rent_month")) return null;
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send"].includes(d.offer.kind)) return null;
   if (await d.liveCard()) return null;
   if (d.offer.kind === "rent_month") return rentOfferAnswer(yes, d, now);
+  if (d.offer.kind === "scheduled_send") return scheduledSendAnswer(yes, d, now);
   const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
   await d.clear();
   if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
@@ -318,6 +331,19 @@ async function rentOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise
   const flow = await d.runFlow("pay my rent");
   if (flow && flow.reply) return { reply: flow.reply, route: flow.route };
   return { reply: `I couldn't put up ${name}'s rent card right now, so nothing was staged. Say "pay my rent" in a moment.` };
+}
+
+// The answer to "It's time for the payment you scheduled: send Maya $40.00. Want the card?": yes runs the send flow on
+// the person's own words, so the card, the recipient checks and the yes are the send flow's; no skips it. A question
+// answered more than a day after its time offers nothing.
+async function scheduledSendAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
+  const o = d.offer, what = (ScheduledSend as any).restate(o);
+  await d.clear();
+  if (now - Number(o.at_ms) > DAY) return { reply: `That question has expired, so nothing was sent. Say "${o.command}" if you still want to ${what}.` };
+  if (!yes) return { reply: `Okay, skipped: nothing was sent to ${what.replace(/^send /, "").replace(/ \$[\d,.]+$/, "")}.` };
+  const flow = await d.runFlow(o.command);
+  if (flow && flow.reply) return { reply: flow.reply, route: flow.route };
+  return { reply: `I couldn't put up the card right now, so nothing was sent. Say "${o.command}" in a moment.` };
 }
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----
@@ -375,6 +401,10 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // it only tells, nothing is paid or disputed.
   const lf: any = (LateFeeWatch as any).command(t, s.watches || [], now, zone);
   if (lf) return { settings: lf.watches ? { watches: capWatches(lf.watches) } : {}, reply: lf.reply };
+  // Scheduled send (megadoc A08): "pay maya 40 tomorrow at 9", "show my scheduled sends", "cancel the scheduled send to
+  // maya". Restated with the day and time; at that time the person is asked for the card, which needs its own yes.
+  const ss: any = (ScheduledSend as any).command(t, s.watches || [], now, zone);
+  if (ss) return { settings: ss.watches ? { watches: capWatches(ss.watches) } : {}, reply: ss.reply };
   // Category rules: "recategorize Target as groceries", "count Costco as groceries", "stop counting Target as
   // groceries", "show my category rules" (packages/domain/95-category-rules.js). Restated exactly; they change how
   // spending is counted, nothing at the bank, and never move money.
@@ -438,7 +468,7 @@ const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
 // The table holds at most 20 watches. Budgets (one per category, at most 8), deadline facts (one per kind, at most 6) and
 // reminders (at most 5) are never pushed out by a new watch: the oldest plain watches go first, and a new one always fits.
 export const MAX_WATCHES = 20;
-const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w);
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w);
 export function capWatches(list: any[]): any[] {
   const all = list || [], keep = all.filter(sticky);
   const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));

@@ -67,10 +67,11 @@
   {
    "id": "A08",
    "typed": "pay maya 40 tomorrow at 9",
-   "flow": "send",
-   "outcome": "not_built",
-   "reply": "Scheduled payments aren't built yet, so nothing was set up. I can set up $40.00 to Maya K now instead. Want that?",
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Scheduled: tomorrow, Thursday, Oct 15, at 9:00 AM your time (I took that as morning; say the time with am or pm to change it), I'll ask you to send Maya $40.00. Nothing is sent before then, and nothing is sent without its own card and your yes at that time. The check runs hourly, so the question can come up to an hour after 9:00 AM. Say \"cancel the scheduled send to Maya\" to drop it.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -310,10 +311,11 @@
   {
    "id": "C05",
    "typed": "jake owes me 20",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Logged: Jake owes you $20.00. It's a note only: nothing was paid, requested or sent.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -355,10 +357,11 @@
   {
    "id": "C10",
    "typed": "sam says he already paid cash",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_reply",
+   "reply": "I don't have an open IOU for Sam owing you, so nothing changed.",
    "executed": false,
+   "recorded": false,
    "mock_orders": 0
   },
   {
@@ -472,37 +475,41 @@
   {
    "id": "D08",
    "typed": "log that I owe mom 200",
-   "flow": null,
-   "outcome": "not_built",
-   "reply": "I couldn't read that IOU, so nothing was saved, and no money moved. Say it like \"I owe Mom $200\" or \"Jake owes me $20\".",
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Logged: you owe Mom $200.00. It's a note only: nothing was paid, requested or sent. Say \"pay mom 200\" when you want to send it.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
    "id": "D09",
    "typed": "what do I owe people",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_reply",
+   "reply": "Your IOU log is empty: nobody owes you and you don't owe anyone that you've told me about. Say \"Jake owes me $20\" or \"I owe Mom $200\" to log one.",
    "executed": false,
+   "recorded": false,
    "mock_orders": 0
   },
   {
    "id": "D10",
    "typed": "mark mom's 200 as paid",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_reply",
+   "reply": "I don't have an open IOU with Mom for $200.00, so nothing changed.",
    "executed": false,
+   "recorded": false,
    "mock_orders": 0
   },
   {
    "id": "D11",
    "typed": "remind me to pay rent on the 28th",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "I'll remind you to pay rent on Wednesday, Oct 28, from 9 a.m. New York time. It's a reminder only: nothing is paid or moved. Say \"remind me to pay rent on the 28th every month\" if you want it monthly.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -535,10 +542,11 @@
   {
    "id": "D15",
    "typed": "set a late fee alert for bills",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Late-fee alert on, from today (Oct 14). When a charge your bank calls a late fee posts on any linked account, I'll tell you once, with the amount, your bank's words, the account and the date, from your bank rows. I see new charges after you refresh your connected bank. It only tells you: nothing is paid, disputed or asked of the bank. Say \"stop the late fee alert\" to turn it off.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -1390,10 +1398,11 @@
   {
    "id": "J15",
    "typed": "tell me when free trials are about to convert",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_reply",
+   "reply": "That's on for the free trials I track. In the week before one turns into a paid charge, I message you with the date and the amount and ask \"Should I cancel it for you?\"; nothing is cancelled without your yes. A trial doesn't show in your transactions until it charges, so I only track the ones you add: in the app, Add a subscription, choose Free trial under \"Bills every\" and enter the trial-end date. These messages go to people with a linked bank or card. Nothing changed.",
    "executed": false,
+   "recorded": false,
    "mock_orders": 0
   },
   {
@@ -1525,10 +1534,11 @@
   {
    "id": "L03",
    "typed": "set a 400 food budget",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Budget set: food, $400.00 a month.\nI'll count posted spending at groceries, restaurants and food delivery together, each calendar month in America/New York time, with refunds taken off. Transfers don't count; pending charges and charges in other currencies are mentioned, not added; anything I can't place in a category is shown apart, never guessed in.\nIt only tracks: it never moves money or blocks a payment. I'll message you once at 80% and once at 100% each month.\nSay \"stop my food budget\" to turn it off.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -1561,10 +1571,11 @@
   {
    "id": "L07",
    "typed": "recategorize Target as groceries",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "Done: charges that say \"Target\" now count as groceries instead of shopping, in your spending answers and budgets, past charges included.\nThis changes how I count, nothing at your bank or card. Say \"stop counting Target as groceries\" to undo it.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
@@ -1579,19 +1590,21 @@
   {
    "id": "L09",
    "typed": "text me when I spend over 100 on one thing",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "I'll tell you about any charge over $100.00. Say \"show my alerts\" to see them.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {
    "id": "L10",
    "typed": "weekly spending summary every Sunday",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "settings",
+   "outcome": "settings_saved",
+   "reply": "I'll send your weekly recap every Sunday from 8 a.m.: money in, money out, and what's coming up.",
    "executed": false,
+   "recorded": true,
    "mock_orders": 0
   },
   {

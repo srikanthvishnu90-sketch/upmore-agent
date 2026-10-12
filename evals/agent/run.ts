@@ -63,9 +63,10 @@ async function response() {
   const model = corpus.filter((r: any) => r.status === "NOT_RUN" || r.status === "NEEDS_MODEL").length;
   results.push({ family: F, id: "R-01m", title: `style corpus: ${model} examples answered by the chat model`, status: "NOT_RUN", actual: "graded only live: deno run -A evals/corpus/run.ts --live (needs the deployed handler and a key)" });
 
-  // R-02: no claimed action without a recorded one, across every reply the offline paths produce.
+  // R-02: no claimed action without a recorded one, across every reply the offline paths produce. A setting the chat saved
+  // ("Scheduled: ...", "Done: Target counts as groceries") is recorded by its own write, which comes before the reply.
   const offenders: string[] = [];
-  for (const s of (mega as any).scenarios) { const r: any = await simulate(s); if (r.reply && claimsSuccess(r.reply) && !r.executed) offenders.push(`${s.id}: ${r.reply.slice(0, 80)}`); }
+  for (const s of (mega as any).scenarios) { const r: any = await simulate(s); if (r.reply && claimsSuccess(r.reply) && !r.executed && !r.recorded) offenders.push(`${s.id}: ${r.reply.slice(0, 80)}`); }
   for (const r of corpus) for (const t of r.turns || []) if (t.reply && claimsSuccess(t.reply) && !["sent", "filled", "executed", "cancelled", "confirmed", "accepted", "placed", "working"].includes(t.outcome)) offenders.push(`corpus ${r.id}: ${t.reply.slice(0, 80)}`);
   rec(F, "R-02", "no reply claims an action that was not recorded (megadoc 240 + corpus)", !offenders.length, { critical: true, expected: "0 success claims without an execution", actual: offenders.join(" | "), path: "packages/domain/*-agent-*.js" });
 

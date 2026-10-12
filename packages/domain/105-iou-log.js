@@ -124,8 +124,10 @@
         const k = keyOf(s.name);
         const cands = open(list).filter((x) => keyOf(x.name) === k && (!s.direction || x.direction === s.direction) && (!s.mark || s.amount_cents == null || x.amount_cents === s.amount_cents || x.original_cents === s.amount_cents));
         if (!cands.length) {
-          const what = s.direction === "owes_me" ? `${cap(s.name)} owing you` : s.direction === "i_owe" ? `you owing ${cap(s.name)}` : `${cap(s.name)}`;
-          return { ious: null, reply: `I don't have an open IOU for ${what}${s.amount_cents && s.mark ? ` of ${money(s.amount_cents)}` : ""}, so nothing changed.` };
+          // "mark mom's 200 as paid": the name is Mom, never "Mom's" (megadoc D10, found by the sim).
+          const nm = cap(s.name.replace(/'s$/i, ""));
+          const what = s.direction === "owes_me" ? `for ${nm} owing you` : s.direction === "i_owe" ? `for you owing ${nm}` : `with ${nm}`;
+          return { ious: null, reply: `I don't have an open IOU ${what}${s.amount_cents && s.mark ? ` for ${money(s.amount_cents)}` : ""}, so nothing changed.` };
         }
         if (cands.length > 1 && s.amount_cents == null) return { ious: null, reply: `You have ${cands.length} open IOUs with ${cap(s.name)}: ${cands.map(line).join("; ")}. Which one? Say it with the amount, like "mark ${cap(s.name)}'s ${plain(cands[0].amount_cents)} as paid". Nothing changed.` };
         const x = cands.find((c) => s.amount_cents != null && (c.amount_cents === s.amount_cents || c.original_cents === s.amount_cents)) || cands[0];

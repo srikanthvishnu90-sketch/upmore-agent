@@ -35,7 +35,7 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIV
 | 5 | ~~Movers among the person's holdings~~ **done** (G07 LIMITED: "why" said as unknown, no news source); market-wide movers (G10) stay not built | G07, G10 | Alpaca bars | PORTFOLIO-Q S30 |
 | 6 | ~~Late-fee alert~~ **done** | D15 | the person's rows; the bank's fee words | BUILT; LATE-FEE 16/16, tests/edge/late-fee.test.ts |
 | 7 | ~~One stop per holding, one card at a time~~ **done** | E13 | positions, sell quotes | LIMITED: prices worked out and listed, nothing placed in one go; the first card offered; RAIL-2 S33 |
-| 8 | Scheduled send: the card goes up at the time asked | A08 | reminders + send flow | the send still needs a yes at that time |
+| 8 | ~~Scheduled send: the card goes up at the time asked~~ **done** | A08 | scheduled-send watch + offer | LIMITED: asks for the card at the time, its own yes; SCHED-SEND 16/16, tests/edge/scheduled-send.test.ts |
 | 9 | Teardown sections with no capability-list item (H1) | — | teardown build order | next after what's new and budgets |
 | 10 | Testing-agent labeled gaps | — | corpus 1.02, 2.04 | both deliberate divergences; owner call |
 

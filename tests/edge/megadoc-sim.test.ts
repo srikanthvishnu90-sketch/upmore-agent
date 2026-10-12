@@ -30,7 +30,10 @@ Deno.test("megadoc sim: no request is dropped (P09 three asks, J11 two cancels)"
   assert(!/NYT and WSJ/.test(rows.J11.reply), rows.J11.reply);
 });
 Deno.test("megadoc sim: nothing for later, on a condition, in another currency or by percentage is staged as a send now", () => {
-  for (const id of ["A08", "A15"]) { eqOutcome(id, "not_built"); assert(/nothing was set up/.test(rows[id].reply), rows[id].reply); }
+  eqOutcome("A15", "not_built"); assert(/nothing was set up/.test(rows.A15.reply), rows.A15.reply);
+  // A08 "pay maya 40 tomorrow at 9": saved as a scheduled send that asks for the card at that time (its own yes then),
+  // by the settings step the chat runs before the flows; nothing is staged or sent now.
+  eqOutcome("A08", "settings_saved"); assert(/^Scheduled: tomorrow, .*, at 9:00 AM your time .*I'll ask you to send Maya \$40\.00\. Nothing is sent before then, and nothing is sent without its own card and your yes at that time\./.test(rows.A08.reply), rows.A08.reply);
   eqOutcome("B09", "refuse"); assert(/US dollars only/.test(rows.B09.reply));
   // C06 "split the bill but sam only had a salad (12) of 96": Sam's item is Sam's, and who else is in is asked
   // (tests/depth-RAIL-1.test.cjs S22). Nothing is requested on the first message.
@@ -44,8 +47,9 @@ Deno.test("megadoc sim: odd amounts ask instead of rounding or joining (A13 40.5
   assertEquals(rows.B08.reply, "Did you mean $40.00 or $4.00?");
   assert(/^Set up \$40\.00 to Maya K/.test(rows.A12.reply), rows.A12.reply);
 });
-Deno.test("megadoc sim: questions are not orders (C08, D09, G11 go to the assistant; E18 is the order's status, never 'How much?')", () => {
-  for (const id of ["C08", "D09", "G11"]) eqOutcome(id, "needs_model");
+Deno.test("megadoc sim: questions are not orders (C08, G11 go to the assistant; D09 is the IOU log's answer; E18 is the order's status, never 'How much?')", () => {
+  for (const id of ["C08", "G11"]) eqOutcome(id, "needs_model");
+  eqOutcome("D09", "settings_reply"); assert(/^Your IOU log is empty/.test(rows.D09.reply), rows.D09.reply);
   // E18 "did my buy fill?" reads the order back (66-agent-trade.js orderStatus); with none placed in the sim, it says so.
   eqOutcome("E18", "answer");
   assert(/^I don't see an order placed from this chat/.test(rows.E18.reply) && !/how much/i.test(rows.E18.reply), rows.E18.reply);

@@ -89,6 +89,7 @@ test("[S10] two open IOUs with one person: the one meant is asked, nothing chang
 test("[S11] the direction must match: 'Jake paid me back' never settles what the person owes Jake", () => {
   const a = run(["i owe jake 20", "jake paid me back"]);
   assert.equal(a.replies[1], "I don't have an open IOU for Jake owing you, so nothing changed.");
+  assert.equal(I.command("mark mom's 200 as paid", [], NOW).reply, "I don't have an open IOU with Mom for $200.00, so nothing changed.", "the name is Mom, never Mom's");
   assert.equal(a.log[0].status, "open");
 });
 

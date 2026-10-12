@@ -380,6 +380,8 @@
       return lines.join("\n");
     }
 
-    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS };
+    // CATEGORIES, isSpend, display, txSource and todayIn are shared with category budgets (93-budgets.js), so "groceries",
+    // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries".
+    return { money, period, classify, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, display, txSource, todayIn };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;

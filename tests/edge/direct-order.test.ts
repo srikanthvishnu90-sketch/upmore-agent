@@ -79,6 +79,19 @@ const OWNER: [string, string | null][] = [
   ["cancel my delta flight", null],
   ["book me a flight to Denver", null],
   ["send sam 40", null],
+  // Category budgets (overnight H1): a status ask is the budget answer's; setting or stopping one is a settings command
+  // (_shared/proactive.ts), so no direct answer may take it; a how-to question goes on to the model.
+  ["how am i doing on my grocery budget", "budgetReply"],
+  ["how are my budgets", "budgetReply"],
+  ["am i over budget", "budgetReply"],
+  ["what's left in my dining budget", "budgetReply"],
+  ["set a $400 grocery budget", null],
+  ["budget $250 a month for eating out", null],
+  ["my dining budget is 300", null],
+  ["set a $50 streaming budget", null],
+  ["stop my grocery budget", null],
+  ["delete my budgets", null],
+  ["how do i make a budget", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

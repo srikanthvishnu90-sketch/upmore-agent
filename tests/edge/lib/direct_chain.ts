@@ -14,6 +14,7 @@ import { unclaimedReply } from "../../../supabase/functions/agent-chat/_shared/u
 import { whatsNewReply } from "../../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
+import { budgetReply } from "../../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
@@ -34,7 +35,11 @@ const CANCELS = [{ merchant: "NETFLIX.COM", name: "Netflix", state: "cancelled",
 export const EMAIL = "From: Netflix <info@mailer.netflix.com>\nDate: Oct 10, 2026\nWe miss you! Come back to Netflix for $6.99/month for 3 months, then $15.99/month. Offer ends Nov 15, 2026.";
 export const RECEIPT = "can i swap to store brands here?\nTIDE PODS 42CT 13.99\nCHEERIOS 18OZ 4.29\nBANANAS 1.29\nTOTAL 19.57";
 
+// A groceries budget the person set (MOCK), stored the way the settings path stores it.
+export const BUDGETS = [{ id: "budget-groceries-mock", kind: "category_budget", category: "groceries", amount_cents: 40000, period: "month", created_at: "2026-10-01T12:00:00.000Z", created_on: "2026-10-01", status: "active" }];
+
 export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
+  budgetReply: (m) => budgetReply(m, NOW, { budgets: async () => BUDGETS, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
   moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[] }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),
   winBackReply: (m) => winBackReply(m, TODAY, oldest, async () => CANCELS),

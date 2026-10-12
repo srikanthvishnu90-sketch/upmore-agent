@@ -72,7 +72,7 @@ that are on the list and that a build may reach.
 | Cleo | 156 | 0 | 14 | 7 | 0 | 0 | 4 | 131 | 86 | 22 |
 | **all** | 1818 | 0 | 280 | 195 | 0 | 66 | 55 | 1222 | 403 | 489 |
 
-Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 927.
+Sections: 154 (full 14, part 61, none 79; 62 placed row by row); row entries: 934.
 
 ## Gaps Upmore's list does not cover
 
@@ -114,7 +114,7 @@ The last line per app counts the ungated rows with no item inside sections place
 
 ### Origin
 
-- **Budgeting** (13 ungated rows): category budgets, rollovers and AI budget building; the list has no budget (safe to spend, 14, is the nearest)
+- **Budgeting** (13 ungated rows): category budgets, rollovers and AI budget building; the list has no budget (safe to spend, 14, is the nearest). Upmore's chat now tracks monthly category budgets (93-budgets.js, overnight H1); no rollovers, AI building, savings target, budget periods other than the month or shared budgets
 - **Human financial planners** (4 ungated rows): sessions with Origin's human CFP planners
 - **Equity compensation** (4 ungated rows): tracking stock grants, vesting and exercise costs
 - **Estate planning** (1 ungated row): wills, trusts and estate documents
@@ -133,13 +133,13 @@ The last line per app counts the ungated rows with no item inside sections place
 
 ### Rocket Money
 
-- **Budgets and habits** (7 ungated rows): category budgets, challenges, badges and lessons; the two rows that are list items are mapped one by one
+- **Budgets and habits** (7 ungated rows): category budgets, challenges, badges and lessons; the two rows that are list items are mapped one by one. Upmore's chat now tracks monthly category budgets (93-budgets.js, overnight H1); no projected savings, challenges, badges or lessons
 - **Platforms, security and support** (15 ungated rows): Rocket Money's apps, widgets, sign-in, support and product offers
 - **Rows placed one by one with no item** (18 ungated rows) in sections the list covers in part
 
 ### Monarch
 
-- **Budgeting** (22 ungated rows): flex and category budgets with rollovers; the list has no budget (the flex number row maps to safe to spend, 14)
+- **Budgeting** (22 ungated rows): flex and category budgets with rollovers; the list has no budget (the flex number row maps to safe to spend, 14). Upmore's chat now tracks monthly category budgets with planned, spent and left (93-budgets.js, overnight H1); no flex method, groups, rollovers, auto-filled or future-month budgets
 - **Goals** (18 ungated rows): personal save-up goals; the list has no personal goal (136 is a goal shared with others); the pay-down rows map to 91 one by one
 - **Business Tracking** (5 ungated rows): business books, P&L and Schedule C exports
 - **Estate planning** (2 ungated rows): a partner's will and trust offer
@@ -153,7 +153,7 @@ The last line per app counts the ungated rows with no item inside sections place
 
 ### Copilot Money
 
-- **Categories and budgets** (29 ungated rows): category budgets, groups and rollovers; the list has no budget
+- **Categories and budgets** (29 ungated rows): category budgets, groups and rollovers; the list has no budget. Upmore's chat now tracks one monthly budget per category, the same every month (93-budgets.js, overnight H1); no custom, renamed or grouped categories, rollovers, rebalancing or month-by-month amounts
 - **Goals and savings** (19 ungated rows): personal savings goals; the list has no personal goal (136 is a goal shared with others)
 - **Widgets and Apple integrations** (14 ungated rows): home screen widgets, icons and Apple platform features
 - **Platforms and accessibility** (9 ungated rows): Copilot's apps and display settings
@@ -165,7 +165,7 @@ The last line per app counts the ungated rows with no item inside sections place
 
 - **The method and plan behaviour** (34 ungated rows): YNAB's envelope method: assigning every dollar, moving money between categories, Age of Money; the list has no budget
 - **Onboarding and plan setup** (14 ungated rows): YNAB's plan setup and formats
-- **Categories and category groups** (12 ungated rows): budget categories, groups and focused views
+- **Categories and category groups** (12 ungated rows): budget categories, groups and focused views. Upmore's chat now answers "am i over budget" for monthly category budgets (93-budgets.js, overnight H1); no envelope method, assigned money, groups or custom categories
 - **Targets** (16 ungated rows): per-category savings and payment targets
 - **AI and automation** (3 ungated rows): a help-article app inside ChatGPT and a support chatbot; the payoff calculator row maps to 91
 - **API and integrations** (11 ungated rows): YNAB's developer API and integrations
@@ -261,6 +261,13 @@ Rows in sections that are not placed row by row whose placement differs from the
 | T1-ORIGIN-177 | AI Recaps toggle | 24 | full | turning the recap on or off (24) |
 | T2-ROCKET-038 | Car insurance rate comparison | 40 | full | a better insurance rate (40) |
 | T2-ROCKET-039 | Overdraft and late fee refund script | 81 | full | asking for a fee to be waived (81) |
+| T1-ORIGIN-044 | Category limits | none | none | a spending limit per category; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-ROCKET-063 | Category budgets | none | none | category budgets; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-ROCKET-064 | Unlimited category budgets | none | none | one budget for each of the categories Upmore tracks (eight), not unlimited custom ones; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-MONARCH-105 | Category Budgeting | none | none | category budgets; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-MONARCH-115 | Planned, Actual and Remaining | none | none | planned, spent and left this month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-COPILOT-121 | Same budget for all months | none | none | the same amount every month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
+| T2-YNAB-124 | Focused View: Overspent | none | none | "am i over budget" names each budget over and by how much; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only |
 | T2-ROCKET-066 | Amount Left After Bills | 14 | part | income minus bills, the core of safe to spend (14) |
 | T2-ROCKET-067 | Debt paydown | 91 | full | a payoff plan (91) |
 | T2-MONARCH-101 | Flex number | 14 | part | income minus fixed and non-monthly costs, the core of safe to spend (14) |

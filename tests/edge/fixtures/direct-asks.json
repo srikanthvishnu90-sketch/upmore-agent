@@ -111,6 +111,21 @@
     ["whats the news today", null],
     ["did my target credit post?", "moneyReply"],
     ["did the delta refund post", "moneyReply"],
-    ["did my credit card payment go through", "moneyReply"]
+    ["did my credit card payment go through", "moneyReply"],
+    ["how's my grocery budget", "budgetReply"],
+    ["grocery budget?", "budgetReply"],
+    ["am i over budget this month", "budgetReply"],
+    ["am i over my grocery budget", "budgetReply"],
+    ["how much is left in my food budget", "budgetReply"],
+    ["show my budgets", "budgetReply"],
+    ["how am i doing on my gas budget", "budgetReply"],
+    ["set a 400 grocery budget", null],
+    ["budget 300 for gas monthly", null],
+    ["set a $100 weekly grocery budget", null],
+    ["stop my gas budget", null],
+    ["delete all my budgets", null],
+    ["whats a good grocery budget for 2 people", null],
+    ["help me make a budget", null],
+    ["how much can i spend on groceries", null]
   ]
 }

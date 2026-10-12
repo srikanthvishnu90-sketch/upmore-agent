@@ -7419,6 +7419,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "a spending limit per category; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -15558,6 +15559,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "category budgets; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -15577,6 +15579,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "one budget for each of the categories Upmore tracks (eight), not unlimited custom ones; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -19260,6 +19263,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "category budgets; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -19450,6 +19454,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "planned, spent and left this month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -26438,6 +26443,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "the same amount every month; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },
@@ -32789,6 +32795,7 @@
    "hard_gated": false,
    "capability_items": [],
    "capability_coverage": "none",
+   "capability_note": "\"am i over budget\" names each budget over and by how much; no capability-list item, but Upmore's chat tracks category budgets (93-budgets.js, overnight H1): a monthly amount per category, spent, left, pace and alerts at 80% and 100%, tracking only",
    "upmore_today": "NO_ITEM",
    "upmore_today_row": "NO_ITEM"
   },

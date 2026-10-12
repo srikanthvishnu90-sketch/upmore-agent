@@ -148,7 +148,7 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 - [x] **H0.** Row-level placement for the 887 teardown rows in sections covered only in part (counted PART, not borrowed
   status): give each its own items or "none", so the per-app table reads what each row really is.
 
-- [~] **H1.** (first: "what's new", the review inbox, from T2 build order step 2) The ungated teardown sections that map to no capability-list item, built in the order the teardowns'
+- [~] **H1.** (first: "what's new", the review inbox, from T2 build order step 2; second: category budgets in chat, T2 build order step 4, depth BUDGETS) The ungated teardown sections that map to no capability-list item, built in the order the teardowns'
   build-order sections give, one per wake when Blocks C to F are done.
 
 ## Check-in protocol (each wake)

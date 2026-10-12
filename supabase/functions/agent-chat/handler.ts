@@ -43,6 +43,7 @@ import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts
 import { airlineReply } from "./_shared/airline_answer.ts";
 import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
 import { whatsNewReply } from "./_shared/whats_new_answer.ts";
+import { budgetReply, readBudgets } from "./_shared/budget_answer.ts";
 import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { cardOffersReply } from "./_shared/card_offers_answer.ts";
@@ -289,6 +290,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // book): a failed read says so plainly instead of failing the whole turn.
       const today = localClock(Date.now(), tz).date;
       try {
+        // Category budgets (_shared/budget_answer.ts): "how am i doing on my grocery budget", "am i over budget", from the
+        // budgets the person set (their settings row, RLS) and their own rows, counted in their month. Setting or stopping
+        // one is a settings command (below, _shared/proactive.ts); this answer leaves those alone.
+        if (!direct) direct = await budgetReply(message, new Date(), { budgets: () => readBudgets(supabase, user.id), transactions: readTx }, { tz });
         // "what's new": the review inbox in chat, since the person last asked (_shared/whats_new_answer.ts).
         if (!direct) direct = await whatsNewReply(message, today, readTx, readPrevious);
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
@@ -345,7 +350,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     }
 
     // The agent speaks first (capability list section 2): what the person asks it to say on its own, and when, is
-    // remembered and restated here; the hourly agent-proactive run delivers it. No model call, no money path.
+    // remembered and restated here; the hourly agent-proactive run delivers it. No model call, no money path. Category
+    // budgets are set and stopped here too ("set a $400 grocery budget", "stop my grocery budget"): tracking only.
     {
       const s = await settingsMessage(message, supabaseSettingsDb(supabase, user.id), Date.now());
       if (s) {

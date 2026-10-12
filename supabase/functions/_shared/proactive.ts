@@ -14,7 +14,12 @@
 // date the person is OFFERED that month's card ("Want this month's card to send it? Reply YES or NO"). The offer never
 // stages anything: a yes puts up the rent flow's own card, which restates the amount, month and recipient and needs its
 // own yes; a no skips the month.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers } from "./router_core.js";
+//
+// Category budgets (packages/domain/93-budgets.js): a budget the person set in chat is stored as a watch of kind
+// "category_budget". Once at 80% and once at 100% of it each month the agent says so, as a watch: what the person asked
+// to hear, outside the daily budget, once only by its log key (budget:<id>:<month>:<threshold>). Tracking only: nothing
+// is blocked or moved.
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -26,7 +31,7 @@ export interface ProactiveSettings {
   time_zone: string;                // IANA zone the person's day is counted in
   buffer_cents: number | null;      // the cushion "low balance ahead" warns under
   large_threshold_cents: number | null;
-  watches: any[];                   // AgentAlerts.parseWatch conditions the person asked for
+  watches: any[];                   // AgentAlerts.parseWatch conditions the person asked for, and their category budgets (Budgets)
   control: any | null;              // AgentControl state: the person's standing reports
 }
 // The time zone default is an assumption the person can change by saying "my time zone is Pacific"; it decides what
@@ -118,10 +123,16 @@ export function plan(input: ProactiveInput, now: number) {
   const quiet = quietRule;
   const quietNow = !!quiet && AgentAlerts.inQuiet(now, quiet);
 
+  // The person's own watches and budgets are theirs, not "alerts": they come through with alerts off, as "stop alerts"
+  // promises ("Anything you asked me to watch still comes through").
+  const plainWatches = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w));
   // Event alerts and findings, in the loop's decision order: safety, the person's watches, then findings within budget.
+  if (!s.alerts && plainWatches.length) {
+    for (const x of (AgentAlerts as any).evaluateWatches(plainWatches, { today, transactions, accounts })) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
+  }
   if (s.alerts) {
     // subscriptions: the ones the person tracks in the app (save_subscriptions), which carry trial end dates.
-    const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, subscriptions: input.subscriptions || [], watches: s.watches || [], quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
+    const f: any = (AgentProactive as any).feed({ today, transactions, accounts, isLive: true, subscriptions: input.subscriptions || [], watches: plainWatches, quiet: quiet || undefined, buffer_cents: s.buffer_cents ?? undefined, large_threshold_cents: s.large_threshold_cents ?? undefined }, { now });
     out.held = (f.held || []).length;
     for (const x of f.safety || []) push({ key: `safety:${x.key}`, kind: "safety", text: x.text, capability_id: x.capability_id || "SEC-001", urgent: true, cadence: true });
     for (const x of f.watches || []) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
@@ -138,6 +149,13 @@ export function plan(input: ProactiveInput, now: number) {
       const text = offer ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
       if (push({ key, kind: "finding", text, capability_id: offer ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
     }
+  }
+  // Category budgets: 80% and 100% of each, once per budget per month (the log key), counted from the same rows and the
+  // same categories as the chat's "how am i doing on my grocery budget" (Budgets.alerts).
+  const budgets = (Budgets as any).budgetsIn(s.watches || []);
+  if (budgets.length) {
+    const nr = numbersRows(accounts, transactions);
+    for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
   }
   // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
   rentLater();
@@ -285,14 +303,21 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
     if (a > 23 || b > 23 || a === b) return { settings: {}, reply: "I couldn't read those hours. Try \"quiet hours 10pm to 7am\". Nothing changed." };
     return { settings: { quiet_start: a, quiet_end: b }, reply: `Quiet hours set: ${fmtHour(a)} to ${fmtHour(b)} your time. Only safety alerts and things you asked me to watch come through then.` };
   }
+  // Category budgets: "set a $400 grocery budget", "budget $250 a month for eating out", "stop my grocery budget",
+  // "delete my budgets" (packages/domain/93-budgets.js). Each is restated exactly; nothing moves money.
+  const zone = validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone;
+  const bc: any = (Budgets as any).command(t, s.watches || [], now, zone);
+  if (bc) return { settings: bc.watches ? { watches: capWatches(bc.watches) } : {}, reply: bc.reply };
   if ((m = /^\s*(?:tell me|let me know|alert me|text me|warn me|ping me)\s+(?:when|if)\s+(.+?)\s*[.!]?$/i.exec(t))) {
     const w: any = (AgentAlerts as any).parseWatch(t, now); // it strips the "tell me when" itself
     // "Tell me when my rent is due" is usually a question: an unreadable "tell me when" goes to the normal chat; an
     // explicit "alert me / text me / ping me" gets the honest list of what can be watched.
     if (!w.ok) return /^\s*tell me|^\s*let me know/i.test(t) ? null : { settings: {}, reply: w.text + " Nothing was set up." };
     // created_on: a watch reads charges from the day it was set, never older ones (59-agent-alerts.js evaluateWatches).
-    const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now}`, created_on: localClock(now, validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone).date });
-    return { settings: { watches: (s.watches || []).concat([watch]).slice(-20) }, reply: AgentAlerts.restateWatch(watch) + " Say \"show my alerts\" to see them." };
+    // The table refuses any run of 9 or more digits in watches (no identity numbers): the id carries the time in base 36
+    // and created_at is an ISO string. A millisecond timestamp here made every chat-set watch fail to save.
+    const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now.toString(36)}`, created_at: new Date(now).toISOString(), created_on: localClock(now, zone).date });
+    return { settings: { watches: capWatches((s.watches || []).concat([watch])) }, reply: AgentAlerts.restateWatch(watch) + " Say \"show my alerts\" to see them." };
   }
   if ((m = /^\s*every (day|morning|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[, ]+(?:tell me|send me|show me|give me)(?: my| the)? (.+?)(?: spend(?:ing)?| spent)?\s*[.!]?$/i.exec(t))) {
     const when = m[1].toLowerCase(), words = m[2].toLowerCase().replace(/\b(spend(?:ing)?|spent|total)\b/g, "").trim();
@@ -313,10 +338,22 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   return null;
 }
 const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
+// The table holds at most 20 watches. Budgets (one per category, at most 8) are never pushed out by a new watch: the
+// oldest plain watches go first.
+export const MAX_WATCHES = 20;
+export function capWatches(list: any[]): any[] {
+  const all = list || [], keep = all.filter((w: any) => (Budgets as any).isBudget(w));
+  const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !(Budgets as any).isBudget(w));
+  const kept = new Set([...keep, ...plain.slice(Math.max(0, plain.length - room))]);
+  return all.filter((w: any) => kept.has(w));
+}
 export function describe(s0: Partial<ProactiveSettings> | null) {
   const s = Object.assign({}, DEFAULT_SETTINGS, s0 || {}), parts: string[] = [];
   parts.push(s.alerts ? "Alerts are on (low balance ahead, large or unusual charges, price rises, deposits, fees), at most one unrequested note a day." : "Alerts are off.");
-  if ((s.watches || []).length) parts.push(`You asked me to watch: ${(s.watches || []).map((w: any) => AgentAlerts.restateWatch(w).replace(/^I'll tell you /, "").replace(/\.$/, "")).join("; ")}.`);
+  const plain = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w));
+  if (plain.length) parts.push(`You asked me to watch: ${plain.map((w: any) => AgentAlerts.restateWatch(w).replace(/^I'll tell you /, "").replace(/\.$/, "")).join("; ")}.`);
+  const budgetLine = (Budgets as any).describe(s.watches || []);
+  if (budgetLine) parts.push(budgetLine);
   const reports = s.control && Array.isArray(s.control.instructions) ? s.control.instructions.filter((i: any) => i.status === "active") : [];
   if (reports.length) parts.push(`Reports: ${reports.map((i: any) => `${i.params && i.params.label || "spending"} ${whenText(i)}`).join("; ")}.`);
   parts.push(s.weekly_recap_dow != null ? `Weekly recap on ${DOW[s.weekly_recap_dow]}s.` : "No weekly recap.");
@@ -473,7 +510,7 @@ export function supabaseOfferDeps(supabase: any, userId: string, threadId: strin
       if (r.error) return false;
       const w: any = (AgentAlerts as any).parseWatch(`tell me when ${merchant} charges me`, Date.now());
       if (!w.ok) return false;
-      const watches = ((r.data && r.data.watches) || []).concat([Object.assign({}, w.watch, { id: `w-trial-${Date.now()}` })]).slice(-20);
+      const watches = capWatches(((r.data && r.data.watches) || []).concat([Object.assign({}, w.watch, { id: `w-trial-${Date.now().toString(36)}`, created_at: new Date().toISOString() })]));
       const u = await supabase.from("agent_proactive_settings").upsert({ user_id: userId, watches, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
       return !u.error;
     },

@@ -304,3 +304,28 @@ the source.
 | registry note HOUS-010 (move budget) | `deposit_months: 0` added a $2,000.00 deposit line | A stated 0 is no deposit line | S17; D17 |
 | registry note TAX-007 (crypto CSV) | A quantity of 0.00000012 was written "1.2e-7" | "0.00000012" | S18; D18 |
 | `63-agent-surfaces.js` bill calendar | "1 bills in the next 30 days ... 1 need a manual payment." | "1 bill ... 1 needs a manual payment." | S19; D19c |
+
+## Chat-set watches could not be saved, and "stop alerts" silenced them (2026-10-12, category budgets packet)
+
+- Said: CLAUDE.md "The agent speaks first ... chat settings" and the watch reply ("I'll tell you when checking drops
+  below $500.00. Say \"show my alerts\" to see them."): a watch set in chat is remembered. The "stop alerts" reply:
+  "Anything you asked me to watch still comes through".
+- True: `supabase/migrations/20261011060000_proactive.sql` refuses any run of 9 or more digits in
+  `agent_proactive_settings.watches` (`watches::text !~ '\d{9,}'`, the no-identity-numbers rule), and
+  `_shared/proactive.ts` stored every chat-set watch with a millisecond id and `created_at` (`w1-1791727200000`, 13
+  digits; the trial watch `w-trial-<ms>` too), so every save failed the check and the person was told "I couldn't save
+  that right now". The edge tests use a memory store without the check, so nothing caught it. And with alerts off,
+  `plan()` skipped the whole feed, the person's own watches included.
+- Now: ids carry the time in base 36 and `created_at` is an ISO string (`tests/edge/budgets-proactive.test.ts` reads the
+  migration's checks and runs every watch the chat can write against them; shown red on the old code first). With alerts
+  off, plain watches are evaluated on their own and delivered (`plan: a plain watch still comes through with alerts
+  off`). At most 20 watches stay (the table's limit), and a new watch never pushes a budget out.
+
+## Teardown budget sections stay "none" in the map, with notes (2026-10-12, category budgets packet)
+
+- Asked: mark Origin/Budgeting, Monarch/Budgeting, Rocket Money/Budgets and habits, Copilot Money/Categories and budgets
+  and YNAB/Categories "part".
+- True: in `docs/teardowns/map.cjs` coverage is against the owner's capability list, and `scripts/build-teardowns.cjs`
+  refuses "part" without an item; the list (items 1..149) has no budget item.
+- Now: the sections stay "none" and their notes, and seven row notes, say what Upmore's chat now tracks and what it
+  doesn't (no rollovers, envelope method, custom categories or weekly budgets), the way the review-inbox rows were noted.

@@ -284,6 +284,20 @@ export function termsReply(message: string): string | null {
   return `I don't have ${name}'s terms on file, and I won't make them up. They're on ${name}'s own site, usually linked as Terms or Help at the bottom of the page or in your account settings.`;
 }
 
+// "Am I accredited" (megadoc I06): Upmore never decides it. The SEC's tests are said from the offer book (every number
+// with its source and checked date; past its window it says it may have changed), that the person attests to it
+// themselves to whoever runs the offering, and that the rule is under review. No judgment about the person.
+const ACCREDITED = /\b(?:am i|are we|would i be|do i (?:count|qualify) as|do i qualify|how do i (?:know if i'?m|become|qualify as)|what(?:'s| is| makes)(?: someone| you)?(?: an?)?|am i an?)\s*(?:an? )?accredited(?: investor)?\b|\baccredited investor\b[^.?!]{0,30}\b(?:me|qualify|requirements?|rules?|definition|test)\b/i;
+export function accreditedReply(message: string, today: string): string | null {
+  if (!ACCREDITED.test(String(message || ""))) return null;
+  const book = (OfferBook as any).create(OFFER_TERMS_JSON);
+  const t = (id: string) => book.term(id, today);
+  const usd = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  const ind = t("sec.accredited.income_individual"), joint = t("sec.accredited.income_joint"), nw = t("sec.accredited.net_worth"), lic = t("sec.accredited.licenses");
+  const personal = /\b(?:am i|are we|would i|do i|how do i)\b/i.test(String(message));
+  return `${personal ? "I can't decide that for you: you attest to it yourself to whoever runs the offering, and they may ask for proof. " : ""}Under the SEC's rule, a person generally qualifies as an accredited investor with income over ${usd(ind.value)} (or ${usd(joint.value)} together with a spouse or spousal equivalent) in each of the last two years and expected again this year; or net worth over ${usd(nw.value)}, not counting your home; or a ${lic.value} license in good standing.${personal ? "" : " You attest to it yourself to whoever runs an offering; Upmore never decides it."} The SEC has proposed changes, so check its page before relying on this (${ind.cite}).`;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

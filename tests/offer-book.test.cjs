@@ -14,6 +14,9 @@ test("every term is valid: kind, value, unit, an https source, a checked date, t
   assert.deepEqual(OfferBook.validate(TERMS), []);
   assert.ok(TERMS.terms.length >= 30);
   for (const t of TERMS.terms) for (const m of t.methods) assert.ok(methodIds.has(m), `${t.id} names ${m}, which is not a method card`);
+  // A term used by a megadoc scenario answered from code names a real scenario id (I06's accredited-investor rule).
+  const scenarioIds = new Set(require("../evals/scenarios/megadoc.json").scenarios.map((x) => x.id));
+  for (const t of TERMS.terms) for (const id of t.scenarios || []) assert.ok(scenarioIds.has(id), `${t.id} names ${id}, which is not a megadoc scenario`);
 });
 
 test("a term inside its window is cited with its source and date; past it, it says it may have changed", () => {

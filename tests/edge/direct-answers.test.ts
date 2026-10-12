@@ -288,3 +288,23 @@ Deno.test("merchant terms: the page on file, never a summary; not on file is sai
   for (const t of ["what are the terms of the loan", "terms of my lease", "terms of this offer", "netflix", "what are the terms"]) assertEquals(termsReply(t), null, t);
   assertMatch(SRC_APP, /id="termsRow"[^>]*><span class="pl">Terms of Service</);
 });
+
+// Megadoc I06 "am I accredited": never decided; the SEC's tests from the offer book with source and date; the person attests.
+import SRC_TERMS_BOOK from "../../packages/offers/terms.json" with { type: "text" };
+Deno.test("am I accredited: never decided, the SEC tests from the offer book with source and date, the person attests (I06)", () => {
+  const { accreditedReply } = DirectAnswers;
+  const a = accreditedReply("am I accredited", "2026-10-12")!;
+  assertMatch(a, /^I can't decide that for you: you attest to it yourself to whoever runs the offering, and they may ask for proof\./);
+  // Every number is the offer book's, and the citation is its source and checked date.
+  const book = JSON.parse(SRC_TERMS_BOOK).terms, v = (id: string) => book.find((t: any) => t.id === id).value;
+  assertEquals([v("sec.accredited.income_individual"), v("sec.accredited.income_joint"), v("sec.accredited.net_worth")], [20000000, 30000000, 100000000]);
+  assertMatch(a, /income over \$200,000 \(or \$300,000 together with a spouse or spousal equivalent\).*net worth over \$1,000,000, not counting your home; or a Series 7, 65 or 82 license/);
+  assertMatch(a, /\(per SEC, Amendments to the accredited investor definition \(17 CFR 230\.501\(a\)\), small business compliance guide, checked 2026-10-12\)\.$/);
+  // A year later the rule is past its window and said as possibly changed, never as current.
+  assertMatch(accreditedReply("am I accredited", "2027-10-14")!, /checked 2026-10-12; that may have changed, so check before acting\)\.$/);
+  // A definition question is answered without "I can't decide", still never deciding.
+  const d = accreditedReply("what is an accredited investor", "2026-10-12")!;
+  assertMatch(d, /^Under the SEC's rule, a person generally qualifies as an accredited investor/);
+  assertMatch(d, /Upmore never decides it\./);
+  for (const t of ["is my school accredited", "accredited college", "what's my balance"]) assertEquals(accreditedReply(t, "2026-10-12"), null, t);
+});

@@ -339,6 +339,8 @@
     ["I'm so broke", "momentReply"],
     ["my friend got laid off", null],
     ["what are the terms of this merchant", "termsReply"],
-    ["what are the terms of the loan", null]
+    ["what are the terms of the loan", null],
+    ["am I accredited", "accreditedReply"],
+    ["is my school accredited", null]
   ]
 }

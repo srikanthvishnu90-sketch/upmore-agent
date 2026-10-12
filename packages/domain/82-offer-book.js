@@ -21,7 +21,8 @@
         if (!t.unit) problems.push(`${tag}: no unit`);
         if (!t.source || !t.source.title || !/^https:\/\//.test(t.source.url || "")) problems.push(`${tag}: source needs a title and an https link`);
         if (!ISO.test(t.checked_on || "")) problems.push(`${tag}: checked_on must be a date`);
-        if (!Array.isArray(t.methods) || !t.methods.length) problems.push(`${tag}: methods must name the cards that use it`);
+        // Who uses the term: method cards, or megadoc scenarios answered from code (e.g. I06's accredited-investor rule).
+        if (!Array.isArray(t.methods) || (t.scenarios !== undefined && !Array.isArray(t.scenarios)) || !(t.methods.length || (t.scenarios || []).length)) problems.push(`${tag}: methods (or scenarios) must name the cards that use it`);
       }
       return problems;
     }

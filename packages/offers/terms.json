@@ -615,6 +615,70 @@
    "methods": [
     "M3-SUBS-11"
    ]
+  },
+  {
+   "id": "sec.accredited.income_individual",
+   "kind": "rule",
+   "value": 20000000,
+   "unit": "cents a year",
+   "source": {
+    "title": "SEC, Amendments to the accredited investor definition (17 CFR 230.501(a)), small business compliance guide",
+    "url": "https://www.sec.gov/resources-small-businesses/small-business-compliance-guides/amendments-accredited-investor-definition"
+   },
+   "checked_on": "2026-10-12",
+   "methods": [],
+   "scenarios": [
+    "I06"
+   ],
+   "note": "income above this in each of the two most recent years, with a reasonable expectation of the same this year"
+  },
+  {
+   "id": "sec.accredited.income_joint",
+   "kind": "rule",
+   "value": 30000000,
+   "unit": "cents a year",
+   "source": {
+    "title": "SEC, Amendments to the accredited investor definition (17 CFR 230.501(a)), small business compliance guide",
+    "url": "https://www.sec.gov/resources-small-businesses/small-business-compliance-guides/amendments-accredited-investor-definition"
+   },
+   "checked_on": "2026-10-12",
+   "methods": [],
+   "scenarios": [
+    "I06"
+   ],
+   "note": "joint income with a spouse or spousal equivalent above this in each of the two most recent years, expected this year"
+  },
+  {
+   "id": "sec.accredited.net_worth",
+   "kind": "rule",
+   "value": 100000000,
+   "unit": "cents",
+   "source": {
+    "title": "SEC, Amendments to the accredited investor definition (17 CFR 230.501(a)), small business compliance guide",
+    "url": "https://www.sec.gov/resources-small-businesses/small-business-compliance-guides/amendments-accredited-investor-definition"
+   },
+   "checked_on": "2026-10-12",
+   "methods": [],
+   "scenarios": [
+    "I06"
+   ],
+   "note": "net worth above this, alone or with a spouse or spousal equivalent, not counting the primary residence"
+  },
+  {
+   "id": "sec.accredited.licenses",
+   "kind": "rule",
+   "value": "Series 7, 65 or 82",
+   "unit": "license in good standing",
+   "source": {
+    "title": "SEC, Amendments to the accredited investor definition (17 CFR 230.501(a)), small business compliance guide",
+    "url": "https://www.sec.gov/resources-small-businesses/small-business-compliance-guides/amendments-accredited-investor-definition"
+   },
+   "checked_on": "2026-10-12",
+   "methods": [],
+   "scenarios": [
+    "I06"
+   ],
+   "note": "natural persons holding one of these licenses qualify (2020 amendments)"
   }
  ]
 }

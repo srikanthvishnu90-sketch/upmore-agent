@@ -2765,6 +2765,18 @@ function execSources(deepLink: string | null): string {
 }
 
 // User replies with the sign-in code while a run is paused at awaiting_otp.
+// A finished cancellation run is a CLAIM until the merchant's own confirmation is in hand (BUILD-STATUS rule 4: a cancel
+// is done when the merchant's record says cancelled). With the confirmation text the run captured, it is said as
+// cancelled and quoted; without it, it is said as not confirmed yet. Either way the cancel claim the executor wrote is
+// checked against the next bill by cancel-watcher, which is the watch this reply describes.
+export function cancelDoneReply(name: string, confirmation: unknown, noCode = false): string {
+  const ct = typeof confirmation === "string" ? confirmation.trim() : "";
+  const watch = "I'll check your next bill: no charge from them there is the proof it worked, and a charge means it didn't.";
+  return ct
+    ? `Done — ${name} shows the cancellation${noCode ? ", no code needed" : ""}. Their confirmation: "${ct.slice(0, 300)}"\n\n${watch}`
+    : `The cancellation run for ${name} finished${noCode ? " without needing a code" : ""}, but I didn't capture ${name}'s confirmation, so I'm not calling it cancelled yet. Check your email for their confirmation.\n\n${watch}`;
+}
+
 export async function tryExecOtpResume(
   message: string,
   ctx?: CapCtx,
@@ -2794,10 +2806,7 @@ export async function tryExecOtpResume(
   }
   if (r.status === "done") {
     const evd = (r.evidence ?? {}) as Record<string, unknown>;
-    const conf = typeof evd.confirmation_text === "string" && evd.confirmation_text.trim()
-      ? `\n\nDevin's confirmation: "${evd.confirmation_text.trim().slice(0, 300)}"`
-      : "";
-    return { reply: `Done — your ${merchant} subscription is cancelled.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` };
+    return { reply: cancelDoneReply(merchant, evd.confirmation_text) };
   }
   const err = String(r.error ?? "something went wrong on the merchant's site");
   return {
@@ -2813,16 +2822,14 @@ async function execAutoDoneReply(
   ctx: CapCtx & { jwt: string; supabaseUrl: string; anonKey: string },
   d: ExecDesc, runId: string,
 ): Promise<string> {
-  let conf = "";
+  let ct = "";
   try {
     const { data } = await ctx.supa.from("exec_runs")
       .select("evidence").eq("id", runId).maybeSingle();
     const evd = (((data as unknown) as { evidence?: unknown })?.evidence ?? {}) as Record<string, unknown>;
-    const ct = typeof evd.confirmation_text === "string" ? evd.confirmation_text.trim() : "";
-    if (ct) conf = `\n\n${d.display_name}'s confirmation: "${ct.slice(0, 300)}"`;
-  } catch { /* best effort — the cancellation itself is what matters */ }
-  return `Done — your ${d.display_name} subscription is cancelled, no code needed.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` +
-    execSources(d.deep_link);
+    ct = typeof evd.confirmation_text === "string" ? evd.confirmation_text.trim() : "";
+  } catch { /* best effort: without the confirmation the reply says it isn't confirmed yet */ }
+  return cancelDoneReply(d.display_name, ct, true) + execSources(d.deep_link);
 }
 
 async function runCancelExec(
@@ -2878,11 +2885,7 @@ async function runCancelExec(
   }
   if (r.status === "done") {
     const evd = (r.evidence ?? {}) as Record<string, unknown>;
-    const conf = typeof evd.confirmation_text === "string" && evd.confirmation_text.trim()
-      ? `\n\nDevin's confirmation: "${evd.confirmation_text.trim().slice(0, 300)}"`
-      : "";
-    return `Done — your ${d.display_name} subscription is cancelled.${conf}\n\nI'll keep an eye on your next bill to make sure no charge comes through.` +
-      execSources(d.deep_link);
+    return cancelDoneReply(d.display_name, evd.confirmation_text) + execSources(d.deep_link);
   }
   if (r.__transport_error) {
     // The run may still be executing server-side — check the run row.

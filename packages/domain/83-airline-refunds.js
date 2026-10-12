@@ -230,7 +230,7 @@
     const INVOLUNTARY = /\binvoluntar(?:y|ily)\b|\bagainst (?:my|our) will\b|\bdidn'?t volunteer\b|\bdid not volunteer\b|\b(?:they|airline|agent|gate agent) (?:made|forced) (?:me|us)\b|\bno volunteers?\b|\b(?:nobody|no one|no-one) volunteered\b|\bdenied boarding\b/i;
     const REPORT_YES = /\b(?:filed|made|submitted|opened|have|got|did)\b[^.\n]{0,30}\b(?:reports?|claims?|pir|file reference)\b|\breported (?:it|the bag|my bag|them)\b|\b(?:mishandled|delayed|lost)[- ]bag(?:gage)? report\b/i;
     const REPORT_NO = /\b(?:didn'?t|did not|never|haven'?t|have not|no)\b[^.\n]{0,20}\b(?:file|report|claim)/i;
-    const SENT = /\b(?:i|we|i've|we've|i have|we have)\s+(?:already\s+)?(?:sent|asked|requested|submitted|emailed|filed|put in|made)\b|\brequested (?:a|the|my|our) refund\b/i;
+    const SENT = /\b(?:i|we|i've|we've|i have|we have)\s+(?:already\s+)?(?:sent|asked|requested|submitted|emailed|filed|put in|made)\b|\brequested (?:a|the|my|our) refund\b|\b(?:asked|applied) (?:delta |united |them |the airline )?for (?:a|the|my|our) refund\b/i;
 
     function extrasOf(t) {
       const out = [];
@@ -595,7 +595,7 @@
         } else out.push(`You asked on ${nice(w.sent_on)}; card refunds are due within ${plural(w.days.value, "business day")} (${w.cite}), so it's due by ${nice(w.due)} (weekends skipped; a federal holiday adds a day). No credit has posted yet; if none has by then, tell me and I'll write the DOT complaint for you to file.`);
       } else if (owed.length && !a.missing.some(q => /^Which one|charges that could be it/.test(q))) {
         out.push("", `Send this to ${air} (their refund form, app or email):`, requestText(f, a.claims));
-        if (a.watch && a.watch.due) out.push(`If the refund goes back to a card, it's due within ${plural(a.watch.days.value, "business day")} (${a.watch.cite}): sent today, that's by ${nice(a.watch.due)} (weekends skipped; a federal holiday adds a day). Tell me the day you send it and I'll check your card rows for the credit.`);
+        if (a.watch && a.watch.due) out.push(`If the refund goes back to a card, it's due within ${plural(a.watch.days.value, "business day")} (${a.watch.cite}): sent today, that's by ${nice(a.watch.due)} (weekends skipped; a federal holiday adds a day). When you've sent it, tell me again with the day you sent it (like "${air} cancelled my flight, I declined the new one, and requested my refund on Oct 3") and I'll check your card rows for the credit.`);
       }
       for (const c of usedRows) out.push(`Amount from your card: ${money(c.pick.row.amount_cents)} from ${air === "the airline" ? "the charge" : c.kind === "wifi" ? "the Wi-Fi charge" : air}, posted ${nice(c.pick.row.posted_on)}.`);
       if (usedRows.length || (a.watch && a.watch.sent_on && owed.length)) out.push(a.as_of ? `From your linked accounts, as of ${a.as_of}.` : "No linked card rows to check.");

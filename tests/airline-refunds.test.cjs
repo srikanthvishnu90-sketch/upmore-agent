@@ -180,3 +180,13 @@ test("a cancelled flight named with the airline in between is still a cancelled 
     assert.match(r.text, /cancelled the flight\./, t);
   }
 });
+
+test("the follow-up the reply invites is understood: 'asked for my refund on' or the reply's own example sets the sent date", () => {
+  for (const m of ["Delta cancelled my flight, I declined the new one, and requested my refund on Oct 3. refund?", "delta cancelled my flight, I declined the new one and asked for my refund on oct 3, has it come?"]) {
+    assert.match(say(m).text, /You asked on Oct 3, 2026/, m);
+  }
+  // The reply's example is the person's words, never Upmore claiming it sent anything.
+  const r = say("my delta flight was cancelled and I declined the new one, refund?", []).text;
+  assert.match(r, /tell me again with the day you sent it \(like "Delta cancelled my flight, I declined the new one, and requested my refund on Oct 3"\)/);
+  assert.doesNotMatch(r, /I've sent|I sent/);
+});

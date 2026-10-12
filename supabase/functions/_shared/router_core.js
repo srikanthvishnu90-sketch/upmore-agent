@@ -8737,7 +8737,7 @@
       const spent = Math.max(0, inWindow.filter(purchase).reduce((s, r) => s - r.amount_cents, 0) - returns.reduce((s, r) => s + r.amount_cents, 0));
       const need = Math.max(0, t.target_cents - spent), days = daysBetween(today, deadline);
       const lines = [`${acct.name}: ${money(spent)} of ${money(t.target_cents)} spent since ${opened}; the window closes ${deadline}${days >= 0 ? ` (${days} day${days === 1 ? "" : "s"} left)` : " (passed)"}.`];
-      if (need === 0) lines.push("You've reached the target. The bonus usually posts after a statement closes; ask me then and I'll look for it in your transactions.");
+      if (need === 0) lines.push("You've reached the target. The bonus usually posts after a statement closes, as points or a statement credit on this card; check that statement for it.");
       else if (days > 0) lines.push(`${money(need)} to go, about ${money(Math.ceil(need / Math.max(1, days / 7)))} a week. Count only spending you'd do anyway; buying extra to hit a bonus usually costs more than it pays.`);
       else lines.push(`The window has closed ${money(need)} short.`);
       lines.push(`That's purchases minus returns on this card${returns.length ? ` (${money(returns.reduce((x, r) => x + r.amount_cents, 0))} returned)` : ""}; your issuer decides what counts (fees and some payments don't), so its number can differ.`, source(acct, own));
@@ -9912,7 +9912,7 @@
     const INVOLUNTARY = /\binvoluntar(?:y|ily)\b|\bagainst (?:my|our) will\b|\bdidn'?t volunteer\b|\bdid not volunteer\b|\b(?:they|airline|agent|gate agent) (?:made|forced) (?:me|us)\b|\bno volunteers?\b|\b(?:nobody|no one|no-one) volunteered\b|\bdenied boarding\b/i;
     const REPORT_YES = /\b(?:filed|made|submitted|opened|have|got|did)\b[^.\n]{0,30}\b(?:reports?|claims?|pir|file reference)\b|\breported (?:it|the bag|my bag|them)\b|\b(?:mishandled|delayed|lost)[- ]bag(?:gage)? report\b/i;
     const REPORT_NO = /\b(?:didn'?t|did not|never|haven'?t|have not|no)\b[^.\n]{0,20}\b(?:file|report|claim)/i;
-    const SENT = /\b(?:i|we|i've|we've|i have|we have)\s+(?:already\s+)?(?:sent|asked|requested|submitted|emailed|filed|put in|made)\b|\brequested (?:a|the|my|our) refund\b/i;
+    const SENT = /\b(?:i|we|i've|we've|i have|we have)\s+(?:already\s+)?(?:sent|asked|requested|submitted|emailed|filed|put in|made)\b|\brequested (?:a|the|my|our) refund\b|\b(?:asked|applied) (?:delta |united |them |the airline )?for (?:a|the|my|our) refund\b/i;
 
     function extrasOf(t) {
       const out = [];
@@ -10277,7 +10277,7 @@
         } else out.push(`You asked on ${nice(w.sent_on)}; card refunds are due within ${plural(w.days.value, "business day")} (${w.cite}), so it's due by ${nice(w.due)} (weekends skipped; a federal holiday adds a day). No credit has posted yet; if none has by then, tell me and I'll write the DOT complaint for you to file.`);
       } else if (owed.length && !a.missing.some(q => /^Which one|charges that could be it/.test(q))) {
         out.push("", `Send this to ${air} (their refund form, app or email):`, requestText(f, a.claims));
-        if (a.watch && a.watch.due) out.push(`If the refund goes back to a card, it's due within ${plural(a.watch.days.value, "business day")} (${a.watch.cite}): sent today, that's by ${nice(a.watch.due)} (weekends skipped; a federal holiday adds a day). Tell me the day you send it and I'll check your card rows for the credit.`);
+        if (a.watch && a.watch.due) out.push(`If the refund goes back to a card, it's due within ${plural(a.watch.days.value, "business day")} (${a.watch.cite}): sent today, that's by ${nice(a.watch.due)} (weekends skipped; a federal holiday adds a day). When you've sent it, tell me again with the day you sent it (like "${air} cancelled my flight, I declined the new one, and requested my refund on Oct 3") and I'll check your card rows for the credit.`);
       }
       for (const c of usedRows) out.push(`Amount from your card: ${money(c.pick.row.amount_cents)} from ${air === "the airline" ? "the charge" : c.kind === "wifi" ? "the Wi-Fi charge" : air}, posted ${nice(c.pick.row.posted_on)}.`);
       if (usedRows.length || (a.watch && a.watch.sent_on && owed.length)) out.push(a.as_of ? `From your linked accounts, as of ${a.as_of}.` : "No linked card rows to check.");
@@ -10459,7 +10459,7 @@
       const elsewhere = [...new Set(domainsIn(t).filter(d => !isOfficial(d, program)))];
       if (senders.length && ok.length === senders.length && elsewhere.length) return { kind: "state_letter", real: false, text: `${CANT} It comes from ${ok[0]} but gives another address to write to (${elsewhere.join(", ")}). Look it up on ${program.page.url} by typing the address yourself.` };
       if (senders.length && ok.length === senders.length) {
-        return { kind: "state_letter", real: true, text: [`This matches the official sender on file for ${program.name}: ${ok[0]} (${cite}).`, `On file: ${program.stated}`, `I can't see the amount on the state's records; look it up on ${program.page.url} by typing the address yourself. If a check comes, deposit it and tell me, and I'll look for the deposit.`].join("\n") };
+        return { kind: "state_letter", real: true, text: [`This matches the official sender on file for ${program.name}: ${ok[0]} (${cite}).`, `On file: ${program.stated}`, `I can't see the amount on the state's records; look it up on ${program.page.url} by typing the address yourself. If a check comes, deposit it as usual; your bank will usually show it as a check or mobile deposit, not under the state's name.`].join("\n") };
       }
       if (senders.length) return { kind: "state_letter", real: false, text: `${CANT} The sender (${[...new Set(senders)].join(", ")}) isn't the official sender on file for ${program.name} (${program.official_domains.join(" or ")}). Look it up on ${program.page.url} by typing the address yourself.` };
       return { kind: "state_letter", real: null, text: [`A mailed letter has no sender I can check, so I can't confirm it's from ${program.name}. Look it up on ${program.page.url} by typing the address yourself, not from a link or phone number in the letter (${cite}).`, `On file: ${program.stated}`, `Never pay a fee or give a password to get it.`].join("\n") };

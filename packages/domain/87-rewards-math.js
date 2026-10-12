@@ -96,7 +96,7 @@
       const spent = Math.max(0, inWindow.filter(purchase).reduce((s, r) => s - r.amount_cents, 0) - returns.reduce((s, r) => s + r.amount_cents, 0));
       const need = Math.max(0, t.target_cents - spent), days = daysBetween(today, deadline);
       const lines = [`${acct.name}: ${money(spent)} of ${money(t.target_cents)} spent since ${opened}; the window closes ${deadline}${days >= 0 ? ` (${days} day${days === 1 ? "" : "s"} left)` : " (passed)"}.`];
-      if (need === 0) lines.push("You've reached the target. The bonus usually posts after a statement closes; ask me then and I'll look for it in your transactions.");
+      if (need === 0) lines.push("You've reached the target. The bonus usually posts after a statement closes, as points or a statement credit on this card; check that statement for it.");
       else if (days > 0) lines.push(`${money(need)} to go, about ${money(Math.ceil(need / Math.max(1, days / 7)))} a week. Count only spending you'd do anyway; buying extra to hit a bonus usually costs more than it pays.`);
       else lines.push(`The window has closed ${money(need)} short.`);
       lines.push(`That's purchases minus returns on this card${returns.length ? ` (${money(returns.reduce((x, r) => x + r.amount_cents, 0))} returned)` : ""}; your issuer decides what counts (fees and some payments don't), so its number can differ.`, source(acct, own));

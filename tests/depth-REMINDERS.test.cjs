@@ -89,8 +89,13 @@ test("[S10] a day the hourly run missed is said the next day from 9 a.m., with t
   const r = set("remind me to pay rent on the 13th");
   assert.deepEqual(R.due([r], at("2026-10-14T05:00:00Z"), TZ, []), []);
   assert.equal(R.due([r], at("2026-10-14T14:00:00Z"), TZ, [])[0].text, "Reminder: pay rent. This was for yesterday, Oct 13; I'm sorry it's late. (You asked me to remind you; nothing was paid or moved.)");
-  assert.deepEqual(R.due([r], at("2026-10-15T14:00:00Z"), TZ, []), []);
-  assert.deepEqual(R.due([r], at("2026-10-14T14:00:00Z"), TZ, [`reminder:${r.id}:2026-10-13`]), []);
+  assert.deepEqual(R.due([r], at("2026-10-15T14:00:00Z"), TZ, []), [], "never fired (no key in the log) means never caught up two days late");
+  // C24 (real-world capabilities, Wave 1) supersedes fire-and-forget for a reminder that DID fire: it survives
+  // until dismissed, re-surfacing once a day under its own key — so the day after a fired reminder, the sent key
+  // no longer means silence; it means the still-open re-surface below (dismissal: tests/wave1-briefs.test.cjs).
+  const again = R.due([r], at("2026-10-14T14:00:00Z"), TZ, [`reminder:${r.id}:2026-10-13`]);
+  assert.deepEqual(again.map((x) => x.key), [`reminder:${r.id}:2026-10-13:again:2026-10-14`]);
+  assert.match(again[0].text, /^Reminder, still open: pay rent\./);
 });
 
 test("[S11] said back in the person's words turned to Upmore's voice, 'to' or 'about'", () => {

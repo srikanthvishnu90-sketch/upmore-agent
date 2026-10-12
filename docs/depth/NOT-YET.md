@@ -16,7 +16,7 @@ Check: `node --test tests/depth-NOT-YET.test.cjs && node evals/depth/run.cjs NOT
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
 | --- | --- | --- | --- | --- | --- |
-| S01 | Own-account transfers | not built, nothing moved | `S01` in tests/depth-NOT-YET.test.cjs | own transfers are not caught | proven (also fails S02, S15) |
+| S01 | Own-account transfers | not built, nothing moved | `S01` in tests/depth-NOT-YET.test.cjs | own transfers are not caught | proven (also fails S02, S15, S17) |
 | S02 | A send to a person | never an own transfer | `S02` in tests/depth-NOT-YET.test.cjs | any recipient counts as an own account | proven |
 | S03 | Lock and unlock | the card's own app | `S03` in tests/depth-NOT-YET.test.cjs | card locks are not caught | proven |
 | S04 | Lost or stolen | report it to the issuer now | `S04` in tests/depth-NOT-YET.test.cjs | lost cards are not caught | proven (also fails S05, S15) |
@@ -32,4 +32,6 @@ Check: `node --test tests/depth-NOT-YET.test.cjs && node evals/depth/run.cjs NOT
 | S14 | Nothing was done | every reply | `S14` in tests/depth-NOT-YET.test.cjs | the transfer reply drops 'nothing was moved' | proven (also fails S01) |
 | S15 | The way people type it | lead words, curly apostrophes, capitals | `S15` in tests/depth-NOT-YET.test.cjs | curly apostrophes and capitals are not normalised | proven |
 | S16 | Portfolio analytics | benchmarks, sectors, returns, dividends said not built | `S16` in tests/depth-NOT-YET.test.cjs | analytics asks are not caught | proven |
+| S17 | Everything to a new account | the scam warning, nothing moved | `S17` in tests/depth-NOT-YET.test.cjs | everything-to-a-new-account is not caught | proven |
+| S18 | A payment to the wrong person | can't pull it back; the app can | `S18` in tests/depth-NOT-YET.test.cjs | wrong-person payments are not caught | proven |
 <!-- results:end -->

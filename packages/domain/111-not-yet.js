@@ -3,7 +3,8 @@
      send flow, which reads "transfer 1000 from savings to brokerage" as a payment to someone called "brokerage".
        ask(words)     null | { kind }
        answer(words)  null | the reply
-     Kinds: own_transfer (between the person's own accounts), portfolio_analytics (benchmarks, sectors, period returns,
+     Kinds: all_to_new (everything to a new account: the scam warning), wrong_send (a payment to the wrong person),
+     own_transfer (between the person's own accounts), portfolio_analytics (benchmarks, sectors, period returns,
      movers, tax on a sale, dividends), card_lock (lock, freeze, unlock), card_lost (lost or
      stolen), block_merchant, bill_pay (a utility, phone, card or insurance bill; rent has its own flow), pause_plan
      (pause or downgrade a subscription), open_account, recurring_invest. Each reply: what isn't built, the real path
@@ -16,6 +17,11 @@
     const AMT = "\\$?\\d[\\d,]*(?:\\.\\d{1,2})?k?(?: dollars| bucks)?";
     const BILLS = "(?:electric(?:ity)?|power|gas|water|sewer|trash|internet|wifi|phone|cell(?: phone)?|cable|utility|utilities|credit card|card|car|auto|insurance|student loan|loan|mortgage|comcast|xfinity|verizon|at&t|t-mobile|spectrum)";
     const RULES = [
+      // Everything to a new account: the classic end of an account-takeover or "safe account" scam (megadoc N14), so it
+      // comes first, with the warning, before any own-account wording. Upmore moves nothing between accounts anyway.
+      ["all_to_new", /\b(?:move|transfer|send|put|wire|shift)\s+(?:all|everything|it all|all of it|all (?:of )?my (?:money|savings|cash|balance))\b[^.?!]{0,30}\b(?:to|into)\s+(?:a |this |that |the |my )?new (?:account|bank|wallet)\b/],
+      // A payment sent to the wrong person (megadoc B14): Upmore can't pull it back; the app it went through can.
+      ["wrong_send", /\b(?:sent|paid|venmoed|zelled|cash ?apped)\b[^.?!]{0,60}\b(?:by mistake|by accident|accidentally|to the wrong (?:person|account|handle|number|maya|one))\b|\b(?:sent|paid)\b[^.?!]{0,40}\bwrong (?:person|account|handle|number)\b|\b(?:accidentally|mistakenly)\s+(?:sent|paid|venmoed|zelled|cash ?apped)\b/],
       ["own_transfer", new RegExp(`${LEAD}(?:move|transfer|put|shift|send|sweep)\\s+(?:${AMT}|it|everything|all(?: of it)?|the rest|my (?:savings|paycheck|refund))\\s+(?:from ${OWN}\\s+)?(?:to|into|in)\\s+${OWN}\\b`)],
       ["card_lost", /\b(?:report|reporting)\b[^.?!]{0,30}\bcard\b[^.?!]{0,20}\b(?:stolen|lost|missing)\b|\b(?:lost|someone stole|stole|can'?t find|cannot find|misplaced)\b[^.?!]{0,20}\b(?:my )?(?:debit |credit |bank )?card\b|\bcard (?:was|got|is) (?:stolen|lost)\b/],
       ["card_lock", new RegExp(`${LEAD}(?:lock|unlock|freeze|unfreeze|turn off|turn on|pause|unpause|disable|enable)\\s+(?:my |the |this )?(?:debit |credit |bank |chase |amex |visa |mastercard )?card\\b`)],
@@ -40,6 +46,8 @@
         if (kind !== "card_lost" && kind !== "portfolio_analytics" && NOT.test(t)) continue;
         // A savings plan or round-ups is savings automation (the cancel flow says it isn't built), not a subscription.
         if (kind === "pause_plan" && /\b(?:savings|round[- ]?ups?)\b/.test(t)) continue;
+        // Money someone else sent the person by mistake is theirs to return, not a payment to pull back.
+        if (kind === "wrong_send" && /\b(?:sent|paid|venmoed|zelled|cash ?apped) me\b/.test(t)) continue;
         return { kind };
       }
       return null;
@@ -53,6 +61,8 @@
       pause_plan: "Pausing or downgrading a subscription isn't built yet, so nothing was changed; the service's own account page does it. If you'd rather stop it, say \"cancel\" and its name and I'll put up a cancel card for your yes.",
       open_account: "Upmore doesn't open accounts, so nothing was opened. You open one on the bank's or broker's own site; once it's open, I can show it here when you connect it.",
       portfolio_analytics: "That isn't built yet: comparisons with the market, sector weights, returns over a period, movers, tax estimates on a sale and dividends aren't in Upmore, so I won't guess at them. What I can show is your holdings, each with its value and gain since you bought: say \"how's my portfolio\".",
+      all_to_new: "Stop if anyone asked you to do this: moving everything to a new account is how most account-takeover and \"safe account\" scams end, and no real bank or agency asks for it. Upmore can't move money between accounts, so nothing was moved. If it's your own new account, do it in your bank's own app, after checking the account is in your name.",
+      wrong_send: "I can't pull a payment back, and nothing was sent or changed. Ask the app it went through: in Venmo or Cash App, contact their support from the payment and ask the person to send it back; for Zelle, call your bank right away. Getting it back isn't guaranteed, so do it today.",
       recurring_invest: "Recurring investing isn't built yet, so nothing was set up. You can buy now, like \"buy $5 of VOO\": each order needs your yes and is capped at $5 for now.",
     };
     function answer(words) {

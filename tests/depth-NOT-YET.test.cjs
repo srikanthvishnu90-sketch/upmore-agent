@@ -76,8 +76,8 @@ test("[S13] questions about money are not actions", () => {
 });
 
 test("[S14] every reply says nothing was done, or (stolen card) that Upmore can't act on the card", () => {
-  for (const k of N.KINDS) assert.match(N.TEXT[k], /nothing was (?:moved|changed|paid|opened|set up)|Upmore can't report or cancel a card|I won't guess at them/i, k);
-  assert.equal(N.KINDS.length, 9);
+  for (const k of N.KINDS) assert.match(N.TEXT[k], /nothing was (?:moved|changed|paid|opened|set up|sent or changed)|Upmore can't report or cancel a card|I won't guess at them/i, k);
+  assert.equal(N.KINDS.length, 11);
 });
 
 test("[S15] the way people type it: lead words, curly apostrophes, capitals", () => {
@@ -90,4 +90,16 @@ test("[S16] portfolio analytics: benchmarks, sectors, period returns, movers, ta
   for (const t of ["compare my portfolio to the S&P", "am I too concentrated in tech", "which of my stocks are up over 6 months and why", "what stocks are up the most this week", "how much tax if I sell all TSLA", "what dividends did I get", "what's my ytd return", "is my portfolio beating the market"]) assert.equal(kind(t), "portfolio_analytics", t);
   for (const t of ["how's my portfolio", "what's my biggest holding", "how much did i make on VOO", "what's the price of VOO", "am i up on tesla", "how am I doing this year"]) assert.equal(kind(t), null, t);
   assert.match(N.answer("compare my portfolio to the S&P"), /^That isn't built yet: comparisons with the market, sector weights, returns over a period, movers, tax estimates on a sale and dividends aren't in Upmore, so I won't guess at them\. What I can show is your holdings, each with its value and gain since you bought: say "how's my portfolio"\.$/);
+});
+
+test("[S17] everything to a new account: the scam warning first, nothing moved, the bank's own app for a real new account", () => {
+  for (const t of ["transfer all to this new account", "move all my savings to a new bank", "send everything to the new account", "wire all of it to a new account"]) assert.equal(kind(t), "all_to_new", t);
+  assert.match(N.answer("transfer all to this new account"), /^Stop if anyone asked you to do this: moving everything to a new account is how most account-takeover and "safe account" scams end, and no real bank or agency asks for it\. Upmore can't move money between accounts, so nothing was moved\./);
+  assert.equal(kind("transfer everything to my savings"), "own_transfer", "the person's own named account is the ordinary not-built answer");
+});
+
+test("[S18] a payment to the wrong person: Upmore can't pull it back; the app it went through can; not guaranteed", () => {
+  for (const t of ["sent maya 40 earlier by mistake to maya-k2, get it back", "i paid the wrong person", "i venmoed sam by accident", "accidentally zelled $200 to my old landlord"]) assert.equal(kind(t), "wrong_send", t);
+  assert.equal(N.answer("i paid the wrong person"), "I can't pull a payment back, and nothing was sent or changed. Ask the app it went through: in Venmo or Cash App, contact their support from the payment and ask the person to send it back; for Zelle, call your bank right away. Getting it back isn't guaranteed, so do it today.");
+  for (const t of ["send sam 40", "get my money back from amazon", "sam sent me 40 by mistake"]) assert.notEqual(kind(t), "wrong_send", t);
 });

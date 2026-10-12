@@ -1,9 +1,9 @@
 {
  "capability": "NOT-YET",
- "run_at": "2026-10-12T13:04:04.775Z",
+ "run_at": "2026-10-12T13:31:59.944Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 18,
+ "proven": 18,
  "problems": [],
  "rows": [
   {
@@ -16,7 +16,8 @@
    "applied": true,
    "collateral": [
     "S02",
-    "S15"
+    "S15",
+    "S17"
    ],
    "status": "proven"
   },
@@ -187,6 +188,28 @@
    "title": "Portfolio analytics",
    "defect": "analytics asks are not caught",
    "test": "benchmarks, sectors, returns, dividends said not built",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Everything to a new account",
+   "defect": "everything-to-a-new-account is not caught",
+   "test": "the scam warning, nothing moved",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "A payment to the wrong person",
+   "defect": "wrong-person payments are not caught",
+   "test": "can't pull it back; the app can",
    "bites": true,
    "applied": true,
    "collateral": [],

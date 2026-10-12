@@ -139,7 +139,8 @@ set("L07", "BUILT", "said on the message and restated (\"charges that say Target
 set("L09", "BUILT", "'spend over 100 on one thing' is the charge-over watch ($100.00), restated and saved as the person's watch row; it fires on one charge over the line; a category or merchant in the words is refused, never guessed", "tests/edge/proactive.test.ts");
 set("L10", "BUILT", "the weekly recap on Sundays (money in, money out and where most of it went, what's coming up), restated and saved as the person's setting; the hourly run that sends it is not deployed", "tests/edge/proactive.test.ts");
 set("M01 M02 M03 M07 M08 M12", "NOT_BUILT", "goals, transfers between accounts, round-ups and account opening");
-set("M04 M05 M06", "MODEL", "the chat model");
+set("M04 M05", "MODEL", "the chat model");
+set("M06", "LIMITED", "the math from the person's own rows: the monthly amount over the months to the date and per week, what they keep a month (last full months, transfers left out), where that pace gets them, their savings balance said; no date said is asked; no plan card and no goal is saved, and that is said", "tests/edge/megadoc-money-asks.test.ts");
 set("M09 M10 M11", "NOT_BUILT", "savings automation; said plainly, nothing moved", "tests/edge/megadoc-sim.test.ts");
 // N. scams, injection
 set("N01 N03 N05 N07 N12", "BUILT", "stopped before any question; nothing set up", "tests/edge/megadoc-sim.test.ts");

@@ -29,7 +29,7 @@
 // payment from a person, from the person's own rows (packages/domain/101-money-in.js).
 // "What's this charge?" (megadoc K01, K02, K05): the charge found by its text or amount, what the statement shows, its
 // history and a possible double charge; dispute asks stay with the dispute answer (packages/domain/102-charge-check.js).
-import { Bnpl, BNPL_PROVIDERS_JSON, CancelledCharge, ChargeCheck, RentShort, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
+import { Bnpl, BNPL_PROVIDERS_JSON, CancelledCharge, ChargeCheck, RentShort, SaveGoal, MoneyAnswers, MoneyIn, RefundCheck, SpendingViews, SubscriptionList, TheNumbers, YearInMoney } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -45,7 +45,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | "savegoal" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -98,6 +98,8 @@ export function moneyKind(message: string): MoneyKind | null {
   if (CancelledCharge.ask(m)) return "cancelled";
   // "Rent is due and I only have 1900", "I can't pay rent this month" (106-rent-short.js): rent against cash, before afford.
   if (RentShort.ask(m)) return "rentshort";
+  // "I want to save 10000 by June" (107-save-goal.js): the monthly amount against what the person keeps a month.
+  if (SaveGoal.ask(m)) return "savegoal";
   // Before "did it go through": "did the refund go through" is about money coming back, not a charge.
   if (RefundCheck.ask(m)) return "refund";
   if (SubscriptionList.ask(m)) return "subs";
@@ -157,6 +159,7 @@ export async function moneyReply(message: string, now: Date | number | string, r
   if (kind === "moneyin") return MoneyIn.answer(accounts, tx, message, now, { tz });
   if (kind === "charge") return ChargeCheck.answer(accounts, tx, message, now, { tz });
   if (kind === "rentshort") return RentShort.answer(accounts, tx, message, now, { tz });
+  if (kind === "savegoal") return SaveGoal.answer(accounts, tx, message, now, { tz });
   if (kind === "cancelled") {
     // The cancel flow's own records (win_back_answer.ts readCancellations); an unreadable table is null, said plainly.
     let cancellations: any[] | null = [];

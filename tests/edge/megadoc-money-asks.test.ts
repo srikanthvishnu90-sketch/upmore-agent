@@ -99,3 +99,12 @@ Deno.test("D13: rent against cash from the rows, through the handler's chain; pa
   assertMatch(t!, /^Rent: \$2,400\.00 due Nov 1 \(your repeating payment to Oak Property Mgmt Rent\)\.\nCash: \$500\.00 \(your linked checking and savings\)\.\nShort by \$1,900\.00 today\./);
   assertMatch(t!, /\nNothing was paid, moved or sent\.\n/);
 });
+
+Deno.test("M06: a savings target's monthly amount against what the person keeps, through the handler's chain; nothing moved", async () => {
+  const [k, r] = await first("I want to save 10000 by June");
+  assertEquals(k, "moneyReply");
+  assertMatch(r, /^To save \$10,000\.00 by Jun 30, 2027: \$1,250\.00 a month for 8 months \(Nov through Jun\), or about \$264\.00 a week\.\n/);
+  assertMatch(r, /\nThis is the math only: nothing is moved or set aside, and goals aren't saved yet\.\n/);
+  assertMatch(r, SRC);
+  assertEquals((await first("help me save money"))[0], "findMoneyReply");
+});

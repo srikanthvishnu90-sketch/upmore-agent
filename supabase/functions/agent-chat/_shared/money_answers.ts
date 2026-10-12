@@ -41,7 +41,21 @@ export type MoneyTxRow = {
 };
 // history(from): the person's rows from a past day on (a past year's review), when the host can read further back than
 // transactions() does; without it the review uses transactions() and says where those rows start.
-export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]>; previous?(): Promise<{ role: string; content: string }[]>; history?(from: string): Promise<MoneyTxRow[]>; cancellations?(): Promise<any[] | null> };
+// settings(): the person's agent_proactive_settings row (buffer_cents and their watches, which carry their savings
+// goals) — safe-to-spend subtracts the buffer, afford reads the goals from the watches. scheduledTransfers(): the
+// person's scheduled transfers ({ on, amount_cents, name }) due out of their cash — safe-to-spend and the forecast
+// subtract the ones due in their window. goals(): goal inputs directly, when the host has them in that shape.
+// Every one is optional: a host that supplies none gets the bills-only numbers, exactly as before.
+export type ScheduledTransferRow = { on?: string; due_on?: string; date?: string; amount_cents: number; name?: string; label?: string };
+export type MoneySettingsRow = { buffer_cents?: number | null; watches?: any[] };
+export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]>; previous?(): Promise<{ role: string; content: string }[]>; history?(from: string): Promise<MoneyTxRow[]>; cancellations?(): Promise<any[] | null>; settings?(): Promise<MoneySettingsRow | null>; scheduledTransfers?(): Promise<ScheduledTransferRow[]>; goals?(): Promise<any[]> };
+// The person's savings goals in the shape TheNumbers.afford reads: their stored savings_goal watches
+// (114-savings-goals.js) mapped field for field; saved and the monthly amount are derived in the domain from the
+// goal's account balance and its date, the same arithmetic as the goal answer.
+export function goalsFromWatches(watches: any[]): any[] {
+  return (watches || []).filter((w) => w && w.kind === "savings_goal" && w.status !== "stopped")
+    .map((w) => ({ name: w.name, target_cents: w.target_cents, by: w.by || null, account: w.account || null }));
+}
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
@@ -147,7 +161,10 @@ export const MONEY_UNAVAILABLE = "I can't read your linked accounts right now, s
 
 // opts.rules: the person's category rules (95-category-rules.js), so "Target" counts where they said in spending, the
 // month comparison, spending by card, "how am i doing" and the year in money.
-export async function moneyReply(message: string, now: Date | number | string, read: MoneyReaders, opts?: { tz?: string; rules?: any[] }): Promise<string | null> {
+// opts.buffer_cents / opts.scheduled_transfers / opts.goals / opts.settings: the numbers' extra inputs (C3/C4/C9)
+// when the host already holds them; otherwise the optional readers above supply them. A failed optional read loses
+// only that input, never the answer.
+export async function moneyReply(message: string, now: Date | number | string, read: MoneyReaders, opts?: { tz?: string; rules?: any[]; buffer_cents?: number | null; scheduled_transfers?: ScheduledTransferRow[]; goals?: any[]; settings?: MoneySettingsRow | null }): Promise<string | null> {
   const kind = moneyKind(message);
   if (!kind) return null;
   const tz = opts?.tz || "UTC", rules = Array.isArray(opts?.rules) ? opts!.rules : [];
@@ -191,6 +208,26 @@ export async function moneyReply(message: string, now: Date | number | string, r
     try { previous = (read.previous ? await read.previous() : []) || []; } catch { previous = []; }
     return SpendRecheck.answer(tx, message, now, { tz, rules, previous });
   }
+  // The numbers' extra inputs (C3 buffer + scheduled transfers, C4's buffer line, C9's goals), from opts first, then
+  // the optional readers. Only the numbers kinds below reach here, so no other answer pays for these reads.
+  const numbersOpts: any = { tz };
+  if (opts?.buffer_cents != null) numbersOpts.buffer_cents = opts.buffer_cents;
+  if (opts?.scheduled_transfers) numbersOpts.scheduled_transfers = opts.scheduled_transfers;
+  if (opts?.goals) numbersOpts.goals = opts.goals;
+  let settings: MoneySettingsRow | null | undefined = opts?.settings;
+  if (settings === undefined && read.settings && (numbersOpts.buffer_cents == null || !numbersOpts.goals)) {
+    try { settings = await read.settings(); } catch { settings = null; }
+  }
+  if (settings) {
+    if (numbersOpts.buffer_cents == null && settings.buffer_cents != null) numbersOpts.buffer_cents = settings.buffer_cents;
+    if (!numbersOpts.goals && Array.isArray(settings.watches)) numbersOpts.goals = goalsFromWatches(settings.watches);
+  }
+  if (!numbersOpts.scheduled_transfers && read.scheduledTransfers) {
+    try { numbersOpts.scheduled_transfers = (await read.scheduledTransfers()) || undefined; } catch { /* the input is lost, not the answer */ }
+  }
+  if (!numbersOpts.goals && read.goals) {
+    try { numbersOpts.goals = (await read.goals()) || undefined; } catch { /* the input is lost, not the answer */ }
+  }
   if (kind === "math" || kind === "explain") {
     // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed
     // read only loses that context: a bare ask then goes on to the model, a named one is still answered.
@@ -198,7 +235,7 @@ export async function moneyReply(message: string, now: Date | number | string, r
     try { previous = (read.previous ? await read.previous() : []) || []; } catch { previous = []; }
     // "Show me the math" right after a spending total: the charges behind it (the numbers' math has no spending answer).
     if (SpendRecheck.lastSpend(previous)) return SpendRecheck.answer(tx, { kind: "where" }, now, { tz, rules, previous });
-    return TheNumbers.showMath(accounts, tx, message, now, { tz, previous });
+    return TheNumbers.showMath(accounts, tx, message, now, { ...numbersOpts, previous });
   }
-  return TheNumbers.answer(kind, accounts, tx, message, now, { tz })?.text ?? null;
+  return TheNumbers.answer(kind, accounts, tx, message, now, numbersOpts)?.text ?? null;
 }

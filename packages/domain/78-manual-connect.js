@@ -7,7 +7,9 @@
      playbook a platform needs before it can be offered, read-only enforcement, session health and the honest status
      line ("Connected (manual session), last checked 3:05 PM"), and the log scrubber that keeps cookies, tokens and
      codes out of every log and message. The live window and the encrypted session store are the host's (Browserbase
-     live view, Vault); neither is built yet, so the host answers NOT_WIRED until they are. */
+     live view, Vault): supabase/functions/manual-connect (logic in _shared/manual_connect.ts) and migration
+     20261012010000_manual_connections.sql. Without Browserbase keys the host answers NOT_WIRED; no platform has been
+     connected live yet, so every playbook stays unverified. */
   const ManualConnect = (() => {
     const CONSENT_VERSION = "2026-10-11";
     const READ_VERBS = Object.freeze(["health", "read_balances", "read_positions"]);

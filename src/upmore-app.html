@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-ygUMBv0Qr3OL5m+xlt0ShsymDje6fElFFVeH7hFEYR0=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-Kk+alRJcACSkAvED8Dm0OPiIDIbXoitRekJhXyZMXcU=' 'sha256-lghDd+PAHS1L2VkynL1KFc8u22yXaz38nPhN+b8r1dc=' 'sha256-2b6+tvuEKi3FCc/EsD2DDkYi0BpWhBDL2qWI8+T6PsI=' 'sha256-eoNSGwXP5jyRa3saNfhJWC8Bfkq5h6T7juHm7Fc0EIY=' 'sha256-KU8FhXZxhLC8JgSJ+ArqrmzL46XKWbiORnVrol6sZUI=' 'sha256-ixzdNRtH1xxtlBpwdnEv7k4nEGhwONIbopbRYdJnFdk=' https://cdn.plaid.com; worker-src 'self'; frame-src https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://mrwngntwmnaqrqhupvlt.supabase.co wss://mrwngntwmnaqrqhupvlt.supabase.co https://cdn.plaid.com https://*.plaid.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17251E">
@@ -2250,6 +2250,123 @@ globalThis.UpmoreChatRequests = function ({identity,conversation,getToken,reques
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = ConnectCards;
 
+  /* Guided manual connect (owner, 2026-10-11, guided manual connect addendum): the read-only lane for platforms with no
+     API and no aggregator (the browser_assisted rows in packages/connectors/platforms.json). Decision 1 (settled): no
+     password storage, session-only. The person opens a live browser window on the platform's own site, logs in
+     themselves and completes their own 2FA or CAPTCHA; Upmore never sees or keeps a password or a code. Only the
+     encrypted session persists, and it is used for one thing: reading holdings and balances.
+     This module is the policy, kept pure so every rule is tested: the consent the person reads (recorded verbatim), the
+     playbook a platform needs before it can be offered, read-only enforcement, session health and the honest status
+     line ("Connected (manual session), last checked 3:05 PM"), and the log scrubber that keeps cookies, tokens and
+     codes out of every log and message. The live window and the encrypted session store are the host's (Browserbase
+     live view, Vault): supabase/functions/manual-connect (logic in _shared/manual_connect.ts) and migration
+     20261012010000_manual_connections.sql. Without Browserbase keys the host answers NOT_WIRED; no platform has been
+     connected live yet, so every playbook stays unverified. */
+  const ManualConnect = (() => {
+    const CONSENT_VERSION = "2026-10-11";
+    const READ_VERBS = Object.freeze(["health", "read_balances", "read_positions"]);
+    const HEALTH_EVERY_MS = 6 * 3600 * 1000; // a session is checked every 6 hours; older than a day is said plainly
+    const STALE_MS = 24 * 3600 * 1000;
+
+    // What the person agrees to, word for word, before the window opens. The exact text is stored with the consent.
+    function consentText(platform) {
+      return [
+        `Upmore opens ${platform}'s own sign-in page in a secure live window. You log in yourself and do your own two-step check; Upmore never sees or keeps your password or any code.`,
+        `Once you're in, Upmore keeps only the encrypted session, and uses it to read your balances and holdings. Read-only: it never places an order, moves money or changes a setting.`,
+        `Upmore checks the session every few hours and tells you when ${platform} signs you out, so you can log in again.`,
+        `${platform}'s terms may not allow automated access. If they ask Upmore to stop, it stops.`,
+        `Turn it off any time with one message ("disconnect ${platform}"); the session is deleted right away.`,
+      ];
+    }
+    function consentRecord(platform, now, accepted) {
+      if (accepted !== true) return { ok: false, code: "no_consent", text: `Nothing was connected: ${platform} connects only after you agree.` };
+      return { ok: true, record: { platform, version: CONSENT_VERSION, text: consentText(platform).join(" "), accepted_at: new Date(now).toISOString() } };
+    }
+
+    // A platform is offered only with a playbook: where to sign in, how to tell the person is signed in, and what to
+    // read. Reads only: a step that could buy, sell, move money or change anything is refused at validation.
+    const WRITE_WORDS = /\b(buy|sell|trade|order|transfer|withdraw|deposit|invest|redeem|submit|confirm|delete|close account|change|update|save)\b/i;
+    function validatePlaybook(pb) {
+      const errors = [], tag = (pb && pb.platform_id) || "?";
+      if (!pb || !pb.platform_id || !pb.display_name) return ["playbook: platform_id and display_name are required"];
+      if (!/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\//i.test(pb.login_url || "")) errors.push(`${tag}: login_url must be the platform's own https page`);
+      if (!Array.isArray(pb.signed_in_when) || !pb.signed_in_when.length) errors.push(`${tag}: signed_in_when needs at least one text the signed-in page shows`);
+      if (!Array.isArray(pb.signed_out_when) || !pb.signed_out_when.length) errors.push(`${tag}: signed_out_when needs at least one text the sign-in page shows`);
+      const reads = pb.reads || [];
+      if (!reads.length) errors.push(`${tag}: reads is empty`);
+      for (const r of reads) {
+        if (!["balance", "position", "as_of"].includes(r.field)) errors.push(`${tag}: read field ${r.field} is not balance, position or as_of`);
+        if (!/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\//i.test(r.page || "")) errors.push(`${tag}: read ${r.field} needs its page`);
+        if (!Array.isArray(r.labels) || !r.labels.length) errors.push(`${tag}: read ${r.field} needs the labels it reads next to`);
+      }
+      for (const s of pb.steps || []) if (s.kind === "click" && WRITE_WORDS.test(s.text || "")) errors.push(`${tag}: step clicks "${s.text}", which could change something; manual connect is read-only`);
+      if (typeof pb.verified !== "boolean") errors.push(`${tag}: verified must say true or false`);
+      if (pb.verified && !pb.verified_on) errors.push(`${tag}: a verified playbook names the live run that verified it`);
+      if (!Array.isArray(pb.sources) || !pb.sources.length) errors.push(`${tag}: sources are required`);
+      return errors;
+    }
+
+    // Read-only, whatever is asked.
+    function allow(verb) {
+      if (READ_VERBS.includes(verb)) return { ok: true };
+      return { ok: false, code: "read_only", text: "A manual connection is read-only: Upmore reads balances and holdings there, and never places orders, moves money or changes settings. Nothing was done." };
+    }
+
+    // Session health. A check returns what the page showed; the state moves and the person hears about a sign-out once.
+    // state: pending_login | connected | needs_login | broken | revoked
+    function onCheck(session, check, now) {
+      const s = Object.assign({ state: "pending_login", last_checked: null, told_signed_out: false, failures: 0 }, session || {});
+      if (s.state === "revoked") return { session: s, message: null };
+      if (check.signed_in) return { session: Object.assign(s, { state: "connected", last_checked: now, told_signed_out: false, failures: 0 }), message: null };
+      if (check.signed_out) {
+        const message = s.told_signed_out ? null : `${check.platform} signed you out, so Upmore can't read it right now. Log in again whenever you like: I'll send the link.`;
+        return { session: Object.assign(s, { state: "needs_login", told_signed_out: true, failures: 0 }), message };
+      }
+      // Neither: the page changed or did not load. Two in a row is broken, said once; one is a blip.
+      const failures = s.failures + 1;
+      const broken = failures >= 2 && s.state !== "broken";
+      return { session: Object.assign(s, { failures, state: failures >= 2 ? "broken" : s.state }), message: broken ? `${check.platform}'s page changed, so Upmore can't read it right now. Nothing was changed; I'll tell you when it works again.` : null };
+    }
+    const due = (session, now) => !!session && ["connected"].includes(session.state) && (!session.last_checked || now - session.last_checked >= HEALTH_EVERY_MS);
+
+    // The honest status line, everywhere the connection is shown.
+    function statusLine(platform, session, now, fmt) {
+      const t = ms => (fmt ? fmt(ms) : new Date(ms).toISOString());
+      const s = session || { state: "pending_login" };
+      if (s.state === "connected") {
+        const stale = s.last_checked && now - s.last_checked > STALE_MS;
+        return `${platform}: connected (manual session), last checked ${t(s.last_checked)}${stale ? " - older than a day, so the numbers may be out of date" : ""}`;
+      }
+      if (s.state === "needs_login") return `${platform}: signed out - log in again to keep reading it${s.last_checked ? ` (last read ${t(s.last_checked)})` : ""}`;
+      if (s.state === "broken") return `${platform}: can't be read right now (the page changed)${s.last_checked ? `; last read ${t(s.last_checked)}` : ""}`;
+      if (s.state === "revoked") return `${platform}: disconnected`;
+      return `${platform}: not connected`;
+    }
+
+    // Logs and messages never carry a session, a cookie, a token, a password or a code: keys that name one are dropped,
+    // and values that look like one are masked, however deep.
+    const SECRET_KEY = /cookie|session|token|password|passwd|secret|authorization|auth_header|otp|one_time|code|api_key|apikey|bearer|storage_state|local_storage/i;
+    const SECRET_VALUE = /\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}|\b(?:Bearer|Basic)\s+[\w.~+/=-]{12,}|(?:^|;\s*)[\w-]+=[\w%.~+/=-]{16,}(?:;|$)|\b[a-f0-9]{32,}\b|\b[A-Za-z0-9+/]{40,}={0,2}/;
+    const KEEP_KEYS = new Set(["state", "platform", "last_checked", "field", "page", "labels"]);
+    function scrub(value, depth) {
+      const d = depth || 0;
+      if (d > 8) return "[deep value removed]";
+      if (typeof value === "string") return SECRET_VALUE.test(value) ? "[secret removed]" : value;
+      if (Array.isArray(value)) return value.map(v => scrub(v, d + 1));
+      if (value && typeof value === "object") {
+        const out = {};
+        for (const [k, v] of Object.entries(value)) { if (SECRET_KEY.test(k) && !KEEP_KEYS.has(k)) continue; out[k] = scrub(v, d + 1); }
+        return out;
+      }
+      return value;
+    }
+    const leaks = value => JSON.stringify(scrub(value)) !== JSON.stringify(value);
+
+    return { CONSENT_VERSION, READ_VERBS, HEALTH_EVERY_MS, STALE_MS, consentText, consentRecord, validatePlaybook, allow, onCheck, due, statusLine, scrub, leaks };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = ManualConnect;
+
+const MANUAL_PLAYBOOKS = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","verified":false},{"platform_id":"fundrise","display_name":"Fundrise","verified":false},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","verified":false}];
   /* Phone frame on larger screens */
   (function () {
     if (new URLSearchParams(location.search).has("noanim")) document.documentElement.classList.add("noanim");
@@ -11427,10 +11544,11 @@ function renderRecoveryReview(){document.getElementById('recoveryReload').onclic
         investAccts.map(a => `<div class="mrow"><div><b>${esc(a.name)}</b><i>balance only — holdings unavailable</i></div><span>${bm0(a.balance)}</span></div>`).join("") +
         `</div><p class="psub" style="margin-top:8px">Connect Plaid or add positions manually to X-ray these.</p>` : "";
 
-    body.innerHTML = `${connHtml}${mainHtml}${balHtml}
+    body.innerHTML = `${connHtml}${mainHtml}${balHtml}${signedIn ? `<div id="manualConnectBox" style="margin-top:14px"></div>` : ""}
       <p class="fine" style="margin:18px 0 4px">Read-only X-ray. Upmore shows what you hold, what it costs, where it's concentrated, and what it pays — facts only, never buy/sell advice.</p>`;
 
     // wiring
+    if (signedIn && typeof refreshManualConnect === "function") refreshManualConnect();
     const pc = $("invPlaidConnect"); if (pc) pc.onclick = () => maybeConsent("plaid", plaidConnectFlow);
     // CONNECT-ONCE 2026-09-28: the reconnect banner's button reuses the same
     // Plaid Link flow — re-auth is always the user's own tap.
@@ -13906,6 +14024,87 @@ async function refreshBrokerRow() {
     desc.textContent = "Not connected.";
     btn.textContent = "Connect"; btn.hidden = false; btn.onclick = connect;
   }
+}
+/* Guided manual connect (owner addendum 2026-10-11; decision 1: no password storage, session-only), in Investments.
+   For platforms no API or aggregator reaches. The person reads the consent (ManualConnect.consentText; the
+   manual-connect function records the same words), opens the platform's own sign-in page in a live window and logs in
+   THEMSELVES there, doing their own two-step check; then taps "I'm signed in". Upmore types nothing, and there is no
+   password or code field here. Only the encrypted session is kept (Vault). Read-only. The status line is
+   ManualConnect.statusLine, the same words everywhere. The client reads its own rows (RLS), never a session. */
+const MC_FMT = ms => new Date(ms).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+async function mcInvoke(body) {
+  try {
+    const { data, error } = await supa.functions.invoke("manual-connect", { body });
+    if (data) return data;
+    if (error && error.context && typeof error.context.json === "function") return await error.context.json().catch(() => ({ ok: false }));
+  } catch (e) {}
+  return { ok: false, text: "Couldn't reach Upmore right now. Nothing was changed; try again." };
+}
+const mcSession = r => r ? { state: r.state, last_checked: r.last_checked ? Date.parse(r.last_checked) : null } : null;
+async function refreshManualConnect(openId) {
+  const box = $("manualConnectBox");
+  if (!box || !supa || !session || !session.user || typeof ManualConnect === "undefined") return;
+  let rows = null;
+  try {
+    const { data, error } = await supa.from("manual_connections").select("platform_id,state,last_checked,consent_version").eq("user_id", session.user.id);
+    if (!error) rows = data || [];
+  } catch (e) {}
+  box.innerHTML = `<h2 class="sec">Platforms with no connection</h2>
+    <p class="psub" style="margin-bottom:8px">No API or aggregator reaches these. You log in yourself in a live window, and Upmore reads your balances and holdings there. Read-only.</p>
+    <div class="bcard">` + MANUAL_PLAYBOOKS.map(p => {
+      const r = rows && rows.find(x => x.platform_id === p.platform_id);
+      const line = rows === null ? "Can't check this connection right now." : ManualConnect.statusLine(p.display_name, mcSession(r), Date.now(), MC_FMT);
+      const label = r && ["connected", "needs_login", "broken"].includes(r.state) ? "Manage" : "Connect";
+      return `<div class="mrow"><div><b>${esc(p.display_name)}</b><i>${esc(line)}${p.verified ? "" : " · unverified playbook"}</i></div><button class="ghostbtn" data-mc="${esc(p.platform_id)}" style="width:auto;margin:0;padding:6px 12px">${label}</button></div>`;
+    }).join("") + `</div><div id="mcPanel"></div>`;
+  box.querySelectorAll("[data-mc]").forEach(b => { b.onclick = () => openManualPanel(b.getAttribute("data-mc"), rows); });
+  if (openId) openManualPanel(openId, rows);
+}
+function openManualPanel(id, rows) {
+  const p = MANUAL_PLAYBOOKS.find(x => x.platform_id === id), panel = $("mcPanel");
+  if (!p || !panel) return;
+  const r = (rows || []).find(x => x.platform_id === id) || null;
+  const agreed = !!(r && r.state !== "revoked" && r.consent_version === ManualConnect.CONSENT_VERSION);
+  const live = !!(r && ["connected", "needs_login", "broken"].includes(r.state));
+  panel.innerHTML = `<div class="pcard" style="margin-top:12px;flex-direction:column;align-items:stretch">
+    <p class="bsum" style="font-size:14px"><b>Connect ${esc(p.display_name)}, read-only</b></p>
+    ${ManualConnect.consentText(p.display_name).map(t => `<p class="psub" style="margin-top:6px">${esc(t)}</p>`).join("")}
+    ${p.verified ? "" : `<p class="fine" style="margin-top:8px">Unverified playbook: ${esc(p.display_name)}'s pages haven't been confirmed on a live run yet, so this is a try, not a promise.</p>`}
+    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${agreed ? `<button class="cta" id="mcOpen" style="flex:1;margin:0">Open the sign-in window</button>
+      <button class="ghostbtn" id="mcSigned" style="flex:1;margin:0">I'm signed in</button>` : `<button class="cta" id="mcAgree" style="flex:1;margin:0">I agree</button>`}
+      ${live ? `<button class="ghostbtn" id="mcRead" style="flex:1;margin:0">Read balances</button>
+      <button class="ghostbtn" id="mcOff" style="flex:1;margin:0">Disconnect</button>` : ""}
+    </div>
+    <p class="fine" id="mcStatus" style="margin-top:8px;white-space:pre-line">${esc(ManualConnect.statusLine(p.display_name, mcSession(r), Date.now(), MC_FMT))}</p>
+  </div>`;
+  const st = $("mcStatus");
+  const say = res => { if (st) st.textContent = [res.text || res.message || (res.ok ? "" : "That didn't work. Nothing was changed."), res.status_line].filter(Boolean).join("\n"); };
+  const busy = (b, fn) => async () => { b.disabled = true; try { await fn(); } finally { b.disabled = false; } };
+  const ag = $("mcAgree");
+  if (ag) ag.onclick = busy(ag, async () => {
+    const res = await mcInvoke({ action: "consent", platform_id: id, accepted: true, consent_version: ManualConnect.CONSENT_VERSION });
+    if (res.ok) refreshManualConnect(id); else say(res);
+  });
+  const op = $("mcOpen");
+  if (op) op.onclick = busy(op, async () => {
+    // The tab opens on the tap (popup blockers), then goes to the live window once it exists.
+    const win = window.open("", "_blank");
+    const res = await mcInvoke({ action: "start", platform_id: id });
+    if (res.ok && /^https:\/\//.test(res.live_view_url || "")) {
+      if (win) { win.opener = null; win.location.href = res.live_view_url; } else window.open(res.live_view_url, "_blank", "noopener");
+    } else if (win) win.close();
+    say(res);
+  });
+  const sg = $("mcSigned");
+  if (sg) sg.onclick = busy(sg, async () => { const res = await mcInvoke({ action: "check", platform_id: id }); say(res); if (res.ok) setTimeout(() => refreshManualConnect(id), 1200); });
+  const rd = $("mcRead");
+  if (rd) rd.onclick = busy(rd, async () => say(await mcInvoke({ action: "read", platform_id: id, verb: "read_balances" })));
+  const off = $("mcOff");
+  if (off) off.onclick = busy(off, async () => {
+    if (!confirm(`Disconnect ${p.display_name}? Upmore deletes the session right away.`)) return;
+    const res = await mcInvoke({ action: "disconnect", platform_id: id }); say(res); if (res.ok) setTimeout(() => refreshManualConnect(id), 1200);
+  });
 }
 /* Gmail connection (2026-09-28): read-only OAuth so the cancellation agent
    can fetch sign-in codes itself. Tokens stay server-side in the vault —

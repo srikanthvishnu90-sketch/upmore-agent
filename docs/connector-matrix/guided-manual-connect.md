@@ -1,7 +1,25 @@
 # Guided manual connect: the read-only lane for platforms with no API
 
-Status: **BUILT (policy, playbooks, tests); NOT VERIFIED.** The live window and the encrypted session store are not built,
-so no platform can be connected this way yet, and the host answers NOT_WIRED until they are. Owner addendum, 2026-10-11.
+Status: **BUILT (policy, playbooks, live window, session store, health job, app UI, tests); NOT VERIFIED.** Everything
+below runs against a MOCK browser and a MOCK database in tests; nothing is deployed, the migration is not applied live,
+no Browserbase keys are set (so every window step answers 503 NOT_WIRED), and no platform has been connected with a real
+account. Owner addendum, 2026-10-11.
+
+## Where it lives
+
+| Piece | File | Check |
+| --- | --- | --- |
+| Policy (consent, read-only, health, status line, scrubber) | `packages/domain/78-manual-connect.js` | `node --test tests/manual-connect.test.cjs` |
+| Table, RLS, Vault functions (service_role only), Vault cleanup on delete | `supabase/migrations/20261012010000_manual_connections.sql` | `bash tests/db/run.sh` (`tests/db/manual_connections.test.sql`) |
+| HTTP: `status`, `consent`, `start`, `check`, `read`, `disconnect` (JWT on) | `supabase/functions/manual-connect/index.ts`, `supabase/functions/_shared/manual_connect.ts` | `deno test -A tests/edge/manual-connect.test.ts` |
+| The live window (Browserbase keepAlive session, live view, CDP for page text and the session) | `supabase/functions/_shared/manual_browser.ts` | same (STUBBED fetch for the API calls) |
+| Health job (hourly, each session every 6 hours; signed out or broken said once) | `runManualHealth`, run by `supabase/functions/agent-proactive` | same |
+| App (Investments: consent, "Open the sign-in window", "I'm signed in", status line) | `src/upmore-app-template.html` (`refreshManualConnect`) | `node --test tests/manual-connect-ui.test.cjs` |
+
+The session is the browser's cookies for the platform's own domain plus that origin's local storage, saved as one Vault
+secret named `manual_<user id>_<platform id>`; the table holds only that name. A request that carries a password, a code
+or a login field is refused before anything else (`no_passwords`). Every answer for a platform says
+"unverified playbook" until a live run verifies it.
 
 ## The decision this rests on
 
@@ -70,9 +88,12 @@ see), `verified`, `verified_on`, `unverified_fields`, `notes`, `sources`.
 
 ## Acceptance still owed (owner-gated)
 
-The addendum's acceptance is one platform end to end with no credentials anywhere in logs. That needs three things this
-container cannot provide: the live-view handoff wired into the app, a Vault store for sessions (a migration the owner
-pushes), and a real account on one of the three platforms. When they exist, the run is: consent, live login by the
+The addendum's acceptance is one platform end to end with no credentials anywhere in logs. The code for it is built
+(above); what this container cannot provide is owner-gated: the migration pushed live, `manual-connect` and
+`agent-proactive` deployed (`scripts/launch/go-live.sh` deploys both), `BROWSERBASE_API_KEY` and
+`BROWSERBASE_PROJECT_ID` set as function secrets, and a real account on one of the three platforms. Two things only a
+live run can confirm: that Browserbase's live view lets the person type into the window (it is interactive by default),
+and that restoring the saved cookies keeps the platform signed in. When they exist, the run is: consent, live login by the
 owner, one read with its as-of time, a health check, a forced sign-out showing the signed-out line once, "disconnect",
 and a scan of that run's logs with `ManualConnect.leaks()` returning false for every entry. The playbook then gets
 `verified: true` and `verified_on`.

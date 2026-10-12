@@ -295,7 +295,7 @@ serve(async (req) => {
 
     const contact = "+1" + ALLOWED_SENDER_DIGITS;
     for (let i = 0; i < bubbles.length; i++) {
-      if (i > 0) await new Promise((r) => setTimeout(r, 600));
+      if (i > 0) await new Promise((r) => setTimeout(r, 250)); // pacing so iMessage keeps bubble order; kept short — the agent reply is the real latency
       const sres = await fetch(LOOPMESSAGE_SEND_URL, {
         method: "POST",
         headers: { Authorization: apiKey, "Content-Type": "application/json" },

@@ -45,10 +45,17 @@ for marker, filename, wrapped in [
     ('/*__RECOVERY_UI__*/', 'recovery-review-ui.js', False),
     ('/*__PRIVATE_FINANCE_SCOPE__*/', 'private-finance-scope.js', False),
     ('/*__CONNECT_CARDS__*/', '../packages/domain/76-connect-cards.js', False),
+    # Guided manual connect: the same policy module the manual-connect function runs (consent text, status line).
+    ('/*__MANUAL_CONNECT__*/', '../packages/domain/78-manual-connect.js', False),
 ]:
     assert marker in out, f'{marker} missing from template'
     content = (HERE / filename).read_text()
     out = out.replace(marker, '<script>\n' + content + '\n</script>' if wrapped else content, 1)
+
+# Guided manual connect: the platforms with a playbook (names and whether a live run verified it; nothing else).
+playbooks = json.loads((HERE.parent / "packages" / "connectors" / "manual-playbooks.json").read_text())["playbooks"]
+assert "/*__MANUAL_PLAYBOOKS__*/" in out, "manual playbooks placeholder missing from template"
+out = out.replace("/*__MANUAL_PLAYBOOKS__*/", "const MANUAL_PLAYBOOKS = " + json.dumps([{k: p[k] for k in ("platform_id", "display_name", "verified")} for p in playbooks], separators=(",", ":")) + ";", 1)
 
 # Real company logos (owner must rule, 2026-10-11): the manifest of img/brands/, inlined for appIcon().
 brands = json.loads((HERE.parent / "img" / "brands" / "brands.json").read_text())

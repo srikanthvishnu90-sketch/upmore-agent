@@ -42,6 +42,17 @@ test('dry run: the no-password functions are deployed, and the security checks r
   assert.ok(!/--no-verify-jwt/.test(src.split('\n').filter(l=>/deploy (exec-vault-store|agent-exec)/.test(l)).join('\n')),'both keep JWT verification, as they run live today');
 });
 
+test('dry run: guided manual connect (the live sign-in window) is deployed after the no-password functions with JWT on, and smoke-tested for a 401',()=>{
+  const out=run();
+  const order=['== 3. deploy','DRY: supabase functions deploy agent-exec --project-ref mrwngntwmnaqrqhupvlt','DRY: supabase functions deploy manual-connect --project-ref mrwngntwmnaqrqhupvlt\n','DRY: psql <SUPABASE_DB_URL>','== 4. smoke','POST manual-connect with no JWT -> 401','== 5. live gauntlet'];
+  let at=-1;for(const step of order){const i=out.indexOf(step);assert.ok(i>at,`${JSON.stringify(step)} comes next`);at=i;}
+  const src=require('node:fs').readFileSync(path.join(root,'scripts/launch/go-live.sh'),'utf8');
+  const line=src.split('\n').find(l=>/deploy manual-connect/.test(l));
+  assert.ok(line&&!/--no-verify-jwt/.test(line),'JWT verification stays on: every action is the signed-in person\'s own');
+  assert.match(src,/expect 401 "\$\(curl -s -o \/dev\/null -w '%\{http_code\}' -X POST "\$BASE\/functions\/v1\/manual-connect"\)" "manual-connect refuses a call with no JWT"/);
+  assert.match(require('node:fs').readFileSync(path.join(root,'supabase/config.toml'),'utf8'),/\[functions\.manual-connect\]\nverify_jwt = true/);
+});
+
 test('the owner one-command runner: hidden prompts only, secrets forgotten after, results pushed, never a secret echoed',()=>{
   const s=require('node:fs').readFileSync(path.join(root,'scripts/launch/owner-go-live.sh'),'utf8');
   for(const v of ['SUPABASE_DB_URL','GAUNTLET_PASSWORD','OPENAI_API_KEY','ALPACA_OAUTH_CLIENT_ID','ALPACA_OAUTH_CLIENT_SECRET']){

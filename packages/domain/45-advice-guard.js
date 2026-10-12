@@ -37,6 +37,8 @@
       ["timing_for_me", /\b(when|is (today|now)) (should|a good (day|time)) (i|for me|to)\b[^.?!]{0,30}\b(buy|sell|dip)\b|\bgive me the date\b/i],
       ["decide_for_me", /\b(decide for me|just (decide|confirm it'?s the right call|pick)|i'?ll follow your call|confirm (it'?s|this is) the right (call|move)|tell me exactly where to put)\b/i],
       ["buy_sell_hold_labels", /\b(buy|hold|sell)\b[,/ ]+(or |and )?\b(buy|hold|sell)\b[^.?!]{0,40}\b(next to|for each|each (of my )?holding|column|label|mark)\b|\b(for buy and|for sell)\b|\bwrite (buy|sell|hold)\b|\baction i should take\b/i],
+      // Tips and "is X a good buy" ask the agent to judge an investment for the person (megadoc Q01, 2026-10-12).
+      ["tips_or_good_buy", /\b(stock|stocks|investing|investment|trading|market|crypto|options?) (tips?|picks?|recs?|recommendations?)\b|\bhot (stocks?|tips?|picks?)\b|\b(is|are) (?!(this|that|it|these|those|there)\b)[a-z$.]{1,12} (a |an )?(good|bad|smart|safe|great) (buy|investment|pick|stock|bet)\b(?![^.?!]{0,30}\b(at|from|on) (costco|target|amazon|walmart|best buy|the store|ebay))|\bgood (stocks?|investments?) to (buy|own)\b|\bwhat (stocks?|etfs?) (are|is) (hot|good|worth buying)\b/i],
       ["sector_or_fund_choice", /\bwhich (sector|fund|etf|stock|target date fund|dividend stock|option|strike)\b[^.?!]{0,40}\b(should i|do i|for me|to add|to pick|to choose|would you)\b|\bwhich (sector) should i\b/i],
       ["whether_to", /\b(whether to|whether i should) (hold|sell|buy|cut|trim|keep|dump|get out)\b/i],
       ["should_i_choose", /\b(roth or traditional|vti or voo|a or b|[A-Z]{2,5} or [A-Z]{2,5})\b[^.?!]{0,20}\b(for me|pick one|which)\b/i],

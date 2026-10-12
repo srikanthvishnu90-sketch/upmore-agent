@@ -11,7 +11,7 @@
 //   - balance and spending with nothing linked: the planner's fallback spoke in internal terms ("retained USD posted
 //     records"). Now one plain line says nothing is connected and how to connect it.
 // Pure apart from the injected readers, so tests/edge/direct-answers.test.ts drives them with fixtures.
-import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON } from "../../_shared/router_core.js";
+import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON, AdviceGuard } from "../../_shared/router_core.js";
 
 const CONNECT_EMAIL = /^\s*(?:please |pls |can you |could you |can u )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+)?(?:gmail|google mail|email|inbox)\b/i;
 
@@ -152,6 +152,23 @@ export function sleepReply(message: string, quiet: { start: number | null; end: 
     ? `Your quiet hours are ${hour12(quiet.start)} to ${hour12(quiet.end)} your time: only safety alerts and things you asked me to watch come through then; the rest waits until they end. Change them with "quiet hours 11pm to 6am".`
     : `You have no quiet hours set, so alerts come through at any hour; set them with "quiet hours 10pm to 7am".`;
   return `Nothing that moves money happens while you're asleep: every order, payment and cancellation waits for your one-line yes, and a card you don't answer expires after 10 minutes with nothing done. What runs on its own are the checks you've turned on (alerts, watches and reminders). ${q} Nothing was set up.`;
+}
+
+// "can you give me stock tips", "what's the best stock" (megadoc Q01, Q02): no securities advice is a standing rule, so a
+// request the advice guard (packages/domain/45-advice-guard.js) blocks is answered here, never left to the model:
+// what Upmore won't do, what it can (a quote, the person's own holdings and gain, an order they decide on), no ticker
+// named. The trade flow refuses the same shapes inside an order.
+export const ADVICE_NONE =
+  "I don't give stock tips or picks, so I won't say what to buy, sell or hold. What I can do: show a quote (\"price of VOO\"), your own holdings and how they've done (\"how's my portfolio\"), and when you decide, name the ticker and the amount and I'll put up a card for exactly that, which still needs your yes.";
+// The guard's "should I" and "best" shapes are not about securities on their own ("should i switch spotify to annual",
+// "best tv to buy" belong to their own answers), so the block counts here only with a securities word, or on the
+// guard's tips and "is X a good buy" rule, which is securities-only. A bare "should i buy nvidia" goes on to the trade
+// flow, which refuses it in its own words.
+const SECURITIES = /\b(?:stocks?|shares?|etfs?|(?:index |mutual )?funds?|bonds?|tickers?|invest(?:ing|ment|ments|or)?|portfolio|options?|crypto|coins?|dividends?|s&p|nasdaq|equities)\b/i;
+export function adviceReply(message: string): string | null {
+  const m = String(message || ""), g = (AdviceGuard as any).request(m);
+  if (!g || g.decision !== "block") return null;
+  return (g.reasons || []).includes("tips_or_good_buy") || SECURITIES.test(m) ? ADVICE_NONE : null;
 }
 
 export const NO_ACCOUNTS =

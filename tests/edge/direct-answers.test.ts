@@ -172,3 +172,16 @@ Deno.test("do this while I'm asleep: every money move waits for a yes, cards exp
   assertMatch(SRC_TRADE, /confirm_ttl_ms: o\.confirm_ttl_ms \|\| 10 \* 60000/);
   assert(!/envelopes\s*:/.test(SRC_FLOWS) && !/envelope_autonomy\s*:\s*true/.test(SRC_FLOWS), "no envelope reaches the live flows");
 });
+
+// Megadoc Q01, Q02: stock tips and picks get one fixed answer from the advice guard's blocks, never the model's.
+import { AgentTrade } from "../../supabase/functions/_shared/router_core.js";
+Deno.test("stock tips and the best stock: no pick, no ticker, what Upmore can do instead (Q01, Q02)", () => {
+  const { adviceReply, ADVICE_NONE } = DirectAnswers;
+  for (const t of ["can you give me stock tips", "what's the best stock", "whats the best stock to buy rn", "any hot stocks?", "is nvda a good buy", "top 5 stocks", "should i buy tesla stock", "which etf should i pick", "what stock would you buy"]) assertEquals(adviceReply(t), ADVICE_NONE, t);
+  for (const t of ["what is an etf", "price of VOO", "how's my portfolio", "buy $5 of VOO", "is this a good buy at costco", "tips for budgeting", "whats the best credit card for groceries", "sell 1 share of AAPL", "should i switch spotify to annual", "whats the best tv to buy", "should i buy generic tide", "should i buy nvidia"]) assertEquals(adviceReply(t), null, t);
+  // No ticker or fund is ever named in the answer except the example of how to ask for a quote.
+  assertEquals(ADVICE_NONE.match(/\b[A-Z]{2,5}\b/g), ["VOO"]);
+  // The two examples it gives really are what the trade flow answers: a quote and the portfolio.
+  assertEquals((AgentTrade as any).parse("price of VOO").action, "quote");
+  assertEquals((AgentTrade as any).parse("how's my portfolio").action, "portfolio");
+});

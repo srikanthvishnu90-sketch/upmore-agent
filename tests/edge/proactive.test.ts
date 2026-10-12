@@ -332,3 +332,19 @@ Deno.test("plan: a savings balance over the deposit-insurance limit is said, wit
   assert(said, JSON.stringify({ messages: p.messages.map(m => m.text), suppressed: p.suppressed }));
   assert(/\$62,500\.00 may be uninsured\..*Balance per First Bank via SimpleFIN, as of 2026-10-11 13:30 UTC\./.test(said.text), said.text);
 });
+
+// Found 2026-10-12: "stop the alerts for netflix" turned off every alert. Alerts for one merchant can't be turned off on
+// their own yet, so nothing changes and the person hears what would; plain opt-outs ("stop texting me", "unsubscribe")
+// turn alerts off and say what still comes; a bare "stop" changes nothing here (with a card open it means that card).
+Deno.test("opt-outs: one merchant's alerts change nothing; plain opt-outs turn alerts off and say what remains; bare stop is not a setting", async () => {
+  const one = parseCommand("stop the alerts for netflix", null, NOW)!;
+  assertEquals(one.settings, {});
+  assert(/^I can't turn off alerts for just one merchant or account yet, so nothing changed\./.test(one.reply));
+  for (const t of ["stop texting me", "unsubscribe", "no more messages", "don't text me anymore", "stop sending me alerts"]) {
+    const c = parseCommand(t, null, NOW)!;
+    assertEquals(c.settings, { alerts: false }, t);
+    assert(/Anything you asked me to watch, and reports you asked for, still come through/.test(c.reply), t);
+  }
+  for (const t of ["stop", "STOP", "pause", "stop sending sam money", "stop payment to sam"]) assertEquals(parseCommand(t, null, NOW), null, t);
+  assertEquals(parseCommand("turn off notifications from you", null, NOW)!.settings, { alerts: false });
+});

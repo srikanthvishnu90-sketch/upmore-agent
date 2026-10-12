@@ -346,6 +346,12 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
     return { settings: { weekly_recap_dow: d }, reply: `I'll send your weekly recap every ${DOW[d]} from 8 a.m.: money in, money out, and what's coming up.` };
   }
   if (/^\s*(?:turn off|stop|no more|cancel)(?: the| my)? weekly (?:(?:spending|spend|money) )?(?:recap|summary|update|report)s?\b/i.test(t)) return { settings: { weekly_recap_dow: null }, reply: "Weekly recap stopped. Nothing else changed." };
+  // Alerts for one merchant or account can't be turned off on their own yet: "stop the alerts for netflix" used to turn
+  // off every alert (found 2026-10-12). Nothing changes; the person hears what would. A plain opt-out ("stop texting me",
+  // "unsubscribe", "no more messages") is the same as "turn off alerts". A bare "stop" is not: with a card open it means
+  // that card.
+  if (/^\s*(?:turn off|stop|no more|pause|mute|disable)(?: the| my| all)? (?:alerts?|notifications?|updates?|messages?|texts?)(?: from you)? (?:for|about|on|from) (?!you\b|upmore\b)(.{2,40}?)\s*[.!]?$/i.test(t)) return { settings: {}, reply: "I can't turn off alerts for just one merchant or account yet, so nothing changed. \"Turn off alerts\" stops all of them; anything you asked me to watch still comes through." };
+  if (/^\s*(?:please )?(?:unsubscribe|stop (?:texting|messaging|pinging|bugging) me|don'?t (?:text|message) me(?: anymore)?|no more (?:texts|messages)(?: from you)?|stop sending me (?:alerts|messages|texts|notifications))\s*[.!]?$/i.test(t)) return { settings: { alerts: false }, reply: "Alerts are off, so I won't message you first with them. Anything you asked me to watch, and reports you asked for, still come through; say \"stop my morning brief\" or \"stop my weekly recap\" for those, and \"turn alerts back on\" anytime." };
   if (/^\s*(?:turn off|stop|no more|pause|mute)(?: the| my| all)? (?:alerts|notifications|updates|messages from you)\b/i.test(t)) return { settings: { alerts: false }, reply: "Alerts are off. Anything you asked me to watch still comes through; reports you set up still arrive. Say \"turn alerts back on\" anytime." };
   if (/^\s*(?:turn|switch)(?: my)? (?:alerts|notifications) (?:back )?on\b|^\s*(?:resume|restart) (?:alerts|notifications)\b/i.test(t)) return { settings: { alerts: true }, reply: "Alerts are back on." };
   if ((m = /^\s*(?:set )?quiet hours?(?: (?:from|are|is))?\s+(\d{1,2})(?::00)?\s*(am|pm)?\s*(?:to|-|until)\s*(\d{1,2})(?::00)?\s*(am|pm)?\s*[.!]?$/i.exec(t))) {

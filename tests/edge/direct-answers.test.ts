@@ -275,3 +275,16 @@ Deno.test("hard moments: calm, no advice, one offer that reaches a real answer (
   assertEquals((AgentTrade as any).parse("how's my portfolio").action, "portfolio");
   assertEquals((parseCommand("turn on the morning brief", null, Date.parse("2026-10-12T15:00:00Z")) as any).settings, { morning_brief: true });
 });
+
+// Megadoc K12 "what are the terms of this merchant": never summarized from memory; the merchant's own page when on file.
+import SRC_MERCHANT_TERMS from "../../packages/connectors/merchant-terms.json" with { type: "text" };
+Deno.test("merchant terms: the page on file, never a summary; not on file is said; this merchant is asked (K12)", () => {
+  const { termsReply } = DirectAnswers;
+  const book = JSON.parse(SRC_MERCHANT_TERMS);
+  for (const m of book.merchants) assertMatch(termsReply(`what are ${m.name}'s terms`)!, new RegExp(`^${m.name}'s own terms are at ${m.terms_url.replace(/[.?*+^$()[\]\\/]/g, "\\$&")}\\. I don't summarize them from memory`));
+  assertMatch(termsReply("what are the terms of this merchant")!, /^Which merchant\? /);
+  assertMatch(termsReply("refund policy for hulu")!, /^I don't have Hulu's terms on file, and I won't make them up\./);
+  assertMatch(termsReply("what are your terms")!, /^Upmore's Terms of Service are in the app under You, then Terms of Service/);
+  for (const t of ["what are the terms of the loan", "terms of my lease", "terms of this offer", "netflix", "what are the terms"]) assertEquals(termsReply(t), null, t);
+  assertMatch(SRC_APP, /id="termsRow"[^>]*><span class="pl">Terms of Service</);
+});

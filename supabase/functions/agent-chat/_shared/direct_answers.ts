@@ -11,7 +11,7 @@
 //   - balance and spending with nothing linked: the planner's fallback spoke in internal terms ("retained USD posted
 //     records"). Now one plain line says nothing is connected and how to connect it.
 // Pure apart from the injected readers, so tests/edge/direct-answers.test.ts drives them with fixtures.
-import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON, AdviceGuard, NotYet } from "../../_shared/router_core.js";
+import { BrokerageConnectors, PLATFORMS_JSON, ConnectCards, AgentSave, SubscriptionSavings, OfferBook, OFFER_TERMS_JSON, AdviceGuard, NotYet, MERCHANT_TERMS_JSON } from "../../_shared/router_core.js";
 
 const CONNECT_EMAIL = /^\s*(?:please |pls |can you |could you |can u )?(?:connect|link|add|hook up|sync|set up)\s+(?:my\s+)?(?:gmail|google mail|email|inbox)\b/i;
 
@@ -260,6 +260,28 @@ export function momentReply(message: string): string | null {
   const m = String(message || "");
   for (const [, re, text] of MOMENTS) if (re.test(m)) return text;
   return null;
+}
+
+// "What are the terms of this merchant" (megadoc K12): terms are never summarized from memory. A merchant whose terms page
+// is on file (packages/connectors/merchant-terms.json) gets that page, said as theirs to read; any other gets "not on
+// file" and where such pages usually are; "this merchant" with no name is asked; Upmore's own terms are /terms (You,
+// then Terms of Service).
+const TERMS_ASK = /\b(?:what are|what're|whats|what's|show me|tell me|read me|where are|where can i (?:find|read))?\s*(?:the |their |its )?(?:terms(?: of (?:service|use))?|refund policy|cancellation policy|return policy|fine print)\b\s*(?:of|for|at|from|on)\s+(?:the )?([a-z0-9&'.+ -]{2,40}?)\s*[?.!]*\s*$|^\s*(?:what are |what're |whats |what's |show me |tell me )?([a-z0-9&'.+ -]{2,30}?)'s (?:terms(?: of (?:service|use))?|refund policy|cancellation policy|return policy|fine print)\s*[?.!]*\s*$/i;
+export function termsReply(message: string): string | null {
+  const raw = String(message || "").trim();
+  if (/^\s*(?:what are |what're |show me |where are )?(?:your|upmore'?s) (?:terms(?: of (?:service|use))?|refund policy|cancellation policy)\s*[?.!]*\s*$/i.test(raw)) return "Upmore's Terms of Service are in the app under You, then Terms of Service (also at /terms).";
+  const m = TERMS_ASK.exec(raw);
+  if (!m) return null;
+  const who = String(m[1] || m[2] || "").trim();
+  // A loan, a lease, a card offer or anything of the person's own is not a merchant's terms page.
+  if (/^(?:my|our)\b|\b(?:loan|lease|mortgage|contract|agreement|offer|deal|bonus|promo|trial|card|account|insurance|warranty|apr|rate|bet|policy)\b/i.test(who)) return null;
+  if (/^(?:this|that|the|a) (?:merchant|store|company|service|subscription|one)$|^(?:this|that|it)$/i.test(who)) return "Which merchant? Say its name, like \"what are Netflix's terms\", and I'll point you to its own terms page. I don't summarize terms from memory.";
+  if (/^(?:upmore|you|your|this app|the app)$/i.test(who)) return "Upmore's Terms of Service are in the app under You, then Terms of Service (also at /terms).";
+  const key = who.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const hit = ((MERCHANT_TERMS_JSON as any).merchants || []).find((x: any) => x.merchant_key === key || String(x.name || "").toLowerCase().replace(/[^a-z0-9]/g, "") === key);
+  if (hit) return `${hit.name}'s own terms are at ${hit.terms_url}. I don't summarize them from memory; that page is what applies to you.${hit.cancel_url ? ` To cancel, say "cancel ${hit.name.toLowerCase()}" and I'll put up a cancel card for your yes.` : ""}`;
+  const name = who.replace(/\b\w/g, (c) => c.toUpperCase());
+  return `I don't have ${name}'s terms on file, and I won't make them up. They're on ${name}'s own site, usually linked as Terms or Help at the bottom of the page or in your account settings.`;
 }
 
 export const NO_ACCOUNTS =

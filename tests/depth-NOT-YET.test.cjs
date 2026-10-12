@@ -115,11 +115,15 @@ test("[S19] a refund from a store: Upmore can't ask; the store's app, a dispute 
 test("[S20] savings automation: round-ups, a recurring amount, pausing it: not built, nothing set up", () => {
   for (const t of ["save 200 a month for a vacation", "round up purchases to savings", "pause my savings this month", "set up auto save", "cancel my savings plan"]) assert.equal(kind(t), "savings_automation", t);
   assert.equal(kind("I want to save 10000 by June"), null, "a savings target is the save-goal math");
+  assert.match(N.answer("save 200 a month for a vacation"), /I can track a goal against an account's balance: say it like "set a \$3,000 vacation goal by June in High Yield Savings"\.$/);
 });
 
-test("[S21] a savings goal's status: goals aren't saved; the balance or the save-goal math instead", () => {
+test("[S21] a savings goal's status with no goal set: how to set one; setting or tying one is never caught here", () => {
   for (const t of ["how's my vacation fund", "how is my emergency fund", "where's my house fund at"]) assert.equal(kind(t), "goal_status", t);
   for (const t of ["how's my index fund doing", "how is my retirement fund", "how big should my emergency fund be"]) assert.notEqual(kind(t), "goal_status", t);
+  // Setting and tying a goal are settings commands, which run after this guard: never caught here (114-savings-goals.js).
+  for (const t of ["my vacation fund is at ally", "my vacation fund is in high yield savings", "track my emergency fund at ally", "set a $3000 vacation goal by june in high yield savings", "start a 2000 emergency fund"]) assert.equal(kind(t), null, t);
+  assert.match(N.answer("how's my vacation fund"), /^You don't have a savings goal set, so there's nothing to check, and nothing was changed\./);
 });
 
 test("[S22] daily stock messages: not built; the quote on request", () => {

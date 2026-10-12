@@ -38,8 +38,9 @@
       ["refund_request", /\b(?:get|want|need) (?:my )?money back from (?:the )?([a-z0-9.&'-]{2,20}(?: [a-z0-9.&'-]{2,20})?)\s*$|\b(?:ask|tell) ([a-z0-9.&'-]{2,20}) (?:for|to give me) (?:a |my )?refund\b|\brequest a refund from ([a-z0-9.&'-]{2,20})\b/],
       // Savings automation (M01, M03, M07): round-ups, a recurring amount to savings, pausing it.
       ["savings_automation", /\bround[- ]?ups?\b|\b(?:pause|skip|stop|cancel) (?:my )?(?:automatic |auto )?savings(?: plan| transfers?)?(?: this month)?\b|\bsave \$?\d[\d,]*(?:\.\d\d)? (?:a|per|every|each) (?:week|month|paycheck|payday|day)\b|\bauto[- ]?sav(?:e|ings)\b/],
-      // A savings goal's status (M08): goals aren't saved.
-      ["goal_status", /\bhow(?:'s| is| are)? my (?:(?!index|mutual|bond|etf|hedge|retirement|401k|ira)[a-z]+ )?(?:fund|goal|savings goal)s?\b(?: (?:doing|looking|going|coming along))?\s*$|\b(?:vacation|emergency|house|wedding|car|travel|baby) fund\b[^.?!]{0,20}\b(?:at|look(?:ing)?|doing|progress|so far)\b/],
+      // A savings goal's status (M08) with no goal set: how to set one. A person with goals gets their progress first
+      // (agent-chat/_shared/goal_answer.ts over 114-savings-goals.js).
+      ["goal_status", /\bhow(?:'s| is| are)? my (?:(?!index|mutual|bond|etf|hedge|retirement|401k|ira)[a-z]+ )?(?:fund|goal|savings goal)s?\b(?: (?:doing|looking|going|coming along))?\s*$|^(?!(?:my |the )?[a-z ]{0,25}fund is (?:in|at)\b|(?:track|keep) )[^.?!]*\b(?:vacation|emergency|house|wedding|car|travel|baby) fund\b[^.?!]{0,20}\b(?:at|look(?:ing)?|doing|progress|so far)\b/],
       // Daily stock messages (G12): not built; a quote is.
       ["stock_digest", /\b(?:daily|weekly|every (?:day|morning|week|evening))\b[^.?!]{0,40}\b(?:stock|ticker|price|market|portfolio)s?\b[^.?!]{0,25}\b(?:reminder|update|message|text|alert|report|digest|summary)s?\b|\b(?:stock|price|market) (?:reminder|update|digest|report|summary)s? (?:every|each|daily|at)\b/],
       // IPO indications and allocations (I04, I05): the trade flow's own words.
@@ -82,8 +83,8 @@
       all_to_new: "Stop if anyone asked you to do this: moving everything to a new account is how most account-takeover and \"safe account\" scams end, and no real bank or agency asks for it. Upmore can't move money between accounts, so nothing was moved. If it's your own new account, do it in your bank's own app, after checking the account is in your name.",
       wrong_send: "I can't pull a payment back, and nothing was sent or changed. Ask the app it went through: in Venmo or Cash App, contact their support from the payment and ask the person to send it back; for Zelle, call your bank right away. Getting it back isn't guaranteed, so do it today.",
       refund_request: "Upmore can't ask for a refund for you, so nothing was sent. Start a return or refund in the store's own app or site; if the charge itself is wrong, say \"dispute this charge\" and I'll draft what to send your bank.",
-      savings_automation: "Savings automation isn't built yet, so nothing was set up or changed. Your bank's own app may offer automatic transfers to savings.",
-      goal_status: "Savings goals aren't saved in Upmore yet, so there's no fund to check, and nothing was changed. If it's its own account, \"what's my balance\" shows it; to work out a monthly amount, say it like \"I want to save 3000 by June\".",
+      savings_automation: "Savings automation isn't built yet, so nothing was set up or changed. Your bank's own app may offer automatic transfers to savings. I can track a goal against an account's balance: say it like \"set a $3,000 vacation goal by June in High Yield Savings\".",
+      goal_status: "You don't have a savings goal set, so there's nothing to check, and nothing was changed. Say it like \"set a $3,000 vacation goal by June in High Yield Savings\" and I'll track it against that account's balance; nothing is moved.",
       stock_digest: "Daily stock messages aren't built yet, so nothing was set up. Ask anytime, like \"price of NVDA\", and I'll read the quote.",
       ipo: "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.",
       remind_other: "I can't message other people, so nothing was sent. I can remind you to do it: say \"remind me to\" and what, with a day.",

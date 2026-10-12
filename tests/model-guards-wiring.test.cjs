@@ -40,6 +40,8 @@ test('the direct answers (connect my X, find me money, nothing linked) run after
   const guard=h.indexOf('if (earlyGuard) {'), direct=h.indexOf('let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? adviceReply(message) ?? optionsReply(message) ?? notYetReply(message) ?? copyReply(message) ?? momentReply(message) ?? termsReply(message) ?? accreditedReply(message, localClock(Date.now(), tz).date) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end }) ?? travelReply(message, tz);'), flows=h.indexOf('flow = await routeFlows(message');
   assert.ok(guard>0 && guard<direct && direct<flows,'guards, then direct answers, then flows');
   assert.ok(h.includes('meta: { capability: true, direct: true }'));
+  // Savings goals: the person's own goal progress overrides the not-yet "no goal set" line, right after the direct chain.
+  const goal=h.indexOf('{ const goal = await goalReply(message,');assert.ok(direct<goal && goal<flows,'goal progress right after the direct chain, before the flows');
   assert.ok(h.includes('readRecentTransactions(supabase, user.id, Date.now())'),'find me money reads through the shared reader (observed rows only; behavior in tests/edge/recent-transactions.test.ts)');
 });
 

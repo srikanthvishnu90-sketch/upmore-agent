@@ -38,7 +38,7 @@ Check: `node --test tests/depth-NOT-YET.test.cjs && node evals/depth/run.cjs NOT
 | S18 | A payment to the wrong person | can't pull it back; the app can | `S18` in tests/depth-NOT-YET.test.cjs | wrong-person payments are not caught | proven |
 | S19 | A refund from a store | said not built from code | `S19` in tests/depth-NOT-YET.test.cjs | refund request asks are not caught | proven |
 | S20 | Savings automation | said not built from code | `S20` in tests/depth-NOT-YET.test.cjs | savings automation asks are not caught | proven |
-| S21 | A savings goal's status | said not built from code | `S21` in tests/depth-NOT-YET.test.cjs | goal status asks are not caught | proven |
+| S21 | A savings goal's status | no goal set: how to set one | `S21` in tests/depth-NOT-YET.test.cjs | goal status asks are not caught | proven (also fails S14) |
 | S22 | Daily stock messages | said not built from code | `S22` in tests/depth-NOT-YET.test.cjs | stock digest asks are not caught | proven |
 | S23 | IPOs | said not built from code | `S23` in tests/depth-NOT-YET.test.cjs | ipo asks are not caught | proven |
 | S24 | Reminding someone else | said not built from code | `S24` in tests/depth-NOT-YET.test.cjs | remind other asks are not caught | proven |

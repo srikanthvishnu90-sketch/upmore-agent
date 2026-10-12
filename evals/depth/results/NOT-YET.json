@@ -1,6 +1,6 @@
 {
  "capability": "NOT-YET",
- "run_at": "2026-10-12T20:43:00.396Z",
+ "run_at": "2026-10-12T21:17:47.925Z",
  "baseline_all_green": true,
  "sub_capabilities": 25,
  "proven": 25,
@@ -247,10 +247,12 @@
    "id": "D21",
    "title": "A savings goal's status",
    "defect": "goal status asks are not caught",
-   "test": "said not built from code",
+   "test": "no goal set: how to set one",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S14"
+   ],
    "status": "proven"
   },
   {

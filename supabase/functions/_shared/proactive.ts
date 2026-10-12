@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -405,6 +405,10 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // maya". Restated with the day and time; at that time the person is asked for the card, which needs its own yes.
   const ss: any = (ScheduledSend as any).command(t, s.watches || [], now, zone);
   if (ss) return { settings: ss.watches ? { watches: capWatches(ss.watches) } : {}, reply: ss.reply };
+  // Savings goals, tracking only (megadoc M08; teardown 2 step 4): "set a $3000 vacation goal by june in high yield
+  // savings", "my vacation fund is in ally savings", "stop my vacation goal". Restated; nothing is moved.
+  const gc: any = (SavingsGoals as any).command(t, s.watches || [], now, zone);
+  if (gc) return { settings: gc.watches ? { watches: capWatches(gc.watches) } : {}, reply: gc.reply };
   // Category rules: "recategorize Target as groceries", "count Costco as groceries", "stop counting Target as
   // groceries", "show my category rules" (packages/domain/95-category-rules.js). Restated exactly; they change how
   // spending is counted, nothing at the bank, and never move money.
@@ -468,7 +472,7 @@ const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
 // The table holds at most 20 watches. Budgets (one per category, at most 8), deadline facts (one per kind, at most 6) and
 // reminders (at most 5) are never pushed out by a new watch: the oldest plain watches go first, and a new one always fits.
 export const MAX_WATCHES = 20;
-const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w);
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w) || (SavingsGoals as any).isGoal(w);
 export function capWatches(list: any[]): any[] {
   const all = list || [], keep = all.filter(sticky);
   const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));

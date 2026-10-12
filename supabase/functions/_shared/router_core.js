@@ -4644,7 +4644,14 @@
         // An investment pitch with a promised return is a scam pattern; nothing is staged (megadoc N01).
         if (/\bguarantee[d]?\b.{0,20}\b(returns?|profits?|gains?|income|\d+\s*%)|\b(double your money|risk[- ]free (?:returns?|profit)|can'?t lose|10x guaranteed)\b/i.test(parsed.text || "")) return say("stop", "That's a scam pattern: nobody can guarantee an investment return. I won't put money into this, and nothing was placed.", { reason: "scam_pattern" });
         // Stops across every holding at once are not built (megadoc E13): one holding at a time.
-        if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
+        // A stop on every holding at once (megadoc E13): each holding's stop price worked out and listed, nothing placed. Every
+        // order is its own card and its own yes, so the first is offered in words the single-stop path takes.
+        if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) {
+          const pm = /(\d{1,2}(?:\.\d{1,2})?)\s*(?:%|percent)/i.exec(parsed.text || "");
+          if (!pm) return say("not_built", "Stops on every holding at once aren't placed in one go, so nothing was placed. Say how far below today's price (\"a 10% stop on all my positions\") and I'll work out each holding's stop price, or name one holding and its price.", { reason: "bulk_stop_not_built" });
+          const c = connectStop(); if (c) return c;
+          return bulkStops(Number(pm[1]));
+        }
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "dividends") { const c = connectStop(); if (c) return c; return dividendsAnswer(parsed); }
         if (parsed.action === "moves") { const c = connectStop(); if (c) return c; return movesAnswer(parsed); }
@@ -5144,6 +5151,36 @@
         if (syms.length > 20) text += ` Showing your first 20 of ${syms.length} holdings.`;
         if (/\bwhy\b/i.test(t)) text += " Why they moved isn't something prices can say, and no news source is connected, so I won't guess at a reason.";
         return say("answer", text, { reason: "moves" });
+      }
+
+      // Each holding's stop price at pct below its current sell quote, the same arithmetic as a single "15% below" stop.
+      // Listed with what it would come to; one over the per-order cap is said. Nothing is placed; gap risk is said.
+      async function bulkStops(pct) {
+        if (!(pct >= 1 && pct <= 50)) return ask("stop_pct", "Give a stop between 1% and 50% below today's price, like \"a 10% stop on all my positions\". Nothing was placed.");
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {}, where = a.name || "your account", cap = Number.isSafeInteger(a.order_cap_cents) ? a.order_cap_cents : null;
+        const h = await readOr("holdings", { account: a.id });
+        if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
+        const rows = (h.value || []).filter(x => x && x.symbol && (Number(x.qty !== undefined ? x.qty : x.quantity) || 0) > 0).slice(0, 10);
+        if (!rows.length) return say("answer", `You don't hold any positions in ${where} (${h.source}, as of ${hhmm(h.as_of)}), so there's nothing to put a stop on. Nothing was placed.`, { reason: "bulk_stops" });
+        const out = [], missing = []; let src = null, asOf = null;
+        for (const x of rows) {
+          const sym = String(x.symbol).toUpperCase(), n = Number(x.qty !== undefined ? x.qty : x.quantity);
+          const q = await readOr("quote", { symbol: sym, side: "sell" });
+          if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents) || clock() - q.as_of > freshness) { missing.push(sym); continue; }
+          const price = q.value.price_cents, stop = Math.round(price * (100 - pct) / 100), value = Math.round(n * stop);
+          src = src || q.source; asOf = asOf || q.as_of;
+          out.push({ sym, n, price, stop, value, over: cap !== null && value > cap, whole: Number.isInteger(n) });
+        }
+        if (!out.length) return ask("no_quote", "I have no current prices for your holdings right now, so I won't work out stop prices. Ask again in a moment. Nothing was placed.");
+        let text = `${pct}% below each holding's current price (${src}, as of ${hhmm(asOf)}): ${out.map(r => `${r.sym}, ${qty(r.n)} share${r.n === 1 ? "" : "s"}, now ${money(r.price)}, stop ${money(r.stop)} (${money(r.value)} if it sells there${r.over ? `, over the ${money(cap)} per-order limit` : ""})`).join("; ")}.`;
+        if (missing.length) text += ` No current price for ${missing.join(", ")}, so no stop is worked out for ${missing.length === 1 ? "it" : "them"}.`;
+        text += " Nothing was placed: each stop is its own order with its own yes. A stop turns into a market order when it triggers, so if the price opens lower after a gap, it can sell well below the stop.";
+        const first = out.find(r => !r.over);
+        if (first) text += ` To put up the first card: "sell ${qty(first.n)} ${first.sym} with a stop at ${money(first.stop)}${first.whole ? " good till canceled" : ""}".${first.whole ? "" : " A fractional order is a day order at Alpaca, so it ends at today's close."}`;
+        else if (cap !== null) text += ` Each one is over the ${money(cap)} per-order limit Upmore has while it's in testing, so none can be placed yet.`;
+        return say("answer", text, { reason: "bulk_stops" });
       }
 
       async function gainOn(query) {

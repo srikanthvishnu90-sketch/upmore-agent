@@ -84,7 +84,7 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S11 | A thrown write is never retried blind | a lost response is reconciled, never re-sent | `S11` in tests/depth-RAIL-2.test.cjs | a write that threw is retried with a fresh client id | proven |
 | S12 | A broker refusal is a failure | a 403 is failed with the reason | `S12` in tests/depth-RAIL-2.test.cjs | a definite refusal is treated as an unknown outcome | proven |
 | S13 | Canceled only when the record says so | pending_cancel is reported as requested | `S13` in tests/depth-RAIL-2.test.cjs | any read-back after a cancel is reported as canceled | proven |
-| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28, S29, S30) |
+| S14 | LIVE everywhere | the card starts with LIVE | `S14` in tests/depth-RAIL-2.test.cjs | the LIVE label is dropped from every surface | proven (also fails S06, S08, S09, S10, S11, S12, S13, S16, S24, S26, S27, S28, S29, S30, S33) |
 | S15 | The broker's order rules before sending | a dollar amount on a limit asks for shares | `S15` in tests/depth-RAIL-2.test.cjs | a dollar amount is allowed on a limit order | proven |
 | S16 | Stop-on-change | a moved price stops the order | `S16` in tests/depth-RAIL-2.test.cjs | the re-verification result is ignored | proven |
 | S17 | Cross-person isolation: the caller's own account | a leaked row for another person opens nothing | `S17` in tests/depth-RAIL-2.test.cjs | rows are not checked against the caller, so a broken read hands A's request B's older account | proven |
@@ -109,4 +109,8 @@ Check: `node --test tests/depth-RAIL-2.test.cjs && node evals/depth/run.cjs RAIL
 | S32 | History checked against the last close | history $3,500 against last close $3,400 shows no number | `S32` in tests/depth-RAIL-2.test.cjs | the history is used without the check, so a wrong series becomes a return | proven |
 | S32 | A share transfer stops the return | an ACATS in the period shows no number | `S32` in tests/depth-RAIL-2.test.cjs | shares moved in by transfer are counted as gain | proven |
 | S32 | Money-weighted percent | the March deposit weighs by its time in the account: +3.7% | `S32` in tests/depth-RAIL-2.test.cjs | every flow counts as if in for the whole period | proven |
+| S33 | Gap risk said | a stop can sell well below it after a gap | `S33` in tests/depth-RAIL-2.test.cjs | the gap-risk line is dropped | proven |
+| S33 | The cap said per stop | $921.60 is over the $5.00 limit | `S33` in tests/depth-RAIL-2.test.cjs | the per-order cap is not checked | proven |
+| S33 | The stop price from the quote | 10% below $512.00 is $460.80 | `S33` in tests/depth-RAIL-2.test.cjs | the stop is worked out from the percent as dollars | proven |
+| S33 | GTC only for whole shares | a fractional stop is offered as a day order | `S33` in tests/depth-RAIL-2.test.cjs | a fractional stop is offered good till canceled, which the broker refuses | proven |
 <!-- results:end -->

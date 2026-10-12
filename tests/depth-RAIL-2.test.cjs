@@ -398,3 +398,17 @@ test('[S32] performance: deposits taken out, money-weighted percent, SPY over th
   const w3=await world({mock:PERF});w3.m.fault('history_down');const down=await w3.s.start('how are my investments doing this year');assert.equal(down.reason,'history_unreadable');assert.doesNotMatch(down.text,/\$\d/);
 });
 
+// A stop on every holding (megadoc E13): each stop price worked out from the sell quote, the per-order cap said, gap risk
+// said, nothing placed; the first card is offered in words the single-stop path takes (GTC only for whole shares).
+test('[S33] a 10% stop on all my positions: each price worked out, the cap and gap risk said, nothing placed, the first card offered',async()=>{
+  const w=await world({mock:{positions:{VOO:2,NVDA:1}}});
+  const r=await w.s.start('put a stop loss at 10% on all my positions');
+  assert.equal(r.text,'10% below each holding\'s current price (Alpaca mock server, IEX bid, as of 13:59 UTC): VOO, 2 shares, now $512.00, stop $460.80 ($921.60 if it sells there); NVDA, 1 share, now $106.00, stop $95.40 ($95.40 if it sells there). Nothing was placed: each stop is its own order with its own yes. A stop turns into a market order when it triggers, so if the price opens lower after a gap, it can sell well below the stop. To put up the first card: "sell 2 VOO with a stop at $460.80 good till canceled".');
+  const next=await w.s.start('sell 2 VOO with a stop at $460.80 good till canceled');assert.equal(next.outcome,'confirm');assert.match(next.text,/^LIVE: Sell 2 shares of VOO if it falls to \$460\.80 \(stop\)/);await w.s.reply('no');
+  const capped=await (await world({mock:{positions:{VOO:2,NVDA:1}},cap:500})).s.start('put a stop loss at 10% on all my positions');
+  assert.match(capped.text,/stop \$460\.80 \(\$921\.60 if it sells there, over the \$5\.00 per-order limit\)/);assert.match(capped.text,/Each one is over the \$5\.00 per-order limit Upmore has while it's in testing, so none can be placed yet\.$/);
+  const frac=await (await world({mock:{positions:{VOO:0.005}},cap:500})).s.start('put a 10% stop on all my holdings');
+  assert.match(frac.text,/To put up the first card: "sell 0\.005 VOO with a stop at \$460\.80"\. A fractional order is a day order at Alpaca, so it ends at today's close\.$/);
+  assert.equal(posts(w.m).length,0);
+});
+

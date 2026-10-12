@@ -653,8 +653,8 @@
    "id": "E13",
    "typed": "put a stop loss at 10% on all my positions",
    "flow": "trade",
-   "outcome": "not_built",
-   "reply": "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.",
+   "outcome": "answer",
+   "reply": "10% below each holding's current price (your Alpaca account, IEX bid, as of 19:13 UTC): PLTR, 18.5 shares, now $41.05, stop $36.95 ($683.58 if it sells there, over the $5.00 per-order limit). Nothing was placed: each stop is its own order with its own yes. A stop turns into a market order when it triggers, so if the price opens lower after a gap, it can sell well below the stop. Each one is over the $5.00 per-order limit Upmore has while it's in testing, so none can be placed yet.",
    "executed": false,
    "mock_orders": 0
   },

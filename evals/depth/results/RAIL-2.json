@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T20:34:32.117Z",
+ "run_at": "2026-10-12T20:54:09.572Z",
  "baseline_all_green": true,
- "sub_capabilities": 32,
- "proven": 37,
+ "sub_capabilities": 33,
+ "proven": 41,
  "problems": [],
  "rows": [
   {
@@ -184,7 +184,8 @@
     "S27",
     "S28",
     "S29",
-    "S30"
+    "S30",
+    "S33"
    ],
    "status": "proven"
   },
@@ -442,6 +443,50 @@
    "title": "Money-weighted percent",
    "defect": "every flow counts as if in for the whole period",
    "test": "the March deposit weighs by its time in the account: +3.7%",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S33",
+   "id": "D38",
+   "title": "Gap risk said",
+   "defect": "the gap-risk line is dropped",
+   "test": "a stop can sell well below it after a gap",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S33",
+   "id": "D39",
+   "title": "The cap said per stop",
+   "defect": "the per-order cap is not checked",
+   "test": "$921.60 is over the $5.00 limit",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S33",
+   "id": "D40",
+   "title": "The stop price from the quote",
+   "defect": "the stop is worked out from the percent as dollars",
+   "test": "10% below $512.00 is $460.80",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S33",
+   "id": "D41",
+   "title": "GTC only for whole shares",
+   "defect": "a fractional stop is offered good till canceled, which the broker refuses",
+   "test": "a fractional stop is offered as a day order",
    "bites": true,
    "applied": true,
    "collateral": [],

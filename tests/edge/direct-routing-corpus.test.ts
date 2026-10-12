@@ -1,10 +1,10 @@
 // The routing corpus (overnight G-hardening, 2026-10-12): ~90 realistic, sloppy asks, each pinned to the direct answer
 // that must own it, or to none (it goes on to the flows or the model). It walks the handler's own order through the
-// answers tests/edge/direct-order.test.ts exports, after the connect answer, the way handler.ts does. Every bug found
+// answers tests/edge/lib/direct_chain.ts exports, after the connect answer, the way handler.ts does. Every bug found
 // tonight was a misroute; a new one found live gets a row in tests/edge/fixtures/direct-asks.json.
 import { assertEquals } from "jsr:@std/assert@1";
 import { connectReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
-import { ANSWERS, ORDER } from "./direct-order.test.ts";
+import { ANSWERS, ORDER } from "./lib/direct_chain.ts";
 
 const corpus = JSON.parse(Deno.readTextFileSync(new URL("./fixtures/direct-asks.json", import.meta.url)));
 

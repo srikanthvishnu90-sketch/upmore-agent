@@ -254,3 +254,18 @@ test('checkup: history that starts inside this month says so, never a bare total
   assert.match(r, /\nThis month so far \(Oct 1-12\): \$0\.00 in, \$70\.00 out\. Your linked transactions start Oct 10, 2026, so this covers only from then\.\n/);
   assert.doesNotMatch(M.checkup(ACCOUNTS, TX, NOW), /covers only from then/, 'history from August covers all of this month');
 });
+
+test("a refund follow-up looks for the credit, never a charge (the follow-up the price-drop, airline and escrow replies invite)", () => {
+  const MA = require("../packages/domain/80-money-answers.js");
+  const now = Date.parse("2026-10-12T15:00:00Z");
+  const r = (d, c, m) => ({ account_id: "mock-card", provider_transaction_id: `mock-${d}-${c}`, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T08:00:00Z" });
+  const rows = [r("2026-10-03", -9630, "TARGET 00012345"), r("2026-10-09", 2000, "TARGET 00012345"), r("2026-09-28", -48900, "DELTA AIR LINES"), r("2026-10-08", 48900, "DELTA AIR LINES")];
+  assert.match(MA.didItGoThrough(rows, "did my target credit post?", now), /^Yes, it posted: \$20\.00 from Target on Oct 9/);
+  assert.match(MA.didItGoThrough(rows, "did the delta refund post?", now), /^Yes, it posted: \$489\.00 from Delta Air Lines on Oct 8/);
+  // Only the charge so far: not yet, said as a refund or credit, never "charge".
+  assert.match(MA.didItGoThrough(rows.slice(0, 1), "did the target refund come through", now), /^Not yet: no target refund or credit has posted since/);
+  assert.match(MA.didItGoThrough(rows, "did my refund come in?", now), /^Which refund\? Name the store, airline or company/);
+  // A credit card payment or a credit union transfer is not a refund.
+  assert.equal(MA.goThroughTarget("did my credit card payment go through").refund, undefined);
+  assert.equal(MA.goThroughTarget("did my credit union transfer go through").refund, undefined);
+});

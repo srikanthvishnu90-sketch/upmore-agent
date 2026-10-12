@@ -139,3 +139,9 @@ test("[ADV] every answer carries its source and as-of line; no NaN or undefined;
     assert.doesNotMatch(a, /NaN|undefined|\[object|password/, a);
   }
 });
+
+test("[S17] a refund follow-up looks for the credit at that merchant, never a charge (found overnight: 'did my target credit post' said not yet)", () => {
+  const now = Date.parse("2026-10-12T15:00:00Z");
+  const r = (d, c, m) => ({ account_id: "mock-card", provider_transaction_id: `mock-${d}-${c}`, posted_on: d, amount_cents: c, merchant_raw: m, is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T08:00:00Z" });
+  assert.match(M.didItGoThrough([r("2026-10-03", -9630, "TARGET 00012345"), r("2026-10-09", 2000, "TARGET 00012345")], "did my target credit post?", now), /^Yes, it posted: \$20\.00 from Target on Oct 9/);
+});

@@ -31,4 +31,5 @@ tests/money-answers.test.cjs).
 | S14 | Income is not a transfer | $800 from savings is not money in | `S14` in tests/depth-MONEY-ANSWERS.test.cjs | incoming transfers count as income | proven |
 | S15 | Did it go through, this month | a Sep 1 rent is not this month's on Oct 12 | `S15` in tests/depth-MONEY-ANSWERS.test.cjs | anything in the last two months counts as gone through | proven |
 | S16 | A partial month is said in the checkup | data from Oct 10 says this covers only from then | `S16` in tests/depth-MONEY-ANSWERS.test.cjs | the checkup's start-date caveat is dropped (the bug found building this packet) | proven |
+| S17 | A refund follow-up finds the credit | the $20.00 Target credit is found | `S17` in tests/depth-MONEY-ANSWERS.test.cjs | refund words are read as part of the merchant name again (the bug found overnight) | proven |
 <!-- results:end -->

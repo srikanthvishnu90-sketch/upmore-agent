@@ -7473,11 +7473,20 @@
       if (!t || /^(?:it|that|this|the payment|my payment|payment|money)$/.test(t)) return null;
       if (/^rent\b/.test(t)) return { label: "rent", test: (r) => cents(r) < 0 && RENT.test(norm(r.merchant_raw)) };
       if (/^(?:pay ?check|paycheque|pay|salary|direct deposit|wages?)$/.test(t)) return { label: "paycheck", test: (r) => cents(r) > 0 && PAY.test(norm(r.merchant_raw)) };
+      // A refund, credit or price adjustment is money coming in: the words name the kind, not the merchant, and only a
+      // credit counts ("did my target credit post" after a price-drop draft; "did the delta refund post" after an airline one).
+      const REFUND = /\s*\b(?:refunds?|credits?(?!\s*(?:cards?|union|score|line|limit|report))|price adjustments?|adjustments?|reimbursements?|money back|cash ?back)\b\s*/g;
+      if (REFUND.test(t)) {
+        const who = t.replace(REFUND, " ").replace(/\b(?:check|payment)\b/g, " ").replace(/\s+/g, " ").trim();
+        if (!who) return null;
+        return { label: `${who} refund`, refund: true, test: (r) => cents(r) > 0 && termMatch(r.merchant_raw, who) };
+      }
       return { label: t, test: (r) => termMatch(r.merchant_raw, t) };
     }
     function didItGoThrough(transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", today = todayIn(now, tz), since = addDays(today, -31);
       const tg = goThroughTarget(words);
+      if (!tg && /\b(?:refund|credit|reimbursement|money back)\b/i.test(String(words || ""))) return `Which refund? Name the store, airline or company, like "did the target refund post", and I'll look for the credit. ${txSource(transactions, tz)}`;
       if (!tg) return `Name the payment, like "did rent go through", and I'll check your transactions. ${txSource(transactions, tz)}`;
       const names = new Map(((opts && opts.accounts) || []).map((a) => [a.account_id, acctName(a)]));
       const rows = (transactions || []).filter((r) => r && usd(r) && Number.isFinite(cents(r)) && tg.test(r));
@@ -7493,7 +7502,7 @@
         const age = daysBetween(post.posted_on.slice(0, 10), today);
         lines.push(`Yes, it posted: ${what(post)} on ${dateLabel(post.posted_on.slice(0, 10))}${where(post)}.${age > 20 ? ` That was ${age} days ago; nothing newer has shown up since.` : ""}`);
       } else {
-        lines.push(`Not yet: no ${tg.label} ${tg.label === "paycheck" ? "deposit" : "charge"} has posted since ${dateLabel(since)}.${post ? ` The last one posted ${dateLabel(post.posted_on.slice(0, 10), true)}: ${what(post)}.` : ""}`);
+        lines.push(`Not yet: no ${tg.label}${tg.refund ? " or credit" : tg.label === "paycheck" ? " deposit" : " charge"} has posted since ${dateLabel(since)}.${post ? ` The last one posted ${dateLabel(post.posted_on.slice(0, 10), true)}: ${what(post)}.` : ""}`);
         if (tg.label === "rent") lines.push(`If rent goes out under another name (a Zelle to your landlord or a portal's name), say "did <that name> go through".`);
       }
       lines.push(txSource(transactions, tz));

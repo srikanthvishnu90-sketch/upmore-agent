@@ -278,6 +278,8 @@ async function flow() {
   ex["ACCT-004"] = money("what's my net worth", /^Net worth: \$412\.00\./);
   ex["ANL-006"] = money("forecast", /^90-day forecast, from your repeating bills and paychecks only: .*\nAssumptions:\n/s);
   ex["ANL-007"] = money("what bills are coming up", /^Coming up in the next 30 days \(Oct 11-Nov 10\): .*\n- Oct 15: Oak Property Mgmt Rent, \$1,450\.00 \(monthly bill\)/s);
+  // TXN-005: the repeating charges come from the rows themselves (the rent detected as a monthly bill, never typed in).
+  ex["TXN-005"] = money("what bills are coming up", /\(monthly bill\)/);
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

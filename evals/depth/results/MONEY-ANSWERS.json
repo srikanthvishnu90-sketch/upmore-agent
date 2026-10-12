@@ -1,9 +1,9 @@
 {
  "capability": "MONEY-ANSWERS",
- "run_at": "2026-10-12T05:31:58.270Z",
+ "run_at": "2026-10-12T05:51:53.994Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 16,
+ "sub_capabilities": 17,
+ "proven": 17,
  "problems": [],
  "rows": [
   {
@@ -179,6 +179,17 @@
    "title": "A partial month is said in the checkup",
    "defect": "the checkup's start-date caveat is dropped (the bug found building this packet)",
    "test": "data from Oct 10 says this covers only from then",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "A refund follow-up finds the credit",
+   "defect": "refund words are read as part of the merchant name again (the bug found overnight)",
+   "test": "the $20.00 Target credit is found",
    "bites": true,
    "applied": true,
    "collateral": [],

@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 74,
-  "total": 74
+  "pass": 75,
+  "total": 75
  },
  "results": [
   {
@@ -447,6 +447,12 @@
    "family": "flow",
    "id": "F:TXN-002",
    "title": "TXN-002: chat: planner tool search_transactions",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:TXN-005",
+   "title": "TXN-005: chat: \"what bills are coming up\" lists the repeating charges detected from the person's own rows, monthly and yearly (TheNumbers upcoming over AgentLedger.recurring)",
    "status": "PASS"
   },
   {

@@ -91,9 +91,10 @@ test("[S08] status asks are recognized; how-to and advice questions are not this
   for (const m of ["how am i doing on my grocery budget", "how are my budgets", "am i over budget", "what's left in my dining budget", "how much is left in my food budget", "show my budgets", "grocery budget?", "how's my grocery budget looking"]) {
     assert.equal((B.parse(m) || {}).kind, "status", m);
   }
-  for (const m of ["how do i make a budget", "what's a good grocery budget", "should i budget $400 for groceries", "help me budget", "how much should my grocery budget be", "how do i set up my budgets", "family budget", "what's my balance"]) {
+  for (const m of ["how do i make a budget", "what's a good grocery budget", "should i budget $400 for groceries", "help me budget", "how much should my grocery budget be", "how do i set up my budgets", "family budget", "what's my balance", "i want to budget better", "i need to learn to budget", "trying to budget more"]) {
     assert.equal(B.parse(m), null, m);
   }
+  assert.equal((B.parse("i want to budget $400 for groceries") || {}).kind, "set", "a wish with an amount is a budget");
 });
 
 test("[S09] transfers never count, either way", () => {

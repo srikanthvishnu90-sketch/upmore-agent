@@ -12006,6 +12006,9 @@
         const all = !!m[1] || (!cat && (!rest || /^(?:all|every|each|any)$/.test(rest)) && (!!m[3] || !rest));
         return { kind: "stop", category: cat ? cat.key : null, all: all && !cat, unknown: !cat && !all ? (rest || null) : null };
       }
+      // A wish to budget better is not a budget ("i want to budget better", "learn to budget"; found 2026-10-12: it got
+      // "I don't have a \"to\" category"). A budget with an amount still is ("i want to budget $400 for groceries").
+      if (/\bbudget(?:ing)? (?:better|more|less|properly|smarter|well|wisely)\b|\b(?:learn|how|want|need|try|trying|start) (?:how )?to (?:start )?budget\b(?!\s+\$?\d)/.test(t)) return null;
       if (QUESTION.test(t) || /\b(?:should|could|would|tips?|advice|help me|ideas?|good|reasonable|realistic|average|normal|typical)\b/.test(t)) return status(t);
       if (SET.test(t)) {
         const amt = amountIn(t), rest = amt ? t.replace(amt.text, " ") : t;
@@ -14148,6 +14151,8 @@
       if (/\btrials?\b/.test(t)) return null;
       // "remind me when X happens" is a watch ("tell me when"), not a dated reminder.
       if (/^(?:remind me|ping me)\s+(?:when|if|whenever)\b/.test(t)) return null;
+      // "Remind me what you can do", "remind me how much I owe sam": a question, not a reminder (found 2026-10-12).
+      if (/^remind me\s+(?:what|how|who|where|why|which|whether)\b/.test(t)) return null;
       const L = local(now, tz), text = what(t), how = mode(t);
       // "before the 20th" is the day before it, said as such; a day before today is not a day.
       const before = /\bbefore (?:the |on )?(?=\d|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|sun|mon|tue|wed|thu|fri|sat|tomorrow|today|tonight)/.test(t);

@@ -103,7 +103,7 @@ test("[S11] said back in the person's words turned to Upmore's voice, 'to' or 'a
 });
 
 test("[S12] not this: a route reminder, 'remind me when' (a watch), a free trial, anything not a reminder ask", () => {
-  for (const m of ["remind me tomorrow to check the bonus terms for R2748", "remind me when netflix charges me", "remind me if my balance drops below $100", "remind me to cancel hulu before my trial ends oct 20", "what is my balance", "pay rent on the 28th", "i need to remember to pay rent"]) assert.equal(R.parse(m, NOW, TZ), null, m);
+  for (const m of ["remind me tomorrow to check the bonus terms for R2748", "remind me when netflix charges me", "remind me if my balance drops below $100", "remind me to cancel hulu before my trial ends oct 20", "what is my balance", "pay rent on the 28th", "i need to remember to pay rent", "remind me what you can do", "remind me how much i owe sam"]) assert.equal(R.parse(m, NOW, TZ), null, m);
   assert.equal(R.command("what is my balance", [], NOW, TZ), null);
 });
 

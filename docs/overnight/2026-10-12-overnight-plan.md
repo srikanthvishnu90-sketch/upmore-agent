@@ -44,7 +44,7 @@ here. The morning report is the last section.
   prediction-markets section, any Kalshi or Polymarket card), the gambling guard (the sportsbook and casino section),
   decision 3 (crypto), identity digits, phone calls, lending, securities advice (copying funds or Congress, options).
   README per section and per gate, `--check` in CI, tests that pin the counts and the gates.
-- [ ] **A2. Map methods and teardowns to the owner's capability list.** The teardown map (running) plus the same for the
+- [~] **A2.** (teardowns mapped; method cards next) Map methods and teardowns to the owner's capability list.** The teardown map (running) plus the same for the
   194 cards: each card to the capability-list items and registry capabilities it would use, and what Upmore has today.
 - [ ] **A3. Offer book with freshness.** `packages/domain/8x-offer-book.js` + `packages/offers/*.json`: every term a
   method relies on (prices, windows, caps, rates, rule numbers) as data with `source`, `checked_on` and a freshness
@@ -140,6 +140,9 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 - [ ] **G6. Visual.** Any app change re-runs `node evals/agent/visual.cjs`; baselines change only with a stated reason.
 
 ## Block H: teardown features with no gate (after A2 names them)
+
+- [ ] **H0.** Row-level placement for the 887 teardown rows in sections covered only in part (counted PART, not borrowed
+  status): give each its own items or "none", so the per-app table reads what each row really is.
 
 - [ ] **H1.** The ungated teardown sections that map to no capability-list item, built in the order the teardowns'
   build-order sections give, one per wake when Blocks C to F are done.

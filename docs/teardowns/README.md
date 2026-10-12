@@ -45,212 +45,395 @@ plus 6 checked-and-not-found rows that are not features. **Hard-gated: 403** (22
 A row can carry more than one gate. Gates are read from the words, so they are a floor: a row the regexes miss is
 still bound by the rules, and the spec for each feature restates the rule it runs into.
 
-## Sections, ungated rows first
+## What Upmore has today, per app
 
-Each app's sections with how many rows are buildable without a hard gate. The build
-order each teardown suggests is in its own "Build order suggestion" section.
+Every feature row is placed on the owner's [Full Agent Capability List](../capability-list/full-agent-capability-list-2026-10-11.md)
+(items 1..149 in document order) by `docs/teardowns/map.cjs`: one entry per app section, plus a few rows that clearly
+differ from their section. `upmore_today` is the best status among a row's items as
+[`scripts/capability-list.cjs`](../capability-list/README.md) derives it (PROVEN > IN_PRODUCT > MODULE_ONLY > GATED >
+NOT_BUILT), or NO_ITEM when the list has no such item. The table counts what each row can claim on its own: a row in
+a section covered only in part is counted PART (it may be the uncovered part; its section note names what is left)
+unless a row override places it, so no row borrows its section's status. The mapping never lifts a gate.
+"Hard-gated" counts the rows a standing rule keeps off, whatever their status; "Ungated with an item" counts the rows
+that are on the list and that a build may reach.
+
+| App | Rows | PROVEN | IN_PRODUCT | MODULE_ONLY | GATED | NOT_BUILT | PART | NO_ITEM | Hard-gated | Ungated with an item |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| dub | 144 | 0 | 0 | 0 | 0 | 1 | 74 | 69 | 49 | 49 |
+| Alinea | 79 | 0 | 0 | 0 | 0 | 2 | 34 | 43 | 40 | 18 |
+| Autopilot | 67 | 0 | 0 | 0 | 0 | 0 | 51 | 16 | 44 | 15 |
+| Origin | 209 | 0 | 12 | 3 | 0 | 1 | 103 | 90 | 48 | 101 |
+| Albert | 148 | 0 | 11 | 0 | 0 | 0 | 73 | 64 | 82 | 53 |
+| Rocket Money | 132 | 0 | 24 | 17 | 0 | 10 | 46 | 35 | 20 | 89 |
+| Monarch | 330 | 0 | 9 | 26 | 0 | 0 | 189 | 106 | 28 | 199 |
+| Copilot Money | 311 | 0 | 33 | 1 | 0 | 1 | 176 | 100 | 6 | 205 |
+| YNAB | 242 | 0 | 0 | 1 | 0 | 0 | 103 | 138 | 0 | 104 |
+| Cleo | 156 | 0 | 1 | 2 | 0 | 0 | 38 | 115 | 86 | 34 |
+| **all** | 1818 | 0 | 90 | 50 | 0 | 15 | 887 | 776 | 403 | 867 |
+
+Sections: 154 (full 13, part 62, none 79); row overrides: 49.
+
+## Gaps Upmore's list does not cover
+
+Sections mapped to no item, grouped by app, with their ungated rows only (a section whose rows are all hard-gated is
+left out: the standing rules already keep it off). Rows inside these sections that map one by one are not counted.
 
 ### dub
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account | 8 | 2 | 5 | 1 | 3 | T1-DUB-001 .. T1-DUB-008 (5) |
-| Funding and withdrawals | 9 | 2 | 5 | 2 | 7 | T1-DUB-013 .. T1-DUB-016 (2) |
-| Cash and dividends | 3 | 0 | 1 | 2 | 3 | none |
-| Portfolio discovery | 17 | 17 | 0 | 0 | 5 | T1-DUB-021 .. T1-DUB-037 (12) |
-| Leaderboard | 6 | 6 | 0 | 0 | 0 | T1-DUB-038 .. T1-DUB-043 (6) |
-| Copy trading | 21 | 5 | 7 | 9 | 16 | T1-DUB-045 .. T1-DUB-064 (5) |
-| Creating portfolios | 8 | 1 | 7 | 0 | 2 | T1-DUB-066 .. T1-DUB-072 (6) |
-| Creator program | 7 | 4 | 2 | 1 | 2 | T1-DUB-074 .. T1-DUB-079 (5) |
-| Performance and risk metrics | 15 | 15 | 0 | 0 | 0 | T1-DUB-080 .. T1-DUB-094 (15) |
-| Notifications and reports | 10 | 8 | 1 | 1 | 0 | T1-DUB-095 .. T1-DUB-104 (10) |
-| Tax documents | 2 | 2 | 0 | 0 | 2 | none |
-| Social features | 9 | 4 | 5 | 0 | 0 | T1-DUB-107 .. T1-DUB-115 (9) |
-| AI features | 4 | 4 | 0 | 0 | 3 | T1-DUB-116 (1) |
-| Education | 3 | 3 | 0 | 0 | 0 | T1-DUB-120 .. T1-DUB-122 (3) |
-| Membership and fees | 10 | 1 | 4 | 5 | 3 | T1-DUB-123 .. T1-DUB-131 (7) |
-| Security | 4 | 2 | 1 | 1 | 0 | T1-DUB-133 .. T1-DUB-136 (4) |
-| Account settings and support | 8 | 0 | 8 | 0 | 3 | T1-DUB-137 .. T1-DUB-144 (5) |
+- **Onboarding and account** (5 ungated rows): opening an account at dub's own broker-dealer; Upmore opens no brokerage account, it trades in the person's own
+- **Funding and withdrawals** (2 ungated rows): deposits and withdrawals in dub's own brokerage account
+- **Leaderboard** (6 ungated rows): ranking other members' public portfolios; the list copies a named source and ranks no creators
+- **Creator program** (5 ungated rows): dub's creator licensing and revenue share
+- **Social features** (9 ungated rows): posts, likes and comments inside dub's community
+- **Education** (3 ungated rows): dub's learning content and help center
+- **Membership and fees** (7 ungated rows): dub's own membership, creator fees and refunds
+- **Security** (4 ungated rows): dub's own sign-in, encryption and SIPC cover
+- **Account settings and support** (5 ungated rows): dub's own profile, account and support settings
 
 ### Alinea
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and accounts | 7 | 2 | 4 | 1 | 6 | T1-ALINEA-007 (1) |
-| Funding and withdrawals | 7 | 1 | 3 | 3 | 7 | none |
-| AI assistant | 8 | 7 | 0 | 1 | 5 | T1-ALINEA-018 .. T1-ALINEA-020 (3) |
-| Portfolios and playlists | 14 | 6 | 5 | 3 | 9 | T1-ALINEA-027 .. T1-ALINEA-032 (5) |
-| Trading | 7 | 3 | 4 | 0 | 4 | T1-ALINEA-039 .. T1-ALINEA-041 (3) |
-| Performance and insights | 7 | 7 | 0 | 0 | 0 | T1-ALINEA-044 .. T1-ALINEA-050 (7) |
-| Education | 3 | 3 | 0 | 0 | 0 | T1-ALINEA-051 .. T1-ALINEA-053 (3) |
-| Social and rewards | 5 | 3 | 2 | 0 | 2 | T1-ALINEA-054 .. T1-ALINEA-058 (3) |
-| Notifications | 3 | 0 | 0 | 3 | 0 | T1-ALINEA-059 .. T1-ALINEA-061 (3) |
-| Security and support | 9 | 9 | 0 | 0 | 2 | T1-ALINEA-062 .. T1-ALINEA-069 (7) |
-| Membership and billing | 6 | 0 | 3 | 3 | 5 | T1-ALINEA-075 (1) |
-| Platforms | 3 | 1 | 2 | 0 | 0 | T1-ALINEA-077 .. T1-ALINEA-079 (3) |
+- **Onboarding and accounts** (1 ungated row): opening Alinea's own managed or self-directed brokerage account
+- **Education** (3 ungated rows): Alinea's lessons, quizzes and blog
+- **Social and rewards** (3 ungated rows): Alinea's community features and referral rewards
+- **Notifications** (3 ungated rows): Alinea's marketing and account texts and emails
+- **Security and support** (7 ungated rows): Alinea's own sign-in, encryption, SIPC cover and support
+- **Membership and billing** (1 ungated row): Alinea's own membership billing
+- **Platforms** (3 ungated rows): Alinea's apps and web sign-up
 
 ### Autopilot
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account | 6 | 4 | 2 | 0 | 3 | T1-AUTOPILOT-001 .. T1-AUTOPILOT-005 (3) |
-| Brokerage connection | 9 | 1 | 8 | 0 | 8 | T1-AUTOPILOT-014 (1) |
-| Marketplace and discovery | 9 | 9 | 0 | 0 | 2 | T1-AUTOPILOT-017 .. T1-AUTOPILOT-024 (7) |
-| Portfolios you can copy | 11 | 0 | 0 | 11 | 11 | none |
-| Copy trading | 15 | 1 | 6 | 8 | 15 | none |
-| Tracking and alerts | 7 | 7 | 0 | 0 | 0 | T1-AUTOPILOT-051 .. T1-AUTOPILOT-057 (7) |
-| Plans and billing | 7 | 2 | 2 | 3 | 4 | T1-AUTOPILOT-062 .. T1-AUTOPILOT-064 (3) |
-| Creators, support and security | 3 | 2 | 1 | 0 | 1 | T1-AUTOPILOT-066 .. T1-AUTOPILOT-067 (2) |
+- **Onboarding and account** (3 ungated rows): Autopilot's advisory agreement, suitability questions and account deletion
+- **Plans and billing** (3 ungated rows): Autopilot's own tiers, per-portfolio fees and trial
+- **Creators, support and security** (2 ungated rows): Autopilot's pilot program, support and encryption
 
 ### Origin
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account linking | 15 | 15 | 0 | 0 | 0 | T1-ORIGIN-001 .. T1-ORIGIN-015 (15) |
-| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) |
-| Budgeting | 13 | 12 | 0 | 1 | 0 | T1-ORIGIN-039 .. T1-ORIGIN-051 (13) |
-| Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) |
-| Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) |
-| Net worth | 3 | 3 | 0 | 0 | 0 | T1-ORIGIN-080 .. T1-ORIGIN-082 (3) |
-| Investment tracking | 12 | 12 | 0 | 0 | 1 | T1-ORIGIN-083 .. T1-ORIGIN-094 (11) |
-| Origin Invest and cash account | 13 | 2 | 8 | 3 | 13 | none |
-| AI adviser and other AI features | 18 | 18 | 0 | 0 | 6 | T1-ORIGIN-110 .. T1-ORIGIN-123 (12) |
-| Human financial planners | 10 | 4 | 6 | 0 | 6 | T1-ORIGIN-130 .. T1-ORIGIN-133 (4) |
-| Equity compensation | 4 | 4 | 0 | 0 | 0 | T1-ORIGIN-136 .. T1-ORIGIN-139 (4) |
-| Tax filing | 4 | 1 | 3 | 0 | 4 | none |
-| Estate planning | 8 | 3 | 5 | 0 | 7 | T1-ORIGIN-150 (1) |
-| Credit score and identity protection | 11 | 9 | 1 | 1 | 7 | T1-ORIGIN-157 .. T1-ORIGIN-161 (4) |
-| Partner and household sharing | 5 | 4 | 1 | 0 | 1 | T1-ORIGIN-163 .. T1-ORIGIN-166 (4) |
-| Employer version | 4 | 2 | 2 | 0 | 1 | T1-ORIGIN-168 .. T1-ORIGIN-171 (3) |
-| Notifications and reports | 7 | 7 | 0 | 0 | 0 | T1-ORIGIN-172 .. T1-ORIGIN-178 (7) |
-| Platforms | 14 | 14 | 0 | 0 | 0 | T1-ORIGIN-179 .. T1-ORIGIN-192 (14) |
-| Security and privacy | 6 | 5 | 1 | 0 | 0 | T1-ORIGIN-193 .. T1-ORIGIN-198 (6) |
-| Support and membership | 11 | 7 | 1 | 3 | 1 | T1-ORIGIN-199 .. T1-ORIGIN-209 (10) |
+- **Budgeting** (13 ungated rows): category budgets, rollovers and AI budget building; the list has no budget (safe to spend, 14, is the nearest)
+- **Human financial planners** (4 ungated rows): sessions with Origin's human CFP planners
+- **Equity compensation** (4 ungated rows): tracking stock grants, vesting and exercise costs
+- **Estate planning** (1 ungated row): wills, trusts and estate documents
+- **Employer version** (3 ungated rows): Origin sold as an employee benefit
+- **Notifications and reports** (5 ungated rows): budget, goal, planner and review notices; the weekly recap rows map to 24 one by one
+- **Platforms** (14 ungated rows): Origin's apps, widgets and display settings
+- **Security and privacy** (6 ungated rows): Origin's own access model, encryption, audits and sign-in
+- **Support and membership** (10 ungated rows): Origin's own support, plans, trial and referrals
 
 ### Albert
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and bank linking | 8 | 3 | 5 | 0 | 1 | T1-ALBERT-001 .. T1-ALBERT-008 (7) |
-| Budgeting and spending | 13 | 8 | 3 | 2 | 0 | T1-ALBERT-009 .. T1-ALBERT-021 (13) |
-| Forecast | 7 | 7 | 0 | 0 | 0 | T1-ALBERT-022 .. T1-ALBERT-028 (7) |
-| Bills and subscriptions | 7 | 4 | 3 | 0 | 2 | T1-ALBERT-029 .. T1-ALBERT-034 (5) |
-| Genius AI assistant | 18 | 10 | 3 | 5 | 6 | T1-ALBERT-036 .. T1-ALBERT-053 (12) |
-| Instant cash advances and loans | 15 | 5 | 6 | 4 | 15 | none |
-| Automatic savings | 15 | 2 | 4 | 9 | 15 | none |
-| Albert Cash | 20 | 1 | 17 | 2 | 20 | none |
-| Investing | 15 | 6 | 4 | 5 | 14 | T1-ALBERT-114 (1) |
-| Credit and identity protection | 12 | 5 | 1 | 6 | 7 | T1-ALBERT-122 .. T1-ALBERT-129 (5) |
-| Insurance | 2 | 1 | 0 | 1 | 1 | T1-ALBERT-132 (1) |
-| Alerts and reports | 5 | 0 | 2 | 3 | 0 | T1-ALBERT-133 .. T1-ALBERT-137 (5) |
-| Security and support | 7 | 3 | 4 | 0 | 1 | T1-ALBERT-138 .. T1-ALBERT-143 (6) |
-| Plans | 4 | 0 | 0 | 4 | 0 | T1-ALBERT-145 .. T1-ALBERT-148 (4) |
+- **Security and support** (6 ungated rows): Albert's own sign-in, support and subscription cancellation
+- **Plans** (4 ungated rows): Albert's own plans and trial
 
 ### Rocket Money
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account linking | 9 | 8 | 1 | 0 | 0 | T2-ROCKET-001 .. T2-ROCKET-009 (9) |
-| Subscriptions and recurring bills | 11 | 11 | 0 | 0 | 0 | T2-ROCKET-010 .. T2-ROCKET-020 (11) |
-| Cancellation concierge | 8 | 2 | 6 | 0 | 0 | T2-ROCKET-021 .. T2-ROCKET-028 (8) |
-| Bill negotiation | 11 | 3 | 6 | 2 | 2 | T2-ROCKET-030 .. T2-ROCKET-039 (9) |
-| Spending and transactions | 22 | 21 | 0 | 1 | 1 | T2-ROCKET-040 .. T2-ROCKET-061 (21) |
-| Budgets and habits | 9 | 9 | 0 | 0 | 0 | T2-ROCKET-062 .. T2-ROCKET-070 (9) |
-| Alerts and notifications | 7 | 7 | 0 | 0 | 1 | T2-ROCKET-071 .. T2-ROCKET-077 (6) |
-| Net worth | 5 | 5 | 0 | 0 | 0 | T2-ROCKET-078 .. T2-ROCKET-082 (5) |
-| Credit | 4 | 4 | 0 | 0 | 4 | none |
-| Financial Goals and savings | 10 | 0 | 5 | 5 | 10 | none |
-| Rowan AI agent | 16 | 10 | 4 | 2 | 1 | T2-ROCKET-097 .. T2-ROCKET-112 (15) |
-| Sharing | 4 | 1 | 3 | 0 | 0 | T2-ROCKET-113 .. T2-ROCKET-116 (4) |
-| Platforms, security and support | 16 | 15 | 1 | 0 | 1 | T2-ROCKET-117 .. T2-ROCKET-131 (15) |
+- **Budgets and habits** (7 ungated rows): category budgets, challenges, badges and lessons; the two rows that are list items are mapped one by one
+- **Platforms, security and support** (15 ungated rows): Rocket Money's apps, widgets, sign-in, support and product offers
 
 ### Monarch
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account linking | 34 | 12 | 19 | 3 | 3 | T2-MONARCH-001 .. T2-MONARCH-034 (31) |
-| Transactions | 45 | 34 | 0 | 11 | 0 | T2-MONARCH-035 .. T2-MONARCH-079 (45) |
-| Receipts and retail sync | 19 | 8 | 2 | 9 | 0 | T2-MONARCH-080 .. T2-MONARCH-098 (19) |
-| Budgeting | 23 | 22 | 0 | 1 | 0 | T2-MONARCH-099 .. T2-MONARCH-121 (23) |
-| Cash flow and reports | 14 | 13 | 1 | 0 | 0 | T2-MONARCH-122 .. T2-MONARCH-135 (14) |
-| Recurring bills and subscriptions | 9 | 5 | 1 | 3 | 4 | T2-MONARCH-136 .. T2-MONARCH-140 (5) |
-| Goals | 20 | 17 | 1 | 2 | 0 | T2-MONARCH-145 .. T2-MONARCH-164 (20) |
-| Net worth and accounts | 16 | 16 | 0 | 0 | 0 | T2-MONARCH-165 .. T2-MONARCH-180 (16) |
-| Investments | 20 | 16 | 1 | 3 | 2 | T2-MONARCH-181 .. T2-MONARCH-200 (18) |
-| Forecasting | 24 | 24 | 0 | 0 | 9 | T2-MONARCH-202 .. T2-MONARCH-224 (15) |
-| Business Tracking | 7 | 6 | 1 | 0 | 2 | T2-MONARCH-225 .. T2-MONARCH-231 (5) |
-| Estate planning | 2 | 0 | 2 | 0 | 0 | T2-MONARCH-232 .. T2-MONARCH-233 (2) |
-| AI features | 10 | 8 | 0 | 2 | 1 | T2-MONARCH-235 .. T2-MONARCH-243 (9) |
-| Collaboration | 15 | 8 | 6 | 1 | 0 | T2-MONARCH-244 .. T2-MONARCH-258 (15) |
-| Notifications and digests | 10 | 3 | 0 | 7 | 1 | T2-MONARCH-259 .. T2-MONARCH-268 (9) |
-| Dashboard and navigation | 14 | 14 | 0 | 0 | 1 | T2-MONARCH-269 .. T2-MONARCH-282 (13) |
-| Mobile home screen widgets | 5 | 5 | 0 | 0 | 0 | T2-MONARCH-283 .. T2-MONARCH-287 (5) |
-| Credit score | 5 | 3 | 1 | 1 | 5 | none |
-| Data export | 7 | 0 | 7 | 0 | 0 | T2-MONARCH-293 .. T2-MONARCH-299 (7) |
-| Platforms and countries | 6 | 6 | 0 | 0 | 0 | T2-MONARCH-300 .. T2-MONARCH-305 (6) |
-| Security and privacy | 11 | 10 | 1 | 0 | 0 | T2-MONARCH-306 .. T2-MONARCH-316 (11) |
-| Billing and support | 14 | 2 | 12 | 0 | 0 | T2-MONARCH-317 .. T2-MONARCH-330 (14) |
+- **Budgeting** (22 ungated rows): flex and category budgets with rollovers; the list has no budget (the flex number row maps to safe to spend, 14)
+- **Goals** (18 ungated rows): personal save-up goals; the list has no personal goal (136 is a goal shared with others); the pay-down rows map to 91 one by one
+- **Business Tracking** (5 ungated rows): business books, P&L and Schedule C exports
+- **Estate planning** (2 ungated rows): a partner's will and trust offer
+- **Dashboard and navigation** (13 ungated rows): dashboard cards and navigation; the numbers they show are mapped in their own sections
+- **Mobile home screen widgets** (5 ungated rows): home screen widgets
+- **Data export** (7 ungated rows): CSV downloads of transactions and balances
+- **Platforms and countries** (6 ungated rows): Monarch's apps and country support
+- **Security and privacy** (11 ungated rows): Monarch's own access model, sign-in and data handling
+- **Billing and support** (14 ungated rows): Monarch's own plans, promotions, referrals and support
 
 ### Copilot Money
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and account linking | 30 | 5 | 20 | 5 | 5 | T2-COPILOT-001 .. T2-COPILOT-030 (25) |
-| Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) |
-| Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) |
-| Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) |
-| Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) |
-| Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) |
-| Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) |
-| Cash flow | 10 | 8 | 2 | 0 | 0 | T2-COPILOT-168 .. T2-COPILOT-177 (10) |
-| Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) |
-| Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) |
-| AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) |
-| Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) |
-| Notifications | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-246 .. T2-COPILOT-256 (11) |
-| Widgets and Apple integrations | 14 | 11 | 3 | 0 | 0 | T2-COPILOT-257 .. T2-COPILOT-270 (14) |
-| Platforms and accessibility | 9 | 7 | 2 | 0 | 0 | T2-COPILOT-271 .. T2-COPILOT-279 (9) |
-| Sharing with a partner | 3 | 0 | 3 | 0 | 0 | T2-COPILOT-280 .. T2-COPILOT-282 (3) |
-| Security and privacy | 12 | 3 | 9 | 0 | 0 | T2-COPILOT-283 .. T2-COPILOT-294 (12) |
-| Subscription, referrals and support | 17 | 3 | 14 | 0 | 0 | T2-COPILOT-295 .. T2-COPILOT-311 (17) |
+- **Categories and budgets** (29 ungated rows): category budgets, groups and rollovers; the list has no budget
+- **Goals and savings** (19 ungated rows): personal savings goals; the list has no personal goal (136 is a goal shared with others)
+- **Widgets and Apple integrations** (14 ungated rows): home screen widgets, icons and Apple platform features
+- **Platforms and accessibility** (9 ungated rows): Copilot's apps and display settings
+- **Security and privacy** (12 ungated rows): Copilot's own sign-in, encryption and account controls
+- **Subscription, referrals and support** (17 ungated rows): Copilot's own plans, gifts, referrals and support
 
 ### YNAB
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| The method and plan behaviour | 34 | 11 | 17 | 6 | 0 | T2-YNAB-001 .. T2-YNAB-034 (34) |
-| Onboarding and plan setup | 14 | 3 | 11 | 0 | 0 | T2-YNAB-035 .. T2-YNAB-048 (14) |
-| Accounts and account linking | 23 | 4 | 15 | 4 | 0 | T2-YNAB-049 .. T2-YNAB-071 (23) |
-| Transactions | 43 | 10 | 24 | 9 | 0 | T2-YNAB-072 .. T2-YNAB-114 (43) |
-| Categories and category groups | 12 | 6 | 6 | 0 | 0 | T2-YNAB-115 .. T2-YNAB-126 (12) |
-| Targets | 16 | 3 | 2 | 11 | 0 | T2-YNAB-127 .. T2-YNAB-142 (16) |
-| Loan planner and debt payoff | 10 | 4 | 5 | 1 | 0 | T2-YNAB-143 .. T2-YNAB-152 (10) |
-| Reports and export | 12 | 7 | 5 | 0 | 0 | T2-YNAB-153 .. T2-YNAB-164 (12) |
-| YNAB Together and sharing | 15 | 5 | 10 | 0 | 0 | T2-YNAB-165 .. T2-YNAB-179 (15) |
-| AI and automation | 4 | 4 | 0 | 0 | 0 | T2-YNAB-180 .. T2-YNAB-183 (4) |
-| API and integrations | 11 | 7 | 3 | 1 | 0 | T2-YNAB-184 .. T2-YNAB-194 (11) |
-| Platforms | 20 | 11 | 8 | 1 | 0 | T2-YNAB-195 .. T2-YNAB-214 (20) |
-| Notifications | 8 | 4 | 0 | 4 | 0 | T2-YNAB-215 .. T2-YNAB-222 (8) |
-| Security and privacy | 8 | 4 | 4 | 0 | 0 | T2-YNAB-223 .. T2-YNAB-230 (8) |
-| Support and learning | 6 | 4 | 2 | 0 | 0 | T2-YNAB-231 .. T2-YNAB-236 (6) |
-| Pricing and trial | 6 | 4 | 2 | 0 | 0 | T2-YNAB-237 .. T2-YNAB-242 (6) |
+- **The method and plan behaviour** (34 ungated rows): YNAB's envelope method: assigning every dollar, moving money between categories, Age of Money; the list has no budget
+- **Onboarding and plan setup** (14 ungated rows): YNAB's plan setup and formats
+- **Categories and category groups** (12 ungated rows): budget categories, groups and focused views
+- **Targets** (16 ungated rows): per-category savings and payment targets
+- **AI and automation** (3 ungated rows): a help-article app inside ChatGPT and a support chatbot; the payoff calculator row maps to 91
+- **API and integrations** (11 ungated rows): YNAB's developer API and integrations
+- **Platforms** (20 ungated rows): YNAB's apps, widgets and shortcuts
+- **Notifications** (8 ungated rows): approval, overspending and YNAB's own billing notices
+- **Security and privacy** (8 ungated rows): YNAB's own sign-in and data policies
+- **Support and learning** (6 ungated rows): YNAB's support and learning content
+- **Pricing and trial** (6 ungated rows): YNAB's own plans and trial
 
 ### Cleo
 
-| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |
-| --- | --- | --- | --- | --- | --- | --- |
-| Onboarding and bank linking | 6 | 6 | 0 | 0 | 0 | T2-CLEO-001 .. T2-CLEO-006 (6) |
-| AI chat | 14 | 10 | 4 | 0 | 4 | T2-CLEO-007 .. T2-CLEO-020 (10) |
-| Autopilot | 9 | 5 | 3 | 1 | 3 | T2-CLEO-021 .. T2-CLEO-028 (6) |
-| Budgeting and spending insights | 16 | 16 | 0 | 0 | 0 | T2-CLEO-030 .. T2-CLEO-045 (16) |
-| Cash advance | 18 | 6 | 10 | 2 | 18 | none |
-| Pay Later | 10 | 5 | 3 | 2 | 10 | none |
-| Credit builder card and credit score | 18 | 6 | 9 | 3 | 18 | none |
-| Direct deposit and early pay | 5 | 1 | 2 | 2 | 5 | none |
-| Savings | 16 | 5 | 4 | 7 | 13 | T2-CLEO-109 .. T2-CLEO-111 (3) |
-| Investing | 12 | 4 | 6 | 2 | 12 | none |
-| Games and rewards | 5 | 5 | 0 | 0 | 0 | T2-CLEO-125 .. T2-CLEO-129 (5) |
-| Notifications | 10 | 10 | 0 | 0 | 1 | T2-CLEO-130 .. T2-CLEO-139 (9) |
-| Security and support | 11 | 9 | 2 | 0 | 1 | T2-CLEO-140 .. T2-CLEO-150 (10) |
-| Plans and billing | 6 | 1 | 5 | 0 | 1 | T2-CLEO-152 .. T2-CLEO-156 (5) |
+- **Autopilot** (4 ungated rows): Cleo's waitlisted plan that moves money into its own savings or offers advances; the two safe-to-spend rows map to 14
+- **Savings** (3 ungated rows): Cleo's own savings account and automatic saving rules
+- **Games and rewards** (5 ungated rows): quizzes and prize draws
+- **Notifications** (9 ungated rows): Cleo's offer, prize, advance and own-product notices
+- **Security and support** (10 ungated rows): Cleo's own data handling and support
+- **Plans and billing** (5 ungated rows): Cleo's own plans and refunds
+
+## Rows mapped apart from their section
+
+| Row | Feature | Items | Coverage | Why |
+| --- | --- | --- | --- | --- |
+| T1-DUB-055 | Recurring Investments | 53 | full | a recurring buy on a schedule (53) |
+| T1-ALINEA-010 | Automated Investing | 53 | full | a recurring buy on a schedule (53) |
+| T1-ALINEA-042 | Crypto | 62 | full | buying crypto through a partner (62); decision 3 keeps it off |
+| T1-ALINEA-043 | Event contracts | none | none | event contracts are not on the list; decision 2 keeps them off |
+| T1-ORIGIN-098 | Stock Bundles | 50 | full | buying a theme in one step (50) |
+| T1-ORIGIN-100 | Sell bundle or single stock | 52 | full | an ordinary sell (52) |
+| T1-ORIGIN-030 | Large transaction alert | 34 | full | the large-transaction alert (34) |
+| T1-ORIGIN-175 | Weekly market recap notification | 24 | full | the weekly recap (24) |
+| T1-ORIGIN-177 | AI Recaps toggle | 24 | full | turning the recap on or off (24) |
+| T1-ALBERT-044 | Spending summary | 25 | full | the month-end report (25) |
+| T1-ALBERT-049 | Custom alerts | 27 | full | a custom report or alert the person sets (27) |
+| T1-ALBERT-050 | Vault | 3 | part | reading an uploaded document (3); storage of documents has no item |
+| T1-ALBERT-052 | Portfolio summaries | 22 | full | the daily portfolio summary (22) |
+| T1-ALBERT-046 | Shopping | none | none | product shopping is outside the list |
+| T1-ALBERT-047 | Travel itineraries | none | none | trip planning is outside the list |
+| T1-ALBERT-048 | Find restaurants | none | none | restaurant search is outside the list |
+| T1-ALBERT-125 | Fraud alerts | 33, 34 | full | suspicious charges on linked accounts (33, 34) |
+| T2-ROCKET-038 | Car insurance rate comparison | 40 | full | a better insurance rate (40) |
+| T2-ROCKET-039 | Overdraft and late fee refund script | 81 | full | asking for a fee to be waived (81) |
+| T2-ROCKET-066 | Amount Left After Bills | 14 | part | income minus bills, the core of safe to spend (14) |
+| T2-ROCKET-067 | Debt paydown | 91 | full | a payoff plan (91) |
+| T2-ROCKET-075 | Bank fee notification | 81 | full | catching a fee and asking for it back (81) |
+| T2-ROCKET-076 | Credit change alerts | 37 | full | a credit report change (37) |
+| T2-ROCKET-099 | Weekly spend reports | 24 | full | the weekly recap (24) |
+| T2-ROCKET-100 | Proactive alerts | 10, 31 | full | forgotten subscriptions (10) and price increases (31) |
+| T2-ROCKET-101 | Transaction edits by text | 8 | full | category fixes by chat (8) |
+| T2-ROCKET-102 | Budget building by text | none | none | budgets have no item |
+| T2-ROCKET-103 | Custom alerts | 27 | full | a custom alert the person sets (27) |
+| T2-ROCKET-104 | Cancel subscriptions by text | 106, 108, 109 | full | duplicate and unused subscriptions (108, 109), cancelled on a yes (106) |
+| T2-ROCKET-105 | Negotiate bills by text | 122 | full | bill negotiation (122) |
+| T2-ROCKET-106 | Trial tracking | 2, 32 | full | trials found in email (2) and warned before they bill (32) |
+| T2-ROCKET-107 | Refund requests | 148 | full | a refund for a late delivery or bad service (148) |
+| T2-ROCKET-108 | Savings rule | none | none | round-ups into savings; the list's round-ups (54) invest |
+| T2-ROCKET-109 | Debt guidance | 91 | full | a repayment plan (91) |
+| T2-MONARCH-101 | Flex number | 14 | part | income minus fixed and non-monthly costs, the core of safe to spend (14) |
+| T2-MONARCH-146 | Pay Down Goals | 91 | full | a payoff timeline per debt (91) |
+| T2-MONARCH-157 | Debt payoff calculator | 91, 92 | full | avalanche or snowball (91) and extra payments (92) |
+| T2-COPILOT-020 | Venmo (Copilot Labs) | 2 | full | reading receipts from email (2) |
+| T2-COPILOT-024 | Amazon (Copilot Labs) | 11 | full | itemising one charge into categories (11) |
+| T2-COPILOT-226 | Refund matching | 38 | part | matching a refund to its purchase (38); the promised-window watch is the rest |
+| T2-COPILOT-229 | Idle cash guidance | 59 | part | idle cash (59); suggesting where it goes is advice |
+| T2-COPILOT-248 | Credit Utilization alert | 90 | part | the utilization signal behind paying early (90) |
+| T2-COPILOT-254 | Bank Fee Alert | 81 | part | catching a fee (81); asking for it back is the rest |
+| T2-YNAB-181 | ChatGPT debt payoff calculator | 91 | full | a payoff estimate (91) |
+| T2-CLEO-024 | Daily Plan | 14 | part | a safe-to-spend amount (14); the get-back-on-track steps are the rest |
+| T2-CLEO-025 | Daily spending figure | 14 | full | safe to spend per day (14) |
+| T2-CLEO-088 | Personalized Credit Score | 101 | full | the score and the reasons behind it (101) |
+| T2-CLEO-090 | Credit score coaching | 101 | part | explaining the score (101); coaching steps are the rest |
+| T2-CLEO-091 | Credit history | 101 | full | the score tracked over time (101) |
+
+## Sections, ungated rows first
+
+Each app's sections with how many rows are buildable without a hard gate, and the
+capability-list items each section maps to (rows mapped apart are in the table above). The build order each teardown
+suggests is in its own "Build order suggestion" section.
+
+### dub
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account | 8 | 2 | 5 | 1 | 3 | T1-DUB-001 .. T1-DUB-008 (5) | none | none | NO_ITEM 8 |
+| Funding and withdrawals | 9 | 2 | 5 | 2 | 7 | T1-DUB-013 .. T1-DUB-016 (2) | none | none | NO_ITEM 9 |
+| Cash and dividends | 3 | 0 | 1 | 2 | 3 | none | none | none | NO_ITEM 3 |
+| Portfolio discovery | 17 | 17 | 0 | 0 | 5 | T1-DUB-021 .. T1-DUB-037 (12) | 46, 49, 50 | part: finding a filer, another member or a theme to copy (46, 49, 50); dub's curated rows, Premium strategies and discoverability rules are its own catalog | NOT_BUILT 17 |
+| Leaderboard | 6 | 6 | 0 | 0 | 0 | T1-DUB-038 .. T1-DUB-043 (6) | none | none | NO_ITEM 6 |
+| Copy trading | 21 | 5 | 7 | 9 | 16 | T1-DUB-045 .. T1-DUB-064 (5) | 45, 46, 47, 49 | part: copying a portfolio at the person's dollars, auto-copy and stopping it (45, 46, 47, 49); basket trades, rebalance locks, capacity limits and dub Advisors oversight are dub's brokerage machinery | NOT_BUILT 21 |
+| Creating portfolios | 8 | 1 | 7 | 0 | 2 | T1-DUB-066 .. T1-DUB-072 (6) | 49, 56 | part: a target split the person sets and rebalances to (56) and sharing it so a friend can copy it (49); public tickers and listing rules are dub's | MODULE_ONLY 8 |
+| Creator program | 7 | 4 | 2 | 1 | 2 | T1-DUB-074 .. T1-DUB-079 (5) | none | none | NO_ITEM 7 |
+| Performance and risk metrics | 15 | 15 | 0 | 0 | 0 | T1-DUB-080 .. T1-DUB-094 (15) | 51, 64 | part: returns and fees paid on the person's copies (51, 64); creator-side metrics (capital, copier count, alpha and risk scores) belong to dub's catalog | MODULE_ONLY 15 |
+| Notifications and reports | 10 | 8 | 1 | 1 | 0 | T1-DUB-095 .. T1-DUB-104 (10) | 42 | part: trade confirmations and account activity as a receipt for each action (42); statements, paper delivery and the social feed are the broker's records | MODULE_ONLY 10 |
+| Tax documents | 2 | 2 | 0 | 0 | 2 | none | none | none | NO_ITEM 2 |
+| Social features | 9 | 4 | 5 | 0 | 0 | T1-DUB-107 .. T1-DUB-115 (9) | none | none | NO_ITEM 9 |
+| AI features | 4 | 4 | 0 | 0 | 3 | T1-DUB-116 (1) | 63 | part: plain-words explanations of a portfolio and the market (63); finding portfolios from a request is discovery, and fit-to-profile insights are advice | IN_PRODUCT 4 |
+| Education | 3 | 3 | 0 | 0 | 0 | T1-DUB-120 .. T1-DUB-122 (3) | none | none | NO_ITEM 3 |
+| Membership and fees | 10 | 1 | 4 | 5 | 3 | T1-DUB-123 .. T1-DUB-131 (7) | none | none | NO_ITEM 10 |
+| Security | 4 | 2 | 1 | 1 | 0 | T1-DUB-133 .. T1-DUB-136 (4) | none | none | NO_ITEM 4 |
+| Account settings and support | 8 | 0 | 8 | 0 | 3 | T1-DUB-137 .. T1-DUB-144 (5) | none | none | NO_ITEM 8 |
+
+### Alinea
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and accounts | 7 | 2 | 4 | 1 | 6 | T1-ALINEA-007 (1) | none | none | NO_ITEM 7 |
+| Funding and withdrawals | 7 | 1 | 3 | 3 | 7 | none | none | none | NOT_BUILT 1, NO_ITEM 6 |
+| AI assistant | 8 | 7 | 0 | 1 | 5 | T1-ALINEA-018 .. T1-ALINEA-020 (3) | 63 | part: explaining the person's portfolio and what it holds (63); general market Q&A, single-stock questions and self-adjusting portfolios lean into advice | IN_PRODUCT 8 |
+| Portfolios and playlists | 14 | 6 | 5 | 3 | 9 | T1-ALINEA-027 .. T1-ALINEA-032 (5) | 49, 50, 56 | part: investing in a themed list (50), copying a member's list (49) and rebalancing (56); expert-built and managed portfolios choose positions for the person | MODULE_ONLY 14 |
+| Trading | 7 | 3 | 4 | 0 | 4 | T1-ALINEA-039 .. T1-ALINEA-041 (3) | 52 | part: buying and selling stocks, ETFs and fractions by amount (52); ticker search and market screens are research views with no item | IN_PRODUCT 5, NOT_BUILT 1, NO_ITEM 1 |
+| Performance and insights | 7 | 7 | 0 | 0 | 0 | T1-ALINEA-044 .. T1-ALINEA-050 (7) | 22, 64, 66 | part: the daily holdings briefing (22, 66) and portfolio returns (64); growth projections, the time machine and broker statements have no item | IN_PRODUCT 7 |
+| Education | 3 | 3 | 0 | 0 | 0 | T1-ALINEA-051 .. T1-ALINEA-053 (3) | none | none | NO_ITEM 3 |
+| Social and rewards | 5 | 3 | 2 | 0 | 2 | T1-ALINEA-054 .. T1-ALINEA-058 (3) | none | none | NO_ITEM 5 |
+| Notifications | 3 | 0 | 0 | 3 | 0 | T1-ALINEA-059 .. T1-ALINEA-061 (3) | none | none | NO_ITEM 3 |
+| Security and support | 9 | 9 | 0 | 0 | 2 | T1-ALINEA-062 .. T1-ALINEA-069 (7) | none | none | NO_ITEM 9 |
+| Membership and billing | 6 | 0 | 3 | 3 | 5 | T1-ALINEA-075 (1) | none | none | NO_ITEM 6 |
+| Platforms | 3 | 1 | 2 | 0 | 0 | T1-ALINEA-077 .. T1-ALINEA-079 (3) | none | none | NO_ITEM 3 |
+
+### Autopilot
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account | 6 | 4 | 2 | 0 | 3 | T1-AUTOPILOT-001 .. T1-AUTOPILOT-005 (3) | none | none | NO_ITEM 6 |
+| Brokerage connection | 9 | 1 | 8 | 0 | 8 | T1-AUTOPILOT-014 (1) | 1, 52 | part: linking the person's own brokerage (1) and placing trades there (52); the referral to open a Public account has no item | IN_PRODUCT 9 |
+| Marketplace and discovery | 9 | 9 | 0 | 0 | 2 | T1-AUTOPILOT-017 .. T1-AUTOPILOT-024 (7) | 46, 50 | part: finding a filer or a theme to copy (46, 50); Autopilot's featured lists, rankings and pilot directory are its own catalog | NOT_BUILT 9 |
+| Portfolios you can copy | 11 | 0 | 0 | 11 | 11 | none | 45, 46, 50 | part: copying Congress and 13F filers (45, 46) and themes (50); Autopilot's own strategies (Inverse Cramer, AI, expert and risk-based portfolios) are managed portfolios with no item | NOT_BUILT 11 |
+| Copy trading | 15 | 1 | 6 | 8 | 15 | none | 45, 47, 56 | part: sizing and buying a copy at the person's dollars (45), auto-copying new trades (47) and rebalancing (56); the quarterly suitability review is the adviser's duty | MODULE_ONLY 15 |
+| Tracking and alerts | 7 | 7 | 0 | 0 | 0 | T1-AUTOPILOT-051 .. T1-AUTOPILOT-057 (7) | 42, 51 | part: how the copy performed (51) and a notice for each trade placed (42); market-news alerts, SMS terms and education have no item | MODULE_ONLY 7 |
+| Plans and billing | 7 | 2 | 2 | 3 | 4 | T1-AUTOPILOT-062 .. T1-AUTOPILOT-064 (3) | none | none | NO_ITEM 7 |
+| Creators, support and security | 3 | 2 | 1 | 0 | 1 | T1-AUTOPILOT-066 .. T1-AUTOPILOT-067 (2) | none | none | NO_ITEM 3 |
+
+### Origin
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account linking | 15 | 15 | 0 | 0 | 0 | T1-ORIGIN-001 .. T1-ORIGIN-015 (15) | 1, 4, 5 | part: linking accounts (1), one list including manual ones (4) and reconnecting (5); home and vehicle values, CSV and Monarch imports and Amazon order matching have no item | IN_PRODUCT 15 |
+| Spending and transactions | 23 | 20 | 0 | 3 | 0 | T1-ORIGIN-016 .. T1-ORIGIN-038 (23) | 6, 8, 11, 12 | part: spending by category and month (6, 12), category fixes and rules (8) and splits (11); tags, bulk edits, the review queue, filters and CSV export are bookkeeping tools with no item | IN_PRODUCT 23 |
+| Budgeting | 13 | 12 | 0 | 1 | 0 | T1-ORIGIN-039 .. T1-ORIGIN-051 (13) | none | none | NO_ITEM 13 |
+| Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) | 10, 18, 31, 106 | full | IN_PRODUCT 8 |
+| Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) | 20 | part: what-if scenarios such as a home purchase or a new income (20); a lifetime plan with Monte Carlo odds, retirement, Social Security, equity and tax modeling has no item (16 forecasts 90 days) | MODULE_ONLY 20 |
+| Net worth | 3 | 3 | 0 | 0 | 0 | T1-ORIGIN-080 .. T1-ORIGIN-082 (3) | 15 | full | MODULE_ONLY 3 |
+| Investment tracking | 12 | 12 | 0 | 0 | 1 | T1-ORIGIN-083 .. T1-ORIGIN-094 (11) | 64, 65, 66, 68 | part: returns against a benchmark (64), allocation (65), earnings dates (66) and a watchlist (68); analyst ratings, market watch and themed screens are research tools with no item | MODULE_ONLY 12 |
+| Origin Invest and cash account | 13 | 2 | 8 | 3 | 13 | none | none | none | IN_PRODUCT 1, NOT_BUILT 1, NO_ITEM 11 |
+| AI adviser and other AI features | 18 | 18 | 0 | 0 | 6 | T1-ORIGIN-110 .. T1-ORIGIN-123 (12) | 7, 20, 22, 24 | part: plain questions over the person's data (7), what-if questions (20), the daily market brief (22) and the weekly recap (24); the health score, ranked recommendations, risk profile and memory controls have no item | IN_PRODUCT 18 |
+| Human financial planners | 10 | 4 | 6 | 0 | 6 | T1-ORIGIN-130 .. T1-ORIGIN-133 (4) | none | none | NO_ITEM 10 |
+| Equity compensation | 4 | 4 | 0 | 0 | 0 | T1-ORIGIN-136 .. T1-ORIGIN-139 (4) | none | none | NO_ITEM 4 |
+| Tax filing | 4 | 1 | 3 | 0 | 4 | none | none | none | NO_ITEM 4 |
+| Estate planning | 8 | 3 | 5 | 0 | 7 | T1-ORIGIN-150 (1) | none | none | NO_ITEM 8 |
+| Credit score and identity protection | 11 | 9 | 1 | 1 | 7 | T1-ORIGIN-157 .. T1-ORIGIN-161 (4) | 37, 101 | part: score, factors and credit report alerts (37, 101); dark web and SSN monitoring, data broker removal, identity restoration and insurance have no item | MODULE_ONLY 11 |
+| Partner and household sharing | 5 | 4 | 1 | 0 | 1 | T1-ORIGIN-163 .. T1-ORIGIN-166 (4) | 137 | part: mine, ours and yours views for a couple (137); partner credit scores have no item | MODULE_ONLY 5 |
+| Employer version | 4 | 2 | 2 | 0 | 1 | T1-ORIGIN-168 .. T1-ORIGIN-171 (3) | none | none | NO_ITEM 4 |
+| Notifications and reports | 7 | 7 | 0 | 0 | 0 | T1-ORIGIN-172 .. T1-ORIGIN-178 (7) | none | none | IN_PRODUCT 2, NO_ITEM 5 |
+| Platforms | 14 | 14 | 0 | 0 | 0 | T1-ORIGIN-179 .. T1-ORIGIN-192 (14) | none | none | NO_ITEM 14 |
+| Security and privacy | 6 | 5 | 1 | 0 | 0 | T1-ORIGIN-193 .. T1-ORIGIN-198 (6) | none | none | NO_ITEM 6 |
+| Support and membership | 11 | 7 | 1 | 3 | 1 | T1-ORIGIN-199 .. T1-ORIGIN-209 (10) | none | none | NO_ITEM 11 |
+
+### Albert
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and bank linking | 8 | 3 | 5 | 0 | 1 | T1-ALBERT-001 .. T1-ALBERT-008 (7) | 1, 4 | part: linking accounts (1) and adding one by hand (4); the debit card link is for Albert's own advances, and demo accounts and the goals questionnaire have no item | IN_PRODUCT 8 |
+| Budgeting and spending | 13 | 8 | 3 | 2 | 0 | T1-ALBERT-009 .. T1-ALBERT-021 (13) | 6, 8, 14, 15 | part: spending by category, account and merchant (6), category fixes (8), safe to spend (14) and net worth (15); category budgets, custom charts and the dashboard have no item | IN_PRODUCT 13 |
+| Forecast | 7 | 7 | 0 | 0 | 0 | T1-ALBERT-022 .. T1-ALBERT-028 (7) | 16, 20 | part: cash flow ahead (16) and milestone what-ifs (20); a five-year net worth forecast reaches further than the list's 90 days | MODULE_ONLY 7 |
+| Bills and subscriptions | 7 | 4 | 3 | 0 | 2 | T1-ALBERT-029 .. T1-ALBERT-034 (5) | 10, 31, 75, 106, 122 | full | IN_PRODUCT 7 |
+| Genius AI assistant | 18 | 10 | 3 | 5 | 6 | T1-ALBERT-036 .. T1-ALBERT-053 (12) | 7 | part: answers over the person's own data (7); rows that are other items are mapped one by one; moving money, Smart money and trading on Genius's plan run in Albert's own accounts | IN_PRODUCT 14, MODULE_ONLY 1, NO_ITEM 3 |
+| Instant cash advances and loans | 15 | 5 | 6 | 4 | 15 | none | none | none | NO_ITEM 15 |
+| Automatic savings | 15 | 2 | 4 | 9 | 15 | none | none | none | NO_ITEM 15 |
+| Albert Cash | 20 | 1 | 17 | 2 | 20 | none | none | none | NO_ITEM 20 |
+| Investing | 15 | 6 | 4 | 5 | 14 | T1-ALBERT-114 (1) | 52, 53, 56, 64 | part: buying and selling (52), recurring buys (53), rebalancing (56) and performance across outside accounts (64); Albert's managed portfolios, its own brokerage account and its transfers have no item | IN_PRODUCT 15 |
+| Credit and identity protection | 12 | 5 | 1 | 6 | 7 | T1-ALBERT-122 .. T1-ALBERT-129 (5) | 37, 101 | part: score and credit report alerts (37, 101); identity monitoring, data broker removal, insurance and restoration have no item | IN_PRODUCT 1, MODULE_ONLY 11 |
+| Insurance | 2 | 1 | 0 | 1 | 1 | T1-ALBERT-132 (1) | 40 | part: insurance quotes as a better-rate check (40); an expiring-policy alert has no item | MODULE_ONLY 2 |
+| Alerts and reports | 5 | 0 | 2 | 3 | 0 | T1-ALBERT-133 .. T1-ALBERT-137 (5) | 9, 29, 34 | part: large transactions (34), low balance (29) and spending trends (9); notification settings and texting the app are channels, not items | IN_PRODUCT 5 |
+| Security and support | 7 | 3 | 4 | 0 | 1 | T1-ALBERT-138 .. T1-ALBERT-143 (6) | none | none | NO_ITEM 7 |
+| Plans | 4 | 0 | 0 | 4 | 0 | T1-ALBERT-145 .. T1-ALBERT-148 (4) | none | none | NO_ITEM 4 |
+
+### Rocket Money
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account linking | 9 | 8 | 1 | 0 | 0 | T2-ROCKET-001 .. T2-ROCKET-009 (9) | 1, 5 | part: linking banks, cards, brokerages and loans (1) and connection health with reconnect (5); card APR and utilization details, unlinking and demo mode have no item | IN_PRODUCT 9 |
+| Subscriptions and recurring bills | 11 | 11 | 0 | 0 | 0 | T2-ROCKET-010 .. T2-ROCKET-020 (11) | 10, 14, 18, 106 | full | IN_PRODUCT 11 |
+| Cancellation concierge | 8 | 2 | 6 | 0 | 0 | T2-ROCKET-021 .. T2-ROCKET-028 (8) | 106, 112, 114 | full | IN_PRODUCT 8 |
+| Bill negotiation | 11 | 3 | 6 | 2 | 2 | T2-ROCKET-030 .. T2-ROCKET-039 (9) | 122 | full | MODULE_ONLY 2, NOT_BUILT 9 |
+| Spending and transactions | 22 | 21 | 0 | 1 | 1 | T2-ROCKET-040 .. T2-ROCKET-061 (21) | 6, 7, 8, 11, 25 | part: spending views (6), search (7), category fixes and rules (8), splits (11) and the monthly report (25); tags, notes, CSV export and the tax-deductible list have no item | IN_PRODUCT 22 |
+| Budgets and habits | 9 | 9 | 0 | 0 | 0 | T2-ROCKET-062 .. T2-ROCKET-070 (9) | none | none | IN_PRODUCT 1, MODULE_ONLY 1, NO_ITEM 7 |
+| Alerts and notifications | 7 | 7 | 0 | 0 | 1 | T2-ROCKET-071 .. T2-ROCKET-077 (6) | 28, 29, 34 | part: upcoming charges (28), low balance (29) and unusual charges (34); the fee and credit rows are mapped one by one, and challenge reminders have no item | IN_PRODUCT 5, MODULE_ONLY 2 |
+| Net worth | 5 | 5 | 0 | 0 | 0 | T2-ROCKET-078 .. T2-ROCKET-082 (5) | 15 | full | MODULE_ONLY 5 |
+| Credit | 4 | 4 | 0 | 0 | 4 | none | 37, 101 | full | MODULE_ONLY 4 |
+| Financial Goals and savings | 10 | 0 | 5 | 5 | 10 | none | none | none | NO_ITEM 10 |
+| Rowan AI agent | 16 | 10 | 4 | 2 | 1 | T2-ROCKET-097 .. T2-ROCKET-112 (15) | 7 | part: an agent over text answering from the person's data (7); its other rows are list items mapped one by one, and support handoff and app navigation have no item of their own | IN_PRODUCT 10, MODULE_ONLY 3, NOT_BUILT 1, NO_ITEM 2 |
+| Sharing | 4 | 1 | 3 | 0 | 0 | T2-ROCKET-113 .. T2-ROCKET-116 (4) | 137 | part: a partner with their own login sees the household's accounts (137); couple mode also keeps personal spending private, which this sharing does not | MODULE_ONLY 4 |
+| Platforms, security and support | 16 | 15 | 1 | 0 | 1 | T2-ROCKET-117 .. T2-ROCKET-131 (15) | none | none | NO_ITEM 16 |
+
+### Monarch
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account linking | 34 | 12 | 19 | 3 | 3 | T2-MONARCH-001 .. T2-MONARCH-034 (31) | 1, 4, 5 | part: linking accounts through several aggregators (1), manual accounts in one list (4) and connection health with provider switching (5); CSV and Mint imports, balance-history edits and the data transfer tool have no item | IN_PRODUCT 34 |
+| Transactions | 45 | 34 | 0 | 11 | 0 | T2-MONARCH-035 .. T2-MONARCH-079 (45) | 8, 11 | part: categorisation, merchant cleanup and rules (8) and splits (11); search, filters, tags, notes, attachments, review flags and bulk edits are bookkeeping tools with no item | MODULE_ONLY 45 |
+| Receipts and retail sync | 19 | 8 | 2 | 9 | 0 | T2-MONARCH-080 .. T2-MONARCH-098 (19) | 2, 3, 11 | full | MODULE_ONLY 19 |
+| Budgeting | 23 | 22 | 0 | 1 | 0 | T2-MONARCH-099 .. T2-MONARCH-121 (23) | none | none | IN_PRODUCT 1, NO_ITEM 22 |
+| Cash flow and reports | 14 | 13 | 1 | 0 | 0 | T2-MONARCH-122 .. T2-MONARCH-135 (14) | 6, 25 | part: income and spending by category, merchant and owner over any period (6) and the monthly review (25); chart types, saved reports and chart sharing are presentation | IN_PRODUCT 14 |
+| Recurring bills and subscriptions | 9 | 5 | 1 | 3 | 4 | T2-MONARCH-136 .. T2-MONARCH-140 (5) | 10, 18, 28 | full | IN_PRODUCT 9 |
+| Goals | 20 | 17 | 1 | 2 | 0 | T2-MONARCH-145 .. T2-MONARCH-164 (20) | none | none | MODULE_ONLY 2, NO_ITEM 18 |
+| Net worth and accounts | 16 | 16 | 0 | 0 | 0 | T2-MONARCH-165 .. T2-MONARCH-180 (16) | 4, 15 | part: net worth over time (15) and one list of accounts (4); utilisation bars, notes, logos and hide, close or invert controls have no item | MODULE_ONLY 16 |
+| Investments | 20 | 16 | 1 | 3 | 2 | T2-MONARCH-181 .. T2-MONARCH-200 (18) | 64, 65, 67 | part: returns against a benchmark (64), allocation (65) and fund breakdowns (67); equity compensation tracking and manual holdings have no item | MODULE_ONLY 20 |
+| Forecasting | 24 | 24 | 0 | 0 | 9 | T2-MONARCH-202 .. T2-MONARCH-224 (15) | 20 | part: what-if events and scenarios such as a new job or a home (20); a lifetime forecast with retirement, Social Security, withdrawal order and tax assumptions has no item (16 forecasts 90 days) | MODULE_ONLY 24 |
+| Business Tracking | 7 | 6 | 1 | 0 | 2 | T2-MONARCH-225 .. T2-MONARCH-231 (5) | none | none | NO_ITEM 7 |
+| Estate planning | 2 | 0 | 2 | 0 | 0 | T2-MONARCH-232 .. T2-MONARCH-233 (2) | none | none | NO_ITEM 2 |
+| AI features | 10 | 8 | 0 | 2 | 1 | T2-MONARCH-235 .. T2-MONARCH-243 (9) | 7, 24 | part: questions over the person's data (7) and the weekly recap (24); product help, transaction explanations, feedback buttons and the MCP connector have no item | IN_PRODUCT 10 |
+| Collaboration | 15 | 8 | 6 | 1 | 0 | T2-MONARCH-244 .. T2-MONARCH-258 (15) | 137 | part: mine, theirs and shared views for a household (137); adviser, professional and support access have no item | MODULE_ONLY 15 |
+| Notifications and digests | 10 | 3 | 0 | 7 | 1 | T2-MONARCH-259 .. T2-MONARCH-268 (9) | 5, 28, 37 | part: bill and recurring reminders (28), credit score changes (37) and broken connections (5); budget thresholds, review assignments, receipt notices and the price-change notice have no item | IN_PRODUCT 10 |
+| Dashboard and navigation | 14 | 14 | 0 | 0 | 1 | T2-MONARCH-269 .. T2-MONARCH-282 (13) | none | none | NO_ITEM 14 |
+| Mobile home screen widgets | 5 | 5 | 0 | 0 | 0 | T2-MONARCH-283 .. T2-MONARCH-287 (5) | none | none | NO_ITEM 5 |
+| Credit score | 5 | 3 | 1 | 1 | 5 | none | 101 | full | MODULE_ONLY 5 |
+| Data export | 7 | 0 | 7 | 0 | 0 | T2-MONARCH-293 .. T2-MONARCH-299 (7) | none | none | NO_ITEM 7 |
+| Platforms and countries | 6 | 6 | 0 | 0 | 0 | T2-MONARCH-300 .. T2-MONARCH-305 (6) | none | none | NO_ITEM 6 |
+| Security and privacy | 11 | 10 | 1 | 0 | 0 | T2-MONARCH-306 .. T2-MONARCH-316 (11) | none | none | NO_ITEM 11 |
+| Billing and support | 14 | 2 | 12 | 0 | 0 | T2-MONARCH-317 .. T2-MONARCH-330 (14) | none | none | NO_ITEM 14 |
+
+### Copilot Money
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and account linking | 30 | 5 | 20 | 5 | 5 | T2-COPILOT-001 .. T2-COPILOT-030 (25) | 1 | part: linking banks, cards, brokerages and Apple accounts through several aggregators (1); the Venmo and Amazon rows map one by one, and the test drive, first budget and onboarding restart have no item | IN_PRODUCT 28, MODULE_ONLY 1, NOT_BUILT 1 |
+| Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) | 4, 5, 15 | part: one list of accounts (4), connections needing attention (5) and net worth over time (15); utilization dots, renames, hiding and support merges have no item | MODULE_ONLY 21 |
+| Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) | 15 | part: property and other assets counting in net worth (15); automatic home value feeds and mortgage linking are not named on the list | MODULE_ONLY 7 |
+| Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) | 8, 11 | part: the categorisation model and name rules (8) and splits (11); search, filters, review inbox, tags, notes, bulk edits and keyboard shortcuts are bookkeeping tools with no item | MODULE_ONLY 46 |
+| Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) | none | none | NO_ITEM 29 |
+| Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) | 10, 18 | full | IN_PRODUCT 23 |
+| Dashboard | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-157 .. T2-COPILOT-167 (11) | 12, 14, 18 | part: free to spend (14), upcoming recurrings (18) and this month against last (12); the review card, referral card, tab order and search are app chrome | IN_PRODUCT 11 |
+| Cash flow | 10 | 8 | 2 | 0 | 0 | T2-COPILOT-168 .. T2-COPILOT-177 (10) | 6, 12 | full | IN_PRODUCT 10 |
+| Investments | 22 | 13 | 7 | 2 | 0 | T2-COPILOT-178 .. T2-COPILOT-199 (22) | 64, 65 | part: returns against a benchmark (64) and allocation (65); live balance estimates and manual holdings logs have no item | MODULE_ONLY 22 |
+| Goals and savings | 19 | 5 | 10 | 4 | 0 | T2-COPILOT-200 .. T2-COPILOT-218 (19) | none | none | NO_ITEM 19 |
+| AI assistant and natural language | 19 | 10 | 9 | 0 | 1 | T2-COPILOT-219 .. T2-COPILOT-237 (18) | 7, 8, 9 | part: answers from the person's data (7), category and rule fixes by chat (8) and unusual-charge briefings (9); charts in chat, tag suggestions, nudges and the MCP connector have no item | IN_PRODUCT 17, MODULE_ONLY 1, NOT_BUILT 1 |
+| Reports, charts and data export | 8 | 4 | 4 | 0 | 0 | T2-COPILOT-238 .. T2-COPILOT-245 (8) | 25, 26 | part: the month (25) and year (26) in review; slide sharing and CSV export have no item | IN_PRODUCT 8 |
+| Notifications | 11 | 10 | 1 | 0 | 0 | T2-COPILOT-246 .. T2-COPILOT-256 (11) | 24, 29, 30, 34 | part: low balance (29), big expenses (34), income (30) and the weekly spending update (24); budget, recurring-paid, transfer and Venmo notices have no item | IN_PRODUCT 9, MODULE_ONLY 2 |
+| Widgets and Apple integrations | 14 | 11 | 3 | 0 | 0 | T2-COPILOT-257 .. T2-COPILOT-270 (14) | none | none | NO_ITEM 14 |
+| Platforms and accessibility | 9 | 7 | 2 | 0 | 0 | T2-COPILOT-271 .. T2-COPILOT-279 (9) | none | none | NO_ITEM 9 |
+| Sharing with a partner | 3 | 0 | 3 | 0 | 0 | T2-COPILOT-280 .. T2-COPILOT-282 (3) | 137 | part: a partner seeing the couple's money (137); a shared login keeps nothing private, which couple mode does | MODULE_ONLY 3 |
+| Security and privacy | 12 | 3 | 9 | 0 | 0 | T2-COPILOT-283 .. T2-COPILOT-294 (12) | none | none | NO_ITEM 12 |
+| Subscription, referrals and support | 17 | 3 | 14 | 0 | 0 | T2-COPILOT-295 .. T2-COPILOT-311 (17) | none | none | NO_ITEM 17 |
+
+### YNAB
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| The method and plan behaviour | 34 | 11 | 17 | 6 | 0 | T2-YNAB-001 .. T2-YNAB-034 (34) | none | none | NO_ITEM 34 |
+| Onboarding and plan setup | 14 | 3 | 11 | 0 | 0 | T2-YNAB-035 .. T2-YNAB-048 (14) | none | none | NO_ITEM 14 |
+| Accounts and account linking | 23 | 4 | 15 | 4 | 0 | T2-YNAB-049 .. T2-YNAB-071 (23) | 1, 4, 5 | part: linking banks (1), unlinked and tracking accounts in one list (4) and repairing a broken connection (5); file imports and reconciliation-style balances have no item | IN_PRODUCT 23 |
+| Transactions | 43 | 10 | 24 | 9 | 0 | T2-YNAB-072 .. T2-YNAB-114 (43) | 8, 11 | part: payee cleanup and auto-categorisation (8) and splits (11); scheduled entries, approval, matching, flags, reconciling and bulk actions are ledger tools with no item | MODULE_ONLY 43 |
+| Categories and category groups | 12 | 6 | 6 | 0 | 0 | T2-YNAB-115 .. T2-YNAB-126 (12) | none | none | NO_ITEM 12 |
+| Targets | 16 | 3 | 2 | 11 | 0 | T2-YNAB-127 .. T2-YNAB-142 (16) | none | none | NO_ITEM 16 |
+| Loan planner and debt payoff | 10 | 4 | 5 | 1 | 0 | T2-YNAB-143 .. T2-YNAB-152 (10) | 91, 92 | part: the payoff path (91) and extra-payment simulator (92); loan interest, escrow and paired-category bookkeeping and the celebration image have no item | MODULE_ONLY 10 |
+| Reports and export | 12 | 7 | 5 | 0 | 0 | T2-YNAB-153 .. T2-YNAB-164 (12) | 6, 12, 15 | part: spending by category (6), trends and income against expense over time (12) and net worth (15); Age of Money, progress images and exports have no item | IN_PRODUCT 12 |
+| YNAB Together and sharing | 15 | 5 | 10 | 0 | 0 | T2-YNAB-165 .. T2-YNAB-179 (15) | 137 | part: household members sharing plans (137); referral and gift rows are YNAB's own billing | MODULE_ONLY 15 |
+| AI and automation | 4 | 4 | 0 | 0 | 0 | T2-YNAB-180 .. T2-YNAB-183 (4) | none | none | MODULE_ONLY 1, NO_ITEM 3 |
+| API and integrations | 11 | 7 | 3 | 1 | 0 | T2-YNAB-184 .. T2-YNAB-194 (11) | none | none | NO_ITEM 11 |
+| Platforms | 20 | 11 | 8 | 1 | 0 | T2-YNAB-195 .. T2-YNAB-214 (20) | none | none | NO_ITEM 20 |
+| Notifications | 8 | 4 | 0 | 4 | 0 | T2-YNAB-215 .. T2-YNAB-222 (8) | none | none | NO_ITEM 8 |
+| Security and privacy | 8 | 4 | 4 | 0 | 0 | T2-YNAB-223 .. T2-YNAB-230 (8) | none | none | NO_ITEM 8 |
+| Support and learning | 6 | 4 | 2 | 0 | 0 | T2-YNAB-231 .. T2-YNAB-236 (6) | none | none | NO_ITEM 6 |
+| Pricing and trial | 6 | 4 | 2 | 0 | 0 | T2-YNAB-237 .. T2-YNAB-242 (6) | none | none | NO_ITEM 6 |
+
+### Cleo
+
+| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Onboarding and bank linking | 6 | 6 | 0 | 0 | 0 | T2-CLEO-001 .. T2-CLEO-006 (6) | 1 | part: linking banks (1); hide, delete and the unsupported-account list have no item | IN_PRODUCT 6 |
+| AI chat | 14 | 10 | 4 | 0 | 4 | T2-CLEO-007 .. T2-CLEO-020 (10) | 7, 19 | part: questions over the person's data (7) and can-I-afford-this (19); roast, hype, voice and memory are tone and channel, and deposits, withdrawals and advance repayments move money in Cleo's own products | IN_PRODUCT 14 |
+| Autopilot | 9 | 5 | 3 | 1 | 3 | T2-CLEO-021 .. T2-CLEO-028 (6) | none | none | IN_PRODUCT 2, NO_ITEM 7 |
+| Budgeting and spending insights | 16 | 16 | 0 | 0 | 0 | T2-CLEO-030 .. T2-CLEO-045 (16) | 8, 10, 14, 18, 91 | part: left to spend (14), bills due (18), recurring and subscription detection (10), category fixes (8) and the debt paydown plan (91); the monthly plan view and essential-spending grouping are budget features with no item | IN_PRODUCT 16 |
+| Cash advance | 18 | 6 | 10 | 2 | 18 | none | none | none | NO_ITEM 18 |
+| Pay Later | 10 | 5 | 3 | 2 | 10 | none | none | none | NO_ITEM 10 |
+| Credit builder card and credit score | 18 | 6 | 9 | 3 | 18 | none | none | none | MODULE_ONLY 3, NO_ITEM 15 |
+| Direct deposit and early pay | 5 | 1 | 2 | 2 | 5 | none | none | none | NO_ITEM 5 |
+| Savings | 16 | 5 | 4 | 7 | 13 | T2-CLEO-109 .. T2-CLEO-111 (3) | none | none | NO_ITEM 16 |
+| Investing | 12 | 4 | 6 | 2 | 12 | none | none | none | NO_ITEM 12 |
+| Games and rewards | 5 | 5 | 0 | 0 | 0 | T2-CLEO-125 .. T2-CLEO-129 (5) | none | none | NO_ITEM 5 |
+| Notifications | 10 | 10 | 0 | 0 | 1 | T2-CLEO-130 .. T2-CLEO-139 (9) | none | none | NO_ITEM 10 |
+| Security and support | 11 | 9 | 2 | 0 | 1 | T2-CLEO-140 .. T2-CLEO-150 (10) | none | none | NO_ITEM 11 |
+| Plans and billing | 6 | 1 | 5 | 0 | 1 | T2-CLEO-152 .. T2-CLEO-156 (5) | none | none | NO_ITEM 6 |
 

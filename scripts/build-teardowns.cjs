@@ -7,9 +7,15 @@
 // regulated: a licensed partner or a lawyer first), and the gates Upmore's standing rules (CLAUDE.md) put on it. A gated
 // row is never built past its gate. The doc's own "At a glance" counts are checked against the parse, so a dropped or
 // doubled row fails the build.
-// Writes docs/teardowns/features.json and docs/teardowns/README.md; --check fails when either is stale.
+// Each feature row is also placed on the owner's Full Agent Capability List (docs/teardowns/map.cjs): `capability_items`
+// (item numbers 1..149, [] when the list has no such item) and `upmore_today`, the best status among those items as
+// scripts/capability-list.cjs derives it (PROVEN > IN_PRODUCT > MODULE_ONLY > GATED > NOT_BUILT; NO_ITEM when nothing
+// maps). The mapping never lifts a gate: a hard-gated row stays gated whatever Upmore has.
+// Writes docs/teardowns/features.json and docs/teardowns/README.md; --check fails when either is stale or the map has
+// drifted (a section it names no longer exists, one that exists is missing, an item number outside 1..149).
 const fs = require("fs");
 const path = require("path");
+const capabilityList = require("./capability-list.cjs");
 
 const ROOT = path.join(__dirname, "..");
 const DIR = path.join(ROOT, "docs/teardowns");
@@ -106,7 +112,57 @@ function build() {
       if (inc && +inc[1] !== notFound) problems.push(`${app}: the doc says ${inc[1]} checked-and-not-found rows, the table holds ${notFound}`);
     }
   }
-  return { rows: all, counts, problems };
+  const list = capabilityList.build(), items = list.rows;
+  const mapProblems = list.problems.map(p => `capability list: ${p}`);
+  if (!mapProblems.length) mapProblems.push(...applyMap(all, require(MAP_FILE), items));
+  return { rows: all, counts, problems, mapProblems, items };
+}
+
+// The capability-list map (docs/teardowns/map.cjs) onto the rows. Returns the problems; while any stands no row gets the
+// fields, and main() refuses to write or verify.
+const MAP_FILE = path.join(DIR, "map.cjs");
+const STATUS_ORDER = ["PROVEN", "IN_PRODUCT", "MODULE_ONLY", "GATED", "NOT_BUILT"];
+const COVERAGE = ["full", "part", "none"];
+function checkEntry(where, items, coverage, note, nItems) {
+  if (!Array.isArray(items)) return [`${where}: items must be a list`];
+  const p = [];
+  for (const n of items) if (!Number.isInteger(n) || n < 1 || n > nItems) p.push(`${where}: item ${n} is outside 1..${nItems}`);
+  if (new Set(items).size !== items.length) p.push(`${where}: an item is named twice`);
+  if (!COVERAGE.includes(coverage)) p.push(`${where}: coverage "${coverage}" is not full, part or none`);
+  if ((items.length === 0) !== (coverage === "none")) p.push(`${where}: coverage "none" goes with no items, and only then`);
+  if (coverage !== "full" && !String(note || "").trim()) p.push(`${where}: a "${coverage}" entry needs a note`);
+  return p;
+}
+function applyMap(rows, { SECTIONS, ROWS }, items) {
+  const problems = [], status = Object.fromEntries(items.map(i => [i.n, i.status]));
+  const feats = rows.filter(r => !r.not_a_feature);
+  const keys = [...new Set(feats.map(r => `${r.app}/${r.section}`))];
+  for (const k of keys) if (!SECTIONS[k]) problems.push(`map.cjs misses section "${k}"`);
+  for (const k of Object.keys(SECTIONS)) {
+    if (!keys.includes(k)) { problems.push(`map.cjs names section "${k}", which has no feature rows`); continue; }
+    const [it, cov, note] = SECTIONS[k];
+    problems.push(...checkEntry(`map.cjs "${k}"`, it, cov, note, items.length));
+  }
+  const byId = Object.fromEntries(feats.map(r => [r.id, r]));
+  for (const [id, o] of Object.entries(ROWS)) {
+    const r = byId[id];
+    if (!r) { problems.push(`map.cjs row ${id} is not a feature row`); continue; }
+    if (o.feature !== r.feature) problems.push(`map.cjs row ${id} was written for "${o.feature}", the row is "${r.feature}"`);
+    problems.push(...checkEntry(`map.cjs row ${id}`, o.items, o.coverage, o.note, items.length));
+  }
+  if (problems.length) return problems;
+  for (const r of feats) {
+    const [it, cov] = SECTIONS[`${r.app}/${r.section}`], o = ROWS[r.id];
+    r.capability_items = [...(o ? o.items : it)].sort((a, b) => a - b);
+    r.capability_coverage = o ? o.coverage : cov;
+    if (o) r.capability_note = o.note;
+    r.upmore_today = r.capability_items.length
+      ? STATUS_ORDER.find(s => r.capability_items.some(n => status[n] === s)) || "NOT_BUILT" : "NO_ITEM";
+    // What the row itself can claim: in a section covered only in part, the row may be the uncovered part, so it never
+    // borrows the section's status for the counts (PART) unless a row override says what it is.
+    r.upmore_today_row = r.capability_coverage === "part" ? "PART" : r.upmore_today;
+  }
+  return problems;
 }
 
 const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
@@ -141,16 +197,57 @@ function report({ rows, counts, problems }) {
   out.push("", "A row can carry more than one gate. Gates are read from the words, so they are a floor: a row the regexes miss is",
     "still bound by the rules, and the spec for each feature restates the rule it runs into.", "");
 
-  out.push("## Sections, ungated rows first", "", "Each app's sections with how many rows are buildable without a hard gate. The build",
-    "order each teardown suggests is in its own \"Build order suggestion\" section.", "");
+  const { SECTIONS, ROWS } = require(MAP_FILE);
+  const today = [...STATUS_ORDER, "PART", "NO_ITEM"], esc = s => String(s).replace(/\|/g, "/");
+  const itemList = l => (l.length ? l.join(", ") : "none");
+  out.push("## What Upmore has today, per app", "",
+    "Every feature row is placed on the owner's [Full Agent Capability List](../capability-list/full-agent-capability-list-2026-10-11.md)",
+    "(items 1..149 in document order) by `docs/teardowns/map.cjs`: one entry per app section, plus a few rows that clearly",
+    "differ from their section. `upmore_today` is the best status among a row's items as",
+    "[`scripts/capability-list.cjs`](../capability-list/README.md) derives it (PROVEN > IN_PRODUCT > MODULE_ONLY > GATED >",
+    "NOT_BUILT), or NO_ITEM when the list has no such item. The table counts what each row can claim on its own: a row in",
+    "a section covered only in part is counted PART (it may be the uncovered part; its section note names what is left)",
+    "unless a row override places it, so no row borrows its section's status. The mapping never lifts a gate.",
+    "\"Hard-gated\" counts the rows a standing rule keeps off, whatever their status; \"Ungated with an item\" counts the rows",
+    "that are on the list and that a build may reach.", "",
+    `| App | Rows | ${today.join(" | ")} | Hard-gated | Ungated with an item |`, `| --- | --- | ${today.map(() => "---").join(" | ")} | --- | --- |`);
+  const todayRow = (label, r) => `| ${label} | ${r.length} | ${today.map(s => r.filter(x => x.upmore_today_row === s).length).join(" | ")} | ${r.filter(x => x.hard_gated).length} | ${r.filter(x => !x.hard_gated && x.capability_items.length).length} |`;
+  for (const app of Object.keys(counts)) out.push(todayRow(app, feats.filter(x => x.app === app)));
+  out.push(todayRow("**all**", feats), "");
+  const covN = c => Object.values(SECTIONS).filter(e => e[1] === c).length;
+  out.push(`Sections: ${Object.keys(SECTIONS).length} (full ${covN("full")}, part ${covN("part")}, none ${covN("none")}); row overrides: ${Object.keys(ROWS).length}.`, "");
+
+  out.push("## Gaps Upmore's list does not cover", "",
+    "Sections mapped to no item, grouped by app, with their ungated rows only (a section whose rows are all hard-gated is",
+    "left out: the standing rules already keep it off). Rows inside these sections that map one by one are not counted.", "");
   for (const app of Object.keys(counts)) {
-    out.push(`### ${app}`, "", "| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids |", "| --- | --- | --- | --- | --- | --- | --- |");
+    const gaps = Object.entries(SECTIONS).filter(([k, e]) => k.startsWith(`${app}/`) && e[1] === "none").map(([k, e]) => {
+      const r = feats.filter(x => `${x.app}/${x.section}` === k && !x.hard_gated && !x.capability_items.length);
+      return { s: k.slice(app.length + 1), n: r.length, note: e[2] };
+    }).filter(g => g.n);
+    if (!gaps.length) continue;
+    out.push(`### ${app}`, "");
+    for (const g of gaps) out.push(`- **${g.s}** (${g.n} ungated row${g.n === 1 ? "" : "s"}): ${esc(g.note)}`);
+    out.push("");
+  }
+
+  out.push("## Rows mapped apart from their section", "", "| Row | Feature | Items | Coverage | Why |", "| --- | --- | --- | --- | --- |");
+  for (const [id, o] of Object.entries(ROWS)) out.push(`| ${id} | ${esc(o.feature)} | ${itemList(o.items)} | ${o.coverage} | ${esc(o.note)} |`);
+  out.push("");
+
+  out.push("## Sections, ungated rows first", "", "Each app's sections with how many rows are buildable without a hard gate, and the",
+    "capability-list items each section maps to (rows mapped apart are in the table above). The build order each teardown",
+    "suggests is in its own \"Build order suggestion\" section.", "");
+  for (const app of Object.keys(counts)) {
+    out.push(`### ${app}`, "", "| Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
     const secs = [...new Set(feats.filter(r => r.app === app).map(r => r.section))];
     for (const s of secs) {
       const r = feats.filter(x => x.app === app && x.section === s), t = k => r.filter(x => x.tags.includes(k)).length;
       const open = r.filter(x => !x.hard_gated);
       const ids = open.length ? `${open[0].id}${open.length > 1 ? ` .. ${open[open.length - 1].id}` : ""} (${open.length})` : "none";
-      out.push(`| ${s} | ${r.length} | ${t("Read")} | ${t("Ask")} | ${t("Rule")} | ${r.length - open.length} | ${ids} |`);
+      const [it, cov, note] = SECTIONS[`${app}/${s}`];
+      const st = today.map(x => [x, r.filter(y => y.upmore_today === x).length]).filter(([, n]) => n).map(([x, n]) => `${x} ${n}`).join(", ");
+      out.push(`| ${s} | ${r.length} | ${t("Read")} | ${t("Ask")} | ${t("Rule")} | ${r.length - open.length} | ${ids} | ${itemList(it)} | ${cov}${cov === "part" ? `: ${esc(note)}` : ""} | ${st} |`);
     }
     out.push("");
   }
@@ -159,13 +256,17 @@ function report({ rows, counts, problems }) {
 
 function main() {
   const res = build();
+  if (res.mapProblems.length) {
+    console.error(`docs/teardowns/map.cjs does not match the teardowns or the capability list:\n  ${res.mapProblems.join("\n  ")}`);
+    process.exit(1);
+  }
   const json = JSON.stringify({ generated_by: "scripts/build-teardowns.cjs", gates: GATES.map(({ code, rule, hard }) => ({ code, rule, hard })), counts: res.counts, problems: res.problems, rows: res.rows }, null, 1) + "\n";
   const md = report(res) + "\n";
   const targets = [[path.join(DIR, "features.json"), json], [path.join(DIR, "README.md"), md]];
   if (process.argv.includes("--check")) {
     const stale = targets.filter(([f, s]) => !fs.existsSync(f) || fs.readFileSync(f, "utf8") !== s).map(([f]) => path.relative(ROOT, f));
     if (stale.length) { console.error(`stale: ${stale.join(", ")} (run node scripts/build-teardowns.cjs)`); process.exit(1); }
-    console.log(`teardowns verified: ${res.rows.length} rows, ${res.problems.length} count problems`);
+    console.log(`teardowns verified: ${res.rows.length} rows, ${res.problems.length} count problems, map current (${Object.keys(require(MAP_FILE).SECTIONS).length} sections)`);
     return;
   }
   for (const [f, s] of targets) fs.writeFileSync(f, s);
@@ -175,4 +276,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { build, parse, GATES, DOCS };
+module.exports = { build, parse, applyMap, GATES, DOCS, STATUS_ORDER };

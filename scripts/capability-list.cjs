@@ -96,4 +96,4 @@ if (require.main === module) {
     console.log(`capability list: ${rows.length} items; ` + ORDER.map(st => `${st} ${rows.filter(r => r.status === st).length}`).join(", ") + `; rule clashes ${rows.filter(r => r.conflict).length}`);
   }
 }
-module.exports = { parse, status, parity };
+module.exports = { parse, status, parity, build };

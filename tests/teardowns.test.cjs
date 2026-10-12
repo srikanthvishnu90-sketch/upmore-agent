@@ -58,6 +58,85 @@ test("automations that move money carry the per-run yes rule", () => {
   assert.ok(!byId("T2-COPILOT-022").gates.includes("per_run_yes")); // marks Venmo transfers: bookkeeping
 });
 
+// The capability-list map (docs/teardowns/map.cjs): every section once, items in 1..149, the status derived.
+const { applyMap, STATUS_ORDER } = require("../scripts/build-teardowns.cjs");
+const MAP = require("../docs/teardowns/map.cjs");
+const { build: buildList } = require("../scripts/capability-list.cjs");
+const listItems = buildList().rows;
+const fresh = () => build().rows; // a fresh copy of the rows for each broken map below
+
+test("every (app, section) with feature rows is mapped exactly once, with valid items", () => {
+  const { mapProblems } = build();
+  assert.deepStrictEqual(mapProblems, []);
+  const pairs = [...new Set(features.map(r => `${r.app}/${r.section}`))];
+  assert.strictEqual(pairs.length, 154);
+  assert.deepStrictEqual(Object.keys(MAP.SECTIONS).sort(), pairs.sort());
+  assert.strictEqual(listItems.length, 149);
+  for (const [k, [items, cov, note]] of Object.entries(MAP.SECTIONS)) {
+    for (const n of items) assert.ok(Number.isInteger(n) && n >= 1 && n <= 149, `${k}: ${n}`);
+    assert.ok(["full", "part", "none"].includes(cov), k);
+    assert.strictEqual(items.length === 0, cov === "none", k);
+    if (cov !== "full") assert.ok(note.trim(), `${k} needs a note`);
+  }
+  for (const r of features) {
+    assert.ok(Array.isArray(r.capability_items), r.id);
+    assert.ok([...STATUS_ORDER, "NO_ITEM"].includes(r.upmore_today), r.id);
+    // A row in a partly covered section never claims its section's status in the counts.
+    assert.strictEqual(r.upmore_today_row, r.capability_coverage === "part" ? "PART" : r.upmore_today, r.id);
+  }
+});
+
+test("upmore_today is the best status among the row's items, NO_ITEM when none", () => {
+  const st = Object.fromEntries(listItems.map(i => [i.n, i.status]));
+  for (const r of features) {
+    const want = r.capability_items.length
+      ? STATUS_ORDER[Math.min(...r.capability_items.map(n => STATUS_ORDER.indexOf(st[n])))] : "NO_ITEM";
+    assert.strictEqual(r.upmore_today, want, r.id);
+  }
+});
+
+test("hand-picked rows sit where they should on the capability list", () => {
+  const item = n => listItems.find(i => i.n === n);
+  assert.match(item(106).text, /^Cancel any subscription by one sentence/);
+  // Rocket Money's cancellation concierge is item 106; the cancel flow is reachable in the chat today.
+  for (const r of features.filter(r => r.app === "Rocket Money" && r.section === "Cancellation concierge")) assert.ok(r.capability_items.includes(106), r.id);
+  assert.strictEqual(byId("T2-ROCKET-021").feature, "Subscription Cancellation Assistant");
+  assert.strictEqual(byId("T2-ROCKET-021").upmore_today, item(106).status);
+  // Cleo's cash advance is lending: hard-gated, and no item on Upmore's list.
+  for (const r of features.filter(r => r.app === "Cleo" && r.section === "Cash advance")) {
+    assert.deepStrictEqual(r.capability_items, [], r.id);
+    assert.strictEqual(r.upmore_today, "NO_ITEM", r.id);
+  }
+  assert.ok(byId("T2-CLEO-046").hard_gated && byId("T2-CLEO-046").gates.includes("lending"));
+  // Bill negotiation is item 122, and its phone-call row stays hard-gated whatever Upmore has.
+  assert.deepStrictEqual(byId("T2-ROCKET-029").capability_items, [122]);
+  assert.ok(byId("T2-ROCKET-029").hard_gated && byId("T2-ROCKET-029").gates.includes("phone_calls"));
+  // A row override wins over its section: dub's recurring investments are a recurring buy (53).
+  assert.deepStrictEqual(byId("T1-DUB-055").capability_items, [53]);
+  assert.ok(byId("T1-DUB-055").capability_note);
+  // Event contracts have no item and stay off (decision 2); Alinea's crypto row is item 62 and stays off (decision 3).
+  assert.deepStrictEqual(byId("T1-ALINEA-043").capability_items, []);
+  assert.deepStrictEqual(byId("T1-ALINEA-042").capability_items, [62]);
+  assert.ok(byId("T1-ALINEA-042").hard_gated);
+  // Budgeting is not on Upmore's list.
+  assert.strictEqual(byId("T2-YNAB-001").upmore_today, "NO_ITEM");
+});
+
+test("the map fails on a vanished section, a missing section, an item outside 1..149 and a renumbered override", () => {
+  const without = Object.assign({}, MAP.SECTIONS); delete without["Cleo/Cash advance"];
+  assert.ok(applyMap(fresh(), { SECTIONS: without, ROWS: MAP.ROWS }, listItems).some(p => /misses section "Cleo\/Cash advance"/.test(p)));
+  const extra = Object.assign({}, MAP.SECTIONS, { "Cleo/Crypto wallet": [[], "none", "gone"] });
+  assert.ok(applyMap(fresh(), { SECTIONS: extra, ROWS: MAP.ROWS }, listItems).some(p => /names section "Cleo\/Crypto wallet"/.test(p)));
+  const bad = Object.assign({}, MAP.SECTIONS, { "Cleo/Savings": [[150], "part", "out of range"] });
+  assert.ok(applyMap(fresh(), { SECTIONS: bad, ROWS: MAP.ROWS }, listItems).some(p => /item 150 is outside 1..149/.test(p)));
+  const zero = Object.assign({}, MAP.SECTIONS, { "Cleo/Savings": [[0], "part", "out of range"] });
+  assert.ok(applyMap(fresh(), { SECTIONS: zero, ROWS: MAP.ROWS }, listItems).some(p => /item 0 is outside/.test(p)));
+  const rows = Object.assign({}, MAP.ROWS, { "T1-DUB-055": Object.assign({}, MAP.ROWS["T1-DUB-055"], { feature: "Something else" }) });
+  assert.ok(applyMap(fresh(), { SECTIONS: MAP.SECTIONS, ROWS: rows }, listItems).some(p => /T1-DUB-055 was written for/.test(p)));
+  const noneWithItems = Object.assign({}, MAP.SECTIONS, { "Cleo/Savings": [[14], "none", "x"] });
+  assert.ok(applyMap(fresh(), { SECTIONS: noneWithItems, ROWS: MAP.ROWS }, listItems).some(p => /coverage "none" goes with no items/.test(p)));
+});
+
 test("features.json and README.md are current", () => {
   execFileSync(process.execPath, [path.join(ROOT, "scripts/build-teardowns.cjs"), "--check"], { stdio: "pipe" });
 });

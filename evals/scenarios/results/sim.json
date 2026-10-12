@@ -951,7 +951,7 @@
    "typed": "why is my portfolio down today",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "Today, per your Alpaca account as of 19:14 UTC: your positions are down $12.95 in all, unrealized (today's price against yesterday's close, or against what you paid for shares bought today). PLTR -$12.95 (-1.7%). I don't know why a price moved, so I won't guess.\nLIVE portfolio in your Alpaca account (****4417), as of 19:14 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "Your portfolio is down $12.95 today. Biggest drivers: PLTR -$12.95 (-1.7%): no story in the news provided names PLTR, so no reason is stated for its move. From your Alpaca account positions, your Alpaca account, IEX ask quotes, as of 19:13 UTC.",
    "executed": false,
    "mock_orders": 0
   },

@@ -401,6 +401,22 @@
           return { route: "save_nickname", source: "deterministic", flow: "nickname", result, understood: true, understood_first: result.outcome !== "ask", ask_reason: result.outcome === "ask" ? result.reason || null : null, problems: [], dropped };
         }
       }
+      // C19: a mover question ("why is my portfolio down today", "why did my portfolio move", "what moved my
+      // portfolio", "why is my portfolio up") goes to the trade flow's mover explainer, deterministically, ahead of
+      // the model and ahead of the generic portfolio/manage_order route it would otherwise collide with: the
+      // explainer answers from the positions and quotes it reads, in dollars, with a story's reason only when a
+      // provided story names the driver. Stories reach it on this context (c.stories / c.news_stories), the same
+      // channel the host passes its other reads on; the session's own options are the fallback inside the flow.
+      const MOVER_Q = /\bwhy (?:is|did|has|does) my (?:portfolio|holdings|investments) (?:down|up|move|moved|moving|dropp?\w*|fall\w*|ris\w*|gain\w*|los\w*)\b|\bwhat (?:moved|drove|caused|pushed) my (?:portfolio|holdings|investments)\b/i;
+      if (MOVER_Q.test(text) && sessions.trade && typeof sessions.trade.moverExplainer === "function") {
+        if (memo.queue && memo.queue.text !== text) memo.queue = null;
+        const dropped = [];
+        for (const k of live) { await sessions[k].reply("never mind"); dropped.push(k); }
+        const stories = Array.isArray(c.stories) ? c.stories : Array.isArray(c.news_stories) ? c.news_stories : Array.isArray(c.newsStories) ? c.newsStories : undefined;
+        const result = await sessions.trade.moverExplainer(text, stories ? { stories } : undefined);
+        if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
+        return { route: "mover_explainer", source: "deterministic", flow: "trade", canonical: text, result, understood: true, understood_first: true, problems: [], dropped };
+      }
       let ex = null, source = "model", modelError = null;
       if (typeof c.extract === "function") {
         try { ex = await Promise.race([c.extract(text), new Promise((_, rej) => setTimeout(() => rej(new Error("model timeout")), c.timeout_ms || 8000))]); } catch (e) { modelError = String(e && e.message || e); ex = null; }

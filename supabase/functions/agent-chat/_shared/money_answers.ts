@@ -45,7 +45,7 @@ export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): 
 // "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
 // when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
 export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
-export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | "savegoal" | "savingsrate" | "recheck" | NumbersKind;
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | "compare" | "cards" | "merchant" | "year" | "bnpl" | "bnplcheck" | "refund" | "subs" | "moneyin" | "charge" | "cancelled" | "rentshort" | "savegoal" | "savingsrate" | "recheck" | NumbersKind;
 // The most rows the host's transaction readers return (_shared/recent_transactions.ts, newest first). A read that comes
 // back this full was cut at its oldest end, so the year review says the rows it read start there, not the history.
 export const TX_READ_CAP = 5000;
@@ -128,6 +128,11 @@ export function moneyKind(message: string): MoneyKind | null {
   const view = SpendingViews.ask(m) as "compare" | "cards" | null;
   if (view) return view;
   if ((SPEND.test(m) || SPEND_SHORT.test(m)) && !ADVICE.test(m)) return "spend";
+  // "How much am I spending on DoorDash, really?" (94-spending-views.js merchantSpend): one named merchant across
+  // every account, trailing 30 and 90 days, the prior-period trend and the per-order average (capability C6). After
+  // spend on purpose: a month-scoped "what did i spend at Starbucks in September" is spend's, merchant filter and
+  // all; this kind owns the open-ended present-tense merchant ask spend does not claim.
+  if ((SpendingViews as any).merchantAsk(m)) return "merchant";
   if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m) || HAVE_IN.test(m) || CASH.test(m)) return "balance";
   return numbersKind(m);
 }
@@ -164,6 +169,7 @@ export async function moneyReply(message: string, now: Date | number | string, r
   if (kind === "bnplcheck") return Bnpl.check(accounts, tx, message, now, { tz, providers: BNPL_PROVIDERS_JSON });
   if (kind === "compare") return SpendingViews.compare(tx, message, now, { tz, rules });
   if (kind === "cards") return SpendingViews.byCard(accounts, tx, message, now, { tz, rules });
+  if (kind === "merchant") return (SpendingViews as any).merchantSpend(tx, message, now, { tz, rules });
   if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz, rules });
   if (kind === "refund") return RefundCheck.answer(tx, message, now, { tz });
   if (kind === "subs") return SubscriptionList.answer(tx, message, now, { tz, rules });

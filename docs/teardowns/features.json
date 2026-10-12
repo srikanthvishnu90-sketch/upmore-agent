@@ -13396,7 +13396,7 @@
    ],
    "capability_coverage": "part",
    "capability_note": "investing set-aside cash automatically (55); the set-aside is Albert's own savings automation",
-   "upmore_today": "NOT_BUILT",
+   "upmore_today": "MODULE_ONLY",
    "upmore_today_row": "PART"
   },
   {

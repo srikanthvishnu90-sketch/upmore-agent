@@ -55,6 +55,66 @@
       return out;
     }
 
+    // C13 bridge: the shared-expense ledger. The chat IOU log (105-iou-log.js) holds per-person lines; these plans hold
+    // the requests (PAY-003) that collect them. Until this bridge the two never met: a tagged transaction made no
+    // line, a request settled without clearing the line. Three seams, all pure:
+    //   fromTaggedTransaction(tx, tag)   a posted charge the user tagged as shared (tag.shared_with, tag.paid_by
+    //                                    default "me", tag.what) -> ledger lines in the IOU log's own shape, one per
+    //                                    person whose share touches the user, dated and sourced from the transaction
+    //   requestFromIou(entry, ctx)       an owes_me line -> its PAY-003 request, stamped with the line's id, the source
+    //                                    transaction id, and its rail reference: the rail id when staged on a
+    //                                    handoff rail (staged, never delivered), or "NOT_WIRED" when the person has
+    //                                    no request rail on file
+    //   settleIous(ious, requests, txs)  settleRequests over the requests, then the lines those requests name are
+    //                                    marked settled against the received payment row (settled_by = its id).
+    //                                    No matching received payment: the line stays open, untouched.
+    function fromTaggedTransaction(tx, tag) {
+      if (!tx || !tag || !Array.isArray(tag.shared_with) || !tag.shared_with.length) return null;
+      if (tx.is_pending) return null;
+      const total = -cents(tx);
+      if (!Number.isSafeInteger(total) || total <= 0) return null;
+      const on = ymd(tx.posted_at || tx.posted_on);
+      if (!on) return null;
+      const payer = tag.paid_by || "me";
+      const folks = [payer].concat(tag.shared_with.filter(n => typeof n === "string" && n.trim() && n !== payer));
+      if (!folks.includes("me")) folks.push("me"); // the user is always a participant in their own shared expense
+      if (folks.length < 2) return null;
+      const MM = typeof MoneyMath !== "undefined" ? MoneyMath : null;
+      const shares = MM ? MM.split(total, folks.length) : folks.map((_, i) => Math.trunc(total / folks.length) + (i < total % folks.length ? 1 : 0));
+      const note = String(tag.what || tx.merchant_raw || "shared expense").replace(/\d{9,}/g, "#").replace(/\s+/g, " ").trim().slice(0, 40);
+      const slug = n => String(n).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const entries = [];
+      folks.forEach((who, i) => {
+        if (who === payer || shares[i] <= 0) return;
+        const name = payer === "me" ? who : who === "me" ? payer : null;
+        if (!name) return; // a share between two other people is their ledger, not the user's
+        entries.push({ id: `iou-${tx.id || "tx"}-${slug(name)}`, name, direction: payer === "me" ? "owes_me" : "i_owe", amount_cents: shares[i], original_cents: shares[i], note, created_on: on, status: "open", transaction_id: tx.id || null });
+      });
+      return { transaction_id: tx.id || null, total_cents: total, payer, shares: folks.map((who, i) => ({ who, cents: shares[i] })), entries };
+    }
+    function requestFromIou(entry, ctx) {
+      if (!entry || typeof entry.name !== "string" || !entry.name) return { ask: "Which IOU? Name the person and the amount." };
+      if (entry.direction !== "owes_me") return { ask: `You owe ${entry.name} ${money(entry.amount_cents || 0)} — a request is only for money owed to you. Nothing was staged.` };
+      const r = requestMoney({ from: entry.name, amount_cents: entry.amount_cents, what: entry.note || "what you owe" }, ctx || {});
+      if (!r.request) return r;
+      r.request.iou_id = entry.id || null;
+      r.request.source_transaction_id = entry.transaction_id || null;
+      r.request.rail_reference = r.request.rail || "NOT_WIRED";
+      r.request.delivery = r.request.rail ? "staged" : "NOT_WIRED";
+      return r;
+    }
+    function settleIous(ious, requests, transactions, people) {
+      const settled = settleRequests(requests, transactions, people);
+      if (!settled.length) return { ious, settled: [] };
+      const byId = new Map((requests || []).map(r => [r.id, r]));
+      const next = (ious || []).map(e => {
+        const hit = settled.find(s => { const rq = byId.get(s.request_id); return rq && rq.iou_id === e.id; });
+        if (!hit) return e;
+        return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id });
+      });
+      return { ious: next, settled: settled.map(s => Object.assign({}, s, { iou_id: (byId.get(s.request_id) || {}).iou_id || null })) };
+    }
+
     // PAY-007 / PAY-008: schedule a future payment and cancel it before the rail's cutoff.
     function schedulePayment(spec, ctx) {
       const c = ctx || {};
@@ -239,6 +299,6 @@
       return { allowed: true };
     }
 
-    return { requestMoney, reminder, settleRequests, schedulePayment, cancelScheduled, dueScheduled, ownTransfer, autosave, overdraftPrevention, triageFailed, allowance, dueAllowances, group, addExpense, groupBalances, goalPlan, contribute, gift, socialFeed, household, visibleTo, mayAct, ROLES, TONES, businessDaysBefore, money };
+    return { requestMoney, reminder, settleRequests, fromTaggedTransaction, requestFromIou, settleIous, schedulePayment, cancelScheduled, dueScheduled, ownTransfer, autosave, overdraftPrevention, triageFailed, allowance, dueAllowances, group, addExpense, groupBalances, goalPlan, contribute, gift, socialFeed, household, visibleTo, mayAct, ROLES, TONES, businessDaysBefore, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentMoneyPlans;

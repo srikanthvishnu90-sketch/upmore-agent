@@ -22,8 +22,8 @@ Everything below describes how far the not-done items are from done. None of it 
 | Logic, not done | Items |
 | --- | --- |
 | LOGIC_PROVEN | 3 |
-| LOGIC_TESTED | 108 |
-| PARTLY_TESTED | 74 |
+| LOGIC_TESTED | 110 |
+| PARTLY_TESTED | 72 |
 | DESIGNED | 21 |
 
 | Rail | Items |
@@ -32,7 +32,7 @@ Everything below describes how far the not-done items are from done. None of it 
 | SANDBOX | 1 |
 | NOT_WIRED | 205 |
 
-Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 64. Writes with no registry id at T3 or above: 68.
+Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 62. Writes with no registry id at T3 or above: 68.
 
 ## Proof kinds (verification surfaces)
 
@@ -69,7 +69,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C8 | Big-purchase radar | no | alert_fired | LOGIC_TESTED | NOT_WIRED | BILL-011 TESTED, ANL-007 TESTED, ALRT-005 TESTED | push-transport |
 | C9 | Can I afford this | no | feed_tie | LOGIC_TESTED | NOT_WIRED | ANL-005 TESTED, ANL-016 TESTED, ANL-019 TESTED, ANL-009 TESTED | none |
 | C10 | Fee audit | no | feed_tie | LOGIC_TESTED | NOT_WIRED | TXN-018 TESTED, SAVE-004 TESTED, SAVE-005 TESTED | none |
-| C11 | Tip and junk-fee inflation tracker | no | feed_tie | PARTLY_TESTED | NOT_WIRED | TXN-019 CLAIMED, TXN-015 TESTED, ANL-009 TESTED | none |
+| C11 | Tip and junk-fee inflation tracker | no | feed_tie | LOGIC_TESTED | NOT_WIRED | TXN-019 TESTED, TXN-015 TESTED, ANL-009 TESTED | none |
 | C12 | Income reconciliation | no | alert_fired | LOGIC_TESTED | NOT_WIRED | ALRT-007 TESTED, ANL-010 TESTED, TXN-017 TESTED, ACCT-001 TESTED | none |
 | C13 | Shared-expense ledger | no | delivery_confirmed | LOGIC_TESTED | NOT_WIRED | PAY-017 TESTED, PAY-003 TESTED, SOC-003 TESTED, PAY-022 TESTED | none |
 | C14 | Weekly spending recap | no | push_delivered | LOGIC_TESTED | NOT_WIRED | ANL-020 TESTED, ANL-013 TESTED, ANL-002 TESTED, CORE-007 TESTED | push-transport |
@@ -93,7 +93,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C27 | Halt and circuit-breaker alerts | no | alert_fired | PARTLY_TESTED | NOT_WIRED | INV-008 CLAIMED, ALRT-010 TESTED | market-data |
 | C28 | Bill due-date reminders | no | push_delivered | LOGIC_TESTED | NOT_WIRED | BILL-007 TESTED, ALRT-005 TESTED, CARD-006 TESTED | none |
 | C29 | Low-balance early warning | no | delivery_confirmed | LOGIC_TESTED | NOT_WIRED | ALRT-001 TESTED, SAVE-006 TESTED, ANL-006 TESTED, PAY-009 TESTED | none |
-| C30 | Unusual-deposit alerts | no | delivery_confirmed | PARTLY_TESTED | NOT_WIRED | ALRT-007 TESTED, SAVE-022 CLAIMED, SAVE-001 TESTED | none |
+| C30 | Unusual-deposit alerts | no | delivery_confirmed | LOGIC_TESTED | NOT_WIRED | ALRT-007 TESTED, SAVE-022 TESTED, SAVE-001 TESTED | none |
 
 ## News, research, and ideas
 
@@ -599,7 +599,6 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | SAVE-018 | CLAIMED | C159 |
 | SAVE-020 | CLAIMED | C103, C104, C184 |
 | SAVE-021 | CLAIMED | C138, C169, C176, C177 |
-| SAVE-022 | CLAIMED | C30 |
 | SEC-003 | CLAIMED | C142, C147 |
 | SEC-005 | GATED | C151 |
 | SOC-007 | GATED | C137, C179 |
@@ -610,4 +609,3 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | TAX-009 | CLAIMED | C64, C69, C103, C104 |
 | TAX-011 | CLAIMED | C155 |
 | TXN-007 | CLAIMED | C156 |
-| TXN-019 | CLAIMED | C11 |

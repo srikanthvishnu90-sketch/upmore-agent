@@ -192,6 +192,63 @@
       });
     }
 
+    // C19: the portfolio mover explainer. Contribution analysis from the person's own positions and the day's price
+    // moves: each position's day P&L is quantity x (quote - previous close), in dollars and percent; the drivers are
+    // ranked by dollars and the portfolio total is their sum. For each top driver (at most 3) the best-matching story
+    // is attached through AgentNews's entity linking over the stories the caller provided, with the story's source
+    // named; a driver with no matching story is reported with its dollars and explicitly no stated reason. A reason
+    // is never invented: with no stories, or no AgentNews loaded, every driver is reasonless. Pure: the session below
+    // gathers positions and quotes from the broker reads and hands them here with the stories.
+    const MOVER_CAP = 3;
+    function moverExplainer(input) {
+      const inp = input || {}, positions = Array.isArray(inp.positions) ? inp.positions : [], quotes = inp.quotes || {};
+      const quoteFor = sym => Array.isArray(quotes) ? quotes.find(q => q && String(q.symbol || "").toUpperCase() === sym) : quotes[sym] || quotes[sym.toLowerCase()];
+      const signed = c => `${c < 0 ? "-" : "+"}${money(Math.abs(c))}`;
+      const pctFmt = x => `${x < 0 ? "-" : x > 0 ? "+" : ""}${(Math.round(Math.abs(x) * 1000) / 10).toFixed(1)}%`;
+      const drivers = [], missing = [];
+      for (const p of positions) {
+        if (!p || !p.symbol) continue;
+        const sym = String(p.symbol).toUpperCase(), n = Number(p.qty !== undefined ? p.qty : p.quantity) || 0;
+        if (!(n > 0)) continue;
+        const q = quoteFor(sym);
+        const price = q ? Number(q.price_cents !== undefined ? q.price_cents : q.price) : NaN;
+        const prev = q ? Number(q.prev_close_cents !== undefined ? q.prev_close_cents : q.previous_close_cents) : NaN;
+        if (!Number.isSafeInteger(price) || !Number.isSafeInteger(prev) || prev <= 0) {
+          // The broker's own day P&L on the position row (Alpaca's unrealized_intraday_pl, carried by the
+          // holdings read as today_pl_cents/today_pct) is a real price move too: when no quote with a previous
+          // close is available it is the contribution, used as the broker states it, never derived.
+          if (Number.isSafeInteger(p.today_pl_cents)) { drivers.push({ symbol: sym, name: p.name || null, qty: n, price_cents: null, prev_close_cents: null, pnl_cents: p.today_pl_cents, pct: Number.isFinite(p.today_pct) ? p.today_pct : null, story: null }); continue; }
+          missing.push(sym); continue;
+        }
+        drivers.push({ symbol: sym, name: p.name || null, qty: n, price_cents: price, prev_close_cents: prev, pnl_cents: Math.round(n * (price - prev)), pct: (price - prev) / prev, story: null });
+      }
+      drivers.sort((a, b) => Math.abs(b.pnl_cents) - Math.abs(a.pnl_cents));
+      const total = drivers.reduce((s, d) => s + d.pnl_cents, 0), top = drivers.slice(0, MOVER_CAP);
+      // Entity linking over the provided stories (AgentNews, 55-agent-news.js): a story matches a driver when its
+      // entities include that holding, by ticker or by company name; the freshest matching story wins.
+      const stories = Array.isArray(inp.stories) ? inp.stories : [], News = typeof AgentNews !== "undefined" ? AgentNews : null;
+      let prof = null;
+      if (News && stories.length && top.length) { try { prof = News.profile({ holdings: positions.filter(p => p && p.symbol).map(p => ({ symbol: String(p.symbol).toUpperCase(), name: p.name || undefined })) }); } catch (e) { prof = null; } }
+      if (prof) for (const d of top) {
+        if (!d.pnl_cents) continue;
+        let best = null;
+        for (const s of stories) { let hits = null; try { hits = News.entitiesIn(s, prof); } catch (e) { hits = null; } if (hits && hits.entities.some(e => String(e.entity).toUpperCase() === d.symbol) && (!best || (s.published_at || 0) > (best.published_at || 0))) best = s; }
+        if (best) d.story = { title: best.title || null, source: best.source || null, link: best.link || null, published_at: best.published_at || null };
+      }
+      let text;
+      if (!drivers.length) text = missing.length ? `I can't work out today's moves: the read doesn't carry a quote and a previous close for ${missing.join(", ")}, so I won't guess at a total.` : "You don't hold any positions, so there are no movers to explain.";
+      else if (drivers.every(d => d.pnl_cents === 0)) text = `Your portfolio is flat today: $0.00 in all. ${drivers.map(d => `${d.symbol} $0.00${d.pct != null ? " (0.0%)" : ""}`).join(", ")}.`;
+      else {
+        const seg = d => `${d.symbol} ${signed(d.pnl_cents)}${d.pct != null ? ` (${pctFmt(d.pct)})` : ""}: ${!d.pnl_cents ? "it didn't move, so there is nothing to explain" : d.story ? `${d.story.source || "A story"} reported "${d.story.title}", a story linked to ${d.symbol} in the news provided` : `no story in the news provided names ${d.symbol}, so no reason is stated for its move`}`;
+        text = `Your portfolio is ${total < 0 ? "down" : "up"} ${money(Math.abs(total))} today. Biggest drivers: ${top.map(seg).join(". ")}.`;
+        if (drivers.length > top.length) { const rest = drivers.slice(top.length), restTotal = rest.reduce((s, d) => s + d.pnl_cents, 0); text += ` The other ${rest.length} position${rest.length === 1 ? "" : "s"} moved ${signed(restTotal)} in all.`; }
+      }
+      if (drivers.length && missing.length) text += ` No quote with a previous close for ${missing.join(", ")}, so ${missing.length === 1 ? "it isn't" : "they aren't"} counted in the total.`;
+      if (drivers.length && inp.source) text += ` From ${inp.source}${Number.isFinite(inp.as_of) ? `, as of ${new Date(inp.as_of).toISOString().slice(11, 16)} UTC` : ""}.`;
+      const Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, lint = Guard ? Guard.response(text) : { ok: true, findings: [] };
+      return { outcome: "answer", reason: "movers", text, lint_ok: lint.ok, lint: lint.findings, total_cents: total, drivers, missing };
+    }
+
     // S11: regular session, 9:30 to 16:00 ET, Monday to Friday, less the holidays the caller lists (ymd).
     function etParts(ms) { const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hourCycle: "h23", weekday: "short", year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }); const o = {}; for (const p of f.formatToParts(new Date(ms))) o[p.type] = p.value; return { weekday: o.weekday, date: `${o.year}-${{ Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" }[o.month]}-${o.day}`, label: `${o.weekday} ${o.month} ${Number(o.day)}`, minutes: Number(o.hour) * 60 + Number(o.minute) }; }
     function marketOpen(ms, holidays) { const p = etParts(ms); if (["Sat", "Sun"].includes(p.weekday)) return false; if ((holidays || []).includes(p.date)) return false; return p.minutes >= 570 && p.minutes < 960; }
@@ -868,6 +925,29 @@
         return say("answer", text, { reason: "moves" });
       }
 
+      // C19, the session half of the mover explainer: positions from the holdings read, each symbol's quote and
+      // previous close from the quote read, and the stories the host provided — per call (the router passes the ones
+      // on its context) or on this session's options (o.stories). With no stories the dollars still answer, with
+      // every reason honestly absent. The arithmetic and the text are the pure moverExplainer above.
+      async function moverAnswer(text, callOpts) {
+        const c = connectStop(); if (c) return c;
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {}, where = a.name || "your account";
+        const h = await readOr("holdings", { account: a.id });
+        if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
+        const rows = (h.value || []).filter(x => x && x.symbol && (Number(x.qty !== undefined ? x.qty : x.quantity) || 0) > 0);
+        if (!rows.length) return say("answer", `You don't hold any positions in ${where} (${h.source}, as of ${hhmm(h.as_of)}), so there are no movers to explain.`, { reason: "movers", total_cents: 0, drivers: [] });
+        const quotes = {}; let qsrc = null, qasof = null;
+        for (const x of rows.slice(0, 20)) {
+          const sym = String(x.symbol).toUpperCase(), q = await readOr("quote", { symbol: sym });
+          if (q && q.value) { quotes[sym] = { price_cents: q.value.price_cents, prev_close_cents: q.value.prev_close_cents !== undefined ? q.value.prev_close_cents : q.value.previous_close_cents }; qsrc = qsrc || q.source; qasof = qasof === null ? q.as_of : Math.min(qasof, q.as_of); }
+        }
+        const stories = callOpts && Array.isArray(callOpts.stories) ? callOpts.stories : Array.isArray(o.stories) ? o.stories : Array.isArray(o.news_stories) ? o.news_stories : [];
+        const r = moverExplainer({ positions: rows, quotes, stories, source: [`${h.source} positions`, qsrc ? `${qsrc} quotes` : null].filter(Boolean).join(", "), as_of: qasof !== null ? qasof : h.as_of });
+        return say("answer", r.text, { reason: "movers", total_cents: r.total_cents, drivers: r.drivers, missing: r.missing });
+      }
+
       // Each holding's stop price at pct below its current sell quote, the same arithmetic as a single "15% below" stop.
       // Listed with what it would come to; one over the per-order cap is said. Nothing is placed; gap risk is said.
       async function bulkStops(pct) {
@@ -985,8 +1065,8 @@
       function today(now) { const d = day(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && day(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
       const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
-      return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
+      return { start, reply, followUp, today, portfolio, moverExplainer: moverAnswer, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
     }
-    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, CAPABILITY };
+    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, moverExplainer, CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentTrade;

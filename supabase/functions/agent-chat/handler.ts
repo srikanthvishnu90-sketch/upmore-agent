@@ -54,6 +54,9 @@ import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
+import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
+import { paycheckReply } from "./_shared/paycheck_answer.ts";
+import { tipFeesReply } from "./_shared/tip_fees_answer.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS, capWatches } from "../_shared/proactive.ts";
@@ -302,6 +305,20 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // The thread's last messages, newest first: "show me the math" explains the answer just given, and "what's new"
       // reads its own last "reviewed through" date (_shared/whats_new_answer.ts).
       const readPrevious = async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(20); return h.error ? [] : h.data || []; };
+      // Paycheck reconciliation (capability C12, _shared/paycheck_answer.ts): landed / short / missing against the
+      // deposit pattern's own median, ahead of the money answers, whose "upcoming" and "did it go through" kinds
+      // claim two of its phrasings. Its patterns return null with no reads for anything else, and its send-command
+      // guard leaves paycheck_send.ts its commands ("send $40 when my paycheck lands" is not this answer).
+      if (!direct) direct = await paycheckReply(message, new Date(), { accounts: readAccounts, transactions: readTx }, { tz });
+      // Bank-fee audit (capability C10, _shared/fee_audit_answer.ts): every bank fee across all accounts over the
+      // trailing 12 months, totaled by type, the fightable ones named for the fee-reversal path (SAVE-005). It
+      // drafts nothing; reversal asks stay with the dispute flow (its patterns return null for them).
+      if (!direct) direct = await feeAuditReply(message, new Date(), { accounts: readAccounts, transactions: readTx }, { tz });
+      // Tip and delivery/service fee load (capability C11, _shared/tip_fees_answer.ts): computed from itemized
+      // receipts (62-agent-documents.js parseReceipt rows via 116-tip-fees.js). No stored receipt source exists in
+      // the handler yet, so the receipts reader is empty and the answer is the honest none-on-file line until
+      // receipt ingestion lands; itemized transaction rows still count when they state the fields.
+      if (!direct) direct = await tipFeesReply(message, new Date(), { receipts: async () => [], transactions: readTx }, { tz });
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,

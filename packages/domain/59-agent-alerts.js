@@ -164,6 +164,53 @@
       for (const t of todays.filter(t => FAILED_RE.test(t.merchant_raw || "") || FAILED_RE.test(t.note || ""))) out.push({ key: `payment_failed:${t.id}`, kind: "payment_failed", capability_id: "ALRT-006", severity: "urgent", title: `Returned payment: ${t.merchant_display}`, text: `${t.merchant_display} posted today for ${money(Math.abs(t.amount_cents))}: a payment was returned or declined. Check the payee before it is retried.`, evidence: { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, amount_cents: Math.abs(t.amount_cents) });
       // ALRT-007 deposit received: a credit today at or above 80 percent of a recurring income amount, or any credit over the user's line.
       if (ledger) { const incomes = ledger.recurring(input.transactions, today, rules).filter(r => r.direction === "credit" && r.category === "income"); for (const t of todays.filter(t => t.amount_cents > 0 && t.category === "income")) { const r = incomes.find(i => i.key === t.merchant_key); if (r && t.amount_cents >= divRound(r.amount_cents * 8000, 10000)) out.push({ key: `deposit:${t.id}`, kind: "deposit_received", capability_id: "ALRT-007", severity: "normal", title: `${t.merchant_display} landed: ${money(t.amount_cents)}`, text: `${t.merchant_display} landed: ${money(t.amount_cents)}${t.amount_cents !== r.amount_cents ? ` (usually ${money(r.amount_cents)})` : ""}.`, evidence: { rows: [t.id], computed: { usual_cents: r.amount_cents }, source: "your transactions", as_of: t.posted_at }, amount_cents: t.amount_cents }); } }
+      // SAVE-022 windfall routing: a credit posted today is a windfall when it is well above the person's learned
+      // deposit pattern and is not that pattern itself. The learned pattern is the trailing deposits: every
+      // non-transfer, non-pending credit in the 90 days before today (at least 3, or there is no pattern to learn).
+      // A windfall must exceed twice the median trailing deposit and be at least $100. A deposit that matches its
+      // own merchant's trailing median within 25 percent is the regular paycheck pattern (a normal payday can clear
+      // twice the overall median when small credits drag that median down), so it never fires. Classification is
+      // from descriptor words only, and the words that produced it are named as the evidence. The suggested sweep
+      // is computed from the input, never invented: a sweep/autosave rule on the input (SAVE-001 shape: from, to,
+      // percent_bps or a fixed amount_cents) names the exact dollars and destination; with no rule, the stated
+      // share is 50 percent to a savings account that is actually among the accounts; with no savings account, no
+      // destination is named at all. One alert per deposit: the key carries the transaction id, duplicate rows
+      // fire once, and a deposit the caller says was already alerted (alerted_keys) never fires again.
+      {
+        const WINDFALL_CLASSES = [{ classification: "tax refund", words: ["IRS", "TREASURY", "REFUND"] }, { classification: "bonus", words: ["BONUS"] }, { classification: "reimbursement", words: ["REIMB", "EXPENSE"] }];
+        const medianOf = xs => { const s = xs.slice().sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : divRound(s[m - 1] + s[m], 2); };
+        const acctOf = id => accounts.find(a => [a.id, a.nickname, a.kind, a.name].filter(Boolean).some(n => String(n) === String(id))) || null;
+        const alerted = new Set([].concat(input.alerted_keys || [], input.sent_keys || [], input.alerted_transaction_ids || [], (input.alerted || []).map(x => typeof x === "string" ? x : x && (x.key || x.id || x.transaction_id))).filter(Boolean).map(String));
+        const trailing = all.filter(t => t.amount_cents > 0 && !t.is_transfer && !t.is_pending && t.posted_at < today && daysBetween(t.posted_at, today) <= 90);
+        if (trailing.length >= 3) {
+          const median = medianOf(trailing.map(t => t.amount_cents));
+          const sweepRules = [].concat(input.autosave_rules || [], input.sweep_rules || [], (input.rules || []).filter(r => r && r.to && (r.percent_bps != null || r.percent != null || r.amount_cents != null)));
+          const rule = sweepRules.find(r => r.status !== "paused" && acctOf(r.to)) || null;
+          const seenIds = new Set();
+          for (const t of todays.filter(t => t.amount_cents > 0 && !t.is_transfer && !t.is_pending)) {
+            if (seenIds.has(t.id)) continue;
+            seenIds.add(t.id);
+            const key = `windfall:${t.id}`;
+            if (alerted.has(key) || alerted.has(String(t.id))) continue;
+            if (t.amount_cents < 10000 || t.amount_cents <= median * 2) continue;
+            const same = trailing.filter(u => u.merchant_key === t.merchant_key).map(u => u.amount_cents);
+            if (same.length && t.amount_cents <= divRound(medianOf(same) * 125, 100)) continue;
+            const descriptor = `${t.merchant_raw || ""} ${t.note || ""}`.toUpperCase();
+            const hit = WINDFALL_CLASSES.map(c => ({ classification: c.classification, words: c.words.filter(w => new RegExp(`\\b${w}\\b`).test(descriptor)) })).find(c => c.words.length);
+            const classification = hit ? hit.classification : "unusual deposit", words = hit ? hit.words : [];
+            const dest = rule ? acctOf(rule.to) : accounts.find(a => a.kind === "savings" && !a.hidden) || null;
+            const from = rule && rule.from ? acctOf(rule.from) : accounts.find(a => a.id === t.account_id) || null;
+            let sweep = null, pctBps = null;
+            if (dest) {
+              if (rule && rule.percent_bps == null && rule.percent == null && rule.amount_cents != null) sweep = Math.min(rule.amount_cents, t.amount_cents);
+              else { pctBps = rule ? (rule.percent_bps != null ? rule.percent_bps : Math.round(rule.percent * 100)) : 5000; sweep = divRound(t.amount_cents * pctBps, 10000); }
+            }
+            const label = classification.charAt(0).toUpperCase() + classification.slice(1);
+            const suggestion = dest ? `Sweep ${money(sweep)}${pctBps != null ? ` (${pctBps / 100}% of it)` : ""} to ${dest.nickname || dest.name || dest.id}? Reply yes and I'll put up that move for your confirmation; nothing moves without it.` : "No savings account is linked, so I'm not naming a sweep destination; tell me where you'd like part of it to go.";
+            out.push({ key, kind: "windfall", capability_id: "SAVE-022", severity: "normal", title: `${label} landed: ${money(t.amount_cents)}`, text: `Your ${money(t.amount_cents)} ${classification} landed${words.length ? ` — the descriptor says ${words.join(", ")}` : ""}, well above your usual ${money(median)} deposit (the median of your last ${trailing.length} deposits). ${suggestion}`, evidence: { rows: [t.id], computed: { classification, evidence_words: words, trailing_median_cents: median, trailing_deposits: trailing.length, threshold_cents: median * 2, sweep_cents: sweep, sweep_percent_bps: pctBps, rule_id: rule ? rule.id || null : null, from_account_id: from ? from.id : null, to_account_id: dest ? dest.id : null }, source: "your transactions", as_of: t.posted_at }, amount_cents: t.amount_cents });
+          }
+        }
+      }
       // ALRT-008 fee charged: any fee today, with the recovery path.
       for (const t of todays.filter(t => t.amount_cents < 0 && t.category === "fees")) out.push({ key: `fee:${t.id}`, kind: "fee_charged", capability_id: "ALRT-008", severity: "normal", title: `Fee: ${t.merchant_display} ${money(-t.amount_cents)}`, text: `${t.merchant_display} charged ${money(-t.amount_cents)} today. Banks often reverse a fee when asked; want the request drafted?`, evidence: { rows: [t.id], computed: {}, source: "your transactions", as_of: t.posted_at }, amount_cents: -t.amount_cents });
       // ALRT-009 security sign-in: a connector's sign-in event from a new device or place is safety; a known device is silent.
@@ -233,7 +280,7 @@
       for (const f of b.items) { const item = { key: f.key, text: f.text, reason: f.kind === "watch" ? "you asked me to watch this" : REASONS[f.kind] || f.kind, evidence: f.evidence, capability_id: f.capability_id, amount_cents: f.amount_cents || null, deadline: f.deadline || null, urgent: f.severity === "urgent", title: f.title, members: f.members }; if (f.severity === "safety") out.safety.push(item); else if (f.kind === "watch" || f.severity === "urgent") out.watches.push(item); else out.proactive.push(item); }
       return out;
     }
-    const REASONS = { low_balance: "your balance is heading under your buffer", large_transaction: "a charge far above your usual", unusual_spending: "spending unlike your pattern", bill_increase: "a bill went up", renewal: "a renewal is coming", payment_failed: "a payment did not go through", deposit_received: "money landed", fee_charged: "a fee hit", bundle: "several things at once" };
+    const REASONS = { low_balance: "your balance is heading under your buffer", large_transaction: "a charge far above your usual", unusual_spending: "spending unlike your pattern", bill_increase: "a bill went up", renewal: "a renewal is coming", payment_failed: "a payment did not go through", deposit_received: "money landed", windfall: "a deposit well above your usual pattern", fee_charged: "a fee hit", bundle: "several things at once" };
     return { parseWatch, restateWatch, dueOf, detect, evaluateWatches, deliver, bundle, run, inQuiet, quietEnds, REASONS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentAlerts;

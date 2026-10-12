@@ -16,6 +16,9 @@ import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 import { budgetReply } from "../../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 import { deadlinesReply } from "../../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
+import { feeAuditReply } from "../../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
+import { paycheckReply } from "../../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
+import { tipFeesReply } from "../../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
@@ -40,6 +43,11 @@ export const RECEIPT = "can i swap to store brands here?\nTIDE PODS 42CT 13.99\n
 export const BUDGETS = [{ id: "budget-groceries-mock", kind: "category_budget", category: "groceries", amount_cents: 40000, period: "month", created_at: "2026-10-01T12:00:00.000Z", created_on: "2026-10-01", status: "active" }];
 
 export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
+  // Wave 1 answers (2026-10-12), ahead of moneyReply in the handler: paycheck reconciliation (C12), the bank-fee
+  // audit (C10), and tip/fee load from itemized receipts (C11 — no receipts in this fixture, so its honest line).
+  paycheckReply: (m) => paycheckReply(m, NOW, { accounts, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
+  feeAuditReply: (m) => feeAuditReply(m, NOW, { accounts, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
+  tipFeesReply: (m) => tipFeesReply(m, NOW, { receipts: async () => [], transactions: async () => TX as any[] }, { tz: "America/New_York" }),
   budgetReply: (m) => budgetReply(m, NOW, { budgets: async () => BUDGETS, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
   moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[], cancellations: async () => CANCELS }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),

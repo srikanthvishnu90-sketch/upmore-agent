@@ -161,6 +161,16 @@ const OWNER: [string, string | null][] = [
   ["when are property taxes due", null],
   ["remind me when taxes are due", null],
   ["what's the deadline to dispute a charge", null],
+  // Wave 1 answers (2026-10-12), first in the handler's chain: paycheck reconciliation (C12) ahead of the money
+  // answers' "upcoming"/"through" kinds; the bank-fee audit (C10); tip and delivery/service fee load (C11). A
+  // paycheck-conditioned send is a command for paycheck_send.ts, not the reconciliation answer.
+  ["did my paycheck land", "paycheckReply"],
+  ["when is my next paycheck", "paycheckReply"],
+  ["is my paycheck short", "paycheckReply"],
+  ["how much did i pay in fees this year", "feeAuditReply"],
+  ["how much do i tip on doordash", "tipFeesReply"],
+  ["are delivery fees getting worse", "tipFeesReply"],
+  ["pay maya 40 only if my paycheck landed", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

@@ -68,6 +68,27 @@
         for (const p of a.proactive) { fromAlerts.add(p.key); out.proactive.push(Object.assign({ priority: 2 }, p)); }
         out.held = a.held;
       }
+      // Big-purchase radar (capability C8): every recurring debit at or over the large-charge line due within 7 days,
+      // from the ledger's own recurrence detection (57-agent-ledger.js recurringCalendar — the same calendar the brief
+      // and the recap read), listed in ONE finding with each date and amount, days ahead of the charge, so a yearly
+      // premium, the rent or a tuition bill never lands as a surprise. The line is the person's own large-charge
+      // threshold when they set one (large_threshold_cents, the ALRT-002 line), else $500. A renewal alert (ALRT-005)
+      // or a save-engine annual-renewal note for the same charge on the same day is this listing, not a second finding.
+      const Ledger = mod("AgentLedger");
+      if (Ledger && input.transactions) {
+        const threshold = Number.isInteger(input.large_threshold_cents) ? input.large_threshold_cents : 50000;
+        const items = Ledger.recurringCalendar(input.transactions, input.today, 7).items.filter(i => i.direction === "debit" && i.amount_cents >= threshold && i.on >= input.today);
+        if (items.length) {
+          const absorbed = p => p.amount_cents != null && p.deadline != null && items.some(i => i.amount_cents === p.amount_cents && p.deadline === dayMs(i.on));
+          out.proactive = out.proactive.filter(p => !((/^renewal:/.test(p.key) || /annual_renewal/.test(p.key)) && absorbed(p)));
+          out.proactive.push({ key: "upcoming_large:" + items.map(i => `${i.merchant}|${i.on}|${i.amount_cents}`).join("|"),
+            text: `Big charges coming up: ${items.map(i => `${i.merchant} ${money(i.amount_cents)} on ${i.on}`).join(", ")}. Each is over the ${money(threshold)} line, so none of them lands as a surprise.`,
+            reason: "a large charge is coming", deadline: dayMs(items[0].on), next_on: items[0].on,
+            amount_cents: items.reduce((s, i) => s + i.amount_cents, 0), capability_id: "ALRT-005", priority: 4,
+            evidence: { rule: "Recurring debits at or over the large-charge line due within 7 days (ledger recurrence).", rows: [], computed: { threshold_cents: threshold, items: items.map(i => ({ merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence })) } } });
+          out.sources.radar = { upcoming: items.length, threshold_cents: threshold };
+        }
+      }
       // Fraud and scam shapes are safety: they beat everything (doc 01 decision order). The shape is the rule that fired
       // (its reason), never the finding's words: those carry the merchant's descriptor, and a merchant named
       // "UNAUTHORIZED ..." must not turn a new-subscription note into a safety alert that skips quiet hours and the budget.

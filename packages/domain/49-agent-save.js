@@ -74,7 +74,7 @@
         if (up < 50 || now * 100 <= was * 105 || days(last.date, input.today) > 45) continue;
         // The rise is per charge; a month holds 52/12 weekly charges and 1/12 of a yearly one, so it is said at its cadence.
         const upMonthly = divRound(up * PER_YEAR[cluster.interval], 12), per = { weekly: "a week", biweekly: "every two weeks", monthly: "a month", quarterly: "a quarter", yearly: "a year" }[cluster.interval];
-        out.push(opp("P1_subscription", `price_increase:${last.merchant}`, { title: `${last.merchant} went up ${money(up)} ${per}`, capability_id: "BILL-002", tier: "T3",
+        out.push(opp("P1_subscription", `price_increase:${last.merchant}`, { title: `${last.merchant} went up ${money(up)} ${per}, from ${money(was)} to ${money(now)} (${money(up * PER_YEAR[cluster.interval])} more over 12 months)`, capability_id: "BILL-002", tier: "T3",
           expected_monthly_cents: upMonthly, confidence: "high", merchant: last.merchant,
           action: { type: "cancel_or_downgrade", capability_id: "BILL-003", note: "The delta is the surfaced number; the saving depends on the user's choice." },
           evidence: { rule: "Latest charge at least 5 percent and $0.50 above a steady earlier price.", rows: before.concat([last]).map(t => ({ id: t.id, date: t.date, amount: t.amount, merchant: t.merchant })), computed: { previous_cents: was, new_cents: now, increase_cents: up, interval: cluster.interval, monthly_increase_cents: upMonthly } },

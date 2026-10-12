@@ -52,7 +52,11 @@ export interface TrialOffer { kind: "cancel_trial"; merchant: string; subscripti
 export interface RentOffer { kind: "rent_month"; standing_id: string; month: string; due_on: string; amount_cents: number; payee_name: string; rail: string }
 // A send the person scheduled (megadoc A08): at its time, yes puts up the send flow's own card for their words.
 export interface ScheduledSendOffer { kind: "scheduled_send"; id: string; command: string; name: string; amount_cents: number; at_ms: number }
-export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer;
+// A windfall sweep the person was offered (SAVE-022): the deposit, the exact sweep the alert named, and the two
+// accounts. A yes answers the sweep question; the move itself is an own-account transfer, which needs its own
+// confirmation card, so the answer to a yes is honest about what chat can and cannot stage (see windfallOfferAnswer).
+export interface WindfallOffer { kind: "windfall_sweep"; key: string; transaction_id: string; deposit_cents: number; sweep_cents: number; from_account_id: string; to_account_id: string; classification: string }
+export type ProactiveOffer = TrialOffer | RentOffer | ScheduledSendOffer | WindfallOffer;
 export interface ProactiveMessage { key: string; kind: string; text: string; capability_id: string; urgent: boolean; cadence: boolean; source: string; as_of: string | null; offer?: ProactiveOffer }
 export interface SentRow { key: string; sent_at: number; cadence: boolean }
 // standing: the person's active rows of public.standing_payments (their rent rule).
@@ -197,12 +201,13 @@ export function plan(input: ProactiveInput, now: number) {
       if (!b.allowed) { out.suppressed.push({ key: p.key, reason: b.reason }); continue; }
       // Only what the budget itself let through counts against it; urgent items and real deadlines are exempt (AgentLoop).
       const exempt = b.reason !== "budget";
-      const offer = trialOffer(p, input.subscriptions || []);
+      const offer = trialOffer(p, input.subscriptions || []) || windfallOffer(p);
       // One offer per run, so one yes answers exactly one question; this one waits for the next hour.
       if (offer && out.messages.some(m => m.offer)) { out.suppressed.push({ key: p.key, reason: "one_offer_at_a_time" }); continue; }
       // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
-      const text = offer ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
-      if (push({ key, kind: "finding", text, capability_id: offer ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
+      // A windfall finding already ends with its own question ("Sweep $X to savings? Reply yes…"), so no suffix.
+      const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : p.text;
+      if (push({ key, kind: "finding", text, capability_id: offer && offer.kind === "cancel_trial" ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
     }
   }
   // Category budgets: 80% and 100% of each, once per budget per month (the log key), counted from the same rows and the
@@ -303,6 +308,15 @@ function trialOffer(p: any, subs: any[]): TrialOffer | null {
   return { kind: "cancel_trial", merchant: String(sub.merchant), subscription_id: String(sub.id), ends_on: m[2], amount_cents: Number.isFinite(amt) && amt > 0 ? Math.round(amt * 100) : null, cancel_url: sub.cancel_url || null, cancel_steps: sub.cancel_steps || null };
 }
 
+// The windfall finding's offer, built from the alert's own computed evidence (59-agent-alerts.js): only when the
+// alert named an exact sweep between two of the person's accounts. No destination named, no offer.
+function windfallOffer(p: any): WindfallOffer | null {
+  if (!p || typeof p.key !== "string" || !p.key.startsWith("windfall:")) return null;
+  const c = p.evidence && p.evidence.computed;
+  if (!c || !Number.isInteger(c.sweep_cents) || !(c.sweep_cents > 0) || !c.from_account_id || !c.to_account_id) return null;
+  return { kind: "windfall_sweep", key: p.key, transaction_id: p.key.slice("windfall:".length), deposit_cents: Number.isInteger(p.amount_cents) ? p.amount_cents : 0, sweep_cents: c.sweep_cents, from_account_id: String(c.from_account_id), to_account_id: String(c.to_account_id), classification: String(c.classification || "unusual deposit") };
+}
+
 // ---- The answer to an offer: "yes" starts the cancellation (its own card is the one explicit approval), "no" keeps
 // it, and a yes after the trial has ended fires nothing. A live card in the thread always wins: its own yes is its own.
 const OFFER_YES = /^\s*(?:y|yes|yeah|yep|yup|ya|sure|ok|okay|do it|please do|cancel it|yes,? cancel(?: it)?|go ahead)\s*[.!]*\s*$/i;
@@ -310,10 +324,11 @@ const OFFER_NO = /^\s*(?:n|no|nope|nah|keep it|leave it|don'?t|no thanks|not now
 export interface OfferDeps { offer: any | null; threadId: string; liveCard(): Promise<boolean>; runFlow(text: string): Promise<{ reply: string; route?: any } | null>; clear(): Promise<boolean>; watch(merchant: string): Promise<boolean> }
 export async function offerMessage(message: string, d: OfferDeps, now: number): Promise<{ reply: string; route?: any } | null> {
   const yes = OFFER_YES.test(message), no = OFFER_NO.test(message);
-  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send"].includes(d.offer.kind)) return null;
+  if ((!yes && !no) || !d.offer || d.offer.thread_id !== d.threadId || !["cancel_trial", "rent_month", "scheduled_send", "windfall_sweep"].includes(d.offer.kind)) return null;
   if (await d.liveCard()) return null;
   if (d.offer.kind === "rent_month") return rentOfferAnswer(yes, d, now);
   if (d.offer.kind === "scheduled_send") return scheduledSendAnswer(yes, d, now);
+  if (d.offer.kind === "windfall_sweep") return windfallOfferAnswer(yes, d, now);
   const o = d.offer, name = o.merchant, when = fmtDay(o.ends_on), amt = Number.isInteger(o.amount_cents) ? money(o.amount_cents) : "the first charge";
   await d.clear();
   if (Date.parse(o.ends_on + "T23:59:59Z") < now) return { reply: `That offer has expired: the ${name} trial ended ${when}, so nothing was cancelled. If you still want it gone, say "cancel ${name}".` };
@@ -351,6 +366,17 @@ async function scheduledSendAnswer(yes: boolean, d: OfferDeps, now: number): Pro
   const flow = await d.runFlow(o.command);
   if (flow && flow.reply) return { reply: flow.reply, route: flow.route };
   return { reply: `I couldn't put up the card right now, so nothing was sent. Say "${o.command}" in a moment.` };
+}
+
+// The answer to "Your $3,240.00 tax refund landed — sweep $810.00 to savings?": no leaves the money where it
+// landed. A yes wants the sweep, but the move is an own-account transfer (PAY-009) and chat has no transfer card
+// to put up for its own confirmation yet, so nothing moves and the answer says exactly that, with the move
+// restated. Never staged, never claimed moved: the honest NOT_WIRED answer until the transfer flow exists.
+async function windfallOfferAnswer(yes: boolean, d: OfferDeps, now: number): Promise<{ reply: string; route?: any }> {
+  const o = d.offer;
+  await d.clear();
+  if (!yes) return { reply: `Okay, I'll leave the ${money(o.deposit_cents)} where it landed. Nothing moved.` };
+  return { reply: `You said yes to sweeping ${money(o.sweep_cents)} to savings, but I can't put up that move from chat yet, so nothing moved: the ${money(o.deposit_cents)} is still in your checking. Moving money between your own accounts isn't wired here yet.` };
 }
 
 // ---- What the person says to set it up (conversational, remembered, restated) ----

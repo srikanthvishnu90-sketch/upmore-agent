@@ -138,9 +138,9 @@ test("[S13] a price rise needs a steady earlier price and a rise of at least 5% 
 test("[S14] find me money says a price rise per charge and per month at the charge's own cadence", () => {
   const weekly = monthly(["2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28"], -59.99, "HELLOFRESH").concat([tx("2026-10-05", -69.99, "HELLOFRESH")]);
   const w = findMoney(weekly);
-  assert.deepEqual(w.lines, ["HELLOFRESH went up $10.00 a week: this saves an estimated $43.33 a month (high confidence)"]);
+  assert.deepEqual(w.lines, ["HELLOFRESH went up $10.00 a week, from $59.99 to $69.99 ($520.00 more over 12 months): this saves an estimated $43.33 a month (high confidence)"]);
   const m = findMoney(monthly(["2026-07-03", "2026-08-03", "2026-09-03"], -15.49, "NETFLIX.COM").concat([tx("2026-10-03", -17.99, "NETFLIX.COM")]));
-  assert.deepEqual(m.lines, ["NETFLIX.COM went up $2.50 a month: this saves an estimated $2.50 a month (high confidence)"]);
+  assert.deepEqual(m.lines, ["NETFLIX.COM went up $2.50 a month, from $15.49 to $17.99 ($30.00 more over 12 months): this saves an estimated $2.50 a month (high confidence)"]);
 });
 
 test("[S15] a bank fee is raised from its own row inside 60 days, never an older one", () => {

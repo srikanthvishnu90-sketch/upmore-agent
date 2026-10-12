@@ -56,6 +56,15 @@
 
     // TXN-015: receipt emails parsed (merchant, total, date, order number) and matched to a transaction by amount and date; no match is reported as such.
     const TOTAL_RE = /\b(?:order total|total charged|total|amount charged|grand total|you paid|charged)\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
+    // TXN-019 (C11): the itemized lines a receipt states, each only when it is labelled with its name and a number
+    // ("Subtotal $28.00", "Tip: $4.00", "Delivery Fee $2.99", "Service Fee $3.50", "Tax $2.31"). An amount with no
+    // label is never taken as one of these, and an absent line stays null: nothing is guessed or derived from the total.
+    const labelledCents = (text, re) => { const m = text.match(re); return m ? Math.round(Number(m[1].replace(/,/g, "")) * 100) : null; };
+    const SUBTOTAL_RE = /\bsubtotal\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
+    const TIP_RE = /\b(?:tip|gratuity)\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
+    const DELIVERY_FEE_RE = /\bdelivery\s+(?:fee|charge)\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
+    const SERVICE_FEE_RE = /\bservice\s+(?:fee|charge)\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
+    const TAX_RE = /\b(?:sales\s+)?tax\s*[:\-]?\s*\$?\s*([\d,]+\.\d{2})/i;
     // An order number has a digit ("Order Confirmation" is not order "Confirmation"), or is an all-capital code after an
     // explicit marker ("Confirmation: XKJQPL", "Confirmation #ABCDEF"). After a miss the search resumes one character on.
     const ORDER_RE = /(?:order|confirmation|receipt|invoice)\s*(number|no\.?|#|id)?\s*([:\-])?\s*([A-Z0-9][A-Z0-9-]{4,})/gi;
@@ -71,7 +80,7 @@
       const addr = (email.from || "").match(/^\s*([^<@\s]+)@([^>\s]+)\s*$/), box = addr && GENERIC_BOX.test(addr[1]) ? domainLabel(addr[2]) : null;
       const merchant = email.from_name || box || (email.from || "").replace(/<.*/, "").replace(/@.*/, "").replace(/[._-]+/g, " ").trim() || (email.subject || "").split(/ from | - /)[1] || null;
       const on = d ? (d[1] || new Date(Date.parse(d[2] + " UTC")).toISOString().slice(0, 10)) : (email.received_at ? ymd(email.received_at) : null);
-      return { merchant, total_cents: t ? Math.round(Number(t[1].replace(/,/g, "")) * 100) : null, order, on, parsed: !!(t && merchant), source: email.from || "email", email_id: email.id || null };
+      return { merchant, total_cents: t ? Math.round(Number(t[1].replace(/,/g, "")) * 100) : null, subtotal_cents: labelledCents(text, SUBTOTAL_RE), tip_cents: labelledCents(text, TIP_RE), delivery_fee_cents: labelledCents(text, DELIVERY_FEE_RE), service_fee_cents: labelledCents(text, SERVICE_FEE_RE), tax_cents: labelledCents(text, TAX_RE), order, on, parsed: !!(t && merchant), source: email.from || "email", email_id: email.id || null };
     }
     function matchReceipt(receipt, transactions, windowDays) {
       if (!receipt.total_cents) return { matched: null, reason: "no total found in the email", candidates: [] };

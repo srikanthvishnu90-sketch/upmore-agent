@@ -18,6 +18,11 @@
                                                 stored (a run of 5 or more digits in it never shown; the last 4 only when
                                                 the row carries a mask), its total, its share of the whole and its top 3
                                                 places; one card named ("my amex", "my chase card") narrows to it
+       merchantAsk(words) / merchantSpend(...)  one merchant ("how much am I spending on DoorDash, really?"): totals
+                                                across every linked account for the trailing 30 and 90 days, each
+                                                against the equal period before it, with order counts and per-order
+                                                averages; merchantAsk is the routing predicate (a known merchant
+                                                only) for the chat kind money_answers.ts adds for it
      The spending rules are 80-money-answers.js's (the same categories and merchant list, the same isSpend): posted rows
      in US dollars, transfers and card payments left out (so a card paid from checking is never counted twice), a refund
      (a credit from a known merchant, or one that says refund or return) taken off, pending charges and other currencies
@@ -266,6 +271,68 @@
       return lines.join("\n");
     }
 
-    return { ask, cardTerm, compare, byCard, matchAccounts };
+    // ---- one merchant, trailing windows (Wave 1 C6: "how much am I spending on DoorDash, really?") ----
+    // The merchant the words name: what MoneyAnswers.target reads after "on/at/for/with", or a known merchant named
+    // anywhere in the ask. A category ("food") is not a merchant. merchantAsk is the routing predicate: conservative,
+    // a known merchant only, no advice, and never when the compare/cards views take the ask — the chat's money answers
+    // route it as their own kind (money_answers.ts) and answer with merchantSpend.
+    function merchantTermOf(words) {
+      const tg = MA.target(words);
+      if (tg.kind === "merchant") return tg.term;
+      if (tg.kind === "category") return null;
+      const w = ` ${String(words || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ")} `;
+      for (const [, name] of MA.MERCHANT_NAMES) if (name && name.length >= 4 && w.includes(` ${name.toLowerCase()} `)) return name.toLowerCase();
+      return null;
+    }
+    function merchantAsk(words) {
+      const w = String(words || "").toLowerCase();
+      if (ADVICE.test(w) || ask(words)) return null;
+      // A pasted offer or promo ("Fwd: Your new Amex Offers… Spend $100 or more, earn $20 back, Expires…") names a
+      // merchant and says "spend", but it is the card-offers answer's text, not a question about the person's own
+      // spending (routing corpus, 2026-10-12).
+      if (/^\s*(?:fwd|fw):/i.test(String(words || "")) || /\b(?:spend|buy) \$?[\d,]+(?:\.\d{2})? or more\b/.test(w) || /\bearn\b[^.]*\bback\b/.test(w) || /\boffers?\s*:/.test(w)) return null;
+      if (!/\bspen(?:d|ds|ding|t)\b/.test(w)) return null;
+      const term = merchantTermOf(words);
+      if (!term) return null;
+      return MA.MERCHANT_NAMES.some(([, name]) => name && MA.termMatch(name, term)) ? term : null;
+    }
+    const rangeOf = (from, to) => (from.slice(0, 4) !== to.slice(0, 4) ? `${dateLabel(from, true)}-${dateLabel(to, true)}` : `${dateLabel(from)}-${dateLabel(to)}`);
+    // Merchant-level totals across every linked account (the rows are read whole; no account is singled out): the
+    // trailing 30 and 90 days against the equal period before each, an order count and a per-order average for both.
+    // Charges minus that merchant's refunds; pending said and not added — the same rules as compare() and byCard().
+    function merchantSpend(transactions, words, now, opts) { return withRules(opts, () => merchantSpendIn(transactions, words, now, opts)); }
+    function merchantSpendIn(transactions, words, now, opts) {
+      const tz = (opts && opts.tz) || "UTC", rows = transactions || [], today = MA.todayIn(now, tz), term = merchantTermOf(words);
+      if (!term) return null;
+      const extra = "Transfers, card payments and pending charges are left out.";
+      const keep = (r) => { if (MA.termMatch(r.merchant_raw, term)) return true; const c = MA.classify(r.merchant_raw, RULES); return !!(c && c.name && MA.termMatch(c.name, term)); };
+      const charges = posted(rows).filter((r) => keep(r) && MA.isSpend(r));
+      if (!charges.length) return `No charge in your linked accounts mentions "${term}", so I won't guess at a total.\n${MA.txSource(rows, tz, extra)}`;
+      const name = MA.display(charges[charges.length - 1].merchant_raw), start = earliest(rows);
+      const win = (days) => {
+        const to = today, from = addDays(today, -(days - 1)), priorTo = addDays(from, -1), priorFrom = addDays(priorTo, -(days - 1));
+        const count = (f, t) => posted(rows).filter((r) => within(r, f, t) && keep(r) && MA.isSpend(r)).length;
+        return { from, to, priorFrom, priorTo, cur: net(rows, from, to, keep), cnt: count(from, to), pri: net(rows, priorFrom, priorTo, keep), pcnt: count(priorFrom, priorTo) };
+      };
+      const trend = (w, days) => {
+        if (start && start > w.priorTo) return `Your linked transactions start ${dateLabel(start, true)}, so there's no earlier ${days} days to compare with yet.`;
+        const d = w.cur.total - w.pri.total, caveat = start && start > w.priorFrom ? ` Your linked transactions start ${dateLabel(start, true)}, so that earlier total may be missing a few days.` : "";
+        if (d === 0) return `That's the same as the ${days} days before (${rangeOf(w.priorFrom, w.priorTo)}): ${money(w.pri.total)} (${w.pcnt} order${w.pcnt === 1 ? "" : "s"}).${caveat}`;
+        return `That's ${money(Math.abs(d))} ${d > 0 ? "more" : "less"} than the ${days} days before (${rangeOf(w.priorFrom, w.priorTo)}), when it was ${money(w.pri.total)} (${w.pcnt} order${w.pcnt === 1 ? "" : "s"}).${caveat}`;
+      };
+      const avg = (w) => (w.cnt ? Math.round(w.cur.total / w.cnt) : 0);
+      const w30 = win(30), w90 = win(90), lines = [];
+      lines.push(`${name}: ${money(w30.cur.total)} in the last 30 days (${rangeOf(w30.from, w30.to)}), ${w30.cnt} order${w30.cnt === 1 ? "" : "s"}, ${money(avg(w30))} an order on average, across all your linked accounts.`);
+      lines.push(trend(w30, 30));
+      lines.push(`Last 90 days (${rangeOf(w90.from, w90.to)}): ${money(w90.cur.total)}, ${w90.cnt} order${w90.cnt === 1 ? "" : "s"}, ${money(avg(w90))} an order on average.`);
+      lines.push(trend(w90, 90));
+      if (w90.cur.refunded > 0) lines.push(`Refunds taken off: ${money(w90.cur.refunded)}.`);
+      const pend = pendingOf(rows, w90.from, w90.to, keep);
+      if (pend.length) lines.push(`Pending, not added yet: ${pendingText(pend)}.`);
+      lines.push(MA.txSource(rows, tz, extra));
+      return lines.join("\n");
+    }
+
+    return { ask, cardTerm, compare, byCard, matchAccounts, merchantAsk, merchantSpend };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = SpendingViews;

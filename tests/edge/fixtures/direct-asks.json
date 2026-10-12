@@ -92,6 +92,8 @@
     ["did my credit score go up this month?", "creditScoreReply"],
     ["how do i improve my credit score", null],
     ["what's my credit card balance", "moneyReply"],
+    ["let me test ideas with paper trading", "paperTradingReply"],
+    ["can i practice trading with fake money first", "paperTradingReply"],
     ["how much do i owe on my credit card", null],
     ["when is my credit card due", null],
     ["how much interest am i paying", null],

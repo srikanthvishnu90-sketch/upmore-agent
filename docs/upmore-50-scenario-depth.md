@@ -1,5 +1,11 @@
 # Upmore: depth contracts for the 50 scenarios
 
+> **Superseded on paper trading (owner rule, 2026-10-11; noted 2026-10-12):** everything is live. There is no paper
+> trading, paper account, paper label or paper fallback anywhere. Wherever this document says paper, read: the person's
+> own live brokerage account (Alpaca connector, OAuth), a fresh approval for every order and the $5 per-order cap until
+> the owner raises it in writing. An ask to paper-trade is answered that Upmore doesn't offer it
+> (`paperTradingReply`, `tests/edge/paper-trading-answer.test.ts`).
+
 User-supplied scope, October 8, 2026. This decomposes all 50 scenarios into **300 independently identifiable capability contracts**, six per scenario. The IDs are requirements IDs, not implementation claims. The machine-readable [scenario registry](upmore-50-scenarios.json) marks every item unassessed/not run until evidence is attached. This extends the existing 256-item catalog; it does not claim a one-to-one mapping or silently mark the additional scope implemented.
 
 ## How we reach the depth

@@ -35,6 +35,16 @@ export function creditScoreReply(message: string): string | null {
   return MY_SCORE.test(m) && !SCORE_HOWTO.test(m) ? CREDIT_SCORE_NONE : null;
 }
 
+// "Let me test ideas with paper trading": everything is live (owner rule, 2026-10-11): no paper trading, practice
+// accounts or paper fallback anywhere, so code says so instead of letting the model offer one. Paper towels, a paper
+// statement fee, a paper check or return, and practice budgeting are not trading asks.
+const PAPER_TRADING = /\b(?:paper[- ]?trad(?:e|es|ing)|paper (?:account|mode|portfolio|money)|practice (?:trading|trades?|brokerage|account|portfolio)|demo (?:account|trading|mode|portfolio)|fake money|play money|simulat(?:e|ed|ion|ing) (?:a |an |my )?(?:trades?|trading|orders?|buys?|portfolio|stock))\b/i;
+export const PAPER_TRADING_NONE =
+  "Upmore doesn't offer paper trading or practice accounts: every order is real, in your own brokerage account, placed only after your yes, and capped at $5 an order for now. Nothing was placed.";
+export function paperTradingReply(message: string): string | null {
+  return PAPER_TRADING.test(String(message || "")) ? PAPER_TRADING_NONE : null;
+}
+
 export const NO_ACCOUNTS =
   "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.";
 const BALANCE_OR_SPEND = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;

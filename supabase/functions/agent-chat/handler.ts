@@ -36,7 +36,7 @@ import { writePrivateChatLesson, notePrivateLessonsApplied, type PrivateChatLess
 import { ownerThread, ChatThreadError } from "./_shared/chat_session.ts";
 import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON } from "../_shared/router_core.js";
-import { connectReply, creditScoreReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
@@ -251,8 +251,8 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
     const tzRead = await supabase.from("agent_proactive_settings").select("time_zone").eq("user_id", user.id).maybeSingle();
     const tz = !tzRead.error && tzRead.data && validZone(tzRead.data.time_zone) ? tzRead.data.time_zone : DEFAULT_SETTINGS.time_zone;
     {
-      // A person's own credit score: nothing is connected that has it, so code says so (never a model-guessed number).
-      let direct: string | null = connectReply(message) ?? creditScoreReply(message);
+      // A person's own credit score (nothing connected has it) and paper trading (everything is live): code says so.
+      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message);
       let linkedCount = 0;
       if (!direct && (NEEDS_ACCOUNTS.test(message) || moneyKind(message))) {
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");

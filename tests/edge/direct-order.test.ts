@@ -3,7 +3,7 @@
 // delta flight was cancelled, what am I owed?" must reach the airline answer, not money owed or dispute. The order is
 // read from handler.ts itself, so moving a line or adding an answer without a row here fails. All rows are MOCK.
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { connectReply, creditScoreReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
+import { connectReply, creditScoreReply, paperTradingReply } from "../../supabase/functions/agent-chat/_shared/direct_answers.ts";
 import { ANSWERS, ORDER, TODAY, oldest, EMAIL, RECEIPT } from "./lib/direct_chain.ts";
 import { airlineReply } from "../../supabase/functions/agent-chat/_shared/airline_answer.ts";
 
@@ -102,6 +102,7 @@ Deno.test("every ask reaches the answer that owns it, in the handler's order", a
   for (const [ask, owner] of OWNER) {
     assertEquals(connectReply(ask), null, `connect takes "${ask}"`);
     assertEquals(creditScoreReply(ask), null, `the credit-score answer takes "${ask}"`);
+    assertEquals(paperTradingReply(ask), null, `the paper-trading answer takes "${ask}"`);
     let got: string | null = null;
     for (const name of ORDER) if ((await ANSWERS[name](ask)) !== null) { got = name; break; }
     assertEquals(got, owner, `"${ask}" went to ${got}, belongs to ${owner}`);

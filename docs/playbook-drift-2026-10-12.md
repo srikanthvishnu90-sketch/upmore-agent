@@ -362,3 +362,15 @@ the source.
   trading is the person's own live account through the Alpaca connector with the $5 cap and no paper anywhere; RAIL-2 is
   the live-only rewrite (21/21); INV-011 17/17, BILL-003 18/18; 51 packets now cover all 63 modules.
 - Now: those lines say so and point to the triage doc and docs/depth/MUTATION-COVERAGE.md.
+
+## Paper trading in older planning docs, and in chat (2026-10-12, morning)
+
+- Said: docs/trading-capabilities.md, upmore-test-scenarios.md, upmore-master-plan-acceptance.md test plans submit
+  orders "to Alpaca paper" and install "paper keys"; upmore-200-capabilities.md #46 and upmore-50-scenario-depth.md S46
+  describe paper trading as a capability; BUILD-STATUS's expected-outcome paragraph waited on "paper broker keys".
+- True (owner rule, 2026-10-11): everything is live; no paper trading, paper accounts or paper fallback anywhere. And chat
+  had no answer for "let me test ideas with paper trading": it went to the model, which could offer a practice account.
+- Now: each of those documents carries a dated superseded banner (their text is kept as written); BUILD-STATUS's
+  paragraph says the test person connects their own live account; chat answers paper-trading asks from code
+  (paperTradingReply: live only, after your yes, $5 per order, nothing placed), tests/edge/paper-trading-answer.test.ts,
+  with paper towels, a paper statement fee, a paper check or return not taken.

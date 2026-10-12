@@ -27,5 +27,5 @@ Deno.test("how-to questions, credit cards and rewards are not a score lookup", (
 });
 
 Deno.test("the handler asks it right after the connect answers, before any read of the person's rows", () => {
-  assertMatch(handler, /let direct: string \| null = connectReply\(message\) \?\? creditScoreReply\(message\);/);
+  assertMatch(handler, /let direct: string \| null = connectReply\(message\) \?\? creditScoreReply\(message\)/);
 });

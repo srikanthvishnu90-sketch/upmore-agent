@@ -1,5 +1,11 @@
 # Upmore master plan acceptance
 
+> **Superseded on paper trading (owner rule, 2026-10-11; noted 2026-10-12):** everything is live. There is no paper
+> trading, paper account, paper label or paper fallback anywhere. Wherever this document says paper, read: the person's
+> own live brokerage account (Alpaca connector, OAuth), a fresh approval for every order and the $5 per-order cap until
+> the owner raises it in writing. An ask to paper-trade is answered that Upmore doesn't offer it
+> (`paperTradingReply`, `tests/edge/paper-trading-answer.test.ts`).
+
 Upmore retains the original 50 scenarios and their 300 requirements. The October 10 Umpire blueprint adds 130 capability IDs, eight complete workflows, and twelve engineering acceptance packets. Its proposed capabilities are targets, rather than shipped product claims. The product remains named Upmore in this repository.
 
 The current implementation has locally tested foundations for obligations, bank evidence, payment preparation, approval enforcement, durable Messages processing, and restricted financial tools. Supported live biller and payment adapters remain unregistered. No general rent, installment-loan, transfer, or trading execution coverage follows from a connected bank account.

@@ -1,5 +1,11 @@
 # Upmore Trading Capabilities — Deep-Dive Dossier
 
+> **Superseded on paper trading (owner rule, 2026-10-11; noted 2026-10-12):** everything is live. There is no paper
+> trading, paper account, paper label or paper fallback anywhere. Wherever this document says paper, read: the person's
+> own live brokerage account (Alpaca connector, OAuth), a fresh approval for every order and the $5 per-order cap until
+> the owner raises it in writing. An ask to paper-trade is answered that Upmore doesn't offer it
+> (`paperTradingReply`, `tests/edge/paper-trading-answer.test.ts`).
+
 Purpose: every trading capability dug deep — connectors, data, database,
 execution, approvals, test plan — so that build → test → complete is
 mechanical for each one. A capability is only "complete" when a real

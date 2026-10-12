@@ -126,3 +126,20 @@
 - CI green on every run since the YAML fix (runs 81-89 checked; later runs pending at this check-in).
 - Mutation coverage 58/62 modules. Running: depth EARN/CONNECTORS/CONNECTOR-CATALOG/SURFACES; category budgets (H1,
   T2 step 4). Next: the planner's date in the person's zone once the handler is free.
+
+## 2026-10-12 09:00 UTC overnight wave 6 (check-in)
+- Merged: megadoc phrasings (31900fb: bare budget asks, charge-over alerts, weekly summary, trial info; L03 L04 L09 L10
+  K03 D14 built); this month vs last month and spending by card (a821341, items 12 and 13, SPEND-VIEWS 24/24).
+- Built, red first, each with its depth packet re-proven and the full bar before the push:
+  - d415142 category rules in chat, item 8 / megadoc L07: "recategorize Target as groceries" is restated and saved in a
+    new column (migration + SQL test, 40 max, chat categories only); spending, the month comparison, by card, checkup,
+    budgets and their alerts count by it and say what a rule moved. A scan of every quoted ask in tests, evals and the
+    corpus found no ask newly captured. CATEGORY-RULES 23/23 (two first-try defects did not bite: one was a non-defect,
+    one needed a sharper test).
+  - 5cfdcf1 a promised refund is a watch, item 38: posted said once to the cent, another credit said, late said once the
+    day after the deadline. ALERTS 24/24.
+  - 2ac51e3 connection notes, item 5, and a finding for the owner: bank rows are saved only when the person taps
+    "Refresh connected bank"; no schedule refreshes them, so the hourly run and chat read rows as old as the last tap.
+    Logged in the drift doc; the note now says so. PROACTIVE 25/25.
+- Capability list: 44 items in product (39 at the start of the night's merges). 65/65 domain modules with proven defects.
+- CI: runs 107-110 green; 111+ pending at this check-in. Running: year in money (item 26), BNPL plans (items 85, 87).

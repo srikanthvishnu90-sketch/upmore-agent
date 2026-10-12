@@ -44,7 +44,7 @@ here. The morning report is the last section.
   prediction-markets section, any Kalshi or Polymarket card), the gambling guard (the sportsbook and casino section),
   decision 3 (crypto), identity digits, phone calls, lending, securities advice (copying funds or Congress, options).
   README per section and per gate, `--check` in CI, tests that pin the counts and the gates.
-- [~] **A2.** (teardowns mapped; method cards next) Map methods and teardowns to the owner's capability list.** The teardown map (running) plus the same for the
+- [x] **A2.** (teardowns and all 194 method cards mapped, each IN_CHAT card with a test that resolves) Map methods and teardowns to the owner's capability list.** The teardown map (running) plus the same for the
   194 cards: each card to the capability-list items and registry capabilities it would use, and what Upmore has today.
 - [x] **A3. Offer book with freshness.** `packages/domain/8x-offer-book.js` + `packages/offers/*.json`: every term a
   method relies on (prices, windows, caps, rates, rule numbers) as data with `source`, `checked_on` and a freshness

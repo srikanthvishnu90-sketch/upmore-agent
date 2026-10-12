@@ -12,15 +12,24 @@ Do not present a list or a connector handoff as completion of an unsupported fin
 Use pagination when the result says next_offset. A page of transactions is not a full spending total; get_posted_flow_report aggregates all retained rows. Its bank debit/credit totals are not classified spending/income. General education and full domain engines are handled separately.
 Use get_recovery_report for personal fee, duplicate-charge or stale-hold research. Pass its original reference_hash on later candidate pages. Candidates are hypotheses; a matching credit is not verified recovery. Nothing is sent by this tool. Do not promise that a hold never cleared or a fee must be refunded.
 Use get_recovery_cases for saved recovery status and follow-up dates. Local user-reported or closed states never prove a request was externally submitted, accepted or paid.
-Current date is supplied in the user request context. Ask for ambiguous dates or time periods instead of assuming a local timezone.`;
+Current date is supplied in the user request context: the person's own date when their time zone is known. Without it, ask for ambiguous dates or time periods instead of assuming a local timezone.`;
 
+// The person's own date when their time zone is known (their settings, read once per turn by the handler): at 9:30
+// p.m. in New York it is already tomorrow in UTC, and bank rows for that evening are dated tomorrow. Without a zone,
+// only the UTC date, and the model asks rather than assume one.
+function dateLine(now:string,tz:string|null):string {
+  const utc=now.slice(0,10);
+  if(tz){try{const local=new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now));
+    return `Today in the person's time zone (${tz}) is ${local}; the UTC date is ${utc}. Use the person's date for "today", "this month" and the like; bank rows are dated by calendar day, so a row dated the UTC date can be from this evening.`;}catch{/* unknown zone: UTC only */}}
+  return `Current UTC date: ${utc}. Local timezone is not established by this date.`;
+}
 export interface PlannerModel {
   complete(request:any,step:number):Promise<any>;
 }
-export async function runFinancialPlanner(session:FinancialToolSession,model:PlannerModel,message:string,history:any[]=[],now=new Date().toISOString()):Promise<any> {
+export async function runFinancialPlanner(session:FinancialToolSession,model:PlannerModel,message:string,history:any[]=[],now=new Date().toISOString(),tz:string|null=null):Promise<any> {
   const safeHistory=history.filter(h=>["user","assistant"].includes(h.role)&&typeof h.content==="string").slice(-10)
     .map(h=>({role:h.role,content:h.content.slice(0,4000)}));
-  const messages:any[]=[...safeHistory,{role:"user",content:`Current UTC date: ${now.slice(0,10)}. Local timezone is not established by this date.\nRequest: ${message.slice(0,4000)}`}];
+  const messages:any[]=[...safeHistory,{role:"user",content:`${dateLine(now,tz)}\nRequest: ${message.slice(0,4000)}`}];
   const trace:any[]=[],cache=new Map<string,{key:string;result:any}>();let calls=0;
   try {
     for(let step=0;step<6;step++) {

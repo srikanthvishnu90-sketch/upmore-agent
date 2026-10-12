@@ -402,7 +402,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const history = await supabase.from("agent_messages").select("role,content").eq("thread_id",tid).order("id",{ascending:false}).limit(10);
       if (history.error) throw new Error("Conversation history unavailable.");
       const result = await runFinancialPlanner(new FinancialToolSession(user.id,supabase,admin),
-        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse());
+        plannerModel(admin,user.id,tid,modelConfig(Deno.env,"planner"),{meter:flowCtx.meter,health:flowCtx.health ??= adminHealthSink(admin),style:StyleCorpus.render(StyleCorpus.select(STYLE_CORPUS_JSON.examples,message))}),message,(history.data||[]).reverse(),new Date().toISOString(),tz);
       // A planner reply that stages nothing may not claim a money action (testing agent O-15).
       // Nor ask for a password, code or full number in a message (secrets never travel through chat, owner decision 1).
       const reply = guardSecretAsk(result.action ? result.reply : guardMoneyClaim(result.reply).reply).reply;

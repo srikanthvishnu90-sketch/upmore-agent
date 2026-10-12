@@ -47,3 +47,16 @@ Deno.test("server financial routing shares browser decisions for payments, educa
 Deno.test("quota failure reports the actual AI limit rather than implying the bank disconnected",async()=>{
  const f=fixture();const r=await runFinancialPlanner(f.session,model([new ModelBudgetError("The monthly AI limit has been reached.","monthly_limit")]),"show my cash");assert(r.incomplete&&r.failure_code==="monthly_limit"&&r.reply.startsWith("The monthly AI limit has been reached.")&&r.action===null);
 });
+// The person's own date (overnight 2026-10-12): at 9:30 p.m. Oct 11 in New York it is already Oct 12 in UTC, and bank
+// rows for that evening are dated Oct 12, so the planner gives the model both dates and says which is the person's.
+Deno.test("planner gives the model the person's local date when the zone is known, and only UTC when it is not",async()=>{
+ const f=fixture();const at="2026-10-12T01:30:00.000Z";
+ const m=model([response(call("finish","finish_financial_reply",{evidence_ids:[]}))]);
+ await runFinancialPlanner(f.session,m,"what did I spend today?",[],at,"America/New_York");
+ const asked=JSON.stringify(m.requests[0].messages.at(-1).content);
+ assert(asked.includes("Today in the person's time zone (America/New_York) is 2026-10-11")&&asked.includes("the UTC date is 2026-10-12"),asked);
+ const n=model([response(call("finish","finish_financial_reply",{evidence_ids:[]}))]);
+ await runFinancialPlanner(f.session,n,"what did I spend today?",[],at);
+ const plain=JSON.stringify(n.requests[0].messages.at(-1).content);
+ assert(plain.includes("Current UTC date: 2026-10-12. Local timezone is not established")&&!plain.includes("person's time zone"),plain);
+});

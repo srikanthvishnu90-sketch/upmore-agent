@@ -329,3 +329,12 @@ the source.
   refuses "part" without an item; the list (items 1..149) has no budget item.
 - Now: the sections stay "none" and their notes, and seven row notes, say what Upmore's chat now tracks and what it
   doesn't (no rollovers, envelope method, custom categories or weekly budgets), the way the review-inbox rows were noted.
+
+## The financial planner only knew the UTC date (2026-10-12, morning; from the FINANCIAL-MODEL packet's notes)
+
+- Said: answers count days in the person's own day (handler reads their zone once per turn since af1525f).
+- True: runFinancialPlanner told the model "Current UTC date ... Local timezone is not established", so on a US evening
+  "what did I spend today" was asked about tomorrow's date and the evening's rows (dated the UTC day) were mixed up.
+- Now: the handler passes the zone; the model is told "Today in the person's time zone (<zone>) is <local date>; the
+  UTC date is <utc date>" and that bank rows are dated by calendar day. With no zone, the old UTC-only line stays.
+  tests/edge/financial-planner.test.ts (red first).

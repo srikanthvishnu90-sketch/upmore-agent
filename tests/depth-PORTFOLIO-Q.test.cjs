@@ -216,4 +216,15 @@ test("[S29] performance asks: the ways people ask reach it; a period not ending 
   w.s = T.create({ registry, connectors: w.conn, clock: () => w.now, instruments, partners: { broker_dealer: { live: true } }, compliance: C });
   assert.match(await say(w, "portfolio return this month"), /^Since Oct 8, 2026, the first day with a value I can read for this period, Mock brokerage gained \$93\.45, \+2\.7%\./);
 });
+test("[S30] which of my stocks are up: each holding's close at the period's start against its latest, ranked, a holding without prices said, 'why' never guessed", async () => {
+  const BARS = { PLTR: [["2026-04-10", 2000], ["2026-10-05", 4000], ["2026-10-09", 4110]], VOO: [["2026-04-10", 50000], ["2026-10-05", 51000], ["2026-10-09", 51210]] };
+  const w = world(ROWS);
+  w.conn.read = ((base) => async (k, p) => k === "bars" ? { value: (BARS[p.symbol] || []).filter((x) => x[0] >= p.from).map(([date, close_cents]) => ({ date, close_cents })), source: "Mock Market Data", as_of: w.now } : base(k, p))(w.conn.read);
+  w.s = T.create({ registry, connectors: w.conn, clock: () => w.now, instruments, partners: { broker_dealer: { live: true } }, compliance: C });
+  assert.equal(await say(w, "which of my stocks are up over 6 months and why"), "Your holdings over the last 6 months, by closing price with dividends and splits counted: up PLTR +105.5%, VOO +2.4%. From Mock Market Data, Apr 10, 2026 close to Oct 9, 2026 close; positions from Mock Broker, as of 14:00 UTC. No prices for F over that period, so it isn't ranked. Why they moved isn't something prices can say, and no news source is connected, so I won't guess at a reason.");
+  assert.match(await say(w, "how did my stocks do this week"), /^Your holdings over the last 7 days, by closing price with dividends and splits counted: up PLTR \+2\.8%, VOO \+0\.4%\. From Mock Market Data, Oct 5, 2026 close to Oct 9, 2026 close;/);
+  for (const t of ["which of my stocks are up over 6 months and why", "how did my stocks do this week", "which of my holdings are down", "top movers in my portfolio"]) assert.equal(T.parse(t).action, "moves", t);
+  assert.notEqual(T.parse("how did my portfolio do this year").action, "moves");
+  assert.equal(w.writes.length, 0);
+});
 

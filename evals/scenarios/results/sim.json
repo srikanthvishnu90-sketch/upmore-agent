@@ -967,9 +967,9 @@
   {
    "id": "G07",
    "typed": "which of my stocks are up over 6 months and why",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "ask",
+   "reply": "I can't read prices for your holdings over the last 6 months right now, so I won't guess at their moves. Ask again in a moment.",
    "executed": false,
    "mock_orders": 0
   },

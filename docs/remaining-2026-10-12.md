@@ -32,7 +32,7 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIV
 | 2 | ~~Itemized splits ("sam only had a salad (12) of 96")~~ **done** | C06 | the person's words | LIMITED: asks who else is in; RAIL-1 S22 |
 | 3 | ~~Dividends received~~ **done** | G15 | Alpaca account activities (DIV + withholding kinds), read-only | BUILT; PORTFOLIO-Q S25-S28, RAIL-2 S31 |
 | 4 | ~~Performance over a period, and against the S&P 500~~ **done** | G02, G14 | Alpaca portfolio history (checked against last_equity), activities, SPY bars | G14 BUILT, G02 LIMITED (the bare "how am I doing this year" goes to the model); RAIL-2 S32, PORTFOLIO-Q S29 |
-| 5 | Movers this week or month among the person's holdings | G10, G07 | Alpaca bars | "why" is never guessed |
+| 5 | ~~Movers among the person's holdings~~ **done** (G07 LIMITED: "why" said as unknown, no news source); market-wide movers (G10) stay not built | G07, G10 | Alpaca bars | PORTFOLIO-Q S30 |
 | 6 | Late-fee alert | D15 | the person's rows; recovery fee names | a watch, said once per fee |
 | 7 | One stop per holding, one card at a time | E13 | positions | every order its own yes, $5 cap |
 | 8 | Scheduled send: the card goes up at the time asked | A08 | reminders + send flow | the send still needs a yes at that time |

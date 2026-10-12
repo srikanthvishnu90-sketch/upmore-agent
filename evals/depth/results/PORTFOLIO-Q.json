@@ -1,9 +1,9 @@
 {
  "capability": "PORTFOLIO-Q",
- "run_at": "2026-10-12T20:33:29.024Z",
+ "run_at": "2026-10-12T20:42:34.719Z",
  "baseline_all_green": true,
- "sub_capabilities": 29,
- "proven": 29,
+ "sub_capabilities": 30,
+ "proven": 32,
  "problems": [],
  "rows": [
   {
@@ -345,6 +345,39 @@
    "title": "Missing history is not an empty account",
    "defect": "a start later than asked is labeled as the whole period",
    "test": "no point before Oct 1 says the first day with a value",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S30",
+   "id": "D30",
+   "title": "Why is never guessed",
+   "defect": "the why line is dropped, so the chat model is left to explain the moves",
+   "test": "'and why' says prices can't say why",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S30",
+   "id": "D31",
+   "title": "The close at the period's start",
+   "defect": "the first close inside the period is used as the base, so the move starts late",
+   "test": "6 months starts at the Apr 10 close",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S30",
+   "id": "D32",
+   "title": "A holding without prices is said",
+   "defect": "a holding without prices is dropped silently",
+   "test": "F has no prices and is named",
    "bites": true,
    "applied": true,
    "collateral": [],

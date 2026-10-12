@@ -55,4 +55,7 @@ first "said once" check was a substring match that dropped a source ("Mock Broke
 | S27 | Unreadable is said | a failed read gives no number | `S27` in tests/depth-PORTFOLIO-Q.test.cjs | a failed dividends read is answered as none paid | proven |
 | S28 | A period is never a ticker | in 2026 has no ticker | `S28` in tests/depth-PORTFOLIO-Q.test.cjs | the parse's general query fills in when no ticker was named | proven (also fails S26) |
 | S29 | Missing history is not an empty account | no point before Oct 1 says the first day with a value | `S29` in tests/depth-PORTFOLIO-Q.test.cjs | a start later than asked is labeled as the whole period | proven |
+| S30 | Why is never guessed | 'and why' says prices can't say why | `S30` in tests/depth-PORTFOLIO-Q.test.cjs | the why line is dropped, so the chat model is left to explain the moves | proven |
+| S30 | The close at the period's start | 6 months starts at the Apr 10 close | `S30` in tests/depth-PORTFOLIO-Q.test.cjs | the first close inside the period is used as the base, so the move starts late | proven |
+| S30 | A holding without prices is said | F has no prices and is named | `S30` in tests/depth-PORTFOLIO-Q.test.cjs | a holding without prices is dropped silently | proven |
 <!-- results:end -->

@@ -119,7 +119,11 @@
       // "How are my investments doing this year", "my ytd return", "compare my portfolio to the S&P", "am I beating the
       // market" (megadoc G02, G14): the account's return over a period, worked out from its own values and transfers.
       const PERF = !/\b(buy|sell|order|should)\b/i.test(t) && /\bcompare (?:my )?(?:portfolio|holdings|investments?|returns?|performance|account)\b|\b(?:beat(?:ing)?|lagging|behind|ahead of|outperform(?:ing)?|underperform(?:ing)?|vs\.?|versus|against|compared to) (?:the )?(?:s&p(?: 500)?|sp ?500|spy|market|index)\b|\b(?:ytd|year[- ]to[- ]date) (?:return|performance|gain|loss)s?\b|\b(?:portfolio|investment|investments|account|brokerage) (?:return|performance)s?\b|\bhow (?:are|is|have|has) my (?:investments?|portfolio|stocks|holdings|brokerage(?: account)?|alpaca(?: account)?) (?:been )?(?:doing|done|performing|performed)\b[^?.!]*\b(?:this year|this month|since|past year|last 12 months|ytd|so far|overall|all time)\b|\bhow much (?:have|did) i (?:make|made|earn|earned|lose|lost|gain|gained) (?:investing|in (?:my )?(?:portfolio|brokerage|investments|stocks|alpaca(?: account)?))\b|\bhow (?:did|has|have) my (?:investments?|portfolio|stocks|holdings|brokerage(?: account)?|alpaca(?: account)?) (?:do|done|perform|performed)\b/i.test(t);
+      // "Which of my stocks are up over 6 months and why", "how did my stocks do this week" (megadoc G07): each holding's
+      // move over the period from daily closes. Market-wide movers are not built (111-not-yet.js says so).
+      const MOVES = !/\b(buy|sell|order|should)\b/i.test(t) && /\b(?:which|what) of my (?:stocks|holdings|positions|shares|investments)\b|\b(?:which|what) (?:stocks|holdings|positions|shares) do i (?:own|have|hold)\b[^?.!]*\b(?:up|down|gain\w*|los\w*)\b|\bhow (?:did|have|are|has) (?:each of )?my (?:stocks|holdings|positions) (?:been )?(?:do|done|doing|move|moved|moving)\b[^?.!]*\b(?:this week|today|this month|past (?:week|month)|\d+ months?|six months|this year|ytd)\b|\b(?:biggest|top) (?:gainers?|losers?|movers?) (?:in|among|of) my\b/i.test(t);
       const action = DIVQ ? "dividends"
+        : MOVES ? "moves"
         : PERF ? "performance"
         : gm ? "gain"
         : qm ? "quote"
@@ -358,6 +362,7 @@
         if (/\bstop(?:[- ]?loss)?\b/i.test(parsed.text || "") && /\ball (?:of )?my (?:positions|holdings|stocks)|\beverything\b|\bevery (?:position|holding|stock)\b/i.test(parsed.text || "")) return say("not_built", "Stops on every holding at once aren't built yet, so nothing was placed. I can set one stop at a time: name the holding and the price.", { reason: "bulk_stop_not_built" });
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "dividends") { const c = connectStop(); if (c) return c; return dividendsAnswer(parsed); }
+        if (parsed.action === "moves") { const c = connectStop(); if (c) return c; return movesAnswer(parsed); }
         if (parsed.action === "performance") { const c = connectStop(); if (c) return c; return performanceAnswer(parsed); }
         if (parsed.action === "status") return orderStatus(parsed.text);
         if (parsed.action === "quote") { const c = connectStop(); if (c) return c; return quoteOnly(parsed.query); }
@@ -813,6 +818,47 @@
           else text += ` Over the same days SPY, an S&P 500 fund, returned ${pct1(last.close_cents / base.close_cents - 1)} with dividends counted (${b.source}, ${fullDate(base.date)} close to ${fullDate(last.date)} close).${flows.length ? " The two aren't measured the same way: yours counts when your money moved, SPY's doesn't." : ""}`;
         }
         return say("answer", text, { reason: "performance", gain_cents: gain });
+      }
+
+      // Each holding's move over a period (megadoc G07): its daily close (dividends and splits adjusted) on or before the
+      // period's start against its latest close. Ranked; a holding with no closes is said. "Why" is never guessed: price
+      // data can't say why, and no news source is connected.
+      function movePeriod(t, today) {
+        const n = /\b(?:over|past|last|in)?\s*(\d{1,2}|six|three|twelve)\s+months?\b/i.exec(t), words = { six: 6, three: 3, twelve: 12 };
+        if (n) { const k = words[String(n[1]).toLowerCase()] || Number(n[1]); return { from: shift(today, -Math.round(k * 30.44)), label: `over the last ${k} month${k === 1 ? "" : "s"}` }; }
+        if (/\btoday\b/i.test(t)) return { from: shift(today, -1), label: "since the last close before today" };
+        if (/\bthis month|past month|last month\b/i.test(t)) return { from: shift(today, -30), label: "over the last 30 days" };
+        if (/\bthis year|ytd|year[- ]to[- ]date\b/i.test(t)) return { from: `${today.slice(0, 4)}-01-01`, label: `this year (Jan 1 to ${md(today)})`, ytd: true };
+        return { from: shift(today, -7), label: "over the last 7 days" };
+      }
+      async function movesAnswer(parsed) {
+        const t = parsed.text || "", today = day(clock()), per = movePeriod(t, today);
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {}, where = a.name || "your account";
+        const h = await readOr("holdings", { account: a.id });
+        if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
+        const syms = [...new Set((h.value || []).filter(x => x && x.symbol && (Number(x.qty !== undefined ? x.qty : x.quantity) || 0) > 0).map(x => String(x.symbol).toUpperCase()))];
+        if (!syms.length) return say("answer", `You don't hold any positions in ${where} (${h.source}, as of ${hhmm(h.as_of)}), so there are no moves to show.`, { reason: "moves" });
+        const rows = [], missing = []; let src = null;
+        for (const sym of syms.slice(0, 20)) {
+          const b = await readOr("bars", { symbol: sym, from: shift(per.from, -10) });
+          const list = b && Array.isArray(b.value) ? b.value : [];
+          const base = per.ytd ? list.filter(x => x.date < per.from).pop() : list.filter(x => x.date <= per.from).pop(), last = list[list.length - 1];
+          if (!base || !last || last.date <= base.date) { missing.push(sym); continue; }
+          src = src || b.source; rows.push({ sym, pct: last.close_cents / base.close_cents - 1, from: base.date, to: last.date });
+        }
+        if (!rows.length) return ask("bars_unreadable", `I can't read prices for your holdings ${per.label} right now, so I won't guess at their moves. Ask again in a moment.`);
+        rows.sort((x, y) => y.pct - x.pct);
+        const up = rows.filter(r => r.pct > 0), down = rows.filter(r => r.pct < 0), flat = rows.filter(r => r.pct === 0);
+        const fmt = r => `${r.sym} ${pct1(r.pct)}`;
+        let text = `Your holdings ${per.label}, by closing price with dividends and splits counted: ${up.length ? `up ${up.map(fmt).join(", ")}` : "none up"}${down.length ? `; down ${down.map(fmt).join(", ")}` : ""}${flat.length ? `; flat ${flat.map(r => r.sym).join(", ")}` : ""}.`;
+        const same = rows.every(r => r.from === rows[0].from && r.to === rows[0].to);
+        text += ` From ${src}${same ? `, ${fullDate(rows[0].from)} close to ${fullDate(rows[0].to)} close` : ", each holding's own first and latest close in the period"}; positions from ${h.source}, as of ${hhmm(h.as_of)}.`;
+        if (missing.length) text += ` No prices for ${missing.join(", ")} over that period, so ${missing.length === 1 ? "it isn't" : "they aren't"} ranked.`;
+        if (syms.length > 20) text += ` Showing your first 20 of ${syms.length} holdings.`;
+        if (/\bwhy\b/i.test(t)) text += " Why they moved isn't something prices can say, and no news source is connected, so I won't guess at a reason.";
+        return say("answer", text, { reason: "moves" });
       }
 
       async function gainOn(query) {

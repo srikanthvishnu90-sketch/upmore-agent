@@ -87,11 +87,15 @@
     }
 
     // "I invest on Robinhood": the row for a platform named in the person's words (aliases on word boundaries).
+    // Names are read the same way as the person's words (ROUTES depth packet, 2026-10-12): "ForecastEx (Interactive
+    // Brokers)" used to lose its parentheses on one side only, so the full name found Interactive Brokers, not the
+    // prediction market that is off.
+    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9.*&+ -]/g, " ").replace(/\s+/g, " ").trim();
     function find(rows, words) {
-      const t = ` ${String(words || "").toLowerCase().replace(/[^a-z0-9.*&+ -]/g, " ").replace(/\s+/g, " ").trim()} `;
+      const t = ` ${norm(words)} `;
       let best = null;
       for (const r of rows || []) for (const a of [r.platform].concat(r.aliases || [])) {
-        const k = String(a).toLowerCase();
+        const k = norm(a);
         if (k && t.includes(` ${k} `) && (!best || k.length > best.k.length)) best = { r, k };
       }
       if (!best) return null;

@@ -33,7 +33,9 @@
 
     // A platform is offered only with a playbook: where to sign in, how to tell the person is signed in, and what to
     // read. Reads only: a step that could buy, sell, move money or change anything is refused at validation.
-    const WRITE_WORDS = /\b(buy|sell|trade|order|transfer|withdraw|deposit|invest|redeem|submit|confirm|delete|close account|change|update|save)\b/i;
+    // Paying, sending, cancelling, adding funds, linking, enabling or agreeing to something changes it too (the gap the
+    // MANUAL-CONNECT depth packet found, 2026-10-12: "Pay now" and "Send money" used to pass).
+    const WRITE_WORDS = /\b(buy|sell|trade|order|transfer|withdraw|deposit|invest|redeem|submit|confirm|delete|close account|change|update|save|pay|send|move|cancel|rebalance|reinvest|add|remove|link|unlink|enable|disable|turn on|turn off|accept|agree|approve|authorize|allow|apply|sign up|open account)\b/i;
     function validatePlaybook(pb) {
       const errors = [], tag = (pb && pb.platform_id) || "?";
       if (!pb || !pb.platform_id || !pb.display_name) return ["playbook: platform_id and display_name are required"];
@@ -73,7 +75,7 @@
       // Neither: the page changed or did not load. Two in a row is broken, said once; one is a blip.
       const failures = s.failures + 1;
       const broken = failures >= 2 && s.state !== "broken";
-      return { session: Object.assign(s, { failures, state: failures >= 2 ? "broken" : s.state }), message: broken ? `${check.platform}'s page changed, so Upmore can't read it right now. Nothing was changed; I'll tell you when it works again.` : null };
+      return { session: Object.assign(s, { failures, state: failures >= 2 ? "broken" : s.state }), message: broken ? `${check.platform}'s page changed, so Upmore can't read it right now. Nothing was changed, and its numbers won't update until it can be read again.` : null };
     }
     const due = (session, now) => !!session && ["connected"].includes(session.state) && (!session.last_checked || now - session.last_checked >= HEALTH_EVERY_MS);
 
@@ -93,8 +95,10 @@
 
     // Logs and messages never carry a session, a cookie, a token, a password or a code: keys that name one are dropped,
     // and values that look like one are masked, however deep.
-    const SECRET_KEY = /cookie|session|token|password|passwd|secret|authorization|auth_header|otp|one_time|code|api_key|apikey|bearer|storage_state|local_storage/i;
-    const SECRET_VALUE = /\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}|\b(?:Bearer|Basic)\s+[\w.~+/=-]{12,}|(?:^|;\s*)[\w-]+=[\w%.~+/=-]{16,}(?:;|$)|\b[a-f0-9]{32,}\b|\b[A-Za-z0-9+/]{40,}={0,2}/;
+    // Short names count too (credential, pin, mfa, 2fa, totp, pwd, pass, jwt, csrf, sid), and a cookie or token pair is
+    // masked wherever it sits in a string: after a header name, a space or a URL's ? or & (depth packet, 2026-10-12).
+    const SECRET_KEY = /cookie|session|token|password|passwd|secret|authorization|auth_header|otp|one_time|code|api_key|apikey|bearer|storage_state|local_storage|credential|totp|mfa|2fa|two_?factor|(?:^|[_-])(?:pin|pwd|pass|sid|jwt|csrf|xsrf)(?:$|[_-])/i;
+    const SECRET_VALUE = /\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}|\b(?:Bearer|Basic)\s+[\w.~+/=-]{12,}|(?:^|[;\s:?&,])[\w-]+=[\w%.~+/=-]{16,}(?=[;\s,&]|$)|\b[a-f0-9]{32,}\b|\b[A-Za-z0-9+/]{40,}={0,2}/;
     const KEEP_KEYS = new Set(["state", "platform", "last_checked", "field", "page", "labels"]);
     function scrub(value, depth) {
       const d = depth || 0;

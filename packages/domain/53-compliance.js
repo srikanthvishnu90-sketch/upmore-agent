@@ -54,7 +54,10 @@
       if (c.executes === false && req.partner_key) return { allowed: true, regulated: true, requirement: reqKey, user_acts: true };
       const partner = req.partner_key ? p[req.partner_key] : null;
       if (partner && partner.live === true) {
-        if (req.partner_key === "money_movement" && c.kyc && c.kyc.state !== "verified") return { allowed: false, regulated: true, requirement: reqKey, reason: "kyc_" + c.kyc.state, message: kycMessage(c.kyc, partner) };
+        // No KYC record is not a verified one (fail closed; COMPLIANCE depth packet, 2026-10-12): a send through a live
+        // money partner waits for that partner's identity check, whatever the caller forgot to pass.
+        const k = c.kyc || { state: "not_started" };
+        if (req.partner_key === "money_movement" && k.state !== "verified") return { allowed: false, regulated: true, requirement: reqKey, reason: "kyc_" + k.state, message: kycMessage(k, partner) };
         return { allowed: true, regulated: true, requirement: reqKey, partner: partner.name || req.partner_key };
       }
       const plain = { money_movement: `I can't move money on a real rail yet: that needs a licensed money-movement partner with identity checks. I can stage it for you to send from your bank app and confirm when it lands.`, closed_network_send: `I can't send through ${(cap.name || "that app").replace(/ via .*$/, "")} directly: it has no third-party rail. I'll stage it in the app, step by step, and confirm when it lands.`, securities_execution: `I can't place orders yet: that needs a broker-dealer partner. I can show the data and the exact order, and you place it.`, credit_data: `I can't pull credit data yet: that needs a bureau partnership or your own authorized surface. Connect your issuer's score or a consumer-authorized service and I'll read it.`, insurance_binding: `I can compare quotes, but binding coverage goes through a licensed broker or carrier.`, tax_filing: `I track and export; filing goes through a filing product you choose.`, data_aggregation: `Connecting accounts needs the aggregator contract in place; until then, manual import works.`, money_transmission_hold: `Upmore never holds money itself; that needs a partner bank.` }[reqKey] || `${cap.name || cap.id} needs ${req.requirement}.`;
@@ -62,7 +65,7 @@
     }
     function kycMessage(kyc, partner) {
       const who = partner && partner.name ? partner.name : "the payment partner";
-      return { pending: `Identity verification is pending with ${who}, usually a day. I'll tell you the moment it clears; nothing moves until then.`, needs_info: `${who} needs identity details before the first send: legal name, date of birth, address and SSN, collected in their hosted form, never stored by Upmore. Want the link?`, review: `${who} is reviewing the verification. That can take a few days; I'll follow up.`, rejected: `${who} could not verify identity, so sends are off until that is resolved with them.` }[kyc.state] || `Identity verification with ${who} is ${kyc.state}.`;
+      return { not_started: `${who} checks identity before the first send: legal name, date of birth, address and SSN, collected in their hosted form, never stored by Upmore; nothing moves until then.`, pending: `Identity verification is pending with ${who}, usually a day. I'll tell you the moment it clears; nothing moves until then.`, needs_info: `${who} needs identity details before the first send: legal name, date of birth, address and SSN, collected in their hosted form, never stored by Upmore. Want the link?`, review: `${who} is reviewing the verification. That can take a few days; I'll follow up.`, rejected: `${who} could not verify identity, so sends are off until that is resolved with them.` }[kyc.state] || `Identity verification with ${who} is ${kyc.state}.`;
     }
     // KYC handoff states: the partner's hosted flow collects; Upmore only tracks the state and explains why.
     const KYC_STATES = Object.freeze(["not_started", "needs_info", "pending", "review", "verified", "rejected"]);
@@ -73,7 +76,7 @@
     }
     // Completeness: every registry capability resolves to unregulated or a named requirement with a partner state.
     function resolveAll(registryCapabilities, partners) {
-      return (registryCapabilities || []).map(c => { const key = MAP[c.id]; if (!key) return { id: c.id, resolution: "unregulated" }; const req = REQUIREMENTS[key], partner = req.partner_key ? (partners || {})[req.partner_key] : null; return { id: c.id, resolution: key, partner_state: req.never ? "never" : req.partner_key ? (partner && partner.live ? "live" : "not_signed") : "user_acts", information_only: INFORMATION_ONLY.has(c.id) }; });
+      return (registryCapabilities || []).map(c => { const key = MAP[c.id]; if (!key) return { id: c.id, resolution: "unregulated" }; const req = REQUIREMENTS[key], partner = req.partner_key ? (partners || {})[req.partner_key] : null; return { id: c.id, resolution: key, partner_state: req.never ? "never" : req.partner_key ? (partner && partner.live === true ? "live" : "not_signed") : "user_acts", information_only: INFORMATION_ONLY.has(c.id) }; });
     }
 
     // Disclosures: versioned, one per surface, short and plain, triggered contextually and shown once per conversation. Never stacked.

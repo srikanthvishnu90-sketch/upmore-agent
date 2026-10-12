@@ -141,7 +141,7 @@ Applying, opening accounts and moving money are [Flag] and gated. What can be bu
 - [x] **G5. Go-live readiness.** (the pending ledger globs every migration; go-live deploys manual-connect) `go-live.sh` and the pending-migration ledger include every new migration and function
   (manual_connections, standing_payments, nicknames, manual-connect); the go-live test pins them. The owner's one
   command still does everything.
-- [ ] **G6. Visual.** Any app change re-runs `node evals/agent/visual.cjs`; baselines change only with a stated reason.
+- [x] **G6. Visual.** Any app change re-runs `node evals/agent/visual.cjs`; baselines change only with a stated reason.
 
 ## Block H: teardown features with no gate (after A2 names them)
 

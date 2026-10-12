@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -192,6 +192,13 @@ export function plan(input: ProactiveInput, now: number) {
   if (budgets.length) {
     const nr = numbersRows(accounts, transactions);
     for (const a of (Budgets as any).alerts(budgets, nr.transactions, now, { tz, sent: [...sentKeys], rules: s.category_rules || [] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
+  }
+  // Late fees (megadoc D15; packages/domain/112-late-fee-watch.js): each one the bank's words name, posted since the
+  // person turned the alert on, said once by its log key (latefee:<row id>), as a watch they asked for.
+  if ((s.watches || []).some((w: any) => (LateFeeWatch as any).isWatch(w))) {
+    const names = new Map((accounts || []).map((a: any) => [a.id, a.name]));
+    const rows = (transactions || []).map((x: any) => ({ id: String(x.id), amount_cents: x.amount_cents, posted_on: x.posted_at, merchant_raw: x.merchant_raw, is_pending: !!x.is_pending, account_name: names.get(x.account_id) || null }));
+    for (const a of (LateFeeWatch as any).alerts(s.watches || [], rows, now, { sent: [...sentKeys] })) push({ key: a.key, kind: "watch", text: a.text, capability_id: "ALRT-010", urgent: false, cadence: true });
   }
   // Deadlines after the findings, so a finding about the person's own money uses the day's budget first.
   deadlinesLater();
@@ -364,6 +371,10 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   const zone = validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone;
   const bc: any = (Budgets as any).command(t, s.watches || [], now, zone);
   if (bc) return { settings: bc.watches ? { watches: capWatches(bc.watches) } : {}, reply: bc.reply };
+  // Late-fee alert (megadoc D15): "set a late fee alert for bills", "stop the late fee alert". Restated in exact terms;
+  // it only tells, nothing is paid or disputed.
+  const lf: any = (LateFeeWatch as any).command(t, s.watches || [], now, zone);
+  if (lf) return { settings: lf.watches ? { watches: capWatches(lf.watches) } : {}, reply: lf.reply };
   // Category rules: "recategorize Target as groceries", "count Costco as groceries", "stop counting Target as
   // groceries", "show my category rules" (packages/domain/95-category-rules.js). Restated exactly; they change how
   // spending is counted, nothing at the bank, and never move money.

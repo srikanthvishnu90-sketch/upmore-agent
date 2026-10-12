@@ -73,7 +73,7 @@ set("D08", "BUILT", "logged in the IOU log, restated, nothing moved; \"pay mom 2
 set("D09", "BUILT", "what the person owes from their IOU log, totaled, said as their own log and not checked against accounts", "tests/edge/iou.test.ts");
 set("D10", "BUILT", "the IOU marked paid by its amount (a part payment leaves the rest open; two with one person ask which); nothing moved", "tests/edge/iou.test.ts");
 set("D11", "BUILT", "the settings path saves a reminder from the person's words (Reminders, 103-reminders.js) restated with the day and 9 a.m. in their time zone, and that nothing is paid or moved; the hourly run says it on that day once, monthly on the 28th when asked; no day said is asked, never guessed", "tests/edge/reminders.test.ts");
-set("D15", "NOT_BUILT", "alert rules");
+set("D15", "BUILT", "a late-fee alert: turned on in chat and restated in exact terms (what, from when, from the bank rows, that it only tells, how to stop), stored as a watch; each charge the bank's words call a late fee, posted since then, is said once with the amount, the words, the account and the date (LateFeeWatch, 112-late-fee-watch.js, through parseCommand and plan()); nothing paid or disputed", "tests/depth-LATE-FEE.test.cjs");
 // E. trades
 set("E01 E02 E05 E07 E14 E19 F01 F02", "LIMITED", CAP, "tests/depth-BROKER-CONNECT.test.cjs");
 set("E03", "LIMITED", "BRK.A resolves as a ticker (class shares kept whole); in a live account it is over the $5 cap; the mock world does not list it", "tests/edge/megadoc-sim.test.ts");

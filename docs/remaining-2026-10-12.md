@@ -33,7 +33,7 @@ counts are from `docs/scenarios/README.md`: PROVEN 0, BUILT 128, LIMITED 44, DIV
 | 3 | ~~Dividends received~~ **done** | G15 | Alpaca account activities (DIV + withholding kinds), read-only | BUILT; PORTFOLIO-Q S25-S28, RAIL-2 S31 |
 | 4 | ~~Performance over a period, and against the S&P 500~~ **done** | G02, G14 | Alpaca portfolio history (checked against last_equity), activities, SPY bars | G14 BUILT, G02 LIMITED (the bare "how am I doing this year" goes to the model); RAIL-2 S32, PORTFOLIO-Q S29 |
 | 5 | ~~Movers among the person's holdings~~ **done** (G07 LIMITED: "why" said as unknown, no news source); market-wide movers (G10) stay not built | G07, G10 | Alpaca bars | PORTFOLIO-Q S30 |
-| 6 | Late-fee alert | D15 | the person's rows; recovery fee names | a watch, said once per fee |
+| 6 | ~~Late-fee alert~~ **done** | D15 | the person's rows; the bank's fee words | BUILT; LATE-FEE 16/16, tests/edge/late-fee.test.ts |
 | 7 | One stop per holding, one card at a time | E13 | positions | every order its own yes, $5 cap |
 | 8 | Scheduled send: the card goes up at the time asked | A08 | reminders + send flow | the send still needs a yes at that time |
 | 9 | Teardown sections with no capability-list item (H1) | — | teardown build order | next after what's new and budgets |

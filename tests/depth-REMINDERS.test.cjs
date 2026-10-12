@@ -144,3 +144,14 @@ test("[S16] the list hides a one-off whose day is past and says the year when it
   assert.equal(R.describe([past, set("remind me to pay estimated taxes on jan 15")], NOW, TZ), "Reminders: pay estimated taxes (Friday, Jan 15, 2027).");
   assert.equal(R.describe([past], NOW, TZ), "");
 });
+
+test("[S17] a reminder in hours or minutes is said not kept (once a day, in the morning), never garbled into its words; \"remind me about rent\" asks when, about rent", () => {
+  for (const m of ["remind me in 2 hours to move money", "remind me in an hour to pay sam", "remind me in 20 minutes to check my balance"]) {
+    const r = R.command(m, [], NOW, "America/New_York");
+    assert.equal(r.reply, "Reminders go out once a day, in the morning, so I can't remind you in a few hours or minutes. Want it tomorrow morning instead? Say \"remind me tomorrow to ...\". Nothing was set.", m);
+    assert.equal(r.watches, null, "nothing set: " + m);
+  }
+  assert.match(R.command("remind me about rent", [], NOW, "America/New_York").reply, /^When should I remind you about rent\? /);
+  assert.match(R.command("remind me to pay rent", [], NOW, "America/New_York").reply, /^When should I remind you to pay rent\? /);
+  assert.match(R.command("remind me in 2 days to pay sam", [], NOW, "America/New_York").reply, /^I'll remind you to pay sam on Wednesday, Oct 14/);
+});

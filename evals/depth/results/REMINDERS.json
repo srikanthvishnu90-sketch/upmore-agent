@@ -1,9 +1,9 @@
 {
  "capability": "REMINDERS",
- "run_at": "2026-10-12T09:48:52.637Z",
+ "run_at": "2026-10-12T14:38:37.392Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 21,
+ "sub_capabilities": 17,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -58,7 +58,9 @@
    "test": "'remind me to pay rent' is asked when",
    "bites": true,
    "applied": true,
-   "collateral": [],
+   "collateral": [
+    "S17"
+   ],
    "status": "proven"
   },
   {
@@ -243,6 +245,17 @@
    "collateral": [
     "S03"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "Hours are said not kept",
+   "defect": "an hour-based reminder falls into the 'when?' question with its words garbled",
+   "test": "remind me in 2 hours says reminders go out once a day",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

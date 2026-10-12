@@ -31,7 +31,7 @@ watching that").
 | S02 | A weekday is the next one | monday on a Monday is next Monday | `S02` in tests/depth-REMINDERS.test.cjs | a weekday today is today | proven |
 | S03 | The Nth rolls to next month | the 5th on Oct 12 is Nov 5 | `S03` in tests/depth-REMINDERS.test.cjs | a passed day stays this month | proven |
 | S04 | The 31st in a shorter month | Nov 30 for the 31st | `S04` in tests/depth-REMINDERS.test.cjs | the monthly day is not clamped | proven |
-| S05 | No day is asked | 'remind me to pay rent' is asked when | `S05` in tests/depth-REMINDERS.test.cjs | no day defaults to tomorrow | proven |
+| S05 | No day is asked | 'remind me to pay rent' is asked when | `S05` in tests/depth-REMINDERS.test.cjs | no day defaults to tomorrow | proven (also fails S17) |
 | S06 | Impossible dates refused | feb 30 is refused | `S06` in tests/depth-REMINDERS.test.cjs | the month-day check is dropped | proven |
 | S07 | Before is the day before | before the 20th is the 19th | `S07` in tests/depth-REMINDERS.test.cjs | before is ignored | proven (also fails S06) |
 | S08 | From 9 a.m. local | not at 8:59 a.m. | `S08` in tests/depth-REMINDERS.test.cjs | the hour check is dropped | proven (also fails S10) |
@@ -48,4 +48,5 @@ watching that").
 | S15 | No long digit run stored | 123456789012 is not stored | `S15` in tests/depth-REMINDERS.test.cjs | the digit scrub is dropped | proven |
 | S16 | Past one-offs hidden | the Oct 1 one is not listed | `S16` in tests/depth-REMINDERS.test.cjs | the past filter is dropped | proven |
 | S16 | The year said | Jan 15, 2027 | `S16` in tests/depth-REMINDERS.test.cjs | the year is never said | proven (also fails S03) |
+| S17 | Hours are said not kept | remind me in 2 hours says reminders go out once a day | `S17` in tests/depth-REMINDERS.test.cjs | an hour-based reminder falls into the 'when?' question with its words garbled | proven |
 <!-- results:end -->

@@ -102,6 +102,9 @@
       if (/^(?:remind me|ping me)\s+(?:when|if|whenever)\b/.test(t)) return null;
       // "Remind me what you can do", "remind me how much I owe sam": a question, not a reminder (found 2026-10-12).
       if (/^remind me\s+(?:what|how|who|where|why|which|whether)\b/.test(t)) return null;
+      // Reminders go out once a day, in the morning: "in 2 hours", "at 3pm today", "in 20 minutes" can't be kept, so they
+      // are said so, never garbled into the reminder's words (found by probing, 2026-10-12).
+      if (/\bin (?:an?|\d+|a few|a couple(?: of)?) (?:hours?|hrs?|minutes?|mins?)\b|\bin (?:an|half an) hour\b/.test(t)) return { ok: false, reply: "Reminders go out once a day, in the morning, so I can't remind you in a few hours or minutes. Want it tomorrow morning instead? Say \"remind me tomorrow to ...\". Nothing was set." };
       const L = local(now, tz), text = what(t), how = mode(t);
       // "before the 20th" is the day before it, said as such; a day before today is not a day.
       const before = /\bbefore (?:the |on )?(?=\d|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|sun|mon|tue|wed|thu|fri|sat|tomorrow|today|tonight)/.test(t);
@@ -109,7 +112,7 @@
       if (before && w.on) w = addDays(w.on, -1) >= L.date ? { on: addDays(w.on, -1), before: w.on } : { error: "past" };
       if (before && w.monthly_day) w = { error: "monthly_before" };
       if (!text) return { ok: false, reply: 'What should I remind you about? Say it like "remind me to pay rent on the 28th". Nothing was set.' };
-      if (w.error === "none") return { ok: false, reply: `When should I remind you to ${text}? Say a day, like "on the 28th", "on Friday" or "tomorrow". Nothing was set.` };
+      if (w.error === "none") return { ok: false, reply: `When should I remind you ${/^remind me (?:about|of)\b/.test(t) ? "about" : "to"} ${text}? Say a day, like "on the 28th", "on Friday" or "tomorrow". Nothing was set.` };
       if (w.error === "monthly_before") return { ok: false, reply: `Which day of the month should I remind you? Say it like "remind me to ${text} on the 27th every month". Nothing was set.` };
       if (w.error === "monthly_day") return { ok: false, reply: `Which day of the month? Say it like "remind me to ${text} on the 28th every month". Nothing was set.` };
       if (w.error) return { ok: false, reply: `I couldn't read that date${w.error === "past" ? " (it's already past)" : ""}, so nothing was set. Say a day, like "on the 28th" or "on Oct 28".` };

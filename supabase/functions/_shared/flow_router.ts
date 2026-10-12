@@ -5,6 +5,8 @@
 //   1. Restore the thread's flow state (agent_flow_state) and decide whether the message could be a flow at all.
 //   2. Load the user's real data the flows need (transactions, brokerage accounts, saved recipients) through the caller's
 //      RLS-scoped client. Pay and split share one recipient book (Rail 1): the same resolution, the same stranger path.
+//      The send flow also gets the person's bank balances (agent_financial_accounts), so a send above the cash they
+//      have is said before any card, with the number's source and as-of time; an unreadable or stale balance says nothing.
 //   3. Build the three sessions with connectors that report every rail that is not live as NOT_WIRED. Nothing here fakes
 //      a fill, a cancellation or a send: there is no broker-dealer adapter, no account-page reader and no partner rail,
 //      so the flows say so in their own words. A Venmo or Zelle handoff is staged for the person to send, which needs no
@@ -48,6 +50,9 @@ export interface FlowData {
   // rent flow says so instead of treating the person as having no rent set up.
   standing?: any[];
   standing_ok?: boolean;
+  // The person's own bank rows (agent_financial_accounts, kinds merged from agent_account_preferences), for the send
+  // flow's balance check (corpus 1.05). null when they could not be read: then no balance is ever claimed.
+  bankAccounts?: any[] | null;
 }
 
 export interface FlowDb {
@@ -171,7 +176,7 @@ export function buildSessions(data: FlowData, saved: any, now: () => number, cha
   return {
     trade: AgentTrade.create({ registry, connectors: broker && broker.connectors ? broker.connectors : c.trade, clock: now, instruments: data.instruments, partners: broker && broker.partners ? broker.partners : LIVE_PARTNERS, connect: broker && broker.connect ? broker.connect : null, compliance: Compliance, state: s.trade }),
     cancel: (() => { const tr = termsFetch ? termsReader(termsFetch, now) : null; return AgentCancel.create({ registry, connectors: c.cancel, clock: now, transactions: data.transactions, directory: data.directory, state: s.cancel, terms_reader: tr ? tr.read : undefined, terms_facts: tr ? tr.facts : undefined }); })(),
-    send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send }),
+    send: AgentSend.create({ registry, connectors: c.send, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, limits: { per_day_cents: 100000, per_week_cents: 300000 }, large_cents: 50000, state: s.send, balances: () => data.bankAccounts ?? null }),
     split: AgentSplit.create({ registry, connectors: c.split, clock: now, recipients, partners: LIVE_PARTNERS, compliance: Compliance, state: s.split }),
     // Rent stages each month for the person to send in their own app; it has no connector because it writes to no rail.
     rent: StandingRent.create({ clock: now, rule: StandingRent.activeRule(data.standing || []), unavailable: data.standing_ok === false, recipients, state: s.rent }),
@@ -185,7 +190,7 @@ const PARSERS = { trade: (t: string) => AgentTrade.parse(t), send: (t: string) =
 // settles, a second "yes" or a "cancel that" about it (they are answered from what happened, never by the model).
 export function needsRouter(saved: any, now: number): boolean {
   if (hasLiveCard(saved)) return true;
-  if (saved && saved.send && saved.send.amount_check) return true;
+  if (saved && saved.send && (saved.send.amount_check || saved.send.funds_check)) return true;
   if (saved && saved.split && saved.split.waiting_names) return true;
   return !!(saved && saved.router && saved.router.settled && now - saved.router.settled.at < 30 * 60000);
 }
@@ -193,7 +198,9 @@ export function hasLiveCard(saved: any): boolean {
   if (!saved) return false;
   if (saved.router && saved.router.pair) return true;
   if (saved.trade && (saved.trade.pending || saved.trade.suggestion)) return true;
-  if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer)) return true;
+  // The balance question ("... less than $900.00. Set up $900.00 anyway?") waits on a yes like a card does, so a proactive
+  // offer never takes that yes.
+  if (saved.send && (saved.send.pending || saved.send.identity || saved.send.save_offer || saved.send.funds_check)) return true;
   if (saved.split && (saved.split.pending || saved.split.identity || (saved.split.save_offers || []).length)) return true;
   if (saved.rent && (saved.rent.pending || saved.rent.asking)) return true;
   if (saved.cancel && (Number.isInteger(saved.cancel.pending_index) || (saved.cancel.cases || []).some((k: any) => k && k.state === "otp"))) return true;
@@ -315,20 +322,23 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
     },
     async loadData(): Promise<FlowData> {
       const since = new Date(now() - 400 * 86400000).toISOString().slice(0, 10);
-      const [tx, accts, snaps, recs, standing] = await Promise.all([
+      const [tx, accts, snaps, recs, standing, bank, prefs] = await Promise.all([
         supabase.from("agent_financial_transactions").select("account_id,provider_transaction_id,amount_cents,posted_on,merchant_raw,is_pending,is_transfer")
           .eq("user_id", userId).gte("posted_on", since).order("posted_on", { ascending: true }).limit(3000),
         supabase.from("brokerage_accounts").select("id,provider,label,paper,status").eq("user_id", userId),
         supabase.from("portfolio_snapshots").select("brokerage_account_id,cash,snapshot_at").eq("user_id", userId).order("snapshot_at", { ascending: false }).limit(50),
         supabase.from("saved_recipients").select("id,handle,display_name,channel,source,rail,last_used_at").eq("user_id", userId).limit(500),
         supabase.from("standing_payments").select("id,kind,payee_name,payee_handle,rail,amount_cents,day_of_month,funding,status,created_at,updated_at,last_staged_month").eq("user_id", userId).eq("kind", "rent").eq("status", "active").limit(5),
+        supabase.from("agent_financial_accounts").select("account_id,name,institution,currency,account_kind,balance_cents,available_cents,balance_as_of,fetched_at,sync_error,status").eq("user_id", userId).eq("status", "active"),
+        supabase.from("agent_account_preferences").select("account_id,account_kind").eq("user_id", userId),
       ]);
       const empty = { transactions: [], brokerageAccounts: [], people: [], instruments: [], directory: {} };
       if (tx.error) return { ok: false, missing: "transactions", ...empty };
       if (accts.error || snaps.error) return { ok: false, missing: "brokerage accounts", ...empty };
       // An unreadable recipient table (or one not yet migrated) blocks only person-to-person flows, and they say so.
       // An unreadable standing table (or one not yet migrated) blocks only the rent flow, and it says so.
-      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || [], recs.error ? null : recs.data || [], standing.error ? null : standing.data || []) };
+      // Unreadable bank rows only switch the send flow's balance check off (null); they never block a flow.
+      return { ok: true, ...mapFlowData(tx.data || [], accts.data || [], snaps.data || [], recs.error ? null : recs.data || [], standing.error ? null : standing.data || [], bank.error ? null : mergeAccountKinds(bank.data || [], prefs.error ? [] : prefs.data || [])) };
     },
     async saveRecipients(rows: any[]) {
       for (const row of rows) {
@@ -364,14 +374,23 @@ export function supabaseFlowDb(supabase: any, userId: string, threadId: string, 
 
 // Pure mapping from database rows to what the flows read. Everything is live (owner rule 2026-10-11): a paper account row
 // is never shown or offered, and only active, live connections are listed.
-export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = [], standingRows: any[] | null = []) {
+// The person's own account types (agent_account_preferences) win over the provider's, which SimpleFIN leaves "unknown"
+// (the same merge as mergeKinds in agent-chat/_shared/money_answers.ts, kept here so _shared does not import agent-chat).
+export function mergeAccountKinds(accounts: any[], prefs: { account_id: string; account_kind: string }[]): any[] {
+  const by = new Map((prefs || []).map((p) => [p.account_id, p.account_kind]));
+  return (accounts || []).map((a) => (by.has(a.account_id) ? { ...a, account_kind: by.get(a.account_id) } : a));
+}
+
+export function mapFlowData(txRows: any[], acctRows: any[], snapRows: any[], recipientRows: any[] | null = [], standingRows: any[] | null = [], bankRows: any[] | null = []) {
   const transactions = txRows.filter(t => t.posted_on && !t.is_pending).map(t => ({ id: t.provider_transaction_id, account_id: t.account_id, posted_at: t.posted_on, amount: Number(t.amount_cents) / 100, merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer }));
   const cashOf = (id: string) => { const s = snapRows.find(r => r.brokerage_account_id === id); return s && s.cash !== null && s.cash !== undefined ? Math.round(Number(s.cash) * 100) : undefined; };
   const brokerageAccounts = acctRows.filter(a => a.status !== "revoked" && a.paper !== true).map(a => ({ id: a.id, name: `${a.provider} ${a.label}`, paper: !!a.paper, fractional: true, cash_cents: cashOf(a.id), tradable: a.status === "active" }));
   // People come only from public.saved_recipients (rows saved on evidence); anyone else is a stranger and is confirmed in
   // full. No instrument list exists yet; orders stop at the compliance gate before needing one.
   const people: any[] = [], instruments: any[] = [];
-  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory(), recipients: recipientRows || [], recipients_ok: recipientRows !== null, standing: standingRows || [], standing_ok: standingRows !== null };
+  // Bank rows pass through as read (the send flow's fundsCheck decides what is known); disconnected ones are left out.
+  const bankAccounts = bankRows === null ? null : bankRows.filter(a => a && a.status !== "disconnected");
+  return { transactions, brokerageAccounts, people, instruments, directory: merchantDirectory(), recipients: recipientRows || [], recipients_ok: recipientRows !== null, standing: standingRows || [], standing_ok: standingRows !== null, bankAccounts };
 }
 
 // Where each known merchant's own cancellation page is, from the researched catalog. Used only to point the person at

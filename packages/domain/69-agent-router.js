@@ -373,8 +373,9 @@
       // Understood on the first message also means the flow did not have to ask about the person's words. A flow that
       // understood but cannot act (no partner, an unreadable account page) is understood, and its outcome says why.
       const understood = complete(f.flow, e, source === "model" ? null : n);
-      // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding.
-      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap"];
+      // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding, and
+      // neither is "Checking has $612.18 available, less than $900.00" (funds_short): the words were read right.
+      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap", "funds_short"];
       const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
       return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped, filled_from_net: filled };

@@ -21,14 +21,6 @@
   },
   {
    "family": "response",
-   "id": "R-01:1.05",
-   "title": "corpus 1.05 Insufficient funds",
-   "status": "GAP",
-   "actual": "NOT_BUILT: Balance-aware sends: the send flow does not read the funding account's balance, so it cannot say a $900 send won't go through or offer a savings move. Venmo/Zelle handoffs move money in the person's own app.",
-   "path": "evals/corpus/triage.json"
-  },
-  {
-   "family": "response",
    "id": "R-01:1.06",
    "title": "corpus 1.06 Typo'd, rushed",
    "status": "GAP",

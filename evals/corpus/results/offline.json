@@ -101,37 +101,25 @@
    "id": "1.05",
    "file": 1,
    "title": "Insufficient funds",
-   "status": "NOT_BUILT",
-   "failed": [
-    "\"send 900 to jordan\": question (expected one clarifying question and no card)",
-    "\"move it from savings\": card (expected a confirmation card, got outcome needs_model)"
-   ],
-   "triage": "Balance-aware sends: the send flow does not read the funding account's balance, so it cannot say a $900 send won't go through or offer a savings move. Venmo/Zelle handoffs move money in the person's own app.",
+   "status": "LIMITED",
+   "failed": [],
+   "triage": null,
    "mock_orders": 0,
    "variants": {
     "total": 3,
-    "pass": 0,
-    "failed": [
-     "typo: \"sned 900 to jordan\": question (expected one clarifying question and no card)",
-     "case_punct: \"Send 900 to jordan!!\": question (expected one clarifying question and no card)",
-     "slang: \"send 900 to jordan rn pls\": question (expected one clarifying question and no card)"
-    ]
+    "pass": 3,
+    "failed": []
    },
    "turns": [
     {
      "user": "send 900 to jordan",
-     "reply": "Set up $900.00 to Jordan Lee (@jlee) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS.",
-     "outcome": "confirm"
+     "reply": "Checking ••4417 has $612.18 available (from your linked account, as of Oct 14, 7:10 PM UTC), less than $900.00. If Venmo pays from it, $900.00 to Jordan Lee won't go through; Venmo can also pay from your Venmo balance or a card I can't see. Set up $900.00 anyway, $612.18, or a different amount?",
+     "outcome": "ask"
     },
     {
      "user": "move it from savings",
-     "reply": "",
-     "outcome": "needs_model"
-    },
-    {
-     "user": "yes",
-     "reply": "",
-     "outcome": "needs_model"
+     "reply": "I can't move money between your accounts, so nothing was moved or sent. If you move it yourself in your bank's app, say \"send it\" and I'll set up $900.00 to Jordan Lee, or tell me a smaller amount.",
+     "outcome": "not_built"
     }
    ]
   },

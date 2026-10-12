@@ -5,10 +5,6 @@
    "verdict": "diverges",
    "note": "A first send to a new handle asks the person to type the handle back (PAY-002, confirmed in full) before the card; the corpus shows the card at once with a can't-verify line. Kept deliberately: it is the stronger check on a first, irreversible send to a stranger. Owner can overrule."
   },
-  "1.05": {
-   "verdict": "not_built",
-   "note": "Balance-aware sends: the send flow does not read the funding account's balance, so it cannot say a $900 send won't go through or offer a savings move. Venmo/Zelle handoffs move money in the person's own app."
-  },
   "3.05": {
    "verdict": "not_built",
    "note": "Finding a holding by company name ('palantir'): instruments resolve by ticker; there is no name index yet. The flow asks for the ticker instead of guessing."

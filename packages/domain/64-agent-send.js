@@ -103,6 +103,55 @@
       return r.status === "saved" && r.matched_by === "handle" ? { exact: r.person } : r.status === "lookalike" && r.handle ? { suspect: r.suspect, distance: r.distance } : null;
     }
 
+    // Balance-aware sends (response-style corpus 1.05). Rows are the person's own agent_financial_accounts rows (the host
+    // reads them through the RLS client and merges the account kinds the person set): account_id, name, institution,
+    // account_kind, balance_cents, available_cents, balance_as_of, fetched_at, sync_error, status, currency. Pure: the rows
+    // and the clock come in. Returns null whenever the answer is not known for sure, because a wrong "it won't go through"
+    // is worse than none: no linked checking, a checking account without a number, a balance more than a day old or with
+    // no time on it, a failed sync. With several checking accounts the fullest one decides, since the person's app may pay
+    // from any of them. Only a send above every one of them comes back, with the number, the account, its source and its
+    // as-of time (every money statement cites both, CLAUDE.md).
+    const FUNDS_STALE_MS = DAY;
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const asOfLabel = t => { const d = new Date(t), h = d.getUTCHours(), m = d.getUTCMinutes(); return `${MON[d.getUTCMonth()]} ${d.getUTCDate()}, ${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"} UTC`; };
+    const cents = v => v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Math.round(Number(v));
+    const at = v => { const t = v === null || v === undefined || v === "" ? NaN : typeof v === "number" ? v : Date.parse(v); return Number.isFinite(t) ? t : NaN; };
+    // The person's own type wins; an untyped row named "... Checking" is checking, the same reading the balance answer uses.
+    const kindOf = a => { const k = String(a.account_kind || "unknown").toLowerCase(); if (k !== "unknown") return k; const n = String(a.name || "").toLowerCase(); return /\bchecking\b/.test(n) ? "checking" : /\bsavings?\b/.test(n) ? "savings" : "unknown"; };
+    const acctName = a => { const n = String(a.name || a.account_id || "Your account").trim(), i = String(a.institution || "").trim(); return i && !n.toLowerCase().includes(i.toLowerCase()) ? `${i} ${n}` : n; };
+    function fundsCheck(rows, total_cents, now, opts) {
+      const funding = String((opts && opts.funding) || "").toLowerCase(), kinds = /savings/.test(funding) ? ["savings"] : /checking/.test(funding) ? ["checking"] : ["checking", "cash"];
+      if (!Number.isSafeInteger(total_cents) || total_cents <= 0) return null;
+      const list = (Array.isArray(rows) ? rows : []).filter(a => a && a.status !== "disconnected" && kinds.includes(kindOf(a)) && (!a.currency || String(a.currency).toUpperCase() === "USD"));
+      if (!list.length) return null;
+      const read = list.map(a => { const av = cents(a.available_cents), bal = cents(a.balance_cents), t = Number.isFinite(at(a.balance_as_of)) ? at(a.balance_as_of) : at(a.fetched_at); return { a, cents: av !== null ? av : bal, available: av !== null, t }; });
+      // One unknown or stale account could be the one with the money: then nothing is said at all.
+      if (read.some(x => x.cents === null || !Number.isFinite(x.t) || now - x.t > FUNDS_STALE_MS || x.t - now > 5 * 60000 || x.a.sync_error === true)) return null;
+      const best = read.slice().sort((x, y) => y.cents - x.cents)[0];
+      if (total_cents <= best.cents) return null;
+      const inst = String(best.a.institution || "").trim();
+      return { account: acctName(best.a), account_id: best.a.account_id || null, available_cents: best.cents, available: best.available, short_cents: total_cents - best.cents, as_of: best.t, as_of_text: asOfLabel(best.t), source: `from your linked ${inst ? inst + " " : ""}account`, accounts: read.length };
+    }
+    // The question, before any card: the number with its source and as-of time, what the person's app may pay from, and the
+    // choices. Never an offer to move money between accounts: Upmore can't (MONEY_MOVE in agent-chat's capabilities.ts).
+    function fundsText(chk, send) {
+      const amt = money(send.amount_cents), name = send.recipient.name, rail = send.rail || {}, handoff = rail.mode === "handoff";
+      const has = `${chk.account}${chk.accounts > 1 ? ", your fullest checking account," : ""} has ${money(chk.available_cents)}${chk.available ? " available" : ""} (${chk.source}, as of ${chk.as_of_text}), less than ${money(send.amount_cents + (rail.fee_cents || 0))}.`;
+      const app = !handoff ? `So ${amt} to ${name} won't go through from it.`
+        : rail.id === "zelle" ? `Zelle pays from the bank account you enrolled, so if that's this one, ${amt} to ${name} won't go through.`
+        : `If ${rail.name} pays from it, ${amt} to ${name} won't go through; ${rail.name} can also pay from your ${rail.name} balance or a card I can't see.`;
+      const options = chk.available_cents > 0 ? `${amt} anyway, ${money(chk.available_cents)}, or a different amount?` : `${amt} anyway, or a different amount?`;
+      return `${has} ${app} ${handoff ? "Set up" : "Send"} ${options}`;
+    }
+    // Answers to that question. A money move is named and refused; a yes, "anyway" or the same amount goes on to the card.
+    const FUNDS_NO = /^\s*(?:n|no|nope|nah|cancel|stop|never ?mind|nvm|forget it|skip it|drop it|don'?t)\b/i;
+    const FUNDS_MOVE = /\b(?:move|moving|transfer|pull|shift)\b|\bsavings\b|\bfrom (?:my |the )?other account\b/i;
+    const FUNDS_YES = /^\s*(?:y|yes|yep|yeah|ya|yup|sure|ok|okay|do it|go ahead|go for it|send it|set it up|still|anyway|send (?:it )?anyway|full amount|the full amount|all of it|try it|try anyway)\b/i;
+    const FUNDS_AVAIL = /\b(?:what(?:'s| is)? (?:there|available|in it|i have)|what i(?:'ve)? got|the available|max(?:imum)?|everything in it)\b/i;
+    const FUNDS_LESS = /\b(?:less|smaller|lower|different amount)\b/i;
+    const FUNDS_AMOUNT = /^\s*(?:(?:send|make it|do|just|ok|okay|then|set up)\s+)*\$?\s?[\d,]+(?:\.\d{1,2})?\s*(?:dollars|bucks)?\s*(?:instead|then|please|pls)?\s*[.!]*\s*$/i;
+    const fundsAccepts = text => { const t = String(text || ""); return t.length <= 80 && (FUNDS_NO.test(t) || FUNDS_YES.test(t) || FUNDS_AMOUNT.test(t) || FUNDS_AVAIL.test(t) || FUNDS_MOVE.test(t) || FUNDS_LESS.test(t)); };
+
     function create(opts) {
       const o = opts || {}, clock = o.clock || (() => Date.now());
       const Money = typeof AgentMoney !== "undefined" ? AgentMoney : null, Loop = typeof AgentLoop !== "undefined" ? AgentLoop : null, Voice = typeof AgentVoice !== "undefined" ? AgentVoice : null, Guard = typeof DataGuard !== "undefined" ? DataGuard : null;
@@ -120,6 +169,9 @@
       let identity = st.identity || null, waiting = st.waiting || null; // a "Which Marcus", look-alike or stranger follow-up and the send it is for
       let saveOffer = st.save_offer || null; // a stranger confirmed by read-back whom the person may SAVE explicitly
       let pendingAmountCheck = st.amount_check || null; // "Do you mean $4.50?" waiting on its answer
+      let pendingFunds = st.funds_check || null; // "Checking has $612.18 available ... anyway?" waiting on its answer: { parsed, pick, amount_cents, available_cents, recipient }
+      // The person's own bank rows, read by the host (a function, sync or async). A failed read is no warning, never a guess.
+      const readBalances = async () => { if (typeof o.balances !== "function") return null; try { return await o.balances(); } catch { return null; } };
       const sentWithin = ms => loop.memory.outcomes.filter(x => (x.capability_id === CAPABILITY || x.capability_id === "PAY-002") && x.result === "confirmed" && clock() - (x.recorded_at || 0) < ms).reduce((s, x) => s + (x.amount_cents || 0), 0) + sends.filter(s => s.staged_at && !s.cancelled && clock() - s.staged_at < ms).reduce((s, x) => s + x.amount_cents, 0);
 
       // The five-field confirmation (doc 11): action, exact amount, recipient with handle, funding account, fee, timing.
@@ -195,6 +247,15 @@
         if (prep.stop) return { outcome: "stop", reason: prep.reason, text: prep.message };
         if (prep.ask) return { outcome: "ask", reason: prep.new_recipient ? "new_recipient" : "gap", text: prep.ask, new_recipient: !!prep.new_recipient };
         if (prep.tier === "T5" && !person.readback_id) return { outcome: "ask", reason: "new_recipient", text: `${prep.recipient.name} has never received money from you. First sends go through the new-recipient path and are confirmed in full. ${prep.verify_question || ""}`.trim(), new_recipient: true };
+        // More than the cash the person has, from their own rows: said before any card, and nothing is staged until they
+        // answer (corpus 1.05). Not a refusal: a handoff app may pay from a balance or card Upmore can't see.
+        if (!parsed.funds_checked) {
+          const chk = fundsCheck(await readBalances(), prep.amount_cents + (prep.rail.fee_cents || 0), clock(), { funding: parsed.funding });
+          if (chk) {
+            pendingFunds = { parsed: Object.assign({}, parsed), pick: pick || null, amount_cents: prep.amount_cents, available_cents: chk.available_cents, recipient: prep.recipient.name, asked_at: clock() };
+            return { outcome: "ask", reason: "funds_short", text: fundsText(chk, prep), funds: chk };
+          }
+        }
         const send = Object.assign({ memo_flagged, staged_at: null, landed: null }, prep);
         const handoff = send.rail.mode === "handoff";
         const request = { capability_id: person.readback_id ? "PAY-002" : CAPABILITY, key: prep.request.key, idempotency_key: prep.request.key, params: { amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name, recipient_name: send.recipient.name, rail: send.rail.id, memo: memo || null, funding: send.confirm.from }, describe: send.confirm.action, confirm: { action: send.confirm.action, amount: send.confirm.amount, recipient: send.confirm.recipient, from: send.confirm.from, fee: send.confirm.fee, when: send.confirm.when }, draft_only: handoff, amount_cents: send.amount_cents, recipient: send.recipient.id || send.recipient.name };
@@ -209,7 +270,7 @@
         return Object.assign({ outcome: r.outcome, text: r.message || null }, r);
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { pendingAmountCheck = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
+      async function start(text) { pendingAmountCheck = null; pendingFunds = null; if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
 
       // The outcome of an approved action, in the user's words.
       function settle(r, send) {
@@ -245,7 +306,21 @@
         if ((prep.recipient.id || prep.recipient.name) !== (was.recipient.id || was.recipient.name) || prep.recipient.handle !== was.recipient.handle) moved.push(`the recipient's details changed`);
         return moved;
       }
+      // The answer to the balance question. Nothing is staged until the person picks: the full amount anyway, what's there,
+      // or another amount, each on its own card for its own yes. A money move between accounts is refused in plain words.
+      async function fundsReply(text) {
+        const f = pendingFunds, t = String(text || ""), amt = money(f.amount_cents), typed = parseAmount(t);
+        const go = amount_cents => { pendingFunds = null; return stage(Object.assign({}, f.parsed, { amount_cents, funds_checked: amount_cents === f.amount_cents, one_decimal: false, amount_checked: true }), f.pick || undefined); };
+        if (FUNDS_MOVE.test(t)) return { outcome: "not_built", reason: "money_move", text: `I can't move money between your accounts, so nothing was moved or sent. If you move it yourself in your bank's app, say "send it" and I'll set up ${amt} to ${f.recipient}, or tell me a smaller amount.` };
+        if (typed) return go(typed);
+        if (FUNDS_NO.test(t)) { pendingFunds = null; return { outcome: "declined", text: "Okay, nothing was sent." }; }
+        if (FUNDS_AVAIL.test(t)) return f.available_cents > 0 ? go(f.available_cents) : { outcome: "ask", reason: "funds_short", text: "There's nothing available in it right now. How much should I set up?" };
+        if (FUNDS_LESS.test(t)) return { outcome: "ask", reason: "funds_short", text: "How much?" };
+        if (FUNDS_YES.test(t)) return go(f.amount_cents);
+        return { outcome: "ask", reason: "funds_short", text: `${amt} anyway, or a different amount?` };
+      }
       async function reply(text) {
+        if (pendingFunds && fundsAccepts(text)) return fundsReply(text);
         if (pendingAmountCheck && AMOUNT_ANSWER.test(String(text || ""))) {
           const was = pendingAmountCheck; pendingAmountCheck = null;
           if (/^\s*(n|no|nope)\b/i.test(text)) return { outcome: "declined", text: "Okay. Nothing sent. Tell me the amount you meant." };
@@ -311,14 +386,14 @@
         return out;
       }
       function overdue(now) { return sends.filter(s => !s.landed && !s.cancelled && s.watch && now - s.staged_at > s.watch.deadline_days * DAY).map(s => ({ send: s, text: `I staged ${money(s.amount_cents)} to ${s.recipient.name} on ${s.rail.name} ${Math.floor((now - s.staged_at) / DAY)} day(s) ago and have not seen it post. Did you send it? If not, nothing left your account.` })); }
-      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending, identity, waiting, save_offer: saveOffer, amount_check: pendingAmountCheck }));
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), sends, pending, identity, waiting, save_offer: saveOffer, amount_check: pendingAmountCheck, funds_check: pendingFunds }));
       // A reply that belongs to this flow's follow-up (a handle, NEW, a choice, SAVE) goes here and never to the model.
       const AMOUNT_ANSWER = /^\s*(y|yes|yep|yeah|ya|correct|right|that'?s right|n|no|nope|\$?\s?[\d,]+(\.\d{1,2})?)\s*[.!]*\s*$/i;
-      const accepts = text => (!!identity && Rec.identityAccepts(identity, text)) || (!!saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text || ""))) || (!!pendingAmountCheck && AMOUNT_ANSWER.test(String(text || "")));
+      const accepts = text => (!!identity && Rec.identityAccepts(identity, text)) || (!!saveOffer && /^\s*save( (them|him|her|it))?\s*[.!]*\s*$/i.test(String(text || ""))) || (!!pendingAmountCheck && AMOUNT_ANSWER.test(String(text || ""))) || (!!pendingFunds && fundsAccepts(text));
       return { start, reply, followUp, landed, overdue, parse, loop, sends, snapshot, cardText, accepts, recipients: book,
         get pending() { return pending ? { confirmation_id: pending.confirmation_id, amount_cents: pending.send.amount_cents, recipient: pending.send.recipient.name } : null; },
-        get awaiting_input() { return !!identity || !!saveOffer || !!pendingAmountCheck; } };
+        get awaiting_input() { return !!identity || !!saveOffer || !!pendingAmountCheck || !!pendingFunds; } };
     }
-    return { create, parse, parseAmount, lookalike, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
+    return { create, parse, parseAmount, lookalike, fundsCheck, editDistance: (a, b) => AgentRecipients.editDistance(a, b), CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentSend;

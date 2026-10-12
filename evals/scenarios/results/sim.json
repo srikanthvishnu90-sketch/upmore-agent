@@ -618,7 +618,7 @@
    "typed": "sell all my TSLA",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no TSLA available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no TSLA available to sell (your Alpaca account, as of 04:04 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -627,7 +627,7 @@
    "typed": "sell half my NVDA",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no NVDA available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no NVDA available to sell (your Alpaca account, as of 04:04 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -636,7 +636,7 @@
    "typed": "sell 100 dollars of AAPL",
    "flow": "trade",
    "outcome": "stop",
-   "reply": "Your Alpaca account (****4417) shows no AAPL available to sell (your Alpaca account, as of 03:53 UTC). Nothing was placed.",
+   "reply": "Your Alpaca account (****4417) shows no AAPL available to sell (your Alpaca account, as of 04:04 UTC). Nothing was placed.",
    "executed": false,
    "mock_orders": 0
   },
@@ -942,7 +942,7 @@
    "typed": "why is my portfolio down today",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 04:04 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1023,7 +1023,7 @@
    "typed": "give me my portfolio report",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 04:04 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1032,7 +1032,7 @@
    "typed": "compare my portfolio to the S&P",
    "flow": "trade",
    "outcome": "answer",
-   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 03:53 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
+   "reply": "LIVE portfolio in your Alpaca account (****4417), your Alpaca account, as of 04:04 UTC: 18.5 PLTR ($760.35). Buying power $1,340.22.",
    "executed": false,
    "mock_orders": 0
   },

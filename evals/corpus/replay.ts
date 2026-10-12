@@ -25,6 +25,13 @@ const EXTRA_TX: Record<string, any[]> = {
   "4.14": ["2026-07-17", "2026-08-17", "2026-09-17"].map((d, i) => ({ account_id: "card-8830", provider_transaction_id: "pf" + i, amount_cents: -2499, posted_on: d, merchant_raw: "PLANET FITNESS", is_pending: false, is_transfer: false })),
   "4.04": ["2026-07-11", "2026-08-11", "2026-09-11"].map((d, i) => ({ account_id: "card-2201", provider_transaction_id: "x" + i, amount_cents: -699, posted_on: d, merchant_raw: "NETFLIX.COM", is_pending: false, is_transfer: false })),
 };
+// Bank balances an example states (1.05: "Checking ••4417 has $612.18"), as agent_financial_accounts rows read 4 minutes
+// before the first message. MOCK rows of the corpus's fictional world; every other example has no bank row, so no balance
+// is ever claimed there.
+const bank = (account_id: string, name: string, kind: string, cents: number) => ({ account_id, name, institution: null, currency: "USD", account_kind: kind, balance_cents: cents, available_cents: cents, balance_as_of: new Date(T0 - 4 * 60000).toISOString(), fetched_at: new Date(T0 - 4 * 60000).toISOString(), sync_error: false, status: "active", mock: true });
+const BANK: Record<string, any[]> = {
+  "1.05": [bank("chk-4417", "Checking ••4417", "checking", 61218), bank("sav-9921", "Savings ••9921", "savings", 340000)],
+};
 // Setup a context line describes: the earlier card the person is answering.
 const SETUP: Record<string, string[]> = { "2.09": ["send ana 30"], "2.12": ["cancel hulu"] };
 const QUOTES: Record<string, [string, number]> = { NVDA: ["NVIDIA Corp", 182.4], TSLA: ["Tesla Inc", 251.2], AMD: ["Advanced Micro Devices", 152.3], PLTR: ["Palantir Technologies", 41.1], AAPL: ["Apple Inc", 229.5], MSFT: ["Microsoft Corp", 418.2], GME: ["GameStop Corp", 24.6], VT: ["Vanguard Total World Stock ETF", 120.5], VOO: ["Vanguard S&P 500 ETF", 512.1] };
@@ -54,7 +61,7 @@ export async function replay(example: any) {
   const db: FlowDb = {
     async loadState() { return state ? JSON.parse(JSON.stringify(state)) : null; },
     async saveState(s: any) { state = JSON.parse(JSON.stringify(s)); },
-    async loadData() { return { ok: true, ...mapFlowData(tx, [], [], PEOPLE) }; },
+    async loadData() { return { ok: true, ...mapFlowData(tx, [], [], PEOPLE, [], BANK[example.id] || []) }; },
     async saveRecipients() {},
   } as FlowDb;
   const closed = example.turns.some((t: any) => /markets? (are|is) closed/i.test(t.text));

@@ -160,3 +160,21 @@
     written and an unparseable patch is not applied. All 1,274 recorded patches re-checked: none breaks parsing.
 - Megadoc BUILT 78 -> 91; capability list IN_PRODUCT 48 -> 49; 75/75 domain modules with proven defects.
 - CI: runs 116-126 green; 127+ pending at this check-in.
+
+## 2026-10-12 overnight, wave 8 (11:35-12:35 UTC)
+- Privacy and money-path findings, each fixed red first and shown to fail without the fix:
+  - cb972ac a deleted account kept its Gmail refresh token in the Vault (no cascade, never purged), and the owner could
+    delete or rewrite the row directly; migration 20261012060000 (trigger by an owner-derived name, rows server-written),
+    explicit purge in delete-account; guards: every Vault writer declares its way out, every user_id table cascades (58).
+    The in-app Privacy Policy sheet said Anthropic, Plaid brokerage, "we never move money" and saved merchant logins;
+    now matches /privacy and the code. Q03 Q04 Q06 Q08 answered from code.
+  - 8313391 Export data read none of the agent tables but chat and capped each at 1,000 rows silently; 74 tables, paged,
+    unreadable ones named; list checked against the database.
+  - 29d26ca every live Alpaca sell card said "No fee." though Alpaca passes SEC and FINRA fees through on every sale
+    (docs.alpaca.markets/docs/regulatory-fees); RAIL-2 S22 (22/22). Q05 fees from the Terms.
+- Model-only answers moved to code: Q07 asleep (quiet hours), Q01 Q02 stock tips (advice guard now blocks tips and "is X
+  a good buy"; labeled set 100/100), Q09 travel, N02-N15 everyday scams (SCAM-CHECK 15/15), O09 options, O03 local help
+  (211), M05 savings rate without naming any bank or rate (SAVINGS-RATE 15/15).
+- Megadoc BUILT 103 -> 116, MODEL 31 -> 12; mutation coverage 80/80 modules.
+- Evidence overnight-wave-8: 22 pass; the 7 function type-checks fail only fetching deno.land/esm.sh through the proxy.
+- CI: runs 138-149 green; 150 pending at this check-in.

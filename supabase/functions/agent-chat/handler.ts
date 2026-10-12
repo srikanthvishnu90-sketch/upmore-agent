@@ -246,7 +246,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         const linked = await supabase.from("agent_financial_accounts").select("account_id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active");
         if (!linked.error) {
           linkedCount = linked.count ?? 0;
-          direct = noDataReply(message, linkedCount) ?? (linkedCount === 0 && moneyKind(message) ? NO_ACCOUNTS : null);
+          direct = noDataReply(message, linkedCount) ?? (linkedCount === 0 && moneyKind(message) && moneyKind(message) !== "explain" ? NO_ACCOUNTS : null);
         }
       }
       // One read of the person's transactions per turn, shared by every answer below (_shared/recent_transactions.ts:
@@ -265,7 +265,12 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (a.error) throw new Error("Accounts unavailable.");
         return mergeKinds(a.data || [], p.error ? [] : p.data || []);
       })();
-      if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), { accounts: readAccounts, transactions: readTx });
+      if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
+        accounts: readAccounts,
+        transactions: readTx,
+        // "show me the math" explains the answer just given in this thread.
+        previous: async () => { const h = await supabase.from("agent_messages").select("role,content").eq("thread_id", tid).order("id", { ascending: false }).limit(6); return h.error ? [] : h.data || []; },
+      });
       // "dispute this charge", "find me money" and an airline refund (_shared/airline_answer.ts, DOT rules from the offer
       // book): a failed read says so plainly instead of failing the whole turn.
       const today = new Date().toISOString().slice(0, 10);

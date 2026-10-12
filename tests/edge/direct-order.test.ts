@@ -42,6 +42,12 @@ const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);
 const OWNER: [string, string | null][] = [
   ["what's my balance", "moneyReply"],
   ["how much did i spend last month", "moneyReply"],
+  ["how much can i spend until payday", "moneyReply"],
+  ["what bills are coming up", "moneyReply"],
+  ["how long will my money last", "moneyReply"],
+  ["can i afford a $400 tv", "moneyReply"],
+  ["what's my net worth", "moneyReply"],
+  ["forecast my cash for the next 90 days", "moneyReply"],
   ["dispute the $42 charge on oct 7", "disputeReply"],
   ["am i overpaying for streaming", "subscriptionReply"],
   ["find me money", "findMoneyReply"],

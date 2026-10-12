@@ -5,7 +5,11 @@
 // Every answer ends with its source and as-of time. With nothing linked it returns null: noDataReply in
 // direct_answers.ts says that in one plain line. Pure apart from the injected readers, so
 // tests/edge/money-answers.test.ts drives it with fixtures.
-import { MoneyAnswers } from "../../_shared/router_core.js";
+// The numbers (capability list section 1, overnight E1-E7) come from packages/domain/86-the-numbers.js (TheNumbers):
+// "how much can i spend" (safe to spend until payday), "what bills are coming up", "how long will my money last",
+// "can i afford a $600 trip next month", "what's my net worth", "forecast", and "show me the math" for any of them
+// (the last answer in the thread, read through the optional previous() reader). tests/edge/the-numbers.test.ts.
+import { MoneyAnswers, TheNumbers } from "../../_shared/router_core.js";
 
 export type AccountRow = {
   account_id: string; name: string; institution: string | null; account_kind: string; balance_cents: number | null;
@@ -15,8 +19,11 @@ export type MoneyTxRow = {
   account_id: string; provider_transaction_id: string; amount_cents: number | null; posted_on: string | null; merchant_raw: string;
   is_pending: boolean; is_transfer: boolean | null; fetched_at?: string | null; currency?: string;
 };
-export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]> };
-export type MoneyKind = "balance" | "spend" | "checkup" | "through";
+export type MoneyReaders = { accounts(): Promise<AccountRow[]>; transactions(): Promise<MoneyTxRow[]>; previous?(): Promise<{ role: string; content: string }[]> };
+// "math" names its number ("show me the math on my net worth"); "explain" is a bare "show me the math", answered only
+// when the thread's last answer was one of these numbers (else null: the model explains its own arithmetic).
+export type NumbersKind = "safe" | "upcoming" | "runway" | "afford" | "networth" | "forecast" | "math" | "explain";
+export type MoneyKind = "balance" | "spend" | "checkup" | "through" | NumbersKind;
 
 const LEAD = String.raw`^\s*(?:hey|hi|ok|okay|so|yo|pls|please|quick q:?)?[,\s]*`;
 const END = String.raw`(?:\s+(?:now|right now|today|pls|please))?\s*[?.!]*\s*$`;
@@ -27,14 +34,41 @@ const SPEND = /\b(?:how much|what)\s+(?:did|have|do)\s+i\s+(?:spend|spent)\b|\bh
 const ADVICE = /\b(?:should|could|cut|reduce|lower|stop|budget|tips?|help me|plan|save|limit|afford)\b/i;
 const THROUGH = /^\s*(?:hey|ok|okay|so|pls|please)?[,\s]*(?:did|has|have|is|was)\b/i;
 
-// Which of the four asks this message is, or null. Conservative: a near miss goes on to the flows and the model.
+// The numbers, each a whole message in the person's words. "how much can i spend on groceries" (a budget question),
+// "can i afford a house" (no amount), "can i afford $500 a month" (a recurring cost) and the weather forecast go on.
+const OPT_END = String.raw`\s*[?.!]*\s*$`;
+const SAFE = new RegExp(LEAD + String.raw`(?:how much (?:money |cash )?(?:can|could) i (?:still )?spend|how much (?:money |cash )?(?:is|do i have) (?:safe|free|left) to spend|what'?s (?:my )?safe[- ]to[- ]spend(?: number| amount)?|(?:my )?safe[- ]to[- ]spend|what can i (?:still )?spend|how much spending money do i have(?: left)?)(?:\s+(?:today|right now|now|this week|until (?:payday|my next pay ?check|i get paid)|till (?:payday|i get paid)|before (?:payday|my next pay ?check|i get paid)))?` + OPT_END, "i");
+const UPCOMING = new RegExp(LEAD + String.raw`(?:(?:what|which) (?:bills|payments|bills and payments)(?: do i have)? (?:are |is )?(?:coming up|due|upcoming|coming)(?: soon)?|(?:show me |list |what are )?(?:my )?(?:upcoming|next) (?:bills|payments)|(?:any )?bills (?:coming up|due soon)|when are my bills due|what'?s coming up (?:in|on|for) my (?:bills|accounts|money))(?:\s+(?:this week|this month|in the next 30 days|next 30 days|soon))?` + OPT_END, "i");
+const RUNWAY = new RegExp(LEAD + String.raw`(?:how long (?:will|would|can|could|does|do) (?:my )?(?:money|cash|savings|funds)(?: i have)? last(?: me)?|how long can i (?:last|go|survive)(?: on (?:my )?(?:money|cash|savings))?|what'?s my (?:cash )?runway|(?:my )?(?:cash )?runway)(?:\s+(?:if i (?:lost|lose) my job|without (?:a )?(?:paycheck|income|work)|if i stopped working|at this rate|at my current spending))?` + OPT_END, "i");
+const NETWORTH = new RegExp(LEAD + String.raw`(?:(?:what'?s|whats|what is|show me|tell me|calculate|check|give me) my |my )?(?:total |current )?net ?worth(?:\s+(?:now|today|right now))?` + OPT_END, "i");
+const WORTH = new RegExp(LEAD + String.raw`how much am i worth` + OPT_END, "i");
+const FORECAST = new RegExp(LEAD + String.raw`(?:(?:show me|give me|run|do) (?:my |a |the )?|(?:what'?s|whats|what is) my |my )?(?:(?:90[- ]day|3[- ]month|cash[- ]?flow|balance) )*forecast(?: (?:for|over) (?:the next )?(?:90 days|3 months|three months))?` + OPT_END, "i");
+// The verb first: "forecast my cash for the next 90 days".
+const FORECAST_VERB = new RegExp(LEAD + String.raw`forecast (?:my )?(?:cash|balance|balances|money|cash ?flow)(?: (?:for|over) (?:the next )?(?:90 days|3 months|three months))?` + OPT_END, "i");
+const LATER = new RegExp(LEAD + String.raw`what will my (?:balance|cash) be (?:in (?:30|60|90) days|in (?:a|one|two|three|1|2|3) months?|next month)` + OPT_END, "i");
+const AFFORD = /^\s*(?:hey|hi|ok|okay|so|yo|pls|please|quick q:?)?[,\s]*(?:can|could) i (?:really |still )?afford\b/i;
+const NOT_AFFORD = /\b(?:a|per|each|every) (?:month|week|year)\b|\/(?:mo|month|wk|yr)\b|\bmonthly\b|\bweekly\b|\byearly\b|\bmortgage\b|\bloan\b|\bhouse\b|\bhome\b|\bcar payment\b|\binvest|\bstocks?\b|\bshares?\b|\bcrypto|\bbitcoin\b|\bbet\b|\bgambl|\bshould\b/i;
+const MATH = new RegExp(LEAD + String.raw`(?:(?:can you |could you |please )?(?:show|walk|give|explain)(?: me)?(?: through)? (?:the|your) (?:math|maths|calculation|working)|how did you (?:get|calculate|work out|come up with) (?:that|this|the)(?: number| figure| amount)?|show your work)(?:\s+(?:on|for|behind|of) (?:my |the |that |this )?[a-z' -]{0,40})?` + OPT_END, "i");
+
+function numbersKind(m: string): NumbersKind | null {
+  if (MATH.test(m)) return TheNumbers.topicOf(m) ? "math" : "explain";
+  if (SAFE.test(m)) return "safe";
+  if (UPCOMING.test(m)) return "upcoming";
+  if (RUNWAY.test(m)) return "runway";
+  if (NETWORTH.test(m) || WORTH.test(m)) return "networth";
+  if (FORECAST.test(m) || FORECAST_VERB.test(m) || LATER.test(m)) return "forecast";
+  if (AFFORD.test(m) && !NOT_AFFORD.test(m) && TheNumbers.parseAmount(m)) return "afford";
+  return null;
+}
+
+// Which ask this message is, or null. Conservative: a near miss goes on to the flows and the model.
 export function moneyKind(message: string): MoneyKind | null {
   const m = String(message || "");
   if (CHECKUP.test(m)) return "checkup";
   if (THROUGH.test(m) && MoneyAnswers.goThroughTarget(m)) return "through";
   if (SPEND.test(m) && !ADVICE.test(m)) return "spend";
   if ((BALANCE.test(m) && !/\btransfer\b/i.test(m)) || HAVE.test(m)) return "balance";
-  return null;
+  return numbersKind(m);
 }
 
 // The person's own account types (agent_account_preferences) win over the provider's, which SimpleFIN leaves "unknown".
@@ -53,9 +87,18 @@ export async function moneyReply(message: string, now: Date | number | string, r
   try { accounts = ((await read.accounts()) || []).filter((a) => a && a.status !== "disconnected"); } catch { return MONEY_UNAVAILABLE; }
   if (!accounts.length) return null;
   if (kind === "balance") return MoneyAnswers.balance(accounts, now, { tz });
+  if (kind === "networth") return TheNumbers.netWorth(accounts, now, { tz })?.text ?? null;
   let tx: MoneyTxRow[];
   try { tx = (await read.transactions()) || []; } catch { return MONEY_UNAVAILABLE; }
   if (kind === "spend") return MoneyAnswers.spend(tx, message, now, { tz });
   if (kind === "checkup") return MoneyAnswers.checkup(accounts, tx, now, { tz });
-  return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
+  if (kind === "through") return MoneyAnswers.didItGoThrough(tx, message, now, { tz, accounts });
+  if (kind === "math" || kind === "explain") {
+    // The thread's last messages, newest first, so a bare "show me the math" explains the answer just given. A failed
+    // read only loses that context: a bare ask then goes on to the model, a named one is still answered.
+    let previous: { role: string; content: string }[] = [];
+    try { previous = (read.previous ? await read.previous() : []) || []; } catch { previous = []; }
+    return TheNumbers.showMath(accounts, tx, message, now, { tz, previous });
+  }
+  return TheNumbers.answer(kind, accounts, tx, message, now, { tz })?.text ?? null;
 }

@@ -62,14 +62,14 @@ that are on the list and that a build may reach.
 | dub | 144 | 0 | 0 | 0 | 0 | 1 | 74 | 69 | 49 | 49 |
 | Alinea | 79 | 0 | 0 | 0 | 0 | 2 | 34 | 43 | 40 | 18 |
 | Autopilot | 67 | 0 | 0 | 0 | 0 | 0 | 51 | 16 | 44 | 15 |
-| Origin | 209 | 0 | 12 | 3 | 0 | 1 | 103 | 90 | 48 | 101 |
+| Origin | 209 | 0 | 15 | 0 | 0 | 1 | 103 | 90 | 48 | 101 |
 | Albert | 148 | 0 | 11 | 0 | 0 | 0 | 73 | 64 | 82 | 53 |
-| Rocket Money | 132 | 0 | 24 | 17 | 0 | 10 | 46 | 35 | 20 | 89 |
+| Rocket Money | 132 | 0 | 29 | 12 | 0 | 10 | 46 | 35 | 20 | 89 |
 | Monarch | 330 | 0 | 9 | 26 | 0 | 0 | 189 | 106 | 28 | 199 |
 | Copilot Money | 311 | 0 | 33 | 1 | 0 | 1 | 176 | 100 | 6 | 205 |
 | YNAB | 242 | 0 | 0 | 1 | 0 | 0 | 103 | 138 | 0 | 104 |
 | Cleo | 156 | 0 | 1 | 2 | 0 | 0 | 38 | 115 | 86 | 34 |
-| **all** | 1818 | 0 | 90 | 50 | 0 | 15 | 887 | 776 | 403 | 867 |
+| **all** | 1818 | 0 | 98 | 42 | 0 | 15 | 887 | 776 | 403 | 867 |
 
 Sections: 154 (full 13, part 62, none 79); row overrides: 49.
 
@@ -294,7 +294,7 @@ suggests is in its own "Build order suggestion" section.
 | Budgeting | 13 | 12 | 0 | 1 | 0 | T1-ORIGIN-039 .. T1-ORIGIN-051 (13) | none | none | NO_ITEM 13 |
 | Recurring bills and subscriptions | 8 | 8 | 0 | 0 | 0 | T1-ORIGIN-052 .. T1-ORIGIN-059 (8) | 10, 18, 31, 106 | full | IN_PRODUCT 8 |
 | Forecasting, goals and retirement | 20 | 20 | 0 | 0 | 1 | T1-ORIGIN-060 .. T1-ORIGIN-079 (19) | 20 | part: what-if scenarios such as a home purchase or a new income (20); a lifetime plan with Monte Carlo odds, retirement, Social Security, equity and tax modeling has no item (16 forecasts 90 days) | MODULE_ONLY 20 |
-| Net worth | 3 | 3 | 0 | 0 | 0 | T1-ORIGIN-080 .. T1-ORIGIN-082 (3) | 15 | full | MODULE_ONLY 3 |
+| Net worth | 3 | 3 | 0 | 0 | 0 | T1-ORIGIN-080 .. T1-ORIGIN-082 (3) | 15 | full | IN_PRODUCT 3 |
 | Investment tracking | 12 | 12 | 0 | 0 | 1 | T1-ORIGIN-083 .. T1-ORIGIN-094 (11) | 64, 65, 66, 68 | part: returns against a benchmark (64), allocation (65), earnings dates (66) and a watchlist (68); analyst ratings, market watch and themed screens are research tools with no item | MODULE_ONLY 12 |
 | Origin Invest and cash account | 13 | 2 | 8 | 3 | 13 | none | none | none | IN_PRODUCT 1, NOT_BUILT 1, NO_ITEM 11 |
 | AI adviser and other AI features | 18 | 18 | 0 | 0 | 6 | T1-ORIGIN-110 .. T1-ORIGIN-123 (12) | 7, 20, 22, 24 | part: plain questions over the person's data (7), what-if questions (20), the daily market brief (22) and the weekly recap (24); the health score, ranked recommendations, risk profile and memory controls have no item | IN_PRODUCT 18 |
@@ -316,7 +316,7 @@ suggests is in its own "Build order suggestion" section.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Onboarding and bank linking | 8 | 3 | 5 | 0 | 1 | T1-ALBERT-001 .. T1-ALBERT-008 (7) | 1, 4 | part: linking accounts (1) and adding one by hand (4); the debit card link is for Albert's own advances, and demo accounts and the goals questionnaire have no item | IN_PRODUCT 8 |
 | Budgeting and spending | 13 | 8 | 3 | 2 | 0 | T1-ALBERT-009 .. T1-ALBERT-021 (13) | 6, 8, 14, 15 | part: spending by category, account and merchant (6), category fixes (8), safe to spend (14) and net worth (15); category budgets, custom charts and the dashboard have no item | IN_PRODUCT 13 |
-| Forecast | 7 | 7 | 0 | 0 | 0 | T1-ALBERT-022 .. T1-ALBERT-028 (7) | 16, 20 | part: cash flow ahead (16) and milestone what-ifs (20); a five-year net worth forecast reaches further than the list's 90 days | MODULE_ONLY 7 |
+| Forecast | 7 | 7 | 0 | 0 | 0 | T1-ALBERT-022 .. T1-ALBERT-028 (7) | 16, 20 | part: cash flow ahead (16) and milestone what-ifs (20); a five-year net worth forecast reaches further than the list's 90 days | IN_PRODUCT 7 |
 | Bills and subscriptions | 7 | 4 | 3 | 0 | 2 | T1-ALBERT-029 .. T1-ALBERT-034 (5) | 10, 31, 75, 106, 122 | full | IN_PRODUCT 7 |
 | Genius AI assistant | 18 | 10 | 3 | 5 | 6 | T1-ALBERT-036 .. T1-ALBERT-053 (12) | 7 | part: answers over the person's own data (7); rows that are other items are mapped one by one; moving money, Smart money and trading on Genius's plan run in Albert's own accounts | IN_PRODUCT 14, MODULE_ONLY 1, NO_ITEM 3 |
 | Instant cash advances and loans | 15 | 5 | 6 | 4 | 15 | none | none | none | NO_ITEM 15 |
@@ -340,7 +340,7 @@ suggests is in its own "Build order suggestion" section.
 | Spending and transactions | 22 | 21 | 0 | 1 | 1 | T2-ROCKET-040 .. T2-ROCKET-061 (21) | 6, 7, 8, 11, 25 | part: spending views (6), search (7), category fixes and rules (8), splits (11) and the monthly report (25); tags, notes, CSV export and the tax-deductible list have no item | IN_PRODUCT 22 |
 | Budgets and habits | 9 | 9 | 0 | 0 | 0 | T2-ROCKET-062 .. T2-ROCKET-070 (9) | none | none | IN_PRODUCT 1, MODULE_ONLY 1, NO_ITEM 7 |
 | Alerts and notifications | 7 | 7 | 0 | 0 | 1 | T2-ROCKET-071 .. T2-ROCKET-077 (6) | 28, 29, 34 | part: upcoming charges (28), low balance (29) and unusual charges (34); the fee and credit rows are mapped one by one, and challenge reminders have no item | IN_PRODUCT 5, MODULE_ONLY 2 |
-| Net worth | 5 | 5 | 0 | 0 | 0 | T2-ROCKET-078 .. T2-ROCKET-082 (5) | 15 | full | MODULE_ONLY 5 |
+| Net worth | 5 | 5 | 0 | 0 | 0 | T2-ROCKET-078 .. T2-ROCKET-082 (5) | 15 | full | IN_PRODUCT 5 |
 | Credit | 4 | 4 | 0 | 0 | 4 | none | 37, 101 | full | MODULE_ONLY 4 |
 | Financial Goals and savings | 10 | 0 | 5 | 5 | 10 | none | none | none | NO_ITEM 10 |
 | Rowan AI agent | 16 | 10 | 4 | 2 | 1 | T2-ROCKET-097 .. T2-ROCKET-112 (15) | 7 | part: an agent over text answering from the person's data (7); its other rows are list items mapped one by one, and support handoff and app navigation have no item of their own | IN_PRODUCT 10, MODULE_ONLY 3, NOT_BUILT 1, NO_ITEM 2 |
@@ -358,7 +358,7 @@ suggests is in its own "Build order suggestion" section.
 | Cash flow and reports | 14 | 13 | 1 | 0 | 0 | T2-MONARCH-122 .. T2-MONARCH-135 (14) | 6, 25 | part: income and spending by category, merchant and owner over any period (6) and the monthly review (25); chart types, saved reports and chart sharing are presentation | IN_PRODUCT 14 |
 | Recurring bills and subscriptions | 9 | 5 | 1 | 3 | 4 | T2-MONARCH-136 .. T2-MONARCH-140 (5) | 10, 18, 28 | full | IN_PRODUCT 9 |
 | Goals | 20 | 17 | 1 | 2 | 0 | T2-MONARCH-145 .. T2-MONARCH-164 (20) | none | none | MODULE_ONLY 2, NO_ITEM 18 |
-| Net worth and accounts | 16 | 16 | 0 | 0 | 0 | T2-MONARCH-165 .. T2-MONARCH-180 (16) | 4, 15 | part: net worth over time (15) and one list of accounts (4); utilisation bars, notes, logos and hide, close or invert controls have no item | MODULE_ONLY 16 |
+| Net worth and accounts | 16 | 16 | 0 | 0 | 0 | T2-MONARCH-165 .. T2-MONARCH-180 (16) | 4, 15 | part: net worth over time (15) and one list of accounts (4); utilisation bars, notes, logos and hide, close or invert controls have no item | IN_PRODUCT 16 |
 | Investments | 20 | 16 | 1 | 3 | 2 | T2-MONARCH-181 .. T2-MONARCH-200 (18) | 64, 65, 67 | part: returns against a benchmark (64), allocation (65) and fund breakdowns (67); equity compensation tracking and manual holdings have no item | MODULE_ONLY 20 |
 | Forecasting | 24 | 24 | 0 | 0 | 9 | T2-MONARCH-202 .. T2-MONARCH-224 (15) | 20 | part: what-if events and scenarios such as a new job or a home (20); a lifetime forecast with retirement, Social Security, withdrawal order and tax assumptions has no item (16 forecasts 90 days) | MODULE_ONLY 24 |
 | Business Tracking | 7 | 6 | 1 | 0 | 2 | T2-MONARCH-225 .. T2-MONARCH-231 (5) | none | none | NO_ITEM 7 |
@@ -379,8 +379,8 @@ suggests is in its own "Build order suggestion" section.
 | Section | Rows | Read | Ask | Rule | Hard-gated | Ungated ids | List items | Coverage | Upmore today (rows) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Onboarding and account linking | 30 | 5 | 20 | 5 | 5 | T2-COPILOT-001 .. T2-COPILOT-030 (25) | 1 | part: linking banks, cards, brokerages and Apple accounts through several aggregators (1); the Venmo and Amazon rows map one by one, and the test drive, first budget and onboarding restart have no item | IN_PRODUCT 28, MODULE_ONLY 1, NOT_BUILT 1 |
-| Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) | 4, 5, 15 | part: one list of accounts (4), connections needing attention (5) and net worth over time (15); utilization dots, renames, hiding and support merges have no item | MODULE_ONLY 21 |
-| Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) | 15 | part: property and other assets counting in net worth (15); automatic home value feeds and mortgage linking are not named on the list | MODULE_ONLY 7 |
+| Accounts and net worth | 21 | 6 | 14 | 1 | 0 | T2-COPILOT-031 .. T2-COPILOT-051 (21) | 4, 5, 15 | part: one list of accounts (4), connections needing attention (5) and net worth over time (15); utilization dots, renames, hiding and support merges have no item | IN_PRODUCT 21 |
+| Real estate and other assets | 7 | 1 | 5 | 1 | 0 | T2-COPILOT-052 .. T2-COPILOT-058 (7) | 15 | part: property and other assets counting in net worth (15); automatic home value feeds and mortgage linking are not named on the list | IN_PRODUCT 7 |
 | Transactions | 46 | 17 | 22 | 7 | 0 | T2-COPILOT-059 .. T2-COPILOT-104 (46) | 8, 11 | part: the categorisation model and name rules (8) and splits (11); search, filters, review inbox, tags, notes, bulk edits and keyboard shortcuts are bookkeeping tools with no item | MODULE_ONLY 46 |
 | Categories and budgets | 29 | 12 | 15 | 2 | 0 | T2-COPILOT-105 .. T2-COPILOT-133 (29) | none | none | NO_ITEM 29 |
 | Recurrings and subscriptions | 23 | 6 | 12 | 5 | 0 | T2-COPILOT-134 .. T2-COPILOT-156 (23) | 10, 18 | full | IN_PRODUCT 23 |

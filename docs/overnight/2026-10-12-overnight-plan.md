@@ -105,13 +105,13 @@ is filed, sent or paid by Upmore.
 Check each against the capability list first; build only what is not IN_PRODUCT. Each answers in chat with source
 and as-of, and shows the math on request.
 
-- [ ] **E1. Safe to spend** until payday, total and per day (bills due before payday subtracted).
-- [ ] **E2. Upcoming calendar**: every bill, payday and renewal in the next 30 days.
-- [ ] **E3. Runway**: days of cash at the current burn.
-- [ ] **E4. Affordability**: "can I afford $X" and, if not, when.
-- [ ] **E5. Net worth** over time from account balances (assets minus debts, cards as owed).
-- [ ] **E6. 90-day cash flow forecast** with its assumptions listed.
-- [ ] **E7. Show the math** for any of the above on request.
+- [x] **E1. Safe to spend** until payday, total and per day (bills due before payday subtracted).
+- [x] **E2. Upcoming calendar**: every bill, payday and renewal in the next 30 days.
+- [x] **E3. Runway**: days of cash at the current burn.
+- [x] **E4. Affordability**: "can I afford $X" and, if not, when.
+- [x] **E5. Net worth** over time from account balances (assets minus debts, cards as owed).
+- [x] **E6. 90-day cash flow forecast** with its assumptions listed.
+- [x] **E7. Show the math** for any of the above on request.
 
 ## Block F: bonuses and rewards math (Methods 1, the parts that are only math over the person's rows)
 

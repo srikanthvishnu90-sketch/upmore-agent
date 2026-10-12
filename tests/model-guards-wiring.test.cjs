@@ -67,7 +67,7 @@ test('see-everything numbers, then dispute (S16-17), then find me money, in the 
   const accounts=h.slice(h.indexOf('const readAccounts = () => acctCache ??='),money);
   assert.ok(accounts.includes('supabase.from("agent_financial_accounts")') && accounts.includes('.eq("status", "active")'),'active accounts only, read once and shared');
   assert.ok(accounts.includes('supabase.from("agent_account_preferences")') && accounts.includes('mergeKinds('),'the person\'s own account types win');
-  assert.ok(h.includes('moneyReply(message, new Date(), { accounts: readAccounts, transactions: readTx })'),'money answers use the shared readers');
+  assert.match(h,/moneyReply\(message, new Date\(\), \{\s*accounts: readAccounts,\s*transactions: readTx,/,'money answers use the shared readers');
   const rewards=h.indexOf('if (!direct) direct = await rewardsReply(message, today, readAccounts, oldestFirst);');
   assert.ok(find<rewards && rewards<caught,'rewards math after find me money, inside the plain-failure guard');
   assert.ok(h.includes('(NEEDS_ACCOUNTS.test(message) || moneyKind(message))'),'the linked count is read for every money ask');

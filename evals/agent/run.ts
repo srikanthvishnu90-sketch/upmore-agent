@@ -27,6 +27,7 @@ import { FINANCIAL_TOOLS } from "../../supabase/functions/_shared/financial_tool
 import { guardPlan, ENVELOPE_CENTS, ORDER_CAP_CENTS } from "./live_guard.ts";
 import { guardMoneyClaim } from "../../supabase/functions/_shared/claim_guard.ts";
 import { chatInput } from "../../supabase/functions/agent-chat/_shared/chat_input.ts";
+import { moneyReply } from "../../supabase/functions/agent-chat/_shared/money_answers.ts";
 import { ConnectCards, BrokerAccounts } from "../../supabase/functions/_shared/router_core.js";
 
 type Status = "PASS" | "FAIL" | "CRITICAL" | "GAP" | "NOT_RUN";
@@ -265,7 +266,18 @@ async function flow() {
   ex["ALRT-010"] = async () => has(base([], { watches: [{ kind: "balance_below", account: "checking", threshold_cents: 50000, id: "w1", status: "active" }] }), /watch|balance_below/);
   ex["ALRT-011"] = async () => { const p = base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1")], null, Date.UTC(2026, 9, 12, 3)); return [p.suppressed.some(s => s.reason === "quiet_hours"), JSON.stringify(p.suppressed)]; };
   ex["ALRT-012"] = async () => { const p = base([tx("2026-10-11", -89900, "BEST BUY 00123", "b1"), tx("2026-10-11", -3500, "OVERDRAFT FEE", "f1")]); return [p.messages.filter(m => m.kind === "finding").length === 1 && p.suppressed.some(s => s.reason === "daily_budget"), JSON.stringify(p.suppressed)]; };
-  ex["ANL-005"] = async () => has(base([], { morning_brief: true }), /^brief:/);
+  // The numbers in chat (agent-chat/_shared/money_answers.ts, the function the handler calls): each answer from the
+  // fixture's own rows, ending with its source and as-of line.
+  const money = (msg: string, re: RegExp): Ex => async () => {
+    const r = await moneyReply(msg, NOW, { accounts: async () => accountRows() as any, transactions: async () => txRows() as any });
+    return [!!r && re.test(r) && /\nFrom your linked accounts\b[^\n]*\.$/.test(r), `${msg}: ${String(r).split("\n")[0].slice(0, 110)}`];
+  };
+  const both = (a: Ex, b: Ex): Ex => async () => { const [x, wx] = await a(), [y, wy] = await b(); return [x && y, `${wx} / ${wy}`]; };
+  ex["ANL-005"] = both(async () => has(base([], { morning_brief: true }), /^brief:/), money("how much can i spend", /^Safe to spend until payday \(Oct 16\): \$/));
+  ex["ACCT-018"] = both(tool("get_cash_position"), money("how long will my money last", /^Runway: about \d+ days\./));
+  ex["ACCT-004"] = money("what's my net worth", /^Net worth: \$412\.00\./);
+  ex["ANL-006"] = money("forecast", /^90-day forecast, from your repeating bills and paychecks only: .*\nAssumptions:\n/s);
+  ex["ANL-007"] = money("what bills are coming up", /^Coming up in the next 30 days \(Oct 11-Nov 10\): .*\n- Oct 15: Oak Property Mgmt Rent, \$1,450\.00 \(monthly bill\)/s);
   ex["ANL-020"] = async () => has(base(), /^recap:/);
   ex["BILL-002"] = async () => has(base(), /price_increase|price_rise/);
   ex["BILL-010"] = async () => has(base([], null, NOW, [{ id: "s1", merchant: "Paramount+", amount: 11.99, billing_interval: "trial", next_billing_date: "2026-10-13", status: "active" }]), /trial_converting/);

@@ -7499,6 +7499,597 @@
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;
 
+  /* The numbers (owner's capability list section 1; overnight duties E1-E7), answered from code over the person's own
+     rows, never by the model. The same row shapes as MoneyAnswers (80-money-answers.js):
+       accounts      agent_financial_accounts rows: account_id, name, institution, account_kind, balance_cents,
+                     available_cents, balance_as_of, fetched_at, status, currency
+       transactions  agent_financial_transactions rows: account_id, provider_transaction_id, amount_cents (negative =
+                     money out), posted_on, merchant_raw, is_pending, is_transfer, currency, fetched_at
+     Six answers, each { kind, text, math, ...numbers }; text ends with its source and as-of line, math is the inputs and
+     arithmetic line by line ("show me the math", E7):
+       safeToSpend(accounts, tx, now)         E1 cash now minus the bills due on or before the next payday, total and per
+                                              day; the payday is read from the person's own deposits; none found: 30 days,
+                                              said so
+       upcoming(accounts, tx, now)            E2 every bill, payday and renewal in the next 30 days on one dated list
+       runway(accounts, tx, now)              E3 days of cash at the average daily outflow over the last 90 days
+       afford(accounts, tx, words, now)       E4 "can I afford $X (by when)": yes with what is left, or the earliest day
+       netWorth(accounts, now)                E5 what is owned minus what is owed; unknown types and other currencies apart
+       forecast(accounts, tx, now)            E6 90 days ahead on repeating bills and paychecks only, assumptions listed
+     Repeating bills come from AgentLedger.recurring (57-agent-ledger.js); money formatting and as-of times from
+     MoneyAnswers. Paydays are fitted here: weekly, every 14 days, twice a month (two days of the month, paid early when
+     the day falls on a weekend or a holiday) or monthly. All money is integer cents; other currencies are never added
+     into dollars; a balance more than a day old is said; no linked account returns null (the caller's nothing-linked
+     line answers). Pure: rows and the clock are passed in; opts.tz (an IANA zone, default UTC) sets the person's day. */
+  const TheNumbers = (() => {
+    const MA = typeof MoneyAnswers !== "undefined" ? MoneyAnswers : typeof require === "function" ? require("./80-money-answers.js") : null;
+    const LG = typeof AgentLedger !== "undefined" ? AgentLedger : typeof require === "function" ? require("./57-agent-ledger.js") : null;
+    const HOUR = 3600 * 1000, DAY = 24 * HOUR, STALE_MS = DAY;
+    const HORIZON = 90, UPCOMING_DAYS = 30, FALLBACK_DAYS = 30, LATE_GRACE = 5, BASIS_DAYS = 90, MIN_BASIS = 14;
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const MONTHS = [/\bjan(?:uary)?\b/, /\bfeb(?:ruary)?\b/, /\bmar(?:ch)?\b/, /\bapr(?:il)?\b/, /\bmay\b/, /\bjune?\b/, /\bjuly?\b/, /\baug(?:ust)?\b/, /\bsept?(?:ember)?\b/, /\boct(?:ober)?\b/, /\bnov(?:ember)?\b/, /\bdec(?:ember)?\b/];
+    const CASH_KINDS = ["checking", "savings", "cash"], ASSET_KINDS = ["investment"], DEBT_KINDS = ["credit", "loan"];
+    const VARIABLE = new Set(["groceries", "dining", "transport"]); // repeats, but not a fixed bill
+    const PAYROLL = /payroll|direct dep|dir dep|salary|paycheck|wages/i;
+    const NOT_INCOME = /\btransfer\b|\brefund|\breversal\b|\binterest\b|\bcash ?back\b|\breturn\b|\bdispute\b/i;
+    // Not spending: money moved between the person's own accounts, and a card payment when the card itself is linked (its
+    // purchases are counted on the card instead, so the payment would count them twice).
+    const MOVED = /\b(?:online transfer|transfer (?:to|from)|internal transfer)\b/i;
+    const CARD_PAYMENT = /\b(?:credit card payment|card payment|payment thank you|credit crd|crd autopay|card autopay)\b/i;
+    const TRANSFER_WORD = /\btransfer\b/i;
+
+    const money = (c) => MA.money(c);
+    const pad = (n) => String(n).padStart(2, "0");
+    const sum = (xs) => xs.reduce((a, x) => a + x, 0);
+    const ms = (v) => { if (v == null || v === "") return NaN; const t = v instanceof Date ? v.getTime() : typeof v === "number" ? v : Date.parse(v); return Number.isFinite(t) ? t : NaN; };
+    function todayIn(now, tz) {
+      const p = {};
+      for (const x of new Intl.DateTimeFormat("en-US", { timeZone: tz || "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(ms(now)))) p[x.type] = x.value;
+      return `${p.year}-${p.month}-${p.day}`;
+    }
+    // Calendar days as YYYY-MM-DD strings, worked in UTC so no zone or DST change shifts them.
+    const toUtc = (ymd) => Date.UTC(+ymd.slice(0, 4), +ymd.slice(5, 7) - 1, +ymd.slice(8, 10));
+    const fromUtc = (t) => { const d = new Date(t); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
+    const addDays = (ymd, n) => fromUtc(toUtc(ymd) + n * DAY);
+    const daysBetween = (a, b) => Math.round((toUtc(b) - toUtc(a)) / DAY);
+    const lastDay = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-12
+    const dow = (ymd) => new Date(toUtc(ymd)).getUTCDay(); // 0 Sunday .. 6 Saturday
+    // Month stepping with the day clamped to the month (Jan 31 + 1 month is Feb 28, or Feb 29 in a leap year). `day`
+    // overrides the start's day: a bill seen on the 31st stays on the last day after a short month.
+    function addMonths(ymd, n, day) {
+      const y = +ymd.slice(0, 4), m = +ymd.slice(5, 7) - 1 + n, d = day || +ymd.slice(8, 10);
+      const yy = y + Math.floor(m / 12), mm = ((m % 12) + 12) % 12 + 1;
+      return `${yy}-${pad(mm)}-${pad(Math.min(d, lastDay(yy, mm)))}`;
+    }
+    function dateLabel(ymd, today) { const y = +ymd.slice(0, 4); return `${MON[+ymd.slice(5, 7) - 1]} ${+ymd.slice(8, 10)}${today && y !== +today.slice(0, 4) ? `, ${y}` : ""}`; }
+    function rangeLabel(from, to, today) {
+      if (from === to) return dateLabel(from, today);
+      if (from.slice(0, 7) === to.slice(0, 7)) return `${dateLabel(from, today)}-${+to.slice(8, 10)}`;
+      return `${dateLabel(from, today)}-${dateLabel(to, today)}`;
+    }
+    const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+    const lowerMedian = (xs) => { const s = xs.slice().sort((a, b) => a - b); return s[Math.floor((s.length - 1) / 2)]; };
+
+    // ---- accounts ----
+    const active = (accounts) => (accounts || []).filter((a) => a && a.status !== "disconnected");
+    // The same reading as the balance answer: the person's own type first; a name that says what it is; else unknown.
+    function kindOf(a) {
+      const k = String(a.account_kind || "unknown").toLowerCase();
+      if (k === "credit_card") return "credit";
+      if (k !== "unknown") return k;
+      const n = String(a.name || "").toLowerCase();
+      if (/\bchecking\b/.test(n)) return "checking";
+      if (/\bsavings?\b|\bmoney market\b/.test(n)) return "savings";
+      if (/\bcredit card\b|\bcredit\b/.test(n)) return "credit";
+      return "unknown";
+    }
+    const hasBal = (a) => a.balance_cents !== null && a.balance_cents !== undefined && a.balance_cents !== "" && Number.isFinite(Number(a.balance_cents));
+    const foreign = (a) => !!a.currency && String(a.currency).toUpperCase() !== "USD";
+    const asOfMs = (a) => { const b = ms(a.balance_as_of); return Number.isFinite(b) ? b : ms(a.fetched_at); };
+    const acctName = (a) => { const n = String(a.name || a.account_id || "Account").trim(), i = String(a.institution || "").trim(); return i && !n.toLowerCase().includes(i.toLowerCase()) ? `${i} ${n}` : n; };
+    const bal = (a) => Math.round(Number(a.balance_cents));
+    const foreignText = (a) => `${MA.money(bal(a)).replace("$", "")} ${String(a.currency).toUpperCase()}`;
+
+    // Cash now: checking, savings and cash in dollars, each at the lower of its balance and what is available (pending
+    // charges already taken out). Everything else is listed, never counted.
+    function cashOf(accounts) {
+      const list = active(accounts);
+      const rows = list.filter((a) => CASH_KINDS.includes(kindOf(a)) && hasBal(a) && !foreign(a)).map((a) => {
+        const b = bal(a), av = a.available_cents === null || a.available_cents === undefined || !Number.isFinite(Number(a.available_cents)) ? null : Math.round(Number(a.available_cents));
+        const used = av === null ? b : Math.min(b, av);
+        return { account: a, name: acctName(a), balance_cents: b, available_cents: av, used_cents: used, basis: av !== null && av < b ? "available" : "balance" };
+      });
+      return { list, rows, cents: sum(rows.map((r) => r.used_cents)), foreign: list.filter((a) => foreign(a) && hasBal(a) && CASH_KINDS.includes(kindOf(a))) };
+    }
+    // As-of facts for the accounts an answer used: the oldest time, the stale ones, the undated ones.
+    function freshness(accts, now) {
+      const times = accts.map(asOfMs).filter(Number.isFinite);
+      return { oldest: times.length ? Math.min(...times) : NaN, stale: accts.filter((a) => Number.isFinite(asOfMs(a)) && ms(now) - asOfMs(a) > STALE_MS), undated: accts.filter((a) => !Number.isFinite(asOfMs(a))), failed: accts.filter((a) => a.sync_error === true) };
+    }
+    function staleLines(f, now, tz) {
+      const out = [];
+      if (f.stale.length) {
+        const worst = f.stale.slice().sort((a, b) => asOfMs(a) - asOfMs(b))[0], hrs = Math.floor((ms(now) - asOfMs(worst)) / HOUR);
+        const age = hrs >= 48 ? `${Math.floor(hrs / 24)} days` : `${hrs} hours`;
+        out.push(f.stale.length === 1
+          ? `Heads up: ${acctName(worst)} was last updated ${MA.timeLabel(asOfMs(worst), tz)}, ${age} ago, so its real balance may have changed.`
+          : `Heads up: ${f.stale.length} balances are more than a day old (the oldest, ${acctName(worst)}, was last updated ${MA.timeLabel(asOfMs(worst), tz)}, ${age} ago), so the real numbers may have changed.`);
+      }
+      if (f.failed.length) out.push(`The last sync of ${f.failed.map(acctName).join(", ")} failed, so ${f.failed.length === 1 ? "that balance" : "those balances"} may be out of date.`);
+      if (f.undated.length) out.push(`${f.undated.map(acctName).join(", ")} didn't say when ${f.undated.length === 1 ? "its balance was" : "their balances were"} taken.`);
+      return out;
+    }
+
+    // ---- transactions ----
+    const usdRow = (r) => !r.currency || String(r.currency).toUpperCase() === "USD";
+    const centsOf = (r) => (r.amount_cents === null || r.amount_cents === undefined || r.amount_cents === "" ? NaN : Math.round(Number(r.amount_cents)));
+    // Posted dollar rows up to today, in the ledger's shape. Pending rows, future dates and other currencies are left out.
+    function posted(transactions, today) {
+      return (transactions || []).filter((r) => r && !r.is_pending && usdRow(r) && typeof r.posted_on === "string" && /^\d{4}-\d{2}-\d{2}/.test(r.posted_on) && r.posted_on.slice(0, 10) <= today && Number.isFinite(centsOf(r)))
+        .map((r) => ({ id: String(r.provider_transaction_id == null ? "" : r.provider_transaction_id), account_id: r.account_id, amount_cents: centsOf(r), posted_at: r.posted_on.slice(0, 10), merchant_raw: String(r.merchant_raw || ""), is_transfer: !!r.is_transfer }));
+    }
+    const foreignTx = (transactions) => (transactions || []).filter((r) => r && !usdRow(r)).length;
+    const keyOf = (raw) => LG.normalizeMerchant(raw).key || String(raw || "").toLowerCase();
+    // A readable name: the balance answer's own merchant names first, else the descriptor without card-network noise and
+    // store numbers. Nothing invented.
+    function nameOf(raw) {
+      const c = MA.classify(raw);
+      if (c && c.name) return c.name;
+      const s = String(raw || "").replace(/^(?:sq|tst|sp|pp|paypal|py)\s*\*\s*/i, "").replace(/\b(?:pos|debit|purchase|checkcard|check card|recurring|ach|ppd|web)\b/gi, " ").replace(/#\s*\d+|\b\d{3,}\b|[*#]/g, " ").replace(/\s+/g, " ").trim();
+      return s ? s.toLowerCase().replace(/(^|[\s\-\/])([a-z])/g, (_, a, b) => a + b.toUpperCase()) : String(raw || "Unknown").trim() || "Unknown";
+    }
+
+    // ---- paydays, from the person's own deposits ----
+    // A date paid on anchor A in its month: on the day, or early when every day after it up to the anchor is a weekend
+    // day, allowing one weekday holiday (a Monday holiday paid the Friday before).
+    function anchorDate(ym, a) { const y = +ym.slice(0, 4), m = +ym.slice(5, 7), end = lastDay(y, m); return `${ym}-${pad(a === "last" ? end : Math.min(a, end))}`; }
+    function paidFor(date, ad) {
+      if (date === ad) return true;
+      const gap = daysBetween(date, ad);
+      if (gap < 1 || gap > 4) return false;
+      let weekdays = 0;
+      for (let i = 1; i <= gap; i++) { const w = dow(addDays(date, i)); if (w !== 0 && w !== 6) weekdays++; }
+      return weekdays <= 1 && dow(date) !== 0 && dow(date) !== 6;
+    }
+    // The anchor in the date's own month that it was paid for (or the next month's when paid early across a month end).
+    function matchAnchor(date, a) {
+      const ym = date.slice(0, 7), next = addMonths(`${ym}-01`, 1).slice(0, 7);
+      for (const m of [ym, next]) { const ad = anchorDate(m, a); if (paidFor(date, ad)) return ad; }
+      return null;
+    }
+    function semimonthlyFit(dates) {
+      const days = [...new Set(dates.map((d) => +d.slice(8, 10)))], cands = days.concat(["last"]);
+      let best = null;
+      for (let i = 0; i < cands.length; i++) for (let j = i + 1; j < cands.length; j++) {
+        const a = cands[i], b = cands[j], na = a === "last" ? 31 : a, nb = b === "last" ? 31 : b;
+        if (Math.abs(na - nb) < 10 || Math.abs(na - nb) > 20) continue;
+        const seen = new Set(); let ok = true, exact = 0;
+        for (const d of dates) {
+          const hit = matchAnchor(d, a) || matchAnchor(d, b);
+          if (!hit || seen.has(hit)) { ok = false; break; }
+          seen.add(hit); if (hit === d) exact++;
+        }
+        if (ok && (!best || exact > best.exact || (exact === best.exact && b === "last"))) best = { anchors: [a, b].sort((x, y) => (x === "last" ? 31 : x) - (y === "last" ? 31 : y)), exact };
+      }
+      return best;
+    }
+    function monthlyFit(dates) {
+      const cands = [...new Set(dates.map((d) => +d.slice(8, 10)))].concat(["last"]);
+      let best = null;
+      for (const a of cands) {
+        const seen = new Set(); let ok = true, exact = 0;
+        for (const d of dates) { const hit = matchAnchor(d, a); if (!hit || seen.has(hit)) { ok = false; break; } seen.add(hit); if (hit === d) exact++; }
+        if (ok && (!best || exact > best.exact || (exact === best.exact && a === "last"))) best = { anchors: [a], exact };
+      }
+      return best;
+    }
+    // Which cadence a payer's deposit dates follow, or null. Every 14 days and twice a month look alike over a few dates;
+    // the one that puts more deposits exactly on its schedule wins, and a tie with every gap exactly 14 days is biweekly.
+    function fitCadence(dates) {
+      const n = dates.length;
+      if (n < 2) return null;
+      const gaps = []; for (let i = 1; i < n; i++) gaps.push(daysBetween(dates[i - 1], dates[i]));
+      const mean = daysBetween(dates[0], dates[n - 1]) / (n - 1);
+      // The schedule's base: the deposit most others fall exactly 7 or 14 days from (a holiday-early one is not the base).
+      const aligned = (step) => { let best = { exact: 0, base: dates[n - 1] }; for (let j = n - 1; j >= 0; j--) { const e = dates.filter((d, i) => daysBetween(dates[j], d) === step * (i - j)).length; if (e > best.exact) best = { exact: e, base: dates[j] }; } return best; };
+      if (n >= 3 && gaps.every((g) => g >= 6 && g <= 8) && Math.abs(mean - 7) <= 0.5) return { cadence: "weekly", days: 7, label: "every week", base: aligned(7).base };
+      let bi = null, semi = null;
+      if (n >= 3 && gaps.every((g) => g >= 12 && g <= 16) && Math.abs(mean - 14) <= 0.5) {
+        const al = aligned(14);
+        bi = { cadence: "biweekly", days: 14, label: "every 14 days", exact: al.exact, base: al.base };
+      }
+      if (n >= 3 && gaps.every((g) => g >= 9 && g <= 21)) { const s = semimonthlyFit(dates); if (s) semi = { cadence: "semimonthly", days: 15, anchors: s.anchors, exact: s.exact, label: `twice a month (the ${s.anchors.map(ordinal).join(" and the ")})` }; }
+      if (bi && semi) return bi.exact > semi.exact || (bi.exact === semi.exact && gaps.every((g) => g === 14)) ? bi : semi;
+      if (bi || semi) return bi || semi;
+      if (gaps.every((g) => g >= 26 && g <= 35)) { const m = monthlyFit(dates); if (m) return { cadence: "monthly", days: 31, anchors: m.anchors, label: `monthly (the ${ordinal(m.anchors[0])})` }; }
+      return null;
+    }
+    function ordinal(a) { if (a === "last") return "last day"; const s = a % 10 === 1 && a !== 11 ? "st" : a % 10 === 2 && a !== 12 ? "nd" : a % 10 === 3 && a !== 13 ? "rd" : "th"; return `${a}${s}`; }
+    // Expected pay dates after today, up to and including `to`.
+    function payDates(s, today, to) {
+      const out = [];
+      if (s.cadence === "weekly" || s.cadence === "biweekly") {
+        // A date already paid early (the last deposit a few days before it) is not expected again.
+        for (let k = 1; k < 400; k++) { const d = addDays(s.base, s.days * k); if (d > to) break; if (d > today && daysBetween(s.last, d) >= s.days - 3) out.push(d); }
+        return out;
+      }
+      // A pay day that falls on a weekend is expected the Friday before, the way these deposits are matched.
+      const paid = new Set(s.dates.flatMap((d) => s.anchors.map((a) => matchAnchor(d, a)).filter(Boolean)));
+      const early = (ad) => (dow(ad) === 6 ? addDays(ad, -1) : dow(ad) === 0 ? addDays(ad, -2) : ad);
+      for (let k = 0, ym = today.slice(0, 7); k < 6 + Math.ceil(daysBetween(today, to) / 28); k++, ym = addMonths(`${ym}-01`, 1).slice(0, 7))
+        for (const a of s.anchors) { const ad = anchorDate(ym, a), on = early(ad); if (on > today && on <= to && !paid.has(ad)) out.push(on); }
+      return out.sort();
+    }
+    // Each payer whose deposits keep a schedule: a payroll descriptor, or $100 or more each time. A payer two schedules
+    // behind has stopped and is left out. Same-day deposits from one payer (a split deposit) count as one payday.
+    function payStreams(rows, today) {
+      const by = new Map();
+      for (const t of rows) if (t.amount_cents > 0 && !t.is_transfer && !NOT_INCOME.test(t.merchant_raw)) { const k = keyOf(t.merchant_raw); if (!by.has(k)) by.set(k, []); by.get(k).push(t); }
+      const out = [];
+      for (const [key, txs] of [...by.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        const perDay = new Map();
+        for (const t of txs) if (daysBetween(t.posted_at, today) <= 200) perDay.set(t.posted_at, (perDay.get(t.posted_at) || 0) + t.amount_cents);
+        const dates = [...perDay.keys()].sort().slice(-8), amounts = dates.map((d) => perDay.get(d));
+        const fit = fitCadence(dates);
+        if (!fit) continue;
+        const payroll = txs.some((t) => PAYROLL.test(t.merchant_raw)), amount = lowerMedian(amounts), last = dates[dates.length - 1];
+        if (!payroll && amount < 10000) continue;
+        if (daysBetween(last, today) > 2 * fit.days + LATE_GRACE) continue;
+        out.push({ key, payer: nameOf(txs[txs.length - 1].merchant_raw), cadence: fit.cadence, label: fit.label, days: fit.days, anchors: fit.anchors || null, base: fit.base || null, amount_cents: amount, steady: amounts.every((x) => Math.abs(x - amount) <= Math.max(Math.round(amount * 0.05), 100)), dates, last, payroll });
+      }
+      return out.sort((a, b) => (b.payroll - a.payroll) || b.amount_cents - a.amount_cents || a.key.localeCompare(b.key));
+    }
+
+    // ---- bills and renewals, from AgentLedger.recurring over the same rows ----
+    const CADENCE_DAYS = { weekly: 7, biweekly: 14, semimonthly: 15, monthly: 31, quarterly: 92, yearly: 366 };
+    const CADENCE_WORD = { weekly: "weekly", biweekly: "every 2 weeks", semimonthly: "twice a month", monthly: "monthly", quarterly: "quarterly", yearly: "yearly" };
+    function nthAfter(last, cadence, k, day) {
+      if (cadence === "weekly") return addDays(last, 7 * k);
+      if (cadence === "biweekly") return addDays(last, 14 * k);
+      if (cadence === "monthly") return addMonths(last, k, day);
+      if (cadence === "quarterly") return addMonths(last, 3 * k, day);
+      if (cadence === "yearly") return addMonths(last, 12 * k, day);
+      let on = last; for (let i = 0; i < k; i++) on = +on.slice(8, 10) <= 14 ? `${on.slice(0, 7)}-15` : addMonths(`${on.slice(0, 7)}-01`, 1); // the 1st and the 15th
+      return on;
+    }
+    function billsOf(rows, transactions, today) {
+      const debits = rows.filter((t) => !(t.amount_cents < 0 && TRANSFER_WORD.test(t.merchant_raw)));
+      const rec = LG.recurring(debits, today).filter((r) => r.direction === "debit" && !VARIABLE.has(r.category));
+      const live = [], stopped = [];
+      for (const r of rec) (daysBetween(r.last_on, today) > 2 * CADENCE_DAYS[r.cadence] + LATE_GRACE ? stopped : live).push(r);
+      // A charge for the bill already pending is already out of the available balance, so its next date is not counted twice.
+      const pendingKeys = new Set((transactions || []).filter((t) => t && t.is_pending && usdRow(t) && centsOf(t) < 0).map((t) => keyOf(t.merchant_raw)));
+      // The descriptor to name it by, and for a bill charged at a month's end lately (the 28th or later), its latest day,
+      // so a bill on the 31st comes back to the 31st after February. Otherwise its last charge's day is used.
+      const monthEndDay = (ds) => (ds.some((d) => d >= 28) ? Math.max(...ds) : undefined);
+      const rawOf = new Map(), daysOf = new Map();
+      for (const t of debits.slice().sort((a, b) => a.posted_at.localeCompare(b.posted_at))) if (t.amount_cents < 0) { const k = keyOf(t.merchant_raw); rawOf.set(k, t.merchant_raw); if (!daysOf.has(k)) daysOf.set(k, []); daysOf.get(k).push(+t.posted_at.slice(8, 10)); }
+      const bills = live.map((r) => ({ key: r.key, name: rawOf.has(r.key) ? nameOf(rawOf.get(r.key)) : r.merchant, cadence: r.cadence, amount_cents: r.amount_cents, steady: r.steady_amount, count: r.count, last_on: r.last_on, renewal: r.cadence === "quarterly" || r.cadence === "yearly", pending: pendingKeys.has(r.key), day: monthEndDay((daysOf.get(r.key) || []).slice(-3)) }));
+      return { bills: bills.sort((a, b) => a.key.localeCompare(b.key)), stopped };
+    }
+    // Dated occurrences from today to `to`. One a few days late and not seen yet is still expected, counted today.
+    function occurrences(bills, today, to) {
+      const out = [];
+      for (const b of bills) {
+        let skippedPending = !b.pending;
+        for (let k = 1; k < 500; k++) {
+          const on = nthAfter(b.last_on, b.cadence, k, b.day);
+          if (on > to) break;
+          if (on < today && daysBetween(on, today) > LATE_GRACE) continue;
+          if (!skippedPending && on <= addDays(today, 3)) { skippedPending = true; continue; }
+          skippedPending = true;
+          out.push({ on: on < today ? today : on, expected: on, late: on < today, name: b.name, amount_cents: b.amount_cents, cadence: b.cadence, renewal: b.renewal, steady: b.steady, key: b.key, direction: "out" });
+        }
+      }
+      return out.sort((a, b) => a.on.localeCompare(b.on) || b.amount_cents - a.amount_cents || a.name.localeCompare(b.name));
+    }
+
+    // ---- shared inputs ----
+    function inputs(accounts, transactions, now, opts) {
+      const tz = (opts && opts.tz) || "UTC", today = todayIn(now, tz), rows = posted(transactions, today);
+      const cash = cashOf(accounts), streams = payStreams(rows, today), { bills, stopped } = billsOf(rows, transactions, today);
+      const pay = streams.find((s) => s.payroll) ? streams.filter((s) => s.payroll) : streams;
+      const nextPays = pay.map((s) => ({ s, on: payDates(s, today, addDays(today, 62))[0] })).filter((x) => x.on).sort((a, b) => a.on.localeCompare(b.on));
+      const payday = nextPays[0] || null;
+      const cardLinked = active(accounts).some((a) => kindOf(a) === "credit");
+      const synced = (transactions || []).map((r) => ms(r && r.fetched_at)).filter(Number.isFinite).sort((a, b) => b - a)[0];
+      return { tz, today, now, rows, cash, streams, bills, stopped, payday, cardLinked, synced, fresh: freshness(cash.rows.map((r) => r.account), now), foreignTx: foreignTx(transactions) };
+    }
+    function txThrough(I) {
+      const d = I.rows.map((r) => r.posted_at).sort().slice(-1)[0], synced = I.synced;
+      return `${d ? `transactions through ${dateLabel(d)}, ${d.slice(0, 4)}` : "no posted transactions yet"}${Number.isFinite(synced) ? `, synced ${MA.timeLabel(synced, I.tz)}` : ""}`;
+    }
+    function sourceLine(I, accts, withTx) {
+      const used = accts || I.cash.rows.map((r) => r.account), f = freshness(used, I.now);
+      const insts = [...new Set(active(used).map((a) => String(a.institution || "").trim()).filter(Boolean))];
+      const asOf = Number.isFinite(f.oldest) ? `balances as of ${MA.timeLabel(f.oldest, I.tz)}` : "balances with no as-of time";
+      return `From your linked accounts${insts.length ? ` (${insts.join(", ")})` : ""}: ${asOf}${withTx ? `; ${txThrough(I)}` : ""}.`;
+    }
+    function notCounted(I) {
+      const out = [];
+      if (I.cash.foreign.length) out.push(`${I.cash.foreign.map((a) => `${acctName(a)} (${foreignText(a)})`).join(", ")} ${I.cash.foreign.length === 1 ? "is" : "are"} in another currency, so ${I.cash.foreign.length === 1 ? "it isn't" : "they aren't"} added into dollars.`);
+      if (I.foreignTx) out.push(`${plural(I.foreignTx, "transaction")} in other currencies ${I.foreignTx === 1 ? "isn't" : "aren't"} counted.`);
+      return out;
+    }
+    const billLine = (o, today) => `${dateLabel(o.on, today)}: ${o.name}, ${o.steady ? "" : "about "}${money(o.amount_cents)} (${o.renewal ? `${CADENCE_WORD[o.cadence]} renewal` : `${CADENCE_WORD[o.cadence]} bill`}${o.late ? `, expected ${dateLabel(o.expected, today)} and not posted yet` : ""})`;
+    const payLine = (p, today) => `${dateLabel(p.on, today)}: payday, ${p.s.steady ? "" : "about "}${money(p.s.amount_cents)} from ${p.s.payer} (${p.s.label})`;
+    const streamText = (s, today) => `${s.steady ? "" : "about "}${money(s.amount_cents)} ${s.label} from ${s.payer} (read from ${plural(s.dates.length, "deposit")}, the last on ${dateLabel(s.last, today)})`;
+    const NO_CASH = "No checking or savings balance is linked, so there's no cash number to start from.";
+
+    // ---- E1 safe to spend ----
+    function safeToSpend(accounts, transactions, now, opts) {
+      if (!active(accounts).length) return null;
+      const I = inputs(accounts, transactions, now, opts), t = I.today;
+      if (!I.cash.rows.length) return { kind: "safe", text: `Safe to spend: I can't work it out. ${NO_CASH}\n${sourceLine(I, active(accounts), true)}`, math: [NO_CASH], safe_cents: null };
+      const end = I.payday ? I.payday.on : addDays(t, FALLBACK_DAYS), days = Math.max(1, daysBetween(t, end));
+      const due = occurrences(I.bills, t, end), billsCents = sum(due.map((o) => o.amount_cents)), safe = I.cash.cents - billsCents;
+      const perDay = safe > 0 ? Math.floor(safe / days) : 0;
+      const until = I.payday ? `until payday (${dateLabel(end, t)})` : `over the next ${FALLBACK_DAYS} days (to ${dateLabel(end, t)})`;
+      const lines = [];
+      if (safe > 0) lines.push(`Safe to spend ${until}: ${money(safe)}, about ${money(perDay)} a day for ${plural(days, "day")}.`);
+      else lines.push(`Safe to spend ${until}: ${money(0)}. Bills due by then come to ${money(billsCents)}, ${money(-safe)} more than your ${money(I.cash.cents)} in cash.`);
+      if (safe > 0) lines.push(due.length ? `That's ${money(I.cash.cents)} in cash minus ${money(billsCents)} of bills due by then: ${due.map((o) => `${o.name} ${money(o.amount_cents)} (${dateLabel(o.on, t)})`).join(", ")}.` : `That's your ${money(I.cash.cents)} in cash; no repeating bill is due before then.`);
+      if (!I.payday) lines.push(`I couldn't find a regular paycheck in your deposits, so this counts the next ${FALLBACK_DAYS} days instead of until payday.`);
+      else lines.push(`Pay: ${streamText(I.payday.s, t)}.`);
+      const cards = active(accounts).filter((a) => kindOf(a) === "credit" && hasBal(a) && !foreign(a) && bal(a) < 0);
+      if (cards.length) lines.push(`Card balances (${money(-sum(cards.map(bal)))} owed) aren't subtracted; a card payment counts only when it repeats from your accounts.`);
+      lines.push(...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, null, true));
+      const math = [`Cash now: ${money(I.cash.cents)}`, ...I.cash.rows.map((r) => `  + ${r.name}: ${money(r.used_cents)} (${r.basis === "available" ? `available; balance ${money(r.balance_cents)}` : "balance"})`),
+        `Bills due on or before ${dateLabel(end, t)}: ${money(billsCents)}`, ...due.map((o) => `  - ${billLine(o, t)}`),
+        `${money(I.cash.cents)} - ${money(billsCents)} = ${money(safe)}${safe > 0 ? "" : ` (below zero, so ${money(0)} is safe to spend)`}`,
+        safe > 0 ? `${money(safe)} / ${plural(days, "day")} = ${money(perDay)} a day (rounded down to the cent; ${money(safe - perDay * days)} left over)` : `Per day: ${money(0)}`,
+        I.payday ? `Payday: ${streamText(I.payday.s, t)}; next expected ${dateLabel(end, t)}.` : `Payday: none found in your deposits, so ${FALLBACK_DAYS} days is used.`];
+      return { kind: "safe", text: lines.join("\n"), math, safe_cents: Math.max(0, safe), raw_cents: safe, cash_cents: I.cash.cents, bills_cents: billsCents, bills: due, per_day_cents: perDay, days, until: end, payday_found: !!I.payday, payday: I.payday ? I.payday.on : null, today: t };
+    }
+
+    // ---- E2 upcoming ----
+    function upcoming(accounts, transactions, now, opts) {
+      if (!active(accounts).length) return null;
+      const I = inputs(accounts, transactions, now, opts), t = I.today, to = addDays(t, UPCOMING_DAYS);
+      const bills = occurrences(I.bills, t, to), pays = I.streams.flatMap((s) => payDates(s, t, to).map((on) => ({ on, s })));
+      const items = bills.map((o) => ({ on: o.on, out: o.amount_cents, line: billLine(o, t), o })).concat(pays.map((p) => ({ on: p.on, in: p.s.amount_cents, line: payLine(p, t), p })))
+        .sort((a, b) => a.on.localeCompare(b.on) || (a.p ? -1 : 0) - (b.p ? -1 : 0) || a.line.localeCompare(b.line));
+      const outC = sum(bills.map((o) => o.amount_cents)), inC = sum(pays.map((p) => p.s.amount_cents));
+      const lines = [items.length ? `Coming up in the next ${UPCOMING_DAYS} days (${rangeLabel(t, to, t)}): ${money(outC)} out in ${plural(bills.length, "bill")}, ${money(inC)} in from ${plural(pays.length, "payday")}.` : `Coming up in the next ${UPCOMING_DAYS} days (${rangeLabel(t, to, t)}): nothing repeating that I can see in your transactions.`];
+      for (const i of items) lines.push(`- ${i.line}`);
+      if (!I.streams.length) lines.push("I couldn't find a regular paycheck in your deposits, so no payday is on the list.");
+      if (I.stopped.length) lines.push(`${plural(I.stopped.length, "repeating charge")} that ${I.stopped.length === 1 ? "seems" : "seem"} to have stopped (nothing for two cycles) ${I.stopped.length === 1 ? "is" : "are"} left out.`);
+      lines.push("Dates are read from the pattern of past charges and deposits, so they're expected, not promised.");
+      lines.push(...notCounted(I).filter((l) => /transaction/.test(l)), `From your linked accounts: ${txThrough(I)}.`);
+      const math = [`Window: ${rangeLabel(t, to, t)}`, ...I.bills.map((b) => `Bill: ${b.name}, ${CADENCE_WORD[b.cadence]}, ${money(b.amount_cents)}${b.steady ? "" : " (median; the amount varies)"}, from ${plural(b.count, "charge")}, the last on ${dateLabel(b.last_on, t)}`),
+        ...I.streams.map((s) => `Pay: ${streamText(s, t)}`), `Out: ${bills.map((o) => money(o.amount_cents)).join(" + ") || money(0)} = ${money(outC)}`, `In: ${pays.map((p) => money(p.s.amount_cents)).join(" + ") || money(0)} = ${money(inC)}`];
+      return { kind: "upcoming", text: lines.join("\n"), math, items: items.map((i) => ({ on: i.on, kind: i.p ? "payday" : i.o.renewal ? "renewal" : "bill", name: i.p ? i.p.s.payer : i.o.name, amount_cents: i.p ? i.p.s.amount_cents : i.o.amount_cents, direction: i.p ? "in" : "out" })), out_cents: outC, in_cents: inC, from: t, to };
+    }
+
+    // ---- everyday outflow over the last 90 days (E3 runway; E4 and E6 name it) ----
+    function outflow(I, excludeKeys) {
+      const from = addDays(I.today, -(BASIS_DAYS - 1)), first = I.rows.map((r) => r.posted_at).sort()[0];
+      const start = first && first > from ? first : from, basis = first ? daysBetween(start, I.today) + 1 : 0;
+      const rows = I.rows.filter((r) => r.amount_cents < 0 && !r.is_transfer && !MOVED.test(r.merchant_raw) && !(I.cardLinked && CARD_PAYMENT.test(r.merchant_raw)) && r.posted_at >= start && (!excludeKeys || !excludeKeys.has(keyOf(r.merchant_raw))));
+      return { from: start, basis, total: sum(rows.map((r) => -r.amount_cents)), count: rows.length, enough: basis >= MIN_BASIS, short: !!first && first > from };
+    }
+
+    // ---- E3 runway ----
+    function runway(accounts, transactions, now, opts) {
+      if (!active(accounts).length) return null;
+      const I = inputs(accounts, transactions, now, opts), t = I.today, o = outflow(I);
+      const tail = [...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, I.cash.rows.length ? null : active(accounts), true)];
+      if (!I.cash.rows.length) return { kind: "runway", text: [`Runway: I can't work it out. ${NO_CASH}`, ...tail].join("\n"), math: [NO_CASH], days: null };
+      if (!o.enough) return { kind: "runway", text: [`Runway: I can't measure it yet. Your transactions cover only ${plural(o.basis, "day")}, and I need at least ${MIN_BASIS} to average your spending.`, ...tail].join("\n"), math: [`History: ${plural(o.basis, "day")} (need ${MIN_BASIS})`], days: null };
+      if (o.total === 0) return { kind: "runway", text: [`Runway: no spending posted since ${dateLabel(o.from, t)}, so there's no daily rate to measure your ${money(I.cash.cents)} in cash against.`, ...tail].join("\n"), math: [`Spending since ${dateLabel(o.from, t)}: ${money(0)}`], days: null };
+      if (I.cash.cents <= 0) return { kind: "runway", text: [`Runway: none. Your cash is ${money(I.cash.cents)}, and you've averaged ${money(Math.round(o.total / o.basis))} a day of spending.`, ...tail].join("\n"), math: [`Cash now: ${money(I.cash.cents)}`], days: 0 };
+      const days = Math.floor(I.cash.cents * o.basis / o.total), perDay = Math.round(o.total / o.basis), until = addDays(t, days);
+      const window = `${o.short ? `since your transactions start (${rangeLabel(o.from, t, t)})` : `over the last ${BASIS_DAYS} days (${rangeLabel(o.from, t, t)})`}`;
+      const lines = [`Runway: about ${plural(days, "day")}. Your ${money(I.cash.cents)} in cash lasts to around ${dateLabel(until, t)} at your average spending of ${money(perDay)} a day ${window}, if no money came in.`];
+      if (o.short) lines.push(`Your linked transactions start ${dateLabel(o.from, t)}, so that's ${plural(o.basis, "day")} of history, not ${BASIS_DAYS}.`);
+      lines.push(`Transfers between your accounts${I.cardLinked ? " and payments to your linked cards (their purchases count instead)" : ""} aren't counted as spending.`, ...tail);
+      const math = [`Cash now: ${money(I.cash.cents)}`, ...I.cash.rows.map((r) => `  + ${r.name}: ${money(r.used_cents)}`), `Spending ${window}: ${money(o.total)} in ${plural(o.count, "charge")}`,
+        `${money(o.total)} / ${plural(o.basis, "day")} = ${money(perDay)} a day`, `${money(I.cash.cents)} / ${money(perDay)} a day = ${(I.cash.cents * o.basis / o.total).toFixed(1)} -> ${plural(days, "day")} (whole days, rounded down)`, `${dateLabel(t, t)} + ${plural(days, "day")} = ${dateLabel(until, t)}`];
+      return { kind: "runway", text: lines.join("\n"), math, days, until, per_day_cents: perDay, spend_cents: o.total, basis_days: o.basis, cash_cents: I.cash.cents };
+    }
+
+    // ---- E6 forecast (and the engine E4 reads) ----
+    function project(I, days) {
+      const t = I.today, to = addDays(t, days);
+      const bills = occurrences(I.bills, t, to), pays = I.streams.flatMap((s) => payDates(s, t, to).map((on) => ({ on, s })));
+      const daily = []; let b = I.cash.cents;
+      for (let d = 0; d <= days; d++) {
+        const on = addDays(t, d), outC = sum(bills.filter((o) => o.on === on).map((o) => o.amount_cents)), inC = sum(pays.filter((p) => p.on === on).map((p) => p.s.amount_cents));
+        b += inC - outC; daily.push({ on, d, balance_cents: b, in_cents: inC, out_cents: outC });
+      }
+      return { daily, bills, pays, in_cents: sum(pays.map((p) => p.s.amount_cents)), out_cents: sum(bills.map((o) => o.amount_cents)) };
+    }
+    function forecast(accounts, transactions, now, opts) {
+      if (!active(accounts).length) return null;
+      const I = inputs(accounts, transactions, now, opts), t = I.today;
+      if (!I.cash.rows.length) return { kind: "forecast", text: `90-day forecast: I can't work it out. ${NO_CASH}\n${sourceLine(I, active(accounts), true)}`, math: [NO_CASH], points: [] };
+      const P = project(I, HORIZON), pts = [30, 60, 90].map((d) => P.daily[d]), low = P.daily.reduce((m, x) => (x.balance_cents < m.balance_cents ? x : m), P.daily[0]);
+      const ev = outflow(I, new Set(I.bills.map((b) => b.key))), evDay = ev.enough && ev.basis ? Math.round(ev.total / ev.basis) : null;
+      const lines = [`90-day forecast, from your repeating bills and paychecks only: ${pts.map((p) => `${money(p.balance_cents)} on ${dateLabel(p.on, t)} (${p.d} days)`).join(", ")}. Lowest: ${money(low.balance_cents)} on ${dateLabel(low.on, t)}${low.balance_cents < 0 ? ", below zero" : ""}.`, "Assumptions:",
+        `- Starts from ${money(I.cash.cents)} in cash (${I.cash.rows.map((r) => r.name).join(", ")}).`,
+        I.streams.length ? `- Paychecks: ${I.streams.map((s) => streamText(s, t)).join("; ")}.` : "- Paychecks: none found in your deposits, so no money comes in.",
+        I.bills.length ? `- Bills: ${I.bills.map((b) => `${b.name} ${b.steady ? "" : "about "}${money(b.amount_cents)} ${CADENCE_WORD[b.cadence]}`).join("; ")}.` : "- Bills: no repeating bill found.",
+        evDay !== null ? `- Not included: everyday spending that doesn't repeat (it averaged ${money(evDay)} a day ${ev.short ? `since ${dateLabel(ev.from, t)}` : `over the last ${BASIS_DAYS} days`}, about ${money(evDay * HORIZON)} over 90 days), one-off bills, and anything new.` : "- Not included: everyday spending (not enough history to average it), one-off bills, and anything new."];
+      lines.push(...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, null, true));
+      const math = [`Start: ${money(I.cash.cents)} cash on ${dateLabel(t, t)}`, ...P.pays.map((p) => `  + ${dateLabel(p.on, t)}: ${p.s.payer} ${money(p.s.amount_cents)}`), ...P.bills.map((o) => `  - ${dateLabel(o.on, t)}: ${o.name} ${money(o.amount_cents)}`),
+        `${money(I.cash.cents)} + ${money(P.in_cents)} in - ${money(P.out_cents)} out = ${money(P.daily[HORIZON].balance_cents)} on ${dateLabel(P.daily[HORIZON].on, t)}`, ...pts.map((p) => `Day ${p.d} (${dateLabel(p.on, t)}): ${money(p.balance_cents)}`), `Lowest: ${money(low.balance_cents)} on ${dateLabel(low.on, t)}`];
+      return { kind: "forecast", text: lines.join("\n"), math, start_cents: I.cash.cents, in_cents: P.in_cents, out_cents: P.out_cents, points: pts.map((p) => ({ days: p.d, on: p.on, balance_cents: p.balance_cents })), low: { on: low.on, balance_cents: low.balance_cents }, daily: P.daily, everyday_per_day_cents: evDay };
+    }
+
+    // ---- E4 affordability ----
+    // "$600", "$1,250.50", "$2k", "600 dollars". Null when no amount is named.
+    function parseAmount(words) {
+      const w = String(words || "").toLowerCase();
+      let m = w.match(/\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k\b)?/) || w.match(/\b(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k)?\s*(?:dollars|bucks|usd)\b/);
+      if (!m) return null;
+      const c = Number(m[1].replace(/,/g, "")) * 100 + (m[2] ? Number(m[2].padEnd(2, "0")) : 0), k = m[3] ? 1000 : 1;
+      const cents = c * k;
+      return Number.isSafeInteger(cents) && cents > 0 && cents <= 1e9 ? cents : null;
+    }
+    function monthDay(w, today) {
+      let m = w.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.? (\d{1,2})(?:st|nd|rd|th)?\b/), mm, dd;
+      if (m) { mm = MONTHS.findIndex((re) => re.test(m[1])) + 1; dd = +m[2]; }
+      else if ((m = w.match(/\b(\d{1,2})\/(\d{1,2})\b/))) { mm = +m[1]; dd = +m[2]; }
+      else return null;
+      if (mm < 1 || mm > 12 || dd < 1) return null;
+      let y = +today.slice(0, 4);
+      if (dd > lastDay(y, mm) && !(mm === 2 && dd === 29)) return null;
+      let d = `${y}-${pad(mm)}-${pad(Math.min(dd, lastDay(y, mm)))}`;
+      if (d < today) { y += 1; if (dd > lastDay(y, mm)) return null; d = `${y}-${pad(mm)}-${pad(dd)}`; }
+      return d;
+    }
+    // When the words say it would happen: a window of days, from today at the earliest.
+    function parseWindow(words, today) {
+      const w = String(words || "").toLowerCase(), y = +today.slice(0, 4), m = +today.slice(5, 7);
+      const monthWin = (yy, mm, label) => ({ from: `${yy}-${pad(mm)}-01` < today ? today : `${yy}-${pad(mm)}-01`, to: `${yy}-${pad(mm)}-${pad(lastDay(yy, mm))}`, label });
+      let n, d;
+      if (/\bnext month\b/.test(w)) { const nm = addMonths(`${today.slice(0, 7)}-01`, 1); return monthWin(+nm.slice(0, 4), +nm.slice(5, 7), `next month (${rangeLabel(nm, `${nm.slice(0, 8)}${pad(lastDay(+nm.slice(0, 4), +nm.slice(5, 7)))}`, today)})`); }
+      if (/\bthis month\b/.test(w)) return { from: today, to: `${today.slice(0, 8)}${pad(lastDay(y, m))}`, label: `this month (by ${dateLabel(`${today.slice(0, 8)}${pad(lastDay(y, m))}`, today)})` };
+      const wd = (dow(today) + 6) % 7; // Monday = 0
+      if (/\bthis weekend\b/.test(w)) { const sat = addDays(today, 5 - wd), sun = addDays(today, 6 - wd); return { from: sat < today ? today : sat, to: sun, label: `this weekend (${rangeLabel(sat < today ? today : sat, sun, today)})` }; }
+      if (/\bnext week\b/.test(w)) { const mon = addDays(today, 7 - wd); return { from: mon, to: addDays(mon, 6), label: `next week (${rangeLabel(mon, addDays(mon, 6), today)})` }; }
+      if (/\bthis week\b/.test(w)) { const sun = addDays(today, 6 - wd); return { from: today, to: sun, label: `this week (by ${dateLabel(sun, today)})` }; }
+      if (/\btomorrow\b/.test(w)) { d = addDays(today, 1); return { from: d, to: d, label: `tomorrow (${dateLabel(d, today)})` }; }
+      if ((n = w.match(/\bin (\d{1,3}|a|one|two|three) (day|week|month)s?\b/))) {
+        const k = { a: 1, one: 1, two: 2, three: 3 }[n[1]] || +n[1];
+        d = n[2] === "day" ? addDays(today, k) : n[2] === "week" ? addDays(today, 7 * k) : addMonths(today, k);
+        return { from: d, to: d, label: `in ${n[1]} ${n[2]}${k === 1 ? "" : "s"} (${dateLabel(d, today)})` };
+      }
+      if ((n = w.match(/\b(by|before|on|for)\b(.*)/)) && (d = monthDay(n[2], today))) return n[1] === "on" || n[1] === "for" ? { from: d, to: d, label: `on ${dateLabel(d, today)}` } : { from: today, to: n[1] === "before" ? (addDays(d, -1) < today ? today : addDays(d, -1)) : d, label: `${n[1]} ${dateLabel(d, today)}` };
+      const named = MONTHS.findIndex((re) => re.test(w.replace(/\bmay i\b/g, "")));
+      if (named >= 0 && /\b(?:in|for|during)\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/.test(w)) {
+        const mm = named + 1, yy = mm >= m ? y : y + 1;
+        return monthWin(yy, mm, `in ${MON[mm - 1]}${yy !== y ? ` ${yy}` : ""}`);
+      }
+      return { from: today, to: today, label: "today" };
+    }
+    function afford(accounts, transactions, words, now, opts) {
+      if (!active(accounts).length) return null;
+      const amount = parseAmount(words);
+      if (!amount) return null;
+      const I = inputs(accounts, transactions, now, opts), t = I.today, win = parseWindow(words, t), head = `For ${money(amount)} ${win.label}`;
+      const src = [...notCounted(I), ...staleLines(I.fresh, now, I.tz), sourceLine(I, I.cash.rows.length ? null : active(accounts), true)];
+      if (!I.cash.rows.length) return { kind: "afford", text: [`${head}: I can't tell. ${NO_CASH}`, ...src].join("\n"), math: [NO_CASH], amount_cents: amount, answer: null };
+      const horizonEnd = addDays(t, HORIZON);
+      if (win.from > horizonEnd) return { kind: "afford", text: [`${head}: that's past the ${HORIZON} days I forecast (to ${dateLabel(horizonEnd, t)}), so I won't guess.`, ...src].join("\n"), math: [`Forecast ends ${dateLabel(horizonEnd, t)}; ${win.label} starts after it.`], amount_cents: amount, answer: null };
+      const S = safeToSpend(accounts, transactions, now, opts);
+      const P = project(I, HORIZON), ev = outflow(I, new Set(I.bills.map((b) => b.key))), evTotal = ev.enough ? ev.total : 0, evBasis = ev.enough ? ev.basis : 1;
+      // What could go on day d and leave the balance at or above $0 every day after it through the forecast, once
+      // everyday spending at its 90-day average is taken out day by day.
+      const net = P.daily.map((x) => x.balance_cents - Math.round(evTotal * x.d / evBasis));
+      const room = new Array(net.length); for (let d = net.length - 1, lo = Infinity; d >= 0; d--) { lo = Math.min(lo, net[d]); room[d] = lo; }
+      const evNote = ev.enough ? `everyday spending at your ${ev.short ? "" : `${BASIS_DAYS}-day `}average (${money(Math.round(ev.total / ev.basis))} a day)` : "no everyday spending (not enough history to average it)";
+      const lines = [], fromD = daysBetween(t, win.from), toD = Math.min(HORIZON, daysBetween(t, win.to));
+      let yes = null;
+      if (fromD === 0 && amount <= S.safe_cents) yes = { d: 0, left: S.safe_cents - amount, now: true };
+      for (let d = Math.max(1, fromD); !yes && d <= toD; d++) if (room[d] >= amount) yes = { d, left: room[d] - amount };
+      let later = null;
+      if (!yes) for (let d = Math.max(1, toD + 1); d <= HORIZON; d++) if (room[d] >= amount) { later = d; break; }
+      const per = S.days ? Math.floor(Math.max(0, S.safe_cents - amount) / S.days) : 0;
+      if (yes && yes.now) lines.push(`${head}: yes. It fits in your safe to spend of ${money(S.safe_cents)} ${S.payday_found ? `until payday (${dateLabel(S.until, t)})` : `over the next ${FALLBACK_DAYS} days`}, leaving ${money(yes.left)} (about ${money(per)} a day).`);
+      else if (yes) lines.push(`${head}: yes, from ${dateLabel(P.daily[yes.d].on, t)}. Spent then, your balance stays at least ${money(yes.left)} through ${dateLabel(horizonEnd, t)}, counting your repeating bills and paychecks and ${evNote}.`);
+      else {
+        lines.push(`${head}: not on these numbers.${fromD === 0 ? ` Your safe to spend ${S.payday_found ? `until payday (${dateLabel(S.until, t)})` : `over the next ${FALLBACK_DAYS} days`} is ${money(S.safe_cents)}.` : ""}`);
+        lines.push(later ? `The earliest day it fits is ${dateLabel(P.daily[later].on, t)}, counting your repeating bills and paychecks and ${evNote}.` : `It doesn't fit on any day in the next ${HORIZON} days, counting your repeating bills and paychecks and ${evNote}.`);
+      }
+      lines.push(...src);
+      const pick = yes ? yes.d : later;
+      const math = [`Amount: ${money(amount)}; window: ${win.label}`, `Safe to spend now: ${money(S.safe_cents)} (${money(S.cash_cents)} cash - ${money(S.bills_cents)} bills due by ${dateLabel(S.until, t)})`,
+        ...(yes && yes.now ? [`${money(S.safe_cents)} - ${money(amount)} = ${money(yes.left)} left; / ${plural(S.days, "day")} = ${money(per)} a day`] : [
+          `Projected balance each day = cash + paychecks - bills - everyday spending (${money(evTotal)} over ${plural(evBasis, "day")}, spread by day)`,
+          ...(pick !== null && pick !== undefined ? [`On ${dateLabel(P.daily[pick].on, t)}: the lowest projected balance from then through ${dateLabel(horizonEnd, t)} is ${money(room[pick])}; ${money(room[pick])} - ${money(amount)} = ${money(room[pick] - amount)}`] : [`The most room on any day through ${dateLabel(horizonEnd, t)}: ${money(Math.max(...room.slice(1)))}, less than ${money(amount)}`])])];
+      return { kind: "afford", text: lines.join("\n"), math, amount_cents: amount, window: win, answer: yes ? "yes" : "no", on: pick !== null && pick !== undefined ? P.daily[pick].on : null, left_cents: yes ? yes.left : null, safe_cents: S.safe_cents };
+    }
+
+    // ---- E5 net worth ----
+    function netWorth(accounts, now, opts) {
+      const list = active(accounts);
+      if (!list.length) return null;
+      const tz = (opts && opts.tz) || "UTC", today = todayIn(now, tz);
+      const own = [], owe = [], apart = [], missing = [];
+      for (const a of list) {
+        const k = kindOf(a);
+        if (!hasBal(a)) { missing.push(a); continue; }
+        if (foreign(a)) { apart.push({ a, why: `${foreignText(a)}, another currency, not added into dollars` }); continue; }
+        if (CASH_KINDS.includes(k) || ASSET_KINDS.includes(k)) own.push({ a, cents: bal(a), kind: k });
+        else if (DEBT_KINDS.includes(k)) owe.push({ a, cents: bal(a), kind: k });
+        else apart.push({ a, why: k === "unknown" ? "type not set, so I don't know if it's owned or owed" : `type "${k}", so I don't know if it's owned or owed` });
+      }
+      const ownC = sum(own.map((x) => x.cents)), owedC = sum(owe.filter((x) => x.cents < 0).map((x) => -x.cents)), favorC = sum(owe.filter((x) => x.cents > 0).map((x) => x.cents));
+      const net = ownC - owedC + favorC, used = own.concat(owe).map((x) => x.a);
+      const I = { tz, today, now, rows: [], cash: { rows: [] }, fresh: freshness(used, now) };
+      const lines = [used.length ? `Net worth: ${money(net)}. That's ${money(ownC + favorC)} you own minus ${money(owedC)} you owe, across ${plural(used.length, "account")}.` : "Net worth: I can't add it up. None of your linked accounts has a type and a dollar balance I can count."];
+      if (own.length) { lines.push("Owned:"); for (const x of own) lines.push(`- ${acctName(x.a)}: ${money(x.cents)}`); }
+      if (owe.length) { lines.push("Owed:"); for (const x of owe) lines.push(`- ${acctName(x.a)}: ${x.cents <= 0 ? `${money(-x.cents)} owed` : `${money(x.cents)} in your favor`}`); }
+      if (apart.length) { lines.push("Not counted:"); for (const x of apart) lines.push(`- ${acctName(x.a)} (${x.why})`); }
+      if (missing.length) lines.push(`${missing.map(acctName).join(", ")} didn't report a balance, so ${missing.length === 1 ? "it isn't" : "they aren't"} counted.`);
+      if (apart.some((x) => /type/.test(x.why))) lines.push("Set an account's type in the app and it will be counted.");
+      lines.push("This is today's number from your balances; net worth over time isn't tracked yet.");
+      lines.push(...staleLines(I.fresh, now, tz), sourceLine(I, used.length ? used : list, false));
+      const math = [`Owned: ${own.map((x) => money(x.cents)).join(" + ") || money(0)} = ${money(ownC)}`, `Owed: ${owe.filter((x) => x.cents < 0).map((x) => money(-x.cents)).join(" + ") || money(0)} = ${money(owedC)}`,
+        ...(favorC ? [`Credit in your favor on owed accounts: ${money(favorC)}`] : []), `${money(ownC)}${favorC ? ` + ${money(favorC)}` : ""} - ${money(owedC)} = ${money(net)}`,
+        ...apart.map((x) => `Left out: ${acctName(x.a)} (${x.why})`), ...missing.map((a) => `Left out: ${acctName(a)} (no balance reported)`)];
+      return { kind: "networth", text: lines.join("\n"), math, net_cents: net, owned_cents: ownC, owed_cents: owedC, favor_cents: favorC, counted: used.length, apart: apart.map((x) => x.a.account_id), missing: missing.map((a) => a.account_id) };
+    }
+
+    // ---- E7 show the math ----
+    const LABEL = { safe: "safe to spend", upcoming: "what's coming up", runway: "runway", afford: "affordability", networth: "net worth", forecast: "the 90-day forecast" };
+    // Which answer the words name, if any.
+    function topicOf(words) {
+      const w = String(words || "").toLowerCase();
+      if (/\bsafe[- ]to[- ]spend\b|\bcan (?:i )?spend\b|\bspend(?:able)?\b/.test(w)) return "safe";
+      if (/\bnet ?worth\b/.test(w)) return "networth";
+      if (/\brunway\b|\bhow long\b/.test(w)) return "runway";
+      if (/\bforecast\b|\bprojection\b|\b90 days?\b/.test(w)) return "forecast";
+      if (/\bafford\b/.test(w)) return "afford";
+      if (/\bbills?\b|\bupcoming\b|\bcoming up\b|\bpaydays?\b|\brenewals?\b/.test(w)) return "upcoming";
+      return null;
+    }
+    // Which of these answers a reply was, from its first words (the replies above always open the same way).
+    function kindOfReply(text) {
+      const s = String(text || "").trim();
+      const m = s.match(/^The math for (safe to spend|what's coming up|runway|affordability|net worth|the 90-day forecast):/);
+      if (m) return Object.keys(LABEL).find((k) => LABEL[k] === m[1]);
+      if (/^Safe to spend\b/.test(s)) return "safe";
+      if (/^Coming up in the next\b/.test(s)) return "upcoming";
+      if (/^Runway:/.test(s)) return "runway";
+      if (/^For \$[\d,]+\.\d\d\b/.test(s)) return "afford";
+      if (/^Net worth:/.test(s)) return "networth";
+      if (/^90-day forecast\b/.test(s)) return "forecast";
+      return null;
+    }
+    function answer(kind, accounts, transactions, words, now, opts) {
+      if (kind === "safe") return safeToSpend(accounts, transactions, now, opts);
+      if (kind === "upcoming") return upcoming(accounts, transactions, now, opts);
+      if (kind === "runway") return runway(accounts, transactions, now, opts);
+      if (kind === "afford") return afford(accounts, transactions, words, now, opts);
+      if (kind === "networth") return netWorth(accounts, now, opts);
+      if (kind === "forecast") return forecast(accounts, transactions, now, opts);
+      return null;
+    }
+    const MATH_MENU = "I can show the math for \"can I afford\" once I know the amount: ask \"can I afford $600 next month\", then \"show me the math\".";
+    // opts.previous: the conversation's last messages, newest first ({ role, content }), so a bare "show me the math"
+    // explains the answer just given; "can I afford" reads its amount back from the person's own question. A bare ask
+    // after any other answer (the model's own arithmetic, a balance) is not this module's: null, and the model explains.
+    function showMath(accounts, transactions, words, now, opts) {
+      if (!active(accounts).length) return null;
+      const prev = (opts && opts.previous) || [], lastBot = prev.find((m) => m && m.role === "assistant"), lastKind = lastBot ? kindOfReply(lastBot.content) : null;
+      let kind = topicOf(words), ask = words;
+      if (!kind) kind = lastKind;
+      if (!kind) return null;
+      if (kind === "afford") {
+        const asked = prev.filter((m) => m && m.role === "user").map((m) => String(m.content || "")).find((c) => /\bafford\b/i.test(c) && parseAmount(c));
+        if (parseAmount(words)) ask = words; else if (asked) ask = asked; else return MATH_MENU;
+      }
+      const r = answer(kind, accounts, transactions, ask, now, opts);
+      if (!r) return null;
+      const lastLine = r.text.split("\n").slice(-1)[0];
+      return [`The math for ${LABEL[kind]}:`, ...r.math, lastLine].join("\n");
+    }
+
+    return { safeToSpend, upcoming, runway, afford, netWorth, forecast, answer, showMath, topicOf, kindOfReply, parseAmount, parseWindow, fitCadence, payStreams, payDates, todayIn, LABEL, MATH_MENU, HORIZON, STALE_MS };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = TheNumbers;
+
   /* Guided manual connect (owner, 2026-10-11, guided manual connect addendum): the read-only lane for platforms with no
      API and no aggregator (the browser_assisted rows in packages/connectors/platforms.json). Decision 1 (settled): no
      password storage, session-only. The person opens a live browser window on the platform's own site, logs in
@@ -9769,4 +10360,4 @@ const OFFER_TERMS_JSON = {"about":"Outside terms the method cards rely on, each 
 const REFUND_PROGRAMS_JSON = {"about":"Refund programs Upmore can check a refund notice against (packages/domain/84-money-owed.js). A notice is called real only when its sender's domain, or a named administrator's domain, matches an entry here; anything else is 'can't confirm this is real'. Each entry carries its source page and the day its facts were checked; facts come only from the owner's method cards (docs/methods, checked October 2026). A field nobody has checked is null or marked unverified, never filled in from memory as fact. Re-check each entry on its page monthly; past fresh_days it is said as 'may have changed'.","fresh_days":30,"programs":[{"id":"ftc.amazon","name":"the FTC's Amazon refunds","agency":"FTC","page":{"title":"FTC: Amazon Refunds","url":"https://www.ftc.gov/enforcement/refunds/amazon-refunds"},"checked_on":"2026-10-11","method_cards":["M2-OWED-02"],"names":["amazon","prime"],"official_domains":["ftc.gov"],"administrators":[],"administrators_note":"No refund administrator is on file yet: until one is added from the FTC page, only a sender on ftc.gov counts as matching.","payment_methods":["check","PayPal","Venmo"],"max_cents":20000,"payments_through":"April 2027","expires_after_days":60,"stated":"Amazon owes some Prime members up to $200 each from a $1.5 billion fund. Payments run through April 2027 and expire after 60 days. The FTC sends refunds by check, PayPal or Venmo, and some expire if not accepted in time.","eligibility_note":"Who is eligible is on the program's page; no enrollment window is on file until someone checks it there, so Upmore does not match past charges to this program."},{"id":"ftc.att_throttling","name":"the FTC's AT&T data throttling refunds","agency":"FTC","page":{"title":"FTC: AT&T Data Throttling Refunds","url":"https://www.ftc.gov/enforcement/refunds/att-data-throttling-refunds"},"checked_on":"2026-10-11","method_cards":["M2-UNCLAIMED-04"],"names":["at&t","att","throttling"],"official_domains":["ftc.gov"],"administrators":[],"administrators_note":"No refund administrator is on file yet: until one is added from the FTC page, only a sender on ftc.gov counts as matching.","payment_methods":["Zelle"],"max_cents":null,"payments_through":null,"expires_after_days":null,"stated":"In 2026 the FTC's AT&T round sends Zelle payments to former customers. These people never cashed a check or accepted PayPal.","eligibility":null}]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds };

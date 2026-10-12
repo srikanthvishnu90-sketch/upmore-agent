@@ -8510,8 +8510,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -8531,8 +8531,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -8552,8 +8552,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 1,
@@ -11828,7 +11828,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11850,7 +11850,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11872,7 +11872,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11894,7 +11894,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11916,7 +11916,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11938,7 +11938,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -11960,7 +11960,7 @@
     20
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -16514,8 +16514,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -16535,8 +16535,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -16556,8 +16556,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -16577,8 +16577,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -16598,8 +16598,8 @@
     15
    ],
    "capability_coverage": "full",
-   "upmore_today": "MODULE_ONLY",
-   "upmore_today_row": "MODULE_ONLY"
+   "upmore_today": "IN_PRODUCT",
+   "upmore_today_row": "IN_PRODUCT"
   },
   {
    "teardown": 2,
@@ -21257,7 +21257,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21279,7 +21279,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21301,7 +21301,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21323,7 +21323,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21345,7 +21345,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21367,7 +21367,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21389,7 +21389,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21411,7 +21411,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21433,7 +21433,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21455,7 +21455,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21477,7 +21477,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21499,7 +21499,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21521,7 +21521,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21543,7 +21543,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21565,7 +21565,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -21587,7 +21587,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25407,7 +25407,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25430,7 +25430,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25453,7 +25453,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25476,7 +25476,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25499,7 +25499,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25522,7 +25522,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25545,7 +25545,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25568,7 +25568,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25591,7 +25591,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25614,7 +25614,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25637,7 +25637,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25660,7 +25660,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25683,7 +25683,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25706,7 +25706,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25729,7 +25729,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25752,7 +25752,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25775,7 +25775,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25798,7 +25798,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25821,7 +25821,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25844,7 +25844,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25867,7 +25867,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25888,7 +25888,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25909,7 +25909,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25930,7 +25930,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25951,7 +25951,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25972,7 +25972,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -25993,7 +25993,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {
@@ -26014,7 +26014,7 @@
     15
    ],
    "capability_coverage": "part",
-   "upmore_today": "MODULE_ONLY",
+   "upmore_today": "IN_PRODUCT",
    "upmore_today_row": "PART"
   },
   {

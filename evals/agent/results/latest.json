@@ -1,8 +1,8 @@
 {
  "green": true,
  "score": {
-  "pass": 71,
-  "total": 71
+  "pass": 74,
+  "total": 74
  },
  "results": [
   {
@@ -229,6 +229,12 @@
   },
   {
    "family": "flow",
+   "id": "F:ACCT-004",
+   "title": "ACCT-004: chat: \"what's my net worth\" today, untyped and foreign accounts listed apart (TheNumbers)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
    "id": "F:ACCT-006",
    "title": "ACCT-006: app: SimpleFIN and Plaid linking functions",
    "status": "PASS"
@@ -236,7 +242,7 @@
   {
    "family": "flow",
    "id": "F:ACCT-018",
-   "title": "ACCT-018: chat: planner tool get_cash_position",
+   "title": "ACCT-018: chat: planner tool get_cash_position; runway in days, \"how long will my money last\" (TheNumbers, 86-the-numbers.js)",
    "status": "PASS"
   },
   {
@@ -302,7 +308,19 @@
   {
    "family": "flow",
    "id": "F:ANL-005",
-   "title": "ANL-005: scheduler: the morning brief, after \"turn on the morning brief\" (8 a.m. local)",
+   "title": "ANL-005: chat: \"how much can i spend\" until the payday read from deposits (TheNumbers, 86-the-numbers.js); scheduler: the morning brief, after \"turn on the morning brief\" (8 a.m. local)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:ANL-006",
+   "title": "ANL-006: chat: \"forecast\", 90 days on repeating bills and paychecks with the assumptions listed (TheNumbers)",
+   "status": "PASS"
+  },
+  {
+   "family": "flow",
+   "id": "F:ANL-007",
+   "title": "ANL-007: chat: \"what bills are coming up\", bills, paydays and renewals for 30 days (TheNumbers)",
    "status": "PASS"
   },
   {

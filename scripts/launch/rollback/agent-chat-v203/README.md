@@ -5,6 +5,10 @@ ezbr_sha256 d4b6f0a95e9e0583b0c670162fe7b5fc0304167899a6a75996d249e1fa065623. It
 2026-10-11. It is not deployed from here and nothing imports it.
 
 It reads only ANTHROPIC_API_KEY, ANTHROPIC_MODEL, SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY.
+
+**Warning (owner, 2026-10-12): Upmore runs on OpenAI only and must not spend Anthropic API credits.** This rollback
+calls the Anthropic API directly (`api.anthropic.com`) with ANTHROPIC_API_KEY. Do not roll back to it unless the owner
+decides to, in writing.
 After the Option A migrations it keeps working: they replace only `agent_rl_bump_as` and `record_agent_lesson`, with
 the same signatures and return types.
 

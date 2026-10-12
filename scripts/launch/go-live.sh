@@ -5,8 +5,8 @@
 #   GAUNTLET_PASSWORD='...'                 the password of gauntlet-test@upmore.test (mints a fresh 1-hour JWT here;
 #                                           the JWT goes into this process's environment only, never a file)
 #   ALPACA_OAUTH_CLIENT_ID / ALPACA_OAUTH_CLIENT_SECRET   optional: set as function secrets for Brokerage connect
-#   OPENAI_API_KEY='...'                    optional: set as a function secret; the model gateway then uses OpenAI
-#                                           (gpt-5-nano). Type it without shell history: read -rs OPENAI_API_KEY; export OPENAI_API_KEY
+#   OPENAI_API_KEY='...'                    the model key, set as a function secret (OpenAI gpt-5-nano; the app runs on
+#                                           OpenAI only and never falls back to Anthropic). Skip it only if already set. Type it without shell history: read -rs OPENAI_API_KEY; export OPENAI_API_KEY
 #   HEALTH_CHECK_TOKEN='...'                optional: the model-health token; generated (and kept in ~/.upmore/health-token,
 #                                           0600) when not given and not already saved
 #   bash scripts/launch/go-live.sh [--no-wait]

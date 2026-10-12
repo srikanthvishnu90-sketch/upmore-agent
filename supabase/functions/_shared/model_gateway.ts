@@ -5,8 +5,9 @@
 // translates both ways, so the planner's tool loop, the router's forced tool call and the chat's text reply do not change
 // when the provider does. Switching back is one secret (MODEL_PROVIDER=anthropic), not a code change.
 //
-// Provider: MODEL_PROVIDER ("openai" | "anthropic") when set; otherwise OpenAI when OPENAI_API_KEY is set; otherwise
-// Anthropic. Model: OPENAI_MODEL (default gpt-5-nano) or ANTHROPIC_MODEL (default claude-haiku-4-5-20251001); the router
+// Provider: OpenAI, always, unless MODEL_PROVIDER=anthropic is set on purpose (owner, 2026-10-12: this app runs on OpenAI
+// only and never spends Anthropic API credits by accident). A missing OPENAI_API_KEY stays OpenAI and fails as
+// "not configured" with the honest outage reply; it never falls back to Anthropic. Model: OPENAI_MODEL (default gpt-5-nano) or ANTHROPIC_MODEL (default claude-haiku-4-5-20251001); the router
 // may use OPENAI_ROUTER_MODEL / ANTHROPIC_ROUTER_MODEL. Keys are read from the environment only and never logged.
 import { ModelUnavailableError, providerError, recordModelUsage, reserveModelCall } from "./model_calls.ts";
 
@@ -23,7 +24,7 @@ const PROVIDER_NAME: Record<Provider, string> = { openai: "OpenAI", anthropic: "
 
 export function modelConfig(env: Env, role: ModelRole = "chat"): ModelConfig {
   const asked = String(env.get("MODEL_PROVIDER") || "").trim().toLowerCase();
-  const provider: Provider = asked === "openai" || asked === "anthropic" ? asked : env.get("OPENAI_API_KEY") ? "openai" : "anthropic";
+  const provider: Provider = asked === "anthropic" ? "anthropic" : "openai";
   if (provider === "openai") {
     const base = env.get("OPENAI_MODEL") || OPENAI_DEFAULT_MODEL;
     const model = (role === "router" && env.get("OPENAI_ROUTER_MODEL")) || base;

@@ -208,6 +208,15 @@
     ["is klarna safe", null],
     ["klarna stock price", null],
     ["what's my zip code", null],
-    ["zip", null]
+    ["zip", null],
+    ["did my refund arrive?", "moneyReply"],
+    ["did amazon refund me", "moneyReply"],
+    ["has the $45.99 refund from best buy posted yet", "moneyReply"],
+    ["any refunds", "moneyReply"],
+    ["did i get refunded", "moneyReply"],
+    ["wheres my REI refund", "moneyReply"],
+    ["any refunds coming to me?", "moneyOwedReply"],
+    ["did my tax refund arrive", null],
+    ["how long do refunds take", null]
   ]
 }

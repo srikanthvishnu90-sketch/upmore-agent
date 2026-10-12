@@ -479,3 +479,10 @@ Found, not fixed (for the owner): "what bills are coming up" (`TheNumbers.upcomi
 plan's equal payments as a repeating bill every 2 weeks past the plan's end; only the pay-later check takes them out. The
 older proactive monitor `33-agent-monitors.js` (`payLaterPlans`) keeps its own BNPL pattern (Sezzle, Shop Pay
 Installments, "pay in 4" without a provider) separate from the dated provider file.
+
+## Refund asks had two answers in code (2026-10-12, morning; megadoc K07)
+
+| What the docs said | What is true | Source | Now |
+| --- | --- | --- | --- |
+| `docs/scenarios/README.md` K07 "did my refund arrive?": MODEL ("no dispute or merchant-identity tool") | `MoneyAnswers.didItGoThrough` (80-money-answers.js) already answered a refund named with "post", "come through" or "go through" ("Yes, it posted", "Which refund? Name the store"), but "arrive", "come in" and "did amazon refund me" went to the model, which has no rows | `tests/money-answers.test.cjs` lines 264-267; `money_answers.ts` THROUGH | One answer owns refund asks in chat: `98-refund-check.js` (kind "refund", before "did it go through"), which also matches an amount to the cent, says pending as pending, leaves pay, Zelle, interest and transfers out, lists candidates when no merchant is named, and offers the refund watch. `didItGoThrough`'s refund branch stays in the module (its tests unchanged) and is no longer reached from chat for these asks. Also found, not changed: `MoneyAnswers.termMatch` accepts a merchant's letters run together anywhere, so "spend at amazon" counts an "AMAZONIA CAFE" row (the refund answer uses whole words) |
+

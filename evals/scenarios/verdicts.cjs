@@ -118,7 +118,8 @@ set("J09 J14", "NOT_BUILT", "pause and downgrade");
 set("J15", "DIVERGES", "no new rule is made: the trial ask is already on (with alerts on) for trials the person adds in the app (Add a subscription, Free trial, end date): in the week before the first charge it says the date and amount and asks 'Should I cancel it for you?'. The code reply says exactly that and how to add one; trials are never found on their own (nothing shows in transactions before the first charge)", "tests/edge/proactive.test.ts");
 set("J12", "BUILT", "finds the subscription by amount; none at $9.99 says so with the amounts it sees", "tests/edge/megadoc-sim.test.ts");
 // K. merchants, disputes
-set("K01 K02 K05 K07 K12", "MODEL", "the chat model over transactions; no dispute or merchant-identity tool");
+set("K01 K02 K05 K12", "MODEL", "the chat model over transactions; no dispute or merchant-identity tool");
+set("K07", "BUILT", "answered from the person's own rows: credits that look like refunds in the last 90 days listed to the cent (a named merchant's credit is a yes; pay, Zelle, interest and transfers never count; pending said as pending); none found is said with the days checked and the refund watch offered, no date made up", "tests/edge/refund-check.test.ts");
 set("K03", "BUILT", "no charge named: lists the recent charges (merchant, amount, date, source) and asks which; the next message gets a pre-filled dispute with the ask-the-merchant step and the Fair Credit Billing Act and Regulation E timelines, which the person files with their issuer (no issuer filing rail); nothing is filed or sent", "tests/edge/dispute-answer.test.ts");
 set("K04 K08 K09 K10 K11", "NOT_BUILT", "refund requests and card controls");
 set("K06", "DIVERGES", "routed to brokerage orders ('no open order that I placed'); a food order is not Upmore's to cancel and the reply should say that");

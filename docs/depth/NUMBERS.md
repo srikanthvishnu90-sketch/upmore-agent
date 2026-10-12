@@ -73,4 +73,6 @@ Check: `node --test tests/depth-NUMBERS.test.cjs && node evals/depth/run.cjs NUM
 | S16 | Show the math for the answer just given | a bare ask after a net worth answer explains net worth | `S16` in tests/depth-NUMBERS.test.cjs | a net worth answer is not recognized, so a bare "show me the math" after it goes unanswered | proven |
 | S17 | Other currencies never added into dollars | the euro account is not cash | `S17` in tests/depth-NUMBERS.test.cjs | a euro balance is added into the dollar cash total | proven (also fails S01, S12, S13, S15, S16) |
 | S18 | A stale balance is said | a balance 3 days old gets a heads-up | `S18` in tests/depth-NUMBERS.test.cjs | a balance is called stale only after a week | proven |
+| S19 | A bare number after afford | 'afford a 900 trip' is $900.00 | `S19` in tests/depth-NUMBERS.test.cjs | only $-amounts and 'dollars' are read, so the ask goes to the model | proven |
+| S19 | Days are not dollars | 'afford a 2 week trip' reads no amount | `S19` in tests/depth-NUMBERS.test.cjs | the unit guard is dropped, so '2 week' is $2.00 | proven |
 <!-- results:end -->

@@ -24,4 +24,6 @@ module.exports = [
   m("D19", "S16", "Show the math for the answer just given", "a bare ask after a net worth answer explains net worth", "a net worth answer is not recognized, so a bare \"show me the math\" after it goes unanswered", "if (/^Net worth:/.test(s)) return \"networth\";", ""),
   m("D20", "S17", "Other currencies never added into dollars", "the euro account is not cash", "a euro balance is added into the dollar cash total", "hasBal(a) && !foreign(a)).map((a) => {", "hasBal(a)).map((a) => {"),
   m("D21", "S18", "A stale balance is said", "a balance 3 days old gets a heads-up", "a balance is called stale only after a week", "ms(now) - asOfMs(a) > STALE_MS)", "ms(now) - asOfMs(a) > 7 * STALE_MS)"),
+  {"id": "D19", "sub": "S19", "title": "A bare number after afford", "test": "'afford a 900 trip' is $900.00", "defect": "only $-amounts and 'dollars' are read, so the ask goes to the model", "patches": [{"file": F, "find": "|| w.match(/\\bafford (?:a |an )?", "replace": "|| null && w.match(/\\bafford (?:a |an )?"}]},
+  {"id": "D19b", "sub": "S19", "title": "Days are not dollars", "test": "'afford a 2 week trip' reads no amount", "defect": "the unit guard is dropped, so '2 week' is $2.00", "patches": [{"file": F, "find": "(?!\\s*(?:%|percent|months?|years?|days?|weeks?|hours?|minutes?|am\\b|pm\\b|x\\b))", "replace": ""}]},
 ];

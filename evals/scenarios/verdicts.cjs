@@ -157,3 +157,12 @@ set("P14", "MODEL", "'the other one' with no list goes to the chat model");
 // Q. misc
 set("Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09 Q10", "MODEL", "the chat model and the app's own settings flows");
 module.exports = V;
+
+// 2026-10-12 morning: first messages the money answers own (_shared/money_answers.ts, tests/edge/megadoc-money-asks.test.ts);
+// each verdict was MODEL though code answers it from the person's rows (L01, L05, F08 already did; G16, L02, L08, L11,
+// L12 were routed here this morning).
+set("L01 L02 L05 L08", "BUILT", "the spending answer from the person's own rows: the period's total, the prior equal period, the top places, uncategorized said apart, the source line ('where is my money going' and 'biggest expense' give this month with its top places)", "tests/edge/megadoc-money-asks.test.ts");
+set("L11", "BUILT", "safe to spend: cash minus the repeating bills due before payday (or the next 30 days with no paycheck found, said), card balances not subtracted and said", "tests/edge/megadoc-money-asks.test.ts");
+set("L12", "BUILT", "'can I afford a 900 trip': $900.00 against safe to spend, what is left and per day; a number of days, weeks or months is never read as dollars", "tests/edge/megadoc-money-asks.test.ts");
+set("G16 F08", "BUILT", "the cash balance from the person's accounts with the as-of time; a balance more than a day old is said as stale", "tests/edge/megadoc-money-asks.test.ts");
+

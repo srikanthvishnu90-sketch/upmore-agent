@@ -217,6 +217,16 @@
     ["wheres my REI refund", "moneyReply"],
     ["any refunds coming to me?", "moneyOwedReply"],
     ["did my tax refund arrive", null],
-    ["how long do refunds take", null]
+    ["how long do refunds take", null],
+    ["what's my cash", "moneyReply"],
+    ["how much cash do i have", "moneyReply"],
+    ["where is my money going", "moneyReply"],
+    ["where does all my money go", "moneyReply"],
+    ["what's my biggest expense", "moneyReply"],
+    ["how much do I have left this month after bills", "moneyReply"],
+    ["can I afford a 900 trip", "moneyReply"],
+    ["what's my cash flow", null],
+    ["where is my money market account", null],
+    ["can i afford a 2 week trip", null]
   ]
 }

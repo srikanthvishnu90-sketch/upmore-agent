@@ -1,9 +1,9 @@
 {
  "capability": "NUMBERS",
- "run_at": "2026-10-12T04:54:45.083Z",
+ "run_at": "2026-10-12T09:12:47.722Z",
  "baseline_all_green": true,
- "sub_capabilities": 18,
- "proven": 21,
+ "sub_capabilities": 19,
+ "proven": 23,
  "problems": [],
  "rows": [
   {
@@ -260,6 +260,28 @@
    "title": "A stale balance is said",
    "defect": "a balance is called stale only after a week",
    "test": "a balance 3 days old gets a heads-up",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "A bare number after afford",
+   "defect": "only $-amounts and 'dollars' are read, so the ask goes to the model",
+   "test": "'afford a 900 trip' is $900.00",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19b",
+   "title": "Days are not dollars",
+   "defect": "the unit guard is dropped, so '2 week' is $2.00",
+   "test": "'afford a 2 week trip' reads no amount",
    "bites": true,
    "applied": true,
    "collateral": [],

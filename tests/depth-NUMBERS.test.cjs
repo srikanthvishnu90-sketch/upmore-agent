@@ -220,3 +220,11 @@ test('[ADV] Adversarial rows: instructions in merchant names stay names, bad val
   assert.equal(N.parseAmount('can i afford $99999999999'), null, 'an absurd amount is not read');
   assert.equal(N.afford(ACCOUNTS, TX, 'can i afford it', NOW, {}), null, 'no amount, no answer');
 });
+
+test('[S19] "can I afford a 900 trip": a bare number after afford is dollars; months, days, weeks and percents are not', () => {
+  assert.equal(N.parseAmount('can I afford a 900 trip'), 90000);
+  assert.equal(N.parseAmount('can i afford a 1,200 couch'), 120000);
+  assert.equal(N.parseAmount('can i afford an 80 dinner'), 8000);
+  for (const m of ['can i afford a 2 week trip', 'can i afford a 30 day trip', 'can i afford 3 months off', 'can i afford a 10% raise in rent']) assert.equal(N.parseAmount(m), null, m);
+});
+

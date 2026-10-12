@@ -8205,7 +8205,10 @@
     // "$600", "$1,250.50", "$2k", "600 dollars". Null when no amount is named.
     function parseAmount(words) {
       const w = String(words || "").toLowerCase();
-      let m = w.match(/\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k\b)?/) || w.match(/\b(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k)?\s*(?:dollars|bucks|usd)\b/);
+      // A bare number right after "afford a/an" is dollars ("can i afford a 900 trip", megadoc L12); a number of
+      // months, days or a percent is not.
+      let m = w.match(/\$\s?(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k\b)?/) || w.match(/\b(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?(\s?k)?\s*(?:dollars|bucks|usd)\b/)
+        || w.match(/\bafford (?:a |an )?(\d{1,3}(?:,\d{3})+|\d{2,7})(?:\.(\d{1,2}))?(\s?k\b)?(?!\s*(?:%|percent|months?|years?|days?|weeks?|hours?|minutes?|am\b|pm\b|x\b))/);
       if (!m) return null;
       const c = Number(m[1].replace(/,/g, "")) * 100 + (m[2] ? Number(m[2].padEnd(2, "0")) : 0), k = m[3] ? 1000 : 1;
       const cents = c * k;

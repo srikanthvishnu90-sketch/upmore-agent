@@ -17,6 +17,12 @@
     const monthsBetween = (a, b) => Math.max(0, Math.floor(daysBetween(a, b) / 30.44));
     const divRound = (n, d) => { const q = Math.trunc(n / d), r = n - q * d; return Math.abs(r) * 2 >= Math.abs(d) ? q + Math.sign(n) * Math.sign(d) : q; };
     const mask = s => { const d = String(s || "").replace(/\D/g, ""); return d.length >= 4 ? `ending ${d.slice(-4)}` : String(s || "the account"); };
+    // Identity digits in anything the person typed (an SSN, spaced or not; a card or account number) never reach a letter.
+    const IDNUM = /\b\d{3}[- ]\d{2}[- ]\d{4}\b|\b\d(?:[ -]?\d){8,18}\b/g;
+    const redact = s => String(s).replace(IDNUM, "[number removed]");
+    const hasIdNum = s => new RegExp(IDNUM.source).test(s);
+    // Two calendar years on (Feb 29 goes to Feb 28): what the bureaus mean by "two years", not 730 days.
+    const addYears = (s, n) => { const [y, m, d] = ymd(s).split("-").map(Number), last = new Date(Date.UTC(y + n, m, 0)).getUTCDate(); return `${y + n}-${String(m).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`; };
 
     // CRDT-001: score monitoring. Bands are the FICO ranges; a drop of 10 or more, or a band change, is worth a message.
     const BANDS = [[800, "exceptional"], [740, "very good"], [670, "good"], [580, "fair"], [300, "poor"]];
@@ -24,8 +30,9 @@
     function scoreMonitor(history, opts) {
       const o = opts || {}, rows = (history || []).slice().sort((a, b) => ymd(a.on).localeCompare(ymd(b.on)));
       if (!rows.length) return { latest: null, text: "No score on file yet. Connect a bureau or a card that reports one." };
-      const latest = rows[rows.length - 1], prev = rows.length > 1 ? rows[rows.length - 2] : null;
-      const at = days => rows.filter(r => daysBetween(ymd(r.on), ymd(latest.on)) >= days).pop() || null;
+      // A score moves only against the same bureau and model: Equifax VantageScore is not compared with Experian FICO.
+      const latest = rows[rows.length - 1], series = rows.filter(r => (r.bureau || null) === (latest.bureau || null) && (r.model || null) === (latest.model || null)), prev = series.length > 1 ? series[series.length - 2] : null;
+      const at = days => series.filter(r => daysBetween(ymd(r.on), ymd(latest.on)) >= days).pop() || null;
       const d30 = at(30), d90 = at(90), change = prev ? latest.score - prev.score : null;
       const alert = (change != null && change <= -(o.drop_alert_points || 10)) || (prev && band(prev.score) !== band(latest.score));
       return { latest: { score: latest.score, on: ymd(latest.on), bureau: latest.bureau || null, model: latest.model || null, band: band(latest.score) }, change_since_last: change, change_30d: d30 ? latest.score - d30.score : null, change_90d: d90 ? latest.score - d90.score : null, alert: !!alert, text: `${latest.score} (${band(latest.score)}) as of ${ymd(latest.on)}${latest.bureau ? ` from ${latest.bureau}` : ""}${latest.model ? `, ${latest.model}` : ""}${change != null ? `, ${change >= 0 ? "up" : "down"} ${Math.abs(change)} since ${ymd(prev.on)}` : ""}.${alert ? " Worth a look: that is a real move, not noise." : ""}`, source: latest.bureau || "score feed", as_of: ymd(latest.on) };
@@ -46,19 +53,20 @@
       many_inquiries: (r, asOf) => `${inquiries(r, asOf, 12).length} hard inquiries in the last 12 months. Each costs a few points for up to a year and leaves the report after two; several for one loan within a short window count as one.`,
       few_accounts: r => `${(r.accounts || []).length} accounts on file. Scores like a mix of revolving and installment credit; this is minor and no reason to open an account you do not need.`,
       high_balances: r => { const u = utilization(r); return `Card balances total ${money(u.balance_cents)}. Paying before the statement closes changes what gets reported.`; },
-      derogatory: r => `${(r.public_records || []).length} public record${(r.public_records || []).length === 1 ? "" : "s"} or collection${(r.collections || []).length === 1 ? "" : "s"} on file. These weigh most while recent and can be disputed if wrong.`
+      derogatory: r => { const pr = (r.public_records || []).length, co = (r.collections || []).length; return `${pr} public record${pr === 1 ? "" : "s"} and ${co} collection${co === 1 ? "" : "s"} on file. These weigh most while recent and can be disputed if wrong.`; }
     };
-    function factors(report, asOf) { return (report.factors || []).map(f => ({ code: f.code, bureau_text: f.text || null, explanation: FACTORS[f.code] ? FACTORS[f.code](report, asOf || report.as_of) : `${f.text || f.code}: the bureau did not say more, and I will not guess.` })); }
+    function factors(report, asOf) { return (report.factors || []).map(f => ({ code: f.code, bureau_text: f.text || null, explanation: FACTORS[f.code] ? FACTORS[f.code](report, asOf || report.as_of) : `${f.text || f.code}: the bureau did not say more, and I will not guess.`, source: report.bureau || "credit report", as_of: asOf || report.as_of || null })); }
 
     // CRDT-002: the plain-English walkthrough, with what looks off flagged (unknown accounts, closed accounts still reporting a balance, unexplained inquiries).
     function walkthrough(report, known) {
       const asOf = report.as_of, u = utilization(report), a = ages(report, asOf), l = lates(report), inq = inquiries(report, asOf, 24), open = (report.accounts || []).filter(x => x.status !== "closed"), closed = (report.accounts || []).filter(x => x.status === "closed");
-      const knownIds = new Set(((known || {}).accounts || []).map(x => x.id)), knownApps = ((known || {}).applications || []);
+      // An application list the person gave, even an empty one ("I applied for nothing"), is checked; no list assumes nothing.
+      const knownIds = new Set(((known || {}).accounts || []).map(x => x.id)), appsGiven = Array.isArray((known || {}).applications), knownApps = appsGiven ? known.applications : [];
       const off = [];
       for (const x of report.accounts || []) { if (knownIds.size && !knownIds.has(x.id)) off.push({ kind: "unknown_account", id: x.id, text: `${x.name || mask(x.number)} opened ${x.opened_on || "?"} is not an account you told me about. If you do not recognize it, that is a fraud alert, not a credit question.` }); if (x.status === "closed" && (x.balance_cents || 0) > 0) off.push({ kind: "closed_with_balance", id: x.id, text: `${x.name || mask(x.number)} is closed but still reports ${money(x.balance_cents)}; closed-and-paid accounts should show zero.` }); }
-      for (const i of inq) if (knownApps.length && !knownApps.some(k => Math.abs(daysBetween(k.on, i.on)) <= 14 && (!k.by || String(k.by).toLowerCase() === String(i.by).toLowerCase()))) off.push({ kind: "unexplained_inquiry", on: i.on, by: i.by, text: `A hard inquiry by ${i.by} on ${i.on} matches no application you made.` });
+      for (const i of inq) if (appsGiven && !knownApps.some(k => Math.abs(daysBetween(k.on, i.on)) <= 14 && (!k.by || String(k.by).toLowerCase() === String(i.by).toLowerCase()))) off.push({ kind: "unexplained_inquiry", on: i.on, by: i.by, text: `A hard inquiry by ${i.by} on ${i.on} matches no application you made.` });
       const sections = [
-        { title: "Accounts", text: `${open.length} open, ${closed.length} closed. Oldest ${a.oldest_months != null ? Math.floor(a.oldest_months / 12) + " years" : "?"}, average age ${a.average_months != null ? (a.average_months / 12).toFixed(1) + " years" : "?"}.` },
+        { title: "Accounts", text: a.oldest_months != null ? `${open.length} open, ${closed.length} closed. Oldest ${Math.floor(a.oldest_months / 12)} years, average age ${(a.average_months / 12).toFixed(1)} years.` : `${open.length} open, ${closed.length} closed; no opening dates reported.` },
         { title: "Utilization", text: u.bps != null ? `${Math.round(u.bps / 100)} percent: ${money(u.balance_cents)} across ${money(u.limit_cents)} of limits.${u.per_card.some(c => c.bps != null && c.bps > 5000) ? " One card is above half its limit, which scores worse than the same balance spread out." : ""}` : "No revolving limits reported." },
         { title: "Payment history", text: l.any ? `${l.late30} thirty-day, ${l.late60} sixty-day, ${l.late90} ninety-day lates${l.last_late_on ? `; latest ${l.last_late_on}` : ""}.` : "No late payments on file." },
         { title: "Inquiries", text: `${inquiries(report, asOf, 12).length} hard in the last 12 months, ${inq.length} in 24.` },
@@ -69,7 +77,7 @@
     // CRDT-007: hard inquiries that match no application the user made are flagged; same-loan shopping windows are grouped.
     function inquiryAlerts(report, applications) {
       const asOf = report.as_of, out = [];
-      for (const i of inquiries(report, asOf, 24)) { const match = (applications || []).find(k => Math.abs(daysBetween(k.on, i.on)) <= 14 && (!k.by || String(k.by).toLowerCase() === String(i.by).toLowerCase())); if (!match) out.push({ on: i.on, by: i.by, falls_off: new Date(dayMs(i.on) + 730 * DAY).toISOString().slice(0, 10), text: `Hard inquiry by ${i.by} on ${i.on} that matches nothing you applied for. If you did not apply, that can be identity fraud: freeze your reports (I have the links) and dispute it. It leaves the report by ${new Date(dayMs(i.on) + 730 * DAY).toISOString().slice(0, 10)} either way.` }); }
+      for (const i of inquiries(report, asOf, 24)) { const match = (applications || []).find(k => Math.abs(daysBetween(k.on, i.on)) <= 14 && (!k.by || String(k.by).toLowerCase() === String(i.by).toLowerCase())); if (!match) { const off = addYears(i.on, 2); out.push({ on: i.on, by: i.by, falls_off: off, text: `Hard inquiry by ${i.by} on ${i.on} that matches nothing you applied for. If you did not apply, that can be identity fraud: freeze your reports (I have the links) and dispute it. It leaves the report by ${off} either way.` }); } }
       return { alerts: out, count: out.length, source: report.bureau || "credit report", as_of: asOf };
     }
     // CRDT-005: the utilization plan: the cheapest set of pay-downs to bring every card and the total under the target before statements close.
@@ -113,7 +121,8 @@
     }
     // CRDT-014: freeze guidance with the bureaus' own freeze pages; free, reversible, and it does not touch existing accounts.
     const FREEZE_LINKS = [{ bureau: "Equifax", url: "https://www.equifax.com/personal/credit-report-services/credit-freeze/" }, { bureau: "Experian", url: "https://www.experian.com/freeze/center.html" }, { bureau: "TransUnion", url: "https://www.transunion.com/credit-freeze" }];
-    function freezeGuidance(status) { const done = new Set(((status || {}).bureaus || []).filter(b => b.state === "frozen").map(b => b.bureau)); return { steps: FREEZE_LINKS.map(l => ({ bureau: l.bureau, url: l.url, done: done.has(l.bureau) })), text: `A freeze is free, takes minutes per bureau, and blocks new accounts in your name while leaving your existing ones alone; you lift it when you apply for something. ${FREEZE_LINKS.map(l => `${l.bureau}: ${done.has(l.bureau) ? "frozen" : l.url}`).join("; ")}. Keep each PIN somewhere I never see.`, remaining: FREEZE_LINKS.filter(l => !done.has(l.bureau)).map(l => l.bureau) }; }
+    const bureauKey = b => String(b || "").toLowerCase().replace(/[^a-z]/g, "");
+    function freezeGuidance(status) { const done = new Set(((status || {}).bureaus || []).filter(b => String(b.state || "").toLowerCase() === "frozen").map(b => bureauKey(b.bureau))); return { steps: FREEZE_LINKS.map(l => ({ bureau: l.bureau, url: l.url, done: done.has(bureauKey(l.bureau)) })), text: `A freeze is free, takes minutes per bureau, and blocks new accounts in your name while leaving your existing ones alone; you lift it when you apply for something. ${FREEZE_LINKS.map(l => `${l.bureau}: ${done.has(bureauKey(l.bureau)) ? "frozen" : l.url}`).join("; ")}. Keep each PIN somewhere I never see.`, remaining: FREEZE_LINKS.filter(l => !done.has(bureauKey(l.bureau))).map(l => l.bureau) }; }
     // CRDT-015: authorized user, explained against the user's situation.
     function authorizedUserExplainer(profile) {
       const thin = (profile.accounts_count || 0) < 3 || (profile.oldest_months || 0) < 24, lines = [`Being added as an authorized user on someone's old, low-balance, never-late card can add that account's history to your file${thin ? ", which matters for you because your own file is thin" : ", though your file already has history so the gain is smaller"}.`, "The primary holder's habits become yours on paper: a high balance or a late payment on their card lands on your report too.", "You are not liable for the debt as an authorized user; a joint account is different.", "Some scoring models discount authorized-user accounts; it helps most with lenders using older models.", "Adding someone else to your card does the same for them; set a low limit if the issuer allows it."];
@@ -121,18 +130,20 @@
     }
     // CRDT-016 / CRDT-004: letters. No identity number ever appears; the account is named by its last four digits.
     function collectorResponse(spec) {
-      const kind = spec.kind || "validation", who = spec.collector || "[collector name]", acct = spec.account_last4 ? `account ending ${spec.account_last4}` : "the account you reference", amount = spec.amount_cents != null ? money(spec.amount_cents) : "[amount]";
+      // Only the last four digits name the account, whatever was pasted into the field.
+      const last4 = String(spec.account_last4 || "").replace(/\D/g, "").slice(-4), kind = spec.kind || "validation", who = spec.collector ? redact(spec.collector) : "[collector name]", acct = last4 ? `account ending ${last4}` : "the account you reference", amount = spec.amount_cents != null ? money(spec.amount_cents) : "[amount]";
       const letters = {
         validation: `To ${who}: I received your communication dated ${spec.contact_on || "[date]"} regarding ${acct} (${amount}). I dispute this debt and request validation under the Fair Debt Collection Practices Act: the name of the original creditor, the amount and how it was calculated, and proof that you are authorized to collect it. Until you provide this, stop collection activity. Send everything in writing to the address above.`,
         cease: `To ${who}: Regarding ${acct}, under the Fair Debt Collection Practices Act I ask that you cease all communication with me except to confirm that collection is ending or that a specific action will be taken. Do not contact me at work or by phone.`,
         pay_for_delete: `To ${who}: Regarding ${acct} (${amount}), I will pay ${spec.offer_cents != null ? money(spec.offer_cents) : "[offer]"} as settlement in full if you agree in writing, before payment, to delete the account from all three credit bureaus and report nothing further. This is not an admission that the debt is valid.`,
         not_mine: `To ${who}: The debt you reference (${acct}) is not mine. I have never held an account with the original creditor you name. Treat this as a dispute, stop collection, and send any records you have so I can report identity theft if needed.`
       };
-      return { kind, text: letters[kind] || letters.validation, timing: kind === "validation" ? "Send within 30 days of the first written notice; after that validation is still worth requesting but the automatic pause does not apply." : null, next: "Send by mail with tracking and keep a copy. I can file the follow-up dates.", contains_identity_numbers: false };
+      const text = letters[kind] || letters.validation;
+      return { kind, text, timing: kind === "validation" ? "Send within 30 days of the first written notice; after that validation is still worth requesting but the automatic pause does not apply." : null, next: "Send by mail with tracking and keep a copy. I can file the follow-up dates.", contains_identity_numbers: hasIdNum(text) };
     }
     function disputeDraft(report, item, reason) {
-      const name = item.name || mask(item.number), text = `To ${report.bureau || "[bureau]"}: I dispute the following item on my report as of ${report.as_of || "[date]"}: ${name}${item.opened_on ? `, opened ${item.opened_on}` : ""}. Reason: ${reason}. Please investigate and correct or remove it, and send me the result in writing. Enclosed: ${(item.evidence || ["the supporting statement"]).join(", ")}.`;
-      return { bureau: report.bureau || null, item: name, reason, text, next: "Bureaus must investigate within about 30 days. File with each bureau that shows the item. Keep the confirmation number; I will track the deadline.", contains_identity_numbers: !/\d{5,}/.test(text) ? false : true, capability_id: "CRDT-004", tier: "T2" };
+      const name = item.name ? redact(item.name) : mask(item.number), why = redact(reason), text = `To ${report.bureau || "[bureau]"}: I dispute the following item on my report as of ${report.as_of || "[date]"}: ${name}${item.opened_on ? `, opened ${item.opened_on}` : ""}. Reason: ${why}. Please investigate and correct or remove it, and send me the result in writing. Enclosed: ${(item.evidence || ["the supporting statement"]).map(redact).join(", ")}.`;
+      return { bureau: report.bureau || null, item: name, reason: why, text, next: "Bureaus must investigate within about 30 days. File with each bureau that shows the item. Keep the confirmation number; I will track the deadline.", contains_identity_numbers: hasIdNum(text), capability_id: "CRDT-004", tier: "T2" };
     }
 
     return { scoreMonitor, band, utilization, ages, lates, inquiries, factors, walkthrough, inquiryAlerts, utilizationPlan, newAccountImpact, refinanceWatch, payment, studentLoanEligibility, PROGRAM_RULES, freezeGuidance, FREEZE_LINKS, authorizedUserExplainer, collectorResponse, disputeDraft, money };

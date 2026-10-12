@@ -25,6 +25,13 @@
     const askFor = (people, who, fallback) => { const r = Rec().resolve(who, people); return ["ambiguous", "lookalike", "unavailable"].includes(r.status) ? r.ask : fallback; };
     const request = (capability_id, key, params, describe, confirm, extra) => Object.assign({ capability_id, key, idempotency_key: key, params, describe, confirm }, extra || {});
     const acct = (accounts, id) => (accounts || []).find(a => a.id === id || a.nickname === id || a.kind === id) || null;
+    // Rails are said by their names ("PayPal", "Cash App"), never by their ids.
+    const RAIL_NAMES = { venmo: "Venmo", cash_app: "Cash App", paypal: "PayPal", zelle: "Zelle", ach: "ACH" };
+    const railName = r => RAIL_NAMES[r] || String(r).toUpperCase();
+    // A day the calendar has: 2026-02-30 is refused, never scheduled for a day that never comes.
+    const realDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(dayMs(s)) && new Date(dayMs(s)).toISOString().slice(0, 10) === s;
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
 
     // PAY-003: a request for money. Staged on the rail the person uses (the user taps send on the request), reminders in the tone asked for, settled when the matching credit lands.
     const TONES = { friendly: ["Hey {name}, when you get a sec: {amount} for {what}. No rush!", "Gentle nudge on the {amount} for {what} whenever works."], plain: ["Reminder: {amount} for {what} is still open.", "Second reminder: {amount} for {what}."], firm: ["{name}, the {amount} for {what} is now {days} days old. Can you send it today?", "Final reminder: {amount} for {what}, {days} days outstanding."] };
@@ -32,7 +39,7 @@
       const c = ctx || {}, p = person(c.people, spec.from); if (!p) return { ask: askFor(c.people, spec.from, `Who is ${spec.from}? I only request money from people in your list, so a wrong name never gets a bill.`) };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
       const rail = (p.rails || []).find(r => ["venmo", "cash_app", "paypal", "zelle"].includes(r)) || null;
-      const r = { id: `req-${c.today}-${p.id}-${spec.amount_cents}`, from: p.id, name: p.name, amount_cents: spec.amount_cents, what: spec.what || "what you owe", rail, status: "open", created_on: c.today, tone: spec.tone || "friendly", reminders_sent: 0, handoff: rail ? `${rail === "zelle" ? "Zelle" : rail === "cash_app" ? "Cash App" : rail.charAt(0).toUpperCase() + rail.slice(1)} request to ${p.name}${p.handle ? ` (${p.handle})` : ""} for ${money(spec.amount_cents)}, note "${spec.what || "what you owe"}": staged, you tap Request.` : `${p.name} has no request rail on file; I'll draft the message and you pick how to collect.` };
+      const r = { id: `req-${c.today}-${p.id}-${spec.amount_cents}`, from: p.id, name: p.name, amount_cents: spec.amount_cents, what: spec.what || "what you owe", rail, status: "open", created_on: c.today, tone: spec.tone || "friendly", reminders_sent: 0, handoff: rail ? `${railName(rail)} request to ${p.name}${p.handle ? ` (${p.handle})` : ""} for ${money(spec.amount_cents)}, note "${spec.what || "what you owe"}": staged, you tap Request.` : `${p.name} has no request rail on file; I'll draft the message and you pick how to collect.` };
       r.capability_id = "PAY-003"; r.tier = "T3";
       return { request: r, text: r.handoff };
     }
@@ -43,20 +50,22 @@
       return { request_id: req.id, text: set[n].replace("{name}", req.name.split(" ")[0]).replace(/\{amount\}/g, money(req.amount_cents)).replace(/\{what\}/g, req.what).replace("{days}", String(days)), tone: req.tone, days_open: days, capability_id: "SOC-009" };
     }
     function settleRequests(requests, transactions, people) {
-      const credits = (transactions || []).filter(t => cents(t) > 0), out = [];
-      for (const r of requests || []) { if (r.status !== "open") continue; const p = person(people, r.from); const hit = credits.find(t => cents(t) === r.amount_cents && ymd(t.posted_at) >= r.created_on && (!p || [p.name, p.handle].filter(Boolean).some(n => String(t.merchant_raw || "").toLowerCase().includes(String(n).toLowerCase().replace("@", ""))))); if (hit) { r.status = "settled"; r.settled_by = hit.id; r.settled_on = ymd(hit.posted_at); out.push({ request_id: r.id, transaction_id: hit.id, text: `${r.name} paid the ${money(r.amount_cents)} for ${r.what} on ${ymd(hit.posted_at)}.` }); } }
+      const credits = (transactions || []).filter(t => cents(t) > 0), out = [], used = new Set();
+      for (const r of requests || []) { if (r.status !== "open") continue; const p = person(people, r.from); const hit = credits.find(t => !used.has(t) && cents(t) === r.amount_cents && ymd(t.posted_at) >= r.created_on && (!p || [p.name, p.handle].filter(Boolean).some(n => String(t.merchant_raw || "").toLowerCase().includes(String(n).toLowerCase().replace("@", ""))))); if (hit) { used.add(hit); r.status = "settled"; r.settled_by = hit.id; r.settled_on = ymd(hit.posted_at); out.push({ request_id: r.id, transaction_id: hit.id, text: `${r.name} paid the ${money(r.amount_cents)} for ${r.what} on ${ymd(hit.posted_at)}.` }); } }
       return out;
     }
 
     // PAY-007 / PAY-008: schedule a future payment and cancel it before the rail's cutoff.
     function schedulePayment(spec, ctx) {
       const c = ctx || {};
-      if (!spec.on || dayMs(spec.on) <= dayMs(c.today)) return { ask: "Which date? It has to be after today." };
+      const on = spec.on ? ymd(spec.on) : null;
+      if (on && !realDay(on)) return { ask: "Which date? I could not read that as a calendar day." };
+      if (!on || dayMs(on) <= dayMs(c.today)) return { ask: "Which date? It has to be after today." };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
       const p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}? Add them first so a scheduled payment never goes to a stranger.`) };
-      const rail = spec.rail || (p.bank_account ? "ach" : (p.rails || [])[0] || null), cutoff = rail === "ach" ? businessDaysBefore(spec.on, 1) : addDays(spec.on, -1);
-      const s = { id: `sched-${spec.on}-${p.id}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, on: spec.on, rail, cutoff_on: cutoff, memo: spec.memo || null, status: "scheduled", created_on: c.today, capability_id: "PAY-007", tier: "T3" };
-      s.text = `Scheduled: ${money(s.amount_cents)} to ${p.name} on ${s.on} by ${rail ? rail.toUpperCase() : "a rail you choose"}. You can cancel until ${cutoff}; after that it is in flight. I confirm with you the day before it goes.`;
+      const rail = spec.rail || (p.bank_account ? "ach" : (p.rails || [])[0] || null), cutoff = rail === "ach" ? businessDaysBefore(on, 1) : addDays(on, -1);
+      const s = { id: `sched-${on}-${p.id}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, on, rail, cutoff_on: cutoff, memo: spec.memo || null, status: "scheduled", created_on: c.today, capability_id: "PAY-007", tier: "T3" };
+      s.text = `Scheduled: ${money(s.amount_cents)} to ${p.name} on ${s.on} by ${rail ? railName(rail) : "a rail you choose"}. You can cancel until ${cutoff}; after that it is in flight. I confirm with you the day before it goes.`;
       return { schedule: s, text: s.text };
     }
     function cancelScheduled(s, today) {
@@ -90,7 +99,7 @@
         const to = acct(c.accounts, r.to), from = acct(c.accounts, r.from); if (!to || !from) { out.push({ rule_id: r.id, skipped: "unknown account" }); continue; }
         const avail = Number.isInteger(from.available_cents) ? from.available_cents : from.balance_cents, floor = Number.isInteger(r.keep_at_least_cents) ? r.keep_at_least_cents : 10000;
         let amount = 0, basis = [], why = "";
-        if (r.kind === "round_up") { const period = rows.filter(t => t.amount_cents < 0 && !t.is_transfer && (!r.account_id || t.account_id === r.account_id) && t.posted_at > (r.last_run_on || "0000") && t.posted_at <= c.today); amount = period.reduce((s, t) => s + ((100 - (-t.amount_cents % 100)) % 100), 0); basis = period.map(t => t.id); why = `round-ups on ${period.length} purchases since ${r.last_run_on || "the start"}`; }
+        if (r.kind === "round_up") { const period = rows.filter(t => t.amount_cents < 0 && !t.is_transfer && !t.is_pending && (!r.account_id || t.account_id === r.account_id) && t.posted_at > (r.last_run_on || "0000") && t.posted_at <= c.today); amount = period.reduce((s, t) => s + ((100 - (-t.amount_cents % 100)) % 100), 0); basis = period.map(t => t.id); why = `round-ups on ${period.length} purchases since ${r.last_run_on || "the start"}`; }
         else if (r.kind === "payday_sweep") { const pay = rows.find(t => t.amount_cents > 0 && t.posted_at === c.today && /payroll|direct dep|salary/i.test(t.merchant_raw || "")); if (!pay) continue; amount = r.percent_bps ? divRound(pay.amount_cents * r.percent_bps, 10000) : r.amount_cents || 0; basis = [pay.id]; why = r.percent_bps ? `${r.percent_bps / 100} percent of today's ${money(pay.amount_cents)} paycheck` : `your fixed ${money(amount)} on payday`; }
         else if (r.kind === "threshold") { if (avail <= r.above_cents) continue; amount = avail - r.above_cents; basis = []; why = `${from.nickname || from.id} is ${money(amount)} above your ${money(r.above_cents)} line`; }
         if (amount <= 0) continue;
@@ -109,7 +118,9 @@
       if (!checking || !savings) return null;
       const f = L.cashflowForecast({ today: c.today, accounts: [checking], transactions: c.transactions, rules: c.rules, horizons: [30] }), buffer = Number.isInteger(c.buffer_cents) ? c.buffer_cents : 10000;
       const first = (f.daily || []).find(d => d.balance_cents < buffer); if (!first) return { needed: false, text: `Checking stays above your ${money(buffer)} buffer for the next 30 days.` };
-      const need = buffer - f.low_point.balance_cents, amount = Math.min(need, Number.isInteger(savings.available_cents) ? savings.available_cents : savings.balance_cents), landBy = addDays(first.on, -1);
+      const savAvail = Number.isInteger(savings.available_cents) ? savings.available_cents : savings.balance_cents, need = buffer - f.low_point.balance_cents, amount = Math.min(need, savAvail), landBy = addDays(first.on, -1);
+      // Nothing in savings is not a $0.00 transfer to confirm: say so and ask for nothing.
+      if (amount <= 0) return { needed: true, first_below: first, low_point: f.low_point, amount_cents: 0, short_cents: need, land_by: landBy, request: null, text: `Checking goes under your ${money(buffer)} buffer on ${first.on} and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}. Savings has ${money(savAvail)} available, so there is nothing to move from it; checking is ${money(need)} short of the line.` };
       const key = `overdraft_prevention:${first.on}:${amount}`;
       return { needed: true, first_below: first, low_point: f.low_point, amount_cents: amount, short_cents: need - amount, land_by: landBy, request: request("SAVE-006", key, { amount_cents: amount, from: savings.id, to: checking.id, recipient: checking.id }, `Move ${money(amount)} from ${savings.nickname || savings.id} to ${checking.nickname || checking.id} before ${first.on}`, { action: "Move", amount: money(amount), recipient: checking.nickname || checking.id, from: savings.nickname || savings.id, timing: `by ${landBy}`, fee_cents: 0 }, { amount_cents: amount, recipient: checking.id, deadline: dayMs(landBy), urgent: f.low_point.balance_cents < 0, reason: `checking goes under ${money(buffer)} on ${first.on}` }), text: `Checking goes under your ${money(buffer)} buffer on ${first.on} and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}. Moving ${money(amount)} from ${savings.nickname || savings.id} by ${landBy} keeps it above the line${need > amount ? `; savings covers ${money(amount)} of the ${money(need)} needed` : ""}.` };
     }
@@ -138,16 +149,20 @@
       if (!(p.history && p.history.length) && !spec.first_send_confirmed) return { ask: `${p.name} has never received money from you. The first send is confirmed in full; after that the allowance runs on its cadence.`, new_recipient: true };
       if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much each time?" };
       if (!["weekly", "biweekly", "monthly"].includes(spec.cadence)) return { ask: "Weekly, every two weeks, or monthly?" };
+      if (spec.day != null && !(Number.isInteger(spec.day) && (spec.cadence === "monthly" ? spec.day >= 1 && spec.day <= 31 : spec.day >= 0 && spec.day <= 6))) return { ask: spec.cadence === "monthly" ? "Which day of the month, 1 to 31?" : "Which day of the week?" };
       const a = { id: `allow-${p.id}-${spec.cadence}-${spec.amount_cents}`, to: p.id, name: p.name, amount_cents: spec.amount_cents, cadence: spec.cadence, day: spec.day != null ? spec.day : null, rail: (p.rails || [])[0] || (p.bank_account ? "ach" : null), status: "active", created_on: c.today, max_per_month_cents: spec.max_per_month_cents || null, capability_id: "PAY-025", tier: "T4" };
-      a.text = `Allowance: ${money(a.amount_cents)} to ${p.name} ${a.cadence}${a.day != null ? ` on day ${a.day}` : ""} by ${a.rail ? a.rail.toUpperCase() : "a rail you pick"}${a.max_per_month_cents ? `, never more than ${money(a.max_per_month_cents)} a month` : ""}. Inside an envelope it runs with a receipt each time; without one I confirm each send.`;
+      // Exact terms, and the truth about running it: envelope autonomy is off, so every send waits for the person's yes.
+      const when = a.cadence === "monthly" ? `monthly on the ${ordinal(a.day || 1)}${(a.day || 1) > 28 ? " (the last day in shorter months)" : ""}` : `${a.cadence === "weekly" ? "every" : "every other"} ${WEEKDAYS[a.day != null ? a.day : 5]}`;
+      a.text = `Allowance: ${money(a.amount_cents)} to ${p.name} ${when} by ${a.rail ? railName(a.rail) : "a rail you pick"}${a.max_per_month_cents ? `, never more than ${money(a.max_per_month_cents)} a month` : ""}. I ask for your yes before each send.`;
       return { allowance: a, text: a.text };
     }
     function dueAllowances(list, today, sentThisMonthByAllowance) {
       const out = [];
       for (const a of list || []) {
         if (a.status !== "active") continue;
-        const d = new Date(dayMs(today)), dow = d.getUTCDay(), dom = d.getUTCDate();
-        const fires = a.cadence === "weekly" ? dow === (a.day != null ? a.day : 5) : a.cadence === "monthly" ? dom === (a.day || 1) : dow === (a.day != null ? a.day : 5) && Math.floor(dayMs(today) / (7 * DAY)) % 2 === 0;
+        const d = new Date(dayMs(today)), dow = d.getUTCDay(), dom = d.getUTCDate(), lastDom = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+        // A monthly day past the month's end (the 31st in November, the 29th in February 2027) goes on its last day.
+        const fires = a.cadence === "weekly" ? dow === (a.day != null ? a.day : 5) : a.cadence === "monthly" ? dom === Math.min(a.day || 1, lastDom) : dow === (a.day != null ? a.day : 5) && Math.floor(dayMs(today) / (7 * DAY)) % 2 === 0;
         if (!fires) continue;
         const sent = (sentThisMonthByAllowance || {})[a.id] || 0;
         if (a.max_per_month_cents && sent + a.amount_cents > a.max_per_month_cents) { out.push({ allowance_id: a.id, skipped: `this month's ${money(a.max_per_month_cents)} cap would be passed` }); continue; }
@@ -177,11 +192,14 @@
     function goalPlan(g, today) {
       if (!g.goal) return null; const saved = g.goal.contributions.reduce((s, c) => s + c.amount_cents, 0), left = Math.max(0, g.goal.target_cents - saved), months = g.goal.by ? Math.max(1, Math.round(daysBetween(today, g.goal.by) / 30)) : 1;
       const MM = typeof MoneyMath !== "undefined" ? MoneyMath : null, shares = MM ? MM.split(left, g.members.length) : g.members.map(() => Math.trunc(left / g.members.length));
-      return { name: g.goal.name, target_cents: g.goal.target_cents, saved_cents: saved, remaining_cents: left, by: g.goal.by, per_member: g.members.map((m, i) => ({ who: m, remaining_cents: shares[i], per_month_cents: divRound(shares[i], months) })), text: left ? `${g.goal.name}: ${money(saved)} of ${money(g.goal.target_cents)} in. ${g.members.map((m, i) => `${m} ${money(divRound(shares[i], months))}/month`).join(", ")} gets there${g.goal.by ? ` by ${g.goal.by}` : ""}.` : `${g.goal.name} is fully funded.` };
+      // Rounded up to the cent, so the monthly amounts reach each share ("gets there" is true, not a cent short).
+      const perMonth = shares.map(s => Math.ceil(s / months));
+      return { name: g.goal.name, target_cents: g.goal.target_cents, saved_cents: saved, remaining_cents: left, by: g.goal.by, per_member: g.members.map((m, i) => ({ who: m, remaining_cents: shares[i], per_month_cents: perMonth[i] })), text: left ? `${g.goal.name}: ${money(saved)} of ${money(g.goal.target_cents)} in. ${g.members.map((m, i) => `${m} ${money(perMonth[i])}/month`).join(", ")} gets there${g.goal.by ? ` by ${g.goal.by}` : ""}.` : `${g.goal.name} is fully funded.` };
     }
     function contribute(g, who, amount_cents, on, ctx) { g.goal.contributions.push({ who, amount_cents, on }); return request("SOC-005", `goal:${g.id}:${who}:${on}:${amount_cents}`, { amount_cents, recipient: g.goal.account || g.name, from: ctx && ctx.from || null }, `${who}: ${money(amount_cents)} to ${g.goal.name}`, { action: "Move", amount: money(amount_cents), recipient: g.goal.name, timing: "today", fee_cents: 0 }, { amount_cents, recipient: g.goal.account || g.name }); }
     function gift(spec, ctx) {
       const c = ctx || {}, p = person(c.people, spec.to); if (!p) return { ask: askFor(c.people, spec.to, `Who is ${spec.to}?`) };
+      if (!Number.isSafeInteger(spec.amount_cents) || spec.amount_cents <= 0) return { ask: "How much?" };
       if (!spec.occasion) return { ask: "What is the occasion? It goes in the note." };
       const on = spec.on || c.today, note = `${spec.occasion}${spec.message ? ": " + spec.message : ""}`;
       const r = request("SOC-008", `gift:${p.id}:${on}:${spec.amount_cents}`, { amount_cents: spec.amount_cents, recipient: p.name, memo: note, rail: (p.rails || [])[0] || null }, `Gift ${money(spec.amount_cents)} to ${p.name} for ${spec.occasion}`, { action: "Send", amount: money(spec.amount_cents), recipient: p.name, timing: on === c.today ? "today" : `on ${on}`, fee_cents: 0 }, { amount_cents: spec.amount_cents, recipient: p.name, send_on: on, occasion: spec.occasion });

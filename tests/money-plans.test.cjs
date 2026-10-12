@@ -74,7 +74,7 @@ test('failed-payment triage: the cause decides the step and a retry is a new key
   assert.equal(MP.triageFailed(Object.assign({},failed,{reason:'rail maintenance'}),{accounts,today:TODAY}).cause,'rail_down');assert.equal(MP.triageFailed(Object.assign({},failed,{reason:'???'}),{accounts,today:TODAY}).retry,false);
   const c=rail();const loop=Loop.create({registry,connectors:c,clock:()=>NOW});const r=await loop.wake({kind:'message',request:t1.request});assert.equal(r.outcome,'awaiting_confirmation','a retry is confirmed like any send');
   assert.equal(MP.allowance({to:'Marcus L',amount_cents:2000,cadence:'weekly'},{people,today:TODAY}).new_recipient,true);
-  const al=MP.allowance({to:'Maya',amount_cents:2000,cadence:'weekly',day:5,max_per_month_cents:6000},{people,today:TODAY}).allowance;assert.equal(al.text,'Allowance: $20.00 to Maya weekly on day 5 by CASH_APP, never more than $60.00 a month. Inside an envelope it runs with a receipt each time; without one I confirm each send.');
+  const al=MP.allowance({to:'Maya',amount_cents:2000,cadence:'weekly',day:5,max_per_month_cents:6000},{people,today:TODAY}).allowance;assert.equal(al.text,'Allowance: $20.00 to Maya every Friday by Cash App, never more than $60.00 a month. I ask for your yes before each send.');
   same(MP.dueAllowances([al],'2026-10-15'),[],'Thursday is not day 5');const fri=MP.dueAllowances([al],'2026-10-16');assert.equal(fri.length,1);assert.equal(fri[0].request.idempotency_key,al.id+':2026-10-16');assert.equal(fri[0].request.cadence_requested,true);
   assert.match(MP.dueAllowances([al],'2026-10-30',{[al.id]:6000})[0].skipped,/\$60\.00 cap/);
 });

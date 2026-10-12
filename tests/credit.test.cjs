@@ -32,7 +32,7 @@ test('the walkthrough reads the report\'s own rows, flags unknown accounts, clos
 });
 
 test('inquiry alerts name what falls off when; the utilization plan is the cheapest set of pay-downs before statements; new-account impact is in ranges from the report; refinance breakeven is arithmetic',()=>{
-  const ia=C.inquiryAlerts(report,[{on:'2026-09-19',by:'Example Bank'},{on:'2026-04-01',by:'Auto Lender Co'}]);assert.equal(ia.count,1);assert.equal(ia.alerts[0].by,'Auto Lender Two');assert.equal(ia.alerts[0].falls_off,'2028-04-04');assert.match(ia.alerts[0].text,/freeze your reports \(I have the links\) and dispute it/);
+  const ia=C.inquiryAlerts(report,[{on:'2026-09-19',by:'Example Bank'},{on:'2026-04-01',by:'Auto Lender Co'}]);assert.equal(ia.count,1);assert.equal(ia.alerts[0].by,'Auto Lender Two');assert.equal(ia.alerts[0].falls_off,'2028-04-05','two calendar years, not 730 days across Feb 29, 2028');assert.match(ia.alerts[0].text,/freeze your reports \(I have the links\) and dispute it/);
   assert.equal(C.inquiryAlerts(report,[{on:'2026-09-19',by:'Example Bank'},{on:'2026-04-01'},{on:'2026-04-05'}]).count,0,'an application without a named lender matches by date');
   const plan=C.utilizationPlan(report,3000,200000);assert.equal(plan.now_bps,4240);same(plan.moves.map(m=>[m.name,m.pay_cents]),[['Blue card',22000],['Store card',40000]]);assert.equal(plan.total_cents,62000);assert.equal(plan.affordable,true);
   assert.equal(plan.text,'To get under 30 percent: pay $220.00 on Blue card before 2026-10-14; pay $400.00 on Store card. Total $620.00. Pay before the statement closes: that is the balance the bureaus see.');

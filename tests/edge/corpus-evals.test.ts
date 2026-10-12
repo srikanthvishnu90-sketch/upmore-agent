@@ -13,7 +13,8 @@ import judge from "../../evals/corpus/judge.cjs";
 import corpus from "../../corpus/corpus.json" with { type: "json" };
 
 // 44: 2.07 ("did anyone pay me back" answered "How much?") was a false pass until the grader's answer rule; it is now NEEDS_MODEL.
-const BASELINE = { pass_or_limited: 44, variants_pass: 86 };
+// 45 / 91 (2026-10-12): 3.05 "sell all my palantir" resolves the holding by company name and stops at the $5.00 cap (LIMITED).
+const BASELINE = { pass_or_limited: 45, variants_pass: 91 };
 const fresh = await offline();
 const brief = (rs: any[]) => rs.map(r => ({ id: r.id, status: r.status, failed: r.failed, variants: r.variants && { pass: r.variants.pass, total: r.variants.total } }));
 

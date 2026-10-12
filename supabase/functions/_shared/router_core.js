@@ -4007,6 +4007,21 @@
       if (/^[A-Z0-9.]{1,5}$/i.test(q)) { const near = list.map(i => ({ i, d: canon(i.symbol) === canon(up) ? 0 : editDistance(up, i.symbol.toUpperCase()) })).filter(x => x.d <= 1).sort((a, b) => a.d - b.d); if (near.length === 1 || (near.length > 1 && near[0].d === 0 && near[1].d > 0)) return { suggest: near[0].i, why: "lookalike" }; if (near.length > 1) return { ambiguous: near.map(x => x.i).slice(0, 4) }; }
       return { unknown: true };
     }
+    // A company named in words ("palantir", "apple"), matched against a list the caller supplies ({symbol, name}): the
+    // person's own positions for a sell, the broker's asset list for a buy. Every word the person typed (filler dropped)
+    // is a word of the name or starts one, so "palantir" matches "Palantir Technologies Inc. Class A Common Stock" and
+    // "pineapple" is never "apple"; the ticker itself matches too. Pure; the flow decides what one, several or none mean.
+    const NAME_FILLER = new Set(["the", "a", "an", "my", "of", "stock", "stocks", "share", "shares", "company", "co", "corp", "corporation", "inc", "holding", "holdings", "position", "fund"]);
+    const nameWords = s => String(s || "").toLowerCase().replace(/['’.]/g, "").split(/[^a-z0-9&]+/).filter(Boolean);
+    function nameMatch(query, list) {
+      const q = nameWords(query).filter(w => !NAME_FILLER.has(w)), sym = String(query || "").trim().toUpperCase();
+      if (!q.length) return [];
+      return (list || []).filter(i => {
+        if (String(i.symbol || "").toUpperCase() === sym) return true;
+        const n = nameWords(i.name);
+        return n.length > 0 && q.every(w => n.some(x => x === w || (w.length >= 3 && x.startsWith(w))));
+      });
+    }
 
     // S11: regular session, 9:30 to 16:00 ET, Monday to Friday, less the holidays the caller lists (ymd).
     function etParts(ms) { const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hourCycle: "h23", weekday: "short", year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }); const o = {}; for (const p of f.formatToParts(new Date(ms))) o[p.type] = p.value; return { weekday: o.weekday, date: `${o.year}-${{ Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" }[o.month]}-${o.day}`, label: `${o.weekday} ${o.month} ${Number(o.day)}`, minutes: Number(o.hour) * 60 + Number(o.minute) }; }
@@ -4080,15 +4095,41 @@
       }
 
       // The instrument, from the caller's list, or (when the broker can answer) the broker's own asset record for a ticker.
-      async function instrument(query) {
+      const notWired = e => /NOT_WIRED|unknown read/i.test(String(e && e.message || e));
+      async function instrument(query, side) {
         const res = resolve(query, o.instruments || []);
-        if (!res.unknown || !/^[A-Za-z][A-Za-z0-9.]{0,5}$/.test(String(query || ""))) return res;
-        // "Not found" and "could not ask" are different answers: a broker that is down never makes a ticker unknown.
-        let a = null; try { a = await conn.read("asset", { symbol: String(query).toUpperCase() }); } catch (e) { if (/NOT_WIRED|unknown read/i.test(String(e && e.message || e))) return res; return { unreachable: true }; }
-        if (!a || !a.value) return res;
-        if (a.value.tradable === false) return { exact: { symbol: a.value.symbol, name: a.value.name, not_tradable: true } };
-        return { exact: { symbol: a.value.symbol, name: a.value.name, fractionable: a.value.fractionable } };
+        if (!res.unknown) return res;
+        if (/^[A-Za-z][A-Za-z0-9.]{0,5}$/.test(String(query || ""))) {
+          // "Not found" and "could not ask" are different answers: a broker that is down never makes a ticker unknown.
+          let a = null; try { a = await conn.read("asset", { symbol: String(query).toUpperCase() }); } catch (e) { if (notWired(e)) return res; return { unreachable: true }; }
+          if (a && a.value) {
+            if (a.value.tradable === false) return { exact: { symbol: a.value.symbol, name: a.value.name, not_tradable: true } };
+            return { exact: { symbol: a.value.symbol, name: a.value.name, fractionable: a.value.fractionable } };
+          }
+        }
+        // A buy named by company ("buy $3 of palantir"): the broker's own asset list, used only when exactly one tradable,
+        // active instrument matches; several are listed back and asked. A sell never comes here: it names a holding.
+        if (side !== "buy" || !query) return res;
+        let list = null; try { list = await conn.read("assets", { name: String(query) }); } catch (e) { if (notWired(e)) return res; return { unreachable: true }; }
+        const hits = nameMatch(query, ((list && list.value) || []).filter(x => x && x.symbol && x.tradable !== false && (!x.status || x.status === "active")));
+        if (hits.length === 1) return { exact: { symbol: hits[0].symbol, name: hits[0].name, fractionable: hits[0].fractionable }, by_name: true };
+        if (hits.length > 1) return { ambiguous: hits.slice(0, 4), total: hits.length, by_name: true };
+        return res;
       }
+      // The person's own positions with each company's name (the broker's asset record when the position row has none),
+      // read for a sell named by company. Rows with nothing held are left out.
+      async function heldNamed(account) {
+        const h = await readOr("holdings", { account: account.id });
+        if (!h) return null;
+        const rows = (h.value || []).map(x => ({ symbol: x.symbol, name: x.name || null, qty: Number(x.qty !== undefined ? x.qty : x.quantity) || 0, fractionable: x.fractionable })).filter(x => x.symbol && x.qty > 0);
+        const named = await Promise.all(rows.map(async (x, i) => {
+          if (x.name || i >= 50) return x; // at most 50 name look-ups per message; the rest keep their ticker only
+          const a = await readOr("asset", { symbol: x.symbol });
+          return a && a.value ? Object.assign({}, x, { name: a.value.name || null, fractionable: a.value.fractionable, not_tradable: a.value.tradable === false }) : x;
+        }));
+        return { rows: named, unnamed: named.filter(x => !x.name).length, source: h.source, as_of: h.as_of };
+      }
+      const holdingList = rows => rows.slice(0, 5).map(x => `${x.symbol}${x.name ? ` (${x.name})` : ""}`).join(", ") + (rows.length > 5 ? `, and ${rows.length - 5} more` : "");
       // The market session from the broker's clock when it has one, else the regular-hours calendar.
       async function session(now) {
         const mc = await readOr("market_clock");
@@ -4167,13 +4208,20 @@
         if (!parsed.notional_cents && !parsed.quantity && !parsed.all_in && !(side === "sell" && parsed.fraction)) return ask("size", `How much of ${parsed.query ? (parsed.query.length <= 6 && !/\s/.test(parsed.query) ? parsed.query.toUpperCase() : parsed.query) : "it"}: ${side === "sell" ? "shares, dollars, or a part like half" : "dollars or shares"}?`);
         if (parsed.notional_cents && type !== "market") return ask("size", `A ${type.replace("_", " ")} order needs a share count, not dollars. How many shares?`);
         // S02: instrument.
-        const res = await instrument(parsed.query);
+        const res = await instrument(parsed.query, side);
         if (res.unreachable) return ask("broker_unreachable", `I can't reach the broker right now, so I can't look up ${String(parsed.query).toUpperCase()}. Nothing was placed.`);
-        if (res.unknown) return ask("symbol_unknown", parsed.query ? `I can't find "${parsed.query}" among listed instruments. Which ticker?` : "Which ticker?");
-        if (res.ambiguous) return ask("symbol_ambiguous", `Which one: ${res.ambiguous.map(i => `${i.symbol} (${i.name})`).join(", ")}?`);
-        if (res.suggest) { suggestion = { parsed, symbol: res.suggest.symbol, at: clock() }; return ask("symbol_suggest", `${res.why === "lookalike" ? `"${parsed.query}" is not a listed symbol, but ${res.suggest.symbol} is one character away` : `Did you mean ${res.suggest.symbol}`}, ${res.suggest.name}? Say yes to use ${res.suggest.symbol}.`, { suggest: res.suggest.symbol }); }
-        const inst = res.exact;
-        if (inst.not_tradable) return say("refuse", `${inst.symbol} is not tradable at this broker.`, { reason: "not_tradable" });
+        const symbolAsk = () => {
+          if (res.unknown) return ask("symbol_unknown", parsed.query ? `I can't find "${parsed.query}" among listed instruments. Which ticker?` : "Which ticker?");
+          if (res.ambiguous) return ask("symbol_ambiguous", res.total > res.ambiguous.length ? `${res.total} listed companies match "${parsed.query}", including ${res.ambiguous.map(i => `${i.symbol} (${i.name})`).join(", ")}. Which ticker?` : `Which one: ${res.ambiguous.map(i => `${i.symbol} (${i.name})`).join(", ")}?`, res.by_name ? { matches: res.ambiguous.map(i => i.symbol) } : undefined);
+          if (res.suggest) { suggestion = { parsed, symbol: res.suggest.symbol, at: clock() }; return ask("symbol_suggest", `${res.why === "lookalike" ? `"${parsed.query}" is not a listed symbol, but ${res.suggest.symbol} is one character away` : `Did you mean ${res.suggest.symbol}`}, ${res.suggest.name}? Say yes to use ${res.suggest.symbol}.`, { suggest: res.suggest.symbol }); }
+          return null;
+        };
+        // A sell names something the person holds: anything but an exact ticker is matched against their own positions by
+        // company name once the account is known (below), never against the market at large.
+        const sellByName = side === "sell" && !res.exact && !!parsed.query;
+        if (!sellByName) { const a = symbolAsk(); if (a) return a; }
+        let inst = res.exact || null, heldNote = "";
+        if (inst && inst.not_tradable) return say("refuse", `${inst.symbol} is not tradable at this broker.`, { reason: "not_tradable" });
         // S05: account.
         const accts = await readOr("brokerage_accounts");
         if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now, so I can't place anything. Try again once the connection is back.");
@@ -4185,6 +4233,21 @@
         else return ask("account_which", `Which account: ${linked.map(a => a.name).join(" or ")}?`);
         if (account.paper === true) return say("refuse", "That account is a paper (practice) account. Upmore trades only in your own live brokerage account, so nothing was placed.", { reason: "paper_account" });
         if (account.tradable === false) return say("refuse", `${account.name} is view-only here; orders can't be placed in it.`, { reason: "account_view_only" });
+        // A sell by company name: exactly one of the person's holdings matches, or the person is asked, never guessed for.
+        if (sellByName) {
+          const held = await heldNamed(account);
+          if (!held) return ask("position_unreadable", `I can't read your positions in ${account.name} right now, so I won't stage a sell. Nothing was placed.`);
+          const hits = nameMatch(parsed.query, held.rows), asOf = `${held.source}, as of ${hhmm(held.as_of)}`;
+          if (hits.length > 1) return ask("holding_ambiguous", `You hold more than one match for "${parsed.query}" (${asOf}): ${holdingList(hits)}. Which one should I sell?`, { matches: hits.map(x => x.symbol) });
+          if (hits.length === 1) { inst = { symbol: hits[0].symbol, name: hits[0].name || hits[0].symbol, fractionable: hits[0].fractionable }; heldNote = `You hold ${qty(hits[0].qty)} ${inst.symbol} (${inst.name}), per ${asOf}. `; if (hits[0].not_tradable) return say("refuse", `${inst.symbol} is not tradable at this broker.`, { reason: "not_tradable" }); }
+          else {
+            // A typed look-alike of a listed ticker keeps its own question; the yes still has to find a holding.
+            if (res.suggest || res.ambiguous) return symbolAsk();
+            if (!held.rows.length) return say("stop", `${account.name} shows no positions (${asOf}), so there is nothing to sell. Nothing was placed.`, { reason: "no_position" });
+            if (held.unnamed) return ask("holding_names_unreadable", `I can't read the company name of every holding in ${account.name} right now, so I can't tell which one "${parsed.query}" is. Which ticker should I sell?`);
+            return ask("holding_unknown", `None of your holdings in ${account.name} matches "${parsed.query}" (${asOf}). You hold ${holdingList(held.rows)}. Which one should I sell?`, { holdings: held.rows.map(x => x.symbol) });
+          }
+        }
         if (Array.isArray(inst.tradable_at) && !inst.tradable_at.includes(account.id)) return say("refuse", `${inst.symbol} is not tradable in ${account.name}.`, { reason: "not_tradable_here" });
         const fractional = account.fractional !== false && inst.fractionable !== false;
         let allInNote = "";
@@ -4209,6 +4272,13 @@
         if (side === "sell") {
           held = await holding(account, inst.symbol);
           if (!held) return ask("position_unreadable", `I can't read your ${inst.symbol} position in ${account.name} right now, so I won't stage a sell. Nothing was placed.`);
+          if (held.qty <= 0 && !heldNote && parsed.query) {
+            // The words name a listed ticker the person does not hold, and a company they do hold ("sell my ford": FORD is
+            // listed, F is held). The holding is offered back with a question; nothing not held is ever staged for a sale.
+            const mine = await heldNamed(account), alt = mine ? nameMatch(parsed.query, mine.rows).filter(x => x.symbol !== inst.symbol) : [];
+            if (alt.length === 1) { suggestion = { parsed, symbol: alt[0].symbol, at: clock() }; return ask("holding_suggest", `${account.name} shows no ${inst.symbol} to sell, but you hold ${qty(alt[0].qty)} ${alt[0].symbol} (${alt[0].name}) (${mine.source}, as of ${hhmm(mine.as_of)}). Sell ${alt[0].symbol}? Say yes to use ${alt[0].symbol}.`, { suggest: alt[0].symbol }); }
+            if (alt.length > 1) return ask("holding_ambiguous", `${account.name} shows no ${inst.symbol} to sell. You hold more than one match for "${parsed.query}": ${holdingList(alt)}. Which one should I sell?`, { matches: alt.map(x => x.symbol) });
+          }
           if (held.qty <= 0) return say("stop", `${account.name} shows no ${inst.symbol} available to sell (${held.source}, as of ${hhmm(held.as_of)}). Nothing was placed.`, { reason: "no_position" });
           if (parsed.fraction) { quantity = held.qty * parsed.fraction; quantity = fractional && !(type === "trailing_stop" || tif !== "day") ? Math.floor(quantity * 10000) / 10000 : Math.floor(quantity); if (quantity <= 0) return ask("whole_shares", `That part of ${qty(held.qty)} ${inst.symbol} is less than one whole share, and this order needs whole shares.`); }
           else if (parsed.notional_cents) quantity = Math.round(parsed.notional_cents * 10000 / price) / 10000;
@@ -4226,7 +4296,7 @@
         // A share count that fills at market (or at a stop, or trailing) is held to the cap 2% through the quote, as the adapter does.
         const capEst = order_notional => order_notional ? estimated : type === "limit" || type === "stop_limit" ? estimated : Math.ceil(estimated * 1.02);
         if (capC !== null && allInNote && capEst(true) > capC) return say("stop", `${allInNote}Live orders are limited to ${money(capC)} each while Upmore is in testing, so nothing was placed.`, { reason: "order_cap" });
-        if (capC !== null && capEst(parsed.notional_cents && type === "market") > capC) return say("stop", `That's about ${money(capEst(parsed.notional_cents && type === "market"))}; live orders are limited to ${money(capC)} each while Upmore is in testing. Nothing was placed.`, { reason: "order_cap" });
+        if (capC !== null && capEst(parsed.notional_cents && type === "market") > capC) return say("stop", `${heldNote}That's about ${money(capEst(parsed.notional_cents && type === "market"))}; live orders are limited to ${money(capC)} each while Upmore is in testing. Nothing was placed.`, { reason: "order_cap" });
         // S06: buying power, read, before asking for a yes.
         const cash = Number.isSafeInteger(account.cash_cents) ? account.cash_cents : null, fee = Number.isSafeInteger(account.fee_cents) ? account.fee_cents : 0;
         if (side === "buy") {
@@ -4438,7 +4508,7 @@
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
     }
-    return { create, parse, parseAmount, resolve, marketOpen, nextOpen, etParts, CAPABILITY };
+    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentTrade;
 
@@ -5633,7 +5703,8 @@
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
        GET    /v2/account                        getAccount: id, status, buying power, cash (strings)
        GET    /v2/positions[/{symbol}]           getPositions (404 = none)
-       GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable
+       GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
+       GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
        GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
               OAuth "data" scope)
      "Authorization: Bearer <token>" with the person's own OAuth token, read from the Vault for that person on every request
@@ -5795,9 +5866,18 @@
         return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
       async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
+      // The broker's list of active US equities, for a buy named by company ("buy $3 of palantir"). One request per adapter
+      // (the adapter lives for one message), kept for that message only; a 404 is an empty list, never a guess.
+      let assetList = null;
+      async function assets() {
+        if (assetList) return assetList;
+        const r = await call("GET", `${base}/v2/assets?status=active&asset_class=us_equity`, null, "assets");
+        assetList = { value: (Array.isArray(r.json) ? r.json : []).map(j => ({ symbol: j.symbol, name: j.name || j.symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null })), source, as_of: clock() };
+        return assetList;
+      }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
-      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: true });
+      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: false, live: true });
       // The quote a card is priced on: the ask for a buy, the bid for a sell, with the quote's own timestamp as its as-of.
       // A zero or missing side falls back to the latest trade, said so in the source.
       async function quote(symbol, side) {
@@ -5855,7 +5935,7 @@
       // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
       // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
       return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
-        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -5874,6 +5954,7 @@
         if (kind === "position") return adapter.position(q.symbol);
         if (kind === "holdings") return adapter.positions();
         if (kind === "asset") { const a = await adapter.asset(q.symbol); return a ? { value: a, source: adapter.source, as_of: now() } : null; }
+        if (kind === "assets") return adapter.assets();
         if (kind === "order") { const r = await adapter.getOrder(q.order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
         if (kind === "order_by_client_id") { const r = await adapter.byClientOrderId(q.client_order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
         throw new Error(`NOT_WIRED: ${kind} is not an Alpaca read`);

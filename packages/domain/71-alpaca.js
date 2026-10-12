@@ -11,7 +11,8 @@
        DELETE /v2/orders/{order_id}              cancelOrder (204 accepted; 422 not cancelable)
        GET    /v2/account                        getAccount: id, status, buying power, cash (strings)
        GET    /v2/positions[/{symbol}]           getPositions (404 = none)
-       GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable
+       GET    /v2/clock, GET /v2/assets/{symbol} session, tradable and fractionable (and the company name a position lacks)
+       GET    /v2/assets?status=active&asset_class=us_equity  the broker's asset list, for a buy named by company name
        GET    {data}/v2/stocks/{symbol}/quotes/latest?feed=iex (+ trades/latest) quote with its own timestamp (needs the
               OAuth "data" scope)
      "Authorization: Bearer <token>" with the person's own OAuth token, read from the Vault for that person on every request
@@ -173,9 +174,18 @@
         return { value: { id: c.account_id, status: j.status || null, buying_power_cents: strToCents(j.buying_power, "floor"), cash_cents: strToCents(j.cash, "floor"), currency: j.currency || "USD", paper: false, live: true, order_cap_cents: cap }, source, as_of: clock() };
       }
       async function asset(symbol) { const r = await call("GET", `${base}/v2/assets/${encodeURIComponent(symbol)}`, null, "asset"); if (r.status === 404) return null; const j = r.json || {}; return { symbol: j.symbol || symbol, name: j.name || symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null }; }
+      // The broker's list of active US equities, for a buy named by company ("buy $3 of palantir"). One request per adapter
+      // (the adapter lives for one message), kept for that message only; a 404 is an empty list, never a guess.
+      let assetList = null;
+      async function assets() {
+        if (assetList) return assetList;
+        const r = await call("GET", `${base}/v2/assets?status=active&asset_class=us_equity`, null, "assets");
+        assetList = { value: (Array.isArray(r.json) ? r.json : []).map(j => ({ symbol: j.symbol, name: j.name || j.symbol, tradable: j.tradable === true, fractionable: j.fractionable === true, status: j.status || null })), source, as_of: clock() };
+        return assetList;
+      }
       async function positions() { const r = await call("GET", P("/positions"), null, "positions"); return { value: (r.json || []).map(pos), source, as_of: clock() }; }
       async function position(symbol) { const r = await call("GET", P(`/positions/${encodeURIComponent(symbol)}`), null, "position"); return { value: r.status === 404 ? { symbol, qty: 0, qty_available: 0, live: true } : pos(r.json), source, as_of: clock() }; }
-      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: true });
+      const pos = j => ({ symbol: j.symbol, qty: num(j.qty) || 0, qty_available: j.qty_available !== undefined ? num(j.qty_available) : num(j.qty) || 0, avg_entry_cents: strToCents(j.avg_entry_price, "round"), market_value_cents: strToCents(j.market_value, "round"), current_price_cents: strToCents(j.current_price, "round"), paper: false, live: true });
       // The quote a card is priced on: the ask for a buy, the bid for a sell, with the quote's own timestamp as its as-of.
       // A zero or missing side falls back to the latest trade, said so in the source.
       async function quote(symbol, side) {
@@ -233,7 +243,7 @@
       // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
       // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
       return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
-        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -252,6 +262,7 @@
         if (kind === "position") return adapter.position(q.symbol);
         if (kind === "holdings") return adapter.positions();
         if (kind === "asset") { const a = await adapter.asset(q.symbol); return a ? { value: a, source: adapter.source, as_of: now() } : null; }
+        if (kind === "assets") return adapter.assets();
         if (kind === "order") { const r = await adapter.getOrder(q.order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
         if (kind === "order_by_client_id") { const r = await adapter.byClientOrderId(q.client_order_id); return r ? { value: r, source: adapter.source, as_of: now() } : null; }
         throw new Error(`NOT_WIRED: ${kind} is not an Alpaca read`);

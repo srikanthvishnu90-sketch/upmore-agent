@@ -116,7 +116,9 @@ export function brokerSource(caller: any, admin: any, userId: string): BrokerSou
     },
   };
 }
-export async function userBroker(env: { get(k: string): string | undefined }, userId: string, src: BrokerSource | null, log: (line: string) => void = () => {}, fetchFn?: typeof fetch): Promise<UserBroker> {
+// clock: the as-of on every broker read (positions, assets, the account); the wall clock unless a caller (an eval with a
+// stepped clock) supplies its own, so a position's "as of" and the flow's own clock never disagree.
+export async function userBroker(env: { get(k: string): string | undefined }, userId: string, src: BrokerSource | null, log: (line: string) => void = () => {}, fetchFn?: typeof fetch, clock?: () => number): Promise<UserBroker> {
   const unavailable = { connect: { code: "unavailable", message: BrokerAccounts.MESSAGES.unavailable } };
   if (!src) return unavailable;
   const rows = await src.rows().catch(() => null);
@@ -125,7 +127,8 @@ export async function userBroker(env: { get(k: string): string | undefined }, us
   const made: any = await BrokerAccounts.resolve({
     user_id: userId, rows, credential: src.token, order_cap_cents: env.get("UPMORE_LIVE_ORDER_CAP_CENTS"),
     on_auth_failure: (q: { user_id: string; account: string }) => { jobs.push(src.markReconnect(q).catch(() => log("[LIVE] reconnect mark failed"))); },
-    adapter: { log, ...(fetchFn ? { fetch: fetchFn } : {}) },
+    adapter: { log, ...(fetchFn ? { fetch: fetchFn } : {}), ...(clock ? { clock } : {}) },
+    ...(clock ? { clock } : {}),
   });
   if (!made.wired) { log(`[LIVE] ${made.reason}`); return { connect: { code: made.code, message: made.message } }; }
   return { connectors: made.connectors, partners: made.partners, label: made.label, account: made.account, flush: () => Promise.allSettled(jobs) };

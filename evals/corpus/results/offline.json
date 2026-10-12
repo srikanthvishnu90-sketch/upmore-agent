@@ -694,26 +694,20 @@
    "id": "3.05",
    "file": 3,
    "title": "Sell",
-   "status": "NOT_BUILT",
-   "failed": [
-    "\"sell all my palantir\": card (expected a confirmation card, got outcome ask)"
-   ],
-   "triage": "Finding a holding by company name ('palantir'): instruments resolve by ticker; there is no name index yet. The flow asks for the ticker instead of guessing.",
+   "status": "LIMITED",
+   "failed": [],
+   "triage": null,
    "mock_orders": 0,
    "variants": {
     "total": 3,
-    "pass": 0,
-    "failed": [
-     "typo: \"sel all my palantir\": card (expected a confirmation card, got outcome ask)",
-     "case_punct: \"Sell all my palantir!!\": card (expected a confirmation card, got outcome ask)",
-     "slang: \"sell all my palantir rn pls\": card (expected a confirmation card, got outcome ask)"
-    ]
+    "pass": 3,
+    "failed": []
    },
    "turns": [
     {
      "user": "sell all my palantir",
-     "reply": "I can't find \"palantir\" among listed instruments. Which ticker?",
-     "outcome": "ask"
+     "reply": "You hold 18.5 PLTR (Palantir Technologies), per your Alpaca account, as of 19:14 UTC. That's about $774.62; live orders are limited to $5.00 each while Upmore is in testing. Nothing was placed.",
+     "outcome": "stop"
     }
    ]
   },

@@ -261,3 +261,14 @@ The first run of `deno run -A evals/agent/run.ts` against the repo as it was is 
   Vanguard page inconsistent on Investments and silent on 401(k); SnapTrade's Empower plan coverage unpublished; event
   contracts not shown to come through Plaid): now unverified. Sources in each row. A `contradictions()` check now gates
   the matrix build and its tests.
+- **Testing agent headline vs its own report (found 2026-10-12, building corpus 3.05).** BUILD-STATUS said "GREEN 70/70
+  offline ... 5 labeled gaps, 3 not run"; the committed `docs/testing/agent-report.md` already said 71/71 with 2 not run.
+  Now 71/71, 4 labeled gaps (3.05 left the list), 2 not run, in both. Source: `deno run -A evals/agent/run.ts --check`.
+- **Alpaca adapter labeled positions paper (found 2026-10-12).** `packages/domain/71-alpaca.js` returned every position
+  with `paper: true`, contradicting the live-only rule and the adapter's own header; nothing read the flag, so no
+  behavior changed. Positions now carry `paper: false, live: true`. Source: the adapter's `pos()`.
+- **Offline evals stamped broker reads with the wall clock (found 2026-10-12).** `userBroker` built the adapter without the
+  caller's clock, so every "as of" on a position or portfolio in `evals/scenarios/results/sim.json`, the megadoc report and
+  the corpus results changed with the time of the run, and `node evals/scenarios/report.cjs --check` went stale after any
+  `sim.ts` run. `userBroker` now takes an optional clock (the live handler passes none and keeps the wall clock); the
+  corpus replay and the megadoc sim pass their stepped clock, so the evidence is the same on every run.

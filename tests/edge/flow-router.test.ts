@@ -435,3 +435,58 @@ Deno.test("rent wiring: a write that fails is never claimed; an unreadable table
   const send = await routeFlows("pay sam 900 for rent", { db: s.db, extract: null, now: () => at });
   eq(send.route.flow, "send"); assert(/\$900\.00 to Sam/.test(send.reply), send.reply);
 });
+
+// A holding named by company, not ticker (corpus 3.05), through the real wiring. The broker is a MOCK fetch shaped like
+// Alpaca's Trading API v2: positions carry no names, so each held symbol's name comes from GET /v2/assets/{symbol}; the
+// buy side may use GET /v2/assets (the list). It proves the wiring, not that Alpaca answers this way.
+function mockAlpacaByName(now: () => number) {
+  const calls: { method: string; path: string; body: any }[] = [];
+  const ASSETS: Record<string, [string, number]> = { PLTR: ["Palantir Technologies Inc. Class A Common Stock", 41.1], AAPL: ["Apple Inc. Common Stock", 220.1], APLE: ["Apple Hospitality REIT, Inc. Common Shares", 15.1], NVDA: ["NVIDIA Corporation Common Stock", 182.4] };
+  const HELD: Record<string, string> = { PLTR: "18.5", AAPL: "2" };
+  const orders: any[] = [];
+  const f = async (input: any, init: any = {}) => {
+    const u = new URL(String(input)), method = init.method || "GET", body = init.body ? JSON.parse(init.body) : null;
+    calls.push({ method, path: u.pathname, body });
+    const ok = (j: any, status = 200) => new Response(JSON.stringify(j), { status, headers: { "content-type": "application/json" } });
+    if ((init.headers || {}).authorization !== "Bearer tok-1") return ok({ message: "unauthorized" }, 401);
+    const t = new Date(now() - 30000).toISOString();
+    const asset = (s: string) => ({ symbol: s, name: ASSETS[s][0], tradable: true, fractionable: true, status: "active" });
+    if (u.pathname === "/v2/account") return ok({ id: "acct-1", status: "ACTIVE", buying_power: "1000.00", cash: "1000.00" });
+    if (u.pathname === "/v2/clock") return ok({ is_open: true, next_open: "2026-10-13T09:30:00-04:00" });
+    if (u.pathname === "/v2/assets") return ok(Object.keys(ASSETS).map(asset));
+    let m = /^\/v2\/assets\/([A-Z.]+)$/.exec(u.pathname); if (m) return ASSETS[m[1]] ? ok(asset(m[1])) : ok({ message: "asset not found" }, 404);
+    m = /^\/v2\/stocks\/([A-Z.]+)\/quotes\/latest$/.exec(u.pathname); if (m) return ASSETS[m[1]] ? ok({ symbol: m[1], quote: { t, ap: ASSETS[m[1]][1], bp: ASSETS[m[1]][1] - 0.1 } }) : ok({ message: "not found" }, 404);
+    if (u.pathname === "/v2/positions") return ok(Object.entries(HELD).map(([symbol, qty]) => ({ symbol, qty, qty_available: qty })));
+    m = /^\/v2\/positions\/([A-Z.]+)$/.exec(u.pathname); if (m) return HELD[m[1]] ? ok({ symbol: m[1], qty: HELD[m[1]], qty_available: HELD[m[1]] }) : ok({ message: "position does not exist" }, 404);
+    if (u.pathname === "/v2/orders" && method === "POST") { const o = { id: "mock-ord-" + (orders.length + 1), client_order_id: body.client_order_id, symbol: body.symbol, side: body.side, type: body.type, time_in_force: body.time_in_force, notional: body.notional ?? null, qty: body.qty ?? null, filled_qty: "0.073", filled_avg_price: "41.00", status: "filled", submitted_at: t, filled_at: t }; orders.push(o); return ok(o); }
+    m = /^\/v2\/orders\/([^/]+)$/.exec(u.pathname); if (m && method === "GET") { const id = m[1]; const o = orders.find(x => x.id === id); return o ? ok(o) : ok({ message: "not found" }, 404); }
+    return ok({ message: "not found" }, 404);
+  };
+  return { f: f as unknown as typeof fetch, calls };
+}
+Deno.test("Trade by company name (corpus 3.05): a sell resolves against the caller's own holdings by name; one match cards, several or none ask; a buy uses the broker's list only for one tradable match", async () => {
+  let now = T0; const stub = mockAlpacaByName(() => now);
+  const broker = await userBroker(envOf({}), U1, srcOf([liveRow(U1, "acct-1")]), () => {}, stub.f);
+  const SELL3 = { intent: "sell_security", amount_span: "3 dollars", amount_cents: 300, unit: "dollars", instrument_span: "palantir" };
+  // The model extracts the one sell below; every other message runs with the router model off (the regex net).
+  const model = async (m: string) => { if (m === "sell 3 dollars of palantir") return SELL3; throw new Error("router model off"); };
+  const { db } = memDb();
+  const go = (m: string) => routeFlows(m, { db, extract: model, now: () => now, broker });
+  const all = await go("sell all my palantir");
+  eq(all.route.flow, "trade"); eq(all.route.outcome, "stop");
+  assert(/^You hold 18\.5 PLTR \(Palantir Technologies Inc\. Class A Common Stock\), per your Alpaca account, as of \d\d:\d\d UTC\. That's about \$[\d,.]+; live orders are limited to \$5\.00 each while Upmore is in testing\. Nothing was placed\.$/.test(all.reply), all.reply);
+  const c = await go("sell 3 dollars of palantir");
+  eq(c.route.outcome, "confirm"); assert(/^LIVE: Sell \$3\.00 of PLTR/.test(c.reply), c.reply); assert(/Quote \$41\.00 \(your Alpaca account, IEX bid, 13:59 UTC\)/.test(c.reply), c.reply);
+  eq(stub.calls.filter(x => x.method === "POST").length, 0, "nothing before the yes");
+  eq(stub.calls.filter(x => x.path === "/v2/assets").length, 0, "a sell never reads the market-wide asset list");
+  now += 60000;
+  const y = await go("yes"); eq(y.route.outcome, "filled");
+  const posts = stub.calls.filter(x => x.method === "POST"); eq(posts.length, 1); eq(posts[0].body.symbol, "PLTR"); eq(posts[0].body.side, "sell"); eq(posts[0].body.notional, "3.00");
+  const none = await go("sell $3 of nvidia");
+  eq(none.route.outcome, "ask"); assert(/None of your holdings .* matches "nvidia" .* You hold PLTR \(Palantir Technologies Inc\. Class A Common Stock\), AAPL \(Apple Inc\. Common Stock\)\. Which one should I sell\?$/.test(none.reply), none.reply);
+  const two = await go("buy $3 of apple");
+  eq(two.route.outcome, "ask"); assert(/AAPL \(Apple Inc\. Common Stock\)/.test(two.reply) && /APLE \(Apple Hospitality REIT, Inc\. Common Shares\)/.test(two.reply), two.reply);
+  const one = await go("buy $3 of nvidia");
+  eq(one.route.outcome, "confirm"); assert(/^LIVE: Buy \$3\.00 of NVDA/.test(one.reply), one.reply);
+  eq(stub.calls.filter(x => x.method === "POST").length, 1, "only the one approved order was ever sent");
+});

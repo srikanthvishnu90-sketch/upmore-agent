@@ -37,14 +37,6 @@
   },
   {
    "family": "response",
-   "id": "R-01:3.05",
-   "title": "corpus 3.05 Sell",
-   "status": "GAP",
-   "actual": "NOT_BUILT: Finding a holding by company name ('palantir'): instruments resolve by ticker; there is no name index yet. The flow asks for the ticker instead of guessing.",
-   "path": "evals/corpus/triage.json"
-  },
-  {
-   "family": "response",
    "id": "R-01m",
    "title": "style corpus: 30 examples answered by the chat model",
    "status": "NOT_RUN",

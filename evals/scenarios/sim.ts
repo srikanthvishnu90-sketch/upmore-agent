@@ -46,7 +46,7 @@ export async function simulate(s: any) {
   } as FlowDb;
   const alpaca = mockAlpaca(() => now, true);
   const row = { id: "row-u", user_id: "u", provider: "alpaca", label: "main", paper: false, account_id: "acct-mock", account_mask: "****4417", status: "active", created_at: "2026-10-01" };
-  const brokerFactory = () => userBroker({ get: () => undefined }, "u", { rows: async () => [row], token: async () => JSON.stringify({ access_token: "mock-token" }), markReconnect: async () => true } as any, () => {}, alpaca.f);
+  const brokerFactory = () => userBroker({ get: () => undefined }, "u", { rows: async () => [row], token: async () => JSON.stringify({ access_token: "mock-token" }), markReconnect: async () => true } as any, () => {}, alpaca.f, () => now);
   const text = typed(s.msg);
   const r: any = await routeFlows(text, { db, extract: async () => { throw new Error("router model off (offline)"); }, now: () => now, brokerFactory, termsFetch: null } as any);
   if (!r || r.fallthrough) return { typed: text, flow: null, outcome: "needs_model", reply: null, executed: false, mock_orders: alpaca.orders.length };

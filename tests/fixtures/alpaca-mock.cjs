@@ -95,6 +95,9 @@ function start(opts) {
       fillAll();
       if (req.method === "GET" && (path === "/v1/clock" || path === "/v2/clock")) return send(res, 200, { timestamp: iso(), is_open: st.is_open, next_open: st.next_open, next_close: "2026-10-12T16:00:00-04:00" });
       let m;
+      // The asset list (Trading API GET /v2/assets?status=active&asset_class=us_equity): every mock asset, inactive ones
+      // only when status is not asked for, as Alpaca's reference describes the filter.
+      if (req.method === "GET" && path === "/v2/assets") { const want = url.searchParams.get("status"); return send(res, 200, Object.entries(st.assets).filter(([, a]) => !want || (a.status || "active") === want).map(([s, a]) => ({ id: "asset-" + s, class: "us_equity", exchange: "NASDAQ", symbol: s, name: a.name, status: a.status || "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }))); }
       if (req.method === "GET" && (m = /^\/v[12]\/assets\/([^/]+)$/.exec(path))) { const a = st.assets[decodeURIComponent(m[1])]; return a ? send(res, 200, { id: "asset-" + m[1], class: "us_equity", exchange: "ARCA", symbol: decodeURIComponent(m[1]), name: a.name, status: "active", tradable: a.tradable, marginable: true, shortable: false, easy_to_borrow: false, fractionable: a.fractionable }) : send(res, 404, { message: "asset not found" }); }
       if (req.method === "GET" && (m = /^\/v2\/stocks\/([^/]+)\/(quotes|trades)\/latest$/.exec(path))) { const sym = decodeURIComponent(m[1]), q = st.quotes[sym]; if (!q) return send(res, 404, { message: "not found" }); return m[2] === "quotes" ? send(res, 200, { symbol: sym, quote: { t: new Date(q.t).toISOString(), ax: "V", ap: q.ask / 100, as: 1, bx: "V", bp: q.bid / 100, bs: 1, c: ["R"], z: "B" } }) : send(res, 200, { symbol: sym, trade: { t: new Date(q.t).toISOString(), x: "V", p: q.ask / 100, s: 10, c: ["@"], i: 1, z: "B" } }); }
       let sub, trading = false;

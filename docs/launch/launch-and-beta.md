@@ -175,7 +175,7 @@ What it does (dry run: `GO_LIVE_DRY_RUN=1 bash scripts/launch/go-live.sh`):
 | Real-world capability set | 0 of 206 done with live evidence (`docs/realworld/README.md`) |
 | Megadoc (240 scenarios, the owner's bar) | **0 proven.** 61 built, 22 limited, 12 diverge, 59 answered by the model only, 86 not built. Every one labeled with its reason: `docs/scenarios/README.md` |
 | Not built, said plainly when asked | scheduled or conditional sends; sends in other currencies; saved nicknames ("mom", "my brother"); percentage or itemized splits; group lists; an IOU log; budgets and alerts; recurring investments; stops on every holding; copy trading; IPO and private shares; options, margin, crypto; performance, cost basis, tax estimates, dividends; disputes and card controls; savings goals and transfers between accounts |
-| Response-style corpus (79 examples) | Offline through the real flows: PASS 37, LIMITED 7, NOT_BUILT 3, DIVERGES 1, FAIL 0; 31 need the model and run only live (`docs/corpus/README.md`). The few-shot selector is in the chat and planner prompts. |
+| Response-style corpus (79 examples) | Offline through the real flows: PASS 37, LIMITED 8, NOT_BUILT 2, DIVERGES 1, FAIL 0; 31 need the model and run only live (`docs/corpus/README.md`). The few-shot selector is in the chat and planner prompts. |
 
 ## Commands (all run in CI on every push: `.github/workflows/ci.yml`)
 

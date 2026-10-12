@@ -46,7 +46,9 @@ export function mockAlpaca(now: () => number, open: boolean) {
     if (u.pathname === "/v2/clock") return ok({ is_open: open, next_open: "2026-10-19T09:30:00-04:00" });
     const a = /^\/v2\/assets\/([A-Z.]+)$/.exec(u.pathname); if (a) return QUOTES[a[1]] ? ok({ symbol: a[1], name: QUOTES[a[1]][0], tradable: true, fractionable: true, status: "active" }) : ok({ message: "not found" }, 404);
     const q = /^\/v2\/stocks\/([A-Z.]+)\/quotes\/latest$/.exec(u.pathname); if (q) return QUOTES[q[1]] ? ok({ symbol: q[1], quote: { t, ap: QUOTES[q[1]][1], bp: QUOTES[q[1]][1] - 0.05 } }) : ok({ message: "not found" }, 404);
-    if (u.pathname === "/v2/positions") return ok([{ symbol: "PLTR", qty: "18.5", market_value: "760.35" }]);
+    const held = [{ symbol: "PLTR", qty: "18.5", market_value: "760.35" }];
+    if (u.pathname === "/v2/positions") return ok(held);
+    const p = /^\/v2\/positions\/([A-Z.]+)$/.exec(u.pathname); if (p) { const h = held.find(x => x.symbol === p[1]); return h ? ok(h) : ok({ code: 40410000, message: "position does not exist" }, 404); }
     if (u.pathname === "/v2/orders" && method === "POST") { const o = { id: "mock-ord-" + (orders.length + 1), client_order_id: body.client_order_id, symbol: body.symbol, side: body.side, type: body.type, notional: body.notional ?? null, qty: body.qty ?? null, status: "accepted", submitted_at: t, filled_qty: "0", account: "acct-mock" }; orders.push(o); return ok(o); }
     const m = /\/v2\/orders\/([^/]+)$/.exec(u.pathname); if (m) { const o = orders.find(x => x.id === m[1]); return o ? ok(o) : ok({ message: "not found" }, 404); }
     return ok({ message: "not found" }, 404);
@@ -67,7 +69,7 @@ export async function replay(example: any) {
   const closed = example.turns.some((t: any) => /markets? (are|is) closed/i.test(t.text));
   const alpaca = mockAlpaca(() => now, !closed);
   const row = { id: "row-u", user_id: "u", provider: "alpaca", label: "main", paper: false, account_id: "acct-mock", account_mask: "****4417", status: "active", created_at: "2026-10-01" };
-  const brokerFactory = () => userBroker({ get: () => undefined }, "u", { rows: async () => [row], token: async () => JSON.stringify({ access_token: "mock-token" }), markReconnect: async () => true } as any, () => {}, alpaca.f);
+  const brokerFactory = () => userBroker({ get: () => undefined }, "u", { rows: async () => [row], token: async () => JSON.stringify({ access_token: "mock-token" }), markReconnect: async () => true } as any, () => {}, alpaca.f, () => now);
   const send = (text: string) => routeFlows(text, { db, extract: async () => { throw new Error("router model off (offline replay)"); }, now: () => now, brokerFactory, termsFetch: null } as any);
   for (const s of SETUP[example.id] || []) await send(s);
   const actual: any[] = []; let first = true, needsModel = false;

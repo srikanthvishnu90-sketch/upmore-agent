@@ -234,3 +234,7 @@ test('[ADV] adversarial log: no charge, store-billed, human-only, missing terms,
   const d=session();await d.s.start('cancel netflix');await d.s.reply('yes');assert.match((await d.s.start('how much have you saved me')).text,/^Verified: \$0\.00 so far\. Projected, not yet verified: \$17\.99 a month/);
   const lf=session();lf.r.mode='login';await lf.s.start('cancel netflix');await lf.s.reply('yes');await lf.s.start('cancel netflix');const f2=await lf.s.reply('yes');assert.equal(f2.retry_allowed,false);
 });
+
+test('[S17] the way people ask: "unsubscribe me from netflix", "can you cancel my netflix?", "stop paying for netflix", "kill netflix" all card Netflix',async()=>{
+  for(const m of ['unsubscribe me from netflix','unsubscribe from netflix','can you cancel my netflix?','stop paying for netflix','kill netflix','i want to cancel netflix']){const {s:x,r}=session();const a=await x.start(m);assert.equal(a.outcome,'confirm',m);assert.match(a.text,/^Cancel Netflix \(Standard, \$17\.99\/mo\)/,m);assert.equal(r.writes.length,0,'a card, nothing run');}
+});

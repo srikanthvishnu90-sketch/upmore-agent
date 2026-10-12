@@ -79,4 +79,5 @@ Check: `node --test tests/depth-BILL-003.test.cjs && node evals/depth/run.cjs BI
 | S14 | The undo window ends on the person's day | 10 p.m. ET on the window's last day is still inside it | `S14` in tests/depth-BILL-003.test.cjs | the undo window is checked on the UTC day, so an evening undo on the last day is refused | proven |
 | S15 | Savings honesty | savings the day after are projected, not verified | `S15` in tests/depth-BILL-003.test.cjs | projected savings are counted as verified | proven (also fails S12) |
 | S16 | Stop-on-change | a changed fee or access date between yes and run stops it | `S16` in tests/depth-BILL-003.test.cjs | the re-verification result is ignored, so a new cancellation fee still runs | proven |
+| S17 | The way people ask | 'unsubscribe me from netflix' cards Netflix | `S17` in tests/depth-BILL-003.test.cjs | 'me from' is read as the merchant name | proven |
 <!-- results:end -->

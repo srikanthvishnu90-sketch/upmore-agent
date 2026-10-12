@@ -27,7 +27,7 @@
       const t = String(text || "").trim();
       const batch = /\b(the ones|all the ones|everything|anything)\b.*\b(don'?t use|unused|not using|never use)\b/i.test(t) || /\bcancel (all|everything)\b/i.test(t);
       const that = /\b(cancel|stop|end|kill)\s+(that|it|this)\b/i.test(t) && !/\b(cancel|stop|end|kill)\s+(that|it|this)\s+[a-z]{3,}/i.test(t.replace(/\b(thing|one|subscription|sub)\b/gi, ""));
-      const m = /\b(?:cancel|stop paying( for)?|end|kill|get rid of|unsubscribe( from)?)\s+(?:my\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{0,40}?)(?=\s+(?:subscription|sub|plan|membership|account|please|now|today)\b|\s*[,.!?]|$)/i.exec(t);
+      const m = /\b(?:cancel|stop paying( for)?|end|kill|get rid of|unsubscribe(?: me)?( from)?)\s+(?:my\s+|the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{0,40}?)(?=\s+(?:subscription|sub|plan|membership|account|please|now|today)\b|\s*[,.!?]|$)/i.exec(t);
       // "is the planet fitness cancel easy", "how hard is it to cancel hulu": the merchant named around the word cancel
       // in a question about its terms (corpus 4.14).
       const q = /^\s*(?:is|how|what|can i|could i|will)\b.*?\b(?:the\s+)?([A-Za-z0-9][A-Za-z0-9 .&'+-]{1,40}?)\s+(?:cancel(?:lation|ing)?|to cancel)\b/i.exec(t);

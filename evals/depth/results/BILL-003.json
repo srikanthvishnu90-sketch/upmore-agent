@@ -1,9 +1,9 @@
 {
  "capability": "BILL-003",
- "run_at": "2026-10-12T06:33:15.362Z",
+ "run_at": "2026-10-12T14:23:12.383Z",
  "baseline_all_green": true,
- "sub_capabilities": 16,
- "proven": 18,
+ "sub_capabilities": 17,
+ "proven": 19,
  "problems": [],
  "rows": [
   {
@@ -203,6 +203,17 @@
    "title": "Stop-on-change",
    "defect": "the re-verification result is ignored, so a new cancellation fee still runs",
    "test": "a changed fee or access date between yes and run stops it",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S17",
+   "id": "D17",
+   "title": "The way people ask",
+   "defect": "'me from' is read as the merchant name",
+   "test": "'unsubscribe me from netflix' cards Netflix",
    "bites": true,
    "applied": true,
    "collateral": [],

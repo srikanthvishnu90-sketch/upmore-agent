@@ -19,6 +19,30 @@
     // Monitor findings whose date is money lost if missed: these may bypass the proactivity budget (doc 01).
     // A new subscription's next charge is information, not a deadline: it rides the budget like everything else.
     const DEADLINE_KINDS = new Set(["trial_converting", "duplicate_charge", "charged_after_cancel", "deadline", "pay_later"]);
+    // C28 missed-payment consequences: a small explicit table by bill kind. The kind is inferred from the bill's
+    // merchant words and ledger category; the words are these table entries only, never invented per message.
+    const BILL_CATEGORIES = new Set(["utilities", "subscriptions", "insurance", "housing", "debt_payment", "other"]);
+    const BILL_KIND_OF = [
+      ["credit_card", /credit card|card payment|card autopay|\bvisa\b|\bmastercard\b|\bamex\b|american express|discover card|capital one/i, null],
+      ["utility", /electric|power|water|gas co|utility|utilities|comcast|xfinity|verizon|at&t|t-mobile|internet|broadband|mobile/i, "utilities"],
+      ["subscription", /netflix|spotify|hulu|disney|apple|google one|microsoft|adobe|prime|peloton|nytimes|planet fit|subscription|membership/i, "subscriptions"],
+    ];
+    function billKind(merchant, category) {
+      const m = String(merchant || "");
+      for (const [kind, re] of BILL_KIND_OF) if (re.test(m)) return kind;
+      if (category === "debt_payment") return "credit_card";
+      for (const [kind, , cat] of BILL_KIND_OF) if (cat && category === cat) return kind;
+      return "generic";
+    }
+    const BILL_CONSEQUENCES = Object.freeze({
+      credit_card: "a late fee and a penalty APR apply",
+      utility: "a late fee applies, and your service could be cut off",
+      subscription: null, // filled with the merchant: what stops is the service itself, named below
+      generic: "a late fee applies",
+    });
+    function billConsequence(kind, merchant) {
+      return kind === "subscription" ? `${merchant} stops until you pay` : BILL_CONSEQUENCES[kind] || BILL_CONSEQUENCES.generic;
+    }
 
     function feed(input, opts) {
       const o = opts || {}, now = o.now || dayMs(input.today) + 12 * 3600000, out = { kind: "event", safety: [], commitments: [], watches: [], proactive: [], sources: {} };
@@ -77,7 +101,8 @@
       const Ledger = mod("AgentLedger");
       if (Ledger && input.transactions) {
         const threshold = Number.isInteger(input.large_threshold_cents) ? input.large_threshold_cents : 50000;
-        const items = Ledger.recurringCalendar(input.transactions, input.today, 7).items.filter(i => i.direction === "debit" && i.amount_cents >= threshold && i.on >= input.today);
+        const calItems = Ledger.recurringCalendar(input.transactions, input.today, 7).items;
+        const items = calItems.filter(i => i.direction === "debit" && i.amount_cents >= threshold && i.on >= input.today);
         if (items.length) {
           const absorbed = p => p.amount_cents != null && p.deadline != null && items.some(i => i.amount_cents === p.amount_cents && p.deadline === dayMs(i.on));
           out.proactive = out.proactive.filter(p => !((/^renewal:/.test(p.key) || /annual_renewal/.test(p.key)) && absorbed(p)));
@@ -88,6 +113,28 @@
             evidence: { rule: "Recurring debits at or over the large-charge line due within 7 days (ledger recurrence).", rows: [], computed: { threshold_cents: threshold, items: items.map(i => ({ merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence })) } } });
           out.sources.radar = { upcoming: items.length, threshold_cents: threshold };
         }
+        // Bill due-date reminders (capability C28): EVERY detected recurring bill due exactly 3 days from today —
+        // monthly bills under the radar line included — gets one reminder for that cycle, with its amount, its due
+        // date and the exact missed-payment consequence for its kind (BILL_DUE below: a small explicit table by
+        // kind, inferred from the merchant/category; never worded per message). A bill the radar above is already
+        // listing for the same charge (same merchant, date and amount), or one another finding already carries at
+        // the same amount and deadline (a renewal alert), is NOT reminded again: one charge is never pushed twice.
+        // The reminder is a standing cadence the person asked for ("never let a bill surprise me"), so it carries
+        // cadence_requested like the deadlines do; quiet hours in plan() still hold it. Bill categories only:
+        // groceries, dining, transport, shopping and the like are spending, not bills.
+        const dueIn3 = new Date(dayMs(input.today) + 3 * DAY).toISOString().slice(0, 10);
+        const billItems = calItems.filter(i => i.direction === "debit" && i.on === dueIn3 && BILL_CATEGORIES.has(i.category)
+          && !items.some(r => r.merchant === i.merchant && r.on === i.on && r.amount_cents === i.amount_cents)
+          && !out.proactive.some(p => p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
+        for (const i of billItems) {
+          const kind = billKind(i.merchant, i.category), consequence = billConsequence(kind, i.merchant);
+          out.proactive.push({ key: `bill_due_3d:${i.merchant}|${i.on}|${i.amount_cents}`,
+            text: `${i.merchant} ${money(i.amount_cents)} is due in 3 days, on ${i.on}. If it's missed, ${consequence}.`,
+            reason: "a bill is due in 3 days", deadline: dayMs(i.on), next_on: i.on, amount_cents: i.amount_cents,
+            capability_id: "ALRT-005", priority: 2, cadence_requested: true,
+            evidence: { rule: "Every detected recurring bill is reminded 3 days ahead, with the missed-payment consequence for its kind (explicit table by bill kind).", rows: [], computed: { merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence, category: i.category, bill_kind: kind, consequence } } });
+        }
+        if (billItems.length) out.sources.bill_due = { due_in_3_days: billItems.length, on: dueIn3 };
       }
       // Fraud and scam shapes are safety: they beat everything (doc 01 decision order). The shape is the rule that fired
       // (its reason), never the finding's words: those carry the merchant's descriptor, and a merchant named
@@ -162,6 +209,6 @@
       }
       return out;
     }
-    return { feed, digest, offerText, connections };
+    return { feed, digest, offerText, connections, billKind, billConsequence, BILL_CONSEQUENCES, BILL_CATEGORIES };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentProactive;

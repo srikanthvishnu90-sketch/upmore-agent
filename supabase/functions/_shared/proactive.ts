@@ -143,7 +143,9 @@ export function plan(input: ProactiveInput, now: number) {
   // quiet hours from 9 a.m.), once each by its key. No number and no account: the source is their own message.
   for (const r of (Reminders as any).due(s.watches || [], now, tz, [...sentKeys])) {
     sentKeys.add(r.key);
-    out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "ALRT-010", urgent: false, cadence: true, source: "the reminder you set in chat", as_of: new Date(now).toISOString() });
+    // C24: when the reminder's own words name an action, the delivered message carries that action line (already in
+    // r.text, composed by Reminders.due) and routes to the action's capability instead of the reminder's own.
+    out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: r.capability_id || "ALRT-010", urgent: false, cadence: true, source: "the reminder you set in chat", as_of: new Date(now).toISOString() });
   }
   // Scheduled sends (megadoc A08; packages/domain/113-scheduled-send.js): at the time the person asked, the question
   // whether to put up the send card, as an offer (their yes puts up the card, which needs its own yes). One offer per run,
@@ -282,8 +284,29 @@ export function plan(input: ProactiveInput, now: number) {
     const safeText = !sts ? "" : sts.safe_cents === null ? lines[0] : [lines[0], sts.payday_found === false ? lines.find((l: string) => /couldn't find a regular paycheck/.test(l)) : null].filter(Boolean).join(" ");
     const dueToday = L.recurringCalendar(transactions, today, 0).items.filter((i: any) => i.direction === "debit" && i.on === today);
     const cash = sts && Number.isFinite(sts.cash_cents) ? sts.cash_cents : L.cashPosition(accounts).available_cents;
+    // C2's remaining lines, all computed from the same rows the brief already reads (enriched once):
+    // yesterday's spend (posted debits only — a pending charge has not spent, a credit is not spend), a new
+    // recurring charge (a debit series whose first charge is within the last 45 days and after the history on
+    // file starts, so a series present from day one is never called new; the most recently started one is named),
+    // per-account balances, bills due in the next 7 days, and the most important anomaly in yesterday's rows
+    // (a first-time merchant, or a charge at or over the person's large-charge line) — or an explicit none.
+    const enr: any[] = L.enrich(transactions);
+    const yesterday = addDays(today, -1);
+    const yRows = enr.filter((t: any) => t.posted_at === yesterday && t.amount_cents < 0 && !t.is_pending && !t.is_transfer);
+    const yTotal = yRows.reduce((a: number, t: any) => a + -t.amount_cents, 0);
+    const historyStart = enr.length ? enr.map((t: any) => t.posted_at).sort()[0] : null;
+    const newRec = (L.recurring(transactions, today) as any[]).filter((r: any) => r.direction === "debit")
+      .map((r: any) => ({ ...r, first_on: (enr.filter((t: any) => t.merchant_key === r.key).map((t: any) => t.posted_at).sort()[0] || null) }))
+      .filter((r: any) => r.first_on && historyStart && r.first_on > historyStart && r.first_on >= addDays(today, -45))
+      .sort((a: any, b: any) => b.first_on.localeCompare(a.first_on))[0];
+    const ahead7 = L.recurringCalendar(transactions, today, 7).items.filter((i: any) => i.direction === "debit");
+    const largeLine = Number.isInteger(s.large_threshold_cents) ? (s.large_threshold_cents as number) : 50000;
+    const unusual = yRows.filter((t: any) => -t.amount_cents >= largeLine || !enr.some((u: any) => u.merchant_key === t.merchant_key && u.posted_at < yesterday))
+      .sort((a: any, b: any) => a.amount_cents - b.amount_cents)[0];
+    const unusualText = !unusual ? "Anything unusual: nothing unusual in yesterday's charges."
+      : `Anything unusual: ${unusual.merchant_display} charged ${money(-unusual.amount_cents)} yesterday${!enr.some((u: any) => u.merchant_key === unusual.merchant_key && u.posted_at < yesterday) ? ", the first charge from that merchant in your linked history" : ""}${-unusual.amount_cents >= largeLine ? `${!enr.some((u: any) => u.merchant_key === unusual.merchant_key && u.posted_at < yesterday) ? " and" : ","} over your ${money(largeLine)} line` : ""}.`;
     push({ key: `brief:${today}`, kind: "morning_brief", capability_id: "ANL-005", urgent: false, cadence: true,
-      text: `Good morning. Cash: ${money(cash)}. ${safeText} ${dueToday.length ? `Due today: ${dueToday.map((i: any) => `${i.merchant} ${money(i.amount_cents)}`).join(", ")}.` : "Nothing is due today."}` });
+      text: `Good morning. Cash: ${money(cash)}. ${safeText} ${dueToday.length ? `Due today: ${dueToday.map((i: any) => `${i.merchant} ${money(i.amount_cents)}`).join(", ")}.` : "Nothing is due today."} Yesterday you spent ${money(yTotal)} across ${yRows.length} charge${yRows.length === 1 ? "" : "s"}. ${newRec ? `New recurring charge: ${newRec.merchant} ${money(newRec.amount_cents)} (first charged ${newRec.first_on}).` : "No new recurring charges."} Balances: ${accounts.map((a: any) => `${a.name} ${money(a.balance_cents)}`).join(", ")}. ${ahead7.length ? `Bills due in the next 7 days: ${ahead7.map((i: any) => `${i.merchant} ${money(i.amount_cents)} on ${i.on}`).join(", ")}.` : "No bills due in the next 7 days."} ${unusualText}` });
   }
   if (s.weekly_recap_dow != null && clock.dow === s.weekly_recap_dow) {
     const from = addDays(today, -7), to = addDays(today, -1);
@@ -291,8 +314,17 @@ export function plan(input: ProactiveInput, now: number) {
     const income = L.enrich(transactions).filter((t: any) => t.posted_at >= from && t.posted_at <= to && t.amount_cents > 0 && t.category === "income").reduce((a: number, t: any) => a + t.amount_cents, 0);
     const ahead = L.recurringCalendar(transactions, today, 7).items.filter((i: any) => i.direction === "debit");
     const top = (spend.categories || []).slice(0, 3).map((c: any) => `${c.category.replace(/_/g, " ")} ${money(c.spend_cents)}`).join(", ");
+    // C14's remaining lines, from the same rows: the explicit net (the in and out above, subtracted), the top
+    // merchants (the ledger's leaderboard over the same window), the biggest single posted charge of the week,
+    // and spend versus the average week over the prior 4 weeks (that window's per-category total divided by 4),
+    // per category present this week.
+    const net = income - spend.total_cents;
+    const leaders = L.merchantLeaderboard(transactions, from, to).merchants.slice(0, 3);
+    const biggest = (L.enrich(transactions) as any[]).filter((t: any) => t.posted_at >= from && t.posted_at <= to && t.amount_cents < 0 && !t.is_pending && !t.is_transfer).sort((a: any, b: any) => a.amount_cents - b.amount_cents)[0];
+    const prior4 = L.spendingByCategory(transactions, addDays(from, -28), addDays(from, -1));
+    const vsAvg = (spend.categories || []).map((c: any) => { const p = (prior4.categories || []).find((x: any) => x.category === c.category); const avg = Math.round(((p && p.spend_cents) || 0) / 4); return `${c.category.replace(/_/g, " ")} ${money(c.spend_cents)} vs ${money(avg)} average`; }).join(", ");
     push({ key: `recap:${weekKey(today)}`, kind: "weekly_recap", capability_id: "ANL-020", urgent: false, cadence: true,
-      text: `Your week (${from} to ${to}): ${money(income)} in, ${money(spend.total_cents)} out${top ? `; most went to ${top}` : ""}. ${ahead.length ? `Coming up in the next 7 days: ${ahead.slice(0, 4).map((i: any) => `${i.merchant} ${money(i.amount_cents)} on ${i.on}`).join(", ")}${ahead.length > 4 ? `, and ${ahead.length - 4} more` : ""}.` : "No recurring bills expected in the next 7 days."}` });
+      text: `Your week (${from} to ${to}): ${money(income)} in, ${money(spend.total_cents)} out${top ? `; most went to ${top}` : ""}. ${ahead.length ? `Coming up in the next 7 days: ${ahead.slice(0, 4).map((i: any) => `${i.merchant} ${money(i.amount_cents)} on ${i.on}`).join(", ")}${ahead.length > 4 ? `, and ${ahead.length - 4} more` : ""}.` : "No recurring bills expected in the next 7 days."} Net cash flow: ${money(net)}.${leaders.length ? ` Top merchants: ${leaders.map((m: any) => `${m.merchant} ${money(m.spend_cents)}`).join(", ")}.` : ""}${biggest ? ` Biggest single charge: ${biggest.merchant_display} ${money(-biggest.amount_cents)} on ${biggest.posted_at}.` : ""}${vsAvg ? ` Spend versus your average week (the prior 4 weeks): ${vsAvg}.` : ""}` });
   }
   if (s.monthly_close && clock.day === 1) {
     const prev = addDays(today, -1).slice(0, 7);

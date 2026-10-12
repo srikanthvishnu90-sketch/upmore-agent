@@ -3896,6 +3896,30 @@
     // Monitor findings whose date is money lost if missed: these may bypass the proactivity budget (doc 01).
     // A new subscription's next charge is information, not a deadline: it rides the budget like everything else.
     const DEADLINE_KINDS = new Set(["trial_converting", "duplicate_charge", "charged_after_cancel", "deadline", "pay_later"]);
+    // C28 missed-payment consequences: a small explicit table by bill kind. The kind is inferred from the bill's
+    // merchant words and ledger category; the words are these table entries only, never invented per message.
+    const BILL_CATEGORIES = new Set(["utilities", "subscriptions", "insurance", "housing", "debt_payment", "other"]);
+    const BILL_KIND_OF = [
+      ["credit_card", /credit card|card payment|card autopay|\bvisa\b|\bmastercard\b|\bamex\b|american express|discover card|capital one/i, null],
+      ["utility", /electric|power|water|gas co|utility|utilities|comcast|xfinity|verizon|at&t|t-mobile|internet|broadband|mobile/i, "utilities"],
+      ["subscription", /netflix|spotify|hulu|disney|apple|google one|microsoft|adobe|prime|peloton|nytimes|planet fit|subscription|membership/i, "subscriptions"],
+    ];
+    function billKind(merchant, category) {
+      const m = String(merchant || "");
+      for (const [kind, re] of BILL_KIND_OF) if (re.test(m)) return kind;
+      if (category === "debt_payment") return "credit_card";
+      for (const [kind, , cat] of BILL_KIND_OF) if (cat && category === cat) return kind;
+      return "generic";
+    }
+    const BILL_CONSEQUENCES = Object.freeze({
+      credit_card: "a late fee and a penalty APR apply",
+      utility: "a late fee applies, and your service could be cut off",
+      subscription: null, // filled with the merchant: what stops is the service itself, named below
+      generic: "a late fee applies",
+    });
+    function billConsequence(kind, merchant) {
+      return kind === "subscription" ? `${merchant} stops until you pay` : BILL_CONSEQUENCES[kind] || BILL_CONSEQUENCES.generic;
+    }
 
     function feed(input, opts) {
       const o = opts || {}, now = o.now || dayMs(input.today) + 12 * 3600000, out = { kind: "event", safety: [], commitments: [], watches: [], proactive: [], sources: {} };
@@ -3954,7 +3978,8 @@
       const Ledger = mod("AgentLedger");
       if (Ledger && input.transactions) {
         const threshold = Number.isInteger(input.large_threshold_cents) ? input.large_threshold_cents : 50000;
-        const items = Ledger.recurringCalendar(input.transactions, input.today, 7).items.filter(i => i.direction === "debit" && i.amount_cents >= threshold && i.on >= input.today);
+        const calItems = Ledger.recurringCalendar(input.transactions, input.today, 7).items;
+        const items = calItems.filter(i => i.direction === "debit" && i.amount_cents >= threshold && i.on >= input.today);
         if (items.length) {
           const absorbed = p => p.amount_cents != null && p.deadline != null && items.some(i => i.amount_cents === p.amount_cents && p.deadline === dayMs(i.on));
           out.proactive = out.proactive.filter(p => !((/^renewal:/.test(p.key) || /annual_renewal/.test(p.key)) && absorbed(p)));
@@ -3965,6 +3990,28 @@
             evidence: { rule: "Recurring debits at or over the large-charge line due within 7 days (ledger recurrence).", rows: [], computed: { threshold_cents: threshold, items: items.map(i => ({ merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence })) } } });
           out.sources.radar = { upcoming: items.length, threshold_cents: threshold };
         }
+        // Bill due-date reminders (capability C28): EVERY detected recurring bill due exactly 3 days from today —
+        // monthly bills under the radar line included — gets one reminder for that cycle, with its amount, its due
+        // date and the exact missed-payment consequence for its kind (BILL_DUE below: a small explicit table by
+        // kind, inferred from the merchant/category; never worded per message). A bill the radar above is already
+        // listing for the same charge (same merchant, date and amount), or one another finding already carries at
+        // the same amount and deadline (a renewal alert), is NOT reminded again: one charge is never pushed twice.
+        // The reminder is a standing cadence the person asked for ("never let a bill surprise me"), so it carries
+        // cadence_requested like the deadlines do; quiet hours in plan() still hold it. Bill categories only:
+        // groceries, dining, transport, shopping and the like are spending, not bills.
+        const dueIn3 = new Date(dayMs(input.today) + 3 * DAY).toISOString().slice(0, 10);
+        const billItems = calItems.filter(i => i.direction === "debit" && i.on === dueIn3 && BILL_CATEGORIES.has(i.category)
+          && !items.some(r => r.merchant === i.merchant && r.on === i.on && r.amount_cents === i.amount_cents)
+          && !out.proactive.some(p => p.amount_cents === i.amount_cents && p.deadline === dayMs(i.on)));
+        for (const i of billItems) {
+          const kind = billKind(i.merchant, i.category), consequence = billConsequence(kind, i.merchant);
+          out.proactive.push({ key: `bill_due_3d:${i.merchant}|${i.on}|${i.amount_cents}`,
+            text: `${i.merchant} ${money(i.amount_cents)} is due in 3 days, on ${i.on}. If it's missed, ${consequence}.`,
+            reason: "a bill is due in 3 days", deadline: dayMs(i.on), next_on: i.on, amount_cents: i.amount_cents,
+            capability_id: "ALRT-005", priority: 2, cadence_requested: true,
+            evidence: { rule: "Every detected recurring bill is reminded 3 days ahead, with the missed-payment consequence for its kind (explicit table by bill kind).", rows: [], computed: { merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence, category: i.category, bill_kind: kind, consequence } } });
+        }
+        if (billItems.length) out.sources.bill_due = { due_in_3_days: billItems.length, on: dueIn3 };
       }
       // Fraud and scam shapes are safety: they beat everything (doc 01 decision order). The shape is the rule that fired
       // (its reason), never the finding's words: those carry the merchant's descriptor, and a merchant named
@@ -4039,7 +4086,7 @@
       }
       return out;
     }
-    return { feed, digest, offerText, connections };
+    return { feed, digest, offerText, connections, billKind, billConsequence, BILL_CONSEQUENCES, BILL_CATEGORIES };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentProactive;
 
@@ -15381,7 +15428,11 @@
   /* Reminders in chat (megadoc D11 "remind me to pay rent on the 28th"). A reminder is the person's own words said back
      on the day they asked for, by the hourly run; it never pays, moves or cancels anything.
        parse(words, now, tz)        null (not a reminder ask) | { ok: false, reply } | { ok: true, reminder, reply }
-       due(reminders, now, tz, sent) the ones to say now: { key, text } (once each by key; from 9 a.m. in the person's day)
+       due(reminders, now, tz, sent) the ones to say now: { key, text, action?, capability_id? } (once each by key; from 9 a.m. in the person's day)
+       C24: a fired reminder carries the action its own words name (action(reminder): an annual fee -> the retention
+       offer, CARD-008; a cancellation or subscription -> the cancel path, subscriptions.cancel; nothing named,
+       nothing invented), and a fired one-off reminder re-surfaces once a day until dismissed ("dismiss the <name>
+       reminder" -> status "dismissed" on the stored watch, in the same watches store; no migration).
        describe(reminders, now, tz) one line for "show my alerts" ("" with none)
      A reminder is stored as a person-set watch { id, kind: "reminder", text, on | monthly_day, created_on, created_at }
      in agent_proactive_settings.watches (no migration; the table refuses a run of 9+ digits, so the words keep no long
@@ -15505,6 +15556,23 @@
         : `I'll remind you ${said} ${w.on === L.date && L.hour >= HOUR_LOCAL ? "later today (I check every hour)" : `on ${label(w.on, L.date)}${w.before ? `, the day before ${label(w.before).split(", ")[1]}` : ""}, from ${HOUR_LOCAL} a.m. ${zone} time`}. It's a reminder only: nothing is paid or moved.${billish ? ` Say "remind me ${how} ${text} on the ${ord(+w.on.slice(8, 10))} every month" if you want it monthly.` : ""}`;
       return { ok: true, reminder, reply };
     }
+    // C24: the action a fired reminder carries, where one exists in the reminder's own words — never invented.
+    // An annual fee names the retention-offer path (CARD-008, the annual-fee audit, whose verdict is the retention
+    // or downgrade path); a cancellation or a subscription names the cancel path (subscriptions.cancel, the same
+    // capability a new-subscription finding routes to). Anything else (pay rent, the dentist) carries no action.
+    const titleName = (s) => String(s || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    function action(r) {
+      const t = String((r && r.text) || "").toLowerCase();
+      if (/\bannual fee\b/.test(t)) return { text: "Want me to get a retention offer first?", capability_id: "CARD-008" };
+      let m;
+      if ((m = /\bcancel(?:lation)?\s+(?:my\s+|the\s+)?([a-z0-9][a-z0-9 '&.-]*?)(?:\s+(?:subscription|membership|plan)\b.*)?$/.exec(t)))
+        return { text: `Want me to set up the cancellation for ${titleName(m[1])}? You approve it before anything happens.`, capability_id: "subscriptions.cancel" };
+      if (/\b(?:subscription|membership|renews?|renewal)\b/.test(t)) {
+        const name = t.replace(/\b(?:subscription|membership|renews?|renewal|my|the|a|check|review)\b/g, " ").replace(/\s+/g, " ").trim();
+        return { text: name ? `Want me to set up the cancellation for ${titleName(name)}? You approve it before anything happens.` : "Want me to set up the cancellation? You approve it before anything happens.", capability_id: "subscriptions.cancel" };
+      }
+      return null;
+    }
     // The day a reminder is for, if that day is `ymd`.
     function dayFor(r, ymd) {
       if (r.on) return r.on === ymd ? ymd : null;
@@ -15512,24 +15580,38 @@
       return null;
     }
     // Today's from 9 a.m.; yesterday's, if the hourly run missed it (an outage), from 9 a.m. today, saying the day.
+    // C24: a fired one-off reminder survives until dismissed — once its first key is in the sent log, it re-surfaces
+    // at most once a day (its own key for that day) with its context and its action, until the person dismisses it
+    // (status "dismissed", set by the dismiss command below). A reminder that never fired is never re-surfaced:
+    // two days late with no fire on record still says nothing, as before.
     function due(reminders, now, tz, sent) {
-      const L = local(now, tz), done = new Set(sent || []), out = [], yesterday = addDays(L.date, -1);
+      const L = local(now, tz), fired = new Set(sent || []), done = new Set(sent || []), out = [], yesterday = addDays(L.date, -1);
       for (const r of reminders || []) {
-        if (!r || r.kind !== "reminder" || r.status === "paused" || r.status === "revoked" || !r.id) continue;
+        if (!r || r.kind !== "reminder" || r.status === "paused" || r.status === "revoked" || r.status === "dismissed" || !r.id) continue;
+        const act = action(r);
         for (const [ymd, late] of [[yesterday, true], [L.date, false]]) {
           const day = dayFor(r, ymd);
           if (!day || (r.created_on && day < r.created_on) || L.hour < HOUR_LOCAL) continue;
           const key = `reminder:${r.id}:${day}`;
           if (done.has(key)) continue;
           done.add(key);
-          out.push({ key, text: `Reminder${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${late ? ` This was for yesterday, ${label(day).split(", ")[1]}; I'm sorry it's late.` : ""} (You asked me to remind you${r.monthly_day ? " on this day each month" : ""}; nothing was paid or moved.)` });
+          out.push({ key, text: `Reminder${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${act ? ` ${act.text}` : ""}${late ? ` This was for yesterday, ${label(day).split(", ")[1]}; I'm sorry it's late.` : ""} (You asked me to remind you${r.monthly_day ? " on this day each month" : ""}; nothing was paid or moved.)`, action: act || undefined, capability_id: act ? act.capability_id : undefined });
+        }
+        // Re-surface: only a one-off (a monthly reminder already comes back on its day), only after its day, only
+        // when the sent log proves it fired, and only once per day by its re-surface key.
+        if (!r.monthly_day && r.on && r.on < L.date && L.hour >= HOUR_LOCAL && fired.has(`reminder:${r.id}:${r.on}`)) {
+          const key = `reminder:${r.id}:${r.on}:again:${L.date}`;
+          if (!done.has(key)) {
+            done.add(key);
+            out.push({ key, text: `Reminder, still open${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${act ? ` ${act.text}` : ""} (You asked me to remind you; say "dismiss the ${r.text} reminder" to end this. Nothing was paid or moved.)`, action: act || undefined, capability_id: act ? act.capability_id : undefined });
+          }
         }
       }
       return out;
     }
     function describe(reminders, now, tz) {
       const L = local(now, tz);
-      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "revoked" && (r.monthly_day || (r.on && r.on >= L.date)));
+      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "revoked" && r.status !== "dismissed" && (r.monthly_day || (r.on && r.on >= L.date)));
       return live.length ? `Reminders: ${live.map((r) => r.monthly_day ? `${yours(r.text)} (the ${ord(r.monthly_day)} of every month)` : `${yours(r.text)} (${label(r.on, L.date)})`).join("; ")}.` : "";
     }
     // "stop the reminder to pay rent", "cancel my rent reminder", "delete all my reminders"
@@ -15543,6 +15625,22 @@
       if (!pick.length) return { remove: [], reply: `I don't have a reminder${term ? ` about "${term}"` : ""}, so nothing changed.` };
       return { remove: pick, reply: `Stopped ${pick.length === 1 ? "the reminder" : `${pick.length} reminders`}: ${pick.map((r) => yours(r.text)).join("; ")}. Nothing else changed.` };
     }
+    // C24 dismissal: "dismiss the <name> reminder" — the reminder stays in the watches store, marked dismissed
+    // (status + the day), so due() never says it again and the record of it is not silently deleted. Distinct from
+    // "stop", which removes a reminder the person no longer wants at all.
+    function dismiss(words, reminders, now, tz) {
+      const t = String(words || "").toLowerCase().replace(/[’‘]/g, "'").replace(LEAD, "").replace(/\s+/g, " ").replace(/[\s?.!]+$/, "").trim();
+      const m = /^dismiss\s+(?:all\s+(?:of\s+)?)?(?:my\s+|the\s+)?(?:(.+?)\s+)?reminders?(?:\s+(?:to|about|for)\s+(.+))?$/.exec(t);
+      if (!m) return null;
+      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "dismissed");
+      const term = String(m[2] || m[1] || "").replace(/^(?:all|the|my)\s+/, "").trim();
+      const byTerm = live.filter((r) => r.text.toLowerCase().includes(term));
+      const pick = !term || /^(?:all|every)$/.test(term) ? live : byTerm;
+      if (!pick.length) return { watches: null, reply: `I don't have a reminder${term ? ` about "${term}"` : ""}, so nothing changed.` };
+      const L = local(now, tz);
+      const marked = new Set(pick);
+      return { watches: (reminders || []).map((r) => marked.has(r) ? Object.assign({}, r, { status: "dismissed", dismissed_on: L.date }) : r), reply: `Dismissed ${pick.length === 1 ? "the reminder" : `${pick.length} reminders`}: ${pick.map((r) => yours(r.text)).join("; ")}. It won't come back. Nothing else changed.` };
+    }
     const isReminder = (w) => !!w && w.kind === "reminder";
     // The chat command over the stored watches: { watches, reply } (watches null when nothing changes) or null.
     // At most MAX_ACTIVE reminders; a one-off whose day has passed is dropped when anything is saved.
@@ -15553,6 +15651,8 @@
         const line = describe(list, now, tz);
         return { watches: null, reply: line || 'You have no reminders. Say "remind me to pay rent on the 28th" to set one.' };
       }
+      const dm = dismiss(words, list, now, tz);
+      if (dm) return { watches: dm.watches, reply: dm.reply };
       const st = stop(words, list);
       if (st) return { watches: st.remove.length ? list.filter((w) => !st.remove.includes(w)) : null, reply: st.reply };
       const p = parse(words, now, tz);
@@ -15564,7 +15664,7 @@
       if (kept.filter(isReminder).length >= MAX_ACTIVE) return { watches: null, reply: `You already have ${MAX_ACTIVE} reminders, the most I keep. Say "show my reminders", then "stop the reminder to ..." for one you don't need. Nothing was set.` };
       return { watches: kept.concat([p.reminder]), reply: p.reply };
     }
-    return { parse, due, describe, stop, command, isReminder, HOUR_LOCAL, MAX_ACTIVE };
+    return { parse, due, describe, stop, dismiss, action, command, isReminder, HOUR_LOCAL, MAX_ACTIVE };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = Reminders;
 

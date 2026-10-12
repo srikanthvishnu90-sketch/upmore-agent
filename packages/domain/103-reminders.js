@@ -1,7 +1,11 @@
   /* Reminders in chat (megadoc D11 "remind me to pay rent on the 28th"). A reminder is the person's own words said back
      on the day they asked for, by the hourly run; it never pays, moves or cancels anything.
        parse(words, now, tz)        null (not a reminder ask) | { ok: false, reply } | { ok: true, reminder, reply }
-       due(reminders, now, tz, sent) the ones to say now: { key, text } (once each by key; from 9 a.m. in the person's day)
+       due(reminders, now, tz, sent) the ones to say now: { key, text, action?, capability_id? } (once each by key; from 9 a.m. in the person's day)
+       C24: a fired reminder carries the action its own words name (action(reminder): an annual fee -> the retention
+       offer, CARD-008; a cancellation or subscription -> the cancel path, subscriptions.cancel; nothing named,
+       nothing invented), and a fired one-off reminder re-surfaces once a day until dismissed ("dismiss the <name>
+       reminder" -> status "dismissed" on the stored watch, in the same watches store; no migration).
        describe(reminders, now, tz) one line for "show my alerts" ("" with none)
      A reminder is stored as a person-set watch { id, kind: "reminder", text, on | monthly_day, created_on, created_at }
      in agent_proactive_settings.watches (no migration; the table refuses a run of 9+ digits, so the words keep no long
@@ -125,6 +129,23 @@
         : `I'll remind you ${said} ${w.on === L.date && L.hour >= HOUR_LOCAL ? "later today (I check every hour)" : `on ${label(w.on, L.date)}${w.before ? `, the day before ${label(w.before).split(", ")[1]}` : ""}, from ${HOUR_LOCAL} a.m. ${zone} time`}. It's a reminder only: nothing is paid or moved.${billish ? ` Say "remind me ${how} ${text} on the ${ord(+w.on.slice(8, 10))} every month" if you want it monthly.` : ""}`;
       return { ok: true, reminder, reply };
     }
+    // C24: the action a fired reminder carries, where one exists in the reminder's own words — never invented.
+    // An annual fee names the retention-offer path (CARD-008, the annual-fee audit, whose verdict is the retention
+    // or downgrade path); a cancellation or a subscription names the cancel path (subscriptions.cancel, the same
+    // capability a new-subscription finding routes to). Anything else (pay rent, the dentist) carries no action.
+    const titleName = (s) => String(s || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    function action(r) {
+      const t = String((r && r.text) || "").toLowerCase();
+      if (/\bannual fee\b/.test(t)) return { text: "Want me to get a retention offer first?", capability_id: "CARD-008" };
+      let m;
+      if ((m = /\bcancel(?:lation)?\s+(?:my\s+|the\s+)?([a-z0-9][a-z0-9 '&.-]*?)(?:\s+(?:subscription|membership|plan)\b.*)?$/.exec(t)))
+        return { text: `Want me to set up the cancellation for ${titleName(m[1])}? You approve it before anything happens.`, capability_id: "subscriptions.cancel" };
+      if (/\b(?:subscription|membership|renews?|renewal)\b/.test(t)) {
+        const name = t.replace(/\b(?:subscription|membership|renews?|renewal|my|the|a|check|review)\b/g, " ").replace(/\s+/g, " ").trim();
+        return { text: name ? `Want me to set up the cancellation for ${titleName(name)}? You approve it before anything happens.` : "Want me to set up the cancellation? You approve it before anything happens.", capability_id: "subscriptions.cancel" };
+      }
+      return null;
+    }
     // The day a reminder is for, if that day is `ymd`.
     function dayFor(r, ymd) {
       if (r.on) return r.on === ymd ? ymd : null;
@@ -132,24 +153,38 @@
       return null;
     }
     // Today's from 9 a.m.; yesterday's, if the hourly run missed it (an outage), from 9 a.m. today, saying the day.
+    // C24: a fired one-off reminder survives until dismissed — once its first key is in the sent log, it re-surfaces
+    // at most once a day (its own key for that day) with its context and its action, until the person dismisses it
+    // (status "dismissed", set by the dismiss command below). A reminder that never fired is never re-surfaced:
+    // two days late with no fire on record still says nothing, as before.
     function due(reminders, now, tz, sent) {
-      const L = local(now, tz), done = new Set(sent || []), out = [], yesterday = addDays(L.date, -1);
+      const L = local(now, tz), fired = new Set(sent || []), done = new Set(sent || []), out = [], yesterday = addDays(L.date, -1);
       for (const r of reminders || []) {
-        if (!r || r.kind !== "reminder" || r.status === "paused" || r.status === "revoked" || !r.id) continue;
+        if (!r || r.kind !== "reminder" || r.status === "paused" || r.status === "revoked" || r.status === "dismissed" || !r.id) continue;
+        const act = action(r);
         for (const [ymd, late] of [[yesterday, true], [L.date, false]]) {
           const day = dayFor(r, ymd);
           if (!day || (r.created_on && day < r.created_on) || L.hour < HOUR_LOCAL) continue;
           const key = `reminder:${r.id}:${day}`;
           if (done.has(key)) continue;
           done.add(key);
-          out.push({ key, text: `Reminder${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${late ? ` This was for yesterday, ${label(day).split(", ")[1]}; I'm sorry it's late.` : ""} (You asked me to remind you${r.monthly_day ? " on this day each month" : ""}; nothing was paid or moved.)` });
+          out.push({ key, text: `Reminder${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${act ? ` ${act.text}` : ""}${late ? ` This was for yesterday, ${label(day).split(", ")[1]}; I'm sorry it's late.` : ""} (You asked me to remind you${r.monthly_day ? " on this day each month" : ""}; nothing was paid or moved.)`, action: act || undefined, capability_id: act ? act.capability_id : undefined });
+        }
+        // Re-surface: only a one-off (a monthly reminder already comes back on its day), only after its day, only
+        // when the sent log proves it fired, and only once per day by its re-surface key.
+        if (!r.monthly_day && r.on && r.on < L.date && L.hour >= HOUR_LOCAL && fired.has(`reminder:${r.id}:${r.on}`)) {
+          const key = `reminder:${r.id}:${r.on}:again:${L.date}`;
+          if (!done.has(key)) {
+            done.add(key);
+            out.push({ key, text: `Reminder, still open${r.how === "about" ? " about" : ""}: ${yours(r.text)}.${act ? ` ${act.text}` : ""} (You asked me to remind you; say "dismiss the ${r.text} reminder" to end this. Nothing was paid or moved.)`, action: act || undefined, capability_id: act ? act.capability_id : undefined });
+          }
         }
       }
       return out;
     }
     function describe(reminders, now, tz) {
       const L = local(now, tz);
-      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "revoked" && (r.monthly_day || (r.on && r.on >= L.date)));
+      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "revoked" && r.status !== "dismissed" && (r.monthly_day || (r.on && r.on >= L.date)));
       return live.length ? `Reminders: ${live.map((r) => r.monthly_day ? `${yours(r.text)} (the ${ord(r.monthly_day)} of every month)` : `${yours(r.text)} (${label(r.on, L.date)})`).join("; ")}.` : "";
     }
     // "stop the reminder to pay rent", "cancel my rent reminder", "delete all my reminders"
@@ -163,6 +198,22 @@
       if (!pick.length) return { remove: [], reply: `I don't have a reminder${term ? ` about "${term}"` : ""}, so nothing changed.` };
       return { remove: pick, reply: `Stopped ${pick.length === 1 ? "the reminder" : `${pick.length} reminders`}: ${pick.map((r) => yours(r.text)).join("; ")}. Nothing else changed.` };
     }
+    // C24 dismissal: "dismiss the <name> reminder" — the reminder stays in the watches store, marked dismissed
+    // (status + the day), so due() never says it again and the record of it is not silently deleted. Distinct from
+    // "stop", which removes a reminder the person no longer wants at all.
+    function dismiss(words, reminders, now, tz) {
+      const t = String(words || "").toLowerCase().replace(/[’‘]/g, "'").replace(LEAD, "").replace(/\s+/g, " ").replace(/[\s?.!]+$/, "").trim();
+      const m = /^dismiss\s+(?:all\s+(?:of\s+)?)?(?:my\s+|the\s+)?(?:(.+?)\s+)?reminders?(?:\s+(?:to|about|for)\s+(.+))?$/.exec(t);
+      if (!m) return null;
+      const live = (reminders || []).filter((r) => r && r.kind === "reminder" && r.status !== "dismissed");
+      const term = String(m[2] || m[1] || "").replace(/^(?:all|the|my)\s+/, "").trim();
+      const byTerm = live.filter((r) => r.text.toLowerCase().includes(term));
+      const pick = !term || /^(?:all|every)$/.test(term) ? live : byTerm;
+      if (!pick.length) return { watches: null, reply: `I don't have a reminder${term ? ` about "${term}"` : ""}, so nothing changed.` };
+      const L = local(now, tz);
+      const marked = new Set(pick);
+      return { watches: (reminders || []).map((r) => marked.has(r) ? Object.assign({}, r, { status: "dismissed", dismissed_on: L.date }) : r), reply: `Dismissed ${pick.length === 1 ? "the reminder" : `${pick.length} reminders`}: ${pick.map((r) => yours(r.text)).join("; ")}. It won't come back. Nothing else changed.` };
+    }
     const isReminder = (w) => !!w && w.kind === "reminder";
     // The chat command over the stored watches: { watches, reply } (watches null when nothing changes) or null.
     // At most MAX_ACTIVE reminders; a one-off whose day has passed is dropped when anything is saved.
@@ -173,6 +224,8 @@
         const line = describe(list, now, tz);
         return { watches: null, reply: line || 'You have no reminders. Say "remind me to pay rent on the 28th" to set one.' };
       }
+      const dm = dismiss(words, list, now, tz);
+      if (dm) return { watches: dm.watches, reply: dm.reply };
       const st = stop(words, list);
       if (st) return { watches: st.remove.length ? list.filter((w) => !st.remove.includes(w)) : null, reply: st.reply };
       const p = parse(words, now, tz);
@@ -184,6 +237,6 @@
       if (kept.filter(isReminder).length >= MAX_ACTIVE) return { watches: null, reply: `You already have ${MAX_ACTIVE} reminders, the most I keep. Say "show my reminders", then "stop the reminder to ..." for one you don't need. Nothing was set.` };
       return { watches: kept.concat([p.reminder]), reply: p.reply };
     }
-    return { parse, due, describe, stop, command, isReminder, HOUR_LOCAL, MAX_ACTIVE };
+    return { parse, due, describe, stop, dismiss, action, command, isReminder, HOUR_LOCAL, MAX_ACTIVE };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = Reminders;

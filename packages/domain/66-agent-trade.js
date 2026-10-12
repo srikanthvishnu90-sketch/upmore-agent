@@ -113,6 +113,9 @@
       // "What dividends did I get", "how much in dividends this year", "did VOO pay a dividend" (megadoc G15): read from
       // the broker's activity. Picking dividend stocks or funds is advice and never reaches this.
       const DIVQ = /\bdividends?\b/i.test(t) && !/\b(buy|sell|order|should|best|good|top|high[- ]yield|recommend|reinvest|drip|stocks to|etfs? to|funds? to)\b/i.test(t);
+      // "What dividends are coming up", "announced dividends" (C22): the announced/upcoming surface, not the
+      // received history. Same advice exclusions as DIVQ (picking dividend stocks never reaches either).
+      const DIV_UP = /\bdividends?\b/i.test(t) && /\b(?:coming up|upcoming|announced|declared|on the way)\b/i.test(t) && !/\b(buy|sell|order|should|best|good|top|high[- ]yield|recommend|reinvest|drip|stocks to|etfs? to|funds? to)\b/i.test(t);
       const NOT_DIV_SYM = /^(?:last|past|ever|all|alpaca|account|each|every|stocks?|etfs?|funds?|me|my|this|that|the|year|month|week|today|dividends?|it|them)$/i;
       const divSym0 = DIVQ ? ((/\b(?:from|on|by|for|in)\s+([A-Za-z][A-Za-z.]{0,5})\b(?!\s*(?:account|shares))/.exec(t) || /\bdid\s+([A-Za-z][A-Za-z.]{0,5})\s+pay\b/i.exec(t) || /\b([A-Z][A-Z.]{0,5})\s+dividends?\b/.exec(t) || [])[1] || null) : null;
       const div_symbol = divSym0 && !NOT_DIV_SYM.test(divSym0) && !NOT_TICKER.test(divSym0) && !/^20\d\d$/.test(divSym0) ? divSym0.toUpperCase().replace(/\.$/, "") : null;
@@ -122,7 +125,8 @@
       // "Which of my stocks are up over 6 months and why", "how did my stocks do this week" (megadoc G07): each holding's
       // move over the period from daily closes. Market-wide movers are not built (111-not-yet.js says so).
       const MOVES = !/\b(buy|sell|order|should)\b/i.test(t) && /\b(?:which|what) of my (?:stocks|holdings|positions|shares|investments)\b|\b(?:which|what) (?:stocks|holdings|positions|shares) do i (?:own|have|hold)\b[^?.!]*\b(?:up|down|gain\w*|los\w*)\b|\bhow (?:did|have|are|has) (?:each of )?my (?:stocks|holdings|positions) (?:been )?(?:do|done|doing|move|moved|moving)\b[^?.!]*\b(?:this week|today|this month|past (?:week|month)|\d+ months?|six months|this year|ytd)\b|\b(?:biggest|top) (?:gainers?|losers?|movers?) (?:in|among|of) my\b/i.test(t);
-      const action = DIVQ ? "dividends"
+      const action = DIV_UP ? "dividends_upcoming"
+        : DIVQ ? "dividends"
         : MOVES ? "moves"
         : PERF ? "performance"
         : gm ? "gain"
@@ -247,6 +251,30 @@
       if (drivers.length && inp.source) text += ` From ${inp.source}${Number.isFinite(inp.as_of) ? `, as of ${new Date(inp.as_of).toISOString().slice(11, 16)} UTC` : ""}.`;
       const Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, lint = Guard ? Guard.response(text) : { ok: true, findings: [] };
       return { outcome: "answer", reason: "movers", text, lint_ok: lint.ok, lint: lint.findings, total_cents: total, drivers, missing };
+    }
+
+    // C22: announced dividends for the person's own holdings, from a dividends/calendar read on the same broker
+    // read surface as the received history (a "dividends_calendar" read in the session below). Each row the read
+    // carries for a held symbol with an ex-date today or later is listed with its declared amount per share, its
+    // ex-date and its payment date; the expected total on the shares held is the read's per-share amount times
+    // the held quantity, nothing else. A name the person does not hold, a past ex-date, or a row without a usable
+    // per-share amount never surfaces. Pure: the read's rows are consumed as data, never invented or completed.
+    const MONF = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const fullDay = d => `${MONF[Number(String(d).slice(5, 7)) - 1]} ${Number(String(d).slice(8, 10))}, ${String(d).slice(0, 4)}`;
+    function announcedDividends(input) {
+      const inp = input || {}, holdings = Array.isArray(inp.holdings) ? inp.holdings : [], cal = Array.isArray(inp.calendar) ? inp.calendar : [], today = String(inp.today || "").slice(0, 10);
+      const held = new Map();
+      for (const h of holdings) if (h && h.symbol) held.set(String(h.symbol).toUpperCase(), Number(h.qty !== undefined ? h.qty : h.quantity) || 0);
+      const sym = inp.symbol ? String(inp.symbol).toUpperCase() : null;
+      const upcoming = cal.filter(r => r && held.has(String(r.symbol || "").toUpperCase()) && (!sym || String(r.symbol).toUpperCase() === sym) && Number.isSafeInteger(r.per_share_cents) && r.per_share_cents > 0 && typeof r.ex_date === "string" && r.ex_date >= today && typeof r.pay_date === "string")
+        .map(r => ({ symbol: String(r.symbol).toUpperCase(), per_share_cents: r.per_share_cents, ex_date: r.ex_date, pay_date: r.pay_date, declared_on: r.declared_on || null, qty: held.get(String(r.symbol).toUpperCase()) }))
+        .sort((a, b) => a.ex_date.localeCompare(b.ex_date) || a.symbol.localeCompare(b.symbol));
+      let text;
+      if (!upcoming.length) text = `No announced dividends with an ex-date coming up${sym ? ` for ${sym}` : ""} for the holdings in this read.`;
+      else text = `Announced dividends on your holdings, coming up: ${upcoming.map(r => `${r.symbol} ${money(r.per_share_cents)} a share, ex-date ${fullDay(r.ex_date)}, pays ${fullDay(r.pay_date)}${r.qty > 0 ? ` — ${money(Math.round(r.qty * r.per_share_cents))} on your ${qty(r.qty)} shares` : ""}`).join("; ")}.`;
+      if (inp.source) text += ` From ${inp.source}${Number.isFinite(inp.as_of) ? `, as of ${new Date(inp.as_of).toISOString().slice(11, 16)} UTC` : ""}.`;
+      const Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, lint = Guard ? Guard.response(text) : { ok: true, findings: [] };
+      return { outcome: "answer", reason: "dividends_upcoming", text, lint_ok: lint.ok, lint: lint.findings, upcoming };
     }
 
     // S11: regular session, 9:30 to 16:00 ET, Monday to Friday, less the holidays the caller lists (ymd).
@@ -426,6 +454,7 @@
         }
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "dividends") { const c = connectStop(); if (c) return c; return dividendsAnswer(parsed); }
+        if (parsed.action === "dividends_upcoming") { const c = connectStop(); if (c) return c; return upcomingDividendsAnswer(parsed); }
         if (parsed.action === "moves") { const c = connectStop(); if (c) return c; return movesAnswer(parsed); }
         if (parsed.action === "performance") { const c = connectStop(); if (c) return c; return performanceAnswer(parsed); }
         if (parsed.action === "status") return orderStatus(parsed.text);
@@ -796,6 +825,11 @@
         if (/\bthis month\b/i.test(t)) return { from: `${y}-${pad(m)}-01`, to: null, label: `this month (${MON[m - 1]} 1 to ${md(today)})` };
         if (/\blast month\b/i.test(t)) { const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1; return { from: `${py}-${pad(pm)}-01`, to: `${py}-${pad(pm)}-31`, label: `last month (${MON[pm - 1]} ${py})` }; }
         if (/\b(?:ever|all[- ]time|in total|since i (?:started|opened|joined))\b/i.test(t) && !/\bthis year\b/i.test(t)) return { from: null, to: null, label: "since the account opened" };
+        // A named month (C22's monthly total): "dividends in September" — that month of this year, or of last
+        // year when the month is still ahead (the December that has a total in October is last December's).
+        const MONN = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+        const mn = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i.exec(t);
+        if (mn) { const mm = MONN[mn[1].toLowerCase()], yy = mm > m ? y - 1 : y; return { from: `${yy}-${pad(mm)}-01`, to: `${yy}-${pad(mm)}-31`, label: `in ${mn[1][0].toUpperCase() + mn[1].slice(1).toLowerCase()} ${yy}` }; }
         return { from: `${y}-01-01`, to: null, label: `this year (Jan 1 to ${md(today)})` };
       }
       async function dividendsAnswer(parsed) {
@@ -824,7 +858,37 @@
         }
         if (withheld > 0) body += ` ${money(withheld)} was withheld or charged against them, so ${money(gross - withheld)} landed.`;
         if (roc > 0) body += ` ${money(roc)} of it the broker labels return of capital.`;
+        // C22 verification: when the account's cash activity can be read, each payment (grouped by holding and
+        // payment date, net of what was withheld against it) is checked against the cash credit on that date: it
+        // must match to the cent. A mismatch — a short or missing credit, e.g. withholding the activity does not
+        // explain — is stated with both amounts, never hidden. No cash read, no claim either way.
+        const cash = await readOr("cash_activity", { account: a.id, from: per.from });
+        if (cash && Array.isArray(cash.value)) {
+          const groups = new Map();
+          for (const r of rows) { const k = `${String(r.symbol || "").toUpperCase()}|${r.date}`; const g = groups.get(k) || { symbol: String(r.symbol || "").toUpperCase(), date: r.date, net: 0, paid: false }; g.net += r.cents; if (!r.withheld && r.cents > 0) g.paid = true; groups.set(k, g); }
+          const checked = [...groups.values()].filter(g => g.paid);
+          const bad = [];
+          for (const g of checked) {
+            const hit = cash.value.find(c => c && c.date === g.date && (!c.symbol || String(c.symbol).toUpperCase() === g.symbol) && Number.isSafeInteger(c.cents));
+            if (hit && hit.cents === g.net) continue;
+            bad.push({ g, found: hit ? hit.cents : null });
+          }
+          if (checked.length && !bad.length) body += ` Checked against your cash activity: every one of the ${checked.length} payment${checked.length === 1 ? "" : "s"} matches its cash credit to the cent on its payment date.`;
+          else if (bad.length) body += ` Checked against your cash activity: ${bad.map(({ g, found }) => `${g.symbol} on ${md(g.date)}: the activity says ${money(g.net)} landed, but the cash credit that day is ${found == null ? "missing" : `${money(found)} — ${money(Math.abs(g.net - found))} ${g.net > found ? "short" : "extra"}`}`).join("; ")}.`;
+        }
         return say("answer", `${body} From ${src}.${tail}`, { reason: "dividends", total_cents: gross, withheld_cents: withheld });
+      }
+      // Announced dividends (C22): the pure announcedDividends over the holdings read and the broker's
+      // dividends/calendar read. No calendar read, no list: nothing about an upcoming dividend is invented.
+      async function upcomingDividendsAnswer(parsed) {
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {};
+        const cal = await readOr("dividends_calendar", { account: a.id });
+        if (!cal || !Array.isArray(cal.value)) return ask("dividends_calendar_unreadable", "I can't read announced dividends from the broker right now, so I won't guess at what's coming. Ask again in a moment.");
+        const h = await readOr("holdings", { account: a.id });
+        const r = announcedDividends({ holdings: h && Array.isArray(h.value) ? h.value : [], calendar: cal.value, today: day(clock()), source: cal.source, as_of: cal.as_of, symbol: parsed.query ? String(parsed.query).toUpperCase() : null });
+        return say("answer", r.text, { reason: "dividends_upcoming", upcoming: r.upcoming });
       }
 
       // The account's return over a period (megadoc G02, G14). End value: the account's equity now. Start value: the close
@@ -1067,6 +1131,6 @@
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
       return { start, reply, followUp, today, portfolio, moverExplainer: moverAnswer, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
     }
-    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, moverExplainer, CAPABILITY };
+    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, moverExplainer, announcedDividends, CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentTrade;

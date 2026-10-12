@@ -78,3 +78,20 @@
 - a4ec255 G4 mutation coverage report (CI-checked); 28ad630 depth packets MERCHANT-LABEL and PRICE-DROP (15/15 each)
   found a handle bug ("@eve-money" -> "-money"), fixed. 28/57 domain modules now have planted defects.
 - CI runs 50-52 green; later pushes pending. Agents running: D4+D7, F4. Next: A2, C6, H1, more depth packets for gaps.
+
+## 2026-10-12 06:10 UTC overnight wave 3 (check-in)
+- C6 008c08a unclaimed money (state letters on the official domain; FDIC failed-bank list as dated data, each row says
+  how it was checked). F4 1f6c809 card-linked offers. D4/D7 3d8b6f2 win-back + free substitutes (tightened the agent's
+  securities-guard exemption: "should i buy generic AAPL" no longer skips the advice refusal). A2 345c221 all 194
+  method cards mapped, IN_CHAT 27 each with a test that resolves. H1 c3440b7 "what's new" review inbox.
+- Sweeps that found real bugs, all fixed red-first: routing corpus (92+ asks) and money-citation check 70cc309;
+  nothing-linked check; refund follow-ups said "not yet" when the credit had posted 85d46a7; replies' promises audit
+  5b8dee6 (a finished cancel run was called cancelled without the merchant's word); late-synced charges never fired a
+  watch b5d21ee.
+- Depth packets: 42/62 domain modules now have planted defects (was 21/57 at 05:00); RENT, MONEY-ANSWERS, DISPUTE,
+  MANUAL-CONNECT, COMPLIANCE, ROUTES, FIND-MONEY, LEDGER, ALERTS, MERCHANT-LABEL, PRICE-DROP, UNCLAIMED, WHATS-NEW;
+  21 real bugs found by them, each red-first (KYC missing record allowed a send with a live partner; ATM cash called a fee;
+  a dispute date already past; EUR refunds drafted in dollars; ...).
+- Owner decisions logged (not changed): codes typed in chat on the legacy cancel path vs the settled no-codes-in-chat
+  rule; info-only compliance calls without an execute flag; adapterFor ignoring adapter_state; utilization needs limits.
+- CI green through run 63+; agent running: depth PROACTIVE, CONNECT-CARDS, SUB-CASE.

@@ -65,7 +65,7 @@ Each is a pure module with its rule table in the offer book, node tests with moc
 (direct answer or proactive finding), an edge test, and a corpus example. The agent drafts; the person sends; nothing
 is filed, sent or paid by Upmore.
 
-- [ ] **C1. Airline refunds (DOT).** From flight emails or card rows: cancelled or changed more than 3 hours domestic / 6
+- [x] **C1. Airline refunds (DOT).** From flight emails or card rows: cancelled or changed more than 3 hours domestic / 6
   international and declined -> full fare owed; bag over 12 hours domestic (15-30 international) late with a report ->
   bag fee owed; paid extras not delivered (Wi-Fi, seat) -> fee owed. Warns before a voucher is accepted. Tracks the card
   credit 7 business days; drafts the DOT complaint text if late. Involuntary bump compensation table (200% / 400%, caps).

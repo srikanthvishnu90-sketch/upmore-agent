@@ -151,6 +151,51 @@
    ]
   },
   {
+   "id": "dot.bump.short.min_hours",
+   "kind": "rule",
+   "value": 1,
+   "unit": "hours",
+   "source": {
+    "title": "DOT: Bumping and Oversales",
+    "url": "https://www.transportation.gov/individuals/aviation-consumer-protection/bumping-oversales"
+   },
+   "checked_on": "2026-10-11",
+   "methods": [
+    "M1-CREATIVE-04"
+   ],
+   "note": "involuntary bump, domestic: arriving less than this many hours late is owed nothing; from this many hours the short band applies"
+  },
+  {
+   "id": "dot.bump.long.over_hours",
+   "kind": "rule",
+   "value": 2,
+   "unit": "hours",
+   "source": {
+    "title": "DOT: Bumping and Oversales",
+    "url": "https://www.transportation.gov/individuals/aviation-consumer-protection/bumping-oversales"
+   },
+   "checked_on": "2026-10-11",
+   "methods": [
+    "M1-CREATIVE-04"
+   ],
+   "note": "involuntary bump, domestic: arriving more than this many hours late is the long band"
+  },
+  {
+   "id": "dot.extras.named_services",
+   "kind": "rule",
+   "value": "Wi-Fi, seat selection and inflight entertainment",
+   "unit": "services the rule names",
+   "source": {
+    "title": "DOT final rule requiring automatic refunds of airline tickets and ancillary service fees",
+    "url": "https://www.transportation.gov/briefing-room/biden-harris-administration-announces-final-rule-requiring-automatic-refunds-airline"
+   },
+   "checked_on": "2026-10-11",
+   "methods": [
+    "M2-OWED-11"
+   ],
+   "note": "a paid extra the airline did not provide gets its fee back to the original form of payment"
+  },
+  {
    "id": "cfpb.credit_balance.min_cents",
    "kind": "rule",
    "value": 100,

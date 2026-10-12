@@ -93,6 +93,15 @@ test("[S09] a cancellation is done when the provider's record reads cancelled an
   assert.equal(E.proof("C73", { expected_state: "cancelled", record: { state: "cancelled", read_at: T }, next_charge_at: null }).done, true);
   assert.equal(E.proof("C73", { expected_state: "cancelled", record: { state: "active" } }).reason, "provider record reads active, not cancelled");
   assert.equal(E.proof("C73", { expected_state: "cancelled", record: { state: "cancelled" }, next_charge_at: T + 86400000 }).reason, "a next charge is still scheduled");
+  // The finished state is the item's, never the read-back's own claim: a record that "expects" active and reads active is
+  // not a cancellation (merge review of this packet). US spelling is the same state.
+  const self = E.proof("C73", { expected_state: "active", record: { state: "active" }, next_charge_at: null });
+  assert.deepEqual([self.done, self.reason], [false, "C73 is finished only when the provider record reads cancelled; the read-back expected active"]);
+  assert.equal(E.proof("C73", { expected_state: "canceled", record: { state: "Canceled", read_at: T }, next_charge_at: null }).done, true);
+  assert.equal(E.proof("C141", { expected_state: "locked", record: { state: "locked" } }).done, true);
+  assert.equal(E.proof("C141", { expected_state: "cancelled", record: { state: "cancelled" } }).done, false, "a fraud lock is not finished by a cancelled record");
+  const own = map.items.filter(i => i.proof_kind === "provider_state").map(i => i.id);
+  assert.deepEqual(own.filter(id => !RW.FINISHED_STATE[id]), [], "every provider-record item names the state that finishes it");
 });
 
 test("[S10] a fill is done with a price, a quantity above zero and a time; queued off-hours is in flight; queued while open is not done", () => {

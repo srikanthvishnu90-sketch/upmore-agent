@@ -19,9 +19,11 @@ Bugs this packet pins, each written as a failing test first (logged in `docs/pla
 - S11: an open order with no requested parameters ("wanted") was "resting with the requested parameters" without a
   single comparison. Now it is unknown until there is something to compare.
 
-Not changed, for the owner: a `provider_state` read-back names its own `expected_state`, so a read-back that expects
-"active" and reads "active" passes a cancellation (C73). The map has no expected state per item; adding one is a map
-change across the 24 provider_state items, not a code fix.
+Fixed in merge review (was left for the owner): a `provider_state` read-back named its own `expected_state`, so a
+read-back that expected "active" and read "active" passed a cancellation (C73). The module now holds the finished state
+of each of the 24 provider-record items (`FINISHED_STATE`, from each item's done_when: C73 cancelled, C141 locked, C170
+paid_off, ...); the read-back's expectation must be one of them, and an item with none on file is never done. S09 checks
+it and that every provider-record item in realworld.json has an entry; D09b plants the old trust back.
 
 <!-- results:start -->
 | # | Sub-capability | What it does | Its test | The break I proved | Status |
@@ -35,6 +37,7 @@ change across the 24 provider_state items, not a code fix.
 | S07 | Every needed field | an order id with no status lacks status | `S07` in tests/depth-REALWORLD.test.cjs | only the first needed field is checked | proven |
 | S08 | Numbers tie to the rows | $227.41 is not $227.40 | `S08` in tests/depth-REALWORLD.test.cjs | a dollar of rounding is let through | proven |
 | S09 | No next charge | cancelled with a next charge scheduled is not done | `S09` in tests/depth-REALWORLD.test.cjs | the scheduled next charge is not checked | proven |
+| S09 | The finished state is the item's | a read-back that expects active and reads active is not a cancellation | `S09` in tests/depth-REALWORLD.test.cjs | the read-back's own expected_state is trusted | proven |
 | S10 | A fill of something | a fill of 0 shares is not done | `S10` in tests/depth-REALWORLD.test.cjs | any number is a quantity, zero included (the bug found building this packet) | proven |
 | S11 | Compared to what was asked | an open order with nothing to compare is unknown | `S11` in tests/depth-REALWORLD.test.cjs | an open order with no requested parameters passes (the bug found building this packet) | proven |
 | S12 | Staged is not delivered | a staged Venmo send is not done | `S12` in tests/depth-REALWORLD.test.cjs | only drafted counts as not delivered | proven (also fails S17) |

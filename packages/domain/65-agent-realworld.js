@@ -38,6 +38,17 @@
       payout_tracked: { needs: ["reference"], means: "a claim reference exists and the payout row posted" },
       freeze_confirmations: { needs: ["bureaus"], means: "one confirmation per bureau, PIN stored in the vault and never present in the evidence" }
     };
+    // The state that finishes each provider-record item, from its own done_when (realworld.json). The read-back's
+    // expected_state is checked against this, never trusted: a record that "expects" active and reads active is not a
+    // cancellation (found in review of the REALWORLD depth packet). An item missing here is never done.
+    const FINISHED_STATE = {
+      C7: ["cancelled", "dispute_opened"], C73: ["cancelled"], C74: ["cancelled"], C75: ["trial_ended", "cancelled"],
+      C76: ["rate_lowered"], C80: ["cancelled"], C81: ["cancelled"], C83: ["cancelled"], C85: ["cancelled"],
+      C89: ["cancelled"], C114: ["plan_changed"], C115: ["closed"], C117: ["removed"], C125: ["plan_changed"],
+      C141: ["locked"], C145: ["locked"], C147: ["removed"], C152: ["closed"], C170: ["paid_off"], C174: ["closed"],
+      C188: ["active"], C191: ["cancelled"], C197: ["closed"], C199: ["closed"],
+    };
+    const stateWord = s => String(s || "").trim().toLowerCase().replace(/\bcanceled\b/g, "cancelled").replace(/[\s-]+/g, "_");
     const WRITE_KINDS = ["provider_state", "confirmation_ref", "fill", "resting_order", "credit_posted", "delivery_confirmed", "balance_delta", "enrollment_verified", "freeze_confirmations", "payout_tracked", "guided_human_step"];
 
     function load(map, catalog, registry) {
@@ -100,7 +111,10 @@
           }
           case "provider_state": {
             const rec = e.record; if (typeof rec !== "object" || !isStr(rec.state)) return out(null, "provider record unreadable");
-            if (rec.state !== e.expected_state) return out(false, `provider record reads ${rec.state}, not ${e.expected_state}`);
+            const finished = FINISHED_STATE[id];
+            if (!finished) return out(null, `no finished state is on file for ${id}`);
+            if (!finished.includes(stateWord(e.expected_state))) return out(false, `${id} is finished only when the provider record reads ${finished.join(" or ")}; the read-back expected ${e.expected_state}`);
+            if (stateWord(rec.state) !== stateWord(e.expected_state)) return out(false, `provider record reads ${rec.state}, not ${e.expected_state}`);
             if (e.next_charge_at !== undefined && e.next_charge_at !== null) return out(false, "a next charge is still scheduled");
             return out(true, `provider record reads ${rec.state}`, { read_at: rec.read_at || e.read_at || null });
           }
@@ -227,6 +241,6 @@
 
       return { describe, plan, proof, failure, statement, status, ids: () => [...items.keys()], item: get };
     }
-    return { load, KINDS, WRITE_KINDS, NOT_WIRED, money };
+    return { load, KINDS, WRITE_KINDS, NOT_WIRED, FINISHED_STATE, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = RealWorld;

@@ -77,3 +77,13 @@ said, what is true, and the source.
 - Now: the name has no colon; tests/ci-workflow.test.cjs fails on an unquoted ": " or " #" in a one-line name or run
   value (red on 63b70a2's file, green now), and the local bar parses every workflow with a YAML parser first. CI on the
   fixing commit is the check that covers the six.
+
+## A cancellation proof trusted the read-back's own expectation (2026-10-12, morning)
+
+- Said (65-agent-realworld.js, the C73 proof "the provider's own account page reads cancelled"): done only when the
+  provider's record reads the finished state.
+- True: the finished state came from the evidence itself (`expected_state`), so `{ expected_state: "active", record:
+  { state: "active" } }` proved a cancellation. Found by the REALWORLD packet's agent, left for the owner; it is a code
+  fix, not a product choice, so it is fixed.
+- Now: `FINISHED_STATE` names the finishing state of all 24 provider-record items from their done_when; any other
+  expectation is not done, an item without one is unknown, "canceled" equals "cancelled". Red first (S09), D09b proven.

@@ -1,9 +1,9 @@
 {
  "capability": "REALWORLD",
- "run_at": "2026-10-12T06:19:16.478Z",
+ "run_at": "2026-10-12T06:40:59.207Z",
  "baseline_all_green": true,
  "sub_capabilities": 20,
- "proven": 21,
+ "proven": 22,
  "problems": [],
  "rows": [
   {
@@ -104,6 +104,17 @@
    "title": "No next charge",
    "defect": "the scheduled next charge is not checked",
    "test": "cancelled with a next charge scheduled is not done",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S09",
+   "id": "D09b",
+   "title": "The finished state is the item's",
+   "defect": "the read-back's own expected_state is trusted",
+   "test": "a read-back that expects active and reads active is not a cancellation",
    "bites": true,
    "applied": true,
    "collateral": [],

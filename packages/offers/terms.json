@@ -600,6 +600,21 @@
    "methods": [
     "M1-CARD-10"
    ]
+  },
+  {
+   "id": "library.kanopy.price_cents",
+   "kind": "policy",
+   "value": 0,
+   "unit": "cents with a participating library card",
+   "note": "free with a participating library card; catalogs and monthly limits vary by library",
+   "source": {
+    "title": "Kanopy, Seattle Public Library",
+    "url": "https://calendar.spl.org/books-and-media/movies-and-tv/kanopy"
+   },
+   "checked_on": "2026-10-11",
+   "methods": [
+    "M3-SUBS-11"
+   ]
   }
  ]
 }

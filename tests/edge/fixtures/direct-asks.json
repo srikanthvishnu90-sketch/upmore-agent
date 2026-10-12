@@ -95,6 +95,10 @@
     ["chase offers: 10% back at kroger up to $5 expires in 5 days", "cardOffersReply"],
     ["which of these amex offers should i use?", "cardOffersReply"],
     ["activate all my chase offers", "cardOffersReply"],
-    ["how am i doing on my freedom flex 5% this quarter", "rewardsReply"]
+    ["how am i doing on my freedom flex 5% this quarter", "rewardsReply"],
+    ["From: Netflix <info@mailer.netflix.com>\nDate: Oct 10, 2026\nWe miss you! Come back for $6.99/month for 3 months, then $15.49/month. Offer ends Oct 31, 2026.", "winBackReply"],
+    ["is there a free alternative to my streaming services", "substitutesReply"],
+    ["should i buy generic tide", "substitutesReply"],
+    ["should i buy generic AAPL", null]
   ]
 }

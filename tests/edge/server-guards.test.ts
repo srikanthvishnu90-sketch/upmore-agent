@@ -17,6 +17,11 @@ Deno.test("advice is still refused, in words that are true today", () => {
   }
 });
 
+Deno.test("a store-brand swap is not a securities question; a market word keeps the refusal", () => {
+  for (const t of ["should i buy store brand cereal instead of name brand", "should i buy store brand instead of name brand", "should i buy generic tide", "should we buy the house brand paper towels", "should i buy generic ibuprofen", "should i buy generic TIDE"]) assertEquals(tryServerGuards(t), null, t);
+  for (const t of ["should i buy a generic index fund", "should i buy store brand stocks", "should i buy generic etfs", "should i buy generic AAPL or the name brand?", "should i buy the store brand of tesla", "should i buy generic NVDA", "should i buy off-brand amazon"]) assert(/can't recommend what to invest in/.test(tryServerGuards(t) || ""), t);
+});
+
 Deno.test("moving money between accounts is not built: said plainly, never 'Upmore never touches your accounts'", () => {
   const r = tryServerGuards("transfer my money for me");
   assert(r && /can't move money between your accounts yet, so nothing was moved/.test(r));

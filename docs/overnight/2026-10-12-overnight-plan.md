@@ -92,13 +92,16 @@ is filed, sent or paid by Upmore.
   per cancellation (one yes each).
 - [x] **D3. Rotation rule.** Three or more streaming services at once -> a rotation plan as a per-person toggle; every
   cancel or restart still asks its own yes.
-- [ ] **D4. Win-back watch.** After a cancel, offer emails from that service (fixtures) shown with the price and the
-  promo end date.
+- [x] **D4. Win-back watch.** After a cancel, offer emails from that service (fixtures) shown with the price and the
+  promo end date. (Pasted emails only: Upmore can't read an inbox. Sender checked against the cancel catalog's domain;
+  the regular price is the person's last charge before the cancellation; depth WINBACK 15/15.)
 - [x] **D5. Warehouse club math.** 12 months of club spend vs tier fees (Costco $65 / $130, 2% to $1,250): upgrade,
   downgrade or cancel, the break-even shown.
 - [x] **D6. Subscribe and Save stack.** Repeat Amazon staples -> five on one date for 15%, the extra saving shown.
-- [ ] **D7. Free substitutes.** Library streaming (Kanopy) and store-brand swaps from itemized receipts, as [Read]
-  suggestions with the dollar gap.
+- [x] **D7. Free substitutes.** Library streaming (Kanopy) and store-brand swaps from itemized receipts, as [Read]
+  suggestions with the dollar gap. (Kanopy's $0 is an offer-book term from M3-SUBS-11; no store-brand price is on file,
+  so swaps say the shelf tag has it and give no number; Hoopla is not on any method card and is said as not on file;
+  depth SUBSTITUTES 15/15.)
 
 ## Block E: the numbers (owner's capability list section 1, from the person's own rows)
 

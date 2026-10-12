@@ -637,9 +637,23 @@ export const LIMITS_ANSWER = [
   "- I can't see an account you haven't connected.",
 ].join("\n");
 
+// "should i buy store brand" is a grocery swap, not a security (overnight D7, free substitutes): with a store-brand word
+// and no market word, the securities refusal stands aside. Any market word ("generic index fund") keeps it.
+const GROCERY_BUY_RX = /\b(?:store[- ]?brands?|generics?|house brands?|name[- ]brands?|off[- ]brand|private[- ]labels?)\b/i;
+const MARKET_RX = /\b(?:stocks?|shares?|etfs?|crypto|bitcoin|funds?|bonds?|options?|tickers?|invest\w*|portfolio|ipo)\b/i;
+// The exemption also needs a household product named and no ticker-shaped word, so "should i buy generic AAPL" or
+// "should i buy the store brand of tesla" still get the refusal (merge review, 2026-10-12).
+const HOUSEHOLD_RX = /\b(?:cereal|detergent|laundry|soap|shampoo|conditioner|toothpaste|paper towels?|toilet paper|tissues?|diapers?|wipes|groceries|grocery|food|snacks?|chips|cookies|coffee|tea|milk|eggs|bread|butter|cheese|yogurt|pasta|sauce|soda|water|juice|meds?|medicine|pills?|vitamins?|ibuprofen|acetaminophen|allergy|tylenol|advil|tide|cheerios|cleaner|bleach|trash bags?|foil|batteries|razors?|deodorant|lotion|sunscreen|pet food|dog food|cat food|baby formula|formula|items?|products?|version|name[- ]brands?)\b/i;
+// A capitalized short word is ticker-shaped unless it is itself a household product ("TIDE", "ADVIL").
+function tickerish(message: string): boolean {
+  return [...message.matchAll(/(?:^|\s|\$)([A-Z]{2,5})(?=$|[\s?.,!])/g)].some((m) => !new RegExp(`^(?:${HOUSEHOLD_RX.source})$`, "i").test(m[1]));
+}
+function groceryBuy(message: string): boolean {
+  return GROCERY_BUY_RX.test(message) && !MARKET_RX.test(message) && HOUSEHOLD_RX.test(message) && !tickerish(message) && !/\b(?:apple|tesla|nvidia|amazon|google|microsoft|meta|netflix|company|companies)\b/i.test(message);
+}
 export function tryServerGuards(message: string): string | null {
   if (LIMITS_RX.test(message)) return LIMITS_ANSWER;
-  if (SECURITIES_RX.test(message)) return SECURITIES_REFUSAL;
+  if (SECURITIES_RX.test(message) && !groceryBuy(message)) return SECURITIES_REFUSAL;
   if (MONEY_MOVE_RX.test(message)) return MONEY_MOVE_REFUSAL;
   if (CREDIT_CARD_RX.test(message)) return CREDIT_CARD_REFUSAL;
   if (NEWS_RX.test(message)) return NEWS_BOUNDARY;

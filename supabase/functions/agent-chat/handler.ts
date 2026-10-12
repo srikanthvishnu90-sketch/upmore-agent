@@ -46,6 +46,8 @@ import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { cardOffersReply } from "./_shared/card_offers_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
+import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
+import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
@@ -278,7 +280,14 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       const today = new Date().toISOString().slice(0, 10);
       try {
         if (!direct) direct = await disputeReply(message, today, oldestFirst, { hasPhoto: imageBlocks.length > 0 });
+        // A pasted "come back" offer from a service they cancelled (_shared/win_back_answer.ts): the sender checked, the
+        // offer as the email states it, their own last charge beside it; resubscribing is theirs. Before the savings answer,
+        // whose streaming words an offer email also carries.
+        if (!direct) direct = await winBackReply(message, today, oldestFirst, () => readCancellations(supabase, user.id));
         if (!direct) direct = await subscriptionReply(message, today, oldestFirst);
+        // Free substitutes (_shared/substitutes_answer.ts): Kanopy next to a paid streaming charge, store-brand swaps from a
+        // pasted receipt; after the savings answer, which owns "cheaper tier" and perk asks.
+        if (!direct) direct = await substitutesReply(message, today, oldestFirst);
         if (!direct) direct = await findMoneyReply(message, today, oldestFirst);
         // Card-linked offers the person pastes (_shared/card_offers_answer.ts): before rewards, so "Chase Offers on my Freedom Flex: 5% back at X" is an offer list.
         if (!direct) direct = await cardOffersReply(message, today, readAccounts, oldestFirst);

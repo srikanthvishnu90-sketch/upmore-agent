@@ -13,6 +13,8 @@ import { priceDropReply } from "../../supabase/functions/agent-chat/_shared/pric
 import { moneyOwedReply } from "../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import { airlineReply } from "../../supabase/functions/agent-chat/_shared/airline_answer.ts";
 import { unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
+import { winBackReply } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
+import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 
 const NOW = new Date("2026-10-12T15:05:00Z"), TODAY = "2026-10-12";
 const ACCOUNTS = [
@@ -26,11 +28,17 @@ const TX = [
 ].map(([d, c, m], i) => ({ account_id: i % 2 ? "mock-ff" : "mock-chk", provider_transaction_id: `mock-${i}`, posted_on: d as string, amount_cents: c as number, merchant_raw: m as string, is_pending: false, is_transfer: false, currency: "USD", fetched_at: "2026-10-12T08:00:00Z" }));
 const oldest = async () => TX.slice().sort((a, b) => (a.posted_on < b.posted_on ? -1 : 1)) as any[];
 const accounts = async () => ACCOUNTS as any[];
+// A Netflix cancellation the cancel flow recorded (MOCK).
+const CANCELS = [{ merchant: "NETFLIX.COM", name: "Netflix", state: "cancelled", cancelled_at: Date.parse("2026-10-06T12:00:00Z"), reference: null }];
+const EMAIL = "From: Netflix <info@mailer.netflix.com>\nDate: Oct 10, 2026\nWe miss you! Come back to Netflix for $6.99/month for 3 months, then $15.99/month. Offer ends Nov 15, 2026.";
+const RECEIPT = "can i swap to store brands here?\nTIDE PODS 42CT 13.99\nCHEERIOS 18OZ 4.29\nBANANAS 1.29\nTOTAL 19.57";
 
 export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[] }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),
+  winBackReply: (m) => winBackReply(m, TODAY, oldest, async () => CANCELS),
   subscriptionReply: (m) => subscriptionReply(m, TODAY, oldest),
+  substitutesReply: (m) => substitutesReply(m, TODAY, oldest),
   findMoneyReply: (m) => findMoneyReply(m, TODAY, oldest),
   cardOffersReply: (m) => cardOffersReply(m, TODAY, accounts, oldest),
   rewardsReply: (m) => rewardsReply(m, TODAY, accounts, oldest),
@@ -54,6 +62,23 @@ const OWNER: [string, string | null][] = [
   ["forecast my cash for the next 90 days", "moneyReply"],
   ["dispute the $42 charge on oct 7", "disputeReply"],
   ["am i overpaying for streaming", "subscriptionReply"],
+  ["netflix is too much, is there a cheaper plan", "subscriptionReply"],
+  ["am i paying twice for netflix with my t-mobile plan", "subscriptionReply"],
+  ["is netflix free with my t-mobile plan", null],
+  ["should i switch peacock to annual", "subscriptionReply"],
+  [EMAIL, "winBackReply"],
+  ["is this worth it? " + EMAIL, "winBackReply"],
+  ["I cancelled peacock and now they're offering 50% off for 12 months, worth it?", "winBackReply"],
+  ["hulu wants me back for $2.99 a month, good deal?", "winBackReply"],
+  ["watch for win-back offers from hulu", "winBackReply"],
+  ["is there a free alternative to netflix", "substitutesReply"],
+  ["can i stream movies free with my library card", "substitutesReply"],
+  ["kanopy or hoopla?", "substitutesReply"],
+  [RECEIPT, "substitutesReply"],
+  ["cancel netflix", null],
+  ["undo, resubscribe me to netflix", null],
+  ["hulu free trial ends friday", null],
+  ["is there a generic version of my prescription", null],
   ["find me money", "findMoneyReply"],
   ["how am i doing on my freedom flex 5%", "rewardsReply"],
   ["my freedom flex 5% back at grocery stores this quarter, how am i doing", "rewardsReply"],

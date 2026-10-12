@@ -391,3 +391,19 @@ test('questions, reports of what already happened and maybes never reach a money
   const s=await R.handle('send sam 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(s.route,'send_money');
   const b=await R.handle('buy 2 VOO',{extract:worst('buy_security'),sessions:sessions(world()),parsers});assert.equal(b.route,'buy_security');
 });
+
+// Negations, money that came in, and someone else's advice are not orders (found 2026-10-12, worst-case model): "dont
+// send sam 40", "never mind sending sam 40", "i would never buy 2 VOO", "sam sent me 40", "my friend told me to buy 2 VOO",
+// "everyone is buying VOO". Each fell through to a card; now none reaches the model. A real order still routes, and a
+// request someone made of the person ("maya wants me to send her 40") is still theirs to act on.
+test('negations, money received and relayed advice never become a card; a request made of the person still routes',async()=>{
+  let calls=0;
+  const worst=intent=>async raw=>{calls++;const m=/(\d+)/.exec(raw);return intent==='send_money'?{intent,amount_span:m?m[1]:undefined,amount_cents:m?Number(m[1])*100:undefined,recipient_span:'sam'}:{intent,quantity:m?Number(m[1]):null,unit:m?'shares':null,amount_span:m?m[1]:undefined,instrument_span:'VOO'};};
+  for(const [t,intent] of [['dont send sam 40','send_money'],['do not send sam 40','send_money'],['never mind sending sam 40','send_money'],['stop, dont pay sam 40','send_money'],['i dont want to send sam 40','send_money'],['sam sent me 40','send_money'],['sam paid me 40 back','send_money'],['my friend said send sam 40','send_money'],['dont buy 2 VOO','buy_security'],['do not sell 2 VOO','sell_security'],['i would never buy 2 VOO','buy_security'],['not buying 2 VOO','buy_security'],['my friend told me to buy 2 VOO','buy_security'],['everyone is buying 2 VOO','buy_security']]){
+    const w=world();const r=await R.handle(t,{extract:worst(intent),sessions:sessions(w),parsers});
+    assert.equal(r.route,'fallthrough',t);assert.equal(w.writes.length,0,t);
+  }
+  assert.equal(calls,0);
+  const m=await R.handle('maya wants me to send her 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(m.route,'send_money');
+  const s=await R.handle('send sam 40',{extract:worst('send_money'),sessions:sessions(world()),parsers});assert.equal(s.route,'send_money');
+});

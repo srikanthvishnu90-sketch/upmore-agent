@@ -83,7 +83,15 @@
       // "what's the price of gas" is not GAS.
       const qm0 = !/\b(buy|sell|order|should|portfolio|holdings?)\b/i.test(t) ? QUOTE.exec(t) : null;
       const qm = qm0 && (/\b(?:trading at|going for|selling for|stock|shares?|per share)\b/i.test(t) || /^[A-Z][A-Z.]{0,5}$/.test(String(qm0[1] || qm0[2] || qm0[3]))) ? qm0 : null;
-      const action = qm ? "quote"
+      // "How much did I make on NVDA", "am I up on VOO", "my gain on PLTR" (megadoc G03): the position's own cost basis.
+      const GAIN = /\b(?:how much (?:did|have) i (?:make|made|lose|lost|gain(?:ed)?|earn(?:ed)?) (?:on|from|with|in) ([a-z][a-z.]{0,5})|am i (?:up|down)(?: or (?:up|down))? (?:on|in) ([a-z][a-z.]{0,5})|(?:what'?s |what is )?my (?:gain|profit|loss|return|p&l|p ?and ?l) (?:on|from|in) ([a-z][a-z.]{0,5}))\b(?:\s+(?:stock|shares?|so far|overall|total))*\s*[?.!]*\s*$/i;
+      // Never a ticker: a month, a pronoun, a common money word ("how much did I make in August", "on my house").
+      const NOT_TICKER = /^(?:my|the|it|this|that|these|those|a|an|all|total|cash|rent|food|gas|work|me|you|him|her|them|us|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december|today|week|month|year|uber|lyft|ebay|etsy|tips|crypto)$/i;
+      const gm0 = !/\b(buy|sell|order|should)\b/i.test(t) ? GAIN.exec(t) : null;
+      const gm = gm0 && !NOT_TICKER.test(String(gm0[1] || gm0[2] || gm0[3]).replace(/\.$/, "")) ? gm0 : null;
+      const gain_symbol = gm ? String(gm[1] || gm[2] || gm[3]).replace(/\.$/, "") : null;
+      const action = gm ? "gain"
+        : qm ? "quote"
         : STATUS.test(t) && !/\bcancel\b/i.test(t) ? "status"
         : /\bcancel\b[\w\s$.,'%-]{0,40}\border\b|\bcancel\s+(?:my|the|that)\s+(?:\w+\s+)?(?:limit|stop|buy|sell|trailing)\b/i.test(t) ? "cancel"
         : /\b(change|move|update|raise|lower|modify|bump|adjust)\b[\w\s$.,'%-]{0,40}\b(limit|stop|order|trail|trailing)\b/i.test(t) ? "modify"
@@ -115,7 +123,7 @@
       const bareDollars = !!amount.ambiguous && terms.type === "market" && side === "buy";
       const ambiguous = bareDollars || (amount.ambiguous && terms.type !== "market") ? null : amount.ambiguous || null;
       const quantity = amount.quantity || (amount.ambiguous && terms.type !== "market" ? amount.ambiguous : null);
-      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query: quote_symbol || query, account: acct ? acct[1].trim() : null };
+      return { text: t, side, asset, action, type: terms.type, limit_cents: limit ? terms.limit_cents : null, stop_cents: terms.stop_cents, stop_pct_below: terms.stop_pct_below, trail_percent: terms.trail_percent, trail_cents: terms.trail_cents, time_in_force: terms.time_in_force, expiry_words: terms.expiry_words, another, notional_cents: amount.notional_cents || (bareDollars ? amount.ambiguous * 100 : null), all_in: !!amount.all_in && side === "buy", quantity, fraction, ambiguous_number: ambiguous, vague: !!amount.vague && !fraction, zero: !!amount.zero, query: gain_symbol || quote_symbol || query, account: acct ? acct[1].trim() : null };
     }
 
     // S02: the symbol resolves against real instruments the caller supplies ({symbol, name, type, tradable_at: [account ids] | undefined}); a look-alike one edit away asks.
@@ -300,6 +308,7 @@
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "status") return orderStatus(parsed.text);
         if (parsed.action === "quote") { const c = connectStop(); if (c) return c; return quoteOnly(parsed.query); }
+        if (parsed.action === "gain") { const c = connectStop(); if (c) return c; return gainOn(parsed.query); }
         if (parsed.action === "portfolio") return portfolio(parsed.text);
         if (parsed.action === "cancel" || parsed.action === "modify") return manage(parsed);
         // Scope first: crypto belongs to another venue; say so and stage nothing.
@@ -612,6 +621,24 @@
         if (!q || !q.value || !Number.isSafeInteger(q.value.price_cents)) return ask("no_quote", `I have no quote for ${hit.symbol} right now. Ask again in a moment.`);
         const age = Math.round((now - q.as_of) / 60000);
         return say("answer", `${hit.symbol}${hit.name ? ` (${hit.name})` : ""}: ${money(q.value.price_cents)} (${q.source}, ${hhmm(q.as_of)}${age > 15 ? `, ${age} minutes old` : ""}). That's the price a buy would pay right now; it moves while the market is open.`, { symbol: hit.symbol });
+      }
+
+      // The gain on a holding (megadoc G03): the shares still held, their cost from the broker's average entry price, and
+      // their value now, from the same position read. Shares sold earlier and dividends aren't in that read, so they are
+      // said as not counted; a position the read gives no cost or value for is said, never estimated.
+      async function gainOn(query) {
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        const a = (accts.value || [])[0] || {};
+        const h = await readOr("holdings", { account: a.id });
+        if (!h) return ask("holdings_unreadable", "I can't read your positions right now.");
+        const sym = String(query || "").toUpperCase(), rows = (h.value || []).filter(x => x && x.symbol && (Number(x.qty !== undefined ? x.qty : x.quantity) || 0) > 0);
+        const x = rows.find(r => String(r.symbol).toUpperCase() === sym);
+        if (!x) return say("answer", `You don't hold ${sym} in ${a.name || "your account"} (${h.source}, as of ${hhmm(h.as_of)}), so there's no open gain or loss on it here.${rows.length ? ` You hold ${rows.slice(0, 5).map(r => r.symbol).join(", ")}${rows.length > 5 ? ` and ${rows.length - 5} more` : ""}.` : ""} Shares sold earlier aren't in this read.`);
+        const n = Number(x.qty !== undefined ? x.qty : x.quantity);
+        if (!Number.isSafeInteger(x.avg_entry_cents) || !Number.isSafeInteger(x.market_value_cents)) return say("answer", `I can't work out the gain on ${sym}: ${a.name || "your account"} doesn't give ${!Number.isSafeInteger(x.avg_entry_cents) ? "a cost basis" : "a current value"} for it (${h.source}, as of ${hhmm(h.as_of)}). Your brokerage app's position page shows it.`);
+        const cost = Math.round(n * x.avg_entry_cents), diff = x.market_value_cents - cost, pct = cost > 0 ? Math.round((diff / cost) * 1000) / 10 : null;
+        return say("answer", `${sym}: ${diff >= 0 ? "up" : "down"} ${money(Math.abs(diff))}${pct !== null ? ` (${diff >= 0 ? "+" : "-"}${Math.abs(pct)}%)` : ""} on the ${qty(n)} shares you hold. They cost ${money(cost)} (average ${money(x.avg_entry_cents)} a share, per ${h.source}) and are worth ${money(x.market_value_cents)} now (as of ${hhmm(h.as_of)}). That's unrealized: shares you sold earlier and dividends aren't in this read.`, { symbol: sym });
       }
 
       async function recheck(ord) {

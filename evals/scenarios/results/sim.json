@@ -931,9 +931,9 @@
   {
    "id": "G03",
    "typed": "how much did I make on NVDA",
-   "flow": null,
-   "outcome": "needs_model",
-   "reply": null,
+   "flow": "trade",
+   "outcome": "answer",
+   "reply": "You don't hold NVDA in your Alpaca account (****4417) (your Alpaca account, as of 19:14 UTC), so there's no open gain or loss on it here. You hold PLTR. Shares sold earlier aren't in this read.",
    "executed": false,
    "mock_orders": 0
   },

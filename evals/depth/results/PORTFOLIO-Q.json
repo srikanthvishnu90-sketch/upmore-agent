@@ -1,9 +1,9 @@
 {
  "capability": "PORTFOLIO-Q",
- "run_at": "2026-10-12T10:50:06.516Z",
+ "run_at": "2026-10-12T10:55:24.915Z",
  "baseline_all_green": true,
- "sub_capabilities": 20,
- "proven": 20,
+ "sub_capabilities": 24,
+ "proven": 24,
  "problems": [],
  "rows": [
   {
@@ -242,6 +242,52 @@
    "title": "A symbol-less asset is no instrument",
    "defect": "the asset record is trusted without a symbol",
    "test": "nothing quoted for a record without a symbol",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S21",
+   "id": "D21",
+   "title": "Cost from shares times average",
+   "defect": "the average is taken as the whole cost",
+   "test": "2 shares at $450 cost $900",
+   "bites": true,
+   "applied": true,
+   "collateral": [
+    "S22"
+   ],
+   "status": "proven"
+  },
+  {
+   "sub": "S22",
+   "id": "D22",
+   "title": "A loss is down",
+   "defect": "every result is said as up",
+   "test": "PLTR down $164.65",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S23",
+   "id": "D23",
+   "title": "No basis: said",
+   "defect": "a missing basis is taken as zero",
+   "test": "F has no cost basis",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S24",
+   "id": "D24",
+   "title": "Never a month",
+   "defect": "the stoplist is dropped",
+   "test": "in august is not a ticker",
    "bites": true,
    "applied": true,
    "collateral": [],

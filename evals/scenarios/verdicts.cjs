@@ -103,7 +103,8 @@ set("F14", "BUILT", "a second yes does nothing ('Already done')", "tests/depth-P
 set("G16", "MODEL", "the chat model with the brokerage read; graded live");
 set("G01", "BUILT", "the live portfolio read through the trade flow with no model call: each position with its value, buying power, the source and as-of; no brokerage connected gets the connect prompt", "tests/router.test.cjs");
 set("G06", "BUILT", "the biggest position by the read's own market value and its share of the positions' value, then the portfolio; a holding the read gives no value for is said and nothing is ranked", "tests/router.test.cjs");
-set("G02 G03 G05 G07 G10 G11 G14 G15", "NOT_BUILT", "performance, cost basis, sector weights, movers, tax estimates, benchmarks and dividends are not built");
+set("G02 G05 G07 G10 G11 G14 G15", "NOT_BUILT", "performance, sector weights, movers, tax estimates, benchmarks and dividends are not built");
+set("G03", "LIMITED", "the unrealized gain on the shares held, from the broker's average entry price against their value now, to the cent and in percent, through the trade flow; realized gains on shares sold earlier and dividends are not read, and that is said; no basis in the read is said", "tests/router.test.cjs");
 set("G04 G13", "DIVERGES", "shows the live holdings and buying power; no movers, report or reasons");
 set("G08", "BUILT", "no advice; offers the person's own holdings", "tests/depth-INV-011.test.cjs");
 set("G09", "BUILT", "the broker's own quote with its source and time, said as what a buy pays, through the trade flow with no model call; nothing staged; an unknown ticker or no quote is said; a word is a ticker only with stock words or in capitals", "tests/router.test.cjs");

@@ -306,3 +306,15 @@ test('a quote question reads the broker quote and stages nothing; an unknown tic
   assert.equal(w.writes.length,0,'a quote stages and places nothing');
   assert.notEqual((await R.handle("what's the price of gas",{extract:none,sessions:ss,parsers})).route,'manage_order');
 });
+
+// Megadoc G03 "how much did I make on NVDA": the held shares' cost from the broker's average entry against their value
+// now; a month or a common word after "make in/on" is never a ticker and never reaches an order.
+test('a gain question reads the position\'s cost basis; "how much did I make in August" never becomes an order',async()=>{
+  const w=world();const base=w.conn.read;
+  w.conn.read=async(k,p)=>k==='holdings'?{value:[{symbol:'VOO',qty:2,avg_entry_cents:45000,market_value_cents:102420}],source:'Example Broker',as_of:w.clock.now}:base(k,p);
+  const ss=sessions(w);const none=async()=>{throw new Error('no model call for a gain question');};
+  const a=await R.handle('how much did I make on VOO',{extract:none,sessions:ss,parsers});
+  assert.match(a.result.text,/^VOO: up \$124\.20 \(\+13\.8%\) on the 2 shares you hold\. They cost \$900\.00 \(average \$450\.00 a share, per Example Broker\) and are worth \$1,024\.20 now \(as of \d\d:\d\d UTC\)\. That's unrealized: shares you sold earlier and dividends aren't in this read\.$/);
+  for(const q of ['how much did i make in august','how much did i make on my house','how much did i make last month']){const r=await R.handle(q,{extract:async()=>({intent:'other'}),sessions:ss,parsers});assert.notEqual(r.route,'manage_order',q);assert.ok(!r.result||!/how much\?/i.test(r.result.text||''),q);}
+  assert.equal(w.writes.length,0);
+});

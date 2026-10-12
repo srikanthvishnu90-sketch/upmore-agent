@@ -156,3 +156,23 @@ test("[S20] an asset record without a symbol is no instrument: nothing is quoted
   assert.doesNotMatch(b.text, /undefined/i);
   assert.equal(w.writes.length, 0);
 });
+
+const LOTS = [{ symbol: "VOO", qty: 2, avg_entry_cents: 45000, market_value_cents: 102420 }, { symbol: "PLTR", qty: 18.5, avg_entry_cents: 5000, market_value_cents: 76035 }, { symbol: "F", qty: 10, market_value_cents: 12000 }];
+
+test("[S21] a gain: the held shares' cost from the broker's average, their value now, up or down to the cent and in percent", async () => {
+  assert.equal(await say(world(LOTS), "how much did I make on VOO"), "VOO: up $124.20 (+13.8%) on the 2 shares you hold. They cost $900.00 (average $450.00 a share, per Mock Broker) and are worth $1,024.20 now (as of 14:00 UTC). That's unrealized: shares you sold earlier and dividends aren't in this read.");
+});
+
+test("[S22] a loss is said as down", async () => {
+  assert.match(await say(world(LOTS), "am i up on PLTR"), /^PLTR: down \$164\.65 \(-17\.8%\) on the 18\.5 shares you hold\. They cost \$925\.00 /);
+});
+
+test("[S23] not held, or no cost basis in the read: said, never estimated", async () => {
+  assert.match(await say(world(LOTS), "how much did I make on NVDA"), /^You don't hold NVDA in Mock brokerage \(Mock Broker, as of 14:00 UTC\), so there's no open gain or loss on it here\. You hold VOO, PLTR, F\. Shares sold earlier aren't in this read\.$/);
+  assert.match(await say(world(LOTS), "my gain on F"), /^I can't work out the gain on F: Mock brokerage doesn't give a cost basis for it /);
+});
+
+test("[S24] a month or a common word is never a ticker for a gain", () => {
+  for (const m of ["how much did i make in august", "how much did i make on my house", "how much did i make on uber", "how much did i make this year"]) assert.notEqual(T.parse(m).action, "gain", m);
+  assert.equal(T.parse("how much did I make on NVDA").action, "gain");
+});

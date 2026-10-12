@@ -1,4 +1,4 @@
-# PORTFOLIO-Q: portfolio questions, quotes and order status in the trade flow (megadoc G01, G06, G09, E16, E18)
+# PORTFOLIO-Q: portfolio questions, quotes and order status in the trade flow (megadoc G01, G03, G06, G09, E16, E18)
 
 `packages/domain/66-agent-trade.js` answers "what do I own", "what's my biggest (or smallest) position", "what's my order
 status" and "did my buy fill?" from the broker's own reads, with no model call and nothing placed. The portfolio lists
@@ -10,7 +10,10 @@ Order status reads the latest order this chat placed, or the one named by its ti
 reason), replaced; a failed read says the last status read; none placed says so and points to the brokerage app.
 "What's NVDA trading at" (G09) gives the broker's own quote with its source and time, said as what a buy pays; a ticker
 is read only with stock words ("trading at", "stock", "a share") or in capitals ("price of gas" is not GAS); an unknown
-ticker, no quote, or an asset record without a symbol is said, never a number.
+ticker, no quote, or an asset record without a symbol is said, never a number. "How much did I make on NVDA" (G03)
+gives the held shares' gain from the broker's average entry price against their value now, up or down to the cent and in
+percent, said as unrealized (shares sold earlier and dividends aren't in the read); not held or no basis is said; a month
+or a common word ("in August", "on my house") is never a ticker.
 
 Where it runs: the trade flow through the router (`69-agent-router.js`: the gate, the question rule and the order words
 let these questions reach it). Router tests 17 and 18 in `tests/router.test.cjs`.
@@ -43,4 +46,8 @@ first "said once" check was a substring match that dropped a source ("Mock Broke
 | S18 | No quote is said | no quote for VOO | `S18` in tests/depth-PORTFOLIO-Q.test.cjs | a missing quote reads as $0.00 | proven |
 | S19 | Stock words or capitals | price of gas is not GAS | `S19` in tests/depth-PORTFOLIO-Q.test.cjs | any word after 'price of' is a ticker | proven |
 | S20 | A symbol-less asset is no instrument | nothing quoted for a record without a symbol | `S20` in tests/depth-PORTFOLIO-Q.test.cjs | the asset record is trusted without a symbol | proven |
+| S21 | Cost from shares times average | 2 shares at $450 cost $900 | `S21` in tests/depth-PORTFOLIO-Q.test.cjs | the average is taken as the whole cost | proven (also fails S22) |
+| S22 | A loss is down | PLTR down $164.65 | `S22` in tests/depth-PORTFOLIO-Q.test.cjs | every result is said as up | proven |
+| S23 | No basis: said | F has no cost basis | `S23` in tests/depth-PORTFOLIO-Q.test.cjs | a missing basis is taken as zero | proven |
+| S24 | Never a month | in august is not a ticker | `S24` in tests/depth-PORTFOLIO-Q.test.cjs | the stoplist is dropped | proven |
 <!-- results:end -->

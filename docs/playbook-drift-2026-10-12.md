@@ -519,3 +519,15 @@ pins that behavior, so they are left as they are and noted in their doc. The off
 medicare.gov, healthcare.gov) could not be opened from the build environment (DNS); every date in the dated file was
 checked against the official site's own search result text, and says so in `how_checked`. Re-check on the pages
 themselves.
+
+
+## Reminders: "remind me" had no way to be set (2026-10-12, megadoc D11)
+
+| Doc | Said | True now | Source |
+| --- | --- | --- | --- |
+| `evals/scenarios/verdicts.cjs` D11 (and `docs/scenarios/README.md`) | MODEL: "the handler's reminder path (not the flow router); graded live" | The handler's reminder path only sets reminders tied to a route id; every other "remind me ..." got "I can set reminders tied to a specific route ... Which route is this reminder for?" (`agent-chat/handler.ts`, isGenericReminderRequest), so "remind me to pay rent on the 28th" could never be set, by the model or otherwise. Built: `103-reminders.js` through the settings path; D11 is BUILT with `tests/edge/reminders.test.ts`. | handler.ts lines before the fast path; `tests/edge/reminders.test.ts` |
+| `_shared/proactive.ts` watch command | "Tell me when" watches are restated and saved | "Remind me when Netflix charges me" fell to the same route question; it is now read as a watch. The same watch said twice was saved twice and said twice each time it fired; now "I'm already watching that". | `tests/edge/reminders.test.ts` |
+| `_shared/proactive.ts` store users() | The hourly run reads people with a linked account or rent turned on | A person with only a reminder (nothing linked) would never be read; users() now also reads settings rows that hold a reminder. | same |
+
+Found, not fixed (for the owner): the legacy route-reminder reply still answers any "remind me" that the new path leaves
+(a route id, or something it can't read as a reminder); it is the route path's and is left as it is.

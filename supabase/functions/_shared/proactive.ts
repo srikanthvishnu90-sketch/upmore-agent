@@ -26,7 +26,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -127,8 +127,15 @@ export function plan(input: ProactiveInput, now: number) {
     for (const m of d.messages) { sentKeys.add(m.key); out.messages.push({ key: m.key, kind: m.kind, text: m.text, capability_id: m.capability_id, urgent: false, cadence: m.cadence, source: m.source, as_of: m.as_of }); }
     out.suppressed.push(...d.suppressed);
   };
+  // Reminders the person set in chat ("remind me to pay rent on the 28th", packages/domain/103-reminders.js): their own
+  // words on the day they asked for, from 9 a.m. their time, as a watch (asked for, so outside the budget and through
+  // quiet hours from 9 a.m.), once each by its key. No number and no account: the source is their own message.
+  for (const r of (Reminders as any).due(s.watches || [], now, tz, [...sentKeys])) {
+    sentKeys.add(r.key);
+    out.messages.push({ key: r.key, kind: "watch", text: r.text, capability_id: "ALRT-010", urgent: false, cadence: true, source: "the reminder you set in chat", as_of: new Date(now).toISOString() });
+  }
   // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs,
-  // and so are the dates they told Upmore about; a public date needs no account either.
+  // and so are the dates they told Upmore about and their reminders; a public date needs no account either.
   if (!accounts.length) { deadlinesLater(); rentLater(); return out; }
   const prov: any = (AgentLedger as any).provenance(accounts, transactions, today);
   const cite = ` (${prov.source}, as of ${asOfText(prov.as_of, tz)})`;
@@ -142,7 +149,7 @@ export function plan(input: ProactiveInput, now: number) {
 
   // The person's own watches and budgets are theirs, not "alerts": they come through with alerts off, as "stop alerts"
   // promises ("Anything you asked me to watch still comes through").
-  const plainWatches = (s.watches || []).filter((w: any) => !(Budgets as any).isBudget(w) && !(Deadlines as any).isFact(w));
+  const plainWatches = (s.watches || []).filter((w: any) => !sticky(w));
   // Event alerts and findings, in the loop's decision order: safety, the person's watches, then findings within budget.
   if (!s.alerts && plainWatches.length) {
     for (const x of (AgentAlerts as any).evaluateWatches(plainWatches, { today, transactions, accounts })) push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
@@ -361,13 +368,19 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // exactly; dates only.
   const dc: any = (Deadlines as any).command(t, s.watches || [], now, zone);
   if (dc) return { settings: dc.watches ? { watches: capWatches(dc.watches) } : {}, reply: dc.reply };
+  // Reminders (megadoc D11; packages/domain/103-reminders.js): "remind me to pay rent on the 28th", "... every month",
+  // "show my reminders", "stop the reminder to pay rent". Restated with the day; a reminder only, nothing paid or moved.
+  // A route reminder ("... for R0119") and a free trial with its end date are left to their own paths.
+  const rc: any = (Reminders as any).command(t, s.watches || [], now, zone);
+  if (rc) return { settings: rc.watches ? { watches: capWatches(rc.watches) } : {}, reply: rc.reply };
   // "Tell me when free trials are about to convert" (megadoc J15): said as it is, nothing saved. plan() asks "Should I
   // cancel it for you?" before a trial the person tracks in the app bills (save_subscriptions, billing "trial" with its
   // end date, within the 7 days before; AgentMonitors.trialsConverting), with alerts on, for people the hourly run
   // reads (a linked bank or card). Trials are never found on their own: none shows in transactions before it charges.
   // A named trial with a date ("Hulu free trial ends Oct 20, remind me") is the chat trial tracker's; this leaves it.
   if (TRIAL_ALERT_ASK.test(t) && !/\d/.test(t)) return { settings: {}, reply: trialAlertReply(s.alerts !== false) };
-  if ((m = /^\s*(?:tell me|let me know|alert me|text me|warn me|ping me)\s+(?:when|if)\s+(.+?)\s*[.!]?$/i.exec(t))) {
+  // "Remind me when Netflix charges me" is a watch too (Reminders leaves "remind me when/if" to it).
+  if ((m = /^\s*(?:tell me|let me know|alert me|text me|warn me|ping me|remind me)\s+(?:when|if)\s+(.+?)\s*[.!]?$/i.exec(t))) {
     const w: any = (AgentAlerts as any).parseWatch(t, now); // it strips the "tell me when" itself
     // "Tell me when my rent is due" is usually a question: an unreadable "tell me when" goes to the normal chat; an
     // explicit "alert me / text me / ping me" gets the honest list of what can be watched.
@@ -376,6 +389,8 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
     // The table refuses any run of 9 or more digits in watches (no identity numbers): the id carries the time in base 36
     // and created_at is an ISO string. A millisecond timestamp here made every chat-set watch fail to save.
     const watch = Object.assign({}, w.watch, { id: `w${(s.watches || []).length + 1}-${now.toString(36)}`, created_at: new Date(now).toISOString(), created_on: localClock(now, zone).date });
+    // The same watch twice would say the same thing twice ("tell me when" and then "remind me when Netflix charges me").
+    if ((s.watches || []).some((x: any) => !sticky(x) && x.status !== "revoked" && AgentAlerts.restateWatch(x) === AgentAlerts.restateWatch(watch))) return { settings: {}, reply: `I'm already watching that: ${AgentAlerts.restateWatch(watch).replace(/^I'll tell you /, "")} Nothing changed.` };
     return { settings: { watches: capWatches((s.watches || []).concat([watch])) }, reply: AgentAlerts.restateWatch(watch) + " Say \"show my alerts\" to see them." };
   }
   if ((m = /^\s*every (day|morning|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)[, ]+(?:tell me|send me|show me|give me)(?: my| the)? (.+?)(?: spend(?:ing)?| spent)?\s*[.!]?$/i.exec(t))) {
@@ -393,21 +408,21 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
     for (const i of hit) ctl.instructions.revoke(i.id, now);
     return { settings: { control: JSON.parse(JSON.stringify(ctl.state)) }, reply: `Stopped: ${hit.map((i: any) => i.text.toLowerCase()).join(", ")}.` };
   }
-  if (/^\s*(?:show|list|what are)(?: me)? my (?:alerts|watches|reports|notifications)\b|^\s*what (?:will|do) you (?:tell|send|alert) me\b/i.test(t)) return { settings: {}, reply: describe(s) };
+  if (/^\s*(?:show|list|what are)(?: me)? my (?:alerts|watches|reports|notifications)\b|^\s*what (?:will|do) you (?:tell|send|alert) me\b/i.test(t)) return { settings: {}, reply: describe(s, now) };
   return null;
 }
 const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
-// The table holds at most 20 watches. Budgets (one per category, at most 8) and deadline facts (one per kind, at most 6)
-// are never pushed out by a new watch: the oldest plain watches go first.
+// The table holds at most 20 watches. Budgets (one per category, at most 8), deadline facts (one per kind, at most 6) and
+// reminders (at most 5) are never pushed out by a new watch: the oldest plain watches go first, and a new one always fits.
 export const MAX_WATCHES = 20;
-const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w);
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w);
 export function capWatches(list: any[]): any[] {
   const all = list || [], keep = all.filter(sticky);
   const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));
   const kept = new Set([...keep, ...plain.slice(Math.max(0, plain.length - room))]);
   return all.filter((w: any) => kept.has(w));
 }
-export function describe(s0: Partial<ProactiveSettings> | null) {
+export function describe(s0: Partial<ProactiveSettings> | null, now: number = Date.now()) {
   const s = Object.assign({}, DEFAULT_SETTINGS, s0 || {}), parts: string[] = [];
   parts.push(s.alerts ? "Alerts are on (low balance ahead, large or unusual charges, price rises, deposits, fees), at most one unrequested note a day." : "Alerts are off.");
   const plain = (s.watches || []).filter((w: any) => !sticky(w));
@@ -416,6 +431,8 @@ export function describe(s0: Partial<ProactiveSettings> | null) {
   if (budgetLine) parts.push(budgetLine);
   const deadlineLine = (Deadlines as any).describe(s.watches || []);
   if (deadlineLine) parts.push(deadlineLine);
+  const reminderLine = (Reminders as any).describe(s.watches || [], now, s.time_zone);
+  if (reminderLine) parts.push(reminderLine);
   const ruleLine = (CategoryRules as any).describe(s.category_rules || []);
   if (ruleLine) parts.push(ruleLine);
   const reports = s.control && Array.isArray(s.control.instructions) ? s.control.instructions.filter((i: any) => i.status === "active") : [];
@@ -460,7 +477,11 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
       // People with rent turned on are offered its card even with nothing linked; an unreadable table only skips them.
       const rent = await admin.from("standing_payments").select("user_id").eq("status", "active").limit(5000);
       if (rent.error) console.error("[proactive] standing payments unavailable");
-      return [...new Set([...(r.data || []), ...(rent.error ? [] : rent.data || [])].map((x: any) => x.user_id))].slice(0, limit) as string[];
+      // So are people with a reminder set in chat (a reminder needs no account); an unreadable table only skips them.
+      const set = await admin.from("agent_proactive_settings").select("user_id,watches").limit(5000);
+      if (set.error) console.error("[proactive] settings unavailable");
+      const reminded = set.error ? [] : (set.data || []).filter((x: any) => Array.isArray(x.watches) && x.watches.some((w: any) => (Reminders as any).isReminder(w)));
+      return [...new Set([...(r.data || []), ...(rent.error ? [] : rent.data || []), ...reminded].map((x: any) => x.user_id))].slice(0, limit) as string[];
     },
     async load(userId) {
       const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);

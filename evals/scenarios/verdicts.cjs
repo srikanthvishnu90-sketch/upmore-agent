@@ -69,7 +69,7 @@ set("D13", "NOT_BUILT", "a rent shortfall plan (balance vs rent due) is not buil
 set("D05", "NOT_BUILT", "saved landlord payee change from text: never taken from text; a payee change is a new rent setup card the person confirms");
 set("D08", "NOT_BUILT", "IOU log; says so and moves nothing", "tests/edge/megadoc-sim.test.ts");
 set("D09 D10", "NOT_BUILT", "IOU log");
-set("D11", "MODEL", "the handler's reminder path (not the flow router); graded live");
+set("D11", "BUILT", "the settings path saves a reminder from the person's words (Reminders, 103-reminders.js) restated with the day and 9 a.m. in their time zone, and that nothing is paid or moved; the hourly run says it on that day once, monthly on the 28th when asked; no day said is asked, never guessed", "tests/edge/reminders.test.ts");
 set("D15", "NOT_BUILT", "alert rules");
 // E. trades
 set("E01 E02 E05 E07 E14 E19 F01 F02", "LIMITED", CAP, "tests/depth-BROKER-CONNECT.test.cjs");

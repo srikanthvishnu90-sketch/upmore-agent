@@ -101,7 +101,7 @@
     // A name typed all in lower case gets capitals; one typed with its own capitals ("REI", "eBay") is kept as typed.
     const titleCase = s => (/[A-Z]/.test(String(s)) ? String(s) : String(s).replace(/(^|[\s\-&.])([a-z])/g, (_, a, b) => a + b.toUpperCase()));
     // "Tell me when", "let me know if", "ping me whenever": the preamble is stripped so the condition is what gets parsed.
-    const PREAMBLE = /^(?:please )?(?:(?:tell|let|ping|warn|notify|alert|text|message) me(?: know)?|alert|watch)\s*(?:about|for)?\s*(?:when|if|whenever|once)?\s*/i;
+    const PREAMBLE = /^(?:please )?(?:(?:tell|let|ping|warn|notify|alert|text|message|remind) me(?: know)?|alert|watch)\s*(?:about|for)?\s*(?:when|if|whenever|once)?\s*/i;
     const toCents = s => Math.round(Number(String(s).replace(/,/g, "")) * 100);
     function parseWatch(text, now) {
       const t = String(text || "").trim(), cond = t.replace(PREAMBLE, "").replace(/^(?:when|if|whenever)\s+/i, "").trim();

@@ -257,6 +257,13 @@
     ["when is the filing deadline for my llc", null],
     ["i'm on an aca plan", null],
     ["my fsa ends june 30", null],
-    ["deadline", null]
+    ["deadline", null],
+    ["remind me to pay rent on the 28th", null],
+    ["remind me to pay rent on the 28th every month", null],
+    ["can you remind me to check my refund in 3 days", null],
+    ["remind me about my car insurance on 11/3", null],
+    ["remind me to cancel netflix before the 20th", null],
+    ["show my reminders", null],
+    ["stop the reminder to pay rent", null]
   ]
 }

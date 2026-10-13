@@ -1,6 +1,52 @@
 {
-  "note": "Editable data file, not a prompt. Domains are the firms' public corporate domains, used only for per-domain throttling and email pattern shape \u2014 never as a claim an address exists.",
+  "note": "Editable data file, not a prompt. Domains are the firms' public corporate domains, used only for per-domain throttling and email pattern shape — never as a claim an address exists.",
   "sets": {
+    "academic_medical": {
+      "label": "Academic medical centers",
+      "industry": "healthcare",
+      "firms": [
+        {
+          "name": "Mayo Clinic",
+          "domain": "mayoclinic.org"
+        },
+        {
+          "name": "Cleveland Clinic",
+          "domain": "clevelandclinic.org"
+        },
+        {
+          "name": "Johns Hopkins Medicine",
+          "domain": "hopkinsmedicine.org"
+        },
+        {
+          "name": "Mass General Brigham",
+          "domain": "massgeneralbrigham.org"
+        },
+        {
+          "name": "Northwestern Medicine",
+          "domain": "nm.org"
+        },
+        {
+          "name": "UChicago Medicine",
+          "domain": "uchicagomedicine.org"
+        },
+        {
+          "name": "Rush University Medical Center",
+          "domain": "rush.edu"
+        },
+        {
+          "name": "Michigan Medicine",
+          "domain": "med.umich.edu"
+        },
+        {
+          "name": "UCSF Health",
+          "domain": "ucsfhealth.org"
+        },
+        {
+          "name": "NYU Langone Health",
+          "domain": "nyulangone.org"
+        }
+      ]
+    },
     "big4": {
       "firms": [
         {
@@ -22,6 +68,60 @@
       ],
       "industry": "accounting",
       "label": "Big 4"
+    },
+    "big_law": {
+      "label": "Big Law",
+      "industry": "law",
+      "firms": [
+        {
+          "name": "Kirkland & Ellis",
+          "domain": "kirkland.com"
+        },
+        {
+          "name": "Latham & Watkins",
+          "domain": "lw.com"
+        },
+        {
+          "name": "Skadden, Arps, Slate, Meagher & Flom",
+          "domain": "skadden.com"
+        },
+        {
+          "name": "Cravath, Swaine & Moore",
+          "domain": "cravath.com"
+        },
+        {
+          "name": "Wachtell, Lipton, Rosen & Katz",
+          "domain": "wlrk.com"
+        },
+        {
+          "name": "Sullivan & Cromwell",
+          "domain": "sullcrom.com"
+        },
+        {
+          "name": "Davis Polk & Wardwell",
+          "domain": "davispolk.com"
+        },
+        {
+          "name": "Gibson, Dunn & Crutcher",
+          "domain": "gibsondunn.com"
+        },
+        {
+          "name": "Sidley Austin",
+          "domain": "sidley.com"
+        },
+        {
+          "name": "Jones Day",
+          "domain": "jonesday.com"
+        },
+        {
+          "name": "White & Case",
+          "domain": "whitecase.com"
+        },
+        {
+          "name": "Simpson Thacher & Bartlett",
+          "domain": "stblaw.com"
+        }
+      ]
     },
     "bulge_bracket": {
       "firms": [
@@ -67,6 +167,52 @@
       "industry": "investment_banking",
       "label": "Bulge bracket"
     },
+    "cpg": {
+      "label": "Consumer packaged goods",
+      "industry": "consumer_goods",
+      "firms": [
+        {
+          "name": "Procter & Gamble",
+          "domain": "pg.com"
+        },
+        {
+          "name": "PepsiCo",
+          "domain": "pepsico.com"
+        },
+        {
+          "name": "Coca-Cola",
+          "domain": "coca-colacompany.com"
+        },
+        {
+          "name": "Kraft Heinz",
+          "domain": "kraftheinzcompany.com"
+        },
+        {
+          "name": "Conagra Brands",
+          "domain": "conagrabrands.com"
+        },
+        {
+          "name": "General Mills",
+          "domain": "generalmills.com"
+        },
+        {
+          "name": "Unilever",
+          "domain": "unilever.com"
+        },
+        {
+          "name": "Nestlé USA",
+          "domain": "nestleusa.com"
+        },
+        {
+          "name": "Kellanova",
+          "domain": "kellanova.com"
+        },
+        {
+          "name": "Mondelez International",
+          "domain": "mondelezinternational.com"
+        }
+      ]
+    },
     "elite_boutique": {
       "firms": [
         {
@@ -108,7 +254,7 @@
         {
           "domain": "jefferies.com",
           "name": "Jefferies",
-          "note": "Judgment call per Doc 1 \u00a72.1 (often classed full-service / middle-market-plus)."
+          "note": "Judgment call per Doc 1 §2.1 (often classed full-service / middle-market-plus)."
         }
       ],
       "industry": "investment_banking",
@@ -159,6 +305,98 @@
       ],
       "industry": "tech",
       "label": "FAANG+"
+    },
+    "infrastructure_eng": {
+      "label": "Infrastructure / civil engineering",
+      "industry": "engineering",
+      "firms": [
+        {
+          "name": "AECOM",
+          "domain": "aecom.com"
+        },
+        {
+          "name": "Jacobs",
+          "domain": "jacobs.com"
+        },
+        {
+          "name": "HDR",
+          "domain": "hdrinc.com"
+        },
+        {
+          "name": "Bechtel",
+          "domain": "bechtel.com"
+        },
+        {
+          "name": "Fluor",
+          "domain": "fluor.com"
+        },
+        {
+          "name": "Tetra Tech",
+          "domain": "tetratech.com"
+        },
+        {
+          "name": "WSP",
+          "domain": "wsp.com"
+        },
+        {
+          "name": "Black & Veatch",
+          "domain": "bv.com"
+        },
+        {
+          "name": "Burns & McDonnell",
+          "domain": "burnsmcd.com"
+        },
+        {
+          "name": "HNTB",
+          "domain": "hntb.com"
+        }
+      ]
+    },
+    "logistics": {
+      "label": "Logistics & supply chain",
+      "industry": "logistics",
+      "firms": [
+        {
+          "name": "UPS",
+          "domain": "ups.com"
+        },
+        {
+          "name": "FedEx",
+          "domain": "fedex.com"
+        },
+        {
+          "name": "XPO",
+          "domain": "xpo.com"
+        },
+        {
+          "name": "C.H. Robinson",
+          "domain": "chrobinson.com"
+        },
+        {
+          "name": "J.B. Hunt",
+          "domain": "jbhunt.com"
+        },
+        {
+          "name": "Schneider National",
+          "domain": "schneider.com"
+        },
+        {
+          "name": "Old Dominion Freight Line",
+          "domain": "odfl.com"
+        },
+        {
+          "name": "RXO",
+          "domain": "rxo.com"
+        },
+        {
+          "name": "Echo Global Logistics",
+          "domain": "echo.com"
+        },
+        {
+          "name": "Coyote Logistics",
+          "domain": "coyote.com"
+        }
+      ]
     },
     "mbb": {
       "firms": [
@@ -275,9 +513,101 @@
       ],
       "industry": "quant",
       "label": "Quant / trading"
+    },
+    "real_estate_pe": {
+      "label": "Real-estate private equity",
+      "industry": "real_estate_pe",
+      "firms": [
+        {
+          "name": "Brookfield Property Group",
+          "domain": "brookfield.com"
+        },
+        {
+          "name": "Starwood Capital Group",
+          "domain": "starwoodcapital.com"
+        },
+        {
+          "name": "Blackstone Real Estate",
+          "domain": "blackstone.com"
+        },
+        {
+          "name": "Lone Star Funds",
+          "domain": "lonestarfunds.com"
+        },
+        {
+          "name": "Ares Management",
+          "domain": "aresmgmt.com"
+        },
+        {
+          "name": "Tishman Speyer",
+          "domain": "tishmanspeyer.com"
+        },
+        {
+          "name": "Related Companies",
+          "domain": "related.com"
+        },
+        {
+          "name": "Hines",
+          "domain": "hines.com"
+        },
+        {
+          "name": "Cerberus Capital Management",
+          "domain": "cerberuscapital.com"
+        },
+        {
+          "name": "KKR Real Estate",
+          "domain": "kkr.com"
+        }
+      ]
+    },
+    "venture_midwest": {
+      "label": "Midwest venture capital",
+      "industry": "venture_capital",
+      "firms": [
+        {
+          "name": "Drive Capital",
+          "domain": "drivecapital.com"
+        },
+        {
+          "name": "Hyde Park Venture Partners",
+          "domain": "hydeparkvp.com"
+        },
+        {
+          "name": "MATH Venture Partners",
+          "domain": "mathvp.com"
+        },
+        {
+          "name": "Chicago Ventures",
+          "domain": "chicagoventures.com"
+        },
+        {
+          "name": "Lightbank",
+          "domain": "lightbank.com"
+        },
+        {
+          "name": "Jump Capital",
+          "domain": "jumpcap.com"
+        },
+        {
+          "name": "Baird Capital",
+          "domain": "bairdcapital.com"
+        },
+        {
+          "name": "Revolution",
+          "domain": "revolution.com"
+        },
+        {
+          "name": "Serra Ventures",
+          "domain": "serraventures.com"
+        },
+        {
+          "name": "Lewis & Clark Ventures",
+          "domain": "lewisandclarkventures.com"
+        }
+      ]
     }
   },
-  "verified_at": "2026-10-12",
-  "verify_cadence": "quarterly (Doc 1 \u00a72.1: mergers and renames)",
-  "version": 1
+  "verified_at": "2026-10-13",
+  "verify_cadence": "quarterly (Doc 1 §2.1: mergers and renames)",
+  "version": 2
 }

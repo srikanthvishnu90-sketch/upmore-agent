@@ -20402,6 +20402,27 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
      buildShortlist(scored, {limit, feedback})     DISC-006: top-N per day; yes/no feedback memory (injected
                                    store rows) nudges later scores by role_family / company / skills
      recordFeedback(store, entry)  append a yes/no row to the injected feedback store
+     askRoleFamilies(text)         the role families an ASK names (PM/SWE/Data/ML/Finance/...), parsed
+                                   from the ask text itself — abbreviations included (PM, SWE)
+     buildShortlist(scored, {askText | families})
+                                   DISC-006 domain leg (SC-065, census class (c)): when the ask names
+                                   role families, the shortlist is HARD-filtered to those families
+                                   BEFORE the limit applies, and the returned array carries
+                                   family_filter { requested, pool_size, matched_size,
+                                   dropped_cross_family }. Cross-family roles are NEVER used as
+                                   padding: an ask whose family is absent from the pool returns
+                                   an empty shortlist, not the best-scoring wrong-domain roles.
+     shortlistForAsk(scored, askText, opts)
+                                   typed wrapper over buildShortlist: { status: "ok" |
+                                   "no_matching_roles" | "no_family_in_ask", requested_families,
+                                   pool_size, matched_size, shortlist, reason, next_step } — on
+                                   no_matching_roles, reason states the true pool fact and
+                                   next_step carries exactly one next step.
+     scoreFit(posting, profile, cir, { askFamilies })
+                                   opt-in: a posting outside the ask's families is EXCLUDED with a
+                                   role-family reason (same hard-filter channel as the other
+                                   exclusions). No existing caller passes it, so default scoring
+                                   is unchanged.
    Role families are SWE + Finance first (owner ruling 2026-10-12): STARTER_FEEDS weights banks, trading
    firms, fintechs and big-tech SWE boards. Poll cadence per Doc 1/2 Appendix B speed rules: starred
    companies every 15 min, the rest hourly (POLL_MINUTES) — detection, not scheduling, lives here. */
@@ -20442,6 +20463,27 @@ const CareerJobs = (() => {
     ["Marketing", /\b(marketing|growth|brand|content strateg)/],
     ["Sales", /\b(account executive|sales|business development|bd representative|sdr|bdr)\b/],
   ];
+  // ---------- ask-side family parsing (SC-065 domain leg) ----------
+  // The families an ASK names, in FAMILY_RULES order. Title rules alone miss
+  // the abbreviations users actually type ("PM internships", "SWE roles") and
+  // bare domain nouns ("data roles"), so those are matched explicitly.
+  // "data entry" is operations work, not Data/ML — it suppresses the bare
+  // "data" match and lands on Operations instead.
+  function askRoleFamilies(text) {
+    const t = lc(text);
+    if (!t) return [];
+    const dataEntry = /\bdata entry\b/.test(t);
+    const out = [];
+    for (const [fam, re] of FAMILY_RULES) {
+      let hit = re.test(t);
+      if (!hit && fam === "PM") hit = /\bpm\b/.test(t) || /\bproduct\s+(roles?|jobs?|internships?|positions?|openings)\b/.test(t);
+      if (!hit && fam === "SWE") hit = /\bswe\b/.test(t);
+      if (!hit && fam === "Data/ML") hit = (!dataEntry && /\bdata\b/.test(t)) || /\b(ai|ml)\b/.test(t);
+      if (!hit && fam === "Operations" && dataEntry) hit = true;
+      if (hit) out.push(fam);
+    }
+    return out;
+  }
   function roleFamily(title, jd) {
     const t = lc(title);
     for (const [fam, re] of FAMILY_RULES) if (re.test(t)) return fam;
@@ -20885,8 +20927,14 @@ const CareerJobs = (() => {
     return fails;
   }
 
-  function scoreFit(posting, profile, cir) {
+  function scoreFit(posting, profile, cir, opts) {
     const fails = hardFilters(posting, profile || {});
+    // SC-065 domain leg (opt-in): when the caller carries the ASK's families,
+    // a cross-family posting is a hard exclusion with the reason in data —
+    // it can never surface as a "closest fit" for a different-domain ask.
+    const askFams = opts && Array.isArray(opts.askFamilies) ? opts.askFamilies : null;
+    if (askFams && askFams.length && !askFams.includes(posting.role_family))
+      fails.push(`role family: posting is a ${posting.role_family} role; the ask is for ${askFams.join(" or ")} roles`);
     // APD-2/APD-5 data, computed for every scored posting, excluded or not.
     const restrictionEval = evaluateRestrictions(posting, profile || {});
     const aiBan = detectAiAuthorshipBan(posting);
@@ -21035,15 +21083,43 @@ const CareerJobs = (() => {
       const fb = feedbackNudge(rows, merged);
       enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge, restrictions: item.restrictions || posting.restrictions || [], needs_user_input: item.needs_user_input || [], restriction_unresolved: !!item.restriction_unresolved, ai_authorship_ban: item.ai_authorship_ban || posting.ai_authorship_ban || null, application_prep: item.application_prep || null });
     }
+    // SC-065 domain leg: when the ask names role families (opts.askText or
+    // opts.families), filter BEFORE ranking/limit — a shortlist is the best
+    // roles OF THE ASKED DOMAIN, never the best-scoring roles overall with
+    // cross-family padding. The filter outcome rides on the returned array
+    // as family_filter so callers can state the true reason for an empty list.
+    const requested = Array.isArray(opts.families) ? [...new Set(opts.families)] : (opts.askText ? askRoleFamilies(opts.askText) : []);
+    let pool = enriched, familyFilter = null;
+    if (requested.length) {
+      pool = enriched.filter((x) => requested.includes(x.posting.role_family || roleFamily(x.posting.title, x.posting.jd_text)));
+      familyFilter = { requested, pool_size: enriched.length, matched_size: pool.length, dropped_cross_family: enriched.length - pool.length };
+    }
     // APD-2 demotion: postings with an unresolved restriction rank below every
     // resolved posting, whatever their skill score — never a silent top fit.
-    enriched.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
-    return enriched.slice(0, limit);
+    pool.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
+    const out = pool.slice(0, limit);
+    if (familyFilter) out.family_filter = familyFilter;
+    return out;
+  }
+
+  // Typed discovery result for one ASK (SC-065 domain leg). The honest
+  // zero-result is a first-class outcome: when the pool carries no role of
+  // the asked family, status is "no_matching_roles", the shortlist is empty
+  // (never padded cross-family), reason states the true pool fact, and
+  // next_step carries exactly one next step.
+  async function shortlistForAsk(scored, askText, opts) {
+    opts = opts || {};
+    const requested = Array.isArray(opts.families) ? [...new Set(opts.families)] : askRoleFamilies(askText);
+    const shortlist = await buildShortlist(scored, Object.assign({}, opts, { families: requested }));
+    if (!requested.length) return { status: "no_family_in_ask", requested_families: [], pool_size: null, matched_size: null, shortlist, reason: null, next_step: null };
+    const ff = shortlist.family_filter || { requested, pool_size: 0, matched_size: 0, dropped_cross_family: 0 };
+    if (!ff.matched_size) return { status: "no_matching_roles", requested_families: requested, pool_size: ff.pool_size, matched_size: 0, shortlist, reason: `the current pool has ${ff.pool_size} scored role${ff.pool_size === 1 ? "" : "s"} and none of them are ${requested.join(" or ")} roles — cross-family roles were not substituted`, next_step: `Add boards that carry ${requested.join("/")} roles, or widen the ask to a neighbouring role family, and I will search again.` };
+    return { status: "ok", requested_families: requested, pool_size: ff.pool_size, matched_size: ff.matched_size, shortlist, reason: null, next_step: null };
   }
 
   return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), source_health: sourceHealth(r), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
-    dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
+    dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     roleFamily, seniorityBand, stripHtml, hash };
 })();
@@ -21470,10 +21546,15 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerProf
    null } — a tailored resume is never shipped with an audit warning.
    Unconfirmed (needs_confirmation) facts support nothing: resume-ingested
    drafts must be confirmed by the user first.
-   PDF: packages/domain/62-agent-documents.js provides a document VAULT
-   (metadata, receipts, policies) — it has no PDF/DOCX renderer. So render()
-   returns text + markdown only and says pdf:null honestly; no renderer is
-   rebuilt here.
+   DOCUMENTS (CA-02, Spec 3 v2 §10.4 + §2.5): render() also returns real
+   PDF + DOCX artifacts rendered from this same resume JSON by
+   packages/domain/148-career-render.js (a hand-built text pipeline —
+   PDF 1.4 + OOXML, no dependencies; NOT the 62-agent-documents.js vault,
+   which is metadata only). Each render is parse-checked there with two
+   independent parsers per format; the verdict (PASS/WARN/FAIL + reasons,
+   never a numeric score) rides on rendered.parseCheck. In a runtime
+   where 148 is not loaded, render() falls back to text + markdown with
+   pdf/docx null and a note saying exactly that.
    AI-USE RULES (Doc 2 S8, owner ruling 2026-10-12): when the CIR input says
    the company bans AI-written application text (cir.aiPolicy === "ban" or
    cir.bansAiWrittenText), tailorResume degrades to mode:"outline" —
@@ -21485,6 +21566,16 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerProf
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // CA-02 document renderer (148) is loaded lazily, only when render()
+  // runs — same global-or-require pattern as Profile above.
+  let _renderMod;
+  function renderModule() {
+    if (_renderMod !== undefined) return _renderMod;
+    _renderMod = null;
+    if (typeof CareerRender !== "undefined") _renderMod = CareerRender;
+    else if (typeof require !== "undefined") { try { _renderMod = require("./148-career-render.js"); } catch { _renderMod = null; } }
+    return _renderMod;
+  }
 
   const BANNED_PHRASES = [
     "i hope this email finds you well",
@@ -21715,8 +21806,9 @@ const CareerTailor = (() => {
     return { added, moved, removed, summary: `${added.length} added, ${removed.length} removed, ${moved.length} moved (${changed} content changes)` };
   }
 
-  // ---- ATS-safe render (Doc 2 §3.1 step 6) ----
-  function render(resume) {
+  // ---- ATS-safe render (Doc 2 §3.1 step 6; documents: CA-02 / Spec 3 §10.4) ----
+  function render(resume, opts) {
+    const o = opts || {};
     const secs = resume.sections || [];
     const head = [resume.header && resume.header.name, resume.header && resume.header.email, resume.header && resume.header.location].filter(Boolean).join(" | ");
     const links = Object.values((resume.header && resume.header.links) || {}).filter(Boolean).join(" | ");
@@ -21726,7 +21818,15 @@ const CareerTailor = (() => {
       textParts.push("", s.heading.toUpperCase(), ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
       mdParts.push("", `## ${s.heading}`, ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
     }
-    return { text: textParts.join("\n"), markdown: mdParts.join("\n"), pdf: null, pdfNote: "No PDF renderer exists in packages/domain/62-agent-documents.js (it is a document vault, not a renderer); plain text is the ATS-safe extractable form.", singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+    const base = { text: textParts.join("\n"), markdown: mdParts.join("\n"), singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+    const R = renderModule();
+    if (!R) return { ...base, pdf: null, docx: null, filename: null, parseCheck: null, pdfNote: "Document renderer (148-career-render.js) is not loaded in this runtime; plain text is the ATS-safe extractable form and no document file was produced." };
+    const pdfRes = o.format !== "docx" ? R.renderPdf(resume) : null;
+    const docxRes = o.format !== "pdf" ? R.renderDocx(resume) : null;
+    const pdf = pdfRes && pdfRes.ok ? R.artifact("pdf", pdfRes) : null;
+    const docx = docxRes && docxRes.ok ? R.artifact("docx", docxRes) : null;
+    const parseCheck = (pdf || docx) ? R.parseCheck({ resume, pdf: pdf ? pdfRes.buffer : null, docx: docx ? docxRes.buffer : null }) : null;
+    return { ...base, ok: true, pdf, docx, filename: (pdf && pdf.filename) || (docx && docx.filename) || null, parseCheck, pdfNote: "PDF + DOCX rendered from the same resume JSON by 148-career-render.js (text pipeline, Spec 3 §10.4); parse-check verdict in parseCheck (§2.5)." };
   }
 
   // ---- cover letter (Doc 2 §3.4; APPL-002) ----
@@ -21812,11 +21912,14 @@ const CareerTailor = (() => {
       assembled.sections.push({ heading: "Additional", lines: o.extraLines.map((l) => (typeof l === "string" ? { text: l, factIds: [], type: "bullet" } : l)) });
     }
     const auditResult = auditResume(assembled, profile);
-    if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null };
+    if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null, rendered: null };
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled);
     const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null };
+    // §10.5: the approval snapshot records the exact rendered artifacts
+    // (filename + sha256 + size) so a submitted resume can be reproduced.
+    if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
       return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version };
     }
@@ -22651,12 +22754,23 @@ const CareerOutreach = (() => {
       breaker: { tripped: false, cause: null, user_message: null }, stats: { replies: 0, positive: 0, meetings_booked: 0, meetings_held: 0, referrals: 0, complaints: 0 },
       followups_continue_tap: false };
   }
+  // R-A4 kill-switch seam: a global user pause (set by 141's haltQueue as
+  // ctx.globalPause / state.global_pause) reaches a campaign either on the
+  // campaign object itself or per call via opts.globalPause / opts.ctx.
+  // While it is set, enqueue and sendPending refuse — typed, no send.
+  function globalPauseOf(campaign, opts) {
+    opts = opts || {};
+    const p = (campaign && campaign.global_pause) || opts.globalPause || (opts.ctx && opts.ctx.globalPause) || null;
+    return p && (p === true || p.set === true) ? p : null;
+  }
   function enqueue(campaign, entries, opts) {
     opts = opts || {}; const suppression = opts.suppression || null; const results = [];
+    const paused = globalPauseOf(campaign, opts);
     for (const e of entries || []) {
       const c = normalizeCandidate(e.candidate || e); const draft = e.draft || null;
       const base = { person_id: c.person_id || null, email: c.work_email || null, candidate: c, draft, tier: e.tier || (draft && draft.tier) || null, verification: c.email_verification || e.verification || null };
       const reject = (reason) => { results.push(Object.assign({}, base, { status: "rejected", reason })); };
+      if (paused) { reject("global_pause_set"); continue; }
       if (campaign.status === "draft" && !opts.allowDraftEnqueue) { /* enqueue into a draft campaign is allowed; sending is what needs approval */ }
       if (!base.email) { reject("no_email"); continue; }
       if (base.verification === "invalid") { reject("invalid_email"); continue; }
@@ -22736,6 +22850,7 @@ const CareerOutreach = (() => {
   }
   async function sendPending(campaign, opts) {
     opts = opts || {}; const transport = opts.transport; if (!transport || typeof transport.send !== "function") return { sent: 0, error: "NOT_WIRED: no injected transport" };
+    if (globalPauseOf(campaign, opts)) return { sent: 0, error: "global_pause_set", refused: true, refusal_state: "refused_global_pause", status: campaign.status };
     if (campaign.status !== "approved" && campaign.status !== "running") return { sent: 0, error: "campaign_not_approved", status: campaign.status };
     if (campaign.breaker.tripped) return { sent: 0, error: "circuit_breaker_tripped", cause: campaign.breaker.cause };
     campaign.status = "running";
@@ -23371,7 +23486,7 @@ const CareerOutreach = (() => {
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, isGenericFact, fixArticles, sanitizeTopic, experienceLine, renderFactClause, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
-    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
+    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport, globalPauseOf,
     classifyReply, handleReply, processInboxEvent, deliveryStatus, deliveryStatusText, reconcileOutreachDelivery, followUpStatus, profileFactAnswers, addressHealth, parseReturnDate,
     tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,
     campaignMetrics };
@@ -26257,6 +26372,8 @@ const CareerPackets = (() => {
       coverLetterSkippedReason: portalAsksCover ? null : "portal does not ask for a cover letter — none generated (SC-086 rule)",
       voice: tailored.coverLetter ? voice : null,
       answerBank: cirT ? Tailor.buildAnswerBank(o.profile, o.jdText, cirT) : { ok: false, entries: [] },
+      // CA-02: the packet doorstep names the real document files.
+      document: tailored.rendered ? { filename: tailored.rendered.filename || null, pdf: tailored.rendered.pdf ? tailored.rendered.pdf.filename : null, docx: tailored.rendered.docx ? tailored.rendered.docx.filename : null, parseCheck: tailored.rendered.parseCheck ? tailored.rendered.parseCheck.status : null } : null,
       onePage: checkOnePage(tailored.rendered), ats: checkAts(tailored.rendered),
     };
   }
@@ -26273,7 +26390,11 @@ const CareerPackets = (() => {
     if (!rendered) return { ok: false, reason: "no render" };
     const standard = ["SKILLS", "EXPERIENCE", "PROJECTS", "EDUCATION", "LEADERSHIP"];
     const hasTableRows = rendered.text.split("\n").some((l) => /^\s*\|/.test(l) || /\|[-: ]+\|/.test(l));
-    return { ok: rendered.singleColumn === true && rendered.headings.every((h) => standard.includes(h)) && !hasTableRows && rendered.text.length > 50, singleColumn: rendered.singleColumn, headings: rendered.headings, textExtractable: rendered.text.length > 50, tables: hasTableRows, preferredFormat: "plain text (single column, standard headings)", pdf: rendered.pdf, pdfNote: rendered.pdfNote };
+    // CA-02: a parse-check FAIL (missing/extra content, placeholders,
+    // images, layout tables in the file) fails the ATS check too.
+    const pc = rendered.parseCheck || null;
+    const pcOk = !pc || pc.status !== "FAIL";
+    return { ok: rendered.singleColumn === true && rendered.headings.every((h) => standard.includes(h)) && !hasTableRows && rendered.text.length > 50 && pcOk, singleColumn: rendered.singleColumn, headings: rendered.headings, textExtractable: rendered.text.length > 50, tables: hasTableRows, preferredFormat: "PDF by default; DOCX where the portal requires it (Spec 3 R9) — both rendered from the same resume JSON and parse-checked (§2.5)", pdf: rendered.pdf, docx: rendered.docx || null, filename: rendered.filename || null, parseCheck: pc ? { status: pc.status, reasons: pc.reasons } : null, pdfNote: rendered.pdfNote };
   }
 
   // ---- SC-083: confirmation capture on a LOCAL test board (never a real employer) ----
@@ -28699,10 +28820,13 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRepl
         a sink timeout is reported as unknown_outcome (never as success);
         "did it go through?" reconciles the sink BEFORE any retry, and a
         repeat approval while an outcome is unknown/confirmed is refused.
-     3. QUEUE CONTROL (C37): "stop everything" halts the outreach queue and
+     3. QUEUE CONTROL (C37 + R-A4): "stop everything" halts the outreach queue and
         PERSISTS the halt (the queue state is the host-persisted object /
         JSON file passed in ctx; the halt flag and per-item status are
-        written into it). Duplicate events (same event_id) are deduped and
+        written into it). R-A4 (S0): the halt ALWAYS sets a global user
+        pause (ctx.globalPause + state.global_pause + q.global_pause) —
+        when the queue state can't be read the pause is set anyway and the
+        reply states the exact counts are unverified, never a no-op. Duplicate events (same event_id) are deduped and
         out-of-order events (older sent_at than the state they would rewind)
         cannot revive a halted item. Pending recipients are also suppressed
         through 124's own suppression store when the host passes one, so a
@@ -29427,32 +29551,66 @@ const CareerDoorstep = (() => {
       : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything; ask me again and I will reconcile the sink before any retry." };
   }
 
-  // ---------- 3. queue control (C37) ----------
+  // ---------- 3. queue control (C37 + R-A4 kill switch) ----------
+  // R-A4 (quality spec 01, S0): "stop everything" ALWAYS halts. The halt is
+  // a GLOBAL user pause, set on every surface the host can persist/honor —
+  // ctx.globalPause, the loaded queue-state object (state.global_pause),
+  // and the queue itself (q.global_pause + q.halted) — whether or not the
+  // queue's own records could be read in this session. An unreadable queue
+  // is never a no-op and never a crash: the pause is set anyway, the reply
+  // says the exact counts are UNVERIFIED, and 124's sendPending/enqueue
+  // honor the same pause flag (campaign.global_pause / opts.globalPause).
   function loadQueueState(ctx) {
-    if (ctx.queueState) return { state: ctx.queueState, persist: () => {} };
-    if (ctx.queueStatePath && nodeFs) {
-      const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
-      return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+    try {
+      if (ctx.queueState) return { state: ctx.queueState, persist: () => {} };
+      if (ctx.queueStatePath && nodeFs) {
+        const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
+        return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+      }
+    } catch (e) {
+      // A missing/unreadable/corrupt queue file is "can't be read" — the
+      // caller halts via the global pause instead of crashing the turn.
+      return { state: null, persist: () => {}, unreadable: true };
     }
     return { state: null, persist: () => {} };
   }
   function haltQueue(ctx, text) {
-    const { state, persist } = loadQueueState(ctx);
-    if (!state || !state.outreach_queue || !Array.isArray(state.outreach_queue.items)) {
-      return { intent: "queue_halt", resultStatus: "blocked", reply: "I cannot find the outreach queue state, so I halted nothing. Point me at the queue and I will stop it." };
+    const c = ctx || {};
+    const { state, persist } = loadQueueState(c);
+    const at = c.now != null ? c.now : new Date().toISOString();
+    const pause = { set: true, at, by: c.userId || "user", scope: "all-queues" };
+    c.globalPause = pause;
+    if (state && typeof state === "object") state.global_pause = pause;
+    const q = state && state.outreach_queue && Array.isArray(state.outreach_queue.items) ? state.outreach_queue : null;
+    if (!q) {
+      return {
+        intent: "queue_halt", resultStatus: "completed", counts_verified: false,
+        global_pause_set: true, pause_flag_set: true, global_pause: pause,
+        halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
+        queue_state: null,
+        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step: reload the queue state and I will reconcile the exact counts against it.",
+      };
     }
-    const q = state.outreach_queue;
-    const pending = q.items.filter((i) => i.status === "pending");
+    // Item accounting — every item lands in exactly one bucket, so the
+    // reported numbers reconcile to the queue total by construction:
+    //   sent (already gone) / sending (in-flight, unconfirmed — left as-is,
+    //   never half-sent) / haltable (pending or queued — halted now) /
+    //   already stopped or finished before this instruction (left as-is).
+    const TERMINAL = new Set(["halted", "suppressed", "cancelled", "canceled", "bounced", "failed", "completed"]);
     const sentAlready = q.items.filter((i) => i.status === "sent");
+    const inFlight = q.items.filter((i) => i.status === "sending");
+    const alreadyStopped = q.items.filter((i) => TERMINAL.has(i.status));
+    const pending = q.items.filter((i) => i.status === "pending" || i.status === "queued");
     for (const item of pending) { item.status = "halted"; item.halted_by = "user instruction in chat"; item.halt_reason = String(text || ""); }
     q.halted = true;
-    q.halt = { at: (ctx && ctx.now) || null, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
+    q.global_pause = pause;
+    q.halt = { at, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), global_pause: pause, form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
     if (state.form_prep_in_progress && state.form_prep_in_progress.state !== "SUBMITTED") state.form_prep_in_progress.halted = true;
     // Belt-and-braces through 124's OWN suppression API (called, not edited):
     // even a send-time pass in 124 stops a suppressed recipient.
     let suppressed = 0;
-    const suppression = (ctx && ctx.suppression) || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
-    if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: (ctx && ctx.userId) || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } if (ctx) ctx.suppression = suppression; }
+    const suppression = c.suppression || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
+    if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: c.userId || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } c.suppression = suppression; }
     persist();
     // DD-10: the sent-statement is computed from the queue's actual state —
     // when an item already went out, the reply says so instead of claiming
@@ -29460,10 +29618,15 @@ const CareerDoorstep = (() => {
     const sentText = sentAlready.length
       ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
       : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
+    const total = q.items.length;
     return {
-      intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
+      intent: "queue_halt", resultStatus: "completed", counts_verified: true,
+      global_pause_set: true, pause_flag_set: true, global_pause: pause,
+      halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
+      sent_count: sentAlready.length, in_flight_count: inFlight.length, in_flight_unconfirmed_count: inFlight.length,
+      already_stopped_count: alreadyStopped.length, queue_total: total,
       queue_state: q,
-      reply: `Stopped everything: ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.${sentText}`,
+      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already sent, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
     };
   }
   // Inbox-event hygiene for a (possibly halted) queue state: dedupe by
@@ -31535,6 +31698,635 @@ const CareerPlatformDrafts = (() => {
   return { draftMessage, MAX_WORDS };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPlatformDrafts;
+
+/* CA-02 — resume document rendering + parse-check (Spec 3 v2 §10.4, §2.5;
+   render rules §2.2 R1–R11).
+   ONE source: the resume JSON the tailor (123) assembles from the fact
+   bank. From that single JSON this module renders:
+     - PDF  — a hand-built, text-based PDF 1.4 (standard Helvetica /
+              Helvetica-Bold, real selectable text, single column). No
+              HTML-to-image, no external dependency (zlib is Node core).
+     - DOCX — a hand-built minimal OOXML package (own ZIP writer + CRC32,
+              adapted from the reverted career/rq-docx renderer de0f634,
+              re-audited against current 123/133 and R1–R11: R6 sizes,
+              R8 filename, no header/footer parts).
+   Plus the existing plain text/markdown from 123. Every rendered line is
+   line.text from the source JSON — the renderer adds NO content, and fact
+   IDs / audit metadata never enter the documents.
+   TRUTH GATE (same as APPE-002): a resume the truth audit refused
+   (ok === false or refused === true, at either level of a tailor result)
+   renders NOTHING here: { ok:false, refused:true, buffer:null }.
+   PARSE-CHECK (§2.5): extract the text back out of the produced files
+   with TWO independent parsers per format and diff reading order +
+   content against the source JSON. PDF: (A) a content-stream operator
+   parser, (B) a raw string scan of the inflated streams (or poppler
+   pdftotext when the caller opts into external parsers). DOCX: (A) a
+   ZIP + document.xml paragraph walk, (B) an independent regex text-run
+   scan (or python-docx when opted in). Verdict is PASS / WARN / FAIL
+   with reasons — NEVER a numeric "ATS score".
+   Determinism: fixed ZIP timestamps, no PDF /ID or dates — the same
+   resume JSON renders byte-identical files (§10.5 snapshot proof).
+   Pure: resume object / buffers in, results out. UMD like the others. */
+const CareerRender = (() => {
+  const zlib = typeof require !== "undefined" ? (() => { try { return require("zlib"); } catch { return null; } })() : null;
+  const crypto = typeof require !== "undefined" ? (() => { try { return require("node:crypto"); } catch { return null; } })() : null;
+  const cp = typeof require !== "undefined" ? (() => { try { return require("node:child_process"); } catch { return null; } })() : null;
+  const fs = typeof require !== "undefined" ? (() => { try { return require("node:fs"); } catch { return null; } })() : null;
+  const os = typeof require !== "undefined" ? (() => { try { return require("node:os"); } catch { return null; } })() : null;
+
+  const PDF_CONTENT_TYPE = "application/pdf";
+  const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const HEADING_ALLOWLIST = ["EXPERIENCE", "EDUCATION", "SKILLS", "PROJECTS", "LEADERSHIP", "SUMMARY", "CERTIFICATIONS", "AWARDS", "PUBLICATIONS", "COURSEWORK", "ACTIVITIES", "RESEARCH", "ADDITIONAL"];
+
+  // ================= shared document model =================
+  // The single block list both renderers consume and sourceLines() reports.
+  // Only `text` is ever read off a resume line — factIds stay outside.
+  function toBlocks(resume) {
+    const blocks = [];
+    const header = (resume && resume.header) || {};
+    if (header.name) blocks.push({ style: "name", kind: "name", text: String(header.name) });
+    const contact = [header.email, header.location].filter(Boolean).join(" | ");
+    if (contact) blocks.push({ style: "contact", kind: "contact", text: contact });
+    const links = Object.values(header.links || {}).filter(Boolean).join(" | ");
+    if (links) blocks.push({ style: "links", kind: "links", text: links });
+    const addLine = (line) => {
+      if (!line || line.text == null || !String(line.text).trim()) return;
+      const kind = line.type || line.kind || "line";
+      if (kind === "bullet") blocks.push({ style: "bullet", kind: "bullet", text: String(line.text) });
+      else if (kind === "entry") blocks.push({ style: "entry", kind: "entry", text: String(line.text) });
+      else if (kind === "heading") blocks.push({ style: "heading", kind: "heading", text: String(line.text).toUpperCase() });
+      else blocks.push({ style: "line", kind: "line", text: String(line.text) });
+    };
+    if (Array.isArray(resume && resume.sections) && resume.sections.length) {
+      for (const s of resume.sections) {
+        if (!s) continue;
+        if (s.heading) blocks.push({ style: "heading", kind: "heading", text: String(s.heading).toUpperCase(), section: String(s.heading) });
+        for (const l of s.lines || []) addLine(l);
+      }
+    } else if (Array.isArray(resume && resume.lines)) {
+      let currentSection = null;
+      for (const l of resume.lines) {
+        if (l && l.section && l.section !== currentSection) {
+          currentSection = l.section;
+          blocks.push({ style: "heading", kind: "heading", text: String(l.section).toUpperCase(), section: String(l.section) });
+        }
+        addLine(l);
+      }
+    }
+    return blocks;
+  }
+  // Expected content lines, in render order. Bullets carry no glyph here;
+  // extraction normalisation strips the glyph the renderers print.
+  function sourceLines(resume) {
+    return toBlocks(resume).map((b) => ({ text: b.text, kind: b.kind }));
+  }
+
+  // R8: FirstName_LastName_Resume.<ext> — parenthetical markers dropped.
+  function filenameFor(name, ext) {
+    const clean = String(name || "").replace(/\([^)]*\)/g, " ").trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    const first = (parts[0] || "Resume").replace(/[^A-Za-z'-]/g, "");
+    const last = (parts.length > 1 ? parts[parts.length - 1] : "").replace(/[^A-Za-z'-]/g, "");
+    return `${first}${last ? `_${last}` : ""}_Resume.${ext}`;
+  }
+
+  function refusedCheck(input) {
+    let resume = input;
+    if (resume && typeof resume === "object" && !resume.lines && !resume.sections && resume.resume) resume = resume.resume;
+    if (!input || typeof input !== "object" || input.ok === false || input.refused === true || !resume || resume.ok === false || resume.refused === true) {
+      return { resume: null, refusal: { ok: false, refused: true, reason: "resume was refused by the truth audit (or is missing); no document is rendered from an unaudited resume", buffer: null, filename: null } };
+    }
+    return { resume, refusal: null };
+  }
+
+  // ================= ZIP (writer + reader; DOCX package) =================
+  const CRC_TABLE = (() => {
+    const table = new Int32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; table[n] = c; }
+    return table;
+  })();
+  function crc32(buf) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) crc = CRC_TABLE[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+  const DOS_TIME = 0; const DOS_DATE = (0 << 9) | (1 << 5) | 1; // 1980-01-01: deterministic bytes
+  function zipBuffer(entries) {
+    const chunks = []; const central = []; let offset = 0;
+    for (const entry of entries) {
+      const nameBuf = Buffer.from(entry.name, "utf8");
+      const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
+      const compressed = zlib.deflateRawSync(data);
+      const crc = crc32(data);
+      const local = Buffer.alloc(30);
+      local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
+      local.writeUInt16LE(8, 8); local.writeUInt16LE(DOS_TIME, 10); local.writeUInt16LE(DOS_DATE, 12);
+      local.writeUInt32LE(crc, 14); local.writeUInt32LE(compressed.length, 18); local.writeUInt32LE(data.length, 22);
+      local.writeUInt16LE(nameBuf.length, 26); local.writeUInt16LE(0, 28);
+      chunks.push(local, nameBuf, compressed);
+      const cd = Buffer.alloc(46);
+      cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0x0800, 8);
+      cd.writeUInt16LE(8, 10); cd.writeUInt16LE(DOS_TIME, 12); cd.writeUInt16LE(DOS_DATE, 14);
+      cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(compressed.length, 20); cd.writeUInt32LE(data.length, 24);
+      cd.writeUInt16LE(nameBuf.length, 28); cd.writeUInt32LE(0, 38); cd.writeUInt32LE(offset, 42);
+      central.push(cd, nameBuf);
+      offset += local.length + nameBuf.length + compressed.length;
+    }
+    const cdSize = central.reduce((n, b) => n + b.length, 0);
+    const eocd = Buffer.alloc(22);
+    eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8); eocd.writeUInt16LE(entries.length, 10);
+    eocd.writeUInt32LE(cdSize, 12); eocd.writeUInt32LE(offset, 16);
+    return Buffer.concat([...chunks, ...central, eocd]);
+  }
+  // Central-directory reader: part name -> inflated Buffer. Independent of
+  // the writer (walks the EOCD + central directory, verifies CRC on read).
+  function unzipParts(buf) {
+    const parts = new Map();
+    if (!Buffer.isBuffer(buf) || buf.length < 22) return parts;
+    let eocd = -1;
+    for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) { if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; } }
+    if (eocd < 0) return parts;
+    const count = buf.readUInt16LE(eocd + 10);
+    let p = buf.readUInt32LE(eocd + 16);
+    for (let n = 0; n < count && p + 46 <= buf.length; n++) {
+      if (buf.readUInt32LE(p) !== 0x02014b50) break;
+      const method = buf.readUInt16LE(p + 10);
+      const crc = buf.readUInt32LE(p + 16);
+      const compSize = buf.readUInt32LE(p + 20);
+      const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
+      const localOff = buf.readUInt32LE(p + 42);
+      const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+      const lNameLen = buf.readUInt16LE(localOff + 26), lExtraLen = buf.readUInt16LE(localOff + 28);
+      const dataStart = localOff + 30 + lNameLen + lExtraLen;
+      const raw = buf.subarray(dataStart, dataStart + compSize);
+      let data = null;
+      try { data = method === 8 ? zlib.inflateRawSync(raw) : Buffer.from(raw); } catch { data = null; }
+      if (data && crc32(data) === crc) parts.set(name, data);
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return parts;
+  }
+  const docxPartNames = (buf) => [...unzipParts(buf).keys()];
+  function docxPart(buf, name) { return unzipParts(buf).get(name) || null; }
+  // Rebuild a DOCX with some parts replaced (audit-mode mutants in tests).
+  function rebuildDocx(buf, replacements) {
+    const parts = unzipParts(buf);
+    const entries = [];
+    for (const [name, data] of parts) entries.push({ name, data: replacements && replacements[name] !== undefined ? replacements[name] : data });
+    return zipBuffer(entries);
+  }
+
+  // ================= DOCX renderer =================
+  function escXml(text) {
+    return String(text == null ? "" : text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  }
+  function paragraph(style, text, opts) {
+    const o = opts || {};
+    const pPr = style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : "";
+    const rPr = o.bold ? "<w:rPr><w:b/></w:rPr>" : "";
+    return `<w:p>${pPr}<w:r>${rPr}<w:t xml:space="preserve">${escXml(text)}</w:t></w:r></w:p>`;
+  }
+  const DOCX_CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const DOCX_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  // R6: one standard font (Calibri), every size inside 10–12pt
+  // (w:sz is half-points: 22 = 11pt body, 24 = 12pt name).
+  const DOCX_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="0" w:after="80"/></w:pPr><w:rPr><w:b/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="280" w:after="100"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:caps/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListBullet"><w:name w:val="List Bullet"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:ind w:left="360" w:hanging="180"/></w:pPr></w:style></w:styles>`;
+  function docxDocumentXml(resume) {
+    const body = toBlocks(resume).map((b) => {
+      if (b.style === "name") return paragraph("Title", b.text);
+      if (b.style === "heading") return paragraph("Heading1", b.text);
+      if (b.style === "bullet") return paragraph("ListBullet", `\u2022 ${b.text}`);
+      if (b.style === "entry") return paragraph(null, b.text, { bold: true });
+      return paragraph(null, b.text);
+    }).join("");
+    const sectPr = `<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}${sectPr}</w:body></w:document>`;
+  }
+  function renderDocx(input) {
+    const { resume, refusal } = refusedCheck(input);
+    if (refusal) return { ...refusal, contentType: DOCX_CONTENT_TYPE };
+    if (!zlib) return { ok: false, refused: false, reason: "zlib is unavailable in this runtime; DOCX rendering needs Node", buffer: null, contentType: DOCX_CONTENT_TYPE, filename: null };
+    if (!toBlocks(resume).length) return { ok: false, refused: true, reason: "resume has no renderable lines", buffer: null, contentType: DOCX_CONTENT_TYPE, filename: null };
+    const buffer = zipBuffer([
+      { name: "[Content_Types].xml", data: DOCX_CONTENT_TYPES_XML },
+      { name: "_rels/.rels", data: DOCX_RELS_XML },
+      { name: "word/document.xml", data: docxDocumentXml(resume) },
+      { name: "word/styles.xml", data: DOCX_STYLES_XML },
+    ]);
+    return { ok: true, buffer, contentType: DOCX_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "docx"), bytes: buffer.length };
+  }
+
+  // ================= WinAnsi codec (PDF text) =================
+  // Chars outside WinAnsi are replaced with '?' and REPORTED — never
+  // silently mangled (the renderer returns them in `unencodable`).
+  const WINANSI_EXTRA = new Map([["\u20AC", 0x80], ["\u2026", 0x85], ["\u2018", 0x91], ["\u2019", 0x92], ["\u201C", 0x93], ["\u201D", 0x94], ["\u2022", 0x95], ["\u2013", 0x96], ["\u2014", 0x97], ["\u02DC", 0x98], ["\u2122", 0x99], ["\u0153", 0x9c], ["\u0178", 0x9f]]);
+  const WINANSI_DECODE = new Map([...WINANSI_EXTRA].map(([ch, b]) => [b, ch]));
+  function encodeWinAnsi(text, unencodable) {
+    const bytes = [];
+    for (const ch of String(text)) {
+      const code = ch.codePointAt(0);
+      if (code >= 0x20 && code <= 0x7e) bytes.push(code);
+      else if (code >= 0xa0 && code <= 0xff) bytes.push(code);
+      else if (WINANSI_EXTRA.has(ch)) bytes.push(WINANSI_EXTRA.get(ch));
+      else { bytes.push(0x3f); if (unencodable && !unencodable.includes(ch)) unencodable.push(ch); }
+    }
+    return Buffer.from(bytes);
+  }
+  function decodeWinAnsi(buf) {
+    let out = "";
+    for (const b of buf) {
+      if (b >= 0x80 && b <= 0x9f && WINANSI_DECODE.has(b)) out += WINANSI_DECODE.get(b);
+      else out += String.fromCharCode(b);
+    }
+    return out;
+  }
+  function pdfLiteral(bytes) {
+    let s = "";
+    for (const b of bytes) {
+      if (b === 0x28) s += "\\("; else if (b === 0x29) s += "\\)"; else if (b === 0x5c) s += "\\\\";
+      else if (b >= 0x20 && b <= 0x7e) s += String.fromCharCode(b);
+      else s += `\\${b.toString(8).padStart(3, "0")}`;
+    }
+    return `(${s})`;
+  }
+
+  // ================= PDF layout + writer =================
+  const PAGE = { w: 612, h: 792, margin: 54, top: 738, bottom: 56 };
+  const FONT_FOR = { name: "F2", heading: "F2", entry: "F2", contact: "F1", links: "F1", bullet: "F1", line: "F1" };
+  const SIZE_FOR = { name: 12, heading: 11, entry: 11, contact: 11, links: 11, bullet: 11, line: 11 };
+  const LEAD_FOR = { name: 16, heading: 15, entry: 13.8, contact: 13.5, links: 13.5, bullet: 13.8, line: 13.8 };
+  const GAP_BEFORE = { heading: 9 };
+  // Conservative Helvetica advance estimate (em fractions by char class);
+  // the wrap budget stays well inside the column so nothing overflows.
+  function estWidthPt(text, sizePt) {
+    let em = 0;
+    for (const ch of String(text)) {
+      if (ch === " " || ch === "i" || ch === "l" || ch === "j" || ch === "." || ch === "," || ch === ":" || ch === ";" || ch === "'" || ch === "!") em += 0.28;
+      else if (ch === "m" || ch === "w" || ch === "M" || ch === "W" || ch === "\u2022") em += 0.85;
+      else if (ch >= "A" && ch <= "Z") em += 0.67;
+      else if (ch >= "0" && ch <= "9") em += 0.556;
+      else em += 0.5;
+    }
+    return em * sizePt;
+  }
+  const COLUMN_PT = PAGE.w - PAGE.margin * 2; // 504
+  function wrapLine(text, sizePt, firstPrefix) {
+    const budget = COLUMN_PT - 14; // safety margin
+    const words = String(text).split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = firstPrefix || "";
+    for (const w of words) {
+      const next = cur ? `${cur} ${w}` : w;
+      if (estWidthPt(next, sizePt) <= budget || !cur || cur === (firstPrefix || "")) cur = next;
+      else { lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [""];
+  }
+  // The exact layout lines the PDF writer emits (bullets get their glyph;
+  // long lines wrap at word boundaries). This is the PDF ground truth the
+  // parse-check diffs extraction against — the DOCX truth stays logical.
+  function layoutLines(resume) {
+    const out = [];
+    for (const b of toBlocks(resume)) {
+      const display = b.style === "bullet" ? `\u2022 ${b.text}` : b.text;
+      for (const piece of wrapLine(display, SIZE_FOR[b.style] || 11)) out.push({ text: piece, kind: b.kind });
+    }
+    return out;
+  }
+  function paginate(blocks) {
+    const pages = [[]];
+    let y = PAGE.top;
+    for (const b of blocks) {
+      const size = SIZE_FOR[b.style] || 11;
+      const lead = LEAD_FOR[b.style] || 13.8;
+      const display = b.style === "bullet" ? `\u2022 ${b.text}` : b.text;
+      const pieces = wrapLine(display, size);
+      const gap = pieces.length && pages[pages.length - 1].length ? (GAP_BEFORE[b.style] || 0) : 0;
+      if (y - gap - lead < PAGE.bottom && pages[pages.length - 1].length) { pages.push([]); y = PAGE.top; }
+      y -= gap;
+      for (const piece of pieces) {
+        if (y - lead < PAGE.bottom && pages[pages.length - 1].length) { pages.push([]); y = PAGE.top; }
+        y -= lead;
+        pages[pages.length - 1].push({ text: piece, font: FONT_FOR[b.style] || "F1", size, x: PAGE.margin, y: Math.round(y * 100) / 100 });
+      }
+    }
+    return pages;
+  }
+  function renderPdf(input) {
+    const { resume, refusal } = refusedCheck(input);
+    if (refusal) return { ...refusal, contentType: PDF_CONTENT_TYPE };
+    if (!zlib) return { ok: false, refused: false, reason: "zlib is unavailable in this runtime; PDF rendering needs Node", buffer: null, contentType: PDF_CONTENT_TYPE, filename: null };
+    const blocks = toBlocks(resume);
+    if (!blocks.length) return { ok: false, refused: true, reason: "resume has no renderable lines", buffer: null, contentType: PDF_CONTENT_TYPE, filename: null };
+    const unencodable = [];
+    const pages = paginate(blocks);
+    const objects = []; // [id, Buffer]
+    const pageIds = pages.map((_, i) => 5 + i * 2);
+    const contentIds = pages.map((_, i) => 6 + i * 2);
+    objects.push([1, Buffer.from("<< /Type /Catalog /Pages 2 0 R >>")]);
+    objects.push([2, Buffer.from(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pages.length} >>`)]);
+    objects.push([3, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")]);
+    objects.push([4, Buffer.from("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")]);
+    pages.forEach((lines, i) => {
+      objects.push([pageIds[i], Buffer.from(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE.w} ${PAGE.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentIds[i]} 0 R >>`)]);
+      const ops = lines.map((l) => `BT /${l.font} ${l.size} Tf 1 0 0 1 ${l.x} ${l.y} Tm ${pdfLiteral(encodeWinAnsi(l.text, unencodable))} Tj ET`).join("\n");
+      const stream = zlib.deflateSync(Buffer.from(ops, "latin1"));
+      const head = Buffer.from(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+      objects.push([contentIds[i], Buffer.concat([head, stream, Buffer.from("\nendstream", "latin1")])]);
+    });
+    objects.sort((a, b) => a[0] - b[0]);
+    const chunks = [Buffer.from("%PDF-1.4\n", "latin1")];
+    const offsets = new Map();
+    let pos = chunks[0].length;
+    for (const [id, body] of objects) {
+      const head = Buffer.from(`${id} 0 obj\n`, "latin1");
+      const tail = Buffer.from("\nendobj\n", "latin1");
+      offsets.set(id, pos);
+      chunks.push(head, body, tail);
+      pos += head.length + body.length + tail.length;
+    }
+    const xrefPos = pos;
+    const maxId = Math.max(...objects.map(([id]) => id));
+    let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
+    for (let id = 1; id <= maxId; id++) xref += `${String(offsets.get(id)).padStart(10, "0")} 00000 n \n`;
+    xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
+    chunks.push(Buffer.from(xref, "latin1"));
+    const buffer = Buffer.concat(chunks);
+    return { ok: true, buffer, contentType: PDF_CONTENT_TYPE, filename: filenameFor(resume.header && resume.header.name, "pdf"), bytes: buffer.length, pages: pages.length, unencodable };
+  }
+
+  // ================= PDF extraction — parser A (content-stream operators) =================
+  function pdfStreams(buf) {
+    const streams = [];
+    const s = buf.toString("latin1");
+    let idx = 0;
+    while (true) {
+      const st = s.indexOf("stream", idx);
+      if (st < 0) break;
+      let start = st + 6;
+      if (s[start] === "\r" && s[start + 1] === "\n") start += 2; else if (s[start] === "\n") start += 1;
+      const en = s.indexOf("endstream", start);
+      if (en < 0) break;
+      const raw = buf.subarray(start, en);
+      try { streams.push(zlib.inflateSync(raw)); } catch { /* not a flate stream (e.g. object stream) — parser B still scans it raw */ }
+      idx = en + 9;
+    }
+    return streams;
+  }
+  function readPdfLiteral(s, i) {
+    // s[i] === '(' ; returns [decodedString, nextIndex]
+    const bytes = [];
+    let depth = 1; i++;
+    while (i < s.length && depth > 0) {
+      const c = s[i];
+      if (c === "\\") {
+        const n = s[i + 1];
+        if (n >= "0" && n <= "7") { let oct = n; let j = i + 1; while (j < i + 3 && s[j + 1] >= "0" && s[j + 1] <= "7") { j++; oct += s[j]; } bytes.push(parseInt(oct, 8)); i = j + 1; }
+        else if (n === "n") { bytes.push(10); i += 2; } else if (n === "r") { bytes.push(13); i += 2; }
+        else if (n === "t") { bytes.push(9); i += 2; } else if (n === "(") { bytes.push(40); i += 2; }
+        else if (n === ")") { bytes.push(41); i += 2; } else if (n === "\\") { bytes.push(92); i += 2; }
+        else if (n === "\n") { i += 2; } else if (n === "\r") { i += 2; if (s[i] === "\n") i++; }
+        else { bytes.push(s.charCodeAt(i + 1) & 0xff); i += 2; }
+      } else if (c === "(") { depth++; bytes.push(40); i++; }
+      else if (c === ")") { depth--; if (depth > 0) bytes.push(41); i++; }
+      else { bytes.push(s.charCodeAt(i) & 0xff); i++; }
+    }
+    return [decodeWinAnsi(Buffer.from(bytes)), i];
+  }
+  // Full operator walk: returns [{ text, x, y, size, font, page }] in
+  // reading order (page order, then y descending, then x ascending).
+  function extractPdfRuns(buf) {
+    const runs = [];
+    if (!Buffer.isBuffer(buf) || !zlib) return runs;
+    const streams = pdfStreams(buf);
+    streams.forEach((streamBuf, page) => {
+      const s = streamBuf.toString("latin1");
+      let font = null, size = 0, x = 0, y = 0, pendingText = null;
+      let i = 0;
+      const numBefore = (pos) => { const m = s.slice(Math.max(0, pos - 40), pos).match(/(-?[\d.]+)\s*(-?[\d.]+)\s*$/); return m ? [parseFloat(m[1]), parseFloat(m[2])] : null; };
+      while (i < s.length) {
+        const c = s[i];
+        if (c === "(") { const [txt, ni] = readPdfLiteral(s, i); pendingText = txt; i = ni; continue; }
+        if (c === "/" ) { const m = s.slice(i).match(/^\/(\S+)\s+([\d.]+)\s+Tf/); if (m) { font = m[1]; size = parseFloat(m[2]); i += m[0].length; continue; } i++; continue; }
+        if (s.startsWith("Tj", i) || s.startsWith("TJ", i) || s.startsWith("'", i) || s.startsWith('"', i)) {
+          if (pendingText !== null && pendingText !== "") runs.push({ text: pendingText, x, y, size, font, page });
+          pendingText = null; i += 2; continue;
+        }
+        if (s.startsWith("Tm", i)) { const nums = s.slice(Math.max(0, i - 60), i).match(/(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*$/); if (nums) { x = parseFloat(nums[5]); y = parseFloat(nums[6]); } i += 2; continue; }
+        if (s.startsWith("Td", i) || s.startsWith("TD", i)) { const pair = numBefore(i); if (pair) { x += pair[0]; y += pair[1]; } i += 2; continue; }
+        i++;
+      }
+    });
+    return runs.sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x);
+  }
+  const extractPdfLines = (buf) => extractPdfRuns(buf).map((r) => r.text);
+  // Parser B: raw string scan of every inflated stream, operator-blind.
+  function extractPdfStrings(buf) {
+    const out = [];
+    if (!Buffer.isBuffer(buf) || !zlib) return out;
+    for (const streamBuf of pdfStreams(buf)) {
+      const s = streamBuf.toString("latin1");
+      let i = 0;
+      while (i < s.length) {
+        if (s[i] === "(") { const [txt, ni] = readPdfLiteral(s, i); if (txt.trim()) out.push(txt); i = ni; }
+        else i++;
+      }
+    }
+    return out;
+  }
+  function pdfStructure(buf) {
+    const s = Buffer.isBuffer(buf) ? buf.toString("latin1") : "";
+    const fonts = [...new Set([...s.matchAll(/\/BaseFont\s*\/([A-Za-z0-9-]+)/g)].map((m) => m[1].replace(/^[A-Z]{6}\+/, "")))];
+    const images = (s.match(/\/Subtype\s*\/Image/g) || []).length;
+    const pages = (s.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
+    const runs = extractPdfRuns(buf);
+    const sizes = [...new Set(runs.map((r) => r.size).filter(Boolean))].sort((a, b) => a - b);
+    const xs = [...new Set(runs.map((r) => Math.round(r.x)))];
+    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, pages, fonts, fontSizesPt: sizes, images, singleColumn: runs.length > 0 && xs.every((x) => x <= 100), headings: [] };
+  }
+  // External parser B (poppler) — used when the caller opts in.
+  function extractPdfPoppler(buf) {
+    if (!cp || !fs || !os) return null;
+    const tmp = `${os.tmpdir()}/ca02-poppler-${process.pid}-${Math.random().toString(36).slice(2)}.pdf`;
+    try {
+      fs.writeFileSync(tmp, buf);
+      const out = cp.execFileSync("pdftotext", [tmp, "-"], { encoding: "utf8", timeout: 15000 });
+      return out.split(/\r?\n/).map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim());
+    } catch { return null; } finally { try { fs.unlinkSync(tmp); } catch { /* gone */ } }
+  }
+
+  // ================= DOCX extraction — parser A (paragraph walk) =================
+  function unescXml(s) {
+    return String(s).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+  }
+  function extractDocxLines(buf) {
+    const xmlBuf = docxPart(buf, "word/document.xml");
+    if (!xmlBuf) return [];
+    const xml = xmlBuf.toString("utf8");
+    const lines = [];
+    for (const pm of xml.matchAll(/<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>/g)) {
+      const runs = [...pm[1].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((m) => unescXml(m[1]));
+      const text = runs.join("");
+      if (text.trim()) lines.push(text);
+    }
+    return lines;
+  }
+  // Parser B: independent regex scan of every <w:t> run in document order,
+  // grouped by paragraph end tags — shares no code path with parser A's
+  // block iteration beyond the ZIP reader.
+  function extractDocxRuns(buf) {
+    const xmlBuf = docxPart(buf, "word/document.xml");
+    if (!xmlBuf) return [];
+    const xml = xmlBuf.toString("utf8");
+    const lines = [];
+    const tokenRe = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<\/w:p>/g;
+    let cur = "";
+    let m;
+    while ((m = tokenRe.exec(xml))) {
+      if (m[1] !== undefined) cur += unescXml(m[1]);
+      else { if (cur.trim()) lines.push(cur); cur = ""; }
+    }
+    if (cur.trim()) lines.push(cur);
+    return lines;
+  }
+  function docxStructure(buf) {
+    const parts = unzipParts(buf);
+    const docXml = (parts.get("word/document.xml") || Buffer.alloc(0)).toString("utf8");
+    const stylesXml = (parts.get("word/styles.xml") || Buffer.alloc(0)).toString("utf8");
+    const fonts = [...new Set([...stylesXml.matchAll(/w:ascii="([^"]+)"/g)].map((m) => m[1]))];
+    const sizes = [...new Set([...stylesXml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => parseInt(m[1], 10) / 2))].sort((a, b) => a - b);
+    const mediaParts = [...parts.keys()].filter((k) => k.startsWith("word/media/")).length;
+    const images = mediaParts + (docXml.match(/<w:drawing|<a:blip|<w:pict/g) || []).length;
+    const tables = (docXml.match(/<w:tbl[\s>]/g) || []).length;
+    const textFrames = (docXml.match(/txbxContent/g) || []).length;
+    const headerFooterParts = [...parts.keys()].filter((k) => /word\/(header|footer)\d*\.xml/.test(k)).length;
+    return { bytes: Buffer.isBuffer(buf) ? buf.length : 0, fonts, fontSizesPt: sizes, images, tables, textFrames, headerFooterParts, headings: [] };
+  }
+  // External parser B (python-docx) — used when the caller opts in.
+  function extractDocxPython(buf) {
+    if (!cp || !fs || !os) return null;
+    const tmp = `${os.tmpdir()}/ca02-pydocx-${process.pid}-${Math.random().toString(36).slice(2)}.docx`;
+    try {
+      fs.writeFileSync(tmp, buf);
+      const out = cp.execFileSync("python3", ["-c", "import docx,sys; d=docx.Document(sys.argv[1]); print('\\n'.join(p.text for p in d.paragraphs))", tmp], { encoding: "utf8", timeout: 15000 });
+      return out.split(/\r?\n/).filter((l) => l.trim());
+    } catch { return null; } finally { try { fs.unlinkSync(tmp); } catch { /* gone */ } }
+  }
+
+  // ================= parse-check (Spec 3 §2.5) =================
+  // Normalisation for extraction diffs: whitespace is collapsed and
+  // spaces adjacent to punctuation are dropped — real parsers (poppler
+  // included) disagree on glyph-gap spacing around punctuation, and that
+  // is not a content difference. Word-internal spaces are preserved.
+  const normLine = (s) => String(s || "").replace(/\u2022/g, " ").replace(/\s+/g, " ").trim().toLowerCase().replace(/\s*([^\p{L}\p{N}\s])\s*/gu, "$1");
+  const normSeq = (lines) => (lines || []).map(normLine).filter(Boolean);
+  const PLACEHOLDER_PATTERNS = [
+    { re: /\bfirst last\b/i, label: '"First Last"' }, { re: /\bcompany\s*\d+\b/i, label: '"Company N"' },
+    { re: /\bany company\b/i, label: '"Any Company"' }, { re: /\byour name\b/i, label: '"Your Name"' },
+    { re: /\bjohn doe\b|\bjane doe\b/i, label: '"John/Jane Doe"' }, { re: /lorem/i, label: "lorem ipsum" },
+    { re: /\[[^\]]{1,40}\]/, label: "bracketed placeholder [..]" }, { re: /\bTBD\b/, label: "TBD" },
+    { re: /\bXXX+\b/, label: "XXX" }, { re: /placeholder/i, label: "the word 'placeholder'" },
+  ];
+  const NUMERIC_DATE_RES = [/\b\d{1,2}\/\d{4}\b/g, /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g, /\b\d{4}-\d{2}(?:-\d{2})?\b/g, /\b\d{1,2}-\d{4}\b/g];
+  function diffSequences(expected, actual) {
+    // returns { missing:[], extra:[], moved:bool }
+    const exp = [...expected], act = [...actual];
+    const actCount = new Map(); for (const l of act) actCount.set(l, (actCount.get(l) || 0) + 1);
+    const missing = [];
+    for (const l of exp) { if (actCount.get(l) > 0) actCount.set(l, actCount.get(l) - 1); else missing.push(l); }
+    const expCount = new Map(); for (const l of exp) expCount.set(l, (expCount.get(l) || 0) + 1);
+    const extra = [];
+    for (const l of act) { if (expCount.get(l) > 0) expCount.set(l, expCount.get(l) - 1); else extra.push(l); }
+    const sameMultiset = missing.length === 0 && extra.length === 0;
+    const sameOrder = sameMultiset && exp.length === act.length && exp.every((l, i) => l === act[i]);
+    return { missing, extra, moved: sameMultiset && !sameOrder };
+  }
+  function parseCheck(input, opts) {
+    const o = opts || {};
+    const inp = input || {};
+    const resume = inp.resume || null;
+    const expected = resume ? sourceLines(resume) : (inp.sourceLines || null);
+    const expectedNorm = expected ? normSeq(expected.map((l) => l.text)) : null;
+    const expectedLayoutNorm = resume ? normSeq(layoutLines(resume).map((l) => l.text)) : expectedNorm;
+    const expectedHeadings = expected ? expected.filter((l) => l.kind === "heading").map((l) => l.text.toUpperCase()) : null;
+    const email = resume && resume.header && resume.header.email ? String(resume.header.email) : null;
+    const reasons = [];
+    const checks = {};
+    const formats = {};
+    const add = (check, level, detail) => reasons.push({ check, level, detail });
+
+    const checkFormat = (fmt, buf, extractA, extractB, struct, expectedForFmt) => {
+      if (!buf) return;
+      const st = struct(buf);
+      checks[fmt] = st;
+      if (st.bytes > 2_500_000) add("file_size", "fail", `${fmt} is ${st.bytes} bytes — Greenhouse cannot parse files over 2.5MB (Spec 3 §2.1)`);
+      else if (st.bytes > 1_000_000) add("file_size", "warn", `${fmt} is ${st.bytes} bytes — over the R8 1MB guidance`);
+      if (fmt === "pdf") {
+        if (st.images > 0) add("images", "fail", `PDF contains ${st.images} image XObject(s) — R2: real text, never an image`);
+        if (!st.singleColumn) add("single_column", "fail", "PDF text does not start in a single column — R1");
+        const badFonts = st.fonts.filter((f) => !["Helvetica", "Helvetica-Bold", "Times-Roman", "Times-Bold", "Courier", "Courier-Bold"].includes(f));
+        if (badFonts.length) add("fonts", "fail", `non-standard PDF font(s): ${badFonts.join(", ")} — R6`);
+        const badSizes = st.fontSizesPt.filter((s) => s < 10 || s > 12);
+        if (badSizes.length) add("fonts", "fail", `PDF font size(s) outside 10–12pt: ${badSizes.join(", ")} — R6`);
+        if (o.pageLimit && st.pages > o.pageLimit) add("page_count", "warn", `PDF runs ${st.pages} pages; this role family's limit is ${o.pageLimit} (123 conventions)`);
+      } else {
+        if (st.images > 0) add("images", "fail", `DOCX contains ${st.images} image/media part(s) — R2`);
+        if (st.tables > 0) add("tables", "fail", `DOCX uses ${st.tables} layout table(s) — R1: no layout tables`);
+        if (st.textFrames > 0) add("text_frames", "fail", `DOCX contains ${st.textFrames} text frame(s) — R1: no text boxes/frames`);
+        if (st.headerFooterParts > 0) add("contact_in_body", "warn", `DOCX has ${st.headerFooterParts} header/footer part(s); contact info belongs in the body — R4`);
+        const badSizes = st.fontSizesPt.filter((s) => s < 10 || s > 12);
+        if (badSizes.length) add("fonts", "fail", `DOCX font size(s) outside 10–12pt: ${badSizes.join(", ")} — R6`);
+      }
+      const aLines = extractA(buf);
+      let bLines = extractB(buf);
+      let bName = fmt === "pdf" ? "in-repo string scan" : "in-repo run scan";
+      if (o.useExternalParsers) {
+        const ext = fmt === "pdf" ? extractPdfPoppler(buf) : extractDocxPython(buf);
+        if (ext) { bLines = ext; bName = fmt === "pdf" ? "poppler pdftotext" : "python-docx"; }
+        else add("second_parser", "warn", `external second parser for ${fmt} unavailable in this runtime; in-repo fallback used`);
+      }
+      const aNorm = normSeq(aLines), bNorm = normSeq(bLines);
+      formats[fmt] = { parsers: 2, parserA: fmt === "pdf" ? "in-repo content-stream operators" : "in-repo paragraph walk", parserB: bName, bytes: st.bytes, ...(fmt === "pdf" ? { pages: st.pages } : {}) };
+      const ab = diffSequences(aNorm, bNorm);
+      if (ab.missing.length || ab.extra.length) add("parser_disagreement", "fail", `${fmt}: the two parsers disagree (A-only: ${ab.missing.slice(0, 2).join(" | ") || "none"}; B-only: ${ab.extra.slice(0, 2).join(" | ") || "none"})`);
+      else if (ab.moved) add("parser_disagreement", "warn", `${fmt}: the two parsers recover the same lines in a different order`);
+      if (expectedForFmt) {
+        const d = diffSequences(expectedForFmt, aNorm);
+        if (d.missing.length) add("missing_content", "fail", `${fmt}: ${d.missing.length} source line(s) missing from the file, first: "${d.missing[0].slice(0, 80)}"`);
+        if (d.extra.length) add("extra_content", "fail", `${fmt}: ${d.extra.length} line(s) in the file are not in the source, first: "${d.extra[0].slice(0, 80)}"`);
+        if (d.moved) add("reading_order", "warn", `${fmt}: all source lines are present but the reading order differs from the source JSON`);
+        checks[fmt].headings = expectedHeadings ? aNorm.map((l) => l.toUpperCase()).filter((l) => expectedHeadings.includes(l)) : [];
+        if (expectedHeadings) {
+          const bad = checks[fmt].headings.filter((h) => !HEADING_ALLOWLIST.includes(h));
+          if (bad.length) add("heading_allowlist", "fail", `${fmt}: non-standard heading(s): ${[...new Set(bad)].join(", ")} — R3`);
+        }
+        if (email && !aNorm.some((l) => l.includes(email.toLowerCase()))) add("contact_in_body", "fail", `${fmt}: the contact email is not in the extracted body text — R4`);
+      }
+      // Placeholder + date scans run on extracted text whenever we have it.
+      const joined = aLines.join("\n");
+      for (const p of PLACEHOLDER_PATTERNS) if (p.re.test(joined)) add("placeholder", "fail", `${fmt}: placeholder data found (${p.label}) — R11: Greenhouse's parser skips placeholders; never submit them`);
+      const numericDates = new Set();
+      for (const re of NUMERIC_DATE_RES) for (const m of joined.matchAll(re)) numericDates.add(m[0]);
+      if (numericDates.size) add("date_format", "warn", `${fmt}: date(s) not in the single 'Mon YYYY' format (R7): ${[...numericDates].slice(0, 5).join(", ")}`);
+    };
+
+    checkFormat("pdf", inp.pdf || null, extractPdfLines, extractPdfStrings, pdfStructure, expectedLayoutNorm);
+    checkFormat("docx", inp.docx || null, extractDocxLines, extractDocxRuns, docxStructure, expectedNorm);
+    if (!inp.pdf && !inp.docx) add("no_files", "fail", "no rendered file was supplied to check");
+    const status = reasons.some((r) => r.level === "fail") ? "FAIL" : reasons.some((r) => r.level === "warn") ? "WARN" : "PASS";
+    return { status, reasons, checks, formats };
+  }
+
+  const sha256 = (buf) => (crypto ? crypto.createHash("sha256").update(buf).digest("hex") : null);
+  function artifact(format, rendered) {
+    if (!rendered || !rendered.ok) return null;
+    return { format, filename: rendered.filename, contentType: rendered.contentType, bytes: rendered.buffer.length, sha256: sha256(rendered.buffer), base64: rendered.buffer.toString("base64") };
+  }
+
+  return { renderPdf, renderDocx, parseCheck, sourceLines, layoutLines, filenameFor, extractPdfLines, extractPdfStrings, extractPdfRuns, extractPdfPoppler, extractDocxLines, extractDocxRuns, extractDocxPython, docxPart, docxPartNames, rebuildDocx, artifact, sha256, crc32, PDF_CONTENT_TYPE, DOCX_CONTENT_TYPE, HEADING_ALLOWLIST };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerRender;
 
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and

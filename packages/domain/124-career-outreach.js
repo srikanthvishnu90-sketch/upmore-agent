@@ -821,12 +821,23 @@ const CareerOutreach = (() => {
       breaker: { tripped: false, cause: null, user_message: null }, stats: { replies: 0, positive: 0, meetings_booked: 0, meetings_held: 0, referrals: 0, complaints: 0 },
       followups_continue_tap: false };
   }
+  // R-A4 kill-switch seam: a global user pause (set by 141's haltQueue as
+  // ctx.globalPause / state.global_pause) reaches a campaign either on the
+  // campaign object itself or per call via opts.globalPause / opts.ctx.
+  // While it is set, enqueue and sendPending refuse — typed, no send.
+  function globalPauseOf(campaign, opts) {
+    opts = opts || {};
+    const p = (campaign && campaign.global_pause) || opts.globalPause || (opts.ctx && opts.ctx.globalPause) || null;
+    return p && (p === true || p.set === true) ? p : null;
+  }
   function enqueue(campaign, entries, opts) {
     opts = opts || {}; const suppression = opts.suppression || null; const results = [];
+    const paused = globalPauseOf(campaign, opts);
     for (const e of entries || []) {
       const c = normalizeCandidate(e.candidate || e); const draft = e.draft || null;
       const base = { person_id: c.person_id || null, email: c.work_email || null, candidate: c, draft, tier: e.tier || (draft && draft.tier) || null, verification: c.email_verification || e.verification || null };
       const reject = (reason) => { results.push(Object.assign({}, base, { status: "rejected", reason })); };
+      if (paused) { reject("global_pause_set"); continue; }
       if (campaign.status === "draft" && !opts.allowDraftEnqueue) { /* enqueue into a draft campaign is allowed; sending is what needs approval */ }
       if (!base.email) { reject("no_email"); continue; }
       if (base.verification === "invalid") { reject("invalid_email"); continue; }
@@ -906,6 +917,7 @@ const CareerOutreach = (() => {
   }
   async function sendPending(campaign, opts) {
     opts = opts || {}; const transport = opts.transport; if (!transport || typeof transport.send !== "function") return { sent: 0, error: "NOT_WIRED: no injected transport" };
+    if (globalPauseOf(campaign, opts)) return { sent: 0, error: "global_pause_set", refused: true, refusal_state: "refused_global_pause", status: campaign.status };
     if (campaign.status !== "approved" && campaign.status !== "running") return { sent: 0, error: "campaign_not_approved", status: campaign.status };
     if (campaign.breaker.tripped) return { sent: 0, error: "circuit_breaker_tripped", cause: campaign.breaker.cause };
     campaign.status = "running";
@@ -1541,7 +1553,7 @@ const CareerOutreach = (() => {
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, isGenericFact, fixArticles, sanitizeTopic, experienceLine, renderFactClause, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
-    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
+    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport, globalPauseOf,
     classifyReply, handleReply, processInboxEvent, deliveryStatus, deliveryStatusText, reconcileOutreachDelivery, followUpStatus, profileFactAnswers, addressHealth, parseReturnDate,
     tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,
     campaignMetrics };

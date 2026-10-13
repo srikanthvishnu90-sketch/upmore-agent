@@ -24,10 +24,13 @@
         a sink timeout is reported as unknown_outcome (never as success);
         "did it go through?" reconciles the sink BEFORE any retry, and a
         repeat approval while an outcome is unknown/confirmed is refused.
-     3. QUEUE CONTROL (C37): "stop everything" halts the outreach queue and
+     3. QUEUE CONTROL (C37 + R-A4): "stop everything" halts the outreach queue and
         PERSISTS the halt (the queue state is the host-persisted object /
         JSON file passed in ctx; the halt flag and per-item status are
-        written into it). Duplicate events (same event_id) are deduped and
+        written into it). R-A4 (S0): the halt ALWAYS sets a global user
+        pause (ctx.globalPause + state.global_pause + q.global_pause) —
+        when the queue state can't be read the pause is set anyway and the
+        reply states the exact counts are unverified, never a no-op. Duplicate events (same event_id) are deduped and
         out-of-order events (older sent_at than the state they would rewind)
         cannot revive a halted item. Pending recipients are also suppressed
         through 124's own suppression store when the host passes one, so a
@@ -752,32 +755,66 @@ const CareerDoorstep = (() => {
       : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything; ask me again and I will reconcile the sink before any retry." };
   }
 
-  // ---------- 3. queue control (C37) ----------
+  // ---------- 3. queue control (C37 + R-A4 kill switch) ----------
+  // R-A4 (quality spec 01, S0): "stop everything" ALWAYS halts. The halt is
+  // a GLOBAL user pause, set on every surface the host can persist/honor —
+  // ctx.globalPause, the loaded queue-state object (state.global_pause),
+  // and the queue itself (q.global_pause + q.halted) — whether or not the
+  // queue's own records could be read in this session. An unreadable queue
+  // is never a no-op and never a crash: the pause is set anyway, the reply
+  // says the exact counts are UNVERIFIED, and 124's sendPending/enqueue
+  // honor the same pause flag (campaign.global_pause / opts.globalPause).
   function loadQueueState(ctx) {
-    if (ctx.queueState) return { state: ctx.queueState, persist: () => {} };
-    if (ctx.queueStatePath && nodeFs) {
-      const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
-      return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+    try {
+      if (ctx.queueState) return { state: ctx.queueState, persist: () => {} };
+      if (ctx.queueStatePath && nodeFs) {
+        const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
+        return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+      }
+    } catch (e) {
+      // A missing/unreadable/corrupt queue file is "can't be read" — the
+      // caller halts via the global pause instead of crashing the turn.
+      return { state: null, persist: () => {}, unreadable: true };
     }
     return { state: null, persist: () => {} };
   }
   function haltQueue(ctx, text) {
-    const { state, persist } = loadQueueState(ctx);
-    if (!state || !state.outreach_queue || !Array.isArray(state.outreach_queue.items)) {
-      return { intent: "queue_halt", resultStatus: "blocked", reply: "I cannot find the outreach queue state, so I halted nothing. Point me at the queue and I will stop it." };
+    const c = ctx || {};
+    const { state, persist } = loadQueueState(c);
+    const at = c.now != null ? c.now : new Date().toISOString();
+    const pause = { set: true, at, by: c.userId || "user", scope: "all-queues" };
+    c.globalPause = pause;
+    if (state && typeof state === "object") state.global_pause = pause;
+    const q = state && state.outreach_queue && Array.isArray(state.outreach_queue.items) ? state.outreach_queue : null;
+    if (!q) {
+      return {
+        intent: "queue_halt", resultStatus: "completed", counts_verified: false,
+        global_pause_set: true, pause_flag_set: true, global_pause: pause,
+        halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
+        queue_state: null,
+        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step: reload the queue state and I will reconcile the exact counts against it.",
+      };
     }
-    const q = state.outreach_queue;
-    const pending = q.items.filter((i) => i.status === "pending");
+    // Item accounting — every item lands in exactly one bucket, so the
+    // reported numbers reconcile to the queue total by construction:
+    //   sent (already gone) / sending (in-flight, unconfirmed — left as-is,
+    //   never half-sent) / haltable (pending or queued — halted now) /
+    //   already stopped or finished before this instruction (left as-is).
+    const TERMINAL = new Set(["halted", "suppressed", "cancelled", "canceled", "bounced", "failed", "completed"]);
     const sentAlready = q.items.filter((i) => i.status === "sent");
+    const inFlight = q.items.filter((i) => i.status === "sending");
+    const alreadyStopped = q.items.filter((i) => TERMINAL.has(i.status));
+    const pending = q.items.filter((i) => i.status === "pending" || i.status === "queued");
     for (const item of pending) { item.status = "halted"; item.halted_by = "user instruction in chat"; item.halt_reason = String(text || ""); }
     q.halted = true;
-    q.halt = { at: (ctx && ctx.now) || null, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
+    q.global_pause = pause;
+    q.halt = { at, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), global_pause: pause, form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
     if (state.form_prep_in_progress && state.form_prep_in_progress.state !== "SUBMITTED") state.form_prep_in_progress.halted = true;
     // Belt-and-braces through 124's OWN suppression API (called, not edited):
     // even a send-time pass in 124 stops a suppressed recipient.
     let suppressed = 0;
-    const suppression = (ctx && ctx.suppression) || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
-    if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: (ctx && ctx.userId) || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } if (ctx) ctx.suppression = suppression; }
+    const suppression = c.suppression || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
+    if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: c.userId || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } c.suppression = suppression; }
     persist();
     // DD-10: the sent-statement is computed from the queue's actual state —
     // when an item already went out, the reply says so instead of claiming
@@ -785,10 +822,15 @@ const CareerDoorstep = (() => {
     const sentText = sentAlready.length
       ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
       : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
+    const total = q.items.length;
     return {
-      intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
+      intent: "queue_halt", resultStatus: "completed", counts_verified: true,
+      global_pause_set: true, pause_flag_set: true, global_pause: pause,
+      halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
+      sent_count: sentAlready.length, in_flight_count: inFlight.length, in_flight_unconfirmed_count: inFlight.length,
+      already_stopped_count: alreadyStopped.length, queue_total: total,
       queue_state: q,
-      reply: `Stopped everything: ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.${sentText}`,
+      reply: `Stopped everything: the global pause is set, and ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted — the halt is saved so it survives a restart. Counts: ${sentAlready.length} already sent, ${inFlight.length} in flight and unconfirmed, ${pending.length} halted${alreadyStopped.length ? `, ${alreadyStopped.length} already stopped` : ""} — ${total} in total, so every item is accounted for.${sentText}`,
     };
   }
   // Inbox-event hygiene for a (possibly halted) queue state: dedupe by

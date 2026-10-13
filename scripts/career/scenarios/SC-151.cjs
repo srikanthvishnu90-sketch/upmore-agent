@@ -1,0 +1,13 @@
+"use strict"; const { G, H, graph } = require("./w08-common.cjs");
+(async () => { const s = H.session("SC-151", "referral-ask-after-chat");
+  s.user("Referral ask sent after a good coffee chat — never in email one");
+  const g = graph();
+  const blocked = G.planReferralAsk(g, "Daniel Warm (TEST)", { company: "Datadog", role: "SWE Intern" });
+  s.tool("135.planReferralAsk(before any chat)", blocked);
+  s.agent(`Not yet — there's no held chat with Daniel on record, and a referral ask never goes in email one. Book the chat first.`);
+  G.recordInteraction(g, "Daniel Warm (TEST)", { kind: "coffee_chat", at: "2026-10-10T12:00:00Z", summary: "Good chat: Datadog infra, on-call, intern projects" });
+  const ask = G.planReferralAsk(g, "Daniel Warm (TEST)", { company: "Datadog", role: "SWE Intern", chat_note: "your on-call advice stuck with me" });
+  s.tool("135.planReferralAsk(after held chat)", ask);
+  s.agent(`Now the ask is unlocked — drafted, on your T3 card, unsent:\n\n${ask.draft.body}`, { card: { title: "T3 — referral ask to Daniel Warm (TEST)", sends: false } });
+  s.verify("ask blocked pre-chat with the SC-151 reason; post-chat draft exists and sends:false", { blocked_reason: blocked.reason, ask_ok: ask.ok, sends: ask.sends });
+  await s.finish({ status: "COMPLETE", outcome: "Referral ask refused before any held chat (never email one), then drafted approval-gated after the coffee chat was logged" }); })();

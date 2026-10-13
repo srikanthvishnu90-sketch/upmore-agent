@@ -707,6 +707,12 @@ const CRYPTO_RX = /\b(crypto|bitcoin|ethereum|cryptocurrency|btc|eth|ether|solan
 const CRYPTO_REFUSAL = "I can't help with that — Upmore has a hard rule: no betting, no crypto, and no routes where you can lose your own money. If you want to earn extra cash, ask me about verified routes with fixed payouts.";
 export function tryCryptoGuard(message: string): string | null {
   if (!CRYPTO_RX.test(message)) return null;
+  // The one read-only carve-out (owner-approved capability C163, crypto tax export): tax words with no trade verb
+  // ("get my crypto taxes sorted", "my bitcoin cost basis for my 1099") go to the tax export answer, and a pasted
+  // venue CSV is data for it, not an ask. Any trade verb keeps the refusal, taxes mentioned or not.
+  const csvPaste = /(^|\n)[^\n]*\b(date|timestamp)\b[^\n]*\b(transaction type|type)\b[^\n]*\b(asset|currency|quantity)\b/i.test(message);
+  if (csvPaste) return null;
+  if (/\b(tax|taxes|1099|8949|cost basis)\b/i.test(message) && !/\b(buy|sell|swap|trade|invest|purchase|short)\b/i.test(message)) return null;
   return CRYPTO_REFUSAL;
 }
 

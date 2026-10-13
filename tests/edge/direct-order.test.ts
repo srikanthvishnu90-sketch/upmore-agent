@@ -183,6 +183,13 @@ const OWNER: [string, string | null][] = [
   ["VOO versus VTI - just tell me which", "marketReply"],
   ["should i care about ASTS", "marketReply"],
   ["tell me when my balance drops below $500", null],
+  // Crypto tax export (C163), ahead of moneyReply in the handler: a tax ask with no file gets the prompt; a trade
+  // ask is never this answer (the crypto guard refuses it before the chain runs).
+  ["get my crypto taxes sorted", "cryptoTaxReply"],
+  ["what's my bitcoin cost basis for my 1099", "cryptoTaxReply"],
+  ["crypto tax export please", "cryptoTaxReply"],
+  ["buy some bitcoin", null],
+  ["sell my bitcoin and do my taxes", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

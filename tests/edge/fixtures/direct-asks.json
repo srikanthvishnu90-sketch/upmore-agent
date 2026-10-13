@@ -1424,6 +1424,22 @@
     [
       "send me the news that matters to my money",
       "marketReply"
+    ],
+    [
+      "get my crypto taxes sorted",
+      "cryptoTaxReply"
+    ],
+    [
+      "crypto tax export please",
+      "cryptoTaxReply"
+    ],
+    [
+      "what's my bitcoin cost basis for my 1099",
+      "cryptoTaxReply"
+    ],
+    [
+      "buy some bitcoin",
+      null
     ]
   ]
 }

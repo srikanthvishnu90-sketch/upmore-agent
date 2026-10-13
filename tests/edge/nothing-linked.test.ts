@@ -23,6 +23,7 @@ import { paycheckReply } from "../../supabase/functions/agent-chat/_shared/paych
 import { tipFeesReply } from "../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
 import { form1099Reply } from "../../supabase/functions/agent-chat/_shared/form1099_answer.ts";
 import { annualCheckupReply } from "../../supabase/functions/agent-chat/_shared/annual_checkup_answer.ts";
+import { cryptoTaxReply } from "../../supabase/functions/agent-chat/_shared/crypto_tax_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
 import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
@@ -36,6 +37,8 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["tip fees", (m) => tipFeesReply(m, NOW, { receipts: none, transactions: none }, { tz: "America/New_York" })],
   ["1099", (m) => form1099Reply(m, NOW, { accounts: none, transactions: none, forms1099: none }, { tz: "America/New_York" })],
   ["annual checkup", (m) => annualCheckupReply(m, NOW, { accounts: none, transactions: none }, { tz: "America/New_York" })],
+  // Crypto tax export (C163) reads no account at all: a tax ask gets the prompt, which claims no look anywhere.
+  ["crypto tax", (m) => cryptoTaxReply(m)],
   ["money", (m) => moneyReply(m, NOW, { accounts: none, transactions: none })],
   // A budget the person set, with nothing linked: the reply says nothing is linked, never "$0.00 spent".
   ["budgets", (m) => budgetReply(m, NOW, { budgets: async () => [{ id: "budget-groceries-mock", kind: "category_budget", category: "groceries", amount_cents: 40000, status: "active" }], transactions: none })],

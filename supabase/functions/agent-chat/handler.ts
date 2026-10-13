@@ -60,6 +60,7 @@ import { paycheckReply } from "./_shared/paycheck_answer.ts";
 import { tipFeesReply } from "./_shared/tip_fees_answer.ts";
 import { form1099Reply } from "./_shared/form1099_answer.ts";
 import { annualCheckupReply } from "./_shared/annual_checkup_answer.ts";
+import { cryptoTaxReply } from "./_shared/crypto_tax_answer.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS, capWatches } from "../_shared/proactive.ts";
@@ -331,6 +332,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // accounts, the C10 fee scan, recurring run-rates, pay-later, the year's in/out and rates/policies —
       // each with its dollars at stake and its approval-gated handoff; it executes nothing itself.
       if (!direct) direct = await annualCheckupReply(message, new Date(), { accounts: readAccounts, transactions: readTx }, { tz });
+      // Crypto tax export (capability C163, _shared/crypto_tax_answer.ts): the person's pasted venue CSV (in this
+      // message, or following the prompt in this thread) normalized and matched lot by lot; with no file, the
+      // honest prompt. Read-only; trade asks never reach here (the crypto guard's carve-out is tax words only).
+      if (!direct) direct = await cryptoTaxReply(message, readPrevious);
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,

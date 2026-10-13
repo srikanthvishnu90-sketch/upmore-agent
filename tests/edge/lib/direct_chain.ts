@@ -22,6 +22,7 @@ import { paycheckReply } from "../../../supabase/functions/agent-chat/_shared/pa
 import { tipFeesReply } from "../../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
 import { form1099Reply } from "../../../supabase/functions/agent-chat/_shared/form1099_answer.ts";
 import { annualCheckupReply } from "../../../supabase/functions/agent-chat/_shared/annual_checkup_answer.ts";
+import { cryptoTaxReply } from "../../../supabase/functions/agent-chat/_shared/crypto_tax_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
@@ -55,6 +56,8 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   form1099Reply: (m) => form1099Reply(m, NOW, { accounts, transactions: async () => TX as any[], forms1099: async () => [] }, { tz: "America/New_York" }),
   // K1 (2026-10-12): the annual money checkup (C201), after the 1099 answer in the handler's chain.
   annualCheckupReply: (m) => annualCheckupReply(m, NOW, { accounts, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
+  // Crypto tax export (C163): no thread reader here, so a tax ask gets the prompt and a bare CSV is not claimed.
+  cryptoTaxReply: (m) => cryptoTaxReply(m),
   budgetReply: (m) => budgetReply(m, NOW, { budgets: async () => BUDGETS, transactions: async () => TX as any[] }, { tz: "America/New_York" }),
   moneyReply: (m) => moneyReply(m, NOW, { accounts, transactions: async () => TX as any[], cancellations: async () => CANCELS }),
   disputeReply: (m) => disputeReply(m, TODAY, oldest, { hasPhoto: false }),

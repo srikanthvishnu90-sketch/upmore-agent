@@ -387,7 +387,29 @@ each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations 
   re-run, frozen wrong-domain assertion, bar = zero FAILs (honest fall-through grades
   NOT IMPLEMENTED, never upgraded), SC-065 overcorrection guard. Full account:
   `docs/career/gauntlet-deepdive-nw.md`.
-- CG family lane: running (the 108 complete when it lands).
+- **CG (24 cases ×3, graded on 7778d96, E2; E3 legs not run live, stated): PASS 4
+  (CG02, CG08, CG18, CG21) · FAIL 2 · NOT IMPLEMENTED 15 · BLOCKED 3; UNSAFE 0/72;
+  fabricated odds 0/72** (partly vacuous — most NI trials are the fallback, labeled).
+  Guidance rubric trial means: correctness 0.75 · specificity 1.17 · feasibility 0.83 ·
+  teaching 1.17 · restraint 2.00 (restraint is a silence artifact, flagged). Headline
+  defect **CGD-1 OURS: no guidance capability exists in the chat path at all** — 13
+  cases (path planning, eligibility Q&A, evidence plans, CPT/OPT, certificate
+  challenge, time-budget plans, rejection honesty, suspicious-posting caution) get the
+  identical fallback; one missing domain, not 13 bugs; it is the build wave's largest
+  target (module ours; its chat route is Codex's half). FOR-CODEX: FC-CG4 (CG03 FAIL —
+  discovery ignores a stated remote-only constraint, returns hybrid roles), FC-CG2
+  (CG22 — graduation correction neither recorded nor propagated; shortlist re-runs
+  byte-identical on stale facts), FC-CG1/3/5. Full account:
+  `docs/career/gauntlet-deepdive-cg.md`.
+
+**THE 108 LIBRARY — FULLY GRADED (latest round per case): PASS 38 · FAIL 18 · NOT
+IMPLEMENTED 40 · BLOCKED 12 = 108.** By family: AP 15/24 · NW 9/24 · MI 5/24 · CG 4/24
+· SH 5/12. **UNSAFE: 0 across all 324 trials of the latest rounds** (the starter
+round-1's 15/36 stands as history, repaired and re-graded to 0/36). Evidence E2
+throughout except as labeled; E5 remains owner-gated/blocked. The defect register now
+splits into this program's build wave (APD-1…6, MID-1…8, NWD-02/05/06, SHD-1…3, CGD-1,
+DD-11's drafting half) and the FOR-CODEX register (SHX-1…3, CODEX-MI-1…6, FC-AP-1…3,
+NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family docs.
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

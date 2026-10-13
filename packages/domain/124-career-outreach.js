@@ -250,6 +250,117 @@ const CareerOutreach = (() => {
     return createLocalVerifier(opts);
   }
 
+  // ---------- Suppression-store contract (NWD-01, sharpened by NW21/NW22 evidence) ----------
+  // The store the handlers WRITE is a 124 createSuppressionStore() instance.
+  // NW21 proved where it lives: 142's handleOptOut attaches it to the turn
+  // RESULT (result.suppression) and to its ctx (ctx.suppression); a host that
+  // keeps only its own ctx sees nothing unless it carries result.suppression
+  // forward. So every read in this module resolves the store from, in order:
+  //   opts.suppression -> opts.ctx.suppression -> opts.result.suppression ->
+  //   opts.host.suppression -> a bare store passed as opts itself.
+  // A value may be the live store (isSuppressed/suppress functions) or its raw
+  // toJSON() data ({sharedEmails, sharedIds, perUserEmails, perUserIds}), which
+  // is rehydrated here. The interface read is exactly:
+  //   isSuppressed({email, person_id}, userId) -> boolean
+  // Persistence of the store across turns is the host/Codex item-8 layer; this
+  // module never invents a second store when one is handed to it. Opt-out
+  // suppression is absolute and cross-user shared (scope "shared"/"both").
+  function asSuppressionStore(v) {
+    if (!v || typeof v !== "object") return null;
+    if (typeof v.isSuppressed === "function") return v;
+    if (Array.isArray(v.sharedEmails) || Array.isArray(v.sharedIds) || v.perUserEmails || v.perUserIds) return createSuppressionStore(v);
+    return null;
+  }
+  function resolveSuppression(opts) {
+    opts = opts || {};
+    const candidates = [opts.suppression, opts.ctx && opts.ctx.suppression, opts.result && opts.result.suppression,
+      opts.host && opts.host.suppression, opts.store, opts];
+    for (const c of candidates) { const s = asSuppressionStore(c); if (s) return s; }
+    return null;
+  }
+  function resolveUserId(opts, user) {
+    opts = opts || {};
+    return opts.userId || (opts.ctx && opts.ctx.userId) || (user && (user.userId || user.id)) || (opts.profile && opts.profile.userId) || null;
+  }
+  // Returns {checked, suppressed, store} for a target — the pre-draft read.
+  function suppressionCheck(target, opts, user) {
+    const store = resolveSuppression(opts);
+    if (!store) return { checked: false, suppressed: false, store: null };
+    const t = target || {};
+    const email = t.email || t.work_email || null;
+    let hit = false;
+    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch (e) { hit = false; }
+    return { checked: true, suppressed: hit, store };
+  }
+  function suppressedRefusal(target, opts, user) {
+    const c = normalizeCandidate(target || {});
+    return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
+      message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
+      person_id: c.person_id || null, to: c.work_email || null,
+      suppression: { checked: true, suppressed: true } };
+  }
+
+  // ---------- NWD-02: draft store — post-gate lifecycle (prepare -> retrieve -> edit -> re-approve) ----------
+  // Drafts live in the store, not inside one turn's result object. An edit
+  // versions the draft and INVALIDATES every approval recorded for an earlier
+  // version: an approval binds exactly the version it was given on.
+  function createDraftStore(init) {
+    const data = { drafts: {}, order: [], seq: 0 };
+    if (init && init.drafts) { for (const id of Object.keys(init.drafts)) { data.drafts[id] = JSON.parse(JSON.stringify(init.drafts[id])); } data.order = (init.order || Object.keys(init.drafts)).slice(); data.seq = init.seq || data.order.length; }
+    const clone = (v) => v == null ? v : JSON.parse(JSON.stringify(v));
+    const store = {
+      data,
+      put(draft, meta) {
+        meta = meta || {};
+        if (!draft || draft.refused || !draft.body) return null;
+        const id = meta.id || draft.id || draft.draft_id || `draft-${++data.seq}`;
+        const rec = { id, draft: clone(draft), version: 1, status: "awaiting_approval",
+          person_id: draft.person_id || null, to: draft.to || null, kind: meta.kind || "outreach_draft",
+          approvals: [], approval: null, approval_valid: false,
+          history: [{ version: 1, draft: clone(draft), kind: "prepared", at: meta.at || null }],
+          created_at: meta.at || null };
+        data.drafts[id] = rec; if (!data.order.includes(id)) data.order.push(id);
+        return clone(rec);
+      },
+      // Back-compat alias in the module's create* idiom.
+      store(draft, meta) { return store.put(draft, meta); },
+      get(id) { const r = data.drafts[id]; return r ? clone(r) : null; },
+      getDraft(id) { const r = data.drafts[id]; return r ? clone(r.draft) : null; },
+      list() { return data.order.map((id) => clone(data.drafts[id])); },
+      approve(id, opts) {
+        opts = opts || {}; const r = data.drafts[id]; if (!r) return { ok: false, reason: "draft_not_found" };
+        const approval = { version: r.version, by: opts.by || "user", at: opts.at || null };
+        r.approvals.push(Object.assign({ valid: true }, approval));
+        r.approval = approval; r.approval_valid = true; r.status = "approved";
+        return { ok: true, id, version: r.version, approval: clone(approval), approval_valid: true };
+      },
+      isApprovalValid(id) { const r = data.drafts[id]; return !!(r && r.approval_valid && r.approval && r.approval.version === r.version && r.status === "approved"); },
+      edit(id, edits, opts) {
+        opts = opts || {}; edits = edits || {}; const r = data.drafts[id]; if (!r) return { ok: false, reason: "draft_not_found" };
+        const d = clone(r.draft);
+        if (typeof edits.body === "string") d.body = edits.body;
+        const opening = edits.opening_line || edits.openingLine;
+        if (typeof opening === "string") {
+          const lines = String(d.body || "").split("\n");
+          const idx = lines.findIndex((l) => l.trim().length > 0);
+          if (idx >= 0) lines[idx] = opening; else lines.unshift(opening);
+          d.body = lines.join("\n");
+        }
+        if (typeof edits.subject === "string") d.subject = edits.subject;
+        if (typeof edits.to === "string") d.to = edits.to;
+        if (edits.replace && edits.replace.from) d.body = String(d.body || "").split(edits.replace.from).join(edits.replace.to || "");
+        const invalidated = r.approvals.filter((a) => a.valid).length;
+        for (const a of r.approvals) a.valid = false;
+        r.approval = null; r.approval_valid = false;
+        r.version += 1; r.draft = d; r.status = "edited_awaiting_reapproval";
+        r.history.push({ version: r.version, draft: clone(d), kind: "edit", at: opts.at || null, invalidated_approvals: invalidated });
+        return { ok: true, id, version: r.version, draft: clone(d), invalidated_approvals: invalidated, approval_valid: false, status: r.status };
+      },
+      toJSON() { return clone(data); },
+    };
+    return store;
+  }
+
   // ---------- OUTE-005/006: draft engine + voice + quality gate ----------
   const VOICE_DEFAULT = Object.freeze({ formality: 0.3, warmth: 0.6, humor: 0.0, directness: 0.7, plain_student_voice: true });
   function determineTier(c, profile) {
@@ -266,6 +377,12 @@ const CareerOutreach = (() => {
   const STRUCTURES = ["path_question", "shared_context", "specific_question", "short_honest", "peer_learning"];
   function draftFor(candidate, user, opts) {
     opts = opts || {}; const c = normalizeCandidate(candidate); user = user || {};
+    // NWD-01 drafting half: suppression is read BEFORE any draft text exists.
+    // A suppressed recipient produces no draft at all, whichever layer handed
+    // the store in (opts / ctx / a prior turn's result — see contract above).
+    const sup = suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user);
+    if (sup.suppressed) return Object.assign(suppressedRefusal(c, opts, user),
+      { subject: null, body: null, tier: null, structure: null, facts_used: [], why_this_line: [], dropped_unsourced: [] });
     const voice = Object.assign({}, VOICE_DEFAULT, opts.voice || user.voice || {});
     const tier = opts.tier || determineTier(c, user);
     const structure = STRUCTURES[(opts.structureIndex != null ? opts.structureIndex : tier === "A" ? 0 : tier === "B" ? 1 : 3) % STRUCTURES.length];
@@ -334,15 +451,40 @@ const CareerOutreach = (() => {
     for (const other of opts.batchBodies || []) if (other && other.person_id !== draft.person_id && norm(other.body) && norm(other.body) === norm(body)) failures.push("duplicate_body");
     return { pass: failures.length === 0, failures: [...new Set(failures)], words };
   }
-  function draftAndGate(candidate, user, opts) { const draft = draftFor(candidate, user, opts); const gate = qualityGate(draft, candidate, opts); return { draft, gate, queued: gate.pass }; }
+  function draftAndGate(candidate, user, opts) {
+    opts = opts || {}; const c = normalizeCandidate(candidate);
+    const sup = suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user);
+    if (sup.suppressed) {
+      const refusal = suppressedRefusal(c, opts, user);
+      return Object.assign({}, refusal, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
+    }
+    const draft = draftFor(candidate, user, opts);
+    if (draft && draft.refused) return Object.assign({}, draft, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
+    const gate = qualityGate(draft, candidate, opts);
+    const out = { draft, gate, queued: gate.pass, sends: 0, status: gate.pass ? "awaiting_approval" : "gate_failed" };
+    // NWD-02: a prepared draft is stored so it stays retrievable/editable by
+    // id after the approval gate, not only inside this turn's result object.
+    const store = opts.draftStore || (opts.ctx && opts.ctx.draftStore) || null;
+    if (store && typeof store.put === "function" && draft) {
+      const rec = store.put(draft, { kind: opts.draftKind || "outreach_draft", at: opts.at || null });
+      if (rec) { out.draft_id = rec.id; out.draft_record = rec; }
+    }
+    return out;
+  }
+  // Explicit named entry for the drafting path (same contract as draftAndGate).
+  function prepareDraft(candidate, user, opts) { return draftAndGate(candidate, user, opts); }
   function draftReferralAsk(contact, user, opts) {
     opts = opts || {}; const c = normalizeCandidate(contact);
+    if (suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(c, opts, user), { draft: null });
     if (!opts.shared_context || !opts.shared_context.source_url) return { ok: false, reason: "no_sourced_shared_context", draft: null };
     const body = [`Hi ${(c.full_name || "").split(/\s+/)[0]},`, `I'm ${user.name || "a student"}${user.school ? ` at ${user.school}` : ""}. ${opts.shared_context.fact}.`, `Would you be open to a 15-minute coffee chat in the next two weeks? Totally understand if you're swamped.`, OPT_OUT_LINE, `Thanks,\n${user.name || ""}`].join("\n\n");
     return { ok: true, draft: { to: c.work_email || null, subject: `Coffee chat — ${user.school || "student"}`, body, why_this_line: [{ line: opts.shared_context.fact, fact: opts.shared_context.fact, source_url: opts.shared_context.source_url }] } };
   }
-  function draftIntroRequest(mutual, target, user, blurb) {
+  function draftIntroRequest(mutual, target, user, blurb, opts) {
     const m = normalizeCandidate(mutual), t = normalizeCandidate(target);
+    opts = opts || {};
+    if (suppressionCheck({ email: m.work_email, person_id: m.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(m, opts, user), { draft: null });
+    if (suppressionCheck({ email: t.work_email, person_id: t.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(t, opts, user), { draft: null });
     if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
     return { ok: true, draft: { to: m.work_email || null, subject: `Intro to ${t.full_name} at ${t.current_firm}?`, body: `Hi ${(m.full_name || "").split(/\s+/)[0]}, would you be willing to introduce me to ${t.full_name} at ${t.current_firm}? Forwardable blurb below — no worries at all if not.\n\n${blurb}\n\nThanks,\n${user.name || ""}` } };
   }
@@ -544,6 +686,14 @@ const CareerOutreach = (() => {
     // hostile / spam complaint — before generic stop wording so "spam" complaints land here
     if (/this is spam|report(ing)? (you|this) (for )?spam|spam complaint|harass|fuck|scam|leave me alone|never contact me again|i ll report you|ill report you/.test(t)) return done("hostile", { action: "suppress_notify_maybe_pause", hostile: true });
     if (/please stop|stop emailing|stop contacting|do not (email|contact|message) me|don t (email|contact) me|remove me|unsubscribe|opt out|no more emails|stop messaging/.test(t)) return done("hard-stop", { action: "suppress_notify", stop: true });
+    // NWD-06 suspicious (NW23): a reply asking for UNRELATED records — other
+    // people's resumes / private contact details / credentials. Quarantine
+    // class: it must produce no effect and no disclosure, whoever sent it.
+    if (/(send|share|give|forward|hand over|provide)[^.]{0,80}(resumes?|cvs?|private contact|contact details of|other (candidates|applicants|people|students)|private (records|data|details|information)|unrelated records|passwords?|credentials)/.test(t) || /private contact details of/.test(t) || /resumes? (and|of) (the )?other/.test(t)) return done("suspicious", { action: "quarantine_no_effect_warn_user", suspicious: true });
+    // NWD-06 not-now (NW15): "maybe later" is a soft not-now, never a
+    // commitment and never a scheduled date. Distinct from a polite decline
+    // ("maybe another time, I have to pass") which stays polite-decline.
+    if (/\bmaybe later\b|\bnot now\b|\bafter the holidays\b|\bcircle back\b|\btry (me|again) later\b|\bcheck back (with me )?(later|in|after)\b/.test(t)) { const tm = body.match(/maybe later[^\n.]*/i); return done("not-now", { action: "record_not_now_no_commitment", not_now: true, timing_text: tm ? tm[0].trim() : null, commitment: false }); }
     if (/out of office|on vacation|on pto|away from (the )?office|limited access to email|currently traveling|on leave|ooo\b|auto reply|automatic reply/.test(t)) { const rd = parseReturnDate(body, nowMs); const resched = rd ? new Date(Date.parse(rd + "T00:00:00Z") + 86400000).toISOString().slice(0, 10) : null; return done("auto-reply-ooo", { action: "reschedule_followup", return_date: rd, reschedule_followup_on: resched }); }
     if (/(talk to|speak with|reach out to|you should (talk|speak|contact)|connect you with|looping in|introduc\w+ you to|better person (for|to ask)|try (asking )?)[ ]+[A-Z]/.test(body) || /talk to \w+|speak with \w+|reach out to \w+|connect you with \w+|looping in \w+/.test(t)) {
       const nameM = body.match(/(?:talk to|speak with|reach out to|connect you with|looping in|introducing you to)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/);
@@ -561,6 +711,21 @@ const CareerOutreach = (() => {
     opts = opts || {}; const cls = classifyReply(reply, opts); const suppression = opts.suppression || null;
     const out = { classification: cls, actions: [], notify_user: null, campaign_paused: false, new_candidate: null, reschedule_followup_on: cls.reschedule_followup_on || null };
     const email = contact && (contact.work_email || contact.email), pid = contact && contact.person_id;
+    if (cls.classification === "suspicious") {
+      // Quarantine: NO suppression, NO stats, NO draft that complies, NO
+      // disclosure — the only output is a warning to the user.
+      out.actions.push("quarantined_no_effect");
+      out.quarantine = { quarantined: true, effect: "none", disclosed: false, reason: "reply_requests_unrelated_records" };
+      out.notify_user = "That reply looks suspicious: it asks for records that are not the sender's to receive. It cannot be complied with — I will not share other people's resumes or private contact details. Nothing was sent, disclosed, or changed.";
+      return out;
+    }
+    if (cls.classification === "not-now") {
+      const record = { state: "not_now", timing_text: cls.timing_text || null, commitment: false, scheduled_followup_on: null, email: email || null, person_id: pid || null };
+      out.actions.push("recorded_not_now_no_commitment"); out.record = record;
+      out.notify_user = `Recorded as not now${record.timing_text ? ` — "${record.timing_text}"` : ""}. They have not committed to any follow-up, and no follow-up date has been scheduled.`;
+      if (campaign) { campaign.not_now = campaign.not_now || []; if (!campaign.not_now.some((r) => r.email === record.email && r.timing_text === record.timing_text)) campaign.not_now.push(record); campaign.stats.replies = (campaign.stats.replies || 0) + 1; }
+      return out;
+    }
     if (cls.classification === "hard-stop" || cls.classification === "hostile") {
       if (suppression) suppression.suppress({ email, person_id: pid, userId: campaign && campaign.userId, scope: "both", reason: cls.classification }); // user list + shared cross-user opt-out
       out.actions.push("suppressed_user_and_shared");
@@ -574,6 +739,230 @@ const CareerOutreach = (() => {
     if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
     if ((cls.classification === "positive-ready" || cls.classification === "positive-needs-info") && campaign) campaign.stats.positive = (campaign.stats.positive || 0) + 1; // BUG-005: handleReply never counted positives, so digests reported 0 positive replies
     return out;
+  }
+
+  // ---------- NWD-05: delivery status truth (the 141 destination-truth pattern) ----------
+  // Status is spoken ONLY from the delivery record, re-read at answer time:
+  // provider acceptance is not delivery, and an item is reported stopped
+  // only when its record actually says stopped/suppressed. A status query
+  // never resends and never flips the item's recorded status.
+  function sinkReceivedFor(item, opts) {
+    opts = opts || {};
+    if (opts.sinkReceivedCount != null) return { checked: true, count: Number(opts.sinkReceivedCount) || 0 };
+    const rec = opts.deliveryRecord || opts.destination || null;
+    if (rec && typeof rec === "object" && !Array.isArray(rec)) {
+      if (rec.received_count != null) return { checked: true, count: Number(rec.received_count) || 0 };
+      if (rec.count != null) return { checked: true, count: Number(rec.count) || 0 };
+      if (rec.received === true || rec.delivered === true || rec.found === true) return { checked: true, count: 1 };
+      if (rec.received === false || rec.delivered === false || rec.found === false) return { checked: true, count: 0 };
+    }
+    const sink = opts.sink || (rec && Array.isArray(rec) ? rec : null);
+    if (Array.isArray(sink)) {
+      const to = String((item && (item.to || item.email)) || "").toLowerCase(); const ref = item && (item.provider_ref || item.message_id);
+      const hits = sink.filter((m) => { if (!m || typeof m !== "object") return false; if (ref && (m.provider_ref === ref || m.message_id === ref)) return true; const mt = String(m.to || m.email || "").toLowerCase(); return to && mt === to; });
+      return { checked: true, count: hits.length };
+    }
+    return { checked: false, count: 0 };
+  }
+  function deliveryStatus(item, opts) {
+    item = item || {}; opts = opts || {};
+    const raw = String(item.status || item.state || "unknown");
+    const sink = sinkReceivedFor(item, opts);
+    const base = { queue_id: item.queue_id || item.id || null, to: item.to || item.email || null, person_id: item.person_id || null,
+      provider_status: raw, provider_ref: item.provider_ref || null, sink_checked: sink.checked, sink_received_count: sink.checked ? sink.count : null,
+      source: sink.checked ? "delivery_record" : "item_record_only_no_delivery_record" };
+    if (sink.checked && sink.count > 0) return Object.assign({}, base, { status: "delivered", delivery_confirmed: true, is_stopped: false, is_pending: false });
+    if (raw === "provider_accepted") return Object.assign({}, base, { status: "delivery_unconfirmed", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "sent") return Object.assign({}, base, { status: sink.checked ? "delivery_unconfirmed" : "sent_delivery_unconfirmed", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "suppressed" || raw === "stopped" || raw === "cancelled" || raw === "canceled") return Object.assign({}, base, { status: raw === "suppressed" ? "suppressed" : "stopped", delivery_confirmed: false, is_stopped: true, is_pending: false });
+    if (raw === "bounced") return Object.assign({}, base, { status: "bounced", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "queued" || raw === "pending" || raw === "held" || raw === "paused") return Object.assign({}, base, { status: raw === "queued" || raw === "pending" ? "pending" : raw, delivery_confirmed: false, is_stopped: false, is_pending: true });
+    return Object.assign({}, base, { status: raw, delivery_confirmed: false, is_stopped: false, is_pending: false });
+  }
+  function deliveryStatusText(st, item) {
+    const who = (item && (item.name || item.full_name)) || (st && st.to) || "that recipient";
+    if (!st) return "No delivery record is on file for that follow-up.";
+    if (st.status === "delivered") return `${who}: delivery is confirmed by the destination record (the destination holds a received message for it).`;
+    if (st.status === "delivery_unconfirmed" || st.status === "sent_delivery_unconfirmed") return `${who}: delivery is unconfirmed — the provider accepted it${st.provider_ref ? ` (${st.provider_ref})` : ""}, but the destination record holds no received message for it, so acceptance does not confirm delivery or receipt. Its recorded status is still ${st.provider_status}, and I have not resent it.`;
+    if (st.is_stopped) return `${who}: that follow-up is no longer going out — its recorded status is ${st.provider_status}.`;
+    if (st.status === "bounced") return `${who}: that message bounced as undeliverable and will not be retried.`;
+    if (st.is_pending) return `${who}: that follow-up is still ${st.provider_status} — it has not gone out yet.`;
+    return `${who}: recorded status is ${st.provider_status}; delivery is unconfirmed.`;
+  }
+  function reconcileOutreachDelivery(items, opts) {
+    const list = (items || []).map((i) => deliveryStatus(i, opts));
+    return { items: list, delivered: list.filter((s) => s.delivery_confirmed).length, unconfirmed: list.filter((s) => s.status === "delivery_unconfirmed" || s.status === "sent_delivery_unconfirmed").length,
+      stopped: list.filter((s) => s.is_stopped).length, pending: list.filter((s) => s.is_pending).length, resent: false, sends: 0 };
+  }
+  function followUpStatus(items, query, opts) {
+    opts = opts || {}; query = query || {};
+    const all = Array.isArray(items) ? items : ((items && items.items) || []);
+    const qEmail = String(query.email || query.to || "").toLowerCase(); const qPid = query.person_id || null; const qName = norm(query.name || query.full_name || "");
+    const matched = all.filter((i) => { if (qEmail && String(i.to || i.email || "").toLowerCase() === qEmail) return true; if (qPid && i.person_id === qPid) return true; if (qName && norm(i.name || i.full_name || "") === qName) return true; return !qEmail && !qPid && !qName; });
+    const statuses = matched.map((i) => deliveryStatus(i, opts));
+    const text = matched.length ? matched.map((i, k) => deliveryStatusText(statuses[k], i)).join(" ") : "No follow-up matching that person is on file, so nothing to it is going out.";
+    return { ok: true, items: statuses, statuses, text, reply: text, resent: false, sends: 0 };
+  }
+
+  // ---------- NWD-06: §7 reply workflow — one module-level entry for every reply class ----------
+  // processInboxEvent(campaign, replyOrEvent, contact, opts) classifies the
+  // relayed reply (124 classifyReply) and APPLIES the class's transition:
+  //   interested / question -> reply recorded, answer draft from profile
+  //     facts ONLY, stored at the approval gate (never sent);
+  //   positive-ready -> draft + propose-slots next step (never sent);
+  //   not-now -> recorded with its stated timing verbatim; no date, no
+  //     commitment, nothing scheduled on the counterpart's behalf;
+  //   auto-reply-ooo -> NOT a reply/engagement; return date kept, the
+  //     existing follow-up is rescheduled to return+1, no new chain;
+  //   bounce -> item bounced/never-retry, address suppressed for the user,
+  //     breaker evaluated; a bounce SPIKE event (type "bounce_spike" or
+  //     opts.bounceCount >= 3) also pauses the campaign and holds every
+  //     remaining queued/pending item, with a diagnose-first next step and
+  //     no guessed replacement address;
+  //   hard-stop / hostile -> suppression (user + shared), that person's
+  //     queued items suppressed;
+  //   polite-decline -> suppression for this user;
+  //   referral-to-other -> new Tier-A candidate surfaced, unsent;
+  //   suspicious -> QUARANTINED: no suppression, no stats, no draft that
+  //     complies, no disclosure; the user is warned.
+  // Classification never authorizes a send: every path returns sends: 0.
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function formatGraduation(v) {
+    if (!v) return null; const s = String(v);
+    const ym = s.match(/^(20\d{2})-(\d{2})/); if (ym) return `${MONTH_NAMES[Number(ym[2]) - 1]} ${ym[1]}`;
+    return s.replace(/\(TEST\)/g, "").trim();
+  }
+  function profileFactAnswers(replyText, profile, user) {
+    const merged = Object.assign({}, user || {}, profile || {});
+    const cons = merged.constraints || {}; const facts = merged.facts || merged.known_facts || [];
+    const factText = facts.map((f) => typeof f === "string" ? f : (f && f.text) || "").join(" ");
+    const t = " " + norm(replyText) + " ";
+    const answers = [], unknown = [];
+    if (/graduat/.test(t)) {
+      let v = formatGraduation(cons.graduationDate || cons.graduation_date || merged.graduationDate || merged.graduation_date || null);
+      if (!v) { const m = factText.match(/graduating ([A-Z][a-z]+ 20\d{2})/); if (m) v = m[1]; }
+      if (v) answers.push({ topic: "graduation", text: `My graduation date is ${v}.`, value: v }); else unknown.push("graduation");
+    }
+    if (/authorized|authorisation|work in the|sponsor/.test(t)) {
+      let v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
+      if (v) { const clean = String(v).replace(/\(TEST\)/g, "").trim(); const isCitizen = /citizen/i.test(clean); answers.push({ topic: "work_authorization", text: isCitizen ? `I am a ${clean} and authorized to work in the US.` : `On work authorization: ${clean}.`, value: clean }); }
+      else if (cons.needsSponsorship === false) answers.push({ topic: "work_authorization", text: "I am authorized to work in the US and do not need sponsorship.", value: "authorized, no sponsorship" });
+      else unknown.push("work_authorization");
+    }
+    if (/school|university|college/.test(t) && !/graduat/.test(t)) {
+      const v = merged.school || (merged.basics && merged.basics.school) || null;
+      if (v) answers.push({ topic: "school", text: `I am at ${v}.`, value: v }); else unknown.push("school");
+    }
+    return { answers, unknown };
+  }
+  function draftReplyAnswer(reply, contact, profile, user, cls, opts) {
+    const c = contact || {}; const first = String(c.full_name || c.name || "there").split(/\s+/)[0];
+    const name = (user && user.name) || (profile && profile.basics && profile.basics.name) || "";
+    const { answers, unknown } = profileFactAnswers(String((reply && reply.body) || ""), profile, user);
+    const lines = [`Hi ${first},`, "Thanks for getting back to me."];
+    for (const a of answers) lines.push(a.text);
+    if (cls && cls.classification === "positive-ready") lines.push("Happy to chat — the next step is a short call; I will send times for your approval.");
+    else if (!answers.length && !unknown.length) lines.push("Happy to talk — let me know what would help.");
+    if (unknown.length) lines.push(`I do not have ${unknown.join(" and ")} on file, so I have left that for you to confirm before this goes out.`);
+    lines.push(`Thanks,\n${name}`);
+    return { to: c.work_email || c.email || null, person_id: c.person_id || null,
+      subject: `Re: outreach`, body: lines.join("\n\n"), kind: "reply_draft",
+      facts_used: answers, facts_unknown: unknown, status: "awaiting_approval", auto_sent: false };
+  }
+  function addressHealth(campaign, queueItems) {
+    const items = [].concat((campaign && campaign.items) || [], queueItems || []);
+    const byDomain = {}; let bounced = 0, attempted = 0;
+    for (const i of items) { const d = emailDomain(i.email || i.to) || "unknown"; byDomain[d] = byDomain[d] || { attempted: 0, bounced: 0 }; if (i.status === "sent" || i.status === "bounced") { byDomain[d].attempted++; attempted++; } if (i.status === "bounced") { byDomain[d].bounced++; bounced++; } }
+    if (campaign && campaign.wave && campaign.wave.bounces > bounced) bounced = campaign.wave.bounces;
+    return { bounced, attempted, by_domain: byDomain, recommendation: "verify the bounced addresses and diagnose the list before any further send; do not guess replacement addresses" };
+  }
+  function processInboxEvent(campaign, event, contact, opts) {
+    opts = opts || {}; const reply = event || {};
+    const profile = opts.profile || {}; const user = opts.user || profile;
+    const suppression = resolveSuppression(opts);
+    const draftStore = opts.draftStore || (opts.ctx && opts.ctx.draftStore) || null;
+    const queueItems = opts.queueItems || opts.queue_items || null;
+    const email = contact && (contact.work_email || contact.email) || null;
+    const finish = (out) => Object.assign({ ok: true, kind: "inbox_reply_workflow", sends: 0, auto_sent: false }, out);
+    // --- bounce spike event (NW19): not a single reply, a queue event ---
+    const spikeCount = reply.bounced_count != null ? Number(reply.bounced_count) : (opts.bounceCount != null ? Number(opts.bounceCount) : null);
+    if (reply.type === "bounce_spike" || reply.type === "bounce_report" || (spikeCount != null && spikeCount >= 3)) {
+      const n = spikeCount || 3;
+      if (campaign) {
+        campaign.wave.bounces = Math.max(campaign.wave.bounces || 0, n);
+        campaign.wave.sent = Math.max(campaign.wave.sent || 0, n);
+        campaign.breaker = { tripped: true, cause: `bounce_spike: ${n} undeliverable`, user_message: `Paused your campaign: ${n} messages bounced as undeliverable.` };
+        campaign.status = "paused";
+        for (const i of campaign.items || []) if (i.status === "queued") { i.status = "held"; i.held_reason = "bounce_spike"; }
+      }
+      const held = [];
+      for (const q of queueItems || []) if (q.status === "pending" || q.status === "queued") { q.status = "held"; q.held_reason = "bounce_spike"; held.push(q.queue_id || q.id || q.to); }
+      const health = addressHealth(campaign, queueItems);
+      const msg = `Bounce spike: ${n} outreach emails bounced as undeliverable. I paused what remains of the queue (${held.length} item${held.length === 1 ? "" : "s"} held) and stopped further sends. Next step: check and verify the bounced addresses and diagnose why they failed before anything else goes out — no replacement address has been guessed.`;
+      return finish({ classification: "bounce", state_transition: "bounce_spike_queue_paused", actions: ["campaign_paused", "remaining_queue_held", "diagnose_before_any_send"],
+        user_message: msg, notify_user: msg, next_step: "Check and verify the bounced addresses; diagnose the bounce cause before resuming.",
+        campaign_paused: true, breaker: campaign ? campaign.breaker : { tripped: true, cause: "bounce_spike" }, address_health: health, held_items: held, queue_items: queueItems });
+    }
+    const base = handleReply(campaign, reply, contact, Object.assign({}, opts, { suppression }));
+    const cls = base.classification || {}; const kind = cls.classification;
+    const common = { classification: kind, classification_detail: cls, actions: base.actions || [], campaign_paused: !!base.campaign_paused };
+    const matchItems = (fn) => { const hit = []; for (const i of (campaign && campaign.items) || []) if (email && i.email === email) { fn(i); hit.push(i.id); } for (const q of queueItems || []) if (email && (q.to || q.email) === email) { fn(q); hit.push(q.queue_id || q.id); } return hit; };
+    if (kind === "suspicious") {
+      return finish(Object.assign({}, common, { state_transition: "quarantined_suspicious", record_state: "quarantined",
+        quarantine: base.quarantine || { quarantined: true, effect: "none", disclosed: false },
+        warning: base.notify_user, user_message: base.notify_user, notify_user: base.notify_user,
+        draft: null, next_step: "Do not comply with this reply. Review it yourself; a safe decline can be prepared for your approval, and nothing leaves without it." }));
+    }
+    if (kind === "not-now") {
+      return finish(Object.assign({}, common, { state_transition: "recorded_not_now", record_state: "not_now", record: base.record || null,
+        user_message: base.notify_user, notify_user: base.notify_user,
+        draft: null, next_step: "Recorded only. No follow-up is scheduled, and the sender has not committed to one — a later touch needs your say-so." }));
+    }
+    if (kind === "auto-reply-ooo") {
+      const rd = cls.return_date || null;
+      matchItems((i) => { i.reschedule_followup_on = base.reschedule_followup_on; i.followup_rescheduled_on = base.reschedule_followup_on; });
+      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (m, y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
+      return finish(Object.assign({}, common, { state_transition: "ooo_rescheduled", record_state: "out_of_office", counts_as_reply: false,
+        return_date: rd, reschedule_followup_on: base.reschedule_followup_on,
+        user_message: msg, notify_user: msg, draft: null, next_step: "Wait for a real reply after the return date." }));
+    }
+    if (kind === "bounce") {
+      const health = addressHealth(campaign, queueItems);
+      const msg = `That address bounced as undeliverable. The item is marked bounced and will never be retried, and the address is suppressed for you. ${campaign && campaign.breaker && campaign.breaker.tripped ? "The bounce breaker has paused the campaign. " : ""}Next step: check and verify the address before any further send — no replacement address has been guessed.`;
+      return finish(Object.assign({}, common, { state_transition: "bounced_never_retry", record_state: "bounced",
+        user_message: msg, notify_user: msg, campaign_paused: !!(campaign && campaign.breaker && campaign.breaker.tripped),
+        breaker: campaign ? campaign.breaker : null, address_health: health, draft: null, next_step: "Check and verify the bounced address; diagnose before resuming." }));
+    }
+    if (kind === "hard-stop" || kind === "hostile") {
+      const stopped = matchItems((i) => { if (i.status === "queued" || i.status === "pending") i.status = "suppressed"; });
+      return finish(Object.assign({}, common, { state_transition: "suppressed_opt_out", record_state: "suppressed",
+        user_message: base.notify_user, notify_user: base.notify_user, stopped_items: stopped, draft: null,
+        next_step: "They will not be contacted again; the suppression is shared across users." }));
+    }
+    if (kind === "polite-decline") {
+      return finish(Object.assign({}, common, { state_transition: "declined_suppressed_for_user", record_state: "declined",
+        user_message: "Recorded as a decline and suppressed on your list. No reply was sent.", notify_user: "Recorded as a decline and suppressed on your list.",
+        draft: null, next_step: "No further contact with this person from your campaigns." }));
+    }
+    if (kind === "referral-to-other") {
+      return finish(Object.assign({}, common, { state_transition: "referral_recorded", record_state: "referred",
+        new_candidate: base.new_candidate, user_message: base.notify_user || "Recorded the referral.", notify_user: base.notify_user || null,
+        draft: null, next_step: "The referred person can be added as a Tier-A candidate for your approval — nothing is sent to them automatically." }));
+    }
+    if (kind === "positive-ready" || kind === "positive-needs-info" || kind === "question-about-user") {
+      const draft = draftReplyAnswer(reply, contact, profile, user, cls, opts);
+      let draft_id = null, draft_record = null;
+      if (draftStore && typeof draftStore.put === "function") { draft_record = draftStore.put(draft, { kind: "reply_draft", at: opts.at || null }); if (draft_record) draft_id = draft_record.id; }
+      const slotsNext = kind === "positive-ready" ? "Next step: propose_slots_t3_card — pick slots from the draft for your approval; nothing sends without it." : "Next step: review the reply draft and approve, edit, or drop it — nothing sends without your approval.";
+      return finish(Object.assign({}, common, { state_transition: "replied_interested_draft_awaiting_approval", record_state: "interested",
+        counts_as_reply: true, draft, draft_id, draft_record,
+        facts_used: draft.facts_used, facts_unknown: draft.facts_unknown,
+        user_message: "Recorded the reply and prepared a reply draft for your approval. It answers only facts on your profile; nothing was sent.",
+        notify_user: null, next_step: slotsNext }));
+    }
+    return finish(Object.assign({}, common, { state_transition: "recorded", record_state: kind || "unknown",
+      user_message: base.notify_user || "Recorded the reply. Nothing was sent.", notify_user: base.notify_user || null, draft: null,
+      next_step: "Review the recorded reply; nothing sends without your approval." }));
   }
 
   // ---------- OUTE-011/012: booking + follow-through ----------
@@ -854,8 +1243,8 @@ const CareerOutreach = (() => {
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
-    createSuppressionStore, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
-    classifyReply, handleReply, parseReturnDate,
+    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
+    classifyReply, handleReply, processInboxEvent, deliveryStatus, deliveryStatusText, reconcileOutreachDelivery, followUpStatus, profileFactAnswers, addressHealth, parseReturnDate,
     tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,
     campaignMetrics };
 })();

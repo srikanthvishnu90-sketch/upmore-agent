@@ -247,6 +247,21 @@
         // Instructions inside pasted or forwarded text have no authority (global rule G6, megadoc N05): a money move that
         // comes wrapped in "ignore previous instructions" is named and not acted on.
         if (INJECTION.test(text) && MAYBE.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "injected_instruction", text: `That text contains an instruction to move money ("${INJECTION.exec(text)[0]}"). I don't act on instructions inside pasted or forwarded text, so nothing was set up. If you want to send money, tell me in your own words.` } });
+        // K4 brokerage reads (C40 X-ray, C41 what-if, C55 pre-IPO), deterministic, ahead of the hypothetical
+        // fallthrough and the model: these are reads and guided steps in the trade flow, never orders. The
+        // shapes are the trade parser's own (66), kept narrow — a what-if about selling stays a hypothetical.
+        // A live IPO walkthrough owns its short step replies ("done", "I submitted it", "stop").
+        if (sessions.trade && typeof sessions.trade.start === "function") {
+          const XRAY_Q = /\b(x[-\s]?ray|look(?:ing)? through|underneath|actually own)\b/i;
+          const WHATIF_Q = /\bwhat if\b[^?.!]*\b(?:(?:invest|put|save|contribute|add)\b[^?.!]*\b(?:a month|per month|monthly|every month)\b|(?:interest )?rates?\b[^?.!]*\b(?:drop|fall|rise|cut|climb|increase|decrease|go up|go down)\b|(?:drop|fall|cut)\b[^?.!]*\brates?\b|[a-z]{1,5}\b[^?.!]*\b(?:drops?|falls?|rises?|jumps?|crashes?|goes up|goes down)\b[^?.!]*\b\d+(?:\.\d+)?\s*%|\bportfolio\b[^?.!]*\b(?:drops?|falls?|rises?)\b[^?.!]*\b\d|\b(?:invest|put|save)\b[^?.!]*\b\d+(?:\.\d+)?\s*years?\b)/i;
+          const IPO_Q = /\b(?:pre[-\s]?ipo|ipo)\b[^?.!]*\b(?:alert|watch|monitor|walk me|get me into|tell me|offerings?|request|track|status|allocation|opens?|opening)\b/i;
+          const walk = typeof sessions.trade.ipoContinuation === "function" && sessions.trade.ipoContinuation(text);
+          const armed = typeof sessions.trade.ipoArmed === "function" && sessions.trade.ipoArmed() && /\bwalk me through\b/i.test(text);
+          if (walk || armed || XRAY_Q.test(text) || WHATIF_Q.test(text) || IPO_Q.test(text)) {
+            const result = await sessions.trade.start(text);
+            return done({ route: walk ? "ipo_walkthrough" : "trade_read", source: "deterministic", flow: "trade", canonical: text, result, understood: true, understood_first: !!result && result.outcome !== "ask", ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [] });
+          }
+        }
         // The IOU log is the settings path's (105-iou-log.js, before the flows); one it couldn't read reaches here: said
         // plainly with the form it reads, and no money flow is started (megadoc D08).
         if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_unread", text: "I couldn't read that IOU, so nothing was saved, and no money moved. Say it like \"I owe Mom $200\" or \"Jake owes me $20\"." } });

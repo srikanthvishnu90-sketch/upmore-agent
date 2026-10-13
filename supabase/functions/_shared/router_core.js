@@ -5082,8 +5082,24 @@
       // "Which of my stocks are up over 6 months and why", "how did my stocks do this week" (megadoc G07): each holding's
       // move over the period from daily closes. Market-wide movers are not built (111-not-yet.js says so).
       const MOVES = !/\b(buy|sell|order|should)\b/i.test(t) && /\b(?:which|what) of my (?:stocks|holdings|positions|shares|investments)\b|\b(?:which|what) (?:stocks|holdings|positions|shares) do i (?:own|have|hold)\b[^?.!]*\b(?:up|down|gain\w*|los\w*)\b|\bhow (?:did|have|are|has) (?:each of )?my (?:stocks|holdings|positions) (?:been )?(?:do|done|doing|move|moved|moving)\b[^?.!]*\b(?:this week|today|this month|past (?:week|month)|\d+ months?|six months|this year|ytd)\b|\b(?:biggest|top) (?:gainers?|losers?|movers?) (?:in|among|of) my\b/i.test(t);
+      // C40: the portfolio X-ray ("what do I actually own underneath all my funds"): a look-through read, never an order.
+      const XRAY = !/\b(buy|sell|order)\b/i.test(t) && /\b(x[-\s]?ray|look(?:ing)? through|underneath|underlying|overlap(?:ping|s|ped)?|actually own)\b/i.test(t);
+      // C41: what-if scenarios, in the shapes the capability names: a monthly amount over years, rates moving, a
+      // holding (or the portfolio) moving by a percent, or a lump sum over years. Narrow on purpose: "what if I
+      // sell..." is a hypothetical about an order and never reaches this (the router says so too).
+      const WHATIF = /\bwhat if\b/i.test(t) && (
+        /\b(?:invest|put|save|contribute|add)\b[^?.!]*\b(?:a month|per month|monthly|every month)\b/i.test(t)
+        || /\b(?:interest )?rates?\b[^?.!]*\b(?:drop|fall|rise|cut|climb|increase|decrease|go up|go down)\b/i.test(t) || /\b(?:drop|fall|cut)\b[^?.!]*\brates?\b/i.test(t)
+        || /\b[a-z]{1,5}\b[^?.!]*\b(?:drops?|falls?|rises?|jumps?|crashes?|goes up|goes down)\b[^?.!]*\b\d+(?:\.\d+)?\s*%/i.test(t) || /\bportfolio\b[^?.!]*\b(?:drops?|falls?|rises?)\b[^?.!]*\b\d+(?:\.\d+)?\s*%/i.test(t)
+        || /\b(?:invest|put|save)\b[^?.!]*\b\d+(?:\.\d+)?\s*years?\b/i.test(t));
+      // C55: pre-IPO offerings: watch/alert, the guided walkthrough, and status — never an order. A bare "buy the
+      // IPO" still falls to the refusal in stageOnce, which now points here.
+      const IPOQ = /\b(?:pre[-\s]?ipo|ipo)\b/i.test(t) && /\b(alert|watch|monitor|walk me|get me into|tell me|offerings?|request|track|status|allocation|opens?|opening)\b/i.test(t) || /\bwalk me through\b/i.test(t) && /\b(?:ipo|offering)\b/i.test(t);
       const action = DIV_UP ? "dividends_upcoming"
         : DIVQ ? "dividends"
+        : IPOQ ? "ipo"
+        : XRAY ? "xray"
+        : WHATIF ? "whatif"
         : MOVES ? "moves"
         : PERF ? "performance"
         : gm ? "gain"
@@ -5234,6 +5250,66 @@
       return { outcome: "answer", reason: "dividends_upcoming", text, lint_ok: lint.ok, lint: lint.findings, upcoming };
     }
 
+    // C40: the portfolio X-ray. Pure over the positions the session read across every account plus the fund
+    // composition data the host supplies (o.fund_data: { SYM: { name, expense_ratio_pct, duration_years,
+    // holdings: [{ symbol, label, weight_pct }] } }). Each fund position is distributed over the composition's
+    // named weights; the un-named remainder stays a block labeled with the fund ("VOO's other holdings"), never
+    // spread or guessed. A holding with no composition entry counts as a direct exposure under its own symbol;
+    // a fund whose entry carries an expense ratio but no composition is not looked through and is said so, but
+    // its fee still counts. Overlap is counted by route: a name reached directly and inside funds (or inside
+    // two funds) is reported with every route and the combined dollars, never just its direct line. The fee
+    // drag is the sum over funds of value x expense ratio, in dollars per year. Concentration flags any single
+    // named exposure over a tenth of the invested total. Percentages are of the invested total (cash aside,
+    // and the basis is said). Nothing here recommends anything: it describes what is owned.
+    function portfolioXray(input) {
+      const inp = input || {}, positions = Array.isArray(inp.positions) ? inp.positions : [], fundData = inp.fund_data || {};
+      const valued = positions.filter(p => p && p.symbol && Number.isSafeInteger(p.market_value_cents) && p.market_value_cents > 0);
+      const unvalued = positions.filter(p => p && p.symbol && !Number.isSafeInteger(p.market_value_cents));
+      const total = valued.reduce((s, p) => s + p.market_value_cents, 0);
+      const pct = c => total > 0 ? `${(Math.round((c / total) * 1000) / 10).toFixed(1)}%` : "0.0%";
+      const exp = new Map(); // label -> { cents, routes: [..], remainder_of: sym|null }
+      const add = (label, cents, route, remainderOf) => { if (!(cents > 0)) return; const e = exp.get(label) || { label, cents: 0, routes: [], remainder_of: remainderOf || null }; e.cents += cents; if (!e.routes.includes(route)) e.routes.push(route); exp.set(label, e); };
+      const notThrough = [], dragFunds = [];
+      let drag = 0, fundValue = 0;
+      for (const p of valued) {
+        const sym = String(p.symbol).toUpperCase(), fd = fundData[sym];
+        if (fd && Array.isArray(fd.holdings) && fd.holdings.length) {
+          fundValue += p.market_value_cents;
+          let named = 0;
+          for (const h of fd.holdings) { const c = Math.round(p.market_value_cents * (Number(h.weight_pct) || 0) / 100); named += c; add(String(h.label || h.symbol), c, `inside ${sym}`, null); }
+          add(`${sym}'s other holdings`, p.market_value_cents - named, `inside ${sym}`, sym);
+        } else if (fd && (fd.fund === true || Number.isFinite(fd.expense_ratio_pct))) {
+          fundValue += p.market_value_cents; notThrough.push(sym);
+          add(sym, p.market_value_cents, `in ${sym} (not looked through)`, null);
+        } else add(sym, p.market_value_cents, "directly", null);
+        if (fd && Number.isFinite(fd.expense_ratio_pct)) { drag += p.market_value_cents * fd.expense_ratio_pct / 100; dragFunds.push(`${sym} ${fd.expense_ratio_pct}%`); }
+      }
+      const all = [...exp.values()].sort((a, b) => b.cents - a.cents);
+      const named = all.filter(e => !e.remainder_of), remainders = all.filter(e => e.remainder_of);
+      const overlaps = named.filter(e => e.routes.length > 1);
+      const top = named[0] || null;
+      const cash = Number.isSafeInteger(inp.cash_cents) ? inp.cash_cents : null;
+      let text = `Portfolio X-ray across ${inp.accounts || 1} account${(inp.accounts || 1) === 1 ? "" : "s"}: ${money(total)} invested${cash !== null ? `, plus ${money(cash)} in cash` : ", cash unreadable in this read"}.`;
+      if (named.length) text += ` Looking through the funds, the named exposures are ${named.slice(0, 6).map(e => `${e.label} ${money(e.cents)} (${pct(e.cents)})`).join(", ")}${named.length > 6 ? `, and ${named.length - 6} smaller` : ""} — percentages of the invested total.`;
+      if (remainders.length) text += ` The rest is inside the funds beyond their top names: ${remainders.map(e => `${money(e.cents)} in ${e.label}`).join(", ")}.`;
+      if (overlaps.length) text += ` Overlap: ${overlaps.map(e => `${e.label} reaches you ${e.routes.length} ways (${e.routes.join(", ")}) — ${money(e.cents)} combined (${pct(e.cents)})`).join("; ")}.`;
+      if (dragFunds.length) text += ` Fund fees: expense ratios of ${dragFunds.join(", ")} on ${money(fundValue)} of funds cost about ${money(Math.round(drag))} a year. Direct stocks carry no fund fee.`;
+      else text += " No fund expense-ratio data in this read, so no yearly fee drag is counted.";
+      if (notThrough.length) text += ` Not looked through (no composition data in this read): ${notThrough.join(", ")} — each counts as one block above.`;
+      if (top && total > 0 && top.cents / total > 0.10) text += ` Concentration: ${top.label} at ${pct(top.cents)} of invested is over a tenth in one name, the biggest single-name exposure in this read.`;
+      if (unvalued.length) text += ` No value in the read for ${unvalued.map(p => String(p.symbol).toUpperCase()).join(", ")}, so ${unvalued.length === 1 ? "it is" : "they are"} left out of every figure.`;
+      if (inp.source) text += ` Holdings from ${inp.source}${Number.isFinite(inp.as_of) ? `, as of ${new Date(inp.as_of).toISOString().slice(11, 16)} UTC` : ""}${inp.fund_source ? `; fund composition from ${inp.fund_source}` : ""}.`;
+      const Guard = typeof AdviceGuard !== "undefined" ? AdviceGuard : null, lint = Guard ? Guard.response(text) : { ok: true, findings: [] };
+      return { outcome: "answer", reason: "xray", text, lint_ok: lint.ok, lint: lint.findings, total_invested_cents: total, exposures: all, overlaps, drag_cents: Math.round(drag) };
+    }
+
+    // C41: what-if projection math. Pure arithmetic over stated assumptions: a monthly contribution compounded
+    // monthly (payments at month-end), a lump sum compounded yearly. The functions return cents; the session
+    // words them with the assumptions named and the formula shown. An assumed return is never a prediction and
+    // never a holding's expected return: the same assumption rates are offered for any instrument.
+    const fvMonthlyCents = (monthlyCents, years, annualPct) => { const i = annualPct / 100 / 12, n = Math.round(years * 12); if (!(n > 0)) return 0; return i === 0 ? monthlyCents * n : Math.round(monthlyCents * ((Math.pow(1 + i, n) - 1) / i)); };
+    const fvLumpCents = (lumpCents, years, annualPct) => Math.round(lumpCents * Math.pow(1 + annualPct / 100, years));
+
     // S11: regular session, 9:30 to 16:00 ET, Monday to Friday, less the holidays the caller lists (ymd).
     function etParts(ms) { const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hourCycle: "h23", weekday: "short", year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }); const o = {}; for (const p of f.formatToParts(new Date(ms))) o[p.type] = p.value; return { weekday: o.weekday, date: `${o.year}-${{ Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" }[o.month]}-${o.day}`, label: `${o.weekday} ${o.month} ${Number(o.day)}`, minutes: Number(o.hour) * 60 + Number(o.minute) }; }
     function marketOpen(ms, holidays) { const p = etParts(ms); if (["Sat", "Sun"].includes(p.weekday)) return false; if ((holidays || []).includes(p.date)) return false; return p.minutes >= 570 && p.minutes < 960; }
@@ -5254,6 +5330,12 @@
       if (typeof conn.bindLog === "function") conn.bindLog(key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); return e ? e.at : undefined; });
       const orders = Array.isArray(st.orders) ? st.orders : []; // every order this session staged, with its key and read-backs
       let pending = st.pending || null; // { order, confirmation_id }
+      // C55 state, carried in the snapshot like the orders: the offering watches, the requests the person
+      // confirmed in the provider app, the offerings already alerted on, and any live walkthrough.
+      const ipoState = st.ipo && typeof st.ipo === "object" ? st.ipo : { watches: [], requests: [], alerted: [], walk: null };
+      if (!Array.isArray(ipoState.watches)) ipoState.watches = [];
+      if (!Array.isArray(ipoState.requests)) ipoState.requests = [];
+      if (!Array.isArray(ipoState.alerted)) ipoState.alerted = [];
       const Cards = typeof AgentCards !== "undefined" ? AgentCards : null;
 
       // S15: nothing leaves without the advice-guard response lint; a message that fails is reported, never sent as advice.
@@ -5412,6 +5494,9 @@
         if (parsed.action === "portfolio" || parsed.action === "cancel" || parsed.action === "modify" || parsed.action === "status") { const c = connectStop(); if (c) return c; }
         if (parsed.action === "dividends") { const c = connectStop(); if (c) return c; return dividendsAnswer(parsed); }
         if (parsed.action === "dividends_upcoming") { const c = connectStop(); if (c) return c; return upcomingDividendsAnswer(parsed); }
+        if (parsed.action === "xray") { const c = connectStop(); if (c) return c; return xrayAnswer(parsed); }
+        if (parsed.action === "whatif") return whatIfAnswer(parsed);
+        if (parsed.action === "ipo") return ipoAnswer(parsed);
         if (parsed.action === "moves") { const c = connectStop(); if (c) return c; return movesAnswer(parsed); }
         if (parsed.action === "performance") { const c = connectStop(); if (c) return c; return performanceAnswer(parsed); }
         if (parsed.action === "status") return orderStatus(parsed.text);
@@ -5429,7 +5514,7 @@
         if (/\b(?:in|into|to)\s+(?:my\s+)?(savings|checking|emergency fund|bank)\b/i.test(tx)) return say("not_built", "Moving money between your own accounts isn't built yet, so nothing was moved or placed.", { reason: "transfer_not_built" });
         { const priv = /\b(spacex|stripe|openai|anthropic|databricks|chime|discord|epic games|shein|klarna)\b/i.exec(tx);
           if (priv) return say("refuse", `${priv[1].replace(/\b\w/g, c => c.toUpperCase()).replace(/^Spacex$/, "SpaceX").replace(/^Openai$/, "OpenAI")} isn't publicly traded, so Upmore can't buy it, and nothing was placed. Want to name a listed company or fund instead? I'll put up a card for it.`, { reason: "private_unsupported" });
-          if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
+          if (/\b(ipo|ipos|pre[- ]?ipo|private (?:company|shares|stock))\b/i.test(tx)) return say("refuse", "Upmore can't get IPO allocations or private-company shares, so nothing was placed. What it can do is watch for pre-IPO offerings, alert you inside the window and walk you through the request in your provider's app — the request stays your tap there. Say \"alert me when a pre-IPO offering opens\" to set that up. Once a company lists, name its ticker and an amount and I'll put up a card for it.", { reason: "ipo_private_unsupported" }); }
         if (/\b(a|per|each|every)\s+(week|month|day|paycheck|quarter)\b|\b(weekly|monthly|recurring|auto[- ]?invest|automatically|dca|dollar[- ]cost)\b/i.test(tx)) return say("not_built", "Recurring investments aren't built yet, so nothing was scheduled or placed. I can put up a card for a one-time order if you name the amount.", { reason: "recurring_not_built" });
         const side = parsed.side === "sell" ? "sell" : "buy", CAP = side === "sell" ? "INV-012" : CAPABILITY;
         let type = parsed.type || "market";
@@ -5580,7 +5665,17 @@
         pending = null; return say(r.outcome, r.message || null, r);
       }
       // A new request while a card is live replaces it: the old card is declined in the loop first, so nothing stacks.
-      async function start(text) { if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; } return stage(parse(text)); }
+      async function start(text) {
+        // C55: a live walkthrough owns its short replies ("done", "next", "I submitted it", "stop") — they are
+        // steps in the provider app, never new requests and never a card's yes.
+        if (ipoState.walk && ipoContinuation(text)) return ipoStep(text);
+        if (ipoState.walk && /\bwalk me through\b/i.test(String(text || ""))) return say("answer", `We're already walking through ${ipoState.walk.company} — you're on step ${ipoState.walk.step + 1} of ${ipoState.walk.steps.length}. ${ipoState.walk.steps[ipoState.walk.step]}`, { reason: "ipo_walk", company: ipoState.walk.company, step: ipoState.walk.step + 1 });
+        if (pending) { await loop.wake({ kind: "confirmation", confirmation_id: pending.confirmation_id, approved: false }); pending = null; }
+        // "Walk me through it" after a watch or an alert names no offering in words; the armed watch is the context.
+        const p0 = parse(text);
+        if (p0.action !== "ipo" && /\bwalk me through\b/i.test(String(text || "")) && (ipoState.watches.length || ipoState.alerted.length)) return ipoAnswer(Object.assign({}, p0, { action: "ipo" }));
+        return stage(p0);
+      }
 
       // The broker's order record in this flow's words, whether it came from a broker adapter (state) or a fake rail (status).
       function canon(v) {
@@ -5848,6 +5943,188 @@
         return say("answer", r.text, { reason: "dividends_upcoming", upcoming: r.upcoming });
       }
 
+      // Positions across every linked account, one holdings read per account (the connector contract the
+      // other reads use); shared by the X-ray and the position-based what-ifs. A read that fails names the
+      // account instead of silently dropping it.
+      async function allPositions() {
+        const accts = await readOr("brokerage_accounts");
+        if (!accts) return null;
+        const list = (accts.value || []).filter(a => a && a.id);
+        const positions = []; let src = null, asOf = null, cash = 0, cashKnown = list.length > 0;
+        for (const a of list) {
+          if (Number.isSafeInteger(a.cash_cents)) cash += a.cash_cents; else cashKnown = false;
+          const h = await readOr("holdings", { account: a.id });
+          if (!h) return { failed_account: a.name || a.id, accounts: list };
+          src = src || h.source; asOf = asOf === null ? h.as_of : Math.min(asOf, h.as_of);
+          for (const x of (h.value || [])) if (x && x.symbol && (Number(x.qty !== undefined ? x.qty : x.quantity) || 0) > 0) positions.push({ symbol: String(x.symbol).toUpperCase(), qty: Number(x.qty !== undefined ? x.qty : x.quantity), market_value_cents: x.market_value_cents, account: a.name || a.id });
+        }
+        return { accounts: list, positions, source: src, as_of: asOf, cash_cents: cashKnown ? cash : null };
+      }
+
+      // C40: the X-ray session half: positions across all accounts plus the host's fund composition data.
+      // No composition feed, no look-through: the pure function still reports direct exposures and says the
+      // fund data is absent rather than inventing a composition.
+      async function xrayAnswer(parsed) {
+        const all = await allPositions();
+        if (!all) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+        if (all.failed_account) return ask("holdings_unreadable", `I can't read your positions in ${all.failed_account} right now, so I won't x-ray a partial portfolio.`);
+        if (!all.positions.length) return say("answer", `You don't hold any positions in ${all.accounts.map(a => a.name || a.id).join(", ") || "your accounts"} (${all.source || "the broker"}, as of ${hhmm(all.as_of)}), so there's nothing to x-ray.`, { reason: "xray", total_invested_cents: 0 });
+        const r = portfolioXray({ positions: all.positions, cash_cents: all.cash_cents, accounts: all.accounts.length, fund_data: o.fund_data || {}, fund_source: o.fund_data_source || null, source: all.source, as_of: all.as_of });
+        return say("answer", r.text, { reason: "xray", total_invested_cents: r.total_invested_cents, drag_cents: r.drag_cents, overlaps: r.overlaps });
+      }
+
+      // C41: what-if scenarios. Each shape quantifies with its assumptions named and its math shown; a shape
+      // whose inputs can't be read (a holding's value, a bond fund's duration) says so instead of estimating.
+      async function whatIfAnswer(parsed) {
+        const t = parsed.text || "";
+        const yrsM = /\bfor\s+(\d+(?:\.\d+)?)\s*years?\b/i.exec(t) || /\b(\d+(?:\.\d+)?)\s*years?\b/i.exec(t);
+        const years = yrsM ? Number(yrsM[1]) : null;
+        const namedRate = (/\b(?:at|return(?:s|ing)?|earn(?:s|ing)?|grow(?:s|ing)?(?:\s+at)?)\s+(?:of\s+)?(\d+(?:\.\d+)?)\s*%/i.exec(t) || [])[1];
+        const rates = namedRate !== undefined ? [Number(namedRate)] : [4, 7, 10];
+        const pctTxt = r => `${r}`;
+        // Rates moving: the duration approximation over the person's own bond exposure, from the fund data's
+        // durations. A rate word with no bond exposure in the read is answered as exactly that.
+        if (/\brates?\b/i.test(t) && /\b(?:drop|fall|rise|cut|climb|increase|decrease|go up|go down)\b/i.test(t)) {
+          const down = /\b(?:drop|fall|cut|decrease|go down)\b/i.test(t), mag = Number((/\b(\d+(?:\.\d+)?)\s*(?:%|percent|points?\b)/.exec(t) || [])[1] || 1);
+          const all = await allPositions();
+          if (!all) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+          if (all.failed_account) return ask("holdings_unreadable", `I can't read your positions in ${all.failed_account} right now.`);
+          const fd = o.fund_data || {};
+          const bonds = all.positions.filter(p => fd[p.symbol] && Number.isFinite(fd[p.symbol].duration_years) && Number.isSafeInteger(p.market_value_cents));
+          if (!bonds.length) return say("answer", `I don't see bond exposure with a duration in this read (${all.source}, as of ${hhmm(all.as_of)}), so a ${mag}% rate ${down ? "drop" : "rise"} has no direct effect I can quantify on your holdings. Bond funds are where a rate move would bite; name one you hold and I'll run it with its duration.`, { reason: "whatif_rates" });
+          const value = bonds.reduce((s, p) => s + p.market_value_cents, 0), wDur = bonds.reduce((s, p) => s + p.market_value_cents * fd[p.symbol].duration_years, 0) / value;
+          const move = Math.round(value * wDur * mag / 100) * (down ? 1 : -1), wDur1 = (Math.round(wDur * 10) / 10).toFixed(1);
+          return say("answer", `If rates ${down ? "drop" : "rise"} ${mag}%: your bond exposure is ${bonds.map(p => `${p.symbol} ${money(p.market_value_cents)}`).join(", ")} (${money(value)} in all), average duration ${wDur1} years${o.fund_data_source ? ` (${o.fund_data_source})` : ""}. A ${mag}% ${down ? "drop" : "rise"} moves a bond fund by roughly duration × ${mag}% ≈ ${(Math.round(wDur * mag * 10) / 10).toFixed(1)}%, so about ${move >= 0 ? "+" : "−"}${money(Math.abs(move))}, to about ${money(value + move)}. Math: ${money(value)} × ${wDur1} × ${mag}%. That's the duration approximation — it ignores convexity and credit spreads — applied to your positions from ${all.source}, as of ${hhmm(all.as_of)}. It touches nothing else you hold directly.`, { reason: "whatif_rates", move_cents: move });
+        }
+        // A monthly amount over years.
+        if (/\b(?:a month|per month|monthly|every month)\b/i.test(t)) {
+          if (!parsed.notional_cents) return ask("whatif_amount", "How much a month? Say it like \"what if I invest $500 a month for 10 years\".");
+          if (!years) return ask("whatif_years", "For how many years? Say it like \"what if I invest $500 a month for 10 years\".");
+          const put = parsed.notional_cents * Math.round(years * 12);
+          const parts = rates.map(r => `${money(fvMonthlyCents(parsed.notional_cents, years, r))} at an assumed ${pctTxt(r)}% a year`);
+          return say("answer", `If you invest ${money(parsed.notional_cents)} a month for ${years} years, you'd put in ${money(put)}. It ends at ${parts.join("; ")}. Math: monthly compounding, each payment at month-end${namedRate !== undefined ? ` — at ${pctTxt(rates[0])}%, ${money(parsed.notional_cents)} × (((1 + ${rates[0]}/1200)^${Math.round(years * 12)} − 1) / (${rates[0]}/1200))` : ` — e.g. at 7%, ${money(parsed.notional_cents)} × (((1 + 7/1200)^${Math.round(years * 12)} − 1) / (7/1200))`}. The returns are assumptions to show the math, not predictions; real returns vary year to year. Nothing was invested.`, { reason: "whatif_monthly", years, monthly_cents: parsed.notional_cents });
+        }
+        // A holding, or the whole portfolio, moving by a percent: applied to the positions as read.
+        const shockPct = /\b(\d+(?:\.\d+)?)\s*%/.exec(t);
+        if (shockPct && /\b(?:drops?|falls?|rises?|jumps?|crashes?|goes up|goes down)\b/i.test(t)) {
+          const down = /\b(?:drops?|falls?|crashes?|goes down)\b/i.test(t), pctN = Number(shockPct[1]);
+          const all = await allPositions();
+          if (!all) return ask("accounts_unreadable", "I can't read your brokerage accounts right now.");
+          if (all.failed_account) return ask("holdings_unreadable", `I can't read your positions in ${all.failed_account} right now.`);
+          const total = all.positions.reduce((s, p) => s + (Number.isSafeInteger(p.market_value_cents) ? p.market_value_cents : 0), 0);
+          const namedSym = (String(t).toUpperCase().match(/\b[A-Z]{1,5}\b/g) || []).find(s => all.positions.some(p => p.symbol === s) && !/^(WHAT|IF|MY|THE|A|I)$/.test(s));
+          if (!namedSym && !/\bportfolio\b/i.test(t)) return ask("whatif_which", "Which holding — or the whole portfolio? Say it like \"what if VOO drops 20%\".");
+          const base = namedSym ? all.positions.filter(p => p.symbol === namedSym).reduce((s, p) => s + (p.market_value_cents || 0), 0) : total;
+          if (!base) return say("answer", `You don't hold ${namedSym} in this read (${all.source}, as of ${hhmm(all.as_of)}), so there's no position to shock.`, { reason: "whatif_shock" });
+          const delta = Math.round(base * pctN / 100) * (down ? -1 : 1), totPct = total > 0 ? Math.round(((total + (namedSym ? delta : delta)) / total - 1) * 1000) / 10 : 0;
+          return say("answer", `If ${namedSym || "your portfolio"} ${down ? "drops" : "rises"} ${pctN}%: ${namedSym ? `your ${namedSym} is worth ${money(base)}, so it would ${down ? "fall" : "rise"} ${money(Math.abs(delta))} to ${money(base + delta)}` : `your invested total of ${money(total)} would move ${money(Math.abs(delta))} to ${money(total + delta)}`}${namedSym ? `, and your invested total would go from ${money(total)} to ${money(total + delta)} (${totPct >= 0 ? "+" : "−"}${Math.abs(totPct)}%)` : ""}. That's the ${namedSym ? "direct position as read" : "total as read"} from ${all.source}, as of ${hhmm(all.as_of)} — a straight percent on today's value, not a forecast.`, { reason: "whatif_shock", delta_cents: delta });
+        }
+        // A lump sum over years.
+        if (parsed.notional_cents && years) {
+          const parts = rates.map(r => `${money(fvLumpCents(parsed.notional_cents, years, r))} at an assumed ${pctTxt(r)}% a year`);
+          return say("answer", `If you put ${money(parsed.notional_cents)} aside for ${years} years, it becomes ${parts.join("; ")}. Math: ${money(parsed.notional_cents)} × (1 + r)^${years}, compounded yearly. The returns are assumptions to show the math, not predictions. Nothing was invested.`, { reason: "whatif_lump", years, lump_cents: parsed.notional_cents });
+        }
+        return ask("whatif_shape", "I can run three shapes: \"what if I invest $500 a month for 10 years\", \"what if rates drop 1%\", or \"what if VOO drops 20%\". Which one?");
+      }
+
+      // C55: pre-IPO offerings. The calendar is a read like the broker reads ("ipo_offerings"); no calendar
+      // read, no monitoring claim. The agent watches, alerts inside the window (ipoCheck is the proactive
+      // half the host calls), walks the person through the provider app step by step, and tracks the request
+      // the PERSON confirms they submitted there. It never submits, never takes a login, and never calls a
+      // request real on its own word: a tracked request exists because the person said the app shows it in.
+      const IPO_STEP_MAX = 4;
+      const ipoWindow = r => { const o1 = Date.parse(r.opens_at), c1 = Date.parse(r.closes_at); return { opens: Number.isFinite(o1) ? o1 : null, closes: Number.isFinite(c1) ? c1 : null }; };
+      const ipoOpenNow = r => { const w = ipoWindow(r), n = clock(); return w.opens !== null && w.closes !== null && n >= w.opens && n <= w.closes; };
+      async function ipoCalendar() { const cal = await readOr("ipo_offerings", {}); return cal && Array.isArray(cal.value) ? cal : null; }
+      const ipoDay = ms => `${MONF[new Date(ms).getUTCMonth()]} ${new Date(ms).getUTCDate()}, ${new Date(ms).getUTCFullYear()}`;
+      function ipoSteps(r) {
+        const prov = r.provider || "your provider", app = r.app || prov, range = Number.isSafeInteger(r.price_low_cents) && Number.isSafeInteger(r.price_high_cents) ? `indicative ${money(r.price_low_cents)}–${money(r.price_high_cents)} a share` : "its indicative price range";
+        const closes = ipoWindow(r).closes;
+        return [
+          `Step 1: open the ${app} app and go to its IPO section${r.access_label ? ` (${r.access_label})` : ""}. Say "done" when you're there, or "stop" to drop this.`,
+          `Step 2: find ${r.company} in the offerings list and open it. Check the details match what I read: ${range}${closes ? `, window closes ${ipoDay(closes)}` : ""}. Say "done" when you've checked, or "stop".`,
+          `Step 3: enter the request — the dollar amount or the shares you want — and read the offering terms on that page, including any holding-period or flipping rules the provider shows. Nothing is final until you confirm in the app. Say "done" when it's entered, or "stop".`,
+          `Step 4: review it in the app and tap confirm — that tap is yours; I can't and won't submit it for you, and never give me your app login. When the app shows the request is in, come back and say "I submitted it" and I'll track it to settlement from there.`,
+        ];
+      }
+      function ipoContinuation(text) {
+        const t = String(text || "").trim();
+        return /^\s*(done|next|did it|got it|ok|okay|stop|never ?mind|cancel|i submitted it|submitted|i placed it|the request is in)\b/i.test(t);
+      }
+      async function ipoAnswer(parsed) {
+        const t = parsed.text || "";
+        if (/\b(password|passcode|log ?in for me|sign in for me|my login|credentials)\b/i.test(t)) return say("refuse", "I can't take your login or password — never send one here. The request happens in the provider's own app, where you sign in yourself; I'll walk you through every step from this chat.", { reason: "ipo_no_credentials" });
+        const cal = await ipoCalendar();
+        if (!cal) return say("answer", "I can't read an offering calendar right now — no calendar feed is connected — so I can't watch for openings or alert you, and I won't pretend a watch is live. Nothing was set up.", { reason: "ipo_calendar_unreadable" });
+        const rows = cal.value, src = `${cal.source}, as of ${hhmm(cal.as_of)}`;
+        // Status: a tracked request first, the calendar's word on its allocation second.
+        if (/\b(status|allocation|did i get|settled|settlement)\b/i.test(t)) return ipoStatus(rows, src);
+        // The watch is recorded whenever the words ask for one — including the capability's own sentence,
+        // which asks for the alert AND the walkthrough in one message; both happen, watch first.
+        let watchSet = false;
+        if (/\b(alert|watch|monitor|get me into|tell me)\b/i.test(t)) {
+          const namedCo = (/\bfor\s+([A-Z][A-Za-z0-9&.' -]{2,40})/.exec(t) || [])[1];
+          const company = namedCo ? namedCo.trim() : null;
+          if (!ipoState.watches.some(w => (w.company || null) === company)) { ipoState.watches.push({ company, at: clock() }); watchSet = true; }
+        }
+        // Walkthrough start: the named offering, or the one open / watched.
+        if (/\bwalk me\b/i.test(t)) {
+          const named = rows.find(r => new RegExp(String(r.company || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(t));
+          const open = rows.filter(ipoOpenNow), watch = ipoState.watches.map(w => w.company).filter(Boolean);
+          const r = named || open.find(x => !watch.length || watch.includes(x.company)) || open[0] || null;
+          if (!r) return say("answer", `No offering is inside its window on the calendar I can read (${src}), so there's nothing to walk through yet.${ipoState.watches.length ? " Your watch is live — I'll alert you the moment one opens." : ""}`, { reason: "ipo_walk_none_open" });
+          ipoState.walk = { company: r.company, provider: r.provider || null, step: 0, steps: ipoSteps(r) };
+          if (!ipoState.alerted.includes(r.company)) ipoState.alerted.push(r.company); // they're here for it; no alert owed
+          return say("answer", `${watchSet ? "You're set: I'll watch the offering calendar and alert you here the moment an offering opens. " : ""}Walkthrough for ${r.company} in ${r.app || r.provider || "the provider app"} — ${IPO_STEP_MAX} steps; you do each in the app and tell me when it's done. ${ipoState.walk.steps[0]}`, { reason: "ipo_walk", company: r.company, step: 1 });
+        }
+        if (watchSet || ipoState.watches.length) {
+          const company = ipoState.watches.length ? ipoState.watches[ipoState.watches.length - 1].company : null;
+          const open = rows.filter(r => ipoOpenNow(r) && (!company || r.company === company));
+          const openTxt = open.length ? ` One is already inside its window: ${open.map(r => `${r.company} (open until ${ipoDay(ipoWindow(r).closes)})`).join(", ")}.` : " Nothing is inside its window right now.";
+          return say("answer", `You're set: I'll watch the offering calendar (${src})${company ? ` for ${company}` : ""} and alert you here the moment an offering opens.${openTxt} Say "walk me through it" when you're ready — the request itself is always your tap in the provider app; I guide and track, I never submit it.`, { reason: "ipo_watch", watches: ipoState.watches.length });
+        }
+        return say("answer", `I can watch the offering calendar and alert you the moment an offering opens, then walk you through the request in the provider app. Say "alert me when a pre-IPO offering opens" to set the watch.`, { reason: "ipo_help" });
+      }
+      // One walkthrough reply: advance, finish (on the person's own confirmation from the app), or stop.
+      async function ipoStep(text) {
+        const w = ipoState.walk, t = String(text || "");
+        if (/\b(stop|never ?mind|cancel)\b/i.test(t)) { ipoState.walk = null; return say("answer", `Stopped the walkthrough for ${w.company}. I submitted nothing; if you did submit in the app, tell me and I'll track it.`, { reason: "ipo_walk_stop" }); }
+        if (/\b(submitted|placed it|request is in)\b/i.test(t)) {
+          ipoState.walk = null;
+          const cal = await ipoCalendar(), row = cal ? cal.value.find(r => r.company === w.company) : null;
+          ipoState.requests = ipoState.requests.filter(r => r.company !== w.company);
+          ipoState.requests.push({ company: w.company, provider: w.provider, at: clock(), status: "requested" });
+          const closes = row ? ipoWindow(row).closes : null;
+          return say("answer", `Recorded, from your confirmation in the app: your ${w.company} IPO request is in (${ipoDay(clock())}). I didn't submit anything — that was your tap. Status: requested${closes ? `; the window closes ${ipoDay(closes)}` : ""}, and allocations are reported after it closes. Ask "IPO status" anytime — I'll track it to settlement.`, { reason: "ipo_request_recorded", company: w.company });
+        }
+        if (w.step < w.steps.length - 1) { w.step += 1; return say("answer", w.steps[w.step], { reason: "ipo_walk", company: w.company, step: w.step + 1 }); }
+        return say("answer", `That's the last step I can guide from here: the confirm tap in the app is yours. When the app shows the request is in, say "I submitted it" and I'll track it. Or say "stop" to drop this.`, { reason: "ipo_walk", company: w.company, step: w.steps.length });
+      }
+      // The proactive half: the host calls this on its schedule; an offering inside its window that matches a
+      // watch and hasn't been alerted on fires exactly one alert. Nothing due, nothing said.
+      async function ipoCheck() {
+        if (!ipoState.watches.length) return null;
+        const cal = await ipoCalendar();
+        if (!cal) return null;
+        const due = cal.value.filter(r => ipoOpenNow(r) && !ipoState.alerted.includes(r.company) && ipoState.watches.some(w => !w.company || w.company === r.company));
+        if (!due.length) return null;
+        for (const r of due) ipoState.alerted.push(r.company);
+        const r = due[0], w = ipoWindow(r);
+        return say("alert", `Offering window open: ${r.company} is taking IPO requests now through ${r.provider || "its provider"} (${cal.source}), until ${ipoDay(w.closes)}, ${hhmm(w.closes)}. ${Number.isSafeInteger(r.price_low_cents) && Number.isSafeInteger(r.price_high_cents) ? `Indicative price ${money(r.price_low_cents)}–${money(r.price_high_cents)} a share. ` : ""}Say "walk me through it" and I'll step you through the request in the app — you tap submit there; I'll track the allocation to settlement.`, { reason: "ipo_alert", company: r.company });
+      }
+      function ipoStatus(rows, src) {
+        if (!ipoState.requests.length) return say("answer", `No IPO request is being tracked. A request gets tracked when you walk through it here and confirm in the provider app that it's in — I never submit one for you.`, { reason: "ipo_status" });
+        const parts = ipoState.requests.map(req => {
+          const row = rows.find(r => r.company === req.company), w = row ? ipoWindow(row) : { closes: null };
+          const alloc = row && row.allocation ? row.allocation : null;
+          if (alloc && alloc.status === "allocated" && Number.isSafeInteger(alloc.shares) && Number.isSafeInteger(alloc.price_cents)) return `${req.company}: the provider reports you were allocated ${alloc.shares} shares at ${money(alloc.price_cents)} (${money(alloc.shares * alloc.price_cents)} in all)${alloc.settle_date ? `, settling ${ipoDay(Date.parse(alloc.settle_date))}` : ""}. Your request from ${ipoDay(req.at)} is fully tracked — allocation in, settlement ${alloc.settle_date ? "dated" : "still to be dated"}.`;
+          if (alloc && alloc.status === "not_allocated") return `${req.company}: the provider reports no allocation for your request from ${ipoDay(req.at)} — the offering was oversubscribed. Nothing settled, nothing is owed.`;
+          if (w.closes && clock() <= w.closes) return `${req.company}: requested on ${ipoDay(req.at)} (your confirmation in the app); the window is still open until ${ipoDay(w.closes)}, so allocation comes after it closes.`;
+          return `${req.company}: requested on ${ipoDay(req.at)} (your confirmation in the app); the window has closed and the provider hasn't reported an allocation in the calendar I can read yet. I'll keep it tracked.`;
+        });
+        return say("answer", `${parts.join(" ")} From ${src}.`, { reason: "ipo_status", requests: ipoState.requests.length });
+      }
+
       // The account's return over a period (megadoc G02, G14). End value: the account's equity now. Start value: the close
       // before the period from the broker's daily history, which Alpaca warns can be wrong, so it is used only when one of
       // its last points matches the account's own last-close equity (last_equity) to the dollar. Money moved in or out is
@@ -6084,11 +6361,11 @@
       const lastOrder = key => { const e = log.filter(x => x.to === "ACTING" && x.input && x.input.idempotency_key === key).pop(); if (!e) return null; const p = e.input.params || {}; const inst = (o.instruments || []).find(i => i.symbol === p.symbol) || { symbol: p.symbol, name: p.symbol }; const ord = { side: p.side || "buy", type: p.type || "market", symbol: p.symbol, name: inst.name, account: { id: p.account, name: p.account, paper: !!p.paper }, quantity: p.quantity, notional_cents: p.notional_cents || null, estimated_cents: p.amount_cents || 0, limit_cents: p.limit_cents || null, stop_cents: p.stop_cents || null, trail_percent: p.trail_percent || null, trail_cents: p.trail_cents || null, time_in_force: p.time_in_force || "day", when: "the next open", key, capability_id: e.input.capability_id, request: { describe: `${p.side === "sell" ? "Sell" : "Buy"} ${p.symbol}` } }; orders.push(ord); return ord; };
       // S15: "what did you buy today" comes from memory, with the broker named per fill.
       function today(now) { const d = day(now || clock()); const fills = loop.memory.facts.filter(f => (f.capability_id === CAPABILITY || f.capability_id === "INV-012") && f.value && f.value.order_id && day(f.recorded_at) === d); if (!fills.length) return say("answer", `Nothing bought today.`); return say("answer", fills.map(f => `${f.value.side === "sell" ? "sold " : ""}${qty(f.value.quantity)} ${f.value.symbol} at ${money(f.value.fill_price_cents)} (${money(f.value.total_cents)}) in ${f.value.account}, order ${f.value.order_id}, per ${f.source}${f.value.live ? " (LIVE)" : ""}`).join("; ") + "."); }
-      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion }));
+      const snapshot = () => JSON.parse(JSON.stringify({ loop: loop.snapshot(), orders, pending, suggestion, ipo: ipoState }));
       const accepts = text => !!suggestion && !pending && /^\s*(y|yes|yep|yeah|ok|okay|sure|correct|that one|n|no|nope|never ?mind)\s*[.!]*\s*$/i.test(String(text || ""));
-      return { start, reply, followUp, today, portfolio, moverExplainer: moverAnswer, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
+      return { start, reply, followUp, today, portfolio, moverExplainer: moverAnswer, xray: text => xrayAnswer(typeof text === "string" ? parse(text) : text), whatIf: text => whatIfAnswer(typeof text === "string" ? parse(text) : text), ipoCheck, ipoContinuation: text => !!ipoState.walk && ipoContinuation(text), ipoArmed: () => ipoState.watches.length > 0 || ipoState.alerted.length > 0, parse, loop, orders, confirmText, cardText, snapshot, accepts, get awaiting_input() { return !!suggestion && !pending; }, get ipo_walk() { return ipoState.walk ? { company: ipoState.walk.company, step: ipoState.walk.step + 1 } : null; }, get pending() { return pending ? { confirmation_id: pending.confirmation_id, symbol: pending.order.symbol, estimated_cents: pending.order.estimated_cents } : null; } };
     }
-    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, moverExplainer, announcedDividends, CAPABILITY };
+    return { create, parse, parseAmount, resolve, nameMatch, marketOpen, nextOpen, etParts, moverExplainer, announcedDividends, portfolioXray, fvMonthlyCents, fvLumpCents, CAPABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentTrade;
 
@@ -6895,6 +7172,21 @@
         // Instructions inside pasted or forwarded text have no authority (global rule G6, megadoc N05): a money move that
         // comes wrapped in "ignore previous instructions" is named and not acted on.
         if (INJECTION.test(text) && MAYBE.test(text)) return done({ route: "refuse", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "refuse", reason: "injected_instruction", text: `That text contains an instruction to move money ("${INJECTION.exec(text)[0]}"). I don't act on instructions inside pasted or forwarded text, so nothing was set up. If you want to send money, tell me in your own words.` } });
+        // K4 brokerage reads (C40 X-ray, C41 what-if, C55 pre-IPO), deterministic, ahead of the hypothetical
+        // fallthrough and the model: these are reads and guided steps in the trade flow, never orders. The
+        // shapes are the trade parser's own (66), kept narrow — a what-if about selling stays a hypothetical.
+        // A live IPO walkthrough owns its short step replies ("done", "I submitted it", "stop").
+        if (sessions.trade && typeof sessions.trade.start === "function") {
+          const XRAY_Q = /\b(x[-\s]?ray|look(?:ing)? through|underneath|actually own)\b/i;
+          const WHATIF_Q = /\bwhat if\b[^?.!]*\b(?:(?:invest|put|save|contribute|add)\b[^?.!]*\b(?:a month|per month|monthly|every month)\b|(?:interest )?rates?\b[^?.!]*\b(?:drop|fall|rise|cut|climb|increase|decrease|go up|go down)\b|(?:drop|fall|cut)\b[^?.!]*\brates?\b|[a-z]{1,5}\b[^?.!]*\b(?:drops?|falls?|rises?|jumps?|crashes?|goes up|goes down)\b[^?.!]*\b\d+(?:\.\d+)?\s*%|\bportfolio\b[^?.!]*\b(?:drops?|falls?|rises?)\b[^?.!]*\b\d|\b(?:invest|put|save)\b[^?.!]*\b\d+(?:\.\d+)?\s*years?\b)/i;
+          const IPO_Q = /\b(?:pre[-\s]?ipo|ipo)\b[^?.!]*\b(?:alert|watch|monitor|walk me|get me into|tell me|offerings?|request|track|status|allocation|opens?|opening)\b/i;
+          const walk = typeof sessions.trade.ipoContinuation === "function" && sessions.trade.ipoContinuation(text);
+          const armed = typeof sessions.trade.ipoArmed === "function" && sessions.trade.ipoArmed() && /\bwalk me through\b/i.test(text);
+          if (walk || armed || XRAY_Q.test(text) || WHATIF_Q.test(text) || IPO_Q.test(text)) {
+            const result = await sessions.trade.start(text);
+            return done({ route: walk ? "ipo_walkthrough" : "trade_read", source: "deterministic", flow: "trade", canonical: text, result, understood: true, understood_first: !!result && result.outcome !== "ask", ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: [] });
+          }
+        }
         // The IOU log is the settings path's (105-iou-log.js, before the flows); one it couldn't read reaches here: said
         // plainly with the form it reads, and no money flow is started (megadoc D08).
         if (/\b(log|record|note down|write down|track|remember|keep track)\b.{0,30}\b(owe|owes|owed|lent|borrowed|iou)\b/i.test(text)) return done({ route: "not_built", source: "deterministic", flow: null, understood: true, understood_first: true, result: { outcome: "not_built", reason: "iou_unread", text: "I couldn't read that IOU, so nothing was saved, and no money moved. Say it like \"I owe Mom $200\" or \"Jake owes me $20\"." } });

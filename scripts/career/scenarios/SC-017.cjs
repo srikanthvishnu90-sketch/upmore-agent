@@ -8,7 +8,7 @@ const { H, O, capabilitySources } = require("./_f01-lib.cjs");
   const r = O.handleChat("what can you actually do for my job search?", { capabilitySources: sources });
   const st = O.capabilityStatus(sources);
   s.tool("CareerOnboarding.capabilityStatus(registry + inventory rows)", { proven_live: st.proven_live, blocked_count: st.blocked_count, built: st.built, blocked_sample: st.blocked.slice(0, 3) });
-  s.agent(r.reply, { card: { type: "capability_status", title: "What I can actually do", proven_live: r.proven_live, blocked_count: r.blocked_count, built_registry_tested: r.built.registry_tested } });
+  s.agent(r.reply, { card: { type: "capability_status", title: "What I can actually do", proven_live: r.proven_live, blocked_count: r.blocked_count, built_registry_tested: st.built.registry_tested } });
   // Independent recount straight from the source files (the rail's own state, not the reply):
   const caps = sources.registry.capabilities;
   const expTested = caps.filter((c) => c.status === "TESTED").length;

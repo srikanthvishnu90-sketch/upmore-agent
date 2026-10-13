@@ -97,6 +97,21 @@
                                                   its destination, stamped at
                                                   fill so status can re-read
                                                   the RIGHT destination.
+     6. DOORSTEP FILL SURFACING (feature lane G2, defect APD-1 / AP13):
+     one state machine for every dry-validation blocker. The fill loop no
+     longer skips the review step, and after filling, EVERY blocker the dry
+     validation flags on the exact payload — a late material question, a
+     hidden default still in effect, a missing required field — is
+     collected on the doorstep (doorstep.blockers) and surfaced as a
+     plain-language ask BEFORE any submit turn can be attempted. The
+     doorstep reaches REVIEW only when no blockers remain; a sensitive
+     hidden default keeps the preserved STOPPED terminal shape. Resume is
+     a re-fill after the user supplies the missing answer (through the
+     user-supplied fact channel the resolver already reads, or a corrected
+     profile) — the re-fill clears the blocker and only then reaches
+     REVIEW. A submit attempt with open blockers refuses, naming the
+     blockers in plain words; structured codes stay on result objects and
+     never appear in a reply.
    ROUTER REGISTRATION (one line, for the coordinator at integration): in the
    chat router's handler chain, after 120-career-access and
    130-career-onboarding, add CareerDoorstep.handleChat as the next tried
@@ -169,6 +184,13 @@ const CareerDoorstep = (() => {
     const id = field.field_id;
     const from = (value, source) => ({ value, source });
     const ask = (reason) => ({ ask: reason || "not in the profile — the user must supply it; never guessed" });
+    // Resume channel (APD-1): an answer the user supplied for this exact
+    // field — through the same user-supplied fact channel the default case
+    // below already reads — IS the user's own answer, for every field,
+    // including a consent, a legal declaration, or the user's own words.
+    // Absent that, those fields stay asks below; they are never guessed.
+    const supplied = ctx && ctx.formFacts && ctx.formFacts[id];
+    if (supplied != null) return from(supplied, "user-supplied answer for this exact field");
     switch (id) {
       case "full_name": return basics.name ? from(basics.name, "profile basics.name") : ask();
       case "email": return basics.email ? from(basics.email, "profile basics.email") : ask();
@@ -216,6 +238,72 @@ const CareerDoorstep = (() => {
     const late = Driver.lateMaterialFields(spec).filter((f) => f.required && session.answers[f.field_id] === undefined).map((f) => f.field_id);
     const hiddenSensitive = v.hiddenDefaultsInEffect.filter((h) => h.sensitive).map((h) => h.field_id);
     return { ok: v.ok && late.length === 0 && hiddenSensitive.length === 0, missing: v.missing, hidden_defaults_in_effect: v.hiddenDefaultsInEffect, hidden_sensitive: hiddenSensitive, late_material_unacknowledged: late, submitted: false, note: "driver validate() + submit pre-checks on the exact payload; submit was NOT called" };
+  }
+
+  // ---------- G2 / APD-1: blocker collection (one state machine) ----------
+  // A blocker is anything the dry validation flags on the exact payload:
+  // a late material question, a missing required field, or a hidden default
+  // still in effect. Blockers are structured data (field ids + kinds stay
+  // here and on result objects); replies name them only through humanField.
+  function specField(spec, fieldId) {
+    if (!Driver || !spec) return null;
+    const hit = Driver.allFields(spec).find((x) => x.field.field_id === fieldId);
+    return hit ? hit.field : null;
+  }
+  function collectBlockers(spec, dry) {
+    const byField = new Map();
+    const add = (fieldId, kind, sensitive) => {
+      if (!fieldId) return;
+      let b = byField.get(fieldId);
+      if (!b) {
+        const def = specField(spec, fieldId);
+        b = { field: fieldId, name: humanField(fieldId), label: (def && def.label) || humanField(fieldId), kinds: [], sensitive: !!(sensitive || (def && def.sensitive)) };
+        byField.set(fieldId, b);
+      }
+      if (!b.kinds.includes(kind)) b.kinds.push(kind);
+      if (sensitive) b.sensitive = true;
+    };
+    for (const id of (dry && dry.late_material_unacknowledged) || []) add(id, "late_material");
+    for (const id of (dry && dry.missing) || []) add(id, "missing_required");
+    for (const h of (dry && dry.hidden_defaults_in_effect) || []) add(h.field_id, "hidden_default", h.sensitive);
+    return [...byField.values()];
+  }
+  function blockerAskReason(blocker) {
+    if (blocker.kinds.includes("late_material")) return "a required question that appears for the first time on the final review step — it must be the user's own answer, never guessed";
+    if (blocker.kinds.includes("hidden_default")) return "an answer is preselected in secret on this form and the user has not chosen it themselves — it must be the user's own answer, never the hidden preselection";
+    return "a required answer that is not in the profile — it must come from the user, never guessed";
+  }
+  function blockerNames(blockers) {
+    return (blockers || []).map((b) => humanField(typeof b === "string" ? b : b.field)).join(", ");
+  }
+  // The blockers open RIGHT NOW, re-derived from the live session's dry
+  // validation at submit time (never trusted from a stale doorstep object);
+  // the stored doorstep blockers are the fallback when no session survives.
+  function openBlockers(state) {
+    const st = state || {};
+    if (st.session && st.spec) {
+      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch (e) { /* fall through to the stored blockers */ }
+    }
+    return (st.doorstep && st.doorstep.blockers) || [];
+  }
+  // The structured code for a blocker refusal, derived from its kinds —
+  // it lives on the result object exactly as the driver-stop code always
+  // did, and never in the reply text.
+  function blockerStopCode(blockers) {
+    const kinds = new Set((blockers || []).flatMap((b) => b.kinds || []));
+    if (kinds.has("late_material")) return "LATE_MATERIAL_QUESTION";
+    if (kinds.has("hidden_default")) return "UNRESOLVED_HIDDEN_DEFAULT";
+    if (kinds.has("missing_required")) return "MISSING_REQUIRED";
+    return null;
+  }
+  function blockerRefusal(blockers, doorstep, submission) {
+    const names = blockerNames(blockers);
+    return {
+      intent: "doorstep_submit", resultStatus: "awaiting_user", refused: true, blockers,
+      stop_code: blockerStopCode(blockers),
+      doorstep, submission,
+      reply: `I stopped the submit — nothing was submitted. I still need your own answer for: ${names || "the open questions on this form"}. Answer those and I will prepare it again for your approval.`,
+    };
   }
 
   // ---------- 0. R2B: fact binding, destination truth, guards, recorders ----------
@@ -468,7 +556,10 @@ const CareerDoorstep = (() => {
     const stepLog = [], asks = [];
     let seq = 0;
     for (const step of spec.steps) {
-      if (step.kind === "review") continue;
+      // APD-1: the review step is NOT skipped — a required question that
+      // first appears there (the Lever-like late material shape) is filled
+      // or, like every other unresolvable field, surfaced as an ask in
+      // this same loop, before any review screen is claimed.
       // Two passes per step: a conditional field can become visible only
       // after its trigger field in the same step is filled.
       for (let pass = 0; pass < 2; pass++) {
@@ -504,11 +595,29 @@ const CareerDoorstep = (() => {
       fact_version: binding ? binding.fact_version : null, fact_hash: binding ? binding.fact_hash : null,
     };
     const dry = dryValidate(session, spec);
+    // APD-1: collect EVERY dry-validation blocker and surface any the fill
+    // loop did not already ask about, so the ask set is complete by
+    // construction — no blocker can exist in state without being an ask
+    // in the reply the user sees at fill time.
+    const blockers = collectBlockers(spec, dry);
+    for (const blocker of blockers) {
+      if (!asks.some((a) => a.field === blocker.field)) {
+        const def = specField(spec, blocker.field);
+        asks.push({ field: blocker.field, label: (def && def.label) || humanField(blocker.field), reason: blockerAskReason(blocker), sensitive: blocker.sensitive });
+        stepLog.push({ step: ++seq, action: "ask", field: blocker.field, step_id: def ? (Driver.allFields(spec).find((x) => x.field.field_id === blocker.field) || {}).step_id || null : null, value_source: null, result: "surfaced_as_ask — a dry-validation blocker on the exact payload, left unfilled, never guessed" });
+      }
+    }
     let doorstepStateName = "REVIEW", stopCode = null, review = null;
     if (hiddenSensitive.length) {
       stopCode = "UNRESOLVED_HIDDEN_DEFAULT";
       doorstepStateName = "STOPPED";
       stepLog.push({ step: ++seq, action: "stop", code: stopCode, fields: hiddenSensitive.map((h) => h.field_id), value_source: null, result: "stopped before the review screen — a sensitive hidden default was never explicitly answered and must never ride along" });
+    } else if (blockers.length) {
+      // Not the review screen, and not stopped-on: the flow is waiting on
+      // the user's own answers. REVIEW comes only after a resume re-fill
+      // clears these blockers.
+      doorstepStateName = "AWAITING_ANSWERS";
+      stepLog.push({ step: ++seq, action: "ask", field: null, fields: blockers.map((b) => b.field), value_source: null, result: "stopped before the final review screen — every dry-validation blocker was surfaced as an ask; the review screen waits until the user answers" });
     } else {
       review = session.review();
       stepLog.push({ step: ++seq, action: "review", field: null, step_id: review.step_id, value_source: null, result: "stopped ON the final review screen — submit not clicked" });
@@ -516,7 +625,7 @@ const CareerDoorstep = (() => {
     const doorstep = {
       form: spec.fixture_id, company: payload.company, role: payload.role, job_id: payload.job_id,
       state: doorstepStateName, stop_code: stopCode, submitted: false,
-      step_log: stepLog, asks, payload,
+      step_log: stepLog, asks, blockers, payload,
       dry_validate: dry, sink_armed: doorstepStateName === "REVIEW" && dry.ok,
       review,
       fact_version: payload.fact_version, fact_hash: payload.fact_hash,
@@ -530,7 +639,13 @@ const CareerDoorstep = (() => {
   function fillReply(doorstep) {
     const askText = doorstep.asks.length ? ` I still need from you: ${doorstep.asks.map((a) => humanField(a.field)).join(", ")} — I left those unfilled rather than guessing.` : "";
     if (doorstep.state === "STOPPED") {
-      return `I filled what your profile establishes, then stopped: a sensitive answer on this form is preselected in secret and you have not chosen it yourself.${askText} Nothing was submitted.`;
+      const hiddenNames = blockerNames((doorstep.blockers || []).filter((b) => b.kinds.includes("hidden_default")));
+      const hiddenText = hiddenNames ? ` The preselected answer I will not use is for: ${hiddenNames}.` : "";
+      return `I filled what your profile establishes, then stopped: a sensitive answer on this form is preselected in secret and you have not chosen it yourself.${hiddenText}${askText} Nothing was submitted.`;
+    }
+    if (doorstep.state !== "REVIEW" || (doorstep.blockers || []).length) {
+      const names = blockerNames(doorstep.blockers || []);
+      return `I filled what your profile establishes, but I have not taken this to the final review screen yet. I still need your own answer for: ${names || "the open questions on this form"} — I left those unfilled rather than guessing. Nothing was submitted. Tell me your answer for each one and I will fill it in and take it to review for your approval.`;
     }
     return `Filled the ${doorstep.company || "application"} form from your profile and stopped on the final review screen — it is not submitted.${askText} Nothing will be submitted until you approve it.`;
   }
@@ -560,7 +675,13 @@ const CareerDoorstep = (() => {
     // submit" and no upstream handler caught the change (AP08/AP18/AP20/AP23).
     const refusal = checkSubmitGuards(ctx, state);
     if (refusal) return { intent: "doorstep_submit", resultStatus: "blocked", refused: true, guard_refusal: refusal, doorstep: state.doorstep, submission: sub, reply: refusal.reply };
-    if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, reply: `The form is stopped (${state.doorstep.stop_code || "not at review"}), so I cannot submit it. The open asks have to be answered by you first.` };
+    // APD-1: a submit attempt with open blockers never reaches the sink.
+    // The blockers are re-derived from the live session now (not trusted
+    // from the fill-time object), and the refusal names them in plain
+    // words — the structured stop code stays on the result, not the reply.
+    const open = openBlockers(state);
+    if (open.length) { sub.status = "not_submitted"; return blockerRefusal(open, state.doorstep, sub); }
+    if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: state.doorstep.stop_code || null, reply: `I stopped the submit — nothing was submitted. This form is not on its final review screen, so there is nothing ready to submit. Answer the open asks and I will prepare it again for your approval.` };
     const out = state.session.submit();
     if (out.outcome === "accepted") {
       sub.status = "submitted_accepted"; sub.receipt_id = out.receipt && out.receipt.receipt_id;
@@ -570,9 +691,14 @@ const CareerDoorstep = (() => {
       sub.status = "unknown_outcome"; sub.receipt_id = out.receipt_id || (out.receipt && out.receipt.receipt_id) || null; sub.receipt_written = !!out.receiptWritten;
       return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I sent the submission once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt sink before any retry." };
     }
-    // Driver stop (missing required / hidden default / late material).
+    // Driver stop (missing required / hidden default / late material) —
+    // defense in depth behind the blocker pre-check above. The driver's
+    // structured code stays on this result object; the reply names the
+    // fields the driver flagged, in plain words, and nothing else.
     sub.status = "not_submitted";
-    return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: out.code || null, reply: `The form itself stopped the submit (${out.code || "a required answer is missing"}), so nothing was submitted. Answer the open asks and I will prepare it again for your approval.` };
+    const stoppedFields = [...(out.fields || []), ...(out.missing || [])];
+    const stoppedNames = stoppedFields.map((f) => humanField(f)).join(", ");
+    return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: out.code || null, reply: `The form stopped the submit — nothing was submitted. I still need your own answer for: ${stoppedNames || "the open questions on this form"}. Answer those and I will prepare it again for your approval.` };
   }
   function reconcileDoorstep(ctx) {
     const state = ctx.doorstepState || {};
@@ -707,7 +833,7 @@ const CareerDoorstep = (() => {
       if (!c.formSpecName && !c.formSpec) return null;
       const r = fillDoorstep(c);
       if (!r.ok) return { intent: "doorstep_fill", resultStatus: "blocked", code: r.code || null, guard_refusal: r.code === "duplicate_application" ? { code: r.code, reason: `an application for this job is already on record (${describePrior(r.prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior: r.prior } : null, reply: r.reply };
-      return { intent: "doorstep_fill", resultStatus: r.doorstep.state === "STOPPED" ? "awaiting_user" : "prepared", doorstep: r.doorstep, reply: fillReply(r.doorstep) };
+      return { intent: "doorstep_fill", resultStatus: r.doorstep.state === "REVIEW" ? "prepared" : "awaiting_user", doorstep: r.doorstep, reply: fillReply(r.doorstep) };
     }
     if (/\bprep the \w+ application\b|\bprepare the \w+ application\b/.test(t)) return prepPacket(text, c);
     return null;
@@ -716,6 +842,8 @@ const CareerDoorstep = (() => {
   return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct,
     // R2B exports: fact binding + destination truth + guards + the recorder
     // surface Lane A's intent handlers use to mutate doorstep state.
-    factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication };
+    factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication,
+    // G2 / APD-1 exports: blocker collection + the submit-time re-derivation.
+    collectBlockers, openBlockers };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerDoorstep;

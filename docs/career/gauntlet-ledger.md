@@ -761,3 +761,19 @@ program's feature lane) · **DD-12** — NW13's final "approve and send it" prob
 the unmatched fallback (nothing sent — safe — but no substantive reply; conversational
 routing semantics → graded defect for Codex's lane, evidence in the NW13 round-2
 records). NW18 rubric 2/3 (missing next step) noted in the regrade doc.
+
+## Review queue + documentation (owner standing order, 2026-10-13 — permanent)
+
+Every artifact needing the owner's eyes is produced review-ready under
+`~/workspace/your_files/review/` and named in the checkpoint the moment it exists:
+(a) ALL outreach drafts (campaign samples, restyles, follow-ups, Gate-5 five-person
+drafts) with the safety-plan card attached; (b) the M2 40-reply calibration labeling
+doc; (c) the capability-absent.json draft; (d) every run report (05 Part 3); (e) any
+owner-decision list. Nothing in the queue is acted on before his review — drafts are
+shown, never sent, without approval of the exact text; Gate 5 keeps its own per-run
+go-ahead. Index: `~/workspace/your_files/review/QUEUE.md`. First item in:
+`owner-decisions-2026-10-13.md` (C-1..C-3, VD-A-03, DOCX, follow-up timing, expert
+reviewers, who pays + standing defaults). Documentation discipline stands as the
+order states: ledger current per commit, run reports script-generated from records,
+evidence saved for every run, defect register maintained, pack disagreements logged
+in every run report. If it isn't documented with evidence, it didn't happen.

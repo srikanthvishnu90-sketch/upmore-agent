@@ -34,6 +34,27 @@
      buildShortlist(scored, {limit, feedback})     DISC-006: top-N per day; yes/no feedback memory (injected
                                    store rows) nudges later scores by role_family / company / skills
      recordFeedback(store, entry)  append a yes/no row to the injected feedback store
+     askRoleFamilies(text)         the role families an ASK names (PM/SWE/Data/ML/Finance/...), parsed
+                                   from the ask text itself — abbreviations included (PM, SWE)
+     buildShortlist(scored, {askText | families})
+                                   DISC-006 domain leg (SC-065, census class (c)): when the ask names
+                                   role families, the shortlist is HARD-filtered to those families
+                                   BEFORE the limit applies, and the returned array carries
+                                   family_filter { requested, pool_size, matched_size,
+                                   dropped_cross_family }. Cross-family roles are NEVER used as
+                                   padding: an ask whose family is absent from the pool returns
+                                   an empty shortlist, not the best-scoring wrong-domain roles.
+     shortlistForAsk(scored, askText, opts)
+                                   typed wrapper over buildShortlist: { status: "ok" |
+                                   "no_matching_roles" | "no_family_in_ask", requested_families,
+                                   pool_size, matched_size, shortlist, reason, next_step } — on
+                                   no_matching_roles, reason states the true pool fact and
+                                   next_step carries exactly one next step.
+     scoreFit(posting, profile, cir, { askFamilies })
+                                   opt-in: a posting outside the ask's families is EXCLUDED with a
+                                   role-family reason (same hard-filter channel as the other
+                                   exclusions). No existing caller passes it, so default scoring
+                                   is unchanged.
    Role families are SWE + Finance first (owner ruling 2026-10-12): STARTER_FEEDS weights banks, trading
    firms, fintechs and big-tech SWE boards. Poll cadence per Doc 1/2 Appendix B speed rules: starred
    companies every 15 min, the rest hourly (POLL_MINUTES) — detection, not scheduling, lives here. */
@@ -74,6 +95,27 @@ const CareerJobs = (() => {
     ["Marketing", /\b(marketing|growth|brand|content strateg)/],
     ["Sales", /\b(account executive|sales|business development|bd representative|sdr|bdr)\b/],
   ];
+  // ---------- ask-side family parsing (SC-065 domain leg) ----------
+  // The families an ASK names, in FAMILY_RULES order. Title rules alone miss
+  // the abbreviations users actually type ("PM internships", "SWE roles") and
+  // bare domain nouns ("data roles"), so those are matched explicitly.
+  // "data entry" is operations work, not Data/ML — it suppresses the bare
+  // "data" match and lands on Operations instead.
+  function askRoleFamilies(text) {
+    const t = lc(text);
+    if (!t) return [];
+    const dataEntry = /\bdata entry\b/.test(t);
+    const out = [];
+    for (const [fam, re] of FAMILY_RULES) {
+      let hit = re.test(t);
+      if (!hit && fam === "PM") hit = /\bpm\b/.test(t) || /\bproduct\s+(roles?|jobs?|internships?|positions?|openings)\b/.test(t);
+      if (!hit && fam === "SWE") hit = /\bswe\b/.test(t);
+      if (!hit && fam === "Data/ML") hit = (!dataEntry && /\bdata\b/.test(t)) || /\b(ai|ml)\b/.test(t);
+      if (!hit && fam === "Operations" && dataEntry) hit = true;
+      if (hit) out.push(fam);
+    }
+    return out;
+  }
   function roleFamily(title, jd) {
     const t = lc(title);
     for (const [fam, re] of FAMILY_RULES) if (re.test(t)) return fam;
@@ -517,8 +559,14 @@ const CareerJobs = (() => {
     return fails;
   }
 
-  function scoreFit(posting, profile, cir) {
+  function scoreFit(posting, profile, cir, opts) {
     const fails = hardFilters(posting, profile || {});
+    // SC-065 domain leg (opt-in): when the caller carries the ASK's families,
+    // a cross-family posting is a hard exclusion with the reason in data —
+    // it can never surface as a "closest fit" for a different-domain ask.
+    const askFams = opts && Array.isArray(opts.askFamilies) ? opts.askFamilies : null;
+    if (askFams && askFams.length && !askFams.includes(posting.role_family))
+      fails.push(`role family: posting is a ${posting.role_family} role; the ask is for ${askFams.join(" or ")} roles`);
     // APD-2/APD-5 data, computed for every scored posting, excluded or not.
     const restrictionEval = evaluateRestrictions(posting, profile || {});
     const aiBan = detectAiAuthorshipBan(posting);
@@ -667,15 +715,43 @@ const CareerJobs = (() => {
       const fb = feedbackNudge(rows, merged);
       enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge, restrictions: item.restrictions || posting.restrictions || [], needs_user_input: item.needs_user_input || [], restriction_unresolved: !!item.restriction_unresolved, ai_authorship_ban: item.ai_authorship_ban || posting.ai_authorship_ban || null, application_prep: item.application_prep || null });
     }
+    // SC-065 domain leg: when the ask names role families (opts.askText or
+    // opts.families), filter BEFORE ranking/limit — a shortlist is the best
+    // roles OF THE ASKED DOMAIN, never the best-scoring roles overall with
+    // cross-family padding. The filter outcome rides on the returned array
+    // as family_filter so callers can state the true reason for an empty list.
+    const requested = Array.isArray(opts.families) ? [...new Set(opts.families)] : (opts.askText ? askRoleFamilies(opts.askText) : []);
+    let pool = enriched, familyFilter = null;
+    if (requested.length) {
+      pool = enriched.filter((x) => requested.includes(x.posting.role_family || roleFamily(x.posting.title, x.posting.jd_text)));
+      familyFilter = { requested, pool_size: enriched.length, matched_size: pool.length, dropped_cross_family: enriched.length - pool.length };
+    }
     // APD-2 demotion: postings with an unresolved restriction rank below every
     // resolved posting, whatever their skill score — never a silent top fit.
-    enriched.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
-    return enriched.slice(0, limit);
+    pool.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
+    const out = pool.slice(0, limit);
+    if (familyFilter) out.family_filter = familyFilter;
+    return out;
+  }
+
+  // Typed discovery result for one ASK (SC-065 domain leg). The honest
+  // zero-result is a first-class outcome: when the pool carries no role of
+  // the asked family, status is "no_matching_roles", the shortlist is empty
+  // (never padded cross-family), reason states the true pool fact, and
+  // next_step carries exactly one next step.
+  async function shortlistForAsk(scored, askText, opts) {
+    opts = opts || {};
+    const requested = Array.isArray(opts.families) ? [...new Set(opts.families)] : askRoleFamilies(askText);
+    const shortlist = await buildShortlist(scored, Object.assign({}, opts, { families: requested }));
+    if (!requested.length) return { status: "no_family_in_ask", requested_families: [], pool_size: null, matched_size: null, shortlist, reason: null, next_step: null };
+    const ff = shortlist.family_filter || { requested, pool_size: 0, matched_size: 0, dropped_cross_family: 0 };
+    if (!ff.matched_size) return { status: "no_matching_roles", requested_families: requested, pool_size: ff.pool_size, matched_size: 0, shortlist, reason: `the current pool has ${ff.pool_size} scored role${ff.pool_size === 1 ? "" : "s"} and none of them are ${requested.join(" or ")} roles — cross-family roles were not substituted`, next_step: `Add boards that carry ${requested.join("/")} roles, or widen the ask to a neighbouring role family, and I will search again.` };
+    return { status: "ok", requested_families: requested, pool_size: ff.pool_size, matched_size: ff.matched_size, shortlist, reason: null, next_step: null };
   }
 
   return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), source_health: sourceHealth(r), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
-    dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
+    dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, shortlistForAsk, askRoleFamilies, recordFeedback, feedbackNudge,
     detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     roleFamily, seniorityBand, stripHtml, hash };
 })();

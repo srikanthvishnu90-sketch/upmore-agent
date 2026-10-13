@@ -1,0 +1,238 @@
+{
+  "company_id": "airbnb",
+  "company_name": "Airbnb, Inc.",
+  "cohort_definition": {
+    "role_family": "Software Engineering (SWE first)",
+    "entry_level": "New-grad SWE is a distinct, separately posted role (sourced below) - kept separate from experienced hires per Doc 3 s2.1",
+    "experienced": "Senior/Staff SWE postings sourced separately",
+    "time_window": "Postings/pages fetched or indexed 2026-10-12; the new-grad posting snapshot predates this by several months - re-verify live before quoting"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample. One candidate-report sample is cited where used (Glassdoor SWE-intern page, 57 interview reports at fetch) and labeled anecdotal.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "Official Airbnb careers 'Life at Airbnb' page: core values and Live and Work Anywhere policy",
+      "source_url": "https://careers.airbnb.com/life-at-airbnb/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Official Airbnb new-grad SWE posting (via search index of careers.airbnb.com; direct fetch returned 403 on 2026-10-12, so range is quoted from the indexed official posting)",
+      "source_url": "https://careers.airbnb.com/positions/7773838/",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-via-search-index"
+    },
+    {
+      "claim": "Airbnb Staff SWE posting mirrored on Wellfound with pay range and 10+ year requirement",
+      "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-mirror"
+    },
+    {
+      "claim": "Glassdoor SWE-intern interview page - user-reported, anecdotal",
+      "source_url": "https://www.glassdoor.co.in/Interview/Airbnb-Software-Engineer-Internship-Interview-Questions-EI_IE391850.0,6_KO7,35.htm",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "school_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "Airbnb publishes no hire school distribution; none is stated.",
+    "reported_patterns": [
+      {
+        "claim": "The new-grad posting screens on demonstrated CS fundamentals and project/portfolio evidence rather than naming schools - stated preference",
+        "source_url": "https://careers.airbnb.com/positions/7773838/",
+        "as_of": "2026-10-12",
+        "source_type": "official-posting-via-search-index"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced feeder data.",
+    "reported_patterns": [
+      {
+        "claim": "Staff-level postings ask for 10+ years and experience leading teams and launching high-impact user-facing products, implying feeders are scaled consumer/platform companies - agent judgment, labeled",
+        "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "major_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced distribution.",
+    "reported_patterns": [
+      {
+        "claim": "Third-party prep guides describe a bachelor's in CS/IT as the typical stated qualification - reported norm, not an Airbnb-published statistic",
+        "source_url": "https://interviewkickstart.com/blogs/companies/airbnb-software-engineer-interview-process",
+        "as_of": "2026-10-12",
+        "source_type": "third-party-anecdotal"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "sourced-qualitative-from-postings",
+    "reported_patterns": [
+      {
+        "claim": "New-grad posting emphasises CS fundamentals applied to real-world product development; leadership/teaching/mentoring experience named as a bonus",
+        "source_url": "https://careers.airbnb.com/positions/7773838/",
+        "as_of": "2026-10-12",
+        "source_type": "official-posting-via-search-index"
+      },
+      {
+        "claim": "Experienced postings emphasise large-scale consumer product engineering, cross-functional influence and mentoring",
+        "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Intern -> new-grad SWE (SF/Seattle hybrid) -> mid-level consumer product teams",
+      "evidence_level": "curated-qualitative",
+      "basis": {
+        "claim": "A distinct new-grad SWE role exists with SF/Seattle offices and relocation support",
+        "source_url": "https://careers.airbnb.com/positions/7773838/",
+        "as_of": "2026-10-12",
+        "source_type": "official-posting-via-search-index"
+      }
+    },
+    {
+      "pattern": "Experienced consumer-tech lateral -> Senior/Staff SWE",
+      "evidence_level": "curated-qualitative",
+      "basis": {
+        "claim": "Staff posting requires 10+ years and team-leading, product-launch experience",
+        "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Online application to the posted new-grad SWE role",
+      "rank_note": "Glassdoor's intern-interview sample reports most candidates arrived via online application, with campus recruiting and referrals smaller - anecdotal sample, see data_sources"
+    },
+    {
+      "route": "SWE internship conversion",
+      "rank_note": "Intern interview reports describe a lighter loop (two technical rounds + a values interview) than experienced loops - anecdotal"
+    },
+    {
+      "route": "Employee referral",
+      "rank_note": "Present in candidate reports; no official weight published"
+    }
+  ],
+  "hiring_bar_summary": {
+    "status": "curated-qualitative",
+    "text": "Two-gate bar, and the second gate is distinctive: technical competence (coding + systems design) AND a dedicated core-values interview run by trained employees from outside the hiring team. Values are not a vibe check appended to the loop - candidates report them as a separate pass/fail-style conversation."
+  },
+  "screening_signals": [
+    {
+      "claim": "Four published core values are the explicit culture screen: Champion the Mission, Be a Host, Embrace the Adventure, Be a Cereal Entrepreneur",
+      "source_url": "https://careers.airbnb.com/life-at-airbnb/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "New-grad role prefers candidates able to commute to SF or Seattle offices three days per week - a location screen stated in the posting",
+      "source_url": "https://careers.airbnb.com/positions/7773838/",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-via-search-index"
+    },
+    {
+      "claim": "Recruiting-integrity note in official postings: real recruiters only use @airbnb.com / @ext.airbnb.com and never ask for SSN, bank details or payment during interviews - a scam screen candidates should know",
+      "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "process_stages": {
+    "status": "curated-qualitative",
+    "stages": [
+      "Recruiter screen",
+      "Technical screen (live coding; running code required, per prep-guide reports)",
+      "Onsite/virtual loop: coding rounds, system design (low- and high-level), project deep-dive",
+      "Core-values interview(s) with interviewers outside the hiring team",
+      "Decision/offer"
+    ],
+    "basis": {
+      "claim": "Airbnb's careers site describes a rigorous process with values assessment; round detail is from third-party prep guides and candidate reports - labeled reported norm, not official stage list",
+      "source_url": "https://interviewkickstart.com/blogs/companies/airbnb-software-engineer-interview-process",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  },
+  "interview_styles": [
+    {
+      "claim": "Candidate reports describe a long resume/project deep-dive that can decide senior outcomes independently of coding rounds - anecdotal, single-source pattern, treat as a prep warning not a fact about every loop",
+      "source_url": "https://interviewkickstart.com/blogs/companies/airbnb-software-engineer-interview-process",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Official values page: mission = connection that enables belonging; values as listed in screening_signals",
+      "source_url": "https://careers.airbnb.com/life-at-airbnb/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Live and Work Anywhere: employees may live anywhere in their country of employment without a compensation change, with regular in-person gatherings - official policy page; note the new-grad posting still prefers SF/Seattle hybrid, so policy and role reality differ by level",
+      "source_url": "https://careers.airbnb.com/life-at-airbnb/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "status": "curated-qualitative",
+    "note": "New-grad SWE appears as a discrete posted role rather than a published annual cohort calendar; no official application-window dates were published in the sources fetched. Re-check the careers page each cycle."
+  },
+  "compensation_notes": [
+    {
+      "label": "official-posting-range (search-indexed official posting)",
+      "fact": {
+        "claim": "Software Engineer, New Grad (SF/Seattle): base pay range $128,000-$142,000 USD; role may also be eligible for bonus, equity, benefits and Employee Travel Credits",
+        "source_url": "https://careers.airbnb.com/positions/7773838/",
+        "as_of": "2026-10-12",
+        "source_type": "official-posting-via-search-index"
+      }
+    },
+    {
+      "label": "official-posting-range (posting mirror)",
+      "fact": {
+        "claim": "Staff Software Engineer, Listings & Host Tools and AI (US remote eligible): base pay range $204,000-$255,000 USD",
+        "source_url": "https://Wellfound.com/jobs/3740381-staff-software-engineer-listings-host-tools-and-ai",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "referral_weight_notes": {
+    "status": "curated-qualitative",
+    "note": "No official referral-weight data. Candidate-report samples show referrals as a minority route for interns; do not convert that into a probability for any user."
+  },
+  "red_flags": [
+    "Values interview is a real gate: a technically strong candidate with generic 'belong anywhere' answers and no specific hosting/community stories is at risk - prep specific stories.",
+    "Level/location mismatch: corporate remote policy is broad, but the new-grad role prefers SF/Seattle hybrid - read the specific posting, not the policy page.",
+    "Impersonation scams are common enough that Airbnb postings carry an explicit warning - verify recruiter domains."
+  ],
+  "thesis_text": "Bottom line: Airbnb is one of the few large tech employers where the culture interview is a structural gate, not a formality - you must pass coding/design AND a values loop judged against four published values by people outside your future team. Who gets in: no public cohort data exists, so no school or feeder percentages can be honestly quoted; the verifiable screens are CS fundamentals plus product evidence for new grads (a distinct posted role, SF/Seattle hybrid) and 10+ years with launched consumer products at Staff. Stated vs revealed: the company states belonging and anywhere-work; the new-grad posting reveals an office-anchored start (three days a week, SF/Seattle preferred) - plan for the posting, not the slogan. Routes in, ranked: (1) SWE internship -> conversion, with a lighter reported loop; (2) direct new-grad application with a strong project portfolio and values stories; (3) experienced lateral into consumer product/platform teams. Gap to close: a project deep-dive story you can defend for an hour, and two or three specific stories that map to Be a Host / Cereal Entrepreneur without sounding scripted. Plan: 30 days - build the values-story bank and one portfolio project; semester - apply to the intern/new-grad postings the moment they appear and line up a referral; year - if you miss, take a consumer-product SWE role elsewhere and lateral in at mid level. Coffee chats: recent new-grad hires and a core-values interviewer if reachable; ask how values answers are actually scored. Risks/alternatives: small new-grad intake relative to applicant volume (unquantified publicly - do not quote a rate); adjacent consumer marketplaces reward the same profile. Offer to execute: posting alerts, resume tailoring to the deep-dive, outreach list build.",
+  "confidence_level": "curated-qualitative",
+  "section_confidence": {
+    "compensation_notes": "sourced-quantitative (official posting ranges; new-grad range via search-indexed official posting, direct fetch 403)",
+    "values_culture_signals": "sourced-qualitative (official careers page, fetched)",
+    "school_dist": "curated-qualitative - no public population data",
+    "prior_employer_dist": "curated-qualitative",
+    "major_dist": "curated-qualitative",
+    "process_stages": "curated-qualitative - third-party reports, labeled"
+  },
+  "known_biases_of_data": "Public postings describe the roles a company is currently trying to fill, not the people it actually hired; interview-prep and review sites are self-selected candidate reports; no licensed population dataset (PDL/Coresignal-class) was available for this record, so no school/employer/major shares are stated. Airbnb-specific: the new-grad posting snapshot is months old and the role may have closed/reopened; Glassdoor intern sample is small and self-selected.",
+  "last_verified_at": "2026-10-12"
+}

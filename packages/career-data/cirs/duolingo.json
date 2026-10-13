@@ -1,0 +1,292 @@
+{
+  "company_id": "duolingo",
+  "company_name": "Duolingo, Inc.",
+  "cohort_definition": {
+    "role_family": "Software Engineering (SWE first); Engineering is officially described as the company's largest function",
+    "entry_level": "Two distinct entry cohorts: (a) Thrive internship - second-year undergraduates; (b) University/New-Grad SWE - online coding task and whiteboard rounds are university-only per the official guide",
+    "experienced": "Industry SWE loops use technical video, pair-programming, code-review and design rounds per the official guide",
+    "time_window": "Official engineering-interview guide and careers page fetched 2026-10-12; Thrive posting fetched is the Summer 2025 cycle (deadline 2024-10-10) - dates must be re-verified each cycle"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample. One candidate-report sample is cited where used (Glassdoor SWE-intern page, 21 interview reports at search fetch) and labeled anecdotal.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "Duolingo's official engineering-interview guide (blog.duolingo.com): phases, interview types, languages, durations",
+      "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Official Duolingo careers page: typical process, evaluation criteria, mission, benefits, Pittsburgh HQ",
+      "source_url": "https://careers.duolingo.com/about",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Thrive Intern SWE posting (Peerlist mirror of the official posting): eligibility, transcript, GPA signal, hourly range, dates",
+      "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-mirror"
+    },
+    {
+      "claim": "Glassdoor Duolingo SWE-intern interview page - user-reported, anecdotal",
+      "source_url": "https://www.glassdoor.ca/Interview/Duolingo-Interview-Questions-E629348.htm?filter.jobTitleExact=Software+Engineer%28Internship%29",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "school_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "Duolingo publishes no hire school distribution. CMU/Pittsburgh proximity is a geographic fact about HQ, not evidence about who gets hired - do not present it as a school effect.",
+    "reported_patterns": [
+      {
+        "claim": "HQ and onboarding are in Pittsburgh per the official careers page",
+        "source_url": "https://careers.duolingo.com/about",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced feeder distribution for a company whose SWE hiring is heavily early-career; most SWE hires' 'prior employer' is an internship, and no public data ranks them.",
+    "reported_patterns": []
+  },
+  "major_dist": {
+    "status": "sourced-qualitative-for-entry-cohort",
+    "reported_patterns": [
+      {
+        "claim": "Thrive requires current pursuit of a bachelor's in Computer Science or a related technical field, with at least two college CS courses completed and a transcript uploaded",
+        "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "University/new-grad interview rounds exist as a distinct track in the official guide, implying CS-fundamentals screening rather than a named-major list for industry roles",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "sourced-qualitative-from-official-guide",
+    "reported_patterns": [
+      {
+        "claim": "Accepted interview languages are constrained: online coding task (university) in Python/Java/JavaScript; pair-programming and code-review default to Python or Java (Swift for iOS, Kotlin for Android) - Python or Java fluency is effectively a screen",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Assessed skills by round type: algorithmic coding (auto-graded on accuracy and time-efficiency for the online task), working in an existing production-like codebase (pair programming), reviewing others' code, and system/architecture design discussion",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Official prep guidance stresses communicating reasoning out loud, pragmatism (simplest workable solution first), clarifying questions and edge cases",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Second-year undergrad -> Thrive internship (10 weeks, Pittsburgh) -> later SWE intern/new-grad candidacy",
+      "evidence_level": "sourced-qualitative",
+      "basis": {
+        "claim": "Thrive is explicitly a second-year, 10-week training programme with mentorship and a group project",
+        "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "pattern": "University/new-grad SWE: online coding task -> technical video -> virtual onsite incl. whiteboard (pseudocode) round",
+      "evidence_level": "sourced-qualitative",
+      "basis": {
+        "claim": "Official guide marks the online coding task and whiteboard interview as University/New Grad only",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "pattern": "Industry SWE lateral: recruiter -> pre-onsite technical rounds -> virtual onsite with pair-programming, code-review and design rounds",
+      "evidence_level": "sourced-qualitative",
+      "basis": {
+        "claim": "Official guide's two-phase structure (pre-onsite, then virtual onsite)",
+        "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Thrive internship (second-years; mission/access framing in the programme description)",
+      "rank_note": "Narrow eligibility window - missing the second-year window closes this route permanently"
+    },
+    {
+      "route": "SWE internship (regular) -> new-grad",
+      "rank_note": "Candidate reports describe CodeSignal/Karat-style early rounds - anecdotal detail on top of the official guide"
+    },
+    {
+      "route": "Direct new-grad / industry application via careers page",
+      "rank_note": "Official guide states recruiters review every resume themselves - a stated reason a tailored application gets a human read"
+    }
+  ],
+  "hiring_bar_summary": {
+    "status": "sourced-qualitative",
+    "text": "Craft + collaboration bar rather than a pure algorithm gauntlet: Duolingo officially evaluates for excellence in craft, leadership and citizenship, and its loop tests whether you can work in other people's code (pair programming on a production-like codebase, and a dedicated code-review round) - rounds most big-tech loops do not have."
+  },
+  "screening_signals": [
+    {
+      "claim": "Python-or-Java readiness: the official guide advises familiarity with reading/writing Python or Java even if it is not your preferred language",
+      "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Thrive screens: second-year status, 2+ CS courses, transcript upload, ability to relocate to Pittsburgh for 10 weeks; a 3.5+ GPA and a Duolingo learning streak are listed as 'exceptional candidate' signals, not minimums",
+      "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Mission dedication is an explicit Thrive criterion ('dedication to our mission of accessible education') and the careers page frames hiring around the education mission",
+      "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "process_stages": {
+    "status": "sourced-qualitative-official",
+    "stages": [
+      {
+        "stage": "Application review (recruiters review resumes personally, per the official guide)",
+        "basis": {
+          "claim": "Official careers page + official guide",
+          "source_url": "https://careers.duolingo.com/about",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      },
+      {
+        "stage": "Recruiter chat, then hiring-team chat",
+        "basis": {
+          "claim": "Official careers page typical process",
+          "source_url": "https://careers.duolingo.com/about",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      },
+      {
+        "stage": "Pre-onsite technical sessions (online coding task for university roles; technical video interview via CodeSignal)",
+        "basis": {
+          "claim": "Official engineering guide",
+          "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      },
+      {
+        "stage": "Virtual onsite (can span 2+ days): pair programming (75 min), code review (60 min), design (60 min), whiteboard for university roles (60 min)",
+        "basis": {
+          "claim": "Official engineering guide, durations as published there",
+          "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      },
+      {
+        "stage": "Offer via recruiter",
+        "basis": {
+          "claim": "Official careers page",
+          "source_url": "https://careers.duolingo.com/about",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      }
+    ]
+  },
+  "interview_styles": [
+    {
+      "claim": "Collaborative by design: official guidance tells candidates interviewers give hints, want reasoning spoken aloud, and reward pragmatic simple-first solutions over premature optimisation",
+      "source_url": "https://blog.duolingo.com/interviewing-with-duolingos-engineering-team/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Mission, verbatim-short: develop the best education in the world and make it universally available (official careers page)",
+      "source_url": "https://careers.duolingo.com/about",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Careers page states evaluation for excellence in craft, leadership skills and citizenship, and directs onsite candidates to familiarise themselves with Duolingo's Operating Principles",
+      "source_url": "https://careers.duolingo.com/about",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Data-driven experimentation culture is foregrounded in postings (running many simultaneous experiments to make decisions) - stated signal",
+      "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "status": "mixed",
+    "note": "Thrive runs on an annual fall application window in the sourced cycle (deadline Oct 10, 2024 for Summer 2025; 10 weeks, mid-June to mid-August) - date-stamped and stale-prone, re-verify each September. Industry/new-grad postings are rolling via the careers page."
+  },
+  "compensation_notes": [
+    {
+      "label": "official-posting-range (posting mirror)",
+      "fact": {
+        "claim": "Thrive SWE Intern: hourly range $43-$45 USD (Summer 2025 cycle posting)",
+        "source_url": "https://peerlist.io/company/duolingo/careers/software-engineer-thrive-intern/jobhmqlboebmebneb1j9j9djn8g86o",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "label": "official-benefits-note (not salary)",
+      "fact": {
+        "claim": "Careers page lists benefits incl. 20 days PTO plus a 2-week winter break and a $10k first-time-home-buyer bonus for Pittsburgh-based employees - benefits, not base salary; no official SWE base-salary range was published in sources fetched",
+        "source_url": "https://careers.duolingo.com/about",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "referral_weight_notes": {
+    "status": "curated-qualitative",
+    "note": "No official referral-weight data. The official claim that recruiters personally review every resume cuts both ways: it weakens the 'referral or never seen' assumption, but no conversion data exists either way - say unknown."
+  },
+  "red_flags": [
+    "Language trap: interviewing in a language outside the accepted set (or without Python/Java reading fluency) handicaps the pair-programming and code-review rounds - switch early.",
+    "Thrive's window is one-shot (second-year only, fall deadline): a sophomore who learns about it in spring has already missed that cycle.",
+    "Pittsburgh relocation is required for Thrive and HQ-centred onboarding - a real constraint, not a remote programme.",
+    "Do not quote Glassdoor median-pay figures as Duolingo compensation facts; they are anonymous self-reports (Doc 3 s6 labelling rule)."
+  ],
+  "thesis_text": "Bottom line: Duolingo is the most transparent loop in this batch - it publishes its interview types, languages and durations - and the loop is built to test craft and collaboration (pair programming in a production-like codebase, a code-review round) more than puzzle speed. Who gets in: no public cohort statistics exist, so no school percentages can be honestly quoted; the verifiable entry screens are CS-or-related study and transcript evidence for Thrive, and Python/Java fluency plus fundamentals for new-grad SWE. Stated vs revealed: the company states craft, leadership and citizenship as its criteria and says recruiters read every resume; the revealed screens are language constraint (Python/Java by default) and Pittsburgh-centred early-career programmes. Routes in, ranked: (1) Thrive, if you are a second-year - highest-structure route, fall deadline, do not miss the window; (2) regular SWE internship -> new-grad conversion; (3) direct new-grad application with the online coding task and whiteboard rounds; (4) industry lateral once you have codebase-scale experience to show in pair-programming/code-review rounds. Gap to close for a typical student: Python fluency, practice reading and improving unfamiliar code (not just writing greenfield solutions), and a genuine, specific connection to the education mission. Plan: 30 days - switch practice language to Python and drill code-review-style exercises; semester - apply Thrive/intern windows the week they open (September-October historically, re-verify); year - build one project in an existing open-source codebase and be able to discuss its trade-offs. Coffee chats: recent Thrive/intern alumni in Pittsburgh; ask how the pair-programming round is actually scored. Risks/alternatives: small early-career intake relative to brand popularity (unquantified publicly); adjacent Pittsburgh/remote consumer-tech employers reward the same craft evidence. Offer to execute: window alerts, tailored application, outreach list build.",
+  "confidence_level": "curated-qualitative",
+  "section_confidence": {
+    "process_stages": "sourced-qualitative (official guide + official careers page, both fetched)",
+    "screening_signals": "sourced-qualitative (official posting + official guide)",
+    "compensation_notes": "sourced-quantitative for Thrive hourly range only; SWE base comp honestly absent",
+    "school_dist": "curated-qualitative - no public population data",
+    "prior_employer_dist": "curated-qualitative",
+    "major_dist": "sourced-qualitative for the entry cohort only"
+  },
+  "known_biases_of_data": "Public postings describe the roles a company is currently trying to fill, not the people it actually hired; interview-prep and review sites are self-selected candidate reports; no licensed population dataset (PDL/Coresignal-class) was available for this record, so no school/employer/major shares are stated. Duolingo-specific: the Thrive posting fetched is the Summer 2025 cycle, so its dates/deadline are historical evidence of cadence, not a current window; Glassdoor intern sample (21 reports) is small and self-selected.",
+  "last_verified_at": "2026-10-12"
+}

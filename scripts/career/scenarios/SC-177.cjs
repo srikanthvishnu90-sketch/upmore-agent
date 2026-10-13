@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use strict"; const { H, P, cirById } = require("./prep-common.cjs");
 (async () => { const s = H.session("SC-177", "stripe-rejection-pivot-no-cir");
   await s.user("Stripe rejected me after the OA — what do I tighten?");
@@ -6,4 +7,15 @@
   await s.agent(`Sorry — OA rejections sting because there's no feedback. Here's the tightening plan from your funnel record, with one honesty flag: ${piv.gaps.join(" ")}\n\n${piv.plan.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nConcretely for an OA: timed coding reps under real OA conditions (no IDE help, narrate nothing, just correct + fast), then a scored mock on the OA's topic mix within 48 hours.\n\nSimilar roles to re-aim at, all with CIRs on file so their prep grounds properly: ${piv.similar_roles.map((x) => `${x.company} (CIR ✓)`).join(", ")}. Want me to start the Snowflake technical set now?`);
   s.verify("pivot state", { status: piv.status, stage: piv.stage, similar: piv.similar_roles });
   await s.finish({ status: "LEARN", outcome: "Stage-based tightening plan delivered from the funnel record and similar CIR-backed roles proposed, but the Stripe-specific CIR bar could not be cited — no Stripe CIR is merged.", reason: "Ledger expectation: 'tightening plan from the funnel record + CIR bar'. The funnel half ran; the CIR-bar half is impossible without a Stripe CIR.", unblock: "Merge a Stripe CIR into packages/career-data/cirs; rejectionPivot({cir}) then cites its bar automatically." });
+=======
+"use strict"; const { H, P, persona, cirForPrep } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-177", "question-bank-story-matching");
+  await s.user("Question bank for this round, my best story matched to each question");
+  const stories = P.mineStories(persona.facts);
+  const bank = P.questionBank({ company: "Stripe", cir: cirForPrep("stripe"), roleFamily: "software_engineering", round: "onsite", stories });
+  await s.tool("127-career-prep.questionBank(Stripe)", { cir_grounded: bank.cir_grounded, count: bank.questions.length, matched: bank.questions.filter((q) => q.matched_story).length });
+  await s.agent(`Stripe question bank for this round — ${bank.questions.length} questions, each tagged with its source, and your best real story matched where one exists:\n\n${bank.questions.slice(0, 8).map((q, i) => `${i + 1}. ${q.q}\n   source: ${q.source.type}${q.matched_story ? " · your story: " + q.matched_story.title : " · no story mined yet — flag for the STAR bank"}`).join("\n")}\n\nCIR-tagged questions come from Stripe's own stages/signals in its record; generic behavioral ones are labeled generic — never dressed up as company intel.`);
+  s.verify("bank state", { cir_grounded: bank.cir_grounded, questions: bank.questions.length, with_story_match: bank.questions.filter((q) => q.matched_story).length, stories_mined: stories.length });
+  await s.finish({ status: "COMPLETE", outcome: "Stripe question bank built from the merged CIR (stages + screening signals + styles) plus labeled generic questions, with the best mined real story matched per question." });
+>>>>>>> origin/career/sc-w09
 })();

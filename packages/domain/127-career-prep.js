@@ -40,9 +40,14 @@ const CareerPrep = (() => {
   const lc = (v) => s(v).toLowerCase();
   function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
 
+<<<<<<< HEAD
   // ---------- CIR normalization (accepts BOTH the batch dialects and the canonical
   // 125-validator schema the corpus was normalized to at integration, 2026-10-13) ----------
   function factText(x) { if (!x) return ""; if (typeof x === "string") return x; return s(x.statement || x.claim || x.signal || x.summary || x.text || x.style || x.pattern || x.note || ""); }
+=======
+  // ---------- CIR normalization (the 15 merged CIRs use several shapes) ----------
+  function factText(x) { if (!x) return ""; if (typeof x === "string") return x; return s(x.claim || x.text || x.style || x.pattern || x.note || ""); }
+>>>>>>> origin/career/sc-w09
   function factSource(x) { if (!x || typeof x !== "object") return null; const f = x.fact || x.basis || x; return { source_type: s(f.source_type || x.source_type || "unspecified"), source_url: s(f.source_url || x.source_url || "") || null, as_of: s(f.as_of || x.as_of || "") || null }; }
   function stageList(cir) {
     const ps = cir && cir.process_stages; if (!ps) return [];
@@ -55,9 +60,13 @@ const CareerPrep = (() => {
   function normalizeCir(cir) {
     if (!cir || typeof cir !== "object") return null;
     const barRaw = cir.hiring_bar_summary;
+<<<<<<< HEAD
     const bar = typeof barRaw === "string" ? barRaw : factText(barRaw);
     const sigRaw = cir.screening_signals;
     const sigList = Array.isArray(sigRaw) ? sigRaw : [].concat((sigRaw && sigRaw.stated) || [], (sigRaw && sigRaw.revealed) || []);
+=======
+    const bar = typeof barRaw === "string" ? barRaw : s(barRaw && barRaw.text);
+>>>>>>> origin/career/sc-w09
     const compNotes = (cir.compensation_notes || []).map((c) => {
       const f = c.fact || c;
       return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "CIR comp note"), source: factSource(c) };
@@ -66,7 +75,11 @@ const CareerPrep = (() => {
       company_id: s(cir.company_id), company_name: s(cir.company_name || cir.company_id),
       as_of: s(cir.as_of || cir.last_verified_at || "") || null,
       bar, stages: stageList(cir),
+<<<<<<< HEAD
       signals: sigList.map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
+=======
+      signals: (cir.screening_signals || []).map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
+>>>>>>> origin/career/sc-w09
       styles: (cir.interview_styles || []).map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
       values: (cir.values_culture_signals || []).map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
       compNotes,

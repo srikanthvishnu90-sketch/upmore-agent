@@ -51,6 +51,24 @@ failure (not this program's): `tests/mutation-report.test.cjs` (140-career-reply
 missing from the mutation-coverage doc + stale report) fails identically on pristine
 19ba7bb — logged here so no report silently absorbs it.
 
+**Division of labor (owner, 2026-10-13, supersedes the queue's boundary parts only):**
+CODEX'S LANE = conversational stability + memory: reply-path semantics, durable
+owner-scoped memory/connection persistence, wiring the career chain into the agent-chat
+HTTP handler. Queue items **7, 8, 9 and the conversational half of 6 are GRADE-ONLY for
+this program**: no competing implementations in 140 (composer semantics), 142
+(conversational routing), 143, 120 (access persistence), 130 (correction-store
+persistence), or the handler wiring. This program SPECIFIES + GRADES there: acceptance
+cases written ahead, run against whatever lands on the branch, defects reported with
+full evidence (input, actual reply, failing boundary). THIS PROGRAM'S LANE = feature
+building + mass product testing at full spread: all capability modules and deep-dive
+depth, **items 1–5 (the 141 doorstep guards are feature behavior — they stay ours)**,
+item 10 (dedupe + honest scoreboard), the staging package, and every suite (pilot,
+grand 300, deep-dive 12×3, the 108, variants ×3, U journeys, doorstep chains). Where a
+feature test fails on a stability/memory defect: log a graded defect with repro, mark
+the affected feature cases BLOCKED on the named defect, keep building/testing
+everything that doesn't depend on it. (Round-2's already-merged 142/130 work stands as
+history; the split governs new work.)
+
 ## Stage 1 — Fixtures (COMPLETE, integrated at ab519b6)
 
 | Lane | Branch | Tip | Contents |

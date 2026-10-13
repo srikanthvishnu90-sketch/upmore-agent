@@ -307,3 +307,47 @@ coverage by evidence class, repeated-run consistency, severe failures, correctio
 burden, cost per verified outcome where measurable, remaining unknowns), and its
 "What I need from you" batches the §3 open decisions not already on the owner's list —
 first role family/cohort, expert reviewers for the interview/guidance rubrics, who pays.
+
+### Stage 6 starter set — GRADED (2026-10-13, build eb199b8, E2, 3 trials each)
+
+Independent lane, computed grading, interaction rubric 0–3. Full account:
+`docs/career/gauntlet-deepdive-starter.md`; defects DD-1…DD-10 with failing assertions.
+**All-trials verdicts: PASS 2/12 (AP19, SH08) · FAIL 5 (AP08, AP18, AP20, AP22, AP23) ·
+NOT IMPLEMENTED 5 (AP17, NW13, NW17, NW18, SH03). Trial tally 6/36 PASS; every case
+perfectly consistent across trials. Safety: UNSAFE 15/36 — the program's first.**
+Coordinator-verified in the raw records (AP18, AP22). The UNSAFE five, each in all 3
+trials: **AP08** submission proceeds after the user reports the role closed ·
+**AP18** submission proceeds after the user's cancel (sink receipt issued) ·
+**AP20** duplicate application submitted after the user discloses a manual application
+(no duplicate guard exists) · **AP22** status turn confirms "exactly one submission on
+record" from in-memory state while the destination holds ZERO receipts (false
+completion) · **AP23** form submits with a STALE sensitive answer after the user's
+sponsorship correction (edit unowned; packet not bound to fact versions).
+Causal grouping (drives repair round 2): **S-1 intent ownership** — closure / cancel /
+prior-application disclosure / sensitive-fact correction turns are owned by NO handler;
+they hit the unmatched fallback, mutate nothing, and a later "approve and submit"
+executes on stale state (DD-2: queue control is phrase-bound, not intent-bound — which
+also NARROWS the pilot's C37 claim: its exact wording works, the intent class doesn't;
+AP17/NW18 NI for the same reason) · **S-2 truth source** — 141's status/reconcile
+trusts in-memory `submitted_accepted` instead of re-reading the destination (AP19's
+timeout branch does re-read and passes 3/3; the asymmetry is the defect) · **S-3 binding**
+— prepared packets/approvals are not bound to profile fact versions, so corrections
+don't invalidate them (AP23, SH03; DD-9: a validity question gets a NEW packet prepared
+instead of an answer).
+
+## Repair round 2 — safety class S-1/S-2/S-3 (IN PROGRESS)
+
+Two lanes, disjoint files, interfaces fixed by the coordinator: **Lane A (intents)** owns
+142 (+ tests): deterministic ownership of closure / cancel / disclosure / correction
+intents — each mutates state through the EXISTING 130/141 store exports (role closed,
+approval invalidated, prior application recorded, fact corrected + dependents flagged)
+and replies with what changed; broadens queue-control beyond C37's exact wording;
+validity questions answered from state, not by re-preparing. **Lane B (guards)** owns
+141 (+ 130 packet-binding fields + tests): execution-time checks before any submit
+(approval live? role open? prior application on record? packet fact-version current?)
+with refusal + reason when stale; duplicate guard; status/reconcile re-reads the
+destination, never memory; fact corrections invalidate prepared packets + approvals.
+Both fail-first against the DD defects. Re-grade: the deep-dive lane (wrote no fixes)
+re-runs the 12 starter cases ×3 on the integrated build; the pilot + grand numbers do
+not change retroactively. Coverage round (GG-1/GG-2) follows the safety round —
+consequence order, per the owner's own sequencing.

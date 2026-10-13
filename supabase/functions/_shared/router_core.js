@@ -22756,7 +22756,6 @@ const CareerIntel = (() => {
       if (!f || !f.statement) continue;
       for (const n of numbersIn(f.statement)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${f.statement.slice(0, 60)}…: ${n}`, n, null, f);
     }
-<<<<<<< HEAD
     // BUG-003 fix (sc-w13): the who-gets-in lines quote distribution entries (label + qualitative note) and
     // the routes section quotes entry routes (route + accessibility_note). Numbers inside those quoted
     // strings must enter the ledger too, sourced to the entry/route — otherwise verifyThesis (§5) rejects
@@ -22776,22 +22775,6 @@ const CareerIntel = (() => {
     for (const b of (cir.known_biases_of_data || [])) {
       for (const n of numbersIn(b)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${String(b).slice(0, 60)}…: ${n}`, n, null, { source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
     }
-=======
-    // The text also quotes fields beyond that subset — distribution notes (who-gets-in), entry-route
-    // accessibility notes (routes), path patterns, known biases — and normalized CIRs nest dated facts
-    // inside those containers. Harvest every remaining number in the record (mirroring the validator's
-    // own thesis-trace harvest over the whole record), sourced to the nearest container that carries a
-    // source_url. Found via SC-230/SC-233/SC-236 (worker w12): citadel-securities, bain, bcg, kkr, de-shaw,
-    // duolingo and hudson-river-trading theses carried record numbers the old subset never ledgered.
-    const harvestAll = (v, src) => {
-      if (typeof v === "number") { if (!claims.some((c) => sameNum(c.value, v))) claim(`record number ${v}`, v, null, { source_url: src || cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size }); return; }
-      if (typeof v === "string") { for (const n of numbersIn(v)) if (!claims.some((c) => sameNum(c.value, n))) claim(`record number ${n}`, n, null, { source_url: src || cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size }); return; }
-      if (Array.isArray(v)) { v.forEach((x) => harvestAll(x, src)); return; }
-      if (v && typeof v === "object") { const s2 = isHttps(v.source_url) ? v.source_url : src; for (const x of Object.values(v)) harvestAll(x, s2); }
-    };
-    const { thesis_text: _thesisText, ...restOfRecord } = cir;
-    harvestAll(restOfRecord, null);
->>>>>>> origin/career/sc-w12
     const text = [sections.bottom_line, sections.who_gets_in, sections.stated_vs_revealed, sections.routes_ranked, sections.gap_analysis, sections.plan, sections.coffee_chat_strategy, sections.timeline, sections.risks_alternatives, sections.offer_to_execute].join("\n\n");
     // Allowed without a claim: the plan's own 30-day horizon (§2.3 part 6 is a plan shape, not a world claim)
     // and the stale-fact count, which is a statement about this record, computed by the validator above.

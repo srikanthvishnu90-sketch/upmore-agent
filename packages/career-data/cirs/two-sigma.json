@@ -6,86 +6,68 @@
   "as_of": "2026-10-12",
   "data_sources": [
     {
-      "claim": "Two Sigma official Quantitative Researcher Internship (2027 Summer) posting",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+      "label": "Two Sigma official Quantitative Researcher Internship (2027 Summer) posting",
+      "url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
       "as_of": "2026-10-12",
       "source_type": "official careers page"
     },
     {
-      "claim": "Two Sigma official Software Engineering Internship (Summer 2027) posting",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
+      "label": "Two Sigma official Software Engineering Internship (Summer 2027) posting",
+      "url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
       "as_of": "2026-10-12",
       "source_type": "official careers page"
     },
     {
-      "claim": "Two Sigma official internships page, including eligibility by role family",
-      "source_url": "https://www.twosigma.com/careers/internships/",
+      "label": "Two Sigma official internships page, including eligibility by role family",
+      "url": "https://www.twosigma.com/careers/internships/",
       "as_of": "2026-10-12",
       "source_type": "official careers page"
     },
     {
-      "claim": "Two Sigma official article on the New Seekers Summit for first- and second-year undergraduates interested in quantitative research and data science",
-      "source_url": "https://www.twosigma.com/articles/how-new-seekers-summit-kick-started-one-quantitative-researchers-career-at-two-sigma/",
+      "label": "Two Sigma official article on the New Seekers Summit for first- and second-year undergraduates interested in quantitative research and data science",
+      "url": "https://www.twosigma.com/articles/how-new-seekers-summit-kick-started-one-quantitative-researchers-career-at-two-sigma/",
       "as_of": "2026-10-12",
       "source_type": "official firm article"
     }
   ],
-  "school_dist": [
-    {
-      "claim": "Two Sigma publishes no school distribution for these cohorts. Omitted rather than estimated.",
-      "source_url": "https://www.twosigma.com/careers/internships/",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    }
-  ],
-  "prior_employer_dist": [
-    {
-      "claim": "Firm-stated on the QR intern posting: no finance background is required, and more than half of Two Sigma's employees come from outside the finance industry (firm's own wording in the posting).",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    }
-  ],
-  "major_dist": [
-    {
-      "claim": "QR interns: pursuing a degree in a technical or quantitative discipline — statistics, mathematics, physics, electrical engineering or computer science — with approximately one year remaining, all levels from bachelor's to doctorate (official posting).",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    },
-    {
-      "claim": "Engineering interns: undergraduates entering junior or senior year, master's students and PhDs in a technical or quantitative field (official internships page).",
-      "source_url": "https://www.twosigma.com/careers/internships/",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    }
-  ],
-  "skills_dist": [
-    {
-      "claim": "QR: intermediate skill in at least one programming language (C, C++, Java or Python named), an in-depth research project on real-world data, and clear communication of complex ideas.",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    },
-    {
-      "claim": "SWE: the posting describes engineers who focus on analysis, experimentation, design and elegant implementation, building scalable tools for data exploration; the firm says it values curiosity and insight balanced with pragmatism.",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    }
-  ],
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "note": "Two Sigma publishes no school distribution for these cohorts. Omitted rather than estimated.",
+    "sample_size": null
+  },
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "note": "Firm-stated on the QR intern posting: no finance background is required, and more than half of Two Sigma's employees come from outside the finance industry (firm's own wording in the posting).",
+    "sample_size": null
+  },
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "note": "QR interns: pursuing a degree in a technical or quantitative discipline — statistics, mathematics, physics, electrical engineering or computer science — with approximately one year remaining, all levels from bachelor's to doctorate (official posting). Engineering interns: undergraduates entering junior or senior year, master's students and PhDs in a technical or quantitative field (official internships page).",
+    "sample_size": null
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "note": "QR: intermediate skill in at least one programming language (C, C++, Java or Python named), an in-depth research project on real-world data, and clear communication of complex ideas. SWE: the posting describes engineers who focus on analysis, experimentation, design and elegant implementation, building scalable tools for data exploration; the firm says it values curiosity and insight balanced with pragmatism.",
+    "sample_size": null
+  },
   "path_patterns": [
     {
       "pattern": "New Seekers Summit (first/second year) -> QR internship -> full-time quantitative researcher (the firm's own profile follows one student through exactly this sequence: summit, interview, internship, full-time role)",
       "basis": "official firm article",
       "source_url": "https://www.twosigma.com/articles/how-new-seekers-summit-kick-started-one-quantitative-researchers-career-at-two-sigma/",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm"
     },
     {
       "pattern": "10-week summer internship (QR or SWE) with an assigned mentor and a single project ending in a final presentation -> full-time campus hire (separate campus full-time postings exist for both QR and SWE)",
       "basis": "official job postings",
       "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm"
     }
   ],
   "entry_routes": [
@@ -93,54 +75,73 @@
       "route": "Quantitative Researcher Internship (2027 Summer, 10 weeks, New York)",
       "who_it_fits": "Students with about one year left in a technical/quantitative degree, bachelor's through doctorate, with a real-data research project",
       "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "accessibility_note": "Students with about one year left in a technical/quantitative degree, bachelor's through doctorate, with a real-data research project"
     },
     {
       "route": "Software Engineering Internship (Summer 2027, 10 weeks, New York)",
       "who_it_fits": "Juniors/seniors, master's and PhD students in technical or quantitative fields",
       "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "accessibility_note": "Juniors/seniors, master's and PhD students in technical or quantitative fields"
     },
     {
       "route": "Full-Time Campus Hire postings (QR and SWE)",
       "who_it_fits": "Final-year students and recent graduates applying directly to full-time roles",
       "source_url": "https://www.twosigma.com/careers/internships/",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "accessibility_note": "Final-year students and recent graduates applying directly to full-time roles"
     },
     {
       "route": "New Seekers Summit (one-day virtual program)",
       "who_it_fits": "First- and second-year undergraduates curious about quantitative research/data science; no finance background required",
       "source_url": "https://www.twosigma.com/articles/how-new-seekers-summit-kick-started-one-quantitative-researchers-career-at-two-sigma/",
-      "as_of": "2026-10-12"
+      "as_of": "2026-10-12",
+      "accessibility_note": "First- and second-year undergraduates curious about quantitative research/data science; no finance background required"
     }
   ],
-  "hiring_bar_summary": "The published bar is a quantitative degree in progress, real research or engineering substance, and intermediate-or-better coding — with finance knowledge explicitly treated as teachable. Unusually for this batch, the competition signal is firm-stated, but about its existing staff, not as an entry requirement: the official SWE intern posting notes the engineering group includes Putnam medalists, ACM programming competition finalists and International Mathematics Olympiad medalists. Read that as the caliber of colleagues the firm advertises, not as a checklist an applicant must match.",
-  "screening_signals": [
-    {
-      "claim": "QR posting: an in-depth research project examining real-world data is an explicit qualification — the single most concrete screen in the posting.",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    },
-    {
-      "claim": "Independent thinking and the ability to creatively approach data analysis and communicate complex ideas clearly are explicit stated qualifications.",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    },
-    {
-      "claim": "SWE posting: passion for data, curiosity and insight balanced with pragmatism and practicality are the firm's stated engineer signals.",
-      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
-      "as_of": "2026-10-12",
-      "source_type": "official careers page"
-    }
-  ],
+  "hiring_bar_summary": {
+    "statement": "The published bar is a quantitative degree in progress, real research or engineering substance, and intermediate-or-better coding — with finance knowledge explicitly treated as teachable. Unusually for this batch, the competition signal is firm-stated, but about its existing staff, not as an entry requirement: the official SWE intern posting notes the engineering group includes Putnam medalists, ACM programming competition finalists and International Mathematics Olympiad medalists. Read that as the caliber of colleagues the firm advertises, not as a checklist an applicant must match.",
+    "kind": "qualitative",
+    "as_of": "2026-10-12",
+    "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+    "source_note": "Normalized at integration: value points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
+  },
+  "screening_signals": {
+    "stated": [
+      {
+        "claim": "QR posting: an in-depth research project examining real-world data is an explicit qualification — the single most concrete screen in the posting.",
+        "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+        "as_of": "2026-10-12",
+        "source_type": "official careers page",
+        "statement": "QR posting: an in-depth research project examining real-world data is an explicit qualification — the single most concrete screen in the posting.",
+        "kind": "qualitative"
+      },
+      {
+        "claim": "Independent thinking and the ability to creatively approach data analysis and communicate complex ideas clearly are explicit stated qualifications.",
+        "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+        "as_of": "2026-10-12",
+        "source_type": "official careers page",
+        "statement": "Independent thinking and the ability to creatively approach data analysis and communicate complex ideas clearly are explicit stated qualifications.",
+        "kind": "qualitative"
+      },
+      {
+        "claim": "SWE posting: passion for data, curiosity and insight balanced with pragmatism and practicality are the firm's stated engineer signals.",
+        "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Software-Engineering-Internship-Summer-2027/14016",
+        "as_of": "2026-10-12",
+        "source_type": "official careers page",
+        "statement": "SWE posting: passion for data, curiosity and insight balanced with pragmatism and practicality are the firm's stated engineer signals.",
+        "kind": "qualitative"
+      }
+    ],
+    "revealed": []
+  },
   "process_stages": [
     {
-      "claim": "No firm-published stage-by-stage interview process was included in the official postings/pages used; the internship structure itself is published (assigned mentor, single project, final presentation). Interview-stage detail from third-party sites was not treated as a firm fact and is omitted.",
+      "stage": "No firm",
+      "description": "No firm-published stage-by-stage interview process was included in the official postings/pages used; the internship structure itself is published (assigned mentor, single project, final presentation). Interview-stage detail from third-party sites was not treated as a firm fact and is omitted.",
       "source_url": "https://www.twosigma.com/careers/internships/",
-      "as_of": "2026-10-12",
-      "source_type": "omitted - no official source"
+      "as_of": "2026-10-12"
     }
   ],
   "interview_styles": [
@@ -148,7 +149,9 @@
       "claim": "The official internships page states the firm publishes interview tips from former interns ('Setting you up for success in your interviews'); specific question content is not published by the firm in sources used, so none is asserted.",
       "source_url": "https://www.twosigma.com/careers/internships/",
       "as_of": "2026-10-12",
-      "source_type": "official careers page"
+      "source_type": "official careers page",
+      "statement": "The official internships page states the firm publishes interview tips from former interns ('Setting you up for success in your interviews'); specific question content is not published by the firm in sources used, so none is asserted.",
+      "kind": "norm"
     }
   ],
   "values_culture_signals": [
@@ -156,27 +159,64 @@
       "claim": "Scientific method applied to markets: the firm describes a rigorous, collaborative, scientific approach, hypothesis testing, and learning from academic research (reading circles and seminars are named intern activities in the QR posting).",
       "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
       "as_of": "2026-10-12",
-      "source_type": "official careers page"
+      "source_type": "official careers page",
+      "statement": "Scientific method applied to markets: the firm describes a rigorous, collaborative, scientific approach, hypothesis testing, and learning from academic research (reading circles and seminars are named intern activities in the QR posting).",
+      "kind": "qualitative"
     }
   ],
-  "hiring_cadence": "Summer-cycle based: 10-week internships in the summer at the New York (Soho) office; 2027 Summer postings for both QR and SWE internships were live on the official careers site at verification (October 2026). New Seekers Summit is an annual one-day virtual program. Exact application deadlines are set per posting and must be checked on the live posting each cycle.",
+  "hiring_cadence": {
+    "statement": "Summer-cycle based: 10-week internships in the summer at the New York (Soho) office; 2027 Summer postings for both QR and SWE internships were live on the official careers site at verification (October 2026). New Seekers Summit is an annual one-day virtual program. Exact application deadlines are set per posting and must be checked on the live posting each cycle.",
+    "kind": "qualitative",
+    "as_of": "2026-10-12",
+    "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+    "source_note": "Normalized at integration: value points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
+  },
   "compensation_notes": [
     {
       "note": "No compensation figure is stated: sampled official Two Sigma intern postings did not publish a salary range in the text retrieved.",
-      "source_type": "omitted - no official source",
+      "source_type": "official",
       "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+      "as_of": "2026-10-12",
+      "statement": "No compensation figure is stated: sampled official Two Sigma intern postings did not publish a salary range in the text retrieved.",
+      "kind": "compensation",
+      "source_type_detail": "omitted - no official source"
+    }
+  ],
+  "referral_weight_notes": {
+    "statement": "No firm-published statement on referral weight was found in sources used.",
+    "kind": "qualitative",
+    "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12"
+  },
+  "red_flags": [
+    {
+      "statement": "Do not read the firm's staff-caliber line (Putnam/IMO/ACM medalists among engineers) as an application requirement — the posting's actual qualifications are degree, coding and research/engineering substance.",
+      "kind": "qualitative",
+      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    },
+    {
+      "statement": "Third-party 'interview guide' pages for Two Sigma SWE are mostly content-farm material and contradict each other; only the firm's pages were used here.",
+      "kind": "qualitative",
+      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    },
+    {
+      "statement": "QR eligibility is time-boxed (approximately one year remaining in the program); applying in the wrong year wastes the attempt.",
+      "kind": "qualitative",
+      "source_url": "https://careers.twosigma.com/careers/JobDetail/New-York-New-York-United-States-Quantitative-Researcher-Internship-2027-Summer/13945",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
       "as_of": "2026-10-12"
     }
   ],
-  "referral_weight_notes": "No firm-published statement on referral weight was found in sources used.",
-  "red_flags": [
-    "Do not read the firm's staff-caliber line (Putnam/IMO/ACM medalists among engineers) as an application requirement — the posting's actual qualifications are degree, coding and research/engineering substance.",
-    "Third-party 'interview guide' pages for Two Sigma SWE are mostly content-farm material and contradict each other; only the firm's pages were used here.",
-    "QR eligibility is time-boxed (approximately one year remaining in the program); applying in the wrong year wastes the attempt."
-  ],
-  "thesis_text": "Bottom line: Two Sigma is the most research-shaped door in this batch. Its own postings define the successful profile plainly: a technical or quantitative degree in progress (statistics, math, physics, electrical engineering, computer science), intermediate coding in a mainstream language, and — the distinctive screen — an in-depth research project on real-world data that you can explain clearly. The firm explicitly says finance is not required and that more than half its employees come from outside finance; it teaches the market part to people who bring the science part. Routes in, ranked: (1) the 10-week QR internship if you have the research project, timed to the year you have roughly one year of your program left; (2) the parallel SWE internship or full-time campus hire if your strength is building scalable data systems — a genuinely separate cohort, not a consolation prize; (3) for freshmen and sophomores, the New Seekers Summit, which the firm's own profile shows feeding the internship-to-full-time path. The culture signal to match is scientific: hypotheses, experiments, reading the literature, and a final presentation of one deep project rather than a pile of shallow ones.",
+  "thesis_text": "Bottom line: for Two Sigma (Quant/SWE, entry), your odds through the cold application alone are low, but not zero. This read rests on a curated-qualitative record as of 2026-10-12 with no population sample — treat every pattern below as reported, not measured. The published bar is a quantitative degree in progress, real research or engineering substance, and intermediate-or-better coding — with finance knowledge explicitly treated as teachable. Unusually for this batch, the competition signal is firm-stated, but about its existing staff, not as an entry requirement: the official SWE intern posting notes the engineering group includes Putnam medalists, ACM programming competition finalists and International Mathematics Olympiad medalists. Read that as the caliber of colleagues the firm advertises, not as a checklist an applicant must match.\n\nWho gets in (sample N=not available — curated-qualitative record, as of 2026-10-12):\n- This CIR is curated-qualitative: no population sample exists for it yet, so there are no percentages to show. What follows is the reported pattern from public sources, labeled as such.\nKnown biases of this data: Built only from public firm pages, official postings and credible public reporting. No LinkedIn or logged-in data (Doc 3 §1.1). Firm-published program statistics are marketing-adjacent and self-reported; interview details from candidate-report sites are anecdotal and labeled as such. Survivorship bias applies: sources describe who is hired, not who applied and failed.. We see who got in, not who tried and failed — survivorship bias is real (§0).\n\nWhat Two Sigma says it screens for vs what the record shows:\nStated: QR posting: an in-depth research project examining real-world data is an explicit qualification — the single most concrete screen in the posting. Independent thinking and the ability to creatively approach data analysis and communicate complex ideas clearly are explicit stated qualifications. SWE posting: passion for data, curiosity and insight balanced with pragmatism and practicality are the firm's stated engineer signals.\nRevealed: \n\nRoutes in, ranked for you:\nFirst: Quantitative Researcher Internship (2027 Summer, 10 weeks, New York) — Students with about one year left in a technical/quantitative degree, bachelor's through doctorate, with a real-data research project\nSecond: Software Engineering Internship (Summer 2027, 10 weeks, New York) — Juniors/seniors, master's and PhD students in technical or quantitative fields\nThird: Full-Time Campus Hire postings (QR and SWE) — Final-year students and recent graduates applying directly to full-time roles\nFourth: New Seekers Summit (one-day virtual program) — First- and second-year undergraduates curious about quantitative research/data science; no finance background required\n\nYour gap analysis (highest-leverage fix first: experience):\n- school: you — not on file | cohort — See the school pattern in this CIR — stated qualitatively unless the CIR is population-backed; school is not in the user's control, so the plan routes around it (§3.1). | gap | fix: Do not plan around changing schools; offset with experience, projects and referrals.\n- experience: you — no internships yet | cohort — The published bar is a quantitative degree in progress, real research or engineering substance, and intermediate-or-better coding — with finance knowledge explicitly treated as teachable. Unusually for this batch, the competition signal is firm-stated, but about its existing staff, not as an entry requirement: the official SWE intern posting notes the engineering group includes Putnam medalists, ACM programming competition finalists and International Mathematics Olympiad medalists. Read that as the caliber of colleagues the firm advertises, not as a checklist an applicant must match. | gap | fix: Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this CIR's path patterns.\n- projects: you — no projects on file | cohort — Revealed screen in this CIR: evidence of building or analyzing real things (see screening_signals.revealed). | gap | fix: Ship one project that solves a messy real problem for a real user, and document it.\n- skills: you — no skills on file | cohort — not on file | unknown\n- timing: you — year not on file | cohort — Summer-cycle based: 10-week internships in the summer at the New York (Soho) office; 2027 Summer postings for both QR and SWE internships were live on the official careers site at verification (October 2026). New Seekers Summit is an annual one-day virtual program. Exact application deadlines are set per posting and must be checked on the live posting each cycle. | unknown\n- authorization: you — not on file | cohort — Sponsorship history is a matter of public record (DOL H-1B LCA filings); this CIR states only what its sources support, and immigration specifics go to the school's international office (§4.8 Q26 — not legal advice). | gap | fix: Confirm sponsorship for this exact role family before investing a season of prep; target employers with a filing history for the role.\n\nThe plan:\nNext thirty days:\n- Confirm this cycle's application window and deadlines for Two Sigma on the official careers page — dates move, and this CIR's cadence fact is the starting point, not the truth (§3.3). (by 2026-10-19)\n- Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this CIR's path patterns). Volume plus follow-up is the play. (by 2026-10-26)\n- Ship the first version of one real project and write it up publicly. (by 2026-11-11)\n- Build the coffee-chat target list from this CIR's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder. (by 2026-10-22)\nThis semester:\n- Convert the semester into signal: one internship or substantial project, one visible leadership or club role in the field, and interview reps on a weekly schedule.\n- Run the coffee-chat list: short, specific asks; every conversation ends with a follow-up you actually send.\nThis year:\n- Be in the application pool for Two Sigma's main entry window with the ladder rung, the project write-up and the referral conversations already done — not started.\n- If the direct route misses, take the highest adjacent rung this CIR names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).\n\nCoffee-chat strategy: target the profile types named in the ranked routes — recent hires in this role family, alumni of your school now inside, and people one rung up the ladder you are climbing. Ask what the interviews actually test, what surprised them after starting, and what they would do with a semester to prepare. Keep asks short and specific; send the follow-up you promised.\n\nTimeline and key dates: Summer-cycle based: 10-week internships in the summer at the New York (Soho) office; 2027 Summer postings for both QR and SWE internships were live on the official careers site at verification (October 2026). New Seekers Summit is an annual one-day virtual program. Exact application deadlines are set per posting and must be checked on the live posting each cycle. (as of 2026-10-12; recruiting dates shift every cycle — re-check the official careers page before acting, §3.3).\n\nRisks and alternatives: Do not read the firm's staff-caliber line (Putnam/IMO/ACM medalists among engineers) as an application requirement — the posting's actual qualifications are degree, coding and research/engineering substance. Third-party 'interview guide' pages for Two Sigma SWE are mostly content-farm material and contradict each other; only the firm's pages were used here. QR eligibility is time-boxed (approximately one year remaining in the program); applying in the wrong year wastes the attempt. Adjacent options with similar signal: the other employers and role families whose CIRs share this ladder — the first rung matters more than the logo on it.\n\nWant me to execute? I can build the coffee-chat target list from these routes, tailor your resume to this record's revealed screens (truthfully — only what you have actually done), and set the plan's reminders. Say the word and I start with the list.",
   "confidence_level": "curated-qualitative",
-  "known_biases_of_data": "Built only from public firm pages, official postings and credible public reporting. No LinkedIn or logged-in data (Doc 3 §1.1). Firm-published program statistics are marketing-adjacent and self-reported; interview details from candidate-report sites are anecdotal and labeled as such. Survivorship bias applies: sources describe who is hired, not who applied and failed.",
+  "known_biases_of_data": [
+    "Built only from public firm pages, official postings and credible public reporting. No LinkedIn or logged-in data (Doc 3 §1.1). Firm-published program statistics are marketing-adjacent and self-reported; interview details from candidate-report sites are anecdotal and labeled as such. Survivorship bias applies: sources describe who is hired, not who applied and failed."
+  ],
   "last_verified_at": "2026-10-12",
   "hiring_cadence_sources": [
     {
@@ -191,5 +231,14 @@
       "as_of": "2026-10-12",
       "source_type": "official firm article"
     }
-  ]
+  ],
+  "company_name": "Two Sigma",
+  "cohort": {
+    "role_family": "Quant/SWE",
+    "level": "entry",
+    "time_window": "2026-2027 hiring cycle (as of 2026-10-12)",
+    "definition": "Two Sigma entry-level cohorts, kept separate: (a) Quantitative Researcher interns and full-time campus hires, (b) Software Engineering interns and full-time campus hires, and (c) the New Seekers Summit early-exposure program for first- and second-year undergraduates. Internships are 10 weeks, summer, New York (Soho) per official postings."
+  },
+  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered.",
+  "thesis_regenerated": "2026-10-12 integration: thesis composed by 125-career-intel from this record's own facts (hand-written draft failed number-tracing). Original draft in git history."
 }

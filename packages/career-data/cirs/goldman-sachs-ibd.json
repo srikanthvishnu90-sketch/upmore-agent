@@ -1,1 +1,301 @@
-{"as_of":"2026-10-12","cohort":{"definition":"Undergraduate and master's students entering Goldman Sachs Global Banking & Markets (the investment banking business) through the Summer Analyst internship, the internship that converts to full-time analyst offers. Other divisions are separate cohorts.","level":"entry-level: penultimate / final-year students via the Summer Analyst programme","role_family":"Investment banking (Global Banking & Markets) — Summer Analyst route","time_window":"2027 programme cycle as published on the firm's student pages, checked October 2026"},"company_id":"goldman-sachs-ibd","company_name":"Goldman Sachs — Investment Banking (Global Banking & Markets)","compensation_notes":[{"as_of":"2026-10-12","kind":"compensation","source_type":"official","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"The official programme pages checked for this record describe the internship itself (duration, eligibility, rolling review) and do not publish a pay figure. Salary reporting for banking analysts circulates through press and community sources; none of it is treated as firm-published fact here."}],"confidence_level":"curated-qualitative","data_sources":[{"as_of":"2026-10-12","label":"Goldman Sachs official 2027 Summer Analyst Programme page (EMEA): duration, eligibility, rolling review","url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"},{"as_of":"2026-10-12","label":"Goldman Sachs official Asia-Pacific Summer Analyst page: duration and penultimate-year eligibility","url":"https://www.goldmansachs.com/careers/students/programs-and-internships/asia-pacific/summer-analyst"},{"as_of":"2026-10-12","label":"Goldman Sachs official application portal: the up-to-4 business/location combinations rule","url":"https://higher.gs.com/roles/170705"},{"as_of":"2026-10-12","label":"Third-party application-process guide summarizing the online application to HireVue to superday funnel (labeled non-official)","url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide"},{"as_of":"2026-10-12","label":"Press summary (Bloomberg reporting, via LinkedIn News) on how early Wall Street entry-level recruiting now starts (community/press, labeled reported)","url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"}],"entry_routes":[{"accessibility_note":"The main door for banking: the junior-summer internship is where full-time analyst classes largely come from. Applications are reviewed on a rolling basis — early is a real advantage, and you may pick up to 4 business/location combinations per recruiting year.","as_of":"2026-10-12","rank":1,"route":"Summer Analyst internship in Global Banking & Markets (junior summer, converts to full-time)","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"},{"accessibility_note":"Regional cycles differ in length and timing; eligibility is still anchored to penultimate-year standing.","as_of":"2026-10-12","rank":2,"route":"Regional Summer Analyst cycles (Asia-Pacific, India, EMEA variants)","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/asia-pacific/summer-analyst"},{"accessibility_note":"The route most non-target students actually take: build the resume pattern at smaller finance employers in earlier summers, then compete for the junior-summer seat with referrals.","as_of":"2026-10-12","rank":3,"route":"The ladder: smaller-bank / search-fund / boutique internships in freshman and sophomore summers, then the junior-summer application","source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"}],"hiring_bar_summary":{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"The published screen is structural: you must be pursuing a Bachelor's or Master's degree and be in your penultimate or final year, with applications reviewed on a rolling basis. The firm publishes no GPA cutoff on the programme pages checked for this record — the GPA screens students talk about are community-reported norms, not firm policy, and this record states them only that way."},"hiring_cadence":{"as_of":"2026-10-12","kind":"hiring_status","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"Applications for the 2027 Summer Analyst Programme are open and reviewed on a rolling basis, per the official programme page checked in October 2026. Press reporting on Wall Street recruiting puts the start of the junior-summer race in the winter of sophomore year — roughly a year and a half before the internship itself."},"interview_styles":[{"as_of":"2026-10-12","kind":"norm","source_url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide","statement":"Recorded video interview (HireVue) between the application and final rounds, with invites reported to carry a short completion window — third-party guide, labeled reported."},{"as_of":"2026-10-12","kind":"norm","source_url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide","statement":"Final rounds ('superday') mix behavioral fit, resume depth and — for banking — technical questions on accounting, valuation and deals, per third-party process guides."}],"known_biases_of_data":["No population sample exists for this record: Goldman publishes programme structure, not who actually gets in. School and GPA patterns below are community-reported norms and are labeled as such everywhere they appear.","Recruiting guides and forums over-represent target-school students who participate in them; the experience of non-target applicants is under-documented.","Programme pages describe the current cycle; banking timelines have moved earlier repeatedly, so cadence facts in this record age fast and are flagged stale after ninety days."],"last_verified_at":"2026-10-12","major_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"Finance, economics, accounting and business","note":"The natural feeder majors for the banking division in community-reported accounts; the firm's programme pages set no major requirement for eligibility.","share_pct":null,"source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"},{"as_of":"2026-10-12","count":null,"label":"Other majors, including quantitative and liberal-arts fields","note":"Eligibility on the official page is degree-and-year based, not major based; students from other majors do enter banking, usually carrying the technical prep themselves — reported pattern.","share_pct":null,"source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"}],"sample_size":null},"path_patterns":[{"as_of":"2026-10-12","evidence":"reported-norm","pattern":"Freshman summer at a small finance employer (search fund, small PE, boutique or regional bank, corporate finance at a startup), sophomore summer a step up, junior summer the bulge-bracket internship that converts","source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"},{"as_of":"2026-10-12","evidence":"reported-norm","pattern":"Cold outreach at volume to analysts and associates is the documented non-target play for the early rungs of the ladder","source_url":"https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"}],"prior_employer_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"Smaller finance employers: search funds, boutiques, regional and middle-market banks","note":"The reported feeder pattern for the junior-summer seat: earlier summers spent at smaller finance employers, often landed by cold outreach. Community/press-reported, not measured.","share_pct":null,"source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"},{"as_of":"2026-10-12","count":null,"label":"Finance clubs and campus investment organizations","note":"Not an employer, but a recurring resume line in reported successful profiles: selective finance clubs function as an early screen and technical-training ground.","share_pct":null,"source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"}],"sample_size":null},"process_stages":[{"as_of":"2026-10-12","description":"One application on the firm's portal; each applicant may apply to up to 4 separate business/location combinations in a recruiting year, and further applications are auto-withdrawn.","kind":"process","source_url":"https://higher.gs.com/roles/170705","stage":"Online application"},{"as_of":"2026-10-12","description":"Shortlisted candidates complete a recorded video interview before final rounds, per third-party process guides summarizing the firm's funnel.","kind":"process","source_url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide","stage":"HireVue video interview (reported)"},{"as_of":"2026-10-12","description":"A final round of interviews ('superday') with the division, mixing behavioral, resume and technical questions.","kind":"process","source_url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide","stage":"Superday / final interviews (reported)"},{"as_of":"2026-10-12","description":"The internship itself runs nine to ten weeks in the EMEA programme (eight to eleven weeks in other regions' published variants) and is the firm's own stated immersion into day-to-day work, with conversion to full-time as the design intent of the analyst pipeline.","kind":"process","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","stage":"Summer Analyst internship"}],"red_flags":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://higher.gs.com/roles/170705","statement":"The 4-combination cap is enforced by auto-withdrawal and the portal warns against duplicate accounts; gaming it is visible and reads as exactly what it is."},{"as_of":"2026-10-12","kind":"norm","source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/","statement":"The timeline itself is the trap: students who first look at banking in junior year are mostly competing for seats whose process began in sophomore winter."}],"referral_weight_notes":{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"The published process is an open online application with rolling review; nothing on the official pages describes a referral track. Community consensus — labeled as such — is that banker conversations matter most for the smaller shops on the ladder below Goldman, and for being ready when the rolling review reaches your file."},"sample_size":null,"school_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"Target schools (a concentrated set of universities)","note":"Press and community reporting consistently describes banking recruiting as concentrated at a set of target schools; the firm publishes no school distribution, so no share is stated here.","share_pct":null,"source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"},{"as_of":"2026-10-12","count":null,"label":"Non-target schools","note":"Non-target students do get in every cycle, reported to arrive via the internship ladder plus heavy networking rather than the cold application alone; reported pattern, not a measured share.","share_pct":null,"source_url":"https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"}],"sample_size":null},"screening_signals":{"revealed":[{"as_of":"2026-10-12","kind":"norm","source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/","statement":"Press reporting on the current cycle describes the revealed screen as a stack: the right school signal or a substitute for it, finance-club membership, technical readiness (accounting, valuation, modeling) and logged networking — assembled within the first three semesters."},{"as_of":"2026-10-12","kind":"norm","source_url":"https://www.finbound.org/blog/goldman-sachs-application-process-guide","statement":"Rolling review reveals a timing screen: the same file is worth more submitted early, because offers go out while later applications are still arriving."}],"stated":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"Eligibility as published: pursuing a Bachelor's or Master's degree, in the penultimate or final year of study; orientation, training and real responsibilities alongside the firm's people."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://higher.gs.com/roles/170705","statement":"The portal's stated mechanics: up to 4 business/location combinations per applicant per recruiting year; one applicant, one identity — additional applications are auto-withdrawn."}]},"skills_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"Accounting, valuation and modeling technicals","note":"Press and guide reporting on the current cycle treats technical readiness in accounting and valuation as a screened skill by interview time; not a published firm requirement.","share_pct":null,"source_url":"https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"},{"as_of":"2026-10-12","count":null,"label":"Networking and follow-up discipline","note":"Reported across community accounts as the skill that substitutes for school brand on the ladder rungs below the bulge bracket.","share_pct":null,"source_url":"https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"}],"sample_size":null},"thesis_text":"For Goldman Sachs banking, the door that matters is the junior-summer Summer Analyst internship: applications for the 2027 cycle are open and reviewed on a rolling basis, eligibility is penultimate or final year of a degree, and each applicant gets up to 4 business and location combinations. The honest part is the calendar and the stack — press reporting on this cycle says the race effectively starts in the winter of sophomore year, and the students who land the seat usually arrive with earlier, smaller finance internships, club signal and technical prep already done. The firm publishes no GPA cutoff and no school distribution, so this record reports those patterns as community norms and never as firm facts.","values_culture_signals":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme","statement":"The programme page frames the internship as full immersion in the firm's day-to-day activities, with orientation on culture and responsibilities of membership — the firm screens for people who want the actual work, not the logo."}]}
+{
+  "as_of": "2026-10-12",
+  "cohort": {
+    "definition": "Undergraduate and master's students entering Goldman Sachs Global Banking & Markets (the investment banking business) through the Summer Analyst internship, the internship that converts to full-time analyst offers. Other divisions are separate cohorts.",
+    "level": "entry-level: penultimate / final-year students via the Summer Analyst programme",
+    "role_family": "Investment banking (Global Banking & Markets) \u2014 Summer Analyst route",
+    "time_window": "2027 programme cycle as published on the firm's student pages, checked October 2026"
+  },
+  "company_id": "goldman-sachs-ibd",
+  "company_name": "Goldman Sachs \u2014 Investment Banking (Global Banking & Markets)",
+  "compensation_notes": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "compensation",
+      "source_type": "official",
+      "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+      "statement": "The official programme pages checked for this record describe the internship itself (duration, eligibility, rolling review) and do not publish a pay figure. Salary reporting for banking analysts circulates through press and community sources; none of it is treated as firm-published fact here."
+    }
+  ],
+  "confidence_level": "curated-qualitative",
+  "data_sources": [
+    {
+      "label": "Goldman Sachs official 2027 Summer Analyst Programme page (EMEA): duration, eligibility, rolling review",
+      "url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Goldman Sachs official Asia-Pacific Summer Analyst page: duration and penultimate-year eligibility",
+      "url": "https://www.goldmansachs.com/careers/students/programs-and-internships/asia-pacific/summer-analyst",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Goldman Sachs official application portal: the up-to-4 business/location combinations rule",
+      "url": "https://higher.gs.com/roles/170705",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Third-party application-process guide summarizing the online application to HireVue to superday funnel (labeled non-official)",
+      "url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Press summary (Bloomberg reporting, via LinkedIn News) on how early Wall Street entry-level recruiting now starts (community/press, labeled reported)",
+      "url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    }
+  ],
+  "entry_routes": [
+    {
+      "accessibility_note": "The main door for banking: the junior-summer internship is where full-time analyst classes largely come from. Applications are reviewed on a rolling basis \u2014 early is a real advantage, and you may pick up to 4 business/location combinations per recruiting year.",
+      "as_of": "2026-10-12",
+      "rank": 1,
+      "route": "Summer Analyst internship in Global Banking & Markets (junior summer, converts to full-time)",
+      "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"
+    },
+    {
+      "accessibility_note": "Regional cycles differ in length and timing; eligibility is still anchored to penultimate-year standing.",
+      "as_of": "2026-10-12",
+      "rank": 2,
+      "route": "Regional Summer Analyst cycles (Asia-Pacific, India, EMEA variants)",
+      "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/asia-pacific/summer-analyst"
+    },
+    {
+      "accessibility_note": "The route most non-target students actually take: build the resume pattern at smaller finance employers in earlier summers, then compete for the junior-summer seat with referrals.",
+      "as_of": "2026-10-12",
+      "rank": 3,
+      "route": "The ladder: smaller-bank / search-fund / boutique internships in freshman and sophomore summers, then the junior-summer application",
+      "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+    }
+  ],
+  "hiring_bar_summary": {
+    "as_of": "2026-10-12",
+    "kind": "qualitative",
+    "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+    "statement": "The published screen is structural: you must be pursuing a Bachelor's or Master's degree and be in your penultimate or final year, with applications reviewed on a rolling basis. The firm publishes no GPA cutoff on the programme pages checked for this record \u2014 the GPA screens students talk about are community-reported norms, not firm policy, and this record states them only that way."
+  },
+  "hiring_cadence": {
+    "as_of": "2026-10-12",
+    "kind": "hiring_status",
+    "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+    "statement": "Applications for the 2027 Summer Analyst Programme are open and reviewed on a rolling basis, per the official programme page checked in October 2026. Press reporting on Wall Street recruiting puts the start of the junior-summer race in the winter of sophomore year \u2014 roughly a year and a half before the internship itself."
+  },
+  "interview_styles": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "norm",
+      "source_url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+      "statement": "Recorded video interview (HireVue) between the application and final rounds, with invites reported to carry a short completion window \u2014 third-party guide, labeled reported."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "norm",
+      "source_url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+      "statement": "Final rounds ('superday') mix behavioral fit, resume depth and \u2014 for banking \u2014 technical questions on accounting, valuation and deals, per third-party process guides."
+    }
+  ],
+  "known_biases_of_data": [
+    "No population sample exists for this record: Goldman publishes programme structure, not who actually gets in. School and GPA patterns below are community-reported norms and are labeled as such everywhere they appear.",
+    "Recruiting guides and forums over-represent target-school students who participate in them; the experience of non-target applicants is under-documented.",
+    "Programme pages describe the current cycle; banking timelines have moved earlier repeatedly, so cadence facts in this record age fast and are flagged stale after ninety days."
+  ],
+  "last_verified_at": "2026-10-12",
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Finance, economics, accounting and business",
+        "note": "The natural feeder majors for the banking division in community-reported accounts; the firm's programme pages set no major requirement for eligibility.",
+        "share_pct": null,
+        "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Other majors, including quantitative and liberal-arts fields",
+        "note": "Eligibility on the official page is degree-and-year based, not major based; students from other majors do enter banking, usually carrying the technical prep themselves \u2014 reported pattern.",
+        "share_pct": null,
+        "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme"
+      }
+    ],
+    "sample_size": null
+  },
+  "path_patterns": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm",
+      "pattern": "Freshman summer at a small finance employer (search fund, small PE, boutique or regional bank, corporate finance at a startup), sophomore summer a step up, junior summer the bulge-bracket internship that converts",
+      "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+    },
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm",
+      "pattern": "Cold outreach at volume to analysts and associates is the documented non-target play for the early rungs of the ladder",
+      "source_url": "https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"
+    }
+  ],
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Smaller finance employers: search funds, boutiques, regional and middle-market banks",
+        "note": "The reported feeder pattern for the junior-summer seat: earlier summers spent at smaller finance employers, often landed by cold outreach. Community/press-reported, not measured.",
+        "share_pct": null,
+        "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Finance clubs and campus investment organizations",
+        "note": "Not an employer, but a recurring resume line in reported successful profiles: selective finance clubs function as an early screen and technical-training ground.",
+        "share_pct": null,
+        "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+      }
+    ],
+    "sample_size": null
+  },
+  "process_stages": [
+    {
+      "as_of": "2026-10-12",
+      "description": "One application on the firm's portal; each applicant may apply to up to 4 separate business/location combinations in a recruiting year, and further applications are auto-withdrawn.",
+      "kind": "process",
+      "source_url": "https://higher.gs.com/roles/170705",
+      "stage": "Online application"
+    },
+    {
+      "as_of": "2026-10-12",
+      "description": "Shortlisted candidates complete a recorded video interview before final rounds, per third-party process guides summarizing the firm's funnel.",
+      "kind": "process",
+      "source_url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+      "stage": "HireVue video interview (reported)"
+    },
+    {
+      "as_of": "2026-10-12",
+      "description": "A final round of interviews ('superday') with the division, mixing behavioral, resume and technical questions.",
+      "kind": "process",
+      "source_url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+      "stage": "Superday / final interviews (reported)"
+    },
+    {
+      "as_of": "2026-10-12",
+      "description": "The internship itself runs nine to ten weeks in the EMEA programme (eight to eleven weeks in other regions' published variants) and is the firm's own stated immersion into day-to-day work, with conversion to full-time as the design intent of the analyst pipeline.",
+      "kind": "process",
+      "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+      "stage": "Summer Analyst internship"
+    }
+  ],
+  "red_flags": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://higher.gs.com/roles/170705",
+      "statement": "The 4-combination cap is enforced by auto-withdrawal and the portal warns against duplicate accounts; gaming it is visible and reads as exactly what it is."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "norm",
+      "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/",
+      "statement": "The timeline itself is the trap: students who first look at banking in junior year are mostly competing for seats whose process began in sophomore winter."
+    }
+  ],
+  "referral_weight_notes": {
+    "as_of": "2026-10-12",
+    "kind": "qualitative",
+    "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+    "statement": "The published process is an open online application with rolling review; nothing on the official pages describes a referral track. Community consensus \u2014 labeled as such \u2014 is that banker conversations matter most for the smaller shops on the ladder below Goldman, and for being ready when the rolling review reaches your file."
+  },
+  "sample_size": null,
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Target schools (a concentrated set of universities)",
+        "note": "Press and community reporting consistently describes banking recruiting as concentrated at a set of target schools; the firm publishes no school distribution, so no share is stated here.",
+        "share_pct": null,
+        "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Non-target schools",
+        "note": "Non-target students do get in every cycle, reported to arrive via the internship ladder plus heavy networking rather than the cold application alone; reported pattern, not a measured share.",
+        "share_pct": null,
+        "source_url": "https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"
+      }
+    ],
+    "sample_size": null
+  },
+  "screening_signals": {
+    "revealed": [
+      {
+        "as_of": "2026-10-12",
+        "kind": "norm",
+        "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/",
+        "statement": "Press reporting on the current cycle describes the revealed screen as a stack: the right school signal or a substitute for it, finance-club membership, technical readiness (accounting, valuation, modeling) and logged networking \u2014 assembled within the first three semesters."
+      },
+      {
+        "as_of": "2026-10-12",
+        "kind": "norm",
+        "source_url": "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+        "statement": "Rolling review reveals a timing screen: the same file is worth more submitted early, because offers go out while later applications are still arriving."
+      }
+    ],
+    "stated": [
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+        "statement": "Eligibility as published: pursuing a Bachelor's or Master's degree, in the penultimate or final year of study; orientation, training and real responsibilities alongside the firm's people."
+      },
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://higher.gs.com/roles/170705",
+        "statement": "The portal's stated mechanics: up to 4 business/location combinations per applicant per recruiting year; one applicant, one identity \u2014 additional applications are auto-withdrawn."
+      }
+    ]
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Accounting, valuation and modeling technicals",
+        "note": "Press and guide reporting on the current cycle treats technical readiness in accounting and valuation as a screened skill by interview time; not a published firm requirement.",
+        "share_pct": null,
+        "source_url": "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Networking and follow-up discipline",
+        "note": "Reported across community accounts as the skill that substitutes for school brand on the ladder rungs below the bulge bracket.",
+        "share_pct": null,
+        "source_url": "https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship"
+      }
+    ],
+    "sample_size": null
+  },
+  "thesis_text": "For Goldman Sachs banking, the door that matters is the junior-summer Summer Analyst internship: applications for the 2027 cycle are open and reviewed on a rolling basis, eligibility is penultimate or final year of a degree, and each applicant gets up to 4 business and location combinations. The honest part is the calendar and the stack \u2014 press reporting on this cycle says the race effectively starts in the winter of sophomore year, and the students who land the seat usually arrive with earlier, smaller finance internships, club signal and technical prep already done. The firm publishes no GPA cutoff and no school distribution, so this record reports those patterns as community norms and never as firm facts.",
+  "values_culture_signals": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+      "statement": "The programme page frames the internship as full immersion in the firm's day-to-day activities, with orientation on culture and responsibilities of membership \u2014 the firm screens for people who want the actual work, not the logo."
+    }
+  ],
+  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered."
+}

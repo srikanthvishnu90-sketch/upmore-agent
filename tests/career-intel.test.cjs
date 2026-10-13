@@ -32,10 +32,13 @@ function populationCIR() {
   return cir;
 }
 
-test("[INTL-008] all 5 shipped CIRs validate against the §2.2 schema", () => {
+test("[INTL-008] all shipped CIRs validate against the §2.2 schema (corpus grows by design)", () => {
   const store = CI.loadCIRsFromDir(CIR_DIR);
   assert.equal(store.ok, true, JSON.stringify(store.results.map((r) => [r.company_id, r.errors])));
-  assert.deepEqual(Object.keys(store.byId).sort(), [...IDS].sort());
+  // The corpus is built to grow past the first five (owner order: 30 companies) — assert the
+  // original five are present and every loaded record validates, never an exact file count.
+  for (const id of IDS) assert.ok(store.byId[id], `missing shipped CIR ${id}`);
+  assert.ok(Object.keys(store.byId).length >= IDS.length);
   for (const id of IDS) assert.equal(CI.getCIR(store, id).company_id, id);
 });
 

@@ -1,1 +1,285 @@
-{"as_of":"2026-10-12","cohort":{"definition":"Students entering Jane Street through its internships (software engineering, quantitative trading, quantitative research and ML engineering interns), the firm's main entry door. The role families share one stated philosophy — how you think over what you know — with different interview content per family.","level":"entry-level: interns (the primary entry cohort)","role_family":"Quantitative trading, quantitative research and software engineering","time_window":"postings and interview guidance live on the firm's site when checked, October 2026"},"company_id":"jane-street","company_name":"Jane Street","compensation_notes":[{"as_of":"2026-10-12","kind":"compensation","source_type":"official","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"Jane Street postings carry the role's own terms; the internship postings checked for this record describe the programme (mentorship, projects, duration) rather than a pay figure in the sections retrieved. Community and press reporting puts Jane Street intern and new-grad pay at the very top of the market — reported, not firm-published, and no figure is stated here."}],"confidence_level":"curated-qualitative","data_sources":[{"as_of":"2026-10-12","label":"Jane Street official posting: Software Engineer Internship (London) — programme shape, OCaml, and the 'About You' screen","url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"},{"as_of":"2026-10-12","label":"Jane Street official page: 'Preparing for a Software Engineering Interview' — what SWE interviews do and do not test","url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/"},{"as_of":"2026-10-12","label":"Jane Street official blog: 'Interviewing At Jane Street' — interviews as simulations of working together","url":"https://blog.janestreet.com/interviewing-at-jane-street/"},{"as_of":"2026-10-12","label":"Mirror of a Jane Street ML Engineer internship posting: firm self-description and that role's interview shape","url":"https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b"}],"entry_routes":[{"accessibility_note":"The main door. For SWE, prepare collaborative problem-solving in your strongest language — the firm explicitly says not to perform OCaml you don't have. For trading, probability, mental math and market-making games are the content.","as_of":"2026-10-12","rank":1,"route":"Internships: software engineering, quantitative trading, quantitative research, ML engineering","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"},{"accessibility_note":"The firm states the vast majority of its software engineers hold no advanced degree — the bachelor's-plus-evidence route is the norm for SWE, while research roles are the exception that leans graduate.","as_of":"2026-10-12","rank":2,"route":"Direct new-grad applications in the same role families","source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/"}],"hiring_bar_summary":{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"Jane Street's published screen is dispositional: no background in finance, OCaml or any specific field is expected. Postings ask for top-notch problem solvers who are collaborative, courteous, eager to ask questions and to admit mistakes — 'more interested in how you think and learn than what you currently know' is the stated bar, tested through the interviews themselves."},"hiring_cadence":{"as_of":"2026-10-12","kind":"hiring_status","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"Internships run ten to twelve weeks over the summer in each office's season; the London software engineering posting checked for this record is marked closed, which is itself the cadence lesson — these windows open and close on the firm's postings page, and that page, not this record, is the live source for the current cycle."},"interview_styles":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/","statement":"SWE interviews use open-ended programming problems with several plausible angles of attack rather than puzzles with a single clever trick; the journey through the problem matters more than the final snapshot, and candidates should use the language they are strongest in."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://blog.janestreet.com/interviewing-at-jane-street/","statement":"The firm's blog frames every interview as a simulation of working together: clear discussion, the right level of abstraction, naming tradeoffs, asking thoughtful questions, tenacity and curiosity."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/","statement":"Explicitly not tested for SWE: mental math, math-olympiad questions and logic puzzles — the firm states those belong to other roles at the firm, not this one."}],"known_biases_of_data":["No population sample exists for this record: Jane Street publishes its philosophy and postings, not hire composition. Nothing below is a measured share.","The firm's own interview guidance is written to widen its funnel ('you don't need a background in finance'); it describes the screen as the firm intends it, and candidates should expect the actual bar to be set by the strength of the applicant pool.","One quantitative fact in this record (firm size) comes from the firm's own self-description in a posting — a company-stated figure, not an independent count."],"last_verified_at":"2026-10-12","major_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"Advanced degrees: a minority among software engineers, by the firm's own account","note":"Jane Street states on its interview-preparation page that the vast majority of the software engineers it hires do not have advanced degrees — a firm-stated qualitative pattern, not a measured mix. Research roles differ.","share_pct":null,"source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/"},{"as_of":"2026-10-12","count":null,"label":"No field-of-study requirement for SWE interns","note":"The internship posting expects no background in finance, OCaml, functional programming or any other specific field.","share_pct":null,"source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"}],"sample_size":null},"path_patterns":[{"as_of":"2026-10-12","evidence":"reported-norm","pattern":"Summer internship as the designed entry: two mentored projects in different areas, an educational curriculum, then conversion judged on the work itself","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"},{"as_of":"2026-10-12","evidence":"reported-norm","pattern":"No-finance-background route is real by design: the firm recruits problem solvers from math, CS and physics-leaning pools and teaches the domain after arrival","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"}],"prior_employer_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"No feeder pattern published — internships are the entry cohort","note":"For an intern cohort there is no meaningful prior-employer mix; the firm publishes none and this record invents none. Competition and research signals are discussed qualitatively in community sources and deliberately not quantified here.","share_pct":null,"source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"}],"sample_size":null},"process_stages":[{"as_of":"2026-10-12","description":"Apply to a specific internship posting; postings open and close per office and season on the firm's site.","kind":"process","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","stage":"Application to a posted internship"},{"as_of":"2026-10-12","description":"An initial technical coding interview over video — described in the firm's ML engineering internship posting as the first interview step; SWE interviews are collaborative, open-ended programming problems per the firm's own preparation page.","kind":"process","source_url":"https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b","stage":"Initial technical interview (remote)"},{"as_of":"2026-10-12","description":"An onsite with several technical rounds (the ML posting describes two to four), run as working sessions: the firm evaluates how you think through a problem with another person, not only whether you finish it.","kind":"process","source_url":"https://blog.janestreet.com/interviewing-at-jane-street/","stage":"Onsite interview rounds"}],"red_flags":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/","statement":"Do not perform a language you are weak in: the firm explicitly awards no bonus points for OCaml or functional programming and tells candidates to use their strongest language."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"Closed postings are closed: the London SWE internship posting checked for this record is in the firm's closed set, so timing the window matters more than polishing after it."}],"referral_weight_notes":{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://blog.janestreet.com/interviewing-at-jane-street/","statement":"No referral mechanism is described in the firm's public interview guidance; the process it describes is interview-performance based. Treat referral claims as anecdotal."},"sample_size":null,"school_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"No school pattern published","note":"Jane Street publishes no school distribution and names no target schools in its postings or interview guidance; community claims about a short school list are not measurable from public sources and are not stated here as fact.","share_pct":null,"source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/"}],"sample_size":null},"screening_signals":{"revealed":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://blog.janestreet.com/interviewing-at-jane-street/","statement":"Revealed by its own interview design: a candidate who communicates clearly, picks the right abstraction level, names tradeoffs and stays tenacious beats a silent candidate who merely finishes — the firm says it prefers careful, clear, communicative work over a faster but sloppy solve."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"Revealed by the intern structure itself: interns are judged on two real, mentor-designed projects in different areas — adaptability across problem types is part of the screen."}],"stated":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"No background in finance, OCaml, functional programming or any other specific field is expected; the firm says it is more interested in how you think and learn than in what you currently know."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/","statement":"The main interview question, in the firm's words, is whether you are someone they want to work with — assessed by simulating the work, not by algorithm bingo or puzzles with clever aha solutions."}]},"skills_dist":{"basis":"curated-qualitative","entries":[{"as_of":"2026-10-12","count":null,"label":"OCaml (the firm's primary development language)","note":"SWE interns learn OCaml on the programme; prior OCaml is explicitly not expected and earns no interview bonus — the skill is screened as learnable, not pre-required.","share_pct":null,"source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"},{"as_of":"2026-10-12","count":null,"label":"Collaborative problem-solving and clear communication","note":"Named across the firm's blog and preparation page as the core of the interview: productive discussion, tradeoff reasoning, thoughtful questions.","share_pct":null,"source_url":"https://blog.janestreet.com/interviewing-at-jane-street/"},{"as_of":"2026-10-12","count":null,"label":"Probability and quantitative reasoning (trading roles)","note":"For trading and research families — not SWE — the firm's ecosystem of public material centers on probability, expected value and game-style problems; SWE candidates are explicitly not given mental-math or olympiad questions.","share_pct":null,"source_url":"https://www.janestreet.com/preparing-for-a-software-engineering-interview/"}],"sample_size":null},"thesis_text":"Jane Street is the rare firm that publishes its own anti-folklore: no finance background expected, no OCaml performance in the SWE interview, no mental math for software engineers, and most of its software engineers hired without advanced degrees. The screen is the work itself, simulated live — open-ended problems solved collaboratively, judged on clarity, tradeoffs and tenacity. The firm describes itself as more than 2,000 people across five global offices, and its internships run ten to twelve weeks with two mentored projects. What no public source supports is a school or competition pedigree distribution, so this record states none.","values_culture_signals":[{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/","statement":"The postings ask for people who are collaborative and courteous, eager to ask questions and to admit mistakes — intellectual humility is a stated hiring value, not an inference."},{"as_of":"2026-10-12","kind":"qualitative","source_url":"https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b","statement":"The firm describes itself in its postings as more than 2,000 employees across five global offices, trading on more than 200 venues — a mid-size, engineering-dense firm, not a bank-sized one."}]}
+{
+  "as_of": "2026-10-12",
+  "cohort": {
+    "definition": "Students entering Jane Street through its internships (software engineering, quantitative trading, quantitative research and ML engineering interns), the firm's main entry door. The role families share one stated philosophy \u2014 how you think over what you know \u2014 with different interview content per family.",
+    "level": "entry-level: interns (the primary entry cohort)",
+    "role_family": "Quantitative trading, quantitative research and software engineering",
+    "time_window": "postings and interview guidance live on the firm's site when checked, October 2026"
+  },
+  "company_id": "jane-street",
+  "company_name": "Jane Street",
+  "compensation_notes": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "compensation",
+      "source_type": "official",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+      "statement": "Jane Street postings carry the role's own terms; the internship postings checked for this record describe the programme (mentorship, projects, duration) rather than a pay figure in the sections retrieved. Community and press reporting puts Jane Street intern and new-grad pay at the very top of the market \u2014 reported, not firm-published, and no figure is stated here."
+    }
+  ],
+  "confidence_level": "curated-qualitative",
+  "data_sources": [
+    {
+      "label": "Jane Street official posting: Software Engineer Internship (London) \u2014 programme shape, OCaml, and the 'About You' screen",
+      "url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Jane Street official page: 'Preparing for a Software Engineering Interview' \u2014 what SWE interviews do and do not test",
+      "url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Jane Street official blog: 'Interviewing At Jane Street' \u2014 interviews as simulations of working together",
+      "url": "https://blog.janestreet.com/interviewing-at-jane-street/",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    },
+    {
+      "label": "Mirror of a Jane Street ML Engineer internship posting: firm self-description and that role's interview shape",
+      "url": "https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b",
+      "as_of": "2026-10-12",
+      "source_type": "public"
+    }
+  ],
+  "entry_routes": [
+    {
+      "accessibility_note": "The main door. For SWE, prepare collaborative problem-solving in your strongest language \u2014 the firm explicitly says not to perform OCaml you don't have. For trading, probability, mental math and market-making games are the content.",
+      "as_of": "2026-10-12",
+      "rank": 1,
+      "route": "Internships: software engineering, quantitative trading, quantitative research, ML engineering",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+    },
+    {
+      "accessibility_note": "The firm states the vast majority of its software engineers hold no advanced degree \u2014 the bachelor's-plus-evidence route is the norm for SWE, while research roles are the exception that leans graduate.",
+      "as_of": "2026-10-12",
+      "rank": 2,
+      "route": "Direct new-grad applications in the same role families",
+      "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/"
+    }
+  ],
+  "hiring_bar_summary": {
+    "as_of": "2026-10-12",
+    "kind": "qualitative",
+    "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+    "statement": "Jane Street's published screen is dispositional: no background in finance, OCaml or any specific field is expected. Postings ask for top-notch problem solvers who are collaborative, courteous, eager to ask questions and to admit mistakes \u2014 'more interested in how you think and learn than what you currently know' is the stated bar, tested through the interviews themselves."
+  },
+  "hiring_cadence": {
+    "as_of": "2026-10-12",
+    "kind": "hiring_status",
+    "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+    "statement": "Internships run ten to twelve weeks over the summer in each office's season; the London software engineering posting checked for this record is marked closed, which is itself the cadence lesson \u2014 these windows open and close on the firm's postings page, and that page, not this record, is the live source for the current cycle."
+  },
+  "interview_styles": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/",
+      "statement": "SWE interviews use open-ended programming problems with several plausible angles of attack rather than puzzles with a single clever trick; the journey through the problem matters more than the final snapshot, and candidates should use the language they are strongest in."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://blog.janestreet.com/interviewing-at-jane-street/",
+      "statement": "The firm's blog frames every interview as a simulation of working together: clear discussion, the right level of abstraction, naming tradeoffs, asking thoughtful questions, tenacity and curiosity."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/",
+      "statement": "Explicitly not tested for SWE: mental math, math-olympiad questions and logic puzzles \u2014 the firm states those belong to other roles at the firm, not this one."
+    }
+  ],
+  "known_biases_of_data": [
+    "No population sample exists for this record: Jane Street publishes its philosophy and postings, not hire composition. Nothing below is a measured share.",
+    "The firm's own interview guidance is written to widen its funnel ('you don't need a background in finance'); it describes the screen as the firm intends it, and candidates should expect the actual bar to be set by the strength of the applicant pool.",
+    "One quantitative fact in this record (firm size) comes from the firm's own self-description in a posting \u2014 a company-stated figure, not an independent count."
+  ],
+  "last_verified_at": "2026-10-12",
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Advanced degrees: a minority among software engineers, by the firm's own account",
+        "note": "Jane Street states on its interview-preparation page that the vast majority of the software engineers it hires do not have advanced degrees \u2014 a firm-stated qualitative pattern, not a measured mix. Research roles differ.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "No field-of-study requirement for SWE interns",
+        "note": "The internship posting expects no background in finance, OCaml, functional programming or any other specific field.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+      }
+    ],
+    "sample_size": null
+  },
+  "path_patterns": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm",
+      "pattern": "Summer internship as the designed entry: two mentored projects in different areas, an educational curriculum, then conversion judged on the work itself",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+    },
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm",
+      "pattern": "No-finance-background route is real by design: the firm recruits problem solvers from math, CS and physics-leaning pools and teaches the domain after arrival",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+    }
+  ],
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "No feeder pattern published \u2014 internships are the entry cohort",
+        "note": "For an intern cohort there is no meaningful prior-employer mix; the firm publishes none and this record invents none. Competition and research signals are discussed qualitatively in community sources and deliberately not quantified here.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+      }
+    ],
+    "sample_size": null
+  },
+  "process_stages": [
+    {
+      "as_of": "2026-10-12",
+      "description": "Apply to a specific internship posting; postings open and close per office and season on the firm's site.",
+      "kind": "process",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+      "stage": "Application to a posted internship"
+    },
+    {
+      "as_of": "2026-10-12",
+      "description": "An initial technical coding interview over video \u2014 described in the firm's ML engineering internship posting as the first interview step; SWE interviews are collaborative, open-ended programming problems per the firm's own preparation page.",
+      "kind": "process",
+      "source_url": "https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b",
+      "stage": "Initial technical interview (remote)"
+    },
+    {
+      "as_of": "2026-10-12",
+      "description": "An onsite with several technical rounds (the ML posting describes two to four), run as working sessions: the firm evaluates how you think through a problem with another person, not only whether you finish it.",
+      "kind": "process",
+      "source_url": "https://blog.janestreet.com/interviewing-at-jane-street/",
+      "stage": "Onsite interview rounds"
+    }
+  ],
+  "red_flags": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/",
+      "statement": "Do not perform a language you are weak in: the firm explicitly awards no bonus points for OCaml or functional programming and tells candidates to use their strongest language."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+      "statement": "Closed postings are closed: the London SWE internship posting checked for this record is in the firm's closed set, so timing the window matters more than polishing after it."
+    }
+  ],
+  "referral_weight_notes": {
+    "as_of": "2026-10-12",
+    "kind": "qualitative",
+    "source_url": "https://blog.janestreet.com/interviewing-at-jane-street/",
+    "statement": "No referral mechanism is described in the firm's public interview guidance; the process it describes is interview-performance based. Treat referral claims as anecdotal."
+  },
+  "sample_size": null,
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "No school pattern published",
+        "note": "Jane Street publishes no school distribution and names no target schools in its postings or interview guidance; community claims about a short school list are not measurable from public sources and are not stated here as fact.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/"
+      }
+    ],
+    "sample_size": null
+  },
+  "screening_signals": {
+    "revealed": [
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://blog.janestreet.com/interviewing-at-jane-street/",
+        "statement": "Revealed by its own interview design: a candidate who communicates clearly, picks the right abstraction level, names tradeoffs and stays tenacious beats a silent candidate who merely finishes \u2014 the firm says it prefers careful, clear, communicative work over a faster but sloppy solve."
+      },
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+        "statement": "Revealed by the intern structure itself: interns are judged on two real, mentor-designed projects in different areas \u2014 adaptability across problem types is part of the screen."
+      }
+    ],
+    "stated": [
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+        "statement": "No background in finance, OCaml, functional programming or any other specific field is expected; the firm says it is more interested in how you think and learn than in what you currently know."
+      },
+      {
+        "as_of": "2026-10-12",
+        "kind": "qualitative",
+        "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/",
+        "statement": "The main interview question, in the firm's words, is whether you are someone they want to work with \u2014 assessed by simulating the work, not by algorithm bingo or puzzles with clever aha solutions."
+      }
+    ]
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "entries": [
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "OCaml (the firm's primary development language)",
+        "note": "SWE interns learn OCaml on the programme; prior OCaml is explicitly not expected and earns no interview bonus \u2014 the skill is screened as learnable, not pre-required.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Collaborative problem-solving and clear communication",
+        "note": "Named across the firm's blog and preparation page as the core of the interview: productive discussion, tradeoff reasoning, thoughtful questions.",
+        "share_pct": null,
+        "source_url": "https://blog.janestreet.com/interviewing-at-jane-street/"
+      },
+      {
+        "as_of": "2026-10-12",
+        "count": null,
+        "label": "Probability and quantitative reasoning (trading roles)",
+        "note": "For trading and research families \u2014 not SWE \u2014 the firm's ecosystem of public material centers on probability, expected value and game-style problems; SWE candidates are explicitly not given mental-math or olympiad questions.",
+        "share_pct": null,
+        "source_url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview/"
+      }
+    ],
+    "sample_size": null
+  },
+  "thesis_text": "Jane Street is the rare firm that publishes its own anti-folklore: no finance background expected, no OCaml performance in the SWE interview, no mental math for software engineers, and most of its software engineers hired without advanced degrees. The screen is the work itself, simulated live \u2014 open-ended problems solved collaboratively, judged on clarity, tradeoffs and tenacity. The firm describes itself as more than 2,000 people across five global offices, and its internships run ten to twelve weeks with two mentored projects. What no public source supports is a school or competition pedigree distribution, so this record states none.",
+  "values_culture_signals": [
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.janestreet.com/join-jane-street/closed-internship/software-engineer-june-september-ldn/",
+      "statement": "The postings ask for people who are collaborative and courteous, eager to ask questions and to admit mistakes \u2014 intellectual humility is a stated hiring value, not an inference."
+    },
+    {
+      "as_of": "2026-10-12",
+      "kind": "qualitative",
+      "source_url": "https://www.tradermath.org/firms/jane-street/jobs/machine-learning-engineer-internship-may-august-in-new-york-9a768b",
+      "statement": "The firm describes itself in its postings as more than 2,000 employees across five global offices, trading on more than 200 venues \u2014 a mid-size, engineering-dense firm, not a bank-sized one."
+    }
+  ],
+  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered."
+}

@@ -732,9 +732,9 @@
    ],
    "label": "--no-wait",
    "first_seen": "2026-10-12T22:20:08.965Z",
-   "last_label": "--no-wait",
-   "last_seen": "2026-10-12T22:20:08.965Z",
-   "times": 1,
+   "last_label": "go-live-39cf441-spec16",
+   "last_seen": "2026-10-13T03:45:29.371Z",
+   "times": 3,
    "triage": {
     "verdict": "precondition",
     "note": "Same as the go-live-92a8364 triage of S16-15: the live test user has no rent on file, so 'pay my rent' correctly asks who, how much and which day instead of guessing. The monthly card with Reply YES needs a rent rule the person saved on their own yes; with one on file the card passes (tests/depth-RENT.test.cjs S04, S06).",
@@ -744,7 +744,7 @@
   },
   {
    "key": "d222-9769-24e7-3c82",
-   "kind": "flow",
+   "kind": "other",
    "suite": "spec16",
    "id": "S16-17",
    "text": "dispute this charge",
@@ -776,18 +776,8 @@
     ]
    },
    "observed": {
-    "reply": "Got Dispute Charge. Tell me how much and which day of the month for rent, e.g. 'Mike $1,450 on the 1st via Zelle'.",
-    "route": {
-     "route": "card_reply",
-     "flow": "rent",
-     "source": "deterministic",
-     "understood": true,
-     "understood_first": true,
-     "outcome": "ask",
-     "canonical": null,
-     "ask_reason": null,
-     "problems": []
-    },
+    "reply": "I want to be careful here — I can't verify that figure right now, so I won't state it as fact. For the official number, check your statement or the provider's billing page directly — and if you tell me the merchant, amount, and date I'll help you put the dispute together.",
+    "route": null,
     "error": null,
     "failure_code": null
    },
@@ -796,9 +786,9 @@
    ],
    "label": "--no-wait",
    "first_seen": "2026-10-12T22:20:08.965Z",
-   "last_label": "--no-wait",
-   "last_seen": "2026-10-12T22:20:08.965Z",
-   "times": 1,
+   "last_label": "go-live-39cf441-spec16",
+   "last_seen": "2026-10-13T03:45:29.371Z",
+   "times": 3,
    "triage": {
     "verdict": "precondition",
     "note": "The bug the live run found is fixed: with the rent setup question open, \"dispute this charge\" was read as the payee \"Dispute Charge\". Another ask is never read as the payee now (NOT_A_NAME and the wider NEW_REQUEST in packages/domain/81-standing-rent.js; tests/depth-RENT.test.cjs S18, planted defect D18). This offline replay now falls through the flow router, as it should. The reply that names $48.20 STREAMFLIX comes from the photo the live run sends (the dispute answer defers a photo to the model, _shared/dispute_answer.ts), which this text-only replay cannot carry; it re-proves only on the next live run.",
@@ -848,9 +838,9 @@
    ],
    "label": "--no-wait",
    "first_seen": "2026-10-12T22:20:08.965Z",
-   "last_label": "--no-wait",
-   "last_seen": "2026-10-12T22:20:08.965Z",
-   "times": 1,
+   "last_label": "go-live-39cf441-spec16",
+   "last_seen": "2026-10-13T03:45:29.371Z",
+   "times": 3,
    "triage": {
     "verdict": "grader",
     "note": "The reply is the honest answer from the connector matrix: Fidelity has no trading API, so it is tracked read-only through Plaid, with the in-app path (Investments, then Connect investments). The check /link|connect|https?:\\/\\/|open/ is case-sensitive and missed \"Connect\". No connect card is shown because a card is only for a provider a person can connect from a link (owner's connect-card rule); Fidelity connects inside the app through Plaid.",
@@ -935,6 +925,728 @@
    "last_seen": "2026-10-12T22:24:35.366Z",
    "times": 1,
    "triage": null
+  },
+  {
+   "key": "5b08-56a8-26d7-edc9",
+   "kind": "other",
+   "suite": "spec16",
+   "id": "S16-08",
+   "text": "what's a roth ira",
+   "media": null,
+   "context": [
+    "what's my balance",
+    "how much did i spend on food last month",
+    "cancel netflix",
+    "send sam $40",
+    "actually make it $50",
+    "never mind"
+   ],
+   "checks": {
+    "matches": [
+     "[Rr]oth"
+    ],
+    "not_matches": [
+     "you should|I recommend|I'd recommend|best (fund|stock) for you"
+    ],
+    "min_chars": 80
+   },
+   "observed": {
+    "reply": "I want to be careful here — I can't verify that claim right now, so I won't state it as fact. Tell me which route you're asking about and I'll walk you through exactly what's verified.",
+    "route": null,
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "reply lacks /[Rr]oth/"
+   ],
+   "label": "go-live-5e033cb-spec16",
+   "first_seen": "2026-10-13T03:01:08.361Z",
+   "last_label": "go-live-5e033cb-spec16",
+   "last_seen": "2026-10-13T03:01:08.361Z",
+   "times": 1,
+   "triage": {
+    "verdict": "fixed",
+    "test_ref": "tests/edge/finance-facts.test.ts",
+    "note": "Root cause was in the code, not the model: no FINANCE_FACT defined a Roth IRA, so 'what's a roth ira' matched no fact, the model answered ungrounded, and the grounding guard replaced the whole reply with the 'can't verify that claim' deflection (no mention of Roth). Fixed by adding the roth-ira-basics fact (definition only, no figures to allowlist), so the question now answers in finance mode from a verified source. Proven by tests/edge/finance-facts.test.ts and the go-live-5e033cb spec16 re-run after the fix."
+   }
+  },
+  {
+   "key": "110b-5869-e2ea-4ffb",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G01",
+   "text": "buy $500 of VOO",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy $500.00 of VOO",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "c095-af95-5bf5-40f8",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G02",
+   "text": "buy like 500 bucks of voo",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy $500.00 of VOO",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "27e3-82d1-335a-97c2",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G03",
+   "text": "put 500 in the vanguard s&p fund",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO"
+    ]
+   },
+   "observed": {
+    "reply": "Vanguard doesn't let apps place trades, so Upmore can't connect it and nothing was placed. Alpaca does - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "refuse",
+     "canonical": "buy $500.00 of the vanguard s&p fund",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome refuse, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "677c-3114-09d1-53c1",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G04",
+   "text": "buy five hundred dollars of VOO",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy $500.00 of VOO",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "8f26-96f0-b526-fbd4",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G05",
+   "text": "grab me $500 voo pls",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy 500 shares of voo",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "afa7-5d61-15af-34c9",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G06",
+   "text": "buy $500 VOO in my roth",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "\\$500\\.00",
+     "VOO",
+     "Roth"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy $500.00 of VOO in roth",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"$500.00\"",
+    "card lacks \"VOO\"",
+    "card lacks \"Roth\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "639d-1717-1dd5-ce4d",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G07",
+   "text": "Buy 2 shares of vt",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "trade",
+    "outcome": "confirm",
+    "matches": [
+     "2 shares",
+     "VT"
+    ]
+   },
+   "observed": {
+    "reply": "No brokerage is connected yet, so nothing was placed - here's the link.\n\nhttps://upmore-srikanthvishnu90-sketchs-projects.vercel.app/connect/alpaca",
+    "route": {
+     "route": "buy_security",
+     "flow": "trade",
+     "source": "model",
+     "understood": true,
+     "understood_first": true,
+     "outcome": "blocked",
+     "canonical": "buy 2 shares of vt",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "outcome blocked, expected a confirmation card",
+    "card lacks \"2 shares\"",
+    "card lacks \"VT\""
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no brokerage connected (Alpaca OAuth app not yet registered, v3 Step 4), so the order was understood on the first message and correctly stopped at connect-first; a confirmation card needs the person's own connected brokerage. Same precondition as spec16 S16-10. Passes only once a real brokerage is linked to the test account."
+   }
+  },
+  {
+   "key": "736b-29d1-e30d-7bd5",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G08",
+   "text": "cancel netflix",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "7387-ac9d-2b29-2722",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G09",
+   "text": "cancel my netflix pls",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "c898-4056-ea6a-6211",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G10",
+   "text": "can u cancel netflix for me",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "87fc-58b6-dcde-ff98",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G11",
+   "text": "i dont want netflix anymore",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "332c-3fe8-ff40-47b3",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G12",
+   "text": "get rid of that netflix thing",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a that netflix thing charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "regex_net",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "get rid of that netflix thing",
+     "ask_reason": null,
+     "problems": [
+      "unknown intent undefined"
+     ]
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "2744-8285-8305-25c5",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G13",
+   "text": "cancle netflix",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": []
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
+  },
+  {
+   "key": "66f5-0fe2-e034-650e",
+   "kind": "flow",
+   "suite": "sloppy",
+   "id": "G14",
+   "text": "stop netflix",
+   "media": null,
+   "context": [],
+   "checks": {
+    "flow": "cancel",
+    "outcome": "confirm",
+    "matches": [
+     "Cancel Netflix",
+     "\\$17\\.99"
+    ]
+   },
+   "observed": {
+    "reply": "I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?",
+    "route": {
+     "route": "cancel_subscription",
+     "flow": "cancel",
+     "source": "model",
+     "understood": true,
+     "understood_first": false,
+     "outcome": "ask",
+     "canonical": "cancel netflix",
+     "ask_reason": null,
+     "problems": [
+      "amount_span \"stop netflix\" has no number"
+     ]
+    },
+    "error": null,
+    "failure_code": null
+   },
+   "reasons": [
+    "not understood on the first message",
+    "outcome ask, expected a confirmation card",
+    "card lacks \"Cancel Netflix\"",
+    "card lacks \"$17.99\"",
+    "asked a clarifying question"
+   ],
+   "label": "go-live-5e033cb-sloppy",
+   "first_seen": "2026-10-13T03:12:51.986Z",
+   "last_label": "go-live-5e033cb-sloppy",
+   "last_seen": "2026-10-13T03:12:51.986Z",
+   "times": 1,
+   "triage": {
+    "verdict": "precondition",
+    "note": "The gauntlet test user has no bank or card linked, so there is no Netflix charge on file; the live reply said exactly that and asked which card it is on or whether it is billed through Apple or Google — the honest answer for that data. Same precondition as spec16 S16-03. Passes only once the test account holds a real Netflix charge."
+   }
   }
  ]
 }

@@ -15,6 +15,13 @@
 //     listed scenario ID + honest R-C7 reply shape + no S0. Nothing here
 //     loosens that logic — "I didn't catch that" is never NI.
 // Tooling tests only; no product code is exercised.
+//
+// State note (2026-10-13): the COMMITTED list is no longer a draft — the
+// owner approved it as "Draft v1" with conditions (the version label lives
+// in the file's `version` field; the `status` field carries the approval).
+// The two committed-list tests below assert that approved state. The
+// fail-closed DRAFT gate itself is unchanged and is still covered by the
+// tmp-fixture tests (a draft/pending status hands gradeDir an empty list).
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert");
@@ -74,14 +81,14 @@ function runCli(t, cmd, record, absentPath) {
 
 // ---- loader: approval gate -------------------------------------------------
 
-test("loader: the committed DRAFT list loads but does NOT enable NI", () => {
+test("loader: the committed list is owner-approved (Draft v1) and enables NI for exactly its listed IDs", () => {
   const info = G.loadCapabilityAbsent(REAL_DRAFT);
   assert.equal(info.loaded, true);
-  assert.equal(info.approved, false, "status 'DRAFT — owner approval pending' must not count as owner-approved");
-  assert.equal(info.ni_enabled, false);
-  assert.deepEqual(info.capabilityAbsent, [], "a draft list must hand gradeDir an empty effective list");
-  assert.ok(info.scenario_ids.length > 0 && info.scenario_ids.includes("SC-287"), "the draft's listed IDs are still parsed (they are just not effective)");
-  assert.deepEqual(G.capabilityAbsentSummary(info), { loaded: true, approved: false, ni_enabled: false });
+  assert.equal(info.approved, true, "the owner approved the list as Draft v1 on 2026-10-13");
+  assert.equal(info.ni_enabled, true);
+  assert.deepEqual(info.capabilityAbsent, info.scenario_ids, "an approved list's effective list is exactly its listed IDs");
+  assert.ok(info.scenario_ids.length > 0 && info.scenario_ids.includes("SC-287"), "the approved list's IDs are parsed and effective");
+  assert.deepEqual(G.capabilityAbsentSummary(info), { loaded: true, approved: true, ni_enabled: true });
 });
 
 test("loader: an owner-approved status enables exactly the listed IDs", (t) => {
@@ -131,10 +138,10 @@ test("draft-status file: NI unreachable even for a listed ID with an honest R-C7
   assert.equal(r.verdict, "FAIL");
 });
 
-test("the committed DRAFT list: NI unreachable via its (empty) effective list", async () => {
+test("the committed APPROVED list: NI reachable for a listed ID with an honest R-C7 reply", async () => {
   const info = G.loadCapabilityAbsent(REAL_DRAFT);
   const r = await G.grade(makeRecord(HONEST_R_C7, "SC-287"), { capabilityAbsent: info.capabilityAbsent });
-  assert.equal(r.verdict, "FAIL", "SC-287 is listed in the draft, but the draft is unapproved so NI must not fire");
+  assert.equal(r.verdict, "NOT IMPLEMENTED", "SC-287 is listed in the owner-approved Draft v1 list and the reply is an honest R-C7 shape, so NI fires");
 });
 
 test("approved file + listed ID + honest R-C7 reply -> NOT IMPLEMENTED", async (t) => {

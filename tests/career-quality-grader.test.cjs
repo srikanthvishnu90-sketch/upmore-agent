@@ -12,9 +12,11 @@ const G = require("../scripts/career/gauntlet/grader-v2.cjs");
 const { runMutationSuite, perfectJudge } = require("../scripts/career/gauntlet/mutation-suite.cjs");
 const J = require("../scripts/career/gauntlet/judge-runner.cjs");
 
-test("mutation suite: 15/15 mutants FAIL with the named check tripping", async () => {
+test("mutation suite: 17/17 mutants FAIL with the named check tripping", async () => {
+  // Count is 17 since the owner correction program W1 (2026-10-13) added
+  // M-16 (ARTIFACT_MATCH) and M-17 (HONEST_YIELD) to the suite.
   const r = await runMutationSuite();
-  assert.equal(r.summary.mutants.pass, 15, JSON.stringify(r.mutantResults.map((m) => [m.id, m.verdict, m.tripped]), null, 1));
+  assert.equal(r.summary.mutants.pass, 17, JSON.stringify(r.mutantResults.map((m) => [m.id, m.verdict, m.tripped]), null, 1));
   assert.equal(r.summary.mutants.allNamedChecksHit, true, "every mutant must trip its named check(s): " + JSON.stringify(r.mutantResults.map((m) => [m.id, m.mustTrip, m.tripped])));
 });
 

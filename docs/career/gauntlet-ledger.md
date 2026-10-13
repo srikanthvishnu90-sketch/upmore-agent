@@ -1025,3 +1025,23 @@ deletion + G2/G6 141 content win; bundle regenerated + verified): suite 604/607 
 the only 3 reds are the designed SC-286/287/277 replays. The Gate-1 OFFICIAL
 BASELINE re-score (grader-v2 over the 300 records + script-generated 05 Part 3
 report) is now RUNNING.
+
+## Onboarding test set (operating-prompt Part 2) — BUILT + first-run graded
+
+OB-01..09 ×3 trials through the chat path (implementation = Codex's assignment;
+these cases are its acceptance gate). **S0 observed: NONE** — OB-04's containment
+held only vacuously (the pre-confirmation artifact ask produced NO artifact at
+all). **Live S0 RISK registered at the top of the firstrun doc:** 130's
+`answerCurrent` stores answers straight into profile preferences and neither 122
+nor 130 carries any confirmed/unconfirmed marker — the moment an artifact route
+exists, intro facts can flow into resumes/emails/applications unguarded. Verdicts:
+NI ×7 (no handler produces the Part 2 behavior in any form — the no-profile
+precondition isn't even representable in the current chain: seam S-PROFILE), FAIL
+×1 (OB-08: present-but-wrong — the "email him" turn is claimed by 142 and answered
+with the H-1 dead-end; the just-in-time connect request never surfaces), PASS ×1
+(OB-06 returning user, non-vacuous). Interpretation tension flagged for the run
+report: under 00/H-1's strict letter ("I didn't catch that" = FAIL S1), every NI
+here converts to FAIL S1 — the lane's NI reading is documented with all records
+preserved for re-derivation; the owner/grader call is recorded, not buried. Two
+more harness seams named (S-BUBBLE: intended separate bubbles cannot survive
+delivery; S-PERSIST: no cross-session lifetime store).

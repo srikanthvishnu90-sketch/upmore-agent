@@ -1,0 +1,222 @@
+/* Career application guardrails + submission seams (Doc 2 §5.3, §5.4, §5.5, §6;
+   capabilities APPE-005 sensitive-answer confirmation, APPE-007 referral
+   stacking, APPE-008 batch card / caps / duplicate / audit record).
+   Built 2026-10-12 in branch career/sc-f03 for scenario family F03
+   (SC-047, SC-051..SC-058, SC-060) because pivot/career shipped the tailor
+   (123) and discovery (121) rails but NO apply rail: the confirmation seams
+   the scenario ledger names ("APPE-005 seam", "APPE-008") did not exist.
+
+   Hard rules encoded (Doc 2, binding):
+   - T3 sensitive answers (work authorization / sponsorship, salary, EEO,
+     clearance, criminal history) are NEVER guessed and NEVER entered without
+     the user confirming the saved value verbatim in this session (§5.3, S6).
+     Salary is stricter still: no number is ever entered that the user did
+     not approve; the only default is "negotiable / open" where allowed.
+   - Knockout honesty (§5.3): if the user truly does not meet a stated
+     requirement, the application STOPS with the reason. It proceeds only on
+     an explicit user override ("apply anyway"), never silently.
+   - Daily cap (§5.4, owner suggestion adopted in Doc 2: 15/day). The cap
+     cannot be talked up in chat — attemptRaiseCap always refuses.
+   - Duplicate protection (§5.4): no second application to the same
+     company+role while a prior record exists in the application log.
+   - Current-employer guard (§5.4): no applying to a company that appears as
+     an employer on the master profile, unless the user explicitly confirms
+     the move is intentional (the stated exception path).
+   - Batch approval (§5.4/ledger SC-054): ONE card lists every role; nothing
+     is recorded as approved before the user's yes.
+   - Audit record (§5.5): job, company, URL, timestamp, resume version,
+     cover-letter id, every question + answer + its source, confirmation
+     state, referral attached (Y/N + who). Records live in an INJECTED log
+     ({records: []}) so tests/scenarios own the store; this module is pure.
+   - Referral stacking (§6): before submitting, check for a warm path. The
+     outreach engine (124-career-outreach.js, branch career/outr) is NOT
+     merged into this branch, so warm-path contacts are passed IN using
+     OUTR-shaped records ({full_name, current_firm, relationship_to_user} —
+     the field names 124's normalizeCandidate produces). When 124 lands, the
+     caller swaps its candidate pipeline output in unchanged.
+   Pure: no I/O, no network, no clock except values passed in. UMD. */
+const CareerApply = (() => {
+  const DAILY_CAP = 15;
+  const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  // ---------- application log + audit record (APPE-008, Doc 2 §5.5) ----------
+  function createLog() { return { records: [], _seq: 0 }; }
+  function buildAuditRecord(log, input) {
+    const inp = input || {};
+    log._seq = (log._seq || 0) + 1;
+    const rec = {
+      applicationId: inp.applicationId || `APP-${String(log._seq).padStart(3, "0")}`,
+      jobId: inp.jobId || null, company: inp.company || null, role: inp.role || null,
+      url: inp.url || null, timestamp: inp.timestamp || null,
+      resumeVersionId: inp.resumeVersionId || null, coverLetterId: inp.coverLetterId || null,
+      answers: (inp.answers || []).map((a) => ({ question: a.question, answer: a.answer, source: a.source || "profile", confirmationState: a.confirmationState || "not-required" })),
+      confirmationProof: inp.confirmationProof || null,
+      referral: { attached: !!(inp.referral && inp.referral.attached), who: (inp.referral && inp.referral.who) || null },
+      trackedAs: inp.referral && inp.referral.attached ? "referred" : "cold",
+      status: inp.status || "recorded",
+      channel: inp.channel || null,
+    };
+    log.records.push(rec);
+    return rec;
+  }
+  function findApplications(log, query) {
+    const q = query || {};
+    return (log.records || []).filter((r) =>
+      (!q.company || norm(r.company) === norm(q.company)) &&
+      (!q.role || norm(r.role) === norm(q.role)) &&
+      (!q.jobId || r.jobId === q.jobId));
+  }
+  function getAuditRecord(log, query) {
+    const hits = findApplications(log, query);
+    return hits.length ? hits[hits.length - 1] : null;
+  }
+
+  // ---------- duplicate protection (APPE-008) ----------
+  function checkDuplicate(log, posting) {
+    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role, jobId: posting.job_id || posting.jobId });
+    const prior = hits.find((r) => r.jobId === (posting.job_id || posting.jobId)) || hits[0] || null;
+    return prior ? { duplicate: true, prior, reason: `already applied to ${prior.company} — ${prior.role} on ${prior.timestamp ? String(prior.timestamp).slice(0, 10) : "an earlier date"} (${prior.applicationId})` } : { duplicate: false, prior: null };
+  }
+
+  // ---------- current-employer guard (APPE-008) ----------
+  function profileEmployers(profile) {
+    return ((profile && profile.facts) || []).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
+  }
+  function checkCurrentEmployer(profile, company) {
+    const hit = profileEmployers(profile).find((e) => norm(e.org) === norm(company));
+    return hit ? { blocked: true, employer: hit, reason: `${company} is your employer on your master profile (${hit.title}, fact ${hit.factId}) — the agent does not apply to your own employer`, exceptionPath: "If this move is intentional (e.g. an internal transfer or returning full-time), say so explicitly and the guard lifts for this one application." } : { blocked: false };
+  }
+
+  // ---------- daily cap (APPE-008 guardrail) ----------
+  function applicationsOn(log, dateStr) { return (log.records || []).filter((r) => r.timestamp && String(r.timestamp).slice(0, 10) === dateStr).length; }
+  function enforceDailyCap(log, requestedCount, dateStr) {
+    const already = applicationsOn(log, dateStr);
+    const remaining = Math.max(0, DAILY_CAP - already);
+    const allowed = Math.min(requestedCount, remaining);
+    return { cap: DAILY_CAP, alreadyToday: already, requested: requestedCount, allowed, queuedForTomorrow: requestedCount - allowed, capped: requestedCount > allowed, message: requestedCount > allowed ? `Capped at ${DAILY_CAP} applications per day: ${allowed} can go today, ${requestedCount - allowed} queue for tomorrow.` : `${requestedCount} application(s) fit inside today's cap of ${DAILY_CAP} (${already} already recorded today).` };
+  }
+  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference (Doc 2 §5.4)` }; }
+
+  // ---------- sensitive-answer seam (APPE-005, Doc 2 §5.3 + S6) ----------
+  function classifyQuestion(question) {
+    const q = String(question || "").toLowerCase();
+    if (/sponsor/.test(q)) return "sponsorship";
+    if (/authoriz|eligible to work|legally.*work/.test(q)) return "work_authorization";
+    if (/salary|compensation expect|pay expect/.test(q)) return "salary";
+    if (/race|ethnic|gender|veteran|disability|demographic|eeo/.test(q)) return "eeo";
+    if (/clearance/.test(q)) return "clearance";
+    if (/criminal|conviction|background check/.test(q)) return "background";
+    if (/years of experience|how many years/.test(q)) return "factual_years";
+    return "other";
+  }
+  // The saved sponsorship answer, derived ONLY from profile constraints/facts.
+  function savedSponsorshipAnswer(profile) {
+    const c = (profile && profile.constraints) || {};
+    const factText = ((profile && profile.facts) || []).map((f) => f.text || "").join(" ");
+    if (c.needsSponsorship) {
+      if (/F-1 OPT then H-1B/.test(factText) || /F-1/.test(String(c.workAuthorization || ""))) return "Yes — F-1 OPT then H-1B.";
+      return "Yes — I will require sponsorship.";
+    }
+    if (c.needsSponsorship === false) return "No — I do not require sponsorship.";
+    return null; // not saved: the agent must ask, never guess
+  }
+  function savedAnswerFor(profile, kind) {
+    const c = (profile && profile.constraints) || {};
+    const d = (profile && profile.defaults) || {};
+    if (kind === "sponsorship") return savedSponsorshipAnswer(profile);
+    if (kind === "work_authorization") return c.workAuthorization || null;
+    if (kind === "clearance") return c.securityClearance || "None";
+    if (kind === "eeo") return d.demographicPreference || "decline to answer";
+    return null;
+  }
+  // Returns a confirmation PROMPT, never an entered value. Only when the
+  // caller passes confirmed:true (the user's tap in this session) does the
+  // result carry entered:true with the answer.
+  function confirmSensitive(profile, question, opts) {
+    const o = opts || {};
+    const kind = classifyQuestion(question);
+    if (kind === "salary") return salaryQuestion(profile, question, o);
+    const saved = savedAnswerFor(profile, kind);
+    if (saved == null) return { kind, requiresConfirmation: true, savedAnswer: null, entered: false, prompt: `This is a sensitive question and I have no saved answer for it — I will not guess. What should I enter for: "${question}"?` };
+    if (o.confirmed === true) return { kind, requiresConfirmation: true, savedAnswer: saved, entered: true, answer: saved, confirmationState: "user-confirmed-in-session" };
+    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive (T3) answer and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
+  }
+  // Salary: ask, offer a SOURCED range when one is passed in, default to
+  // negotiable/open. A number is entered only when the user approved that
+  // exact number (opts.userApprovedNumber).
+  function salaryQuestion(profile, question, opts) {
+    const o = opts || {};
+    if (typeof o.userApprovedNumber === "number" && o.userApprovedNumber > 0) {
+      return { kind: "salary", requiresConfirmation: true, entered: true, answer: String(o.userApprovedNumber), confirmationState: "user-approved-number" };
+    }
+    return { kind: "salary", requiresConfirmation: true, entered: false, savedAnswer: null, proposedDefault: "Negotiable / open to the posted range", marketRange: o.marketRange || null, prompt: `I never enter a salary number you have not approved.${o.marketRange ? ` Sourced market range: ${o.marketRange.range} (source: ${o.marketRange.source}).` : " I have no sourced market range for this role."} I can enter 'Negotiable / open' where the form allows it, or a number you approve — which?` };
+  }
+
+  // ---------- knockout honesty (Doc 2 §5.3) ----------
+  function yearsForSkill(profile, skill) {
+    const facts = (profile && profile.facts) || [];
+    const sk = facts.find((f) => f.kind === "skill" && norm(f.name || f.title) === norm(skill));
+    if (!sk) return 0;
+    const ev = require("./122-career-profile.js").skillEvidence(profile, skill);
+    if (!ev.proven) return 0;
+    // Conservative: one internship/project cycle counts as 1 year unless the
+    // supporting facts carry explicit start/end spans summing higher.
+    let months = 0;
+    for (const id of ev.supportingFactIds || []) {
+      const f = facts.find((x) => x.id === id);
+      if (f && f.start && f.end) { const a = Date.parse(`${f.start}-01T00:00:00Z`), b = Date.parse(`${f.end}-01T00:00:00Z`); if (Number.isFinite(a) && Number.isFinite(b) && b > a) months += (b - a) / 2629800000; }
+    }
+    return Math.max(1, Math.round(months / 12 * 10) / 10);
+  }
+  function checkKnockout(profile, requirement, opts) {
+    const o = opts || {};
+    const req = requirement || {};
+    const years = typeof req.userYears === "number" ? req.userYears : yearsForSkill(profile, req.skill);
+    if (years >= req.requiredYears) return { blocked: false, years, requiredYears: req.requiredYears, skill: req.skill };
+    if (o.userSaysApplyAnyway === true) return { blocked: false, override: true, years, requiredYears: req.requiredYears, skill: req.skill, reason: `requirement is ${req.requiredYears} years of ${req.skill}; profile shows ${years} — proceeding only because the user explicitly said apply anyway` };
+    return { blocked: true, years, requiredYears: req.requiredYears, skill: req.skill, reason: `This form requires ${req.requiredYears} years of ${req.skill}; your profile evidences ${years}. I stopped this application rather than misstate it.`, overridePath: "Say 'apply anyway' and I will proceed with your honest numbers — I will never inflate them." };
+  }
+
+  // ---------- referral stacking (APPE-007, Doc 2 §6) ----------
+  // warmPaths: OUTR-shaped records (124 normalizeCandidate field names).
+  function checkReferral(company, warmPaths) {
+    const hits = (warmPaths || []).filter((c) => norm(c.current_firm || c.company) === norm(company));
+    if (hits.length) {
+      const who = hits[0].full_name || hits[0].name;
+      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications (Doc 2 §6/§7.5)." };
+    }
+    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign (Doc 1) of 5–10 people at ${company} first`], trackedSeparately: true };
+  }
+
+  // ---------- batch triage (Doc 2 S3) + batch card (SC-054) ----------
+  function triageBatch(postings, ctx) {
+    const c = ctx || {};
+    const Jobs = require("./121-career-jobs.js");
+    const scoringProfile = c.scoringProfile || null;
+    return (postings || []).map((p) => {
+      const reasons = [];
+      if (c.expiredJobIds && c.expiredJobIds.includes(p.job_id)) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: ["posting expired / link dead at check time"] };
+      const dup = c.log ? checkDuplicate(c.log, p) : { duplicate: false };
+      if (dup.duplicate) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: [dup.reason] };
+      const emp = c.profile ? checkCurrentEmployer(c.profile, p.company) : { blocked: false };
+      if (emp.blocked) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: [emp.reason] };
+      if (scoringProfile) {
+        const fit = Jobs.scoreFit(p, scoringProfile);
+        if (fit.excluded) {
+          const clearance = fit.hard_fails.some((r) => /clearance/i.test(r));
+          return { job_id: p.job_id, company: p.company, role: p.title, decision: clearance ? "ask" : "skip", fit: null, reasons: fit.hard_fails.map((r) => `hard filter: ${r}`) };
+        }
+        return { job_id: p.job_id, company: p.company, role: p.title, decision: "apply", fit: fit.score, bucket: fit.bucket, reasons: fit.reasons };
+      }
+      reasons.push("no scoring profile passed in — fit not computed");
+      return { job_id: p.job_id, company: p.company, role: p.title, decision: "ask", reasons };
+    });
+  }
+  function batchCard(items, opts) {
+    const o = opts || {};
+    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
+  }
+
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;

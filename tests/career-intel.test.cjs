@@ -218,3 +218,16 @@ test("[INTL-007] refresh-due flags aged facts on schedule and an outdated report
   assert.equal(log.action, "flagged_for_reverification");
   assert.ok(log.facts_to_recheck.length >= 0 && log.report.includes("HireVue"));
 });
+
+test("[INTL-003/BUG-003 replay] every shipped CIR composes a thesis that passes verifyThesis", () => {
+  // BUG-003: composeThesis quoted distribution notes, entry routes and known_biases verbatim but
+  // never entered their numbers into the claim ledger, so verifyThesis rejected the composer's own
+  // output for Bain, Citadel Securities, Duolingo, BCG, KKR, HRT, D. E. Shaw, Millennium, Point72,
+  // Two Sigma. The composer now ledgers every number it quotes, sourced to the quoting entry/route/fact.
+  const store = CI.loadCIRsFromDir(CIR_DIR);
+  for (const [id, cir] of Object.entries(store.byId)) {
+    const t = CI.composeThesis(cir, PROFILE, { now: NOW });
+    const v = CI.verifyThesis(t);
+    assert.equal(v.ok, true, `${id}: ${JSON.stringify(v.errors)}`);
+  }
+});

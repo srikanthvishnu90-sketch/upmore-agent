@@ -21860,6 +21860,25 @@ const CareerIntel = (() => {
       if (!f || !f.statement) continue;
       for (const n of numbersIn(f.statement)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${f.statement.slice(0, 60)}…: ${n}`, n, null, f);
     }
+    // BUG-003 fix (sc-w13): the who-gets-in lines quote distribution entries (label + qualitative note) and
+    // the routes section quotes entry routes (route + accessibility_note). Numbers inside those quoted
+    // strings must enter the ledger too, sourced to the entry/route — otherwise verifyThesis (§5) rejects
+    // theses this composer itself produced (Bain, Citadel Securities, Duolingo, BCG, KKR, HRT, et al.).
+    for (const field of DIST_FIELDS) {
+      for (const e of ((cir[field] || {}).entries || [])) {
+        if (!e || !e.source_url) continue;
+        for (const n of numbersIn(`${e.label || ""} ${e.note || ""}`)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${String(e.label || "").slice(0, 60)}…: ${n}`, n, null, e);
+      }
+    }
+    for (const r of (cir.entry_routes || [])) {
+      if (!r || !r.source_url) continue;
+      for (const n of numbersIn(`${r.route || ""} ${r.accessibility_note || ""}`)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${String(r.route || "").slice(0, 60)}…: ${n}`, n, null, r);
+    }
+    // Same BUG-003 class: who_gets_in also quotes known_biases_of_data verbatim — numbers there (a sample
+    // count cited inside a bias note, a "Doc 3" reference) enter the ledger sourced to the record itself.
+    for (const b of (cir.known_biases_of_data || [])) {
+      for (const n of numbersIn(b)) if (!claims.some((c) => sameNum(c.value, n))) claim(`${String(b).slice(0, 60)}…: ${n}`, n, null, { source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
+    }
     const text = [sections.bottom_line, sections.who_gets_in, sections.stated_vs_revealed, sections.routes_ranked, sections.gap_analysis, sections.plan, sections.coffee_chat_strategy, sections.timeline, sections.risks_alternatives, sections.offer_to_execute].join("\n\n");
     // Allowed without a claim: the plan's own 30-day horizon (§2.3 part 6 is a plan shape, not a world claim)
     // and the stale-fact count, which is a statement about this record, computed by the validator above.

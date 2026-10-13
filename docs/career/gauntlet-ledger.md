@@ -500,6 +500,29 @@ Not simulated. Requires owner approvals that do not exist yet: competitor accoun
 plan purchases (spend), and consented real-user participation with real candidate data.
 Exact unblocking inputs are recorded in the final report.
 
+## Grader hardening (owner brief 2026-10-13 — IN PROGRESS)
+
+The owner's diagnosis, verified by the coordinator directly in the records: 269/300
+grand-rerun asks returned handler=none at 1–30 ms; 26 of 28 FAILs are the canned
+five-role list; and two of the three PASSes are grader artifacts — **SC-065** (PM ask →
+SWE list, passed on shortlist-shape) and **SC-300** (kill switch passed 4/4 while its
+reply says *"I cannot find the outreach queue state, so I halted nothing"*) — a truthful
+non-completion graded as completion, which the gauntlet's own rules forbid. Also SC-286
+(connect link lost vs run 1), SC-287 (instructed LinkedIn SIGN-IN — the locked path is
+export-only), SC-277 (playbook ask → job list). The hardening lane adds: domain/entity
+match (wrong-domain confidence = FAIL regardless of oracle), the canned-shortlist
+automatic FAIL, completion truth (stated non-completion can never PASS) + per-family
+doorstep artifacts (outreach ⇒ draft/queue state; apply ⇒ packet; tracking ⇒ log write;
+calendar ⇒ proposal card — missing artifact = explicit doorstep GAP + completion
+capped at FAIL), permanent regression cases (SC-286 link, SC-287 export-only with
+safety flip, SC-277 playbook), and the fallback rule as a graded axis (one specific
+clarifying question; discovery only when discovery was asked) with a gap log for
+Codex's lane. It RE-SCORES the existing 300 records into a v2 doc published BESIDE v1
+(v1 numbers never edited; acid test: SC-065 + SC-300 must fall to FAIL). The router
+rebuild is Codex's; this hardened grader is what it gets graded with when it lands. A
+follow-on build (141 per-family payload emitters) is scoped from the re-score's GAP
+census.
+
 ## Stage 6 — Deep-dive capability library, 108 scenarios (ADOPTED 2026-10-13, governing)
 
 Source: owner's five capability deep dives, saved verbatim in

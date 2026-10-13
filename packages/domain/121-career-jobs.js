@@ -192,7 +192,7 @@ const CareerJobs = (() => {
     deadBoard("Netflix", "netflix", "no public ATS API: Lever netflix/netflixjobs HTTP 404, Ashby netflix 404, Greenhouse netflix 404; jobs.netflix.com / explore.jobs.netflix.net are custom surfaces (HTTP 200 HTML, no public postings JSON) — checked 2026-10-13"),
     liveBoard("Ashby", "ashby", "ashby", "verified live 2026-10-13: HTTP 200, 66 postings"),
     liveBoard("Ramp", "ashby", "ramp", "FIXED 2026-10-13: was Lever (api.lever.co/v0/postings/ramp = HTTP 404); Ramp's real board is Ashby — HTTP 200, 165 postings"),
-    liveBoard("OpenAI", "ashby", "openai", "verified live 2026-10-13: HTTP 200, 1001 postings"),
+    liveBoard("OpenAI", "ashby", "openai", "verified live 2026-10-13: HTTP 200, 805 postings"),
     liveBoard("Linear", "ashby", "linear", "verified live 2026-10-13: HTTP 200, 31 postings"),
     deadBoard("Square", "Square", "SmartRecruiters endpoint answers HTTP 200 with totalFound 0 and zero postings (run 1 and 2026-10-13); SmartRecruiters returns the identical 200/totalFound 0 body for a gibberish company token, so the 200 evidences no real board and no postings have ever been pulled from it — checked 2026-10-13"),
     liveBoard("Bosch Group", "smartrecruiters", "BoschGroup", "verified live 2026-10-13: HTTP 200, 100 postings on first page, totalFound 4948"),

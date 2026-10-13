@@ -76,7 +76,7 @@ If a correct SmartRecruiters identifier for either company surfaces later, flipp
 | Board | Provider/board | Postings |
 |---|---|---|
 | Stripe | greenhouse/stripe | 722 |
-| OpenAI | ashby/openai | 1001 |
+| OpenAI | ashby/openai | 805 |
 | Robinhood | greenhouse/robinhood | 178 |
 | Airbnb | greenhouse/airbnb | 164 |
 | Datadog | greenhouse/datadog | 437 |

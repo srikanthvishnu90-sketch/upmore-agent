@@ -501,7 +501,10 @@ function windfallOffer(p: any, accounts: any[] = []): WindfallOffer | null {
 // any warning stands on its own.
 function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: string; buffer_cents?: number }): { offer: PreventiveOffer; text: string; urgent: boolean; episode: { scope: string; low_cents: number; first_below_on: string } } | null {
   let mv: any = null;
-  try { mv = (AgentMoneyPlans as any).overdraftPrevention({ accounts: ctx.accounts, transactions: ctx.transactions, today: ctx.today, buffer_cents: ctx.buffer_cents }); } catch { return null; }
+  // The mapped accounts carry their display name in `name`; money-plans names accounts by `nickname`, so
+  // without this the move's own text fell back to the raw account id ("sav-1"). Give it the name.
+  const named = (ctx.accounts || []).map((a: any) => a && a.nickname == null && a.name != null ? Object.assign({}, a, { nickname: a.name }) : a);
+  try { mv = (AgentMoneyPlans as any).overdraftPrevention({ accounts: named, transactions: ctx.transactions, today: ctx.today, buffer_cents: ctx.buffer_cents }); } catch { return null; }
   if (!mv || !mv.needed || !mv.request || !(mv.amount_cents > 0)) return null;
   const fromId = String(mv.request.params.from), toId = String(mv.request.params.to);
   const nameOf = (id: string) => { const a = (ctx.accounts || []).find(x => x && String(x.id) === id); return a ? String(a.name || a.nickname || id) : null; };
@@ -510,7 +513,14 @@ function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: s
   // A5: the offer's base key is the checking episode's stable identity (its account), not the moving first-below
   // day; plan()'s episode gate replaces it with the report key for the episode it fires in.
   const offer: PreventiveOffer = { kind: "preventive_transfer", key: `low_balance:ep:${toId}`, amount_cents: mv.amount_cents, from_account_id: fromId, to_account_id: toId, from_name, to_name, first_below_on: String(mv.first_below.on), land_by: String(mv.land_by) };
-  return { offer, text: String(mv.text), urgent: !!(mv.low_point && mv.low_point.balance_cents < 0), episode: { scope: toId, low_cents: mv.low_point.balance_cents, first_below_on: String(mv.first_below.on) } };
+  // mv.text ends with its own move sentence ("Moving $X from <savings> by <date> keeps it above the line."),
+  // and the one caller of this text (the standalone warning in plan()) appends the same move restated with
+  // both account names plus the reply instruction — the warning said the move twice. Drop mv's sentence
+  // here; a partial-cover caveat inside it ("savings covers $A of the $B needed") survives as its own
+  // sentence, because the appended restatement does not carry it.
+  const rawText = String(mv.text);
+  const text = rawText.replace(/ Moving \$[\d,.]+ from .*? keeps it above the line(?:; (savings covers [^.]+))?\./, (_m: string, caveat: string) => caveat ? ` ${caveat.charAt(0).toUpperCase() + caveat.slice(1)}.` : "");
+  return { offer, text, urgent: !!(mv.low_point && mv.low_point.balance_cents < 0), episode: { scope: toId, low_cents: mv.low_point.balance_cents, first_below_on: String(mv.first_below.on) } };
 }
 
 // The offer on an ALRT-001 finding (key low_balance:<date>): the same computation, keyed to the finding.

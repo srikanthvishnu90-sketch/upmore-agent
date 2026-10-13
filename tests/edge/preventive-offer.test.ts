@@ -98,3 +98,10 @@ Deno.test("a no moves nothing and restates the risk; with nothing in savings no 
   assert(!bare.offer, "savings is empty: the warning stands alone, no move is offered");
   assert(!/Reply YES and I'll put up that move/.test(bare.text), bare.text);
 });
+
+Deno.test("K7 regression: the standalone warning (total cash above the buffer, checking alone dips) names the savings account and says the move once", () => {
+  const m = planned(128000);
+  assert(!/sav-1/.test(m.text), m.text);
+  assertEquals((m.text.match(/Moving \$600\.00/g) || []).length, 1, m.text);
+  assert(/Moving \$600\.00 from High Yield Savings to Everyday Checking by Nov 1 keeps it above the line\. Reply YES/.test(m.text), m.text);
+});

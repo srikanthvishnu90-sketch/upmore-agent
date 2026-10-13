@@ -1,7 +1,7 @@
 // Planted defects for disputing a charge (depth protocol step 2). A patch must match exactly once.
 const F = "79-dispute.js";
 module.exports = [
-  { id: "D01", sub: "S01", title: "Dispute words, not dispute questions", test: "'what is a chargeback' is the model's", defect: "the general-question guard is gone", patches: [{ file: F, find: "return ASK.test(t) && !GENERAL.test(t);", replace: "return ASK.test(t);" }] },
+  { id: "D01", sub: "S01", title: "Dispute words, not dispute questions", test: "'what is a chargeback' is the model's", defect: "the general-question guard is gone", patches: [{ file: F, find: "if (GENERAL.test(t)) return false;", replace: "" }] },
   { id: "D02", sub: "S02", title: "The amount said, comma included", test: "$1,048.20 reads as 104820", defect: "the thousands comma is not removed", patches: [{ file: F, find: "amount_cents = Number(am[1].replace(/,/g, \"\")) * 100", replace: "amount_cents = Number(am[1]) * 100" }] },
   { id: "D03", sub: "S03", title: "A date with no year", test: "Dec 30 asked on Jan 2 is last year's", defect: "a date with no year is always this year's, even in the future", patches: [{ file: F, find: "if (validYmd(today) && dayNum(s) > dayNum(today)) s = `${y - 1}-${s.slice(5)}`;", replace: "" }] },
   { id: "D04", sub: "S04", title: "The best merchant match", test: "'uber eats' picks UBER *EATS over UBER *TRIP", defect: "any merchant word match counts as well as the best", patches: [{ file: F, find: "c = c.filter(r => hit(r) === best);", replace: "c = c.filter(r => hit(r) > 0);" }] },

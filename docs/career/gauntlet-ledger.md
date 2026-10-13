@@ -777,3 +777,20 @@ reviewers, who pays + standing defaults). Documentation discipline stands as the
 order states: ledger current per commit, run reports script-generated from records,
 evidence saved for every run, defect register maintained, pack disagreements logged
 in every run report. If it isn't documented with evidence, it didn't happen.
+
+## Email-review master doc (owner order, 2026-10-13)
+
+`~/workspace/your_files/upmore-career-emails-for-review.md` is THE single
+email-review surface (seeded 2026-10-13, 139,990 bytes): **100 drafts awaiting
+review** after dedupe (93 from run-1 conversations, 1 NW13, 6 NW doorstep payloads),
+each with recipient (fixture persona), personalization fact + source, and the
+standing safety plan with sources (124 CAPS; C-1..C-3 defaults; Doc 1 follow-up
+timing). Id-only references (SC-036's follow-ups, bulk sets like SC-001's
+drafted:300, NW queue items, NW14/NW12 fragments) are listed as referenced-not-present
+and NOT counted. Red flags recorded in the doc: SC-042's 10 drafts share one
+unsourced "personalization" line across 5 firms; NW03's draft carried a stale
+title/firm (former employee per ground truth); all 7 NW doorstep drafts used zero
+sourced facts. The C-2 conflict sharpened: the breaker IN CODE is 3% while the pack
+default is 5%/3-hard — stated as a conflict, not resolved. Every new draft the
+program produces appends to this doc; every checkpoint names it + the count.
+Nothing in it is sent without the owner's approval of the exact text.

@@ -425,11 +425,24 @@ const CareerJobs = (() => {
     for (const fd of feedList) results.push(await fetchFeed(fd, opts));
     const postings = dedupe(results.flatMap((r) => r.postings));
     const new_postings = diffNew(postings, prior);
+    // Spec 2 §2.3 mass-close safety: a poll returning zero postings, or
+    // fewer than half the prior snapshot, must NOT fire closed events —
+    // that shape is a feed outage or a moved board until a later poll
+    // proves otherwise ("never as 'all jobs closed'"). Presence state is
+    // preserved, the differ's memory (job_ids) is kept so the same jobs
+    // do not re-fire as new, and the anomaly is flagged on the result.
+    const priorIds = (prior && prior.job_ids) || [];
+    const massCloseSuspect = priorIds.length >= 4 && postings.length < priorIds.length / 2;
     const snapshot = makeSnapshot(postings, opts.now, prior && prior.history);
+    if (massCloseSuspect) {
+      for (const id of priorIds) if (snapshot.history[id]) snapshot.history[id].present = true;
+      snapshot.job_ids = priorIds.slice();
+      snapshot.mass_close_suspect = { prior_count: priorIds.length, current_count: postings.length };
+    }
     if (store) await store.set(key, snapshot);
     const skippedDead = (feedList || []).filter((fd) => fd && fd.status === "dead")
       .map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" }));
-    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead, source_health: sourceHealth(results) };
+    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead, source_health: sourceHealth(results), mass_close_suspect: massCloseSuspect ? { prior_count: priorIds.length, current_count: postings.length } : null };
   }
 
   // ---------- ghost / quality flags (DISC-008) ----------

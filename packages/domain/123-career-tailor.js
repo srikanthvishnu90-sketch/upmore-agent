@@ -207,6 +207,19 @@ const CareerTailor = (() => {
       for (const n of numbersIn(text)) {
         if (!supportText.replace(/,/g, "").includes(n)) violations.push({ line: text, reason: `number "${n}" does not appear in any supporting fact`, factIds });
       }
+      // Immutability rule (Spec 3 H3): a capitalized name mid-line — an
+      // employer, title, school or tool — must appear in the cited fact(s).
+      // Swapping the employer/title while keeping the rest of the line is
+      // the mutation this catches; token overlap alone waves it through.
+      const NAME_OK = new Set(["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]);
+      const seenNames = new Set();
+      String(text).split(/\s+/).forEach((w, i) => {
+        if (i === 0) return; // line-initial capitalization is positional, not a name
+        const clean = w.replace(/^[^A-Za-z]+|[^A-Za-z&.]+$/g, "");
+        if (clean.length < 2 || !/^[A-Z]/.test(clean) || NAME_OK.has(clean) || seenNames.has(clean)) return;
+        seenNames.add(clean);
+        if (!supportText.includes(clean.toLowerCase())) violations.push({ line: text, reason: `named entity "${clean}" does not appear in the cited fact(s)`, factIds });
+      });
       // Support rule: a skill-fact-only line is fine (the skills line); other
       // lines must share meaningful tokens with their supporting facts.
       const onlySkillFacts = facts.every((f) => f.kind === "skill");

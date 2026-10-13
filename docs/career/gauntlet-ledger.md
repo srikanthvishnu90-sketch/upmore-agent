@@ -1291,3 +1291,92 @@ fact only; NO extraction, NO scraping, NO automated sending — enforced
 by a source-scan test; 4 fail-first tests). Both registered in the
 router bundle (107 modules, `--check` clean); suites intake+platform+
 outreach+router-bundle = 59/59.
+
+
+---
+
+## SPEC 2 + SPEC 3 FOLDED IN — 2026-10-13 (coordinator, same wave)
+
+**Inputs filed:** Spec 2 (job detection, alerts, fast apply) and Spec 3
+v2 (resumes + proof of work; **v2 SUPERSEDES v1** the same day) are
+copied into the repo at `docs/career/upmore-spec2-job-detection-alerts-
+fast-apply.txt` and `docs/career/upmore-spec3-resumes-proof-of-work.txt`
+(canonical copies remain in ~/workspace/your_files/). Spec 3 is
+NON-CANONICAL by its own declaration: where it conflicts with the
+quality spec pack, the pack wins. Spec 2's header law matches locked law
+(approval card + log for every outbound action) and its scope guard
+matches ours (never build on the live finance ref or Sporv; deploys are
+the owner's). The specs' [DECISION] lists (Spec 2 §15 ×8, Spec 3 §16 ×6)
+are batched to the owner by the parent — NOT ruled, except role families
+(below). No build depending on an unruled [DECISION] item was started;
+the wedge stays first in sequence; detection work reuses the 121/130
+rails (121 already implements Spec 2 §2.3–2.5's feeds, normalizers and
+differ in large part).
+
+**Role-family order — OWNER RULED 2026-10-13: FINANCE → SWE → LAW.**
+Supersedes Spec 3's SWE+Data suggestion (§15/§16). Applied in the CA-02
+plan (template/review order and pilot/proof-of-work sequencing: Finance
+§8.4 + brief §8C.7 first, SWE §8.1 + §8C.1/2 second, Law third). Law is a
+Spec 3 §8B.5 STUB: it ships no advice until the standing family rule is
+met — 3 independent sources attached + a human reviewer (§8.7/§8B).
+
+**Hard gates folded into the grader corpus** (`tests/career-spec-
+gates.test.cjs`, pass bar 100% per Spec 2 §11 / Spec 3 §13.1; corpus
+fixture `tests/fixtures/spec2-injection-corpus.cjs`, §8D fixtures
+`tests/fixtures/spec3-tailoring-examples.cjs`): **19 live tests PASS,
+7 gates registered as skipped-with-reason (SUT not built — never counted
+as passes).** Live and green: Spec 2 isolation ×3 (122/132/124), no
+unapproved send, no duplicate submit ×2, mass-close ×2, injection corpus
+(40 cases: markers confined to posting data fields, zero side effects;
+10 classes also driven through the tailor), Spec 3 H1 (3 adversarial
+shapes), H2 (number rule), H3 (immutability), H4 (draft-artifact +
+approval), H5 (JD injection incl. §8D-4 verbatim + poisoned-fact audit),
+H6 (no PII on any console channel), R10, R11, §8D example 1
+(allowed line passes the audit; the not-allowed additions trip it),
+§11.2 claims register (no "beats ATS / gets you hired / guaranteed"
+claims in the copy surfaces this program owns). Registered-pending:
+Spec 2 §11 A (fetcher contract fixtures), C (300-pair dedupe P/R),
+D (200-pair matching), F (sandbox apply — CA-03), H (load test);
+Spec 3 §13.2 (parse tests — CA-02), §8B.4 (healthcare credential rules).
+
+**Two real defects the new gates caught, both fixed in-lane with the
+gate as the replay test (fail-before recorded above):**
+1. **121 mass-close hazard (Spec 2 §2.3's "classic bug"):** a zero-result
+   or collapsed poll marked EVERY known job not-present — a feed outage
+   would have fired a mass "closed" event. Fix: a poll returning zero,
+   or fewer than half the prior snapshot (prior ≥ 4), preserves presence
+   state and the differ's job_ids memory, and flags
+   `mass_close_suspect {prior_count, current_count}` on the result and
+   snapshot. Normal small drops still close exactly the missing jobs
+   (control case in the gate test).
+2. **123 truth-audit immutability gap (Spec 3 H3):** swapping the
+   employer/title in a resume line while keeping the rest of the line
+   passed the audit (token overlap waved it through). Fix: a
+   named-entity rule in `auditResume` — a capitalized name mid-line must
+   appear in the cited fact(s). Regression suites after both fixes:
+   jobs/tailor/packets/apply/apply3 = 70/70; router bundle rebuilt
+   (107 modules, --check clean).
+
+**Plans updated:** `review/ca-02-ca-03-build-plans.md` now cites the
+specs section by section (CA-02 ← Spec 3 v2 §10, §2.5 + R1–R11, §5, §6.2,
+§8B/§8C with §8C.14 selection logic, §8D/§8E fixtures+rubrics, §11.2
+claims register; CA-03 ← Spec 2 §6.1 pipeline, §6.3 browser rules, §6.4
+caps as [DECISION]-pending, §8.2/§8.3, §1–§4 detection side). The §8E
+rubrics + §8D worked examples are also appended to the owner's
+calibration doc as a labeled addendum (his 40 items untouched).
+
+**Spec 2 §2.7(f) — forwarded alert emails: NOTED, NOT BUILT.** Users
+forwarding LinkedIn/Indeed alert emails to a dedicated Upmore inbox (or
+read-only Gmail with consent) is recorded in the CA-03 plan and here as
+the sanctioned compliant breadth lane — the alternative to scraping.
+It sits on the owner's §15 decision list (item 5); nothing is built
+until he rules.
+
+**Real-people directive (owner, 2026-10-13):** fixtures no longer
+suffice for the people pipeline; a public-sources real-bankers research
+list (evidence URL per person; emails marked published vs inferred-held
+vs not found; nothing sent) is commissioned by the parent and lands in
+~/workspace/your_files/. As of this entry it has NOT landed yet. When it
+lands, it becomes module 146's first real-input test set (dedupe /
+freshness / counts against real data; still no sends, no enrichment
+purchases), and the run is recorded here.

@@ -50,14 +50,19 @@ const INTERNATIONAL = {
 // Harvest a claim for every number anywhere in a CIR (mirrors the 125 validator's thesis-trace rule),
 // for scenario answers that quote CIR facts outside composeThesis (SC-224 / SC-231).
 function claimsFromCIR(cir) {
+  // NOTE: an earlier recursive version silently returned [] — its unbraced `else if (string) for (...) if (...)`
+  // made the following else-if branches bind to the INNER if, so arrays/objects were never traversed (SC-231).
   const claims = [];
-  const harvest = (v) => {
-    if (typeof v === "number") { if (!claims.some((c) => c.value === v)) claims.push({ text: `${cir.company_id} fact`, value: v, unit: null, source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size }); }
-    else if (typeof v === "string") for (const n of CI.numbersIn(v)) if (!claims.some((c) => c.value === n)) claims.push({ text: `${cir.company_id} fact`, value: n, unit: null, source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
-    else if (Array.isArray(v)) v.forEach(harvest);
-    else if (v && typeof v === "object") Object.values(v).forEach(harvest);
-  };
-  const { thesis_text, ...rest } = cir; harvest(rest);
+  const add = (n) => { if (!claims.some((c) => c.value === n)) claims.push({ text: `${cir.company_id} fact`, value: n, unit: null, source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size }); };
+  const { thesis_text, ...rest } = cir;
+  const stack = [rest];
+  while (stack.length) {
+    const v = stack.pop();
+    if (typeof v === "number") { add(v); }
+    else if (typeof v === "string") { CI.numbersIn(v).forEach(add); }
+    else if (Array.isArray(v)) { v.forEach((x) => stack.push(x)); }
+    else if (v && typeof v === "object") { Object.values(v).forEach((x) => stack.push(x)); }
+  }
   return claims;
 }
 

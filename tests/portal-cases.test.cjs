@@ -160,6 +160,31 @@ test("Muse-parity dollars, computed by hand first: PMI, water, renters, pet, loa
   assert.match(run("C92").out.text, /claims €600 \(about \$648\.00 at the supplied 1\.08 rate\)/);
 });
 
+test("doorstep: every execute/packet item reaches a filled review screen and stops; readonly items have none", () => {
+  for (const id of IDS) {
+    const c = P.get(id), d = P.doorstep(id, FACTS[id]);
+    if (c.mode === "readonly") { assert.equal(d, null, id); continue; }
+    assert.equal(d.kind, "doorstep", id);
+    assert.equal(d.ready.state, "reached the doorstep, action ready, not executed", id);
+    assert.match(d.ready.stop, /has NOT been pressed/, id);
+    assert.ok(d.ready.lines.some(l => l.includes(P.money(c.amount(FACTS[id])))), `${id}: ready screen carries the exact amount`);
+    assert.match(d.session.lane, /guided manual connect/, id);
+    // Missing facts: the doorstep is the ask, never a filled screen on a guess.
+    assert.equal(P.doorstep(id, {}).kind, "ask", id);
+  }
+});
+
+test("doorstep: no verification code, password or identity digit ever appears in the spec", () => {
+  for (const id of IDS) {
+    const d = P.doorstep(id, FACTS[id]);
+    if (!d || d.kind !== "doorstep") continue;
+    const all = JSON.stringify(d);
+    assert.doesNotMatch(all, /\b\d{6}\b/, id);
+    assert.doesNotMatch(all, /password\s*[:=]\s*\S+/i, id);
+    assert.match(all, /never appears in chat, a log, a doc or a screenshot/, id);
+  }
+});
+
 test("readonly items change nothing and say so", () => {
   for (const id of ["C185", "C192", "C194"]) {
     const p = P.prepare(id, FACTS[id]);

@@ -429,6 +429,47 @@ const PortalCases = (() => {
     return { done: true, reason: `provider record reads ${r.state}` };
   }
 
-  return { CASES, get: id => byId[id] || null, detect, prepare, execute, verify, createProvider, fingerprint, money };
+  // The doorstep (owner addendum, 2026-10-12): for every execute/packet item, the flow drives the authenticated
+  // session ALL the way to the real action — signed in on the product's guided manual-connect lane (a READ-ONLY
+  // session lane by policy, packages/domain/78-manual-connect.js: the person signs in themselves in the provider's
+  // own window, only the encrypted session persists, and the lane never places, sends or changes anything) — with
+  // the action filled in from the same facts as the card, and STOPS before the executing tap. A verification code,
+  // where the provider asks for one, comes from the person's own connected Gmail by the standing pattern and never
+  // appears in chat, logs, docs or screenshots; this spec therefore names the step and carries no code. Read-only
+  // items have no executing tap, so they have no doorstep (null).
+  function doorstep(id, facts) {
+    const c = byId[id]; if (!c || c.mode === "readonly") return null;
+    const f = facts || {};
+    if (missing(c, f).length) return { kind: "ask", id, text: c.ask };
+    const svc = c.counterparty(f), amt = c.amount(f);
+    return {
+      kind: "doorstep", id, service: svc, mode: c.mode,
+      session: {
+        lane: "guided manual connect (read-only session lane)",
+        signin_title: `${svc} — sign in`,
+        steps: [
+          `Open ${svc}'s own sign-in page inside the guided session window.`,
+          "You sign in yourself: email and password are typed only in the provider's own window; Upmore never sees, asks for or stores them.",
+          "If the provider asks for a verification code, it is read from your own connected Gmail by the standing pattern and filled in there; the code never appears in chat, a log, a doc or a screenshot.",
+          "Signed in when the provider's account home is loaded; only the encrypted session persists.",
+        ],
+      },
+      ready: {
+        title: `${svc} — review screen, filled in, not submitted`,
+        lines: [
+          c.action(f) + ".",
+          amt ? `Amount: ${money(amt)}.` : "Amount: $0.00.",
+          f.account ? `Account: ${f.account}.` : "",
+          `Counterparty: ${svc}. Fees: $0.00.`,
+        ].filter(Boolean),
+        stop: c.mode === "packet"
+          ? "The provider's Submit / File / Send button is on this screen and has NOT been pressed. The packet is filled in; the filing tap is yours."
+          : "The provider's Confirm button is on this screen and has NOT been pressed. Nothing has been executed; on the live rail this tap is yours until a wired provider rail exists.",
+        state: "reached the doorstep, action ready, not executed",
+      },
+    };
+  }
+
+  return { CASES, get: id => byId[id] || null, detect, prepare, execute, verify, createProvider, fingerprint, doorstep, money };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = PortalCases;

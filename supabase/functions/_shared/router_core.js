@@ -21412,6 +21412,629 @@ const CareerTailor = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;
 
+/* Career outreach engine (Doc 1, OUTR-001..008 / OUTE-001..013). Pure domain logic: the clock, DNS lookup,
+   transports and the user's profile are passed in. Sends ride an INJECTED transport only — the Gmail shape
+   (createGmailTransport) wraps a caller-supplied Gmail API client; this module never sends by itself and
+   holds no key, token or vendor credential. Mocks live only in tests and are labeled mock there.
+   OWNER RULES (decided 2026-10-12, not provisional): send only from the user's own Gmail via OAuth;
+   caps start 10-15/day, ramp +5 per 2-3 days, ceiling 30/day, and the agent REFUSES to raise caps;
+   per-domain throttle 3-5/day; per-firm cap 15 per 30 days; per-person 1 initial + max 2 follow-ups
+   per 6 months; follow-up waves need a continue tap; EU/UK recipients are EXCLUDED in v1; NO LinkedIn
+   scraping or automation of any kind (user-owned export data only); suppression is shared cross-user
+   (only the opt-out fact is shared, campaign data stays per-user) and a suppression failure is severity-1. */
+const CareerOutreach = (() => {
+  "use strict";
+  let FIRM_SETS = null;
+  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch (e) { FIRM_SETS = { sets: {} }; }
+
+  const CAPS = Object.freeze({
+    channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
+    ceilingPerDay: 30, userCanRaise: false, perDomainPerDay: 4, perDomainRange: [3, 5],
+    perFirmPer30Days: 15, perPersonInitial: 1, perPersonMaxFollowUps: 2, perPersonWindowDays: 183,
+    riskyMaxFraction: 0.10, gapMinutes: [2, 8], bounceBreakerRate: 0.03, hostileBreakerCount: 2,
+    wave1Size: 40, maxWords: 120, maxLinks: 1,
+  });
+  const OPT_OUT_LINE = "If you'd rather not hear from me, just say so and I'll stop.";
+  const BANNED_PHRASES = ["i hope this email finds you well", "i came across your profile and was impressed",
+    "pick your brain", "i'd love to connect", "i would love to connect", "admire your impressive career"];
+  const EU_UK_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","GB","UK"]);
+  const EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
+  const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const emailDomain = (e) => { const m = String(e || "").toLowerCase().match(/@([^>\s]+)$/); return m ? m[1] : null; };
+  function isEuUk(c) {
+    if (!c) return false;
+    if (c.country && EU_UK_COUNTRIES.has(String(c.country).toUpperCase())) return true;
+    const g = norm(c.geography || c.office || c.location || "");
+    if (!g) return false;
+    // Zurich (CH) and Oslo (NO) are not EU/UK for this rule's country set as coded above except NO is not in set; keep place list clean:
+    return ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "portugal", "denmark", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "frankfurt", "luxembourg", "brussels", "vienna", "lisbon", "athens", "budapest", "prague", "bucharest", "helsinki", "copenhagen"].some((p) => g.split(" ").join(" ").includes(p));
+  }
+
+  // ---------- OUTE-001: target-spec parser ----------
+  const SET_ALIASES = [
+    ["bulge_bracket", /\bbulge bracket\b|\bbb banks?\b/], ["elite_boutique", /\belite boutique/],
+    ["middle_market", /\bmiddle[- ]market\b|\bmm banks?\b/], ["mbb", /\bmbb\b|\bmckinsey\b|\bbain\b|\bbcg\b|\bboston consulting\b/],
+    ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
+    ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
+    ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
+  ];
+  function parseTarget(text, profile) {
+    profile = profile || {};
+    const raw = String(text || ""); const w = " " + norm(raw) + " ";
+    const q = { industry: null, firm_set: null, firms: [], role_family: null, seniority_band: null, geography: null, school_filter: null, background_filters: {}, exclusions: [], count: null, vague: false, proposed_default: null };
+    const num = raw.match(/\b(\d{1,4})\b/); q.count = num ? Number(num[1]) : null;
+    for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
+    if (q.firm_set && FIRM_SETS.sets[q.firm_set]) q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name);
+    if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
+    if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
+    if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
+    if (/\b(pms?|product managers?)\b/.test(w)) { q.role_family = "product_management"; q.industry = q.industry || "tech"; }
+    if (/\b(swes?|software engineers?|engineers?)\b/.test(w)) { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
+    if (/\bfounders?\b/.test(w)) { q.role_family = "founder"; q.industry = q.industry || "startups"; }
+    if (/\bprivate equity|\bpe (associates?|principals?)\b/.test(w)) { q.industry = "private_equity"; q.role_family = q.role_family || "private_equity"; }
+    if (/\bassociates?\b/.test(w)) q.seniority_band = "associate";
+    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
+    else if (/\b(vps?|vice presidents?)\b/.test(w)) q.seniority_band = "vp_plus";
+    else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
+    const geo = raw.match(/\bin\s+(NYC|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote)\b/i);
+    if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
+    if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
+    else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
+    const stage = raw.match(/series\s+([A-Z])(?:\s*[-–]\s*([A-Z]))?/i);
+    if (stage) { const A = "ABCDEFGH"; const a = A.indexOf(stage[1].toUpperCase()); const b = stage[2] ? A.indexOf(stage[2].toUpperCase()) : a; q.background_filters.startup_stage = A.slice(a, b + 1).split(""); q.industry = q.industry || "startups"; }
+    if (/hiring a first (swe|engineer)/.test(w)) q.background_filters.hiring_first_swe = true;
+    if (/drop vps|no vps|exclude vps/.test(w)) q.exclusions.push("seniority:vp_plus");
+    if (/alumni/.test(w)) q.background_filters.alumni = true;
+    q.exclusions.push("geo:EU_UK"); // decided v1 rule, always on
+    if (!q.count) q.count = 40;
+    if (!q.firm_set && !Object.keys(q.background_filters).length && !q.school_filter && !q.geography) {
+      q.vague = true;
+      q.proposed_default = { industry: "investment_banking", firm_set: "bulge_bracket", role_family: "investment_banking", seniority_band: "analyst_associate", count: q.count, note: "Vague ask: proposed default shown to the user before anything is built (Doc 1 §2.1)." };
+      Object.assign(q, { industry: q.proposed_default.industry, firm_set: q.proposed_default.firm_set, role_family: q.proposed_default.role_family });
+      q.firms = (FIRM_SETS.sets.bulge_bracket ? FIRM_SETS.sets.bulge_bracket.firms.map((f) => f.name) : []);
+    }
+    if (!q.seniority_band && q.role_family) q.seniority_band = null;
+    return q;
+  }
+
+  // ---------- OUTE-002: candidate pipeline ----------
+  function levenshtein(a, b) { const m = a.length, n = b.length; const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]); for (let j = 0; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
+  const nameSim = (a, b) => { a = norm(a); b = norm(b); if (!a || !b) return 0; const max = Math.max(a.length, b.length); return max ? 1 - levenshtein(a, b) / max : 0; };
+  const HARD_FUZZY = 0.92;
+  function normalizeCandidate(r) {
+    return Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false }, r || {});
+  }
+  function resolveCandidates(records) {
+    const out = [], review = []; const list = (records || []).map(normalizeCandidate);
+    for (const r of list) {
+      let merged = false;
+      for (const c of out) {
+        const sim = nameSim(c.full_name, r.full_name);
+        const sameFirm = norm(c.current_firm) === norm(r.current_firm) && !!norm(r.current_firm);
+        const schoolA = (c.schools || []).map(norm), schoolB = (r.schools || []).map(norm);
+        const sameSchool = schoolA.some((s) => s && schoolB.includes(s));
+        if (sim >= HARD_FUZZY && sameFirm && sameSchool) {
+          // merge: richer record wins per field; sources union; facts union by fact text
+          for (const k of ["title", "group", "work_email", "seniority_band", "office", "geography", "country", "grad_year", "last_verified_at"]) if (!c[k] && r[k]) c[k] = r[k];
+          c.email_confidence = Math.max(c.email_confidence || 0, r.email_confidence || 0);
+          c.source_list = [...new Set([...(c.source_list || []), ...(r.source_list || [])])];
+          const seen = new Set(c.personalization_facts.map((f) => norm(f.fact)));
+          for (const f of r.personalization_facts || []) if (!seen.has(norm(f.fact))) c.personalization_facts.push(f);
+          merged = true; break;
+        }
+        if (sim >= 0.80 && sim < HARD_FUZZY && sameFirm) { review.push(Object.assign({}, r, { review_reason: "ambiguous_identity", matched_person_id: c.person_id || null })); merged = true; break; }
+        if (sim >= HARD_FUZZY && sameFirm && !sameSchool) { review.push(Object.assign({}, r, { review_reason: "ambiguous_identity_school_mismatch" })); merged = true; break; }
+      }
+      if (!merged) out.push(r);
+    }
+    return { candidates: out, review };
+  }
+  function scoreCandidate(c, q, profile, nowMs) {
+    q = q || {}; profile = profile || {};
+    let fit = 0; const firmNames = (q.firms || []).map(norm);
+    if (!firmNames.length || firmNames.includes(norm(c.current_firm))) fit += 0.4;
+    if (!q.seniority_band || !c.seniority_band || norm(c.seniority_band) === norm(q.seniority_band)) fit += 0.2;
+    if (!q.geography || norm(c.geography || c.office).includes(norm(q.geography)) || norm(q.geography) === "nyc" && /new york/.test(norm(c.geography || c.office))) fit += 0.2;
+    if (!q.school_filter || q.school_filter === "USER_SCHOOL_UNSPECIFIED" || (c.schools || []).map(norm).includes(norm(q.school_filter))) fit += 0.2;
+    const reachability = Math.max(0, Math.min(1, c.email_confidence || 0));
+    const rel = norm(c.relationship_to_user);
+    let warmth = 0.1;
+    if (/1st|first/.test(rel)) warmth = 1; else if (/same school.*club|club.*same school/.test(rel)) warmth = 0.9;
+    else if (/2nd|second/.test(rel)) warmth = 0.6; else if (/same school|alumni/.test(rel)) warmth = 0.7; else if (/hometown/.test(rel)) warmth = 0.5;
+    if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) warmth = Math.max(warmth, 0.7);
+    let recency = 0.2;
+    if (c.last_verified_at) { const age = (nowMs - Date.parse(c.last_verified_at)) / 86400000; recency = age <= 30 ? 1 : age <= 90 ? 0.7 : age <= 183 ? 0.4 : 0.2; }
+    const total = Math.round((0.4 * fit + 0.25 * reachability + 0.2 * warmth + 0.15 * recency) * 1000) / 1000;
+    return { fit: Math.round(fit * 1000) / 1000, reachability, warmth, recency, total };
+  }
+  function buildList(records, query, opts) {
+    opts = opts || {}; const nowMs = opts.nowMs || Date.now(); const profile = opts.profile || {};
+    const suppression = opts.suppression || null;
+    const already = new Set((opts.alreadyEmailed || []).map((e) => norm(e)));
+    const ownEmployers = new Set([].concat(profile.current_employer || [], profile.past_employers || []).map(norm).filter(Boolean));
+    const { candidates, review } = resolveCandidates(records);
+    const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0 };
+    const kept = [];
+    for (const c of candidates) {
+      if (c.opt_out) { exclusions.opt_out++; continue; }
+      if (suppression && suppression.isSuppressed({ email: c.work_email, person_id: c.person_id }, opts.userId)) { exclusions.suppressed++; continue; }
+      if (c.contacted_before || (c.work_email && already.has(norm(c.work_email))) || already.has(norm(c.full_name))) { exclusions.already_emailed++; continue; }
+      if (ownEmployers.has(norm(c.current_firm)) && !opts.includeOwnEmployer) { exclusions.own_employer++; continue; }
+      if (isEuUk(c)) { exclusions.eu_uk++; continue; }
+      if (!c.work_email) { exclusions.no_email++; continue; }
+      if (c.email_verification === "invalid") { exclusions.invalid_email++; continue; }
+      c.scores = scoreCandidate(c, query, profile, nowMs); kept.push(c);
+    }
+    kept.sort((a, b) => b.scores.total - a.scores.total);
+    const want = query && query.count ? query.count : kept.length;
+    const selected = [], reserve = [], firmCount = {};
+    for (const c of kept) {
+      const fk = norm(c.current_firm);
+      if (selected.length < want) {
+        if ((firmCount[fk] || 0) >= CAPS.perFirmPer30Days) { reserve.push(c); continue; }
+        firmCount[fk] = (firmCount[fk] || 0) + 1; selected.push(c);
+      } else reserve.push(c);
+    }
+    const trusted = kept.filter((c) => c.email_verification === "verified" || (!c.email_verification && (c.email_confidence || 0) >= 0.8)).length;
+    const risky = kept.filter((c) => c.email_verification === "risky" || (!c.email_verification && (c.email_confidence || 0) < 0.5)).length;
+    const yieldReport = { found: (records || []).length, resolved: candidates.length, review_bucket: review.length, trusted_emails: trusted, risky_emails: risky, sendable: kept.length, selected: selected.length, reserve: reserve.length, exclusions };
+    return { candidates: selected, selected, reserve, review, yield: yieldReport, exclusions };
+  }
+  function listReviewCard(pool, query) {
+    const by = (fn) => { const m = {}; for (const c of pool.selected || []) { const k = fn(c) || "unknown"; m[k] = (m[k] || 0) + 1; } return m; };
+    return { count: (pool.selected || []).length, breakdown: { by_firm: by((c) => c.current_firm), by_role: by((c) => c.title), by_seniority: by((c) => c.seniority_band), by_school_overlap: by((c) => (c.schools || [])[0]) },
+      confidence: pool.yield, yield: pool.yield, sample_rows: (pool.selected || []).slice(0, 10).map((c) => ({ name: c.full_name, firm: c.current_firm, title: c.title, school: (c.schools || [])[0] || null, email_verification: c.email_verification || null, scores: c.scores || null })),
+      exclusions: pool.exclusions, review_bucket: (pool.review || []).length, query: query || null,
+      text: `Found ${pool.yield.found}; trusted emails ${pool.yield.trusted_emails}; sendable ${pool.yield.sendable}; selected ${pool.yield.selected}; reserve ${pool.yield.reserve}; ${pool.yield.review_bucket} ambiguous in review (never sent).` };
+  }
+  // OUTR-001/002: warm paths + ranking from user-owned connections only.
+  function rankContacts(contacts, profile) {
+    profile = profile || {};
+    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
+      if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
+      if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
+      if (/hometown/.test(rel)) { rank += 15; why.push("same hometown"); }
+      if (/1st|first/.test(rel)) { rank += 20; why.push("1st-degree"); }
+      return { contact: c, rank, why }; }).sort((a, b) => b.rank - a.rank);
+  }
+  function warmPaths(contacts, company, profile) {
+    const co = norm(company);
+    return rankContacts((contacts || []).filter((c) => norm(c.current_firm) === co), profile)
+      .map((r) => ({ person: r.contact.full_name, firm: r.contact.current_firm, path: r.why.join(" + ") || "cold", rank: r.rank, relationship: r.contact.relationship_to_user }));
+  }
+  // OUTR-006: relationship memory over contact history rows.
+  function relationshipMemory(history) {
+    const rows = history || [];
+    return { talkedTo: () => rows.map((r) => ({ name: r.full_name || r.name, stage: r.stage || "cold", last_contacted_at: r.last_contacted_at || null, next_touch_at: r.next_touch_at || null, said: r.last_summary || null })),
+      dueForPing: (nowIso) => rows.filter((r) => r.next_touch_at && r.next_touch_at <= nowIso) };
+  }
+
+  // ---------- OUTE-003: email verification seam ----------
+  const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  function createLocalVerifier(opts) {
+    const dnsLookup = (opts && opts.dnsLookup) || null;
+    async function verify(email) {
+      const e = String(email || "").trim();
+      if (!EMAIL_RE.test(e)) return { email: e, status: "invalid", confidence: 0, reason: "syntax", verifier: "local" };
+      const domain = emailDomain(e);
+      if (!dnsLookup) return { email: e, status: "risky", confidence: 0.3, reason: "no_dns_lookup_injected", verifier: "local" };
+      let r; try { r = await dnsLookup(domain); } catch (err) { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
+      if (!r || !r.mx || !r.mx.length) return { email: e, status: "invalid", confidence: 0.1, reason: "no_mx", verifier: "local" };
+      if (r.catchAll) return { email: e, status: "risky", confidence: 0.45, reason: "catch_all_domain", verifier: "local" };
+      return { email: e, status: "verified", confidence: 0.9, reason: "mx_ok", verifier: "local" };
+    }
+    return { kind: "local", verify, verifyAll: async (emails) => { const out = []; for (const e of emails) out.push(await verify(e)); return out; } };
+  }
+  function createVerifier(opts) {
+    opts = opts || {};
+    if (opts.vendor && typeof opts.vendor.verify === "function") {
+      return { kind: "vendor", verify: (e) => opts.vendor.verify(e), verifyAll: async (list) => { const o = []; for (const e of list) o.push(await opts.vendor.verify(e)); return o; } };
+    }
+    return createLocalVerifier(opts);
+  }
+
+  // ---------- OUTE-005/006: draft engine + voice + quality gate ----------
+  const VOICE_DEFAULT = Object.freeze({ formality: 0.3, warmth: 0.6, humor: 0.0, directness: 0.7, plain_student_voice: true });
+  function determineTier(c, profile) {
+    profile = profile || {}; const rel = norm(c.relationship_to_user);
+    const facts = c.personalization_facts || [];
+    if (/mutual/.test(rel) || facts.some((f) => f.kind === "referral" && f.verified === true)) return "A";
+    if (/club|team/.test(rel) && profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "A";
+    if (facts.some((f) => f.strength === "strong")) return "A";
+    if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "B";
+    if (/same school|same city|hometown/.test(rel)) return "B";
+    if (c.geography || c.office) return "B";
+    return "C";
+  }
+  const STRUCTURES = ["path_question", "shared_context", "specific_question", "short_honest", "peer_learning"];
+  function draftFor(candidate, user, opts) {
+    opts = opts || {}; const c = normalizeCandidate(candidate); user = user || {};
+    const voice = Object.assign({}, VOICE_DEFAULT, opts.voice || user.voice || {});
+    const tier = opts.tier || determineTier(c, user);
+    const structure = STRUCTURES[(opts.structureIndex != null ? opts.structureIndex : tier === "A" ? 0 : tier === "B" ? 1 : 3) % STRUCTURES.length];
+    const first = (c.full_name || "").split(/\s+/)[0] || "there";
+    const facts = (c.personalization_facts || []).filter((f) => f && f.fact && f.source_url);
+    const dropped = [];
+    const usable = facts.filter((f) => { if (f.kind === "referral" && f.verified !== true) { dropped.push({ fact: f.fact, reason: "unverified_referral_claim" }); return false; } return true; });
+    for (const extra of opts.extraLines || []) if (!extra.source_url) dropped.push({ fact: extra.fact || extra.text || "", reason: "unsourced_extra_line" });
+    const strong = usable.find((f) => f.strength === "strong") || usable[0] || null;
+    const why = []; const lines = [];
+    lines.push(`Hi ${first},`);
+    let intro = `I'm ${user.name || "a student"}${user.year ? `, a ${user.year}` : ""}${user.school ? ` at ${user.school}` : ""}.`;
+    if (strong) {
+      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${strong.fact}`;
+      intro += ` ${clause}, which is why I wanted to reach out to you specifically.`;
+      why.push({ line: clause, fact: strong.fact, source_url: strong.source_url, strength: strong.strength || null, kind: strong.kind || null });
+    } else if (tier !== "C") {
+      const clause = `I am trying to learn about ${c.title || "your role"} at ${c.current_firm}`;
+      intro += ` ${clause}.`; why.push({ line: clause, fact: `role at ${c.current_firm}`, source_url: "candidate_record", strength: "record", kind: "record" });
+    }
+    lines.push(intro);
+    if (user.experience) lines.push(`I'm currently ${user.experience}.`);
+    const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
+    lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
+    lines.push(OPT_OUT_LINE);
+    lines.push(`Thanks,\n${user.name || ""}${user.school ? ` | ${user.school}` : ""}${user.year_label ? ` ${user.year_label}` : ""}${user.link ? `\n${user.link}` : ""}`);
+    let body = lines.join("\n\n");
+    if (body.split(/\s+/).length > CAPS.maxWords && user.experience) { lines.splice(2, 1); body = lines.join("\n\n"); }
+    const subject = strong && strong.subject_hint ? strong.subject_hint : `${user.school ? user.school + " " : ""}${user.year ? user.year + ", " : ""}question about ${c.title || "your path"} at ${c.current_firm}`.replace(/\s+/g, " ").trim();
+    return { person_id: c.person_id || null, to: c.work_email || null, subject, body, tier, structure, voice,
+      facts_used: why, why_this_line: why, dropped_unsourced: dropped, title_used: c.title || null, firm_used: c.current_firm || null, name_used: c.full_name || null };
+  }
+  function qualityGate(draft, candidate, opts) {
+    opts = opts || {}; const c = normalizeCandidate(candidate); const failures = [];
+    const body = String(draft.body || ""); const low = body.toLowerCase();
+    for (const w of draft.why_this_line || draft.facts_used || []) {
+      if (w.source_url === "candidate_record") continue;
+      const found = (c.personalization_facts || []).some((f) => norm(f.fact) === norm(w.fact) && f.source_url === w.source_url);
+      if (!found) failures.push("fact_not_in_record:" + (w.fact || w.line || ""));
+    }
+    if (/told me to reach out|suggested i reach out|referred me|said i should (reach out|contact you)/.test(low)) {
+      const ok = (c.personalization_facts || []).some((f) => f.kind === "referral" && f.verified === true);
+      if (!ok) failures.push("fabricated_referral");
+    }
+    if (c.title_stale) failures.push("stale_title");
+    if (c.latest_title && c.title && norm(c.latest_title) !== norm(c.title)) failures.push("stale_title");
+    if (draft.title_used && c.title && norm(draft.title_used) !== norm(c.title)) failures.push("stale_title");
+    if (opts.nowMs && c.last_verified_at && (opts.nowMs - Date.parse(c.last_verified_at)) / 86400000 > 180) failures.push("stale_record");
+    if (c.full_name && !body.includes(c.full_name.split(/\s+/)[0])) failures.push("name_mismatch");
+    for (const p of BANNED_PHRASES) if (low.includes(p)) failures.push("banned_phrase:" + p);
+    if (/\bFREE\b/.test(body) || /!{3,}|\${2,}/.test(body)) failures.push("spam_lint");
+    if (/<[a-z][\s\S]*>/i.test(body)) failures.push("not_plain_text");
+    const words = body.split(/\s+/).filter(Boolean).length; if (words > CAPS.maxWords) failures.push("too_long:" + words);
+    const links = (body.match(/https?:\/\/|www\.|[a-z0-9-]+\.(com|edu|io|org)\/[^\s]+/gi) || []).length; if (links > CAPS.maxLinks) failures.push("too_many_links:" + links);
+    if (!norm(body).includes(norm(OPT_OUT_LINE))) failures.push("missing_opt_out_footer");
+    for (const other of opts.batchBodies || []) if (other && other.person_id !== draft.person_id && norm(other.body) && norm(other.body) === norm(body)) failures.push("duplicate_body");
+    return { pass: failures.length === 0, failures: [...new Set(failures)], words };
+  }
+  function draftAndGate(candidate, user, opts) { const draft = draftFor(candidate, user, opts); const gate = qualityGate(draft, candidate, opts); return { draft, gate, queued: gate.pass }; }
+  function draftReferralAsk(contact, user, opts) {
+    opts = opts || {}; const c = normalizeCandidate(contact);
+    if (!opts.shared_context || !opts.shared_context.source_url) return { ok: false, reason: "no_sourced_shared_context", draft: null };
+    const body = [`Hi ${(c.full_name || "").split(/\s+/)[0]},`, `I'm ${user.name || "a student"}${user.school ? ` at ${user.school}` : ""}. ${opts.shared_context.fact}.`, `Would you be open to a 15-minute coffee chat in the next two weeks? Totally understand if you're swamped.`, OPT_OUT_LINE, `Thanks,\n${user.name || ""}`].join("\n\n");
+    return { ok: true, draft: { to: c.work_email || null, subject: `Coffee chat — ${user.school || "student"}`, body, why_this_line: [{ line: opts.shared_context.fact, fact: opts.shared_context.fact, source_url: opts.shared_context.source_url }] } };
+  }
+  function draftIntroRequest(mutual, target, user, blurb) {
+    const m = normalizeCandidate(mutual), t = normalizeCandidate(target);
+    if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
+    return { ok: true, draft: { to: m.work_email || null, subject: `Intro to ${t.full_name} at ${t.current_firm}?`, body: `Hi ${(m.full_name || "").split(/\s+/)[0]}, would you be willing to introduce me to ${t.full_name} at ${t.current_firm}? Forwardable blurb below — no worries at all if not.\n\n${blurb}\n\nThanks,\n${user.name || ""}` } };
+  }
+
+  // ---------- OUTE-008: suppression (per-user + shared cross-user; severity-1) ----------
+  function createSuppressionStore(init) {
+    const data = { perUserEmails: {}, perUserIds: {}, sharedEmails: [], sharedIds: [] };
+    if (init) { data.perUserEmails = init.perUserEmails || {}; data.perUserIds = init.perUserIds || {}; data.sharedEmails = init.sharedEmails || []; data.sharedIds = init.sharedIds || []; }
+    const key = (v) => norm(v);
+    const store = {
+      data,
+      suppress(opts) {
+        opts = opts || {}; const scope = opts.scope || "shared"; // a stop defaults to shared: opt-out fact is product-wide
+        if (opts.email) {
+          if (scope === "shared" || scope === "both") { if (!data.sharedEmails.includes(key(opts.email))) data.sharedEmails.push(key(opts.email)); }
+          if ((scope === "user" || scope === "both") && opts.userId) { (data.perUserEmails[opts.userId] = data.perUserEmails[opts.userId] || []); if (!data.perUserEmails[opts.userId].includes(key(opts.email))) data.perUserEmails[opts.userId].push(key(opts.email)); }
+        }
+        if (opts.person_id) {
+          if (scope === "shared" || scope === "both") { if (!data.sharedIds.includes(String(opts.person_id))) data.sharedIds.push(String(opts.person_id)); }
+          if ((scope === "user" || scope === "both") && opts.userId) { (data.perUserIds[opts.userId] = data.perUserIds[opts.userId] || []); if (!data.perUserIds[opts.userId].includes(String(opts.person_id))) data.perUserIds[opts.userId].push(String(opts.person_id)); }
+        }
+        return { suppressed: true, scope };
+      },
+      isSuppressed(target, userId) {
+        target = target || {};
+        if (target.email && data.sharedEmails.includes(key(target.email))) return true;
+        if (target.person_id && data.sharedIds.includes(String(target.person_id))) return true;
+        if (userId) {
+          if (target.email && (data.perUserEmails[userId] || []).includes(key(target.email))) return true;
+          if (target.person_id && (data.perUserIds[userId] || []).includes(String(target.person_id))) return true;
+        }
+        return false;
+      },
+      toJSON() { return JSON.parse(JSON.stringify(data)); },
+    };
+    return store;
+  }
+
+  // ---------- OUTE-007/009: send queue, caps, waves, breaker, idempotency ----------
+  function dailyCapForDay(dayIndex) { const d = Math.max(0, Math.floor(dayIndex || 0)); return Math.min(CAPS.ceilingPerDay, CAPS.startPerDay + CAPS.rampStep * Math.floor(d / CAPS.rampEveryDays)); }
+  function refuseRaiseCap(requested) {
+    const cap = CAPS.ceilingPerDay;
+    if (requested != null && Number(requested) > cap) return { refused: true, cap, requested: Number(requested), reason: `Cap stays at ${cap}/day. Raising it risks your Gmail account and reply quality; the schedule is the schedule (owner rule, decided 2026-10-12).` };
+    return { refused: false, cap: requested != null ? Math.min(Number(requested), cap) : cap };
+  }
+  function seededRng(seed) { let s = (seed >>> 0) || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function createCampaign(opts) {
+    opts = opts || {};
+    return { id: opts.id || "campaign-1", userId: opts.userId || "user-1", status: opts.approved ? "approved" : "draft",
+      sending_channel: "gmail_oauth_only", cap_per_day: refuseRaiseCap(opts.requestedCap).cap, requested_cap_refused: refuseRaiseCap(opts.requestedCap).refused,
+      day_index: 0, items: [], sentKeys: [], touches: {}, firmWindow: [], history: [],
+      wave: { sent: 0, bounces: 0, complaints: 0, hostile: 0, provider_warning: false },
+      breaker: { tripped: false, cause: null, user_message: null }, stats: { replies: 0, positive: 0, meetings_booked: 0, meetings_held: 0, referrals: 0, complaints: 0 },
+      followups_continue_tap: false };
+  }
+  function enqueue(campaign, entries, opts) {
+    opts = opts || {}; const suppression = opts.suppression || null; const results = [];
+    for (const e of entries || []) {
+      const c = normalizeCandidate(e.candidate || e); const draft = e.draft || null;
+      const base = { person_id: c.person_id || null, email: c.work_email || null, candidate: c, draft, tier: e.tier || (draft && draft.tier) || null, verification: c.email_verification || e.verification || null };
+      const reject = (reason) => { results.push(Object.assign({}, base, { status: "rejected", reason })); };
+      if (campaign.status === "draft" && !opts.allowDraftEnqueue) { /* enqueue into a draft campaign is allowed; sending is what needs approval */ }
+      if (!base.email) { reject("no_email"); continue; }
+      if (base.verification === "invalid") { reject("invalid_email"); continue; }
+      if (isEuUk(c)) { reject("eu_uk_excluded_v1"); continue; }
+      if (suppression && suppression.isSuppressed({ email: base.email, person_id: base.person_id }, campaign.userId)) { reject("suppressed"); continue; }
+      const touches = campaign.touches[base.person_id || base.email] || 0;
+      const touch = e.touch || (touches === 0 ? 0 : touches); // 0=initial,1/2=follow-ups
+      if (touch > CAPS.perPersonMaxFollowUps) { reject("per_person_cap"); continue; }
+      if (touch > 0 && !opts.isFollowUp) { /* a re-enqueue of an already-touched person counts as a follow-up */ }
+      if ((e.touch || 0) > 0 && !campaign.followups_continue_tap && !opts.continueTap) { reject("followup_needs_continue_tap"); continue; }
+      const firmRecent = (campaign.firmWindow || []).filter((f) => f.firm === norm(c.current_firm)).length;
+      const firmQueued = campaign.items.filter((i) => i.status === "queued" && norm(i.candidate.current_firm) === norm(c.current_firm)).length;
+      if (firmRecent + firmQueued >= CAPS.perFirmPer30Days) { reject("per_firm_cap_15_per_30d"); continue; }
+      const item = Object.assign({}, base, { id: `item-${campaign.items.length + results.length + 1}`, touch, status: "queued",
+        idempotencyKey: `${campaign.id}:${base.person_id || base.email}:${touch}`, domain: emailDomain(base.email), scheduledAt: null });
+      campaign.items.push(item); results.push(item);
+    }
+    return results;
+  }
+  function planWave(campaign, opts) {
+    opts = opts || {}; const rng = seededRng(opts.seed || 42);
+    const queued = campaign.items.filter((i) => i.status === "queued");
+    const waveItems = opts.waveNumber === 1 || !opts.waveNumber ? queued.slice(0, CAPS.wave1Size) : queued;
+    // distribute over days respecting daily cap, per-domain cap, risky <=10% of that day's volume; gaps modeled 2-8 min
+    let placed = 0; const schedule = []; const perDay = {}, perDomainDay = {}, riskyDay = {}; const deferred = [];
+    // Risky addresses are capped at 10% of the wave's volume too: excess risky items are deferred to a later
+    // wave (sent last, in small batches, Doc 1 §2.4.3), never allowed to stretch or inflate this wave.
+    const riskyQuota = Math.floor(waveItems.length * CAPS.riskyMaxFraction); let riskySeen = 0;
+    for (const item of waveItems) {
+      if (item.verification === "risky") { riskySeen++; if (riskySeen > riskyQuota) { deferred.push({ item_id: item.id, reason: "risky_over_10pct_of_wave" }); continue; } }
+      // Earliest feasible day per item (NOT a shared monotonic cursor — that stretched wave 1 to 7 days in testing).
+      for (let day = opts.startDayIndex || 0; day < (opts.startDayIndex || 0) + 60; day++) {
+        const cap = dailyCapForDay(day); const used = perDay[day] || 0; const dk = day + ":" + item.domain; const dUsed = perDomainDay[dk] || 0;
+        const isRisky = item.verification === "risky";
+        const riskyAllowed = Math.floor(cap * CAPS.riskyMaxFraction);
+        if (used >= cap || dUsed >= CAPS.perDomainPerDay || (isRisky && (riskyDay[day] || 0) >= riskyAllowed)) continue;
+        const minute = 9 * 60 + Math.floor(rng() * 120); // morning window anchor in recipient-local terms, modeled
+        const gap = CAPS.gapMinutes[0] + Math.floor(rng() * (CAPS.gapMinutes[1] - CAPS.gapMinutes[0] + 1));
+        const entry = { item_id: item.id, day_index: day, gap_minutes_after_previous: gap, local_window: "09:00-11:00 recipient-local", minute_offset: minute };
+        item.scheduledAt = entry; schedule.push(entry);
+        perDay[day] = used + 1; perDomainDay[dk] = dUsed + 1; if (isRisky) riskyDay[day] = (riskyDay[day] || 0) + 1; placed++; break;
+      }
+    }
+    const days = schedule.length ? Math.max(...schedule.map((s) => s.day_index)) - (opts.startDayIndex || 0) + 1 : 0;
+    return { wave_items: waveItems.length, scheduled: schedule.length, deferred, days, schedule, daily_caps: Object.keys(perDay).map((d) => ({ day_index: Number(d), cap: dailyCapForDay(Number(d)), planned: perDay[d] })) };
+  }
+  function evaluateBreaker(campaign) {
+    const w = campaign.wave; const causes = [];
+    if (w.provider_warning) causes.push("provider_warning");
+    if (w.sent >= 10 && w.bounces / Math.max(1, w.sent) > CAPS.bounceBreakerRate) causes.push(`bounce_rate_${(100 * w.bounces / Math.max(1, w.sent)).toFixed(1)}%_over_3%`);
+    if (w.bounces >= 3 && w.bounces / Math.max(1, w.sent) > CAPS.bounceBreakerRate) { if (!causes.some((x) => x.startsWith("bounce"))) causes.push("bounce_spike"); }
+    if (w.hostile + w.complaints >= CAPS.hostileBreakerCount) causes.push("hostile_or_spam_signals>=2");
+    if (causes.length) { campaign.breaker = { tripped: true, cause: causes.join("; "), user_message: `Paused your campaign: ${causes.join(", ")}. No more sends until you look at this.` }; campaign.status = "paused"; }
+    return campaign.breaker;
+  }
+  function recordOutcome(campaign, ev) {
+    ev = ev || {};
+    if (ev.type === "sent") campaign.wave.sent++;
+    if (ev.type === "bounce") { campaign.wave.bounces++; if (ev.item) handleBounce(campaign, ev.item, ev.suppression); }
+    if (ev.type === "hard_bounce" ) { campaign.wave.bounces++; if (ev.item) handleBounce(campaign, ev.item, ev.suppression); }
+    if (ev.type === "complaint") { campaign.wave.complaints++; campaign.stats.complaints++; }
+    if (ev.type === "hostile") campaign.wave.hostile++;
+    if (ev.type === "provider_warning") campaign.wave.provider_warning = true;
+    if (ev.type === "reply") campaign.stats.replies++;
+    if (ev.type === "positive") campaign.stats.positive++;
+    if (ev.type === "meeting_booked") campaign.stats.meetings_booked++;
+    if (ev.type === "meeting_held") campaign.stats.meetings_held++;
+    if (ev.type === "referral") campaign.stats.referrals++;
+    return evaluateBreaker(campaign);
+  }
+  function handleBounce(campaign, item, suppression) {
+    const it = typeof item === "string" ? campaign.items.find((i) => i.id === item) : item;
+    if (it) { it.status = "bounced"; it.never_retry = true; const c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
+    else if (suppression && item && item.email) suppression.suppress({ email: item.email, person_id: item.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" });
+    return it || null;
+  }
+  async function sendPending(campaign, opts) {
+    opts = opts || {}; const transport = opts.transport; if (!transport || typeof transport.send !== "function") return { sent: 0, error: "NOT_WIRED: no injected transport" };
+    if (campaign.status !== "approved" && campaign.status !== "running") return { sent: 0, error: "campaign_not_approved", status: campaign.status };
+    if (campaign.breaker.tripped) return { sent: 0, error: "circuit_breaker_tripped", cause: campaign.breaker.cause };
+    campaign.status = "running";
+    const suppression = opts.suppression || null; const max = opts.maxItems || Infinity; let sent = 0; const outcomes = [];
+    for (const item of campaign.items) {
+      if (sent >= max) break;
+      if (item.status === "sent") continue;
+      if (item.status !== "queued" && item.status !== "sending") continue;
+      // SEND-TIME suppression check (severity-1): a mid-queue opt-out kills pending sends.
+      if (suppression && suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { item.status = "suppressed"; outcomes.push({ item_id: item.id, result: "suppressed_at_send_time" }); continue; }
+      if (campaign.sentKeys.includes(item.idempotencyKey)) { item.status = "sent"; outcomes.push({ item_id: item.id, result: "already_sent_idempotent" }); continue; }
+      if (item.status === "sending" && typeof transport.hasSent === "function" && await transport.hasSent(item.idempotencyKey)) { item.status = "sent"; campaign.sentKeys.push(item.idempotencyKey); outcomes.push({ item_id: item.id, result: "recovered_after_crash" }); continue; }
+      item.status = "sending";
+      const res = await transport.send({ to: item.email, subject: item.draft ? item.draft.subject : "", body: item.draft ? item.draft.body : "", idempotencyKey: item.idempotencyKey, from_channel: "gmail_oauth_only" });
+      if (res && res.bounced) { item.status = "bounced"; recordOutcome(campaign, { type: "bounce", item, suppression }); outcomes.push({ item_id: item.id, result: "bounced" }); if (campaign.breaker.tripped) break; continue; }
+      item.status = "sent"; item.message_id = res && res.messageId || null;
+      if (!campaign.sentKeys.includes(item.idempotencyKey)) campaign.sentKeys.push(item.idempotencyKey);
+      const pk = item.person_id || item.email; campaign.touches[pk] = (campaign.touches[pk] || 0) + 1;
+      campaign.firmWindow.push({ firm: norm((item.candidate || {}).current_firm), at: opts.nowIso || null });
+      recordOutcome(campaign, { type: "sent" }); sent++; outcomes.push({ item_id: item.id, result: "sent" });
+      if (campaign.breaker.tripped) break;
+    }
+    return { sent, outcomes, status: campaign.status, breaker: campaign.breaker };
+  }
+  function scheduleFollowUps(campaign, opts) {
+    opts = opts || {};
+    if (!opts.continueTap && !campaign.followups_continue_tap) return { ok: false, needs_continue_tap: true, message: "Follow-up waves need a continue tap (decided default)." };
+    campaign.followups_continue_tap = true;
+    const plan = [];
+    for (const item of campaign.items.filter((i) => i.status === "sent" && i.touch === 0)) plan.push({ person_id: item.person_id, followup1_day: "5-7 business days", followup2_day: "14-16 days", max_followups: CAPS.perPersonMaxFollowUps, stop_on: ["any_reply", "bounce", "opt_out", "complaint"] });
+    return { ok: true, plan };
+  }
+  function exportState(campaign) { return JSON.stringify(campaign); }
+  function importState(json) { const c = typeof json === "string" ? JSON.parse(json) : JSON.parse(JSON.stringify(json)); return c; }
+  // Gmail transport shape: wraps a caller-supplied Gmail API client (OAuth held by the host, never here).
+  function buildGmailRaw(msg) {
+    const raw = [`To: ${msg.to}`, `Subject: ${msg.subject}`, "Content-Type: text/plain; charset=UTF-8", "", msg.body].join("\r\n");
+    return Buffer.from(raw, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function createGmailTransport(gmailApi) {
+    if (!gmailApi || !gmailApi.users || !gmailApi.users.messages || typeof gmailApi.users.messages.send !== "function") return { kind: "gmail", send: async () => ({ error: "NOT_WIRED: Gmail API client not injected" }) };
+    return { kind: "gmail", send: async (msg) => { const r = await gmailApi.users.messages.send({ userId: "me", requestBody: { raw: buildGmailRaw(msg) } }); return { messageId: (r && (r.id || (r.data && r.data.id))) || "gmail-sent" }; } };
+  }
+
+  // ---------- OUTE-010: reply classifier (rule-based v1, Doc 1 §6.1) ----------
+  const MONTHS = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12, jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+  function parseReturnDate(text, nowMs) {
+    const iso = text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/); if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+    const m = text.match(/(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*20\d{2})?/i);
+    if (m) { const parts = m[0].toLowerCase().replace(/,/g, "").split(/\s+/); const mon = MONTHS[parts[0]]; const day = Number(parts[1].replace(/\D/g, "")); let year = parts[2] ? Number(parts[2]) : new Date(nowMs).getUTCFullYear(); let dt = Date.UTC(year, mon - 1, day); if (!parts[2] && dt < nowMs - 86400000) { year++; dt = Date.UTC(year, mon - 1, day); } return new Date(dt).toISOString().slice(0, 10); }
+    const num = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/); if (num) { const y = num[3] ? (num[3].length === 2 ? 2000 + Number(num[3]) : Number(num[3])) : new Date(nowMs).getUTCFullYear(); return `${y}-${String(num[1]).padStart(2, "0")}-${String(num[2]).padStart(2, "0")}`; }
+    return null;
+  }
+  function classifyReply(reply, opts) {
+    opts = opts || {}; const nowMs = opts.nowMs || Date.now();
+    const body = String((reply && (reply.body || reply.text)) || ""); const subject = String((reply && reply.subject) || "");
+    const t = (" " + norm(subject + " " + body) + " ");
+    const done = (cls, extra) => Object.assign({ classification: cls, counts_as_reply: cls !== "auto-reply-ooo" && cls !== "bounce", confidence: 0.9 }, extra || {});
+    if (/mailer daemon|delivery status notification|undeliverable|delivery has failed|message could not be delivered|address not found|user unknown|mailbox full|550|554/.test(t) || /bounce|undeliverable/.test(norm(subject))) return done("bounce", { action: "suppress_never_retry" });
+    // hostile / spam complaint — before generic stop wording so "spam" complaints land here
+    if (/this is spam|report(ing)? (you|this) (for )?spam|spam complaint|harass|fuck|scam|leave me alone|never contact me again|i ll report you|ill report you/.test(t)) return done("hostile", { action: "suppress_notify_maybe_pause", hostile: true });
+    if (/please stop|stop emailing|stop contacting|do not (email|contact|message) me|don t (email|contact) me|remove me|unsubscribe|opt out|no more emails|stop messaging/.test(t)) return done("hard-stop", { action: "suppress_notify", stop: true });
+    if (/out of office|on vacation|on pto|away from (the )?office|limited access to email|currently traveling|on leave|ooo\b|auto reply|automatic reply/.test(t)) { const rd = parseReturnDate(body, nowMs); const resched = rd ? new Date(Date.parse(rd + "T00:00:00Z") + 86400000).toISOString().slice(0, 10) : null; return done("auto-reply-ooo", { action: "reschedule_followup", return_date: rd, reschedule_followup_on: resched }); }
+    if (/(talk to|speak with|reach out to|you should (talk|speak|contact)|connect you with|looping in|introduc\w+ you to|better person (for|to ask)|try (asking )?)[ ]+[A-Z]/.test(body) || /talk to \w+|speak with \w+|reach out to \w+|connect you with \w+|looping in \w+/.test(t)) {
+      const nameM = body.match(/(?:talk to|speak with|reach out to|connect you with|looping in|introducing you to)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/);
+      return done("referral-to-other", { action: "thank_and_add_tier_a", referral_name: nameM ? nameM[1] : null });
+    }
+    if (/(happy to chat|sure|works for me|that works|i m free|im free|available (on|at)|let s (schedule|talk|chat|set)|lets (schedule|talk|chat)|thursday works|tuesday works|wednesday works|monday works|friday works|next week works|glad to (chat|talk)|would be happy to|love to chat|yes[, ])/.test(t)) return done("positive-ready", { action: "propose_slots_t3_card" });
+    if (/send (me )?(more )?info|tell me more|more (info|details|context)|what would (we|you)|what are you hoping|what do you want to (discuss|ask)|interested but|curious but|need more context/.test(t)) return done("positive-needs-info", { action: "draft_answer_from_profile_only" });
+    if (/\?/.test(body) && /(your|you|program|school|background|experience|major|year)/.test(t)) return done("question-about-user", { action: "draft_answer_from_profile_only" });
+    if (/not (a good|the right) time|can t|can t right now|cant|cannot|too busy|swamped|no thanks|not able|unfortunately|pass on|decline|not right now|maybe another time|won t be able/.test(t)) return done("polite-decline", { action: "suppress_forever_optional_thanks" });
+    if (/\?/.test(body)) return done("question-about-user", { action: "draft_answer_from_profile_only" });
+    if (/thanks|thank you|appreciate/.test(t)) return done("positive-needs-info", { action: "draft_answer_from_profile_only" });
+    return done("positive-needs-info", { action: "draft_answer_from_profile_only", confidence: 0.5 });
+  }
+  function handleReply(campaign, reply, contact, opts) {
+    opts = opts || {}; const cls = classifyReply(reply, opts); const suppression = opts.suppression || null;
+    const out = { classification: cls, actions: [], notify_user: null, campaign_paused: false, new_candidate: null, reschedule_followup_on: cls.reschedule_followup_on || null };
+    const email = contact && (contact.work_email || contact.email), pid = contact && contact.person_id;
+    if (cls.classification === "hard-stop" || cls.classification === "hostile") {
+      if (suppression) suppression.suppress({ email, person_id: pid, userId: campaign && campaign.userId, scope: "both", reason: cls.classification }); // user list + shared cross-user opt-out
+      out.actions.push("suppressed_user_and_shared");
+      out.notify_user = cls.classification === "hostile" ? "A recipient reacted badly; they are suppressed everywhere and will never be contacted again." : "Removed them and flagged it. They are suppressed on your list and the shared opt-out list.";
+      if (campaign) { if (cls.classification === "hostile") recordOutcome(campaign, { type: "hostile" }); out.campaign_paused = !!campaign.breaker.tripped; }
+    } else if (cls.classification === "polite-decline") { if (suppression) suppression.suppress({ email, person_id: pid, userId: campaign && campaign.userId, scope: "user", reason: "decline" }); out.actions.push("suppressed_for_user"); }
+    else if (cls.classification === "bounce") { if (campaign) { const item = (campaign.items || []).find((i) => i.email === email); if (item) recordOutcome(campaign, { type: "bounce", item, suppression }); } out.actions.push("suppressed_never_retry"); }
+    else if (cls.classification === "auto-reply-ooo") out.actions.push("followup_rescheduled_not_a_reply");
+    else if (cls.classification === "referral-to-other" && cls.referral_name) out.new_candidate = { full_name: cls.referral_name, relationship_to_user: "referral", tier: "A", source: "reply_referral" };
+    else if (cls.classification === "positive-ready") out.actions.push("propose_slots_t3_card");
+    if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
+    return out;
+  }
+
+  // ---------- OUTE-011/012: booking + follow-through ----------
+  function tzOffsetMs(dateMs, timeZone) {
+    const dtf = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    const parts = {}; for (const p of dtf.formatToParts(new Date(dateMs))) parts[p.type] = p.value;
+    const asUTC = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour) % 24, Number(parts.minute), Number(parts.second));
+    return asUTC - Math.floor(dateMs / 1000) * 1000;
+  }
+  function zonedTimeToUtc(y, m, d, hh, mm, timeZone) {
+    let guess = Date.UTC(y, m - 1, d, hh, mm);
+    const off1 = tzOffsetMs(guess, timeZone); let utc = guess - off1;
+    const off2 = tzOffsetMs(utc, timeZone); utc = guess - off2;
+    return new Date(utc).toISOString();
+  }
+  function localDateInTz(dateMs, timeZone) { return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(dateMs)); }
+  function proposeSlots(opts) {
+    opts = opts || {}; const tz = opts.recipientTz || "America/New_York"; const busy = (opts.freeBusy || opts.busy || []).map((b) => ({ s: Date.parse(b.start), e: Date.parse(b.end) }));
+    const blackout = new Set(opts.blackoutDates || opts.blackouts || []); const duration = (opts.durationMin || 30) * 60000; const buffer = 15 * 60000;
+    const nowMs = opts.nowMs || Date.now(); const want = opts.count || 3; const slots = [];
+    for (let day = 1; day <= 21 && slots.length < want; day++) {
+      const probe = new Date(nowMs + day * 86400000);
+      const [y, m, d] = localDateInTz(probe.getTime(), tz).split("-").map(Number);
+      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); if (dow === 0 || dow === 6) continue;
+      const localDate = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      if (blackout.has(localDate)) continue;
+      for (const hh of [9, 10, 11, 13, 14, 15, 16]) {
+        if (slots.length >= want) break;
+        const startIso = zonedTimeToUtc(y, m, d, hh, 0, tz); const s = Date.parse(startIso); const e = s + duration;
+        // blackout also honored in the user's timezone date
+        if (opts.userTz && blackout.has(localDateInTz(s, opts.userTz))) continue;
+        const clash = busy.some((b) => s - buffer < b.e && e + buffer > b.s);
+        if (!clash) slots.push({ start: startIso, end: new Date(e).toISOString(), recipient_tz: tz, recipient_local: `${localDate} ${String(hh).padStart(2, "0")}:00 ${tz}`, buffer_minutes: 15 });
+      }
+    }
+    return slots;
+  }
+  function prepBrief(input) {
+    input = input || {}; const cir = input.cir || {}; const c = normalizeCandidate(input.contact || {});
+    const facts = (c.personalization_facts || []).map((f) => f.fact);
+    return { who: `${c.full_name}${c.title ? `, ${c.title}` : ""}${c.current_firm ? ` at ${c.current_firm}` : ""}`,
+      path: cir.path || facts[0] || `${c.title || "Role"} at ${c.current_firm}`,
+      talking_points: (cir.talking_points || cir.talkingPoints || [facts[0], facts[1], input.user_goal || input.goal]).filter(Boolean).slice(0, 3),
+      questions: (cir.questions || ["What decided your move into this group, looking back?", "What separates analysts who get staffed well in year one?", "What skill gap do you see most in interns from my background?", "What would you do in my exact position this semester?", "Who else would you suggest I learn from, and why them?"]).slice(0, 5),
+      what_not_to_ask: cir.what_not_to_ask || cir.notToAsk || ["Do not ask for a job or a referral on a first chat.", "Do not ask anything answerable from their public bio."],
+      contact: c.full_name };
+  }
+  function thankYouDraft(opts) {
+    opts = opts || {}; const c = normalizeCandidate(opts.contact || {});
+    if (!opts.note) return { ok: false, reason: "user_note_required: a thank-you must cite one real thing said" };
+    return { ok: true, draft: { to: c.work_email || null, subject: `Thank you — ${(c.full_name || "").split(/\s+/)[0]}`, body: `Hi ${(c.full_name || "").split(/\s+/)[0]},\n\nThank you for the time today. ${opts.note}\n\nI appreciate it, and I will follow up once I have acted on it.\n\nThanks,\n${(opts.user && opts.user.name) || ""}` } };
+  }
+  function scheduleFollowUpTouch(opts) {
+    opts = opts || {}; const weeks = Math.max(4, Math.min(8, opts.weeks || 6)); const base = Date.parse(opts.after || opts.chatDate || new Date().toISOString());
+    return { next_touch_at: new Date(base + weeks * 7 * 86400000).toISOString(), weeks, kind: "follow_up_touch_4_to_8_weeks" };
+  }
+
+  // ---------- OUTE-013: campaign metrics ----------
+  function campaignMetrics(input) {
+    input = input || {}; const pool = input.pool || {}; const camp = input.campaign || {}; const items = camp.items || [];
+    const found = pool.found != null ? pool.found : (input.found || 0); const sendable = pool.sendable != null ? pool.sendable : items.length;
+    const trusted = pool.trusted_emails != null ? pool.trusted_emails : 0;
+    const sentItems = items.filter((i) => i.status === "sent"); const bouncedItems = items.filter((i) => i.status === "bounced");
+    const sent = input.sent != null ? input.sent : sentItems.length + bouncedItems.length; // attempted sends: the denominator for reply % and bounce %
+    const bounces = input.bounces != null ? input.bounces : Math.max(items.filter((i) => i.status === "bounced").length, (camp.wave && camp.wave.bounces) || 0);
+    const pct = (a, b) => b ? Math.round(1000 * a / b) / 10 : 0;
+    const repliesByTier = {}; for (const r of input.replies || []) { const t = r.tier || "C"; repliesByTier[t] = repliesByTier[t] || { sent: 0, replies: 0 }; repliesByTier[t].replies++; }
+    for (const i of sentItems) { const t = i.tier || "C"; repliesByTier[t] = repliesByTier[t] || { sent: 0, replies: 0 }; repliesByTier[t].sent++; }
+    for (const t of Object.keys(repliesByTier)) repliesByTier[t].rate_pct = pct(repliesByTier[t].replies, repliesByTier[t].sent);
+    const stats = camp.stats || {};
+    return { yield_pct: pct(sendable, found), verified_rate_pct: pct(trusted, found || sendable), sent, bounce_pct: pct(bounces, sent), bounces,
+      complaints: stats.complaints || (camp.wave && camp.wave.complaints) || 0,
+      replies: stats.replies || (input.replies || []).length, reply_pct: pct(stats.replies || (input.replies || []).length, sent),
+      positive: stats.positive || 0, positive_pct: pct(stats.positive || 0, sent),
+      meetings_booked: stats.meetings_booked || 0, meetings_held: stats.meetings_held || 0, referrals: stats.referrals || 0,
+      per_tier_reply_rates: repliesByTier, suppression_honor_target_pct: 100 };
+  }
+
+  return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+    normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
+    createLocalVerifier, createVerifier, EMAIL_RE,
+    VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
+    createSuppressionStore, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
+    classifyReply, handleReply, parseReturnDate,
+    tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,
+    campaignMetrics };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerOutreach;
+
 /* Career recruiting intelligence (Doc 3: "Recruiting Intelligence + Honest Advice"; capability rows INTL-001..008,
    consumers NEGO-002 / COS-001 read CIR facts through this module's shapes).
    The brain behind the outreach and application engines: Company Intelligence Records (CIRs), the ten-part thesis,
@@ -22082,4 +22705,4 @@ const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and 
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerIntel };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel };

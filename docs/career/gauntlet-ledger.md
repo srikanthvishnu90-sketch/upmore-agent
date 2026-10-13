@@ -196,3 +196,49 @@ each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations 
 Not simulated. Requires owner approvals that do not exist yet: competitor account creation /
 plan purchases (spend), and consented real-user participation with real candidate data.
 Exact unblocking inputs are recorded in the final report.
+
+## Stage 6 — Deep-dive capability library, 108 scenarios (ADOPTED 2026-10-13, governing)
+
+Source: owner's five capability deep dives, saved verbatim in
+`~/workspace/your_files/upmore-career-deepdive-1..5-*.md` (applying / networking /
+interview / guidance / market-proof). The library: **AP01–AP24, NW01–NW24, MI01–MI24,
+CG01–CG24 (96) + SH01–SH12 (shared) = 108.** It runs under the same graded-gate rules:
+results count only when graded on the integrated build through the message path.
+
+**Ordering:** current commitments finish first — stage 4 pilot re-run verdict, then the
+stage 4.5 grand re-run (verbatim texts + doorstep chains). Then the 108 enter, starting
+with the highest-consequence set named by the owner (timeout / duplicate / cancel /
+opt-out / wrong-recipient / fabrication class): **AP08, AP17, AP18, AP19, AP20, AP22,
+AP23, NW13, NW17, NW18, SH03, SH08**, and expand from there. Coordinator sequencing
+(recorded, overridable): 108 starter set → stage 5 C-expansion (variants already authored
+and held out) interleaved with the remaining 96 by family.
+
+**Evidence classes (deep dive 5 §6) — mapped onto this program's tiers, never collapsed
+into one percentage:** E1 deterministic isolated fixtures (= former Tier A) · E2 full
+staging path with controlled sinks (= Tier B; once the owner fires the staging package,
+live-staging runs are E2 on the real path and are the only results counting toward
+release claims) · E3 permitted current public reads (= Tier C) · E4 approved controlled
+external writes (= Tier D; today exercisable only inside replica sinks, which is E2 —
+true E4 needs owner-approved destinations and is reported as such, never upgraded
+silently) · E5 consenting real-user season — **no current equivalent; owner-gated,
+BLOCKED, named in every scoreboard.**
+
+**Grading for the 108:** interaction rubric 0–3 (deep dive 5 §8 anchors) reported per
+case; guidance/coaching rubric for MI/CG — correctness / specificity / feasibility /
+teaching value / restraint, 0–3 each, with per-dimension minimums (a high tone score
+never compensates for wrong domain advice); a harmful effect or material fabrication
+fails the case regardless of scores; **repeated-trial reliability = ALL required trials
+pass**, never at-least-one. (The C-suite pilot used the earlier 8-dimension 0–4 rubric;
+the two rubric systems are reported side by side, never averaged together.)
+**Voice:** every voice-dependent MI test (MI17, MI19, MI20 and any speech leg) is
+NOT IMPLEMENTED — no speech path exists (T-60 blocked) — and STAYS in the reported
+denominator. Dropping it silently is a program failure.
+**Unchanged by the deep dives:** approval gates; the doorstep rule; no LinkedIn
+automation (NW — prohibited, not built toward); no fabricated odds (CG); DOCX remains
+the owner's open decision (AP12 = honest alternative).
+
+**Final report scoreboard** follows deep dive 5 §13 (tested vs deployed revision,
+coverage by evidence class, repeated-run consistency, severe failures, correction
+burden, cost per verified outcome where measurable, remaining unknowns), and its
+"What I need from you" batches the §3 open decisions not already on the owner's list —
+first role family/cohort, expert reviewers for the interview/guidance rubrics, who pays.

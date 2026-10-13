@@ -18009,6 +18009,28 @@ const PayrollBenefits = (() => {
     return lines.join(" ");
   }
 
+  // ---- doorstep specs: the authenticated flow built to the final step, never executed ----
+  // Each spec names the portal, the sign-in entry, the screens in order, the fields the packet fills,
+  // and the exact executing tap the flow STOPs before (the owner's). Account/routing/SSN fields are
+  // never filled by Upmore and never appear here — the owner types those inside the portal itself.
+  // Live sessions run in the owner's browser lane; until a provider is named, provider stays generic.
+  function doorsteps(p, ref, today) {
+    const fsaClaim = p.fsa ? (p.fsa.expenses || []).filter((e) => e.eligible).reduce((s, e) => s + e.amountCents, 0) : 0;
+    const w4b = p.w4 && p.w4.lastRefundCents > 0 ? Math.round(p.w4.lastRefundCents / p.marginalRate) : 0;
+    const ddSplit = Math.round(50000 * 12 / p.payPeriodsPerYear);
+    return {
+      C101: { portal: "Retirement plan custodian (Fidelity NetBenefits / Vanguard, per plan)", loginUrl: "https://www.fidelity.com/", screens: ["Custodian sign-in", "Accounts list", "Rollover request, filled"], filled: (p.oldAccounts || []).map((a) => `Rollover source: ${a.employer} ${a.plan} at ${a.administrator}, ${money(a.balanceCents)}`).concat(["Destination: rollover IRA (direct rollover, no check to you)"]), stopBefore: "Submit rollover request", needsProvider: "prior employers and their plan administrators" },
+      C103: { portal: "FSA administrator portal (provider not yet named)", loginUrl: null, screens: ["Administrator sign-in", "Claims", "New claim, filled"], filled: [`Claim total: ${money(fsaClaim)}`, "Receipts attached: CVS prescription; Bright Dental cleaning", "Excluded and noted: daily vitamins (letter of medical necessity missing)"], stopBefore: "Submit claim", needsProvider: "the FSA administrator's name" },
+      C108: { portal: "Employer benefits portal (provider not yet named)", loginUrl: null, screens: ["Benefits sign-in", "Current elections", "Proposed changes, filled from the audit"], filled: [`401(k) contribution: ${p.benefits.contributionPct}% → 5% (captures the full match, +${money(matchAt(p, 5) - matchAt(p, p.benefits.contributionPct))} a year)`, "ESPP: enroll at 10% of pay", "Commuter benefit: enroll, $130.00 a month pre-tax"], stopBefore: "Confirm elections", needsProvider: "the benefits portal / HR system name" },
+      C159: { portal: "Payroll portal (provider not yet named)", loginUrl: null, screens: ["Payroll sign-in", "Tax withholding", "Form W-4, filled"], filled: [`Step 4(b) Deductions: ${money(w4b)}`, "Step 4(c) Extra withholding: $0.00", "Steps 1-3: as on your last return (you verify in the portal)"], stopBefore: "Submit W-4", needsProvider: "the payroll provider's name" },
+      C172: { portal: "Federal Student Aid / loan servicer", loginUrl: "https://studentaid.gov/", screens: ["StudentAid sign-in", "PSLF Help Tool", "Employer certification, filled"], filled: [`Qualifying payments counted: ${p.pslf.qualifyingPayments} of 120`, `Uncertified months to certify: ${(p.pslf.uncertifiedMonths || []).join(", ")}`, `Last certification on file: ${nice(p.pslf.lastCertification)}`], stopBefore: "Submit certification for employer signature", needsProvider: "the loan servicer's name and the employer's signer" },
+      C184: { portal: "Employer benefits portal (provider not yet named)", loginUrl: null, screens: ["Benefits sign-in", "Open enrollment", "Dependent care FSA election, filled"], filled: [`Annual election: ${money(Math.min(p.dcfsa.proposedElectionCents, ref.rules.dcfsa_household_cap_cents))} (household cap)`, `Provider receipts ready to claim: ${money(p.dcfsa.receiptsOnFileCents)}`], stopBefore: "Confirm election", needsProvider: "the benefits portal / HR system name" },
+      C196: { portal: "Payroll portal (provider not yet named)", loginUrl: null, screens: ["Payroll sign-in", "Pay / Direct deposit", "Add account + split, filled"], filled: [`Fixed amount to new savings, per paycheck: ${money(ddSplit)}`, `Remainder to current checking: ${money(p.netPayCents - ddSplit)}`, "Account and routing numbers: LEFT BLANK — you type them in the portal, never in chat"], stopBefore: "Save direct deposit", needsProvider: "the payroll provider's name" },
+      C202: { portal: "Employer benefits portal (provider not yet named)", loginUrl: null, screens: ["Benefits sign-in", "Open enrollment", "Elections, filled from the comparison"], filled: ["Medical: HDHP (lowest total on your usage, $2,980.00)", "HSA: elect, employer seed $1,000.00", "All other elections: carried over unless you say otherwise"], stopBefore: "Confirm enrollment", needsProvider: "the benefits portal / HR system name and the real plan documents" },
+      C204: { portal: "Equity platform (provider not yet named)", loginUrl: null, screens: ["Equity sign-in", "Grants", "ESPP enrollment, filled; 83(b) packet ready to mail"], filled: [`83(b) deadline on the tracker: ${nice(addDays(p.equity.isoGrantDate, ref.rules.b83_window_days))} (paper filing — yours to sign and mail, no portal tap)`, `Next RSU vest: ${nice(p.equity.nextVest)}, ${p.equity.rsuPerVest} shares`, `ESPP enrollment closes: ${nice(p.equity.esppEnrollBy)}`], stopBefore: "Confirm ESPP enrollment", needsProvider: "the equity platform's name and the grant documents" },
+    };
+  }
+
   function answer(message, ctx) {
     const c = ctx || {}, p = c.profile, ref = c.ref, today = c.today || "2026-10-12";
     const id = kind(message);
@@ -18028,7 +18050,7 @@ const PayrollBenefits = (() => {
     else text = c204(p, ref, today);
     return { id, text: `${text} ${STANDIN} From stand-in pay and plan facts, as of ${nice(today)}.` };
   }
-  return { kind, answer, validate, matchAt, STANDIN };
+  return { kind, answer, validate, matchAt, doorsteps, STANDIN };
 })();
 if (typeof module !== "undefined") module.exports = PayrollBenefits;
 

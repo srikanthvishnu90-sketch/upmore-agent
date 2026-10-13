@@ -121,6 +121,27 @@ test("C204 adversarial: a passed 83(b) deadline is never backdated advice", () =
   assert.match(filed, /filed, confirmed/);
 });
 
+test("doorsteps: all 9 login flows are built to the final tap and stop before it", () => {
+  const d = PB.doorsteps(profile, ref, TODAY);
+  assert.deepEqual(Object.keys(d).sort(), ["C101", "C103", "C108", "C159", "C172", "C184", "C196", "C202", "C204"]);
+  for (const [id, s] of Object.entries(d)) {
+    assert.ok(s.portal && s.screens.length >= 3 && s.stopBefore, id);
+    assert.ok(!/submit|confirm|save/i.test(s.screens[s.screens.length - 1]) || /filled/i.test(s.screens[s.screens.length - 1]), id);
+    const blob = JSON.stringify(s);
+    assert.doesNotMatch(blob, /routing(?: number)?:?\s*\d|account number:?\s*\d|ssn:?\s*\d|verification code:?\s*\d|password:?\s*\S/i, id);
+    if (s.loginUrl) assert.match(s.loginUrl, /^https:\/\//, id);
+  }
+  // Filled fields carry the packet's own parity dollars, not copies typed twice.
+  assert.match(d.C103.filled.join(" "), /\$222\.18/);
+  assert.match(d.C159.filled.join(" "), /\$18,181\.82/);
+  assert.match(d.C184.filled.join(" "), /\$5,000\.00/);
+  assert.match(d.C196.filled.join(" "), /\$230\.77/);
+  assert.match(d.C196.filled.join(" "), /LEFT BLANK/);
+  assert.match(d.C204.filled.join(" "), /Oct 28, 2026/);
+  assert.equal(d.C196.stopBefore, "Save direct deposit");
+  assert.equal(d.C159.stopBefore, "Submit W-4");
+});
+
 test("every reply labels stand-in data and names its as-of date", () => {
   for (const m of ["find my 401(k) at my first job", "file my fsa claims", "benefits audit please"]) {
     const t = ans(m).text;

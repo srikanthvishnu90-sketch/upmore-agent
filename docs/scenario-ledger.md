@@ -7,15 +7,15 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | ID | Family | Scenario (canonical text) | T-tasks | Status |
 |---|---|---|---|---|
 | SC-001 | Outreach & Networking | Find 300 top bankers in NY + a personalized coffee-chat email drafted for each | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-002 | Outreach & Networking | Find 500 bulge bracket bankers; draft the networking email; run the campaign in safe waves | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-003 | Outreach & Networking | Find 100 PMs at Series B–D startups in NYC who went to my school; message them | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-004 | Outreach & Networking | Get me 40 coffee chats with associates at McKinsey, Bain, BCG | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-005 | Outreach & Networking | Email every founder in the latest YC batch who is hiring a first SWE | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-006 | Outreach & Networking | Reach out to everyone I know at Palantir, then second-degree people | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-007 | Outreach & Networking | Freshman at a non-target: email 300 analysts at middle-market and boutique banks | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | ASK |
+| SC-002 | Outreach & Networking | Find 500 bulge bracket bankers; draft the networking email; run the campaign in safe waves | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-003 | Outreach & Networking | Find 100 PMs at Series B–D startups in NYC who went to my school; message them | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-004 | Outreach & Networking | Get me 40 coffee chats with associates at McKinsey, Bain, BCG | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-005 | Outreach & Networking | Email every founder in the latest YC batch who is hiring a first SWE | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-006 | Outreach & Networking | Reach out to everyone I know at Palantir, then second-degree people | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-007 | Outreach & Networking | Freshman at a non-target: email 300 analysts at middle-market and boutique banks | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-008 | Outreach & Networking | Junior at Wharton: network into BB M&A (2023–25 analysts and first-year associates) | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-009 | Outreach & Networking | Get 100 engineers at Stripe, Ramp, Plaid, Datadog who went to CMU or are from my hometown | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-010 | Outreach & Networking | VP at a bank moving to PE: reach 80 PE associates/principals, peer-level tone | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-010 | Outreach & Networking | VP at a bank moving to PE: reach 80 PE associates/principals, peer-level tone | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-011 | Outreach & Networking | I upload a spreadsheet of 200 names: verify, dedupe, draft, ask before enriching | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-012 | Outreach & Networking | Find 150 analysts at elite boutiques (Evercore, Lazard, Centerview) in Chicago | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-013 | Outreach & Networking | Find 200 associates at mega-fund PE firms who went to Big Ten schools | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
@@ -23,43 +23,43 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-015 | Outreach & Networking | Email 120 founders of seed startups hiring a first PM | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-016 | Outreach & Networking | Find 60 quant traders at prop shops with competition-math backgrounds | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-017 | Outreach & Networking | Find 250 Big 4 consultants in Texas for coffee chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-018 | Outreach & Networking | Build a list of 90 alumni of my high school working in tech | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | ASK |
+| SC-018 | Outreach & Networking | Build a list of 90 alumni of my high school working in tech | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-019 | Outreach & Networking | Find 40 product designers at consumer startups in LA | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-020 | Outreach & Networking | Email 200 boutique IB analysts, warmth-ranked (same hometown first) | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-021 | Outreach & Networking | Find 55 people at Google who interned at startups first | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-022 | Outreach & Networking | Find 130 associates at Houlihan Lokey, Jefferies, Rothschild for restructuring chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-023 | Outreach & Networking | Find 80 people from my school's finance club now working at banks | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-022 | Outreach & Networking | Find 130 associates at Houlihan Lokey, Jefferies, Rothschild for restructuring chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-023 | Outreach & Networking | Find 80 people from my school's finance club now working at banks | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-024 | Outreach & Networking | Find 45 seed-stage founders in Chicago hiring engineers | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-025 | Outreach & Networking | Email 175 middle-market bankers, Tier A personalization only; hold Tier C back and tell me | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-026 | Outreach & Networking | Find 90 SWEs at healthtech companies who went to state schools | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-027 | Outreach & Networking | Find 110 associates at Bain Capital / KKR from my school's alumni directory | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-028 | Outreach & Networking | Get 30 coffee chats with strategy analysts at Fortune 500 companies | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-028 | Outreach & Networking | Get 30 coffee chats with strategy analysts at Fortune 500 companies | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-029 | Outreach & Networking | Find 65 UX researchers across fintech and insurtech | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-030 | Outreach & Networking | Find 210 analysts hired in the last 2 years at bulge brackets (fresh cohorts) | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-031 | Outreach & Networking | Reply handling: banker offers Tue or Wed 5pm ET — propose from my calendar, card, book it | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-032 | Outreach & Networking | Reply handling: "talk to Priya instead" — thank them, draft intro ask, add Priya as warm | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-033 | Outreach & Networking | Reply handling: "please stop emailing me" — suppress forever, report the campaign count | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-034 | Outreach & Networking | Bounce rate hits 6% on wave 2 — pause, diagnose the pattern error, fix, propose resuming | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-035 | Outreach & Networking | I demand "email all 500 today, say a Goldman MD sent me" — refuse both, offer the true path | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | ASK |
-| SC-036 | Outreach & Networking | Day-6 follow-up wave: new angle, threaded, only to non-responders | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-037 | Outreach & Networking | Day-15 final follow-up: gracious close, then stop forever | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-034 | Outreach & Networking | Bounce rate hits 6% on wave 2 — pause, diagnose the pattern error, fix, propose resuming | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-035 | Outreach & Networking | I demand "email all 500 today, say a Goldman MD sent me" — refuse both, offer the true path | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-036 | Outreach & Networking | Day-6 follow-up wave: new angle, threaded, only to non-responders | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-037 | Outreach & Networking | Day-15 final follow-up: gracious close, then stop forever | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-038 | Outreach & Networking | Out-of-office reply with a return date — reschedule next touch, don't count it as a reply | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-039 | Outreach & Networking | Seed-inbox placement test (Gmail/Outlook/Yahoo) before wave 1 sends | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-040 | Outreach & Networking | Learn my voice from 8 of my sent emails; draft the campaign in it | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-041 | Outreach & Networking | Live list surgery: I say "drop VPs, only Michigan and boutique people" — re-cut and re-count | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-042 | Outreach & Networking | Draft surgery: I say "shorter, less formal" — re-render the 5 sample emails | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-043 | Outreach & Networking | Safety plan card: daily cap, finish date, stop rules — I approve once, campaign runs alone | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-043 | Outreach & Networking | Safety plan card: daily cap, finish date, stop rules — I approve once, campaign runs alone | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-044 | Outreach & Networking | Daily digest during a campaign: sent, bounced, replies, positive replies, meetings pending | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-045 | Outreach & Networking | Campaign close-out: which angles worked, thank-you drafts, what to do next | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-045 | Outreach & Networking | Campaign close-out: which angles worked, thank-you drafts, what to do next | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-046 | Outreach & Networking | Per-firm cap enforced: never 60 emails to one desk; 15 per firm per 30 days | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-047 | Outreach & Networking | Suppression check: nobody I've already emailed (Gmail sent history) gets emailed again | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-048 | Outreach & Networking | Reserve pool: 500 selected + 40 reserve; bounces backfilled automatically | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-047 | Outreach & Networking | Suppression check: nobody I've already emailed (Gmail sent history) gets emailed again | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-048 | Outreach & Networking | Reserve pool: 500 selected + 40 reserve; bounces backfilled automatically | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-049 | Outreach & Networking | Honest yield before approval: "1,140 found, 610 trustworthy emails, 540 sendable" | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-050 | Outreach & Networking | Tier mix report: 142 A / 230 B / 128 C — ask whether Tier C gets held | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-051 | Outreach & Networking | Find 35 lawyers at Big Law firms from my school for exploratory chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
-| SC-052 | Outreach & Networking | Find 50 med-school residents and alumni for pre-med advising chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-051 | Outreach & Networking | Find 35 lawyers at Big Law firms from my school for exploratory chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
+| SC-052 | Outreach & Networking | Find 50 med-school residents and alumni for pre-med advising chats | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-053 | Outreach & Networking | Email 85 marketing associates at CPG companies in Chicago | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
-| SC-054 | Outreach & Networking | Find 70 civil engineers at infrastructure firms in the Midwest | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | LEARN |
+| SC-054 | Outreach & Networking | Find 70 civil engineers at infrastructure firms in the Midwest | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-055 | Outreach & Networking | Find 95 AI/ML engineers at Series A startups who publish on GitHub | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-056 | Outreach & Networking | Get 25 coffee chats with venture analysts at Midwest funds | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
 | SC-057 | Outreach & Networking | Find 140 ops managers at logistics companies who started as analysts | T-01..T-04, T-07, T-08, T-11..T-13, T-19..T-23, T-25, T-28, T-83, T-98 | COMPLETE |
@@ -70,7 +70,7 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-062 | Apply Engine | "I'm trying to land a SWE role — tailor my resume for the role, then apply for me" | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-063 | Apply Engine | Apply to every new-grad SWE role posted in the last 48 hours at my starred companies | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-064 | Apply Engine | Apply to these 12 links — return apply / skip / ask with reasons for each | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-065 | Apply Engine | Find 20 PM internships for summer; tailor; apply only where I have a real shot | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-065 | Apply Engine | Find 20 PM internships for summer; tailor; apply only where I have a real shot | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-066 | Apply Engine | Apply to Palantir FDSE — with referral stacking checked first | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-067 | Apply Engine | Sophomore summer-analyst sweep: which BB windows are even open; bank-format one-pager tailored | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-068 | Apply Engine | Batch: 17 Match roles tailored; I review the first 3; then submit the batch on my card yes | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
@@ -86,31 +86,31 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-078 | Apply Engine | Autopilot rule: fit ≥ 80, my 25 companies, max 10/day, no Reach — nightly summary while it runs | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-079 | Apply Engine | Duplicate protection: I applied manually last week — Gmail check catches it, no double-apply | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-080 | Apply Engine | Reapply cooldown active at a company — hold, tell me the exact date it lifts | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-081 | Apply Engine | Workday portal needs an account — create alias email + vault password, disclose it to me | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | ASK |
+| SC-081 | Apply Engine | Workday portal needs an account — create alias email + vault password, disclose it to me | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-082 | Apply Engine | CAPTCHA appears mid-application — hand me the tap, resume when done | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-083 | Apply Engine | Submit 5 Greenhouse applications — every employer confirmation captured or flagged unconfirmed | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
-| SC-084 | Apply Engine | Role at my current employer — refuse by default; require my knowing override | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | ASK |
+| SC-083 | Apply Engine | Submit 5 Greenhouse applications — every employer confirmation captured or flagged unconfirmed | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
+| SC-084 | Apply Engine | Role at my current employer — refuse by default; require my knowing override | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-085 | Apply Engine | "Why this company" answer bank across 6 applications, company parts rewritten every time | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-086 | Apply Engine | Cover letters only where the portal asks; startup voice vs bank voice per company | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-086 | Apply Engine | Cover letters only where the portal asks; startup voice vs bank voice per company | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-087 | Apply Engine | Tailor for Stripe SWE — lead with writing, craft, product-minded proof | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-088 | Apply Engine | Tailor for Goldman IBD — bank format, education first, GPA, modeling, club roles | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
-| SC-089 | Apply Engine | Tailor for McKinsey — impact bullets in accomplished-X-by-Y-resulting-in-Z form | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
-| SC-090 | Apply Engine | Tailor for Jane Street — competitions, probability coursework, research forward | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-088 | Apply Engine | Tailor for Goldman IBD — bank format, education first, GPA, modeling, club roles | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
+| SC-089 | Apply Engine | Tailor for McKinsey — impact bullets in accomplished-X-by-Y-resulting-in-Z form | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
+| SC-090 | Apply Engine | Tailor for Jane Street — competitions, probability coursework, research forward | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-091 | Apply Engine | Tailor for Palantir FDE — hardest problem owned, customer-facing proof | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-092 | Apply Engine | Tailor for Datadog backend — scale and systems evidence forward | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-093 | Apply Engine | Tailor for Ramp full-stack — shipped product and metrics forward | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-093 | Apply Engine | Tailor for Ramp full-stack — shipped product and metrics forward | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-094 | Apply Engine | Tailor for a YC startup — builder voice, one specific thing I built for their problem | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-095 | Apply Engine | Tailor for Big Law summer associate — CV conventions, school and journal signals | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-095 | Apply Engine | Tailor for Big Law summer associate — CV conventions, school and journal signals | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-096 | Apply Engine | Tailor med-school application essays from my real clinical and research experiences | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-097 | Apply Engine | Resume diff review: "changed 4 bullets, moved Projects up, added Kubernetes (Project X)" — I approve the diff | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-098 | Apply Engine | Gap callout before applying: "their interns mostly have X" — my odds stated, proceed or not, my call | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-099 | Apply Engine | Referral hold decision: hold the app 48 hours for Priya's referral, or apply now and refer after | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
+| SC-099 | Apply Engine | Referral hold decision: hold the app 48 hours for Priya's referral, or apply now and refer after | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-100 | Apply Engine | No warm path at a dream company — launch a 5–10 person mini outreach campaign instead | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-101 | Apply Engine | One-page rule enforced for a student resume across every variant | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-102 | Apply Engine | ATS-safe render: single column, standard headings, text-extractable, portal's preferred format | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-103 | Apply Engine | ATS parser mangled my dates — agent re-enters fields manually; replay test written | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-104 | Apply Engine | Wrong-resume failure: variant B nearly attached to company A — caught before submit; replay test | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
-| SC-105 | Apply Engine | Portal status check (opt-in): log in and read my real application status | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
+| SC-105 | Apply Engine | Portal status check (opt-in): log in and read my real application status | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | LEARN |
 | SC-106 | Apply Engine | Speed run: starred companies' feeds polled; fitting role applied within the hour it posts | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-107 | Apply Engine | Internship deadline radar: warn me 2 weeks before each target's window closes | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
 | SC-108 | Apply Engine | Sophomore insight/early programs — which are open, tailored applications for the open ones | T-12, T-14, T-15, T-17, T-18, T-26, T-29..T-38, T-97 | COMPLETE |
@@ -156,14 +156,14 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-148 | Referrals & Warm Paths | Alumni-directory path when my LinkedIn is thin (40 connections) | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-149 | Referrals & Warm Paths | Club roster path: my fraternity brothers at target firms | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-150 | Referrals & Warm Paths | Intro request: a mutual gets a forwardable blurb and the ask, card-approved | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-151 | Referrals & Warm Paths | Referral ask sent after a good coffee chat — never in email one | T-07, T-26, T-27, T-73, T-98 | LEARN |
+| SC-151 | Referrals & Warm Paths | Referral ask sent after a good coffee chat — never in email one | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-152 | Referrals & Warm Paths | My contact submits the referral — tracked onto the right application | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-153 | Referrals & Warm Paths | Employee lookup from public sources only: GitHub, speakers, team pages | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-154 | Referrals & Warm Paths | Second-degree map: friends of my first-degree people at the target | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-155 | Referrals & Warm Paths | Coffee-chat to referral conversion tracked per contact | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-156 | Referrals & Warm Paths | Relationship memory: "When did I last talk to Daniel, and what about?" — full history | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-157 | Referrals & Warm Paths | Keep-warm: six weeks since a good chat — an update touch suggested with a real reason | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-158 | Referrals & Warm Paths | Update touch drafted around my new offer or project | T-07, T-26, T-27, T-73, T-98 | LEARN |
+| SC-158 | Referrals & Warm Paths | Update touch drafted around my new offer or project | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-159 | Referrals & Warm Paths | Warm-path sweep across my top 10 target companies in one pass | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-160 | Referrals & Warm Paths | New-hire radar: someone from my school just joined a target — flagged as the warmest path | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-161 | Referrals & Warm Paths | Referral-bonus intel: which targets pay them (engineers answer those asks more) | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
@@ -173,18 +173,18 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-165 | Referrals & Warm Paths | My only contact left the firm — find the next path, don't write to the departed blindly | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-166 | Referrals & Warm Paths | Professor path: my professor worked at the target — draft the ask | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-167 | Referrals & Warm Paths | Family-friend path from my pasted contacts — extra care in tone, my yes | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-168 | Referrals & Warm Paths | Referral timing: apply now or wait 48 hours — decided from the real deadline | T-07, T-26, T-27, T-73, T-98 | LEARN |
+| SC-168 | Referrals & Warm Paths | Referral timing: apply now or wait 48 hours — decided from the real deadline | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-169 | Referrals & Warm Paths | Two paths into one company — pick the stronger; don't burn both | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-170 | Referrals & Warm Paths | Mini-campaign at one company: 8 people sequenced warm to cold | T-07, T-26, T-27, T-73, T-98 | LEARN |
+| SC-170 | Referrals & Warm Paths | Mini-campaign at one company: 8 people sequenced warm to cold | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-171 | Referrals & Warm Paths | Contact sits at my current employer — excluded by default, and I hear why | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-172 | Referrals & Warm Paths | Recruiter vs practitioner at the same firm — different asks, drafted accordingly | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-173 | Referrals & Warm Paths | Alumni in a different city than the role — warmth ranked honestly, not inflated | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-174 | Referrals & Warm Paths | Same person found in three sources — merged to one record, never double-sent | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-175 | Referrals & Warm Paths | "Get me referred at Datadog" — end to end: path, ask, referral submitted, tracked | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-176 | Interview Prep | Night-before brief for my Stripe interview: company, role, team signals, bar |  | LEARN |
+| SC-176 | Interview Prep | Night-before brief for my Stripe interview: company, role, team signals, bar |  | COMPLETE |
 | SC-177 | Interview Prep | Question bank for this round, my best story matched to each question |  | COMPLETE |
 | SC-178 | Interview Prep | Full text mock: behavioral round, scored feedback at the end |  | COMPLETE |
-| SC-179 | Interview Prep | Voice mock: same loop by voice, scored the same way |  | ASK |
+| SC-179 | Interview Prep | Voice mock: same loop by voice, scored the same way |  | COMPLETE |
 | SC-180 | Interview Prep | STAR bank: my real experiences mined into 8 reusable stories |  | COMPLETE |
 | SC-181 | Interview Prep | Interviewer research: the 3 people on my calendar invite — paths, teams, shared ground |  | LEARN |
 | SC-182 | Interview Prep | Coffee-chat prep brief: who, their path, 3 talking points, 5 sharp questions, what not to ask |  | LEARN |
@@ -229,32 +229,32 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-221 | Intelligence & Honest Advice | "How do I get a job at Palantir?" — full thesis with sample size and date | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-222 | Intelligence & Honest Advice | "What does IB recruiting actually require?" — the real ladder, no sugarcoating | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-223 | Intelligence & Honest Advice | Freshman at a non-target: "Is IB even realistic?" — honest odds, three routes | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-224 | Intelligence & Honest Advice | "Is a 3.4 GPA fatal for IB?" — cutoffs checked firm by firm on my list | T-05, T-06, T-47..T-58 | LEARN |
-| SC-225 | Intelligence & Honest Advice | Goldman vs a boutique for me — brand, exits, hiring volume, fit compared | T-05, T-06, T-47..T-58 | LEARN |
+| SC-224 | Intelligence & Honest Advice | "Is a 3.4 GPA fatal for IB?" — cutoffs checked firm by firm on my list | T-05, T-06, T-47..T-58 | COMPLETE |
+| SC-225 | Intelligence & Honest Advice | Goldman vs a boutique for me — brand, exits, hiring volume, fit compared | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-226 | Intelligence & Honest Advice | "Do search-fund internships actually help for BB?" — answered from the pattern evidence | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-227 | Intelligence & Honest Advice | "What does Stripe look for in new-grad SWEs?" — CIR answer, sources labeled | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-228 | Intelligence & Honest Advice | State school: "Can I get FAANG?" — what offsets the brand gap + a 90-day plan | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-229 | Intelligence & Honest Advice | "Is the SWE market bad right now?" — current data; known vs anecdotal kept separate | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-230 | Intelligence & Honest Advice | Jane Street / Citadel quant path — competition signals, honest rarity | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-231 | Intelligence & Honest Advice | Quant researcher vs trader — which fits me; day-to-day truth | T-05, T-06, T-47..T-58 | LEARN |
+| SC-231 | Intelligence & Honest Advice | Quant researcher vs trader — which fits me; day-to-day truth | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-232 | Intelligence & Honest Advice | PM straight out of college — APM reality + the build-something plan | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-233 | Intelligence & Honest Advice | MBB path — screens, case norms, this year's dates pulled live | T-05, T-06, T-47..T-58 | LEARN |
-| SC-234 | Intelligence & Honest Advice | Big Law path — ABA employment data, debt stated honestly | T-05, T-06, T-47..T-58 | ASK |
+| SC-233 | Intelligence & Honest Advice | MBB path — screens, case norms, this year's dates pulled live | T-05, T-06, T-47..T-58 | COMPLETE |
+| SC-234 | Intelligence & Honest Advice | Big Law path — ABA employment data, debt stated honestly | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-235 | Intelligence & Honest Advice | Pre-med path — prereqs, MCAT, clinical ladder, verified timeline | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-236 | Intelligence & Honest Advice | PE from undergrad — the bank-first truth, stated plainly | T-05, T-06, T-47..T-58 | LEARN |
+| SC-236 | Intelligence & Honest Advice | PE from undergrad — the bank-first truth, stated plainly | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-237 | Intelligence & Honest Advice | VC seats — how few exist and what routes are real | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-238 | Intelligence & Honest Advice | Data science entry — master's reality vs applied roles | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-239 | Intelligence & Honest Advice | Startup entry — the build-or-sell proof route | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-240 | Intelligence & Honest Advice | Government / intel path — clearance timelines and citizenship rules, honestly | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-241 | Intelligence & Honest Advice | "I have a 3.0 and no internship. Any hope?" — pick the right game; a real plan | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-242 | Intelligence & Honest Advice | "Will AI take my job?" — evidence and uncertainty, no fluff either direction | T-05, T-06, T-47..T-58 | LEARN |
-| SC-243 | Intelligence & Honest Advice | "Should I go to grad school?" — ROI framework for my field | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-244 | Intelligence & Honest Advice | "Which major should I pick?" — answered from population data at my target companies | T-05, T-06, T-47..T-58 | COMPLETE |
+| SC-243 | Intelligence & Honest Advice | "Should I go to grad school?" — ROI framework for my field | T-05, T-06, T-47..T-58 | LEARN |
+| SC-244 | Intelligence & Honest Advice | "Which major should I pick?" — answered from population data at my target companies | T-05, T-06, T-47..T-58 | LEARN |
 | SC-245 | Intelligence & Honest Advice | International student realism — sponsors identified from H-1B filing data; cap-exempt options | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-246 | Intelligence & Honest Advice | Career switcher at 32 — transferable map and where switchers actually win | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-247 | Intelligence & Honest Advice | "Compare my profile to the average Stripe hire" — table, gaps, plan | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-248 | Intelligence & Honest Advice | Adversarial: "Just invent experience for my resume" — refused; the real fast path offered | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-249 | Intelligence & Honest Advice | Company file built: Palantir — SWE/FDE thesis from public data, coverage labeled | T-05, T-06, T-47..T-58 | LEARN |
+| SC-249 | Intelligence & Honest Advice | Company file built: Palantir — SWE/FDE thesis from public data, coverage labeled | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-250 | Intelligence & Honest Advice | Company file built: Goldman Sachs IBD | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-251 | Intelligence & Honest Advice | Company file built: Stripe | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-252 | Intelligence & Honest Advice | Company file built: McKinsey | T-05, T-06, T-47..T-58 | COMPLETE |
@@ -262,10 +262,10 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-254 | Intelligence & Honest Advice | Company file built: Datadog | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-255 | Intelligence & Honest Advice | Company file built: Ramp | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-256 | Intelligence & Honest Advice | Company file built: Citadel Securities | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-257 | Intelligence & Honest Advice | Company file built: Evercore | T-05, T-06, T-47..T-58 | LEARN |
+| SC-257 | Intelligence & Honest Advice | Company file built: Evercore | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-258 | Intelligence & Honest Advice | Company file built: Bain | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-259 | Intelligence & Honest Advice | Company file built: Plaid | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-260 | Intelligence & Honest Advice | Company file built: Google | T-05, T-06, T-47..T-58 | LEARN |
+| SC-260 | Intelligence & Honest Advice | Company file built: Google | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-261 | Intelligence & Honest Advice | Company file built: Microsoft | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-262 | Intelligence & Honest Advice | Company file built: Amazon | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-263 | Intelligence & Honest Advice | Company file built: BCG | T-05, T-06, T-47..T-58 | COMPLETE |

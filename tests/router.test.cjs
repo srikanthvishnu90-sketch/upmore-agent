@@ -433,6 +433,56 @@ test('two orders with no conjunction are two requests, in order; a purpose claus
   for(const t of ['sell my VTI to buy VOO','buy VOO','sell half my VTI','buy 2 VOO then'])assert.equal(R.splitRequests(t),null,t);
 });
 
+// Live gauntlet 2026-10-12 (agent-chat v216, sloppy G08-G14, 0/7 understood): every Netflix phrasing was read by the
+// flow, but the cancel session's no-charge reply carried no reason, so the router scored the honest data answer as
+// "asked about the person's words" and understood_first was false. A missing charge is missing data (reason
+// no_charge, a DATA_GAP), like a missing recipient or brokerage: understood, answered honestly, never a
+// clarification about the words. Replayed here in the live test account's shape (no transactions at all).
+test('live 2026-10-12 sloppy: a cancel whose charge is not in the data is understood on the first message, in every phrasing',async()=>{
+  const noTx=()=>{const w=world();const ss=sessions(w);ss.cancel=X.create({registry,connectors:w.conn,clock:()=>w.clock.now,transactions:[],directory:{netflix:{kind:'portal',url:'netflix.com/cancelplan',display_name:'Netflix'}}});return ss;};
+  const down=async()=>{throw new Error('router model HTTP 400');};
+  for(const t of ['cancel netflix','cancel my netflix','can u cancel netflix for me','cancle netflix','stop paying for netflix','get rid of netflix','kill my netflix sub']){
+    const r=await R.handle(t,{extract:down,sessions:noTx(),parsers});
+    assert.equal(r.flow,'cancel',t);assert.equal(r.understood_first,true,t);assert.equal(r.result.reason,'no_charge',t);
+    assert.match(r.result.text,/^I don't see a netflix charge on your linked cards/,t);
+    const m=await R.handle(t,{extract:stub({[R.tidy(t)]:{intent:'cancel_subscription',merchant_span:'netflix'}}),sessions:noTx(),parsers});
+    assert.equal(m.understood_first,true,t+' (model)');
+  }
+  // Named by amount, also absent: the same data gap, never "Which one is it?" scored as a misunderstanding.
+  const a=await R.handle('cancel the 17.99 charge',{extract:stub({'cancel the 17.99 charge':{intent:'cancel_subscription'}}),sessions:noTx(),parsers});
+  assert.equal(a.understood_first,true);assert.equal(a.result.reason,'no_charge');assert.match(a.result.text,/^I don't see a recurring \$17\.99 charge/);
+});
+
+test('a charge named by its amount reaches the cancel card through the model path too (megadoc J12)',async()=>{
+  const w=world();const ss=sessions(w);
+  const r=await R.handle('cancel the thing that charged me 17.99',{extract:stub({'cancel the thing that charged me 17.99':{intent:'cancel_subscription'}}),sessions:ss,parsers});
+  assert.equal(r.result.outcome,'confirm',r.result.text);assert.match(r.result.text,/^Cancel Netflix \(Standard, \$17\.99\/mo\)/);
+  assert.equal(w.writes.length,0);
+});
+
+test('amounts in compound words read whole: "twenty five dollars" is $25 everywhere, never $5',async()=>{
+  assert.equal(T.parse('buy twenty five dollars of VTI').notional_cents,2500);
+  assert.equal(T.parse('buy five hundred dollars of VOO').notional_cents,50000);
+  assert.equal(T.parse('buy two hundred and fifty dollars of VOO').notional_cents,25000);
+  assert.equal(T.parse('sell twenty five dollars of VOO').notional_cents,2500);
+  const w=world();const ss=sessions(w);const down=async()=>{throw new Error('router model HTTP 400');};
+  const r=await R.handle('buy twenty five dollars of VTI',{extract:down,sessions:ss,parsers});
+  assert.equal(r.result.outcome,'confirm',r.result.text);assert.match(r.result.text,/^Buy \$25\.00 of VTI/);
+});
+
+test('a leading greeting is not part of the request: "hey send sam $40" cards with the model down',async()=>{
+  assert.equal(R.tidy('hey send sam $40'),'send sam $40');assert.equal(R.tidy('hey, cancel netflix'),'cancel netflix');
+  const w=world();const ss=sessions(w);const down=async()=>{throw new Error('router model HTTP 400');};
+  const r=await R.handle('hey send sam $40',{extract:down,sessions:ss,parsers});
+  assert.equal(r.result.outcome,'confirm',r.result.text);assert.match(r.result.text,/\$40\.00 to Sam K/);
+});
+
+test('"sell all my VOO" is understood when the model drops the size: the net\'s fraction fills it',async()=>{
+  const w=world();const ss=sessions(w);
+  const r=await R.handle('sell all my VOO',{extract:stub({'sell all my VOO':{intent:'sell_security',instrument_span:'VOO'}}),sessions:ss,parsers});
+  assert.equal(r.flow,'trade');assert.equal(r.understood_first,true);assert.ok(Array.from(r.filled_from_net).includes('fraction'));
+});
+
 test('a second payee with a two- or three-word name borrows the verb: "send sarah 40 and marcus l 20" is two sends, never one with Marcus dropped',()=>{
   const J=x=>JSON.stringify(x);
   assert.equal(J(R.splitRequests('send sarah 40 and marcus l 20')),J(['send sarah 40','send marcus l 20']));

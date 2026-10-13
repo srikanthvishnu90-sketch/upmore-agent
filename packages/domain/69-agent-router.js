@@ -98,6 +98,10 @@
         const size = e.unit === "shares" && e.quantity ? `${e.quantity} shares` : e.amount_cents ? money(e.amount_cents) : e.ambiguous_number ? String(e.ambiguous_number) : "";
         return `${e.intent === "sell_security" ? "sell" : "buy"} ${size ? size + " " : ""}${e.instrument_span ? "of " + e.instrument_span : ""}${e.account_span ? " in " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
       }
+      // A charge named by its amount ("cancel the thing that charged me 17.99", megadoc J12) is read by the cancel
+      // flow's own parser from the person's words; a rebuilt "cancel <merchant>" would drop the amount, so the
+      // words themselves go to the flow, as they do for an order with terms.
+      if (e.intent === "cancel_subscription" && /\d+\.\d{2}\b/.test(String(raw || ""))) return String(raw).trim();
       if (e.intent === "cancel_subscription") return `cancel ${e.merchant_span || ""}`.trim();
       if (e.intent === "split_expense") return `split ${e.amount_cents ? money(e.amount_cents) + " " : ""}with ${e.recipient_span || ""}${on}${e.memo_span ? " for " + e.memo_span : ""}`.replace(/\s+/g, " ").trim();
       if (e.intent === "send_money" && rw) return `${rw[1].toLowerCase()} ${e.amount_cents ? money(e.amount_cents) + " " : ""}to ${e.recipient_span || ""}${e.memo_span ? " for " + e.memo_span : ""}${e.account_span ? " from " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
@@ -133,7 +137,7 @@
     function complete(flow, e, n) {
       if (flow === "trade" && ((n && n.action && n.action !== "new") || e.intent === "manage_order")) return true;
       if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity || n.fraction) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
-      return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
+      return flow === "trade" ? !!((e.amount_cents || e.quantity || e.fraction) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
     const YES_NO = /^\s*(1|2|3|y|ya|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
@@ -462,6 +466,7 @@
       if (source === "model" && n) {
         if (!e.amount_cents && !e.quantity && n.amount_cents) { e.amount_cents = n.amount_cents; e.unit = "dollars"; filled.push("amount"); }
         if (!e.amount_cents && !e.quantity && n.quantity) { e.quantity = n.quantity; e.unit = "shares"; filled.push("quantity"); }
+        if (!e.amount_cents && !e.quantity && n.fraction) { e.fraction = n.fraction; filled.push("fraction"); }
         const key = f.flow === "trade" ? "instrument_span" : f.flow === "send" || f.flow === "split" ? "recipient_span" : "merchant_span";
         if (!e[key] && n.name && grounded(n.name, text)) { e[key] = n.name; filled.push(key); }
       }
@@ -480,7 +485,7 @@
       const understood = complete(f.flow, e, source === "model" ? null : n);
       // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding, and
       // neither is "Checking has $612.18 available, less than $900.00" (funds_short): the words were read right.
-      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap", "funds_short"];
+      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap", "funds_short", "no_charge", "broker_unreachable", "position_unreadable", "holdings_unreadable", "holding_names_unreadable", "bars_unreadable", "history_unreadable", "flows_unreadable", "dividends_unreadable", "dividends_calendar_unreadable"];
       const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
       return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped, filled_from_net: filled };
@@ -498,6 +503,9 @@
       let t = String(raw == null ? "" : raw).trim();
       if (/^\s*\d{4,8}\s*$/.test(t)) return t;
       t = t.replace(/^(?:pls|plz|please)\s+/i, "");
+      // A leading greeting is not part of the request either ("hey send sam $40" lost its recipient in the send
+      // parser, which reads from the verb; found by the expanded sloppy corpus, 2026-10-12).
+      t = t.replace(/^(?:hey|hi|yo)[,\s]+/i, "");
       t = t.replace(/^([a-z]+)\b/i, w => VERB_TYPO[w.toLowerCase()] || w);
       for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
       return t;

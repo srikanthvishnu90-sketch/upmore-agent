@@ -170,7 +170,7 @@
         if (p.undo) return undo(ctx);
         if (p.status) return status();
         if (p.savings) return savings();
-        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
+        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each.", { reason: "gap" }); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
         // Things that are not subscriptions are said plainly, never searched for as a charge (megadoc A09, C14, H11, M11).
         const raw = String(text || "");
         if (/\b(transfers?|payments? to|money i sent|the \$?\d+ (?:to|i sent))\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("stop", "Upmore doesn't send transfers itself, so there's nothing here to cancel. A payment you sent in Venmo, Zelle, Cash App or PayPal can only be stopped in that app, if it hasn't gone through yet. Nothing was changed.", { reason: "not_a_subscription" });
@@ -182,7 +182,7 @@
         if (amt && !p.that) {
           const want = Number(amt[1]) * 100 + Number(amt[2]), inv = inventory(), hit = inv.filter(x => x.amount_cents === want);
           if (hit.length === 1) return stage(hit[0], ctx);
-          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant) });
+          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant), reason: "no_charge" });
           return say("ask", `Which one: ${hit.map(x => nameOf(x)).join(" or ")}? Both charge ${money(want)}.`, { candidates: hit.map(x => x.merchant) });
         }
         let query = p.merchant; if (p.that) { if (!last_mentioned) return say("ask", "Cancel which one? Nothing has been mentioned yet."); query = last_mentioned; }
@@ -192,7 +192,7 @@
         // "kill my VOO position", "cancel my apple stock": an investment, not a subscription (found by probing); the sell
         // words are offered, nothing is staged here. A bare all-caps name is not enough: HBO, NYT and ESPN are subscriptions.
         if (r.none && /\b(?:position|shares|stock|stocks|etf)\b/i.test(query)) { const sym = String(query).trim().replace(/\s+(?:position|shares?|stock)$/i, ""); return say("ask", `${sym} looks like an investment, not a subscription, so there's nothing to cancel here. To sell it, say "sell my ${sym}" and I'll put up a card; nothing happens without your yes.`, { reason: "investment_not_subscription" }); }
-        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
+        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant), reason: "no_charge" });
         return stage(r.one, ctx);
       }
 

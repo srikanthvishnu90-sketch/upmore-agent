@@ -4847,8 +4847,25 @@
     // Small counts in words ("one share", "a share", "four dollars") and a ticker between the count and "shares"
     // ("1 AAPL share") read as the number they say; anything else still asks.
     const NUMW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+    // Compound amounts in words ("twenty five dollars", "five hundred dollars", "two hundred and fifty dollars"):
+    // the value of the whole word run, read the same way AgentRouter.numberIn reads it. The single-word pass below
+    // used to truncate these to their last word first ("twenty five dollars" became "5 dollars", a $5 order for a
+    // $25 one; found by the expanded sloppy corpus, 2026-10-12).
+    const WORD_ONES = { a: 1, an: 1, zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+    const WORD_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+    function wordsValue(words) {
+      let total = 0, cur = 0, any = false;
+      for (const w of words) {
+        if (w in WORD_ONES) { cur += WORD_ONES[w]; any = true; } else if (w in WORD_TENS) { cur += WORD_TENS[w]; any = true; }
+        else if (w === "hundred") { cur = (cur || 1) * 100; any = true; } else if (w === "thousand" || w === "grand") { total += (cur || 1) * 1000; cur = 0; any = true; }
+        else if (w === "and") continue; else return null;
+      }
+      return any ? total + cur : null;
+    }
     function parseAmount(text) {
-      const t = String(text || "").replace(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+(shares?|dollars|bucks)\b/gi, (m, w, u) => `${NUMW[w.toLowerCase()]} ${u}`).replace(/\b(\d+(?:\.\d+)?)\s+([A-Z]{1,5})\s+(shares?)\b/g, "$1 $3 of $2");
+      const t = String(text || "")
+        .replace(/\b((?:(?:a|an|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|grand|and)[\s-]+){1,8}?)(dollars|bucks|shares?|units?)\b/gi, (m, seq, unit) => { const v = wordsValue(seq.toLowerCase().split(/[\s-]+/).filter(Boolean)); return v == null ? m : `${v} ${unit}`; })
+        .replace(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+(shares?|dollars|bucks)\b/gi, (m, w, u) => `${NUMW[w.toLowerCase()]} ${u}`).replace(/\b(\d+(?:\.\d+)?)\s+([A-Z]{1,5})\s+(shares?)\b/g, "$1 $3 of $2");
       const k = THOUSANDS.exec(t); if (k) { const c = Math.round(Number(k[1]) * 100000); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const inv = INVEST.exec(t); if (inv) { const c = Number(inv[1].replace(/,/g, "")) * 100 + Number(((inv[2] || "") + "00").slice(0, 2)); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const d = DOLLARS.exec(t), s = SHARES.exec(t);
@@ -6343,7 +6360,7 @@
         if (p.undo) return undo(ctx);
         if (p.status) return status();
         if (p.savings) return savings();
-        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each."); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
+        if (p.batch) { const unused = inventory().filter(s => o.unused ? o.unused.includes(keyOf(s.merchant)) : false); if (!unused.length) return say("ask", "Which ones? I don't have usage data to tell which you don't use; name them and I'll put up one card each.", { reason: "gap" }); queue = unused.slice(1); const first = await stage(unused[0], ctx); return Object.assign(first, { queued: queue.map(s => nameOf(s)), text: `${first.text} (${unused.length} to cancel, one at a time; this is 1 of ${unused.length}.)` }); }
         // Things that are not subscriptions are said plainly, never searched for as a charge (megadoc A09, C14, H11, M11).
         const raw = String(text || "");
         if (/\b(transfers?|payments? to|money i sent|the \$?\d+ (?:to|i sent))\b/i.test(raw) && !/\bsubscription\b/i.test(raw)) return say("stop", "Upmore doesn't send transfers itself, so there's nothing here to cancel. A payment you sent in Venmo, Zelle, Cash App or PayPal can only be stopped in that app, if it hasn't gone through yet. Nothing was changed.", { reason: "not_a_subscription" });
@@ -6355,7 +6372,7 @@
         if (amt && !p.that) {
           const want = Number(amt[1]) * 100 + Number(amt[2]), inv = inventory(), hit = inv.filter(x => x.amount_cents === want);
           if (hit.length === 1) return stage(hit[0], ctx);
-          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant) });
+          if (!hit.length) return say("ask", `I don't see a recurring ${money(want)} charge on your linked cards${inv.length ? ` (I see ${inv.map(x => `${nameOf(x)} ${money(x.amount_cents)}`).join(", ")})` : ""}. Which one is it?`, { inventory: inv.map(x => x.merchant), reason: "no_charge" });
           return say("ask", `Which one: ${hit.map(x => nameOf(x)).join(" or ")}? Both charge ${money(want)}.`, { candidates: hit.map(x => x.merchant) });
         }
         let query = p.merchant; if (p.that) { if (!last_mentioned) return say("ask", "Cancel which one? Nothing has been mentioned yet."); query = last_mentioned; }
@@ -6365,7 +6382,7 @@
         // "kill my VOO position", "cancel my apple stock": an investment, not a subscription (found by probing); the sell
         // words are offered, nothing is staged here. A bare all-caps name is not enough: HBO, NYT and ESPN are subscriptions.
         if (r.none && /\b(?:position|shares|stock|stocks|etf)\b/i.test(query)) { const sym = String(query).trim().replace(/\s+(?:position|shares?|stock)$/i, ""); return say("ask", `${sym} looks like an investment, not a subscription, so there's nothing to cancel here. To sell it, say "sell my ${sym}" and I'll put up a card; nothing happens without your yes.`, { reason: "investment_not_subscription" }); }
-        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant) });
+        if (r.none) return say("ask", `I don't see ${/^[aeiou]/i.test(query) ? "an" : "a"} ${query} charge on your linked cards${r.inventory.length ? ` (I see ${r.inventory.map(s => nameOf(s)).join(", ")})` : ""}. Which card is it on, or is it billed through Apple or Google?`, { inventory: r.inventory.map(s => s.merchant), reason: "no_charge" });
         return stage(r.one, ctx);
       }
 
@@ -6608,6 +6625,10 @@
         const size = e.unit === "shares" && e.quantity ? `${e.quantity} shares` : e.amount_cents ? money(e.amount_cents) : e.ambiguous_number ? String(e.ambiguous_number) : "";
         return `${e.intent === "sell_security" ? "sell" : "buy"} ${size ? size + " " : ""}${e.instrument_span ? "of " + e.instrument_span : ""}${e.account_span ? " in " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
       }
+      // A charge named by its amount ("cancel the thing that charged me 17.99", megadoc J12) is read by the cancel
+      // flow's own parser from the person's words; a rebuilt "cancel <merchant>" would drop the amount, so the
+      // words themselves go to the flow, as they do for an order with terms.
+      if (e.intent === "cancel_subscription" && /\d+\.\d{2}\b/.test(String(raw || ""))) return String(raw).trim();
       if (e.intent === "cancel_subscription") return `cancel ${e.merchant_span || ""}`.trim();
       if (e.intent === "split_expense") return `split ${e.amount_cents ? money(e.amount_cents) + " " : ""}with ${e.recipient_span || ""}${on}${e.memo_span ? " for " + e.memo_span : ""}`.replace(/\s+/g, " ").trim();
       if (e.intent === "send_money" && rw) return `${rw[1].toLowerCase()} ${e.amount_cents ? money(e.amount_cents) + " " : ""}to ${e.recipient_span || ""}${e.memo_span ? " for " + e.memo_span : ""}${e.account_span ? " from " + e.account_span.replace(/^my\s+/i, "") : ""}`.replace(/\s+/g, " ").trim();
@@ -6643,7 +6664,7 @@
     function complete(flow, e, n) {
       if (flow === "trade" && ((n && n.action && n.action !== "new") || e.intent === "manage_order")) return true;
       if (n) return flow === "trade" ? !!((n.amount_cents || n.quantity || n.fraction) && n.name) : flow === "send" || flow === "split" ? !!(n.amount_cents && n.name) : !!n.name;
-      return flow === "trade" ? !!((e.amount_cents || e.quantity) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
+      return flow === "trade" ? !!((e.amount_cents || e.quantity || e.fraction) && e.instrument_span) : flow === "send" || flow === "split" ? !!(e.amount_cents && e.recipient_span) : !!e.merchant_span;
     }
     const YES_NO = /^\s*(1|2|3|y|ya|yes|yep|yeah|yup|ok|okay|sure|confirm|do it|go ahead|send it|n|no|nope|cancel|stop|details?|more|terms|never ?mind|nvm|forget it|scratch that|wait,?\s*no|no,?\s*wait|wait|hold on|hang on|one sec)\s*[.!?]*\s*$/i;
     const CORRECTION = /^\s*(actually|wait|no,?\s|make it|change it|instead|yes,? but|ok,? but)/i;
@@ -6972,6 +6993,7 @@
       if (source === "model" && n) {
         if (!e.amount_cents && !e.quantity && n.amount_cents) { e.amount_cents = n.amount_cents; e.unit = "dollars"; filled.push("amount"); }
         if (!e.amount_cents && !e.quantity && n.quantity) { e.quantity = n.quantity; e.unit = "shares"; filled.push("quantity"); }
+        if (!e.amount_cents && !e.quantity && n.fraction) { e.fraction = n.fraction; filled.push("fraction"); }
         const key = f.flow === "trade" ? "instrument_span" : f.flow === "send" || f.flow === "split" ? "recipient_span" : "merchant_span";
         if (!e[key] && n.name && grounded(n.name, text)) { e[key] = n.name; filled.push(key); }
       }
@@ -6990,7 +7012,7 @@
       const understood = complete(f.flow, e, source === "model" ? null : n);
       // A question caused by missing data (no saved recipient, no linked account, no quote) is not a misunderstanding, and
       // neither is "Checking has $612.18 available, less than $900.00" (funds_short): the words were read right.
-      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap", "funds_short"];
+      const DATA_GAP = ["new_recipient", "recipients_unreadable", "accounts_unreadable", "no_account", "no_quote", "stale_quote", "cash_unknown", "gap", "funds_short", "no_charge", "broker_unreachable", "position_unreadable", "holdings_unreadable", "holding_names_unreadable", "bars_unreadable", "history_unreadable", "flows_unreadable", "dividends_unreadable", "dividends_calendar_unreadable"];
       const asked = !!result && result.outcome === "ask" && !DATA_GAP.includes(result.reason);
       if (dropped.length && result && result.text) result.text = `I dropped the earlier card. ${result.text}`;
       return { route: e.intent, source, flow: f.flow, capability: f.capability, canonical: can, result, understood, understood_first: understood && !asked, ask_reason: result && result.outcome === "ask" ? result.reason || null : null, problems: v.problems || [], dropped, filled_from_net: filled };
@@ -7008,6 +7030,9 @@
       let t = String(raw == null ? "" : raw).trim();
       if (/^\s*\d{4,8}\s*$/.test(t)) return t;
       t = t.replace(/^(?:pls|plz|please)\s+/i, "");
+      // A leading greeting is not part of the request either ("hey send sam $40" lost its recipient in the send
+      // parser, which reads from the verb; found by the expanded sloppy corpus, 2026-10-12).
+      t = t.replace(/^(?:hey|hi|yo)[,\s]+/i, "");
       t = t.replace(/^([a-z]+)\b/i, w => VERB_TYPO[w.toLowerCase()] || w);
       for (let i = 0; i < 3; i++) t = t.replace(new RegExp(`(\\S)[\\s,]+(?:${FILLER})\\s*[!.]*$`, "i"), "$1").replace(/(\S)[!.]+$/, "$1");
       return t;

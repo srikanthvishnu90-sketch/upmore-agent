@@ -28,8 +28,25 @@
     // Small counts in words ("one share", "a share", "four dollars") and a ticker between the count and "shares"
     // ("1 AAPL share") read as the number they say; anything else still asks.
     const NUMW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+    // Compound amounts in words ("twenty five dollars", "five hundred dollars", "two hundred and fifty dollars"):
+    // the value of the whole word run, read the same way AgentRouter.numberIn reads it. The single-word pass below
+    // used to truncate these to their last word first ("twenty five dollars" became "5 dollars", a $5 order for a
+    // $25 one; found by the expanded sloppy corpus, 2026-10-12).
+    const WORD_ONES = { a: 1, an: 1, zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+    const WORD_TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+    function wordsValue(words) {
+      let total = 0, cur = 0, any = false;
+      for (const w of words) {
+        if (w in WORD_ONES) { cur += WORD_ONES[w]; any = true; } else if (w in WORD_TENS) { cur += WORD_TENS[w]; any = true; }
+        else if (w === "hundred") { cur = (cur || 1) * 100; any = true; } else if (w === "thousand" || w === "grand") { total += (cur || 1) * 1000; cur = 0; any = true; }
+        else if (w === "and") continue; else return null;
+      }
+      return any ? total + cur : null;
+    }
     function parseAmount(text) {
-      const t = String(text || "").replace(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+(shares?|dollars|bucks)\b/gi, (m, w, u) => `${NUMW[w.toLowerCase()]} ${u}`).replace(/\b(\d+(?:\.\d+)?)\s+([A-Z]{1,5})\s+(shares?)\b/g, "$1 $3 of $2");
+      const t = String(text || "")
+        .replace(/\b((?:(?:a|an|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|grand|and)[\s-]+){1,8}?)(dollars|bucks|shares?|units?)\b/gi, (m, seq, unit) => { const v = wordsValue(seq.toLowerCase().split(/[\s-]+/).filter(Boolean)); return v == null ? m : `${v} ${unit}`; })
+        .replace(/\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+(shares?|dollars|bucks)\b/gi, (m, w, u) => `${NUMW[w.toLowerCase()]} ${u}`).replace(/\b(\d+(?:\.\d+)?)\s+([A-Z]{1,5})\s+(shares?)\b/g, "$1 $3 of $2");
       const k = THOUSANDS.exec(t); if (k) { const c = Math.round(Number(k[1]) * 100000); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const inv = INVEST.exec(t); if (inv) { const c = Number(inv[1].replace(/,/g, "")) * 100 + Number(((inv[2] || "") + "00").slice(0, 2)); return c > 0 ? { notional_cents: c } : { zero: true }; }
       const d = DOLLARS.exec(t), s = SHARES.exec(t);

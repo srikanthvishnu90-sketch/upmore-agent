@@ -171,6 +171,13 @@ const OWNER: [string, string | null][] = [
   ["how much do i tip on doordash", "tipFeesReply"],
   ["are delivery fees getting worse", "tipFeesReply"],
   ["pay maya 40 only if my paycheck landed", null],
+  // Crypto tax export (C163), ahead of moneyReply in the handler: a tax ask with no file gets the prompt; a trade
+  // ask is never this answer (the crypto guard refuses it before the chain runs).
+  ["get my crypto taxes sorted", "cryptoTaxReply"],
+  ["what's my bitcoin cost basis for my 1099", "cryptoTaxReply"],
+  ["crypto tax export please", "cryptoTaxReply"],
+  ["buy some bitcoin", null],
+  ["sell my bitcoin and do my taxes", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

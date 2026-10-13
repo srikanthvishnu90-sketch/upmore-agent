@@ -348,6 +348,10 @@
     ["i paid the wrong person", "notYetReply"],
     ["get my money back from Amazon", "notYetReply"],
     ["remind sam about the 37", "notYetReply"],
-    ["what is an ipo", null]
+    ["what is an ipo", null],
+    ["get my crypto taxes sorted", "cryptoTaxReply"],
+    ["crypto tax export please", "cryptoTaxReply"],
+    ["what's my bitcoin cost basis for my 1099", "cryptoTaxReply"],
+    ["buy some bitcoin", null]
   ]
 }

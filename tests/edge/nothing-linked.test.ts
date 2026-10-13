@@ -20,6 +20,7 @@ import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/dead
 import { feeAuditReply } from "../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
 import { paycheckReply } from "../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
 import { tipFeesReply } from "../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
+import { cryptoTaxReply } from "../../supabase/functions/agent-chat/_shared/crypto_tax_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
 import SRC_HANDLER from "../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
@@ -31,6 +32,8 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["paycheck", (m) => paycheckReply(m, NOW, { accounts: none, transactions: none }, { tz: "America/New_York" })],
   ["fee audit", (m) => feeAuditReply(m, NOW, { accounts: none, transactions: none }, { tz: "America/New_York" })],
   ["tip fees", (m) => tipFeesReply(m, NOW, { receipts: none, transactions: none }, { tz: "America/New_York" })],
+  // Crypto tax export (C163) reads no account at all: a tax ask gets the prompt, which claims no look anywhere.
+  ["crypto tax", (m) => cryptoTaxReply(m)],
   ["money", (m) => moneyReply(m, NOW, { accounts: none, transactions: none })],
   // A budget the person set, with nothing linked: the reply says nothing is linked, never "$0.00 spent".
   ["budgets", (m) => budgetReply(m, NOW, { budgets: async () => [{ id: "budget-groceries-mock", kind: "category_budget", category: "groceries", amount_cents: 40000, status: "active" }], transactions: none })],

@@ -18112,7 +18112,7 @@
       // A pasted file's rows say buy and sell; they are data, not a trade ask. The trade guard applies to words only,
       // and a prose ask carrying a trade verb is a trade ask even when taxes are mentioned with it.
       if (!hasCsv && TRADE_ASK.test(t)) return null;
-      const taxWords = /\bcrypt(?:o|currency)?\b[^.?!]{0,60}\btax|\btax(?:es)?\b[^.?!]{0,60}\bcrypt|\bget my crypto taxes sorted\b|\bcrypto taxes\b|\b8949\b|\b1099-da\b/i.test(t);
+      const taxWords = /\bcrypt(?:o|currency)?\b[^.?!]{0,60}\btax|\btax(?:es)?\b[^.?!]{0,60}\bcrypt|\bget my crypto taxes sorted\b|\bcrypto taxes\b|\b8949\b|\b1099-da\b|\b(?:bitcoin|btc|ethereum|eth|crypto|solana|doge)\b[^.?!]{0,40}\bcost basis\b|\bcost basis\b[^.?!]{0,40}\b(?:bitcoin|btc|ethereum|eth|crypto|solana|doge)\b/i.test(t);
       if (!taxWords && !hasCsv) return null;
       // A stated tax year wins; a bare year is read only when no CSV is attached (its rows carry earlier years).
       const yearM = /(?:tax year|taxes for|return for)\s+(20\d\d)/i.exec(t) || (hasCsv ? null : /\b(20\d\d)\b/.exec(t));

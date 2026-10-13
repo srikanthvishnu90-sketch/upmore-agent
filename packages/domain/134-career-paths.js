@@ -9,7 +9,7 @@
    territory it is career-planning information only, labeled not-advice, with a referral out.
    Pure module: no IO; the clock is passed in. */
 "use strict";
-const CI = require("./125-career-intel.js");
+const CI = typeof CareerIntel !== "undefined" ? CareerIntel : require("./125-career-intel.js");
 
 const AS_OF = "2026-10-12";
 const PLAN_NUMBERS = [30, 90]; // plan-shape horizons (§2.3 part 6), not world claims — same rule as 125

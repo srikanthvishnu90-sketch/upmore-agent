@@ -985,3 +985,19 @@ corrected a stale citation in this program's own owner-decisions doc (Doc 1 §4.
 actually prints 5–7/14–16, matching code — OP-C02) and confirmed the approved-vendor
 list is EMPTY in practice (OP-C07). Seven new owner decisions were added to
 `review/owner-decisions-2026-10-13.md`; the §F list feeds the next run report.
+
+## Pipeline stage assertions (F1, operating-prompt Part 4) — BUILT (merged)
+
+24 checkable stage assertions over campaign run records (Stages 1–9: cap math
+before sourcing · employment currency · pattern rule · exclusions-before-drafting
+with logged reasons · fact freshness/provenance · Tier C held + stated · Stage-7
+QA log · Stage-8 reconciliation · seed-inbox gate · provider-ID-before-"sent"),
+severity-pinned (draft-for-suppressed, unconfirmed fact ID in a draft, missing
+provider ID, opt-out mishandling = S0). Proven both ways: a crafted compliant
+record passes 24/24; 22 one-per-assertion mutants each fail with the named check.
+**Run over SC-042's real run-1 records, 9 checks trip** — no interpretation record,
+no exclusions stage, no QA log, no reconciling report, facts with URLs but no
+fetch provenance (the known unsourced personalization), and the Stage-7
+claim→confirmed-fact-ID mapping absent (S0 class). What SC-042 genuinely
+satisfies (employment currency, dedupe, email checks) passes — the assertions
+discriminate, they don't blanket-fail.

@@ -1,7 +1,7 @@
 {
   "as_of": "2026-10-12",
   "cohort": {
-    "definition": "Students and recent graduates entering Stripe as software engineers, anchored on the firm's published Software Engineer, Intern listing \u2014 the clearest official statement of the entry screen. Experienced hires are a separate cohort.",
+    "definition": "Students and recent graduates entering Stripe as software engineers, anchored on the firm's published Software Engineer, Intern listing — the clearest official statement of the entry screen. Experienced hires are a separate cohort.",
     "level": "entry-level: interns and new graduates",
     "role_family": "Software engineering",
     "time_window": "listing live on Stripe's careers site when checked, October 2026"
@@ -20,7 +20,7 @@
   "confidence_level": "curated-qualitative",
   "data_sources": [
     {
-      "label": "Stripe official job listing: Software Engineer, Intern \u2014 minimum requirements and preferred qualifications",
+      "label": "Stripe official job listing: Software Engineer, Intern — minimum requirements and preferred qualifications",
       "url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
       "as_of": "2026-10-12",
       "source_type": "public"
@@ -32,7 +32,7 @@
       "source_type": "public"
     },
     {
-      "label": "Stripe official job listing (Strategic Capacity Planning Specialist) \u2014 the firm's published pay-range and in-office-expectation language",
+      "label": "Stripe official job listing (Strategic Capacity Planning Specialist) — the firm's published pay-range and in-office-expectation language",
       "url": "https://stripe.com/careers/listing/strategic-capacity-planning-specialist/8168554",
       "as_of": "2026-10-12",
       "source_type": "public"
@@ -40,14 +40,14 @@
   ],
   "entry_routes": [
     {
-      "accessibility_note": "The published entry door: the listing's minimum requirements are a real screen \u2014 CS fundamentals through a degree in progress, programming evidence from projects or classwork, and prior multi-person project experience.",
+      "accessibility_note": "The published entry door: the listing's minimum requirements are a real screen — CS fundamentals through a degree in progress, programming evidence from projects or classwork, and prior multi-person project experience.",
       "as_of": "2026-10-12",
       "rank": 1,
       "route": "Software Engineer, Intern (converts to new-grad offers)",
       "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833"
     },
     {
-      "accessibility_note": "The listing explicitly counts open-source contributions as qualifying multi-person project experience \u2014 a route fully open to students at any school.",
+      "accessibility_note": "The listing explicitly counts open-source contributions as qualifying multi-person project experience — a route fully open to students at any school.",
       "as_of": "2026-10-12",
       "rank": 2,
       "route": "Open-source / multi-person project route into the same screen",
@@ -65,7 +65,7 @@
     "as_of": "2026-10-12",
     "kind": "qualitative",
     "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-    "statement": "Stripe publishes its intern bar in the listing itself: strong CS fundamentals through pursuit of a Bachelor's or Master's in computer science, math or a related discipline; programming experience from side projects or classwork; and experience in previous internships or other multi-person projects \u2014 including open source \u2014 that shows you can take feedback from mentors, peers and stakeholders."
+    "statement": "Stripe publishes its intern bar in the listing itself: strong CS fundamentals through pursuit of a Bachelor's or Master's in computer science, math or a related discipline; programming experience from side projects or classwork; and experience in previous internships or other multi-person projects — including open source — that shows you can take feedback from mentors, peers and stakeholders."
   },
   "hiring_cadence": {
     "as_of": "2026-10-12",
@@ -83,7 +83,7 @@
   ],
   "known_biases_of_data": [
     "No population sample exists for this record: Stripe publishes requirements, not who passes them. Every distribution below restates the published screen qualitatively; none of it is a measured hire mix.",
-    "A job listing is the firm's stated ideal, written to attract applicants \u2014 it understates how much school brand and referrals may matter in practice, which this record cannot measure from public sources.",
+    "A job listing is the firm's stated ideal, written to attract applicants — it understates how much school brand and referrals may matter in practice, which this record cannot measure from public sources.",
     "The intern listing checked is one posting; team-specific listings vary in their preferred qualifications."
   ],
   "last_verified_at": "2026-10-12",
@@ -94,7 +94,7 @@
         "as_of": "2026-10-12",
         "count": null,
         "label": "Computer science, mathematics, or a related discipline",
-        "note": "This is the degree frame named in the official intern listing's minimum requirements \u2014 a stated screen, not a measured major mix of hires.",
+        "note": "This is the degree frame named in the official intern listing's minimum requirements — a stated screen, not a measured major mix of hires.",
         "share_pct": null,
         "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833"
       }
@@ -122,7 +122,7 @@
         "as_of": "2026-10-12",
         "count": null,
         "label": "Prior internships or multi-person projects, including open source",
-        "note": "Stated in the official listing as minimum-requirement evidence \u2014 experience of evaluating and receiving feedback from mentors, peers and stakeholders. It is a requirement pattern, not a measured employer mix.",
+        "note": "Stated in the official listing as minimum-requirement evidence — experience of evaluating and receiving feedback from mentors, peers and stakeholders. It is a requirement pattern, not a measured employer mix.",
         "share_pct": null,
         "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833"
       }
@@ -149,14 +149,14 @@
       "as_of": "2026-10-12",
       "kind": "qualitative",
       "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-      "statement": "The current intern listing expects candidates to leverage AI tools while applying rigorous critical thinking to review and validate outputs \u2014 submitting unreviewed AI output as your own work is exactly the failure mode the listing warns about."
+      "statement": "The current intern listing expects candidates to leverage AI tools while applying rigorous critical thinking to review and validate outputs — submitting unreviewed AI output as your own work is exactly the failure mode the listing warns about."
     }
   ],
   "referral_weight_notes": {
     "as_of": "2026-10-12",
     "kind": "qualitative",
     "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-    "statement": "No official statement on referral weight appears in the sources checked for this record. The listing's screens are evidence-based (projects, pull requests, writing), so the defensible assumption is that a referral may open a conversation but the artifacts still carry the decision."
+    "statement": "No official statement on referral weight appears in the sources checked for this record. The listing's screens are evidence-based (projects, pull requests, writing), so the defensible assumption is that a referral may open a conversation but the artifacts still carry the decision. Correction (2026-10-13, user-reported): referral weight varies by team and cycle, and a referral can be decisive for getting an application read at all — do not treat referrals as merely opening a conversation."
   },
   "sample_size": null,
   "school_dist": {
@@ -185,7 +185,7 @@
         "as_of": "2026-10-12",
         "kind": "qualitative",
         "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-        "statement": "Revealed by the same list: comfort navigating unfamiliar, multi-language codebases and shipping pull requests with test coverage \u2014 craft evidence over pedigree."
+        "statement": "Revealed by the same list: comfort navigating unfamiliar, multi-language codebases and shipping pull requests with test coverage — craft evidence over pedigree."
       }
     ],
     "stated": [
@@ -193,7 +193,7 @@
         "as_of": "2026-10-12",
         "kind": "qualitative",
         "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-        "statement": "Minimum: CS fundamentals via a Bachelor's or Master's in progress in CS, math or a related field; programming familiarity from side projects or classwork \u2014 Stripe mainly works in Ruby, Java, JavaScript, Go and Scala, and states new languages can be learned when fundamentals are present."
+        "statement": "Minimum: CS fundamentals via a Bachelor's or Master's in progress in CS, math or a related field; programming familiarity from side projects or classwork — Stripe mainly works in Ruby, Java, JavaScript, Go and Scala, and states new languages can be learned when fundamentals are present."
       },
       {
         "as_of": "2026-10-12",
@@ -210,7 +210,7 @@
         "as_of": "2026-10-12",
         "count": null,
         "label": "Ruby, Java, JavaScript, Go, Scala",
-        "note": "The languages the official intern listing names as Stripe's main working set \u2014 a stated environment, with the listing adding that new languages can be learned if fundamentals are present.",
+        "note": "The languages the official intern listing names as Stripe's main working set — a stated environment, with the listing adding that new languages can be learned if fundamentals are present.",
         "share_pct": null,
         "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833"
       },
@@ -241,14 +241,23 @@
     ],
     "sample_size": null
   },
-  "thesis_text": "Stripe is unusually legible: its intern listing publishes the actual screen. Fundamentals from a CS or math degree in progress, programming evidence from projects or classwork, and prior experience working on multi-person projects \u2014 open source explicitly counts. The revealed tilt is craft: clear written communication, clean pull requests with tests, and comfort in unfamiliar codebases matter as much as raw algorithm speed. No population data on who gets in is published, so this record is qualitative throughout and states no school or major shares.",
+  "thesis_text": "Stripe is unusually legible: its intern listing publishes the actual screen. Fundamentals from a CS or math degree in progress, programming evidence from projects or classwork, and prior experience working on multi-person projects — open source explicitly counts. The revealed tilt is craft: clear written communication, clean pull requests with tests, and comfort in unfamiliar codebases matter as much as raw algorithm speed. No population data on who gets in is published, so this record is qualitative throughout and states no school or major shares.",
   "values_culture_signals": [
     {
       "as_of": "2026-10-12",
       "kind": "qualitative",
       "source_url": "http://stripe.com/careers/listing/software-engineer-intern/8031833",
-      "statement": "The intern listing itself asks for the ability to learn unfamiliar systems through independent research and work with mentors and subject-matter experts \u2014 a user-and-craft orientation stated in the requirements, not just the marketing pages."
+      "statement": "The intern listing itself asks for the ability to learn unfamiliar systems through independent research and work with mentors and subject-matter experts — a user-and-craft orientation stated in the requirements, not just the marketing pages."
     }
   ],
-  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered."
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
+  "corrections_log": [
+    {
+      "date": "2026-10-13",
+      "report": "I report a piece of advice as wrong or outdated — the referral note in the Stripe file says referrals barely matter, but my recruiter contact says a referral was required to get my application read at all. That claim is wrong for my case.",
+      "action": "flagged_for_reverification",
+      "facts_to_recheck": [],
+      "disposition": "Referral claim amended: the record now states referral weight varies and a referral can be decisive for an application being read; original claim preserved in corrections_log."
+    }
+  ]
 }

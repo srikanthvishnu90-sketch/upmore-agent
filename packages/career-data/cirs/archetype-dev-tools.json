@@ -1,0 +1,213 @@
+{
+  "company_id": "archetype-dev-tools",
+  "company_name": "Archetype: Dev-Tools Startup",
+  "as_of": "2026-10-13",
+  "last_verified_at": "2026-10-13",
+  "confidence_level": "curated-qualitative",
+  "sample_size": null,
+  "cohort": {
+    "definition": "ARCHETYPE RECORD \u2014 NOT A COMPANY. This file describes a typical developer-tools startup's entry-level hiring pattern, synthesized as an archetype for planning when no company-specific record exists. It must never be quoted as facts about any individual company.",
+    "level": "entry-level: interns and new graduates",
+    "role_family": "Software engineering / entry roles",
+    "time_window": "listings and program pages live when checked, October 2026"
+  },
+  "data_sources": [
+    {
+      "label": "U.S. Bureau of Labor Statistics, Occupational Outlook Handbook (computer and information technology occupations) \u2014 public occupational context for the archetype's roles",
+      "url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13",
+      "source_type": "public"
+    },
+    {
+      "label": "Archetype synthesis note: patterns stated qualitatively from the archetype definition; no company source exists by design",
+      "url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13",
+      "source_type": "public"
+    }
+  ],
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [
+      {
+        "label": "No school pattern published",
+        "note": "Archetype records publish no school pattern: startups of this type hire across school tiers and screen on shipped work; no distribution is claimed.",
+        "count": null,
+        "share_pct": null,
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [
+      {
+        "label": "Prior internship or shipped project evidence",
+        "note": "The archetype's stated expectation pattern \u2014 evidence of built work, not a measured employer mix.",
+        "count": null,
+        "share_pct": null,
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ]
+  },
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [
+      {
+        "label": "Computer science or a related field, or equivalent shipped evidence",
+        "note": "The archetype's degree frame \u2014 many such startups accept equivalent project evidence; stated as a pattern, not a measured mix.",
+        "count": null,
+        "share_pct": null,
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ]
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [
+      {
+        "label": "Developer tooling: APIs, SDKs, CLIs and open-source craft",
+        "note": "The skill cluster this archetype's entry postings characteristically name \u2014 a pattern statement, not a measured mix.",
+        "count": null,
+        "share_pct": null,
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Intern or working student on the core product, converting on shipped open-source or product work",
+      "evidence": "reported-norm",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    },
+    {
+      "pattern": "Open-source contributor route: merged pull requests on the company's own repositories as the application",
+      "evidence": "reported-norm",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Engineering intern / new-grad engineer",
+      "rank": 1,
+      "accessibility_note": "Small-team screen: shipped code the team can read, ideally in the company's own stack or open-source repos.",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    },
+    {
+      "route": "Open-source contributor route",
+      "rank": 2,
+      "accessibility_note": "Merged contributions to the company's repositories are the archetype's most legible pre-application evidence.",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    },
+    {
+      "route": "Developer-advocacy-adjacent engineering roles",
+      "rank": 3,
+      "accessibility_note": "Writing and demos about the tool double as screening evidence at this archetype.",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "hiring_bar_summary": {
+    "statement": "Archetype bar: strong fundamentals plus publicly readable code \u2014 a portfolio, repository history or shipped side tool the hiring engineer can inspect directly. Pedigree signals are characteristically weak at this archetype; the artifact is the screen.",
+    "kind": "qualitative",
+    "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+    "as_of": "2026-10-13"
+  },
+  "screening_signals": {
+    "stated": [
+      {
+        "statement": "Stated pattern: proficiency in the product's implementation language and comfort with its developer surface (APIs, CLIs, documentation).",
+        "kind": "qualitative",
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ],
+    "revealed": [
+      {
+        "statement": "Revealed pattern: the team reads your actual code and writing before any formal screen \u2014 commit quality and clear technical writing are the hidden first round.",
+        "kind": "qualitative",
+        "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+        "as_of": "2026-10-13"
+      }
+    ]
+  },
+  "process_stages": [
+    {
+      "stage": "Application or warm introduction against a live posting",
+      "description": "Archetype pattern: a short process run by the hiring team itself; the live posting and a direct conversation are the sources of truth for any specific company.",
+      "kind": "process",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "interview_styles": [
+    {
+      "statement": "Archetype pattern: a practical exercise in the product's own stack, a code review conversation over your prior work, and a writing sample in effect (docs, READMEs, posts). No official process exists; each company improvises its own.",
+      "kind": "qualitative",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "statement": "Archetype pattern: builder empathy \u2014 the team builds for developers and screens for people who use and critique developer tools themselves.",
+      "kind": "qualitative",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "hiring_cadence": {
+    "statement": "Archetype pattern: hiring is episodic and headcount-driven, not calendar-driven; a role exists when funding and roadmap open it, and closes when filled. No annual cycle is claimed.",
+    "kind": "hiring_status",
+    "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+    "as_of": "2026-10-13"
+  },
+  "compensation_notes": [
+    {
+      "statement": "Archetype pattern: compensation is set company by company and stated, when stated, on the individual posting. This record quotes no figure: any specific company's posting is the only authoritative source.",
+      "kind": "compensation",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13",
+      "source_type_detail": "",
+      "source_type": "official"
+    }
+  ],
+  "referral_weight_notes": {
+    "statement": "Archetype pattern: warm introductions and community presence (open source, meetups, prior collaborators) characteristically carry more weight at small startups than at large firms, because screens are run by small teams. This is a pattern statement about the archetype, not a claim about any company.",
+    "kind": "qualitative",
+    "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+    "as_of": "2026-10-13"
+  },
+  "red_flags": [
+    {
+      "statement": "Archetype risk: small teams mean the intern's mentor may also be the busiest engineer \u2014 confirm who will review your work before accepting.",
+      "kind": "qualitative",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    },
+    {
+      "statement": "Archetype risk: titles are fluid; confirm the actual work, not the title, in writing.",
+      "kind": "qualitative",
+      "source_url": "https://www.bls.gov/ooh/computer-and-information-technology/home.htm",
+      "as_of": "2026-10-13"
+    }
+  ],
+  "thesis_text": "This record describes an archetype, not a company: the typical developer-tools startup hiring its first student engineers. Its screen is the artifact \u2014 readable code, merged contributions and clear technical writing \u2014 because a small team building for developers can inspect all three directly. Routes in run through the work itself: contribute, ship a tool, write about it. Every pattern here is qualitative, carries no sample, and must be re-verified against a specific company's own posting before it is used for a decision.",
+  "known_biases_of_data": [
+    "THIS IS AN ARCHETYPE, NOT A COMPANY: every statement describes a typical pattern for planning and must be re-verified against any specific company's own postings before acting.",
+    "No population sample exists for this record and none is claimed; all distributions are curated-qualitative with null sample size.",
+    "Archetype patterns age quickly as a sector's funding and hiring climate shifts; treat the as_of date as a hard freshness bound."
+  ],
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered."
+}

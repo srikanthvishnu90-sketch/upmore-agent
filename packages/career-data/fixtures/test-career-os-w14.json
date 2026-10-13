@@ -1,0 +1,30 @@
+{
+  "label": "TEST FIXTURE — authored for SC-271..SC-280 (W14); not real people, postings, or offers",
+  "postings_current": [
+    {"job_id":"TEST-W14-001","company":"TESTCO Alpha","title":"Software Engineer","role_family":"Software engineering","location":"Chicago","url":"https://example.com/test-w14/001","posted_at":"2026-10-10","jd_text":"Software Engineer. Requirements: Python, SQL, Docker. Salary range $95000 - $125000 per year."},
+    {"job_id":"TEST-W14-002","company":"TESTCO Beta","title":"Senior Software Engineer","role_family":"Software engineering","location":"Remote","url":"https://example.com/test-w14/002","posted_at":"2026-10-11","jd_text":"Senior Software Engineer. Requirements: Python, Kubernetes, System Design, AWS. Salary range $140000 - $180000 per year."},
+    {"job_id":"TEST-W14-003","company":"TESTCO Gamma","title":"Software Engineer, Platform","role_family":"Software engineering","location":"New York","url":"https://example.com/test-w14/003","posted_at":"2026-10-12","jd_text":"Platform Engineer. Requirements: Python, Kubernetes, Terraform, CI/CD. Salary range $135000 - $170000 per year."}
+  ],
+  "postings_prior": [
+    {"job_id":"TEST-W14-000","company":"TESTCO Beta","title":"Senior Software Engineer","role_family":"Software engineering","location":"Remote","url":"https://example.com/test-w14/000","posted_at":"2026-07-01","jd_text":"Senior Software Engineer. Salary range $130000 - $165000 per year."}
+  ],
+  "profile_skills": ["Python","SQL","Docker","JavaScript"],
+  "relationships": [
+    {"name":"TEST Contact 01","org":"TESTORG A","warmth":"warm","last_touch":"2026-06-01","channel":"email"},
+    {"name":"TEST Contact 02","org":"TESTORG B","warmth":"warm","last_touch":"2026-09-20","channel":"coffee chat"},
+    {"name":"TEST Contact 03","org":"TESTORG C","warmth":"warm","last_touch":"2026-08-15","channel":"email"},
+    {"name":"TEST Contact 04","org":"TESTORG D","warmth":"warm","last_touch":"2026-10-01","channel":"message"},
+    {"name":"TEST Contact 05","org":"TESTORG E","warmth":"warm","last_touch":"2026-07-04","channel":"email"},
+    {"name":"TEST Contact 06","org":"TESTORG F","warmth":"warm","last_touch":"2026-09-01","channel":"coffee chat"},
+    {"name":"TEST Contact 07","org":"TESTORG G","warmth":"warm","last_touch":"2026-10-10","channel":"message"},
+    {"name":"TEST Contact 08","org":"TESTORG H","warmth":"warm","last_touch":"2026-05-12","channel":"email"},
+    {"name":"TEST Contact 09","org":"TESTORG I","warmth":"warm","last_touch":"2026-08-28","channel":"email"},
+    {"name":"TEST Contact 10","org":"TESTORG J","warmth":"warm","last_touch":"2026-09-30","channel":"coffee chat"},
+    {"name":"TEST Contact 11","org":"TESTORG K","warmth":"warm","last_touch":"2026-06-25","channel":"message"},
+    {"name":"TEST Contact 12","org":"TESTORG L","warmth":"warm","last_touch":"2026-10-05","channel":"email"}
+  ],
+  "goals": [
+    {"text":"Log 10 wins this semester","target":10,"metric":"wins_logged"},
+    {"text":"Reach 2 offers by spring","target":2,"metric":"offers_logged"}
+  ]
+}

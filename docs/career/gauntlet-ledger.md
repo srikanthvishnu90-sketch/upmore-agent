@@ -1065,3 +1065,15 @@ criterion MET (mutation 15/15 + 15/15, re-run at baseline), baseline published;
 Gate 1 is therefore not fully met, and the report says so. The standing report
 generator (report-from-records.cjs) now produces every future run report from
 records.
+
+## NI wiring fix (grader-v2) — DONE (merged)
+
+The CLI now accepts `--capability-absent <path>` for rescore/grade-fresh and the
+loader enforces the approval gate: a DRAFT/pending-status file loads but hands the
+grader an EMPTY effective list (NI unreachable; the index records
+`{loaded: true, approved: false, ni_enabled: false}`); only an affirmatively
+owner-approved file enables NI, and then only for listed IDs with an honest R-C7
+reply (a listed ID answered "I didn't catch that" still grades FAIL S1). Missing/
+malformed file = fail-closed throw. Regression proof: re-scoring the 300 records
+with the real DRAFT reproduces the official baseline EXACTLY (PASS 1 / FAIL 299 /
+NI 0; S0 = SC-287, SC-300). 14/14 new tests; mutation suite intact.

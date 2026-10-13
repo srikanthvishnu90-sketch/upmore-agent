@@ -559,7 +559,20 @@ Exact unblocking inputs are recorded in the final report.
   missed), CD-11 OURS (no canonical C01–C40 text file exists in-repo; contracts were
   reconstructed from the variants manifest + ground truths, stated in every record).
   Full account: `docs/career/gauntlet-c-canon.md`.
-- C-B1 variants (first half): running. G6 payloads · M1 Gate 0: running.
+- **G6 per-family doorstep payloads (141) — BUILT, merged 64c60ba**: four emitters
+  (`emitTrackingLog`, `emitCalendarProposal`, `emitApplicationPacket`,
+  `emitOutreachDraft`) producing typed, hash-stamped doorstep records that the
+  hardened grader's own `doorstepGrade()` reads as PRESENT — tracking log writes
+  validated against 126/132 shapes, calendar proposals evaluated against the F3
+  ground truth (conflicts reported, never silently resolved; ambiguous DST
+  fall-back time returns `ambiguous_local_time` with no invented offset), packets
+  generalized beyond fixture ids with hash-bound resume versions, outreach drafts
+  through 124's gate with suppression refusals intact. Every commitment counter at
+  0 in tests. 10/10 fail-first; preservation 93/93; career suite 521/521. The v2 GAP
+  census (outreach-send 88 · application 59 · tracking-write 23 · calendar 9) falls
+  only on a re-run once routing connects canonical asks to these emitters — that
+  routing is Codex's lane.
+- C-B1 variants (first half) · M1 Gate 0: running.
 
 ## Quality Spec Pack v1.0 — ADOPTED (2026-10-13, commit f488346)
 

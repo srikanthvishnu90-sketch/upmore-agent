@@ -1,0 +1,10 @@
+"use strict"; const { H, N, fixture, NOW, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-211", "deadline-extension-request");
+  s.user("Deadline extension request drafted, sent on my yes, new date tracked");
+  const store = N.createStore(); const o = N.storeOffer(store, N.parseOffer(fixture("test-offer-a.txt"), { now: NOW }));
+  const ext = N.extensionDraft(o, { days: 7 });
+  const row = N.trackExtension(store, o, ext);
+  s.tool("128.extensionDraft + trackExtension", { ext, tracked: row, deadlines: store.deadlines });
+  s.agent(`Extension draft for ${o.company} — current deadline ${ext.current_deadline}, requesting ${ext.requested_deadline} (+${ext.days} days):\n\n${ext.draft}\n\nIt is on the approval card below and has NOT been sent. The new date is already tracked in the log as drafted_not_sent; when you tap yes and it sends, the tracked status is what later answers use.`, { card: ext.card });
+  s.verify("requested date = stored expiry + 7 days; tracking row status drafted_not_sent; card sent=false", { requested: ext.requested_deadline, tracked: row, card_sent: ext.card.sent });
+  await s.finish({ status: "COMPLETE", outcome: "Extension request drafted word-for-word, card-gated (not sent), and the requested new date tracked in the log as drafted_not_sent. The send itself fires only on the user's card tap — by program design. Prior sibling evidence under old numbering SC-186 — see " + F10 }); })();

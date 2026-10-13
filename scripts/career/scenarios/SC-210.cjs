@@ -1,0 +1,11 @@
+"use strict"; const { H, N, fixture, NOW, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-210", "two-offers-total-comp");
+  s.user("Two offers compared: full total-comp math, equity included, side by side");
+  const a = N.parseOffer(fixture("test-offer-a.txt"), { now: NOW });
+  const b = N.parseOffer(fixture("test-offer-b.txt"), { now: NOW });
+  const cmp = N.compareOffers(a, b);
+  s.tool("128.compareOffers (TEST offers A Airbnb / B Notion)", cmp);
+  const fmt = (v) => (v == null ? "unvalued" : "$" + v.toLocaleString());
+  s.agent(`Side by side (every assumption in the tool record):\n${cmp.rows.map((r) => `• ${r.field}: Airbnb ${fmt(r.a)} vs Notion ${fmt(r.b)}${r.delta_b_minus_a == null ? " (delta: not computed — one side is unvalued)" : ` (delta B−A: $${r.delta_b_minus_a.toLocaleString()})`}`).join("\n")}\n\nAirbnb year-1: $${cmp.a.year1_total.toLocaleString()} · annualized $${cmp.a.annualized_total.toLocaleString()}. Notion year-1 cash: $${cmp.b.year1_total.toLocaleString()} — its 6,000 options carry no price in the letter, so they are shown UNVALUED, never as $0-worth. ${cmp.note}`);
+  s.verify("year-1/annualized totals recomputed from parsed fields; equity delta is null (unvalued honesty)", { a: cmp.a, b: cmp.b, equity_row: cmp.rows.find((r) => r.field === "equity_annual") });
+  await s.finish({ status: "COMPLETE", outcome: "Two TEST offers compared with full total-comp math side by side; unpriced options shown unvalued with a null delta, assumptions labeled. Prior sibling evidence under old numbering SC-185 — see " + F10 }); })();

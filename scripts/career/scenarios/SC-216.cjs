@@ -1,0 +1,12 @@
+"use strict"; const { H, P, N, X, cir, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-216", "comp-expectation-mid-process");
+  s.user("Comp-expectation answer mid-process: range from data, my approval on the wording");
+  const ans = X.compExpectationAnswer(N.benchmark(cir("airbnb")));
+  s.tool("130.compExpectationAnswer (Airbnb CIR benchmark)", ans);
+  const sp = P.salaryPrep({ cir: cir("airbnb") });
+  s.tool("127.salaryPrep cross-check (same CIR comp notes)", { status: sp.status, ranges: sp.ranges.length });
+  const nf = X.compExpectationAnswer(N.benchmark(cir("bain")));
+  s.tool("130.compExpectationAnswer (Bain — no-figure control)", nf);
+  s.agent(`Wording for the Airbnb process — on the card below for your approval before it's used anywhere:\n\n${ans.wording}\n\nWhy it's built this way: ${ans.note}\n\nSame question in a process whose CIR publishes no figure (Bain): no range is quoted. The fallback wording instead: ${nf.fallback}`, { card: ans.card });
+  s.verify("wording's range equals the CIR figure ($128,000–$142,000) with source + as_of; card sent=false; Bain fallback contains no dollar figure", { figure: ans.figure, card_sent: ans.card.sent, bain_status: nf.status, bain_fallback_has_dollar: /\$\d/.test(nf.fallback) });
+  await s.finish({ status: "COMPLETE", outcome: "Mid-process comp-expectation answer produced from CIR data only, wording on an approval card (sent:false); the no-figure control honestly falls back to asking for the employer's band with no invented number" }); })();

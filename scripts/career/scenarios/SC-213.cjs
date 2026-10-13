@@ -1,0 +1,12 @@
+"use strict"; const { H, N, X, fixture, NOW, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-213", "equity-explainer");
+  s.user("Equity explainer: what this grant is worth under real scenarios");
+  const a = N.parseOffer(fixture("test-offer-a.txt"), { now: NOW });
+  const valued = X.equityScenarios(a);
+  s.tool("130.equityScenarios (Airbnb RSU — value stated in letter)", valued);
+  const b = N.parseOffer(fixture("test-offer-b.txt"), { now: NOW });
+  const unvalued = X.equityScenarios(b);
+  s.tool("130.equityScenarios (Notion options — no price in letter)", unvalued);
+  s.agent(`Your Airbnb grant, in plain terms:\n${valued.plain}\n\nScenario arithmetic (hypothetical — the letter's stated value moved up/down, NOT predictions):\n${valued.scenarios.map((x) => `• ${x.label}: $${x.total_if_fully_vested.toLocaleString()} total if fully vested (≈ $${x.per_year_average.toLocaleString()}/yr)`).join("\n")}\n\nVesting reality: ${valued.timeline.plain}\n\nContrast — the Notion grant in your other offer: ${unvalued.plain}\nQuestions that pin it down: ${unvalued.questions_for_recruiter.join(" ")}`);
+  s.verify("valued scenarios are pure arithmetic on the letter's $80,000 grant value with NOT-a-prediction labels; options remain UNVALUED with zero scenarios invented", { valued_status: valued.status, scenario_totals: valued.scenarios.map((x) => x.total_if_fully_vested), unvalued_status: unvalued.status, unvalued_scenarios: unvalued.scenarios.length });
+  await s.finish({ status: "COMPLETE", outcome: "Equity explainer delivered for both grants: letter-valued RSUs get labeled hypothetical scenario arithmetic + vesting plain-talk; unpriced options stay honestly unvalued with the exact questions that would pin a value down. Extends the sibling honesty run (old SC-197) — see " + F10 }); })();

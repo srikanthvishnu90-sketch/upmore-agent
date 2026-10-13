@@ -1,0 +1,12 @@
+"use strict"; const { H, N, fixture, NOW, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-219", "graceful-withdrawals");
+  s.user("After I accept: graceful withdrawal drafts to the other finalists and recruiters");
+  s.user("I accepted the Airbnb offer. Withdraw me gracefully from Notion and Figma.");
+  const store = N.createStore();
+  const accepted = N.storeOffer(store, N.parseOffer(fixture("test-offer-a.txt"), { now: NOW }));
+  const others = [N.storeOffer(store, N.parseOffer(fixture("test-offer-b.txt"), { now: NOW })), N.storeOffer(store, N.parseOffer(fixture("test-offer-c-exploding.txt"), { now: NOW }))];
+  const drafts = others.map((o) => N.declineDraft(o));
+  drafts.forEach((d, i) => { s.tool(`128.declineDraft -> ${others[i].company}`, d); s.agent(`Withdrawal draft for ${others[i].company} (card-gated, not sent):\n\n${d.draft}`, { card: d.card }); });
+  s.agent(`Accepted: ${accepted.company} (in the log). Withdrawals drafted for both other finalists — each one thanks the team, frames the reason as fit not money, and leaves the door open. None has been sent; each sends only on its own card's yes.`);
+  s.verify("two decline drafts, one per other stored offer; all relationship checks pass on both; every card sent=false", { drafts: drafts.map((d) => d.relationship_kept_checks), cards_sent: drafts.map((d) => d.card.sent) });
+  await s.finish({ status: "COMPLETE", outcome: "Post-acceptance graceful withdrawal drafts produced for both other finalists (Notion + Figma), each passing all four warmth checks and riding its own approval card (sent:false). Prior sibling evidence for the single-decline shape (old SC-198) — see " + F10 }); })();

@@ -1,0 +1,11 @@
+"use strict"; const { H, P, X, cir, fixtureJson } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-201", "research-talk-prep");
+  s.user("Research-talk prep for a PhD / research role");
+  const fx = fixtureJson("test-research-talk.json");
+  const prep = X.researchTalkPrep({ talk: fx.talk, cir: cir("snowflake") });
+  s.tool("130.researchTalkPrep (talk record = TEST fixture; Snowflake CIR supplied for style context)", prep);
+  const scored = P.scoreAnswer("First the situation: retrieval is assumed to help. I built a 400-query testbed in Python, specifically split by query type, and measured accuracy against hand-checked keys. The result was retrieval raised factoid accuracy by 18 points but cut multi-hop accuracy by 9 points over the summer project because the retriever crowded out reasoning context.");
+  s.tool("127.scoreAnswer (sample answer to 'what did you find?')", scored);
+  s.agent(`Research-talk prep — "${prep.title}"\n\nNARRATIVE ARC (only from your talk record — nothing added):\n${prep.narrative_arc.map((b) => `• ${b.beat}: ${b.say}`).join("\n")}\n\nLIKELY QUESTIONS FROM THE PANEL:\n${prep.likely_questions.map((q) => `• ${q}`).join("\n")}\n\nDRILLS:\n${prep.drills.map((d) => `• ${d}`).join("\n")}\n\nSample-answer check with the prep rubric: structure ${scored.scores.structure}/5, evidence ${scored.scores.evidence}/5, specificity ${scored.scores.specificity}/5. ${prep.honesty}`);
+  s.verify("arc result beat equals the fixture's stated result verbatim; no gaps in the supplied record", { gaps: prep.gaps, result_beat: prep.narrative_arc[3].say, fixture_result: fx.talk.result });
+  await s.finish({ status: "COMPLETE", outcome: "Research-talk prep built solely from the supplied talk record: 6-beat narrative arc, 5 likely panel questions, timed drills, and a rubric-scored sample answer" }); })();

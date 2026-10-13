@@ -444,9 +444,18 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
   on the pristine tree — pre-existing/environmental, logged beside the mutation-report
   pair). Chat-reachability stays Codex's: the route note gives 16 intents + ctx table
   as a pure hookup; CG re-grade through chat follows the route.
-- G3 prep scoring (127) · G4 outreach workflow (124): running. C-expansion (C-A
-  canonical, C-B1/B2 variants, U journeys) + item-10 dedupe survey: running on the
-  frozen b7d9f83 build.
+- **G4 outreach workflow (124) — BUILT, merged e827dd8 + bundle rebuilt 7b3c6cd**:
+  §7 reply workflow entry (`processInboxEvent`: interested / not-now / OOO / bounce /
+  suspicious classes with correct state transitions; suspicious replies quarantined
+  with zero effect) · drafting paths now READ suppression in all four draft entry
+  points against all four store hand-in shapes — NW22's suppressed recipient gets
+  `refused_suppressed`, no draft body · draft store with versioned edits that
+  invalidate prior approvals (NWD-02) · delivery status re-read from the delivery
+  record (NWD-05: provider_accepted + empty sink reads "delivery unconfirmed," never
+  "stopped"). Suppression-store contract documented in 124's header; its persistence
+  remains Codex's item-8 layer. 11/11 fail-first → pass; career suite 444/444.
+- G3 prep scoring (127): running. C-expansion (C-A canonical, C-B1/B2 variants, U
+  journeys) + item-10 dedupe survey: running on the frozen b7d9f83 build.
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

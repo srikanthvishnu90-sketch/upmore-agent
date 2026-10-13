@@ -21736,7 +21736,17 @@ const CareerOutreach = (() => {
     lines.push(`Hi ${first},`);
     let intro = `I'm ${user.name || "a student"}${user.year ? `, a ${user.year}` : ""}${user.school ? ` at ${user.school}` : ""}.`;
     if (strong) {
-      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${strong.fact}`;
+      // Facts are stored as subject-less verb phrases ("worked on a deal at X",
+      // "publishes ML tooling") — the sentence must supply the subject, or the
+      // draft reads "I saw that worked on a a …" (T-87 sweep, FIN-E-002).
+      const PRESENT3 = /^(publishes|works|writes|leads|runs|teaches|builds|manages|covers)$/i;
+      let fact = String(strong.fact || "").trim().replace(/\b(a|an|the)\s+\1\b/gi, "$1");
+      if (!/^you\b/i.test(fact)) {
+        const w = (fact.split(/\s+/)[0] || "").toLowerCase();
+        if (PRESENT3.test(w)) fact = fact.replace(/^\S+/, /(sh|ch|ss|x|z)es$/.test(w) ? w.slice(0, -2) : w.slice(0, -1));
+        fact = `you ${fact}`;
+      }
+      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${fact}`;
       intro += ` ${clause}, which is why I wanted to reach out to you specifically.`;
       why.push({ line: clause, fact: strong.fact, source_url: strong.source_url, strength: strong.strength || null, kind: strong.kind || null });
     } else if (tier !== "C") {
@@ -21745,7 +21755,7 @@ const CareerOutreach = (() => {
     }
     lines.push(intro);
     if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
-    const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
+    const askTopic = (strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`).replace(/\bthe a(n)?\b/gi, "the");
     lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
     lines.push(`Thanks,\n${user.name || ""}${user.school ? ` | ${user.school}` : ""}${user.year_label ? ` ${user.year_label}` : ""}${user.link ? `\n${user.link}` : ""}`);
@@ -23124,9 +23134,10 @@ const CareerTrack = (() => {
       if (evs.some((e) => e.type === "rejection")) rejections7++;
     }
     for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
-    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${counts.responses_last_7d} responses, ${counts.active_interviews} in interview stages, ${counts.rejections_last_7d} rejections this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${plural(counts.responses_last_7d, "response")}, ${plural(counts.active_interviews, "interview")} in progress, ${plural(counts.rejections_last_7d, "rejection")} this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
     return { counts, next_actions: next, text, generated_at: new Date(now).toISOString() };
   }
   // Quiet hours: low-priority (digest, nudge reminders) batch to 07:00; critical fire immediately.

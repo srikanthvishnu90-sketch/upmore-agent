@@ -212,9 +212,10 @@ const CareerTrack = (() => {
       if (evs.some((e) => e.type === "rejection")) rejections7++;
     }
     for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
-    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${counts.responses_last_7d} responses, ${counts.active_interviews} in interview stages, ${counts.rejections_last_7d} rejections this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${plural(counts.responses_last_7d, "response")}, ${plural(counts.active_interviews, "interview")} in progress, ${plural(counts.rejections_last_7d, "rejection")} this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
     return { counts, next_actions: next, text, generated_at: new Date(now).toISOString() };
   }
   // Quiet hours: low-priority (digest, nudge reminders) batch to 07:00; critical fire immediately.

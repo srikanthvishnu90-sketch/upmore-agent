@@ -131,6 +131,10 @@
         }
         if (cands.length > 1 && s.amount_cents == null) return { ious: null, reply: `You have ${cands.length} open IOUs with ${cap(s.name)}: ${cands.map(line).join("; ")}. Which one? Say it with the amount, like "mark ${cap(s.name)}'s ${plain(cands[0].amount_cents)} as paid". Nothing changed.` };
         const x = cands.find((c) => s.amount_cents != null && (c.amount_cents === s.amount_cents || c.original_cents === s.amount_cents)) || cands[0];
+        // A line that came from a real tagged transaction (C13: it carries its transaction_id) is receipt-tracked:
+        // it clears only when the matching payment posts (AgentMoneyPlans.settleIous), never on a say-so here.
+        // A "paid" claim against it changes nothing (C135's rule too: only actual receipts close a debt).
+        if (x.transaction_id) return { ious: null, reply: `That one is receipt-tracked: the ${money(x.amount_cents)} ${x.direction === "i_owe" ? `you owe ${cap(x.name)}` : `${cap(x.name)} owes you`}${x.note ? ` (${x.note})` : ""} came from a real charge, so it clears only when the matching payment posts to your account. A say-so doesn't clear it, and I haven't seen that payment yet. Nothing changed.` };
         const paid = s.amount_cents == null || s.mark ? x.amount_cents : s.amount_cents;
         if (!(paid > 0)) return null;
         const rest = x.amount_cents - paid;

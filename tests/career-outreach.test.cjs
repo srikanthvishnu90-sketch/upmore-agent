@@ -543,3 +543,29 @@ test("W3 (m) replay: relative_date_phrase fails 'since last fall'; absolute 'sin
   assert.ok(ad.body.includes("since September 2025"));
   assert.ok(!M.qualityGate(ad, abs, {}).failures.includes("relative_date_phrase"));
 });
+
+// W3 (i) replay, follow-up path: runFollowUps used to emit ONE identical body
+// for every recipient (and it invented a user fact — "I just finished a
+// project modeling a company in your coverage area"). Bodies must now vary
+// per recipient, carry no opt-out line, and assert no invented project.
+test("W3 (i) replay: follow-up drafts vary per recipient — no shared skeleton, no opt-out line, no invented project claim", () => {
+  const mk = (pid, name, email, touch) => ({ id: "it-" + pid, person_id: pid, email, status: "sent", touch, tier: "A",
+    candidate: { person_id: pid, full_name: name, current_firm: "Evercore", title: "Analyst", work_email: email },
+    draft: { subject: "Question about Analyst at Evercore", body: "orig" }, message_id: "m-" + pid, idempotencyKey: "k-" + pid });
+  const camp = M.createCampaign({ approved: true });
+  camp.items = [mk("pa", "Ann A", "ann@evercore.com", 0), mk("pb", "Bob B", "bob@evercore.com", 0), mk("pc", "Cat C", "cat@evercore.com", 0)];
+  const r = M.runFollowUps(camp, { continueTap: true, touch: 1 });
+  assert.equal(r.ok, true);
+  const bodies = r.followups.map((f) => f.draft.body);
+  assert.equal(bodies.length, 3);
+  assert.equal(new Set(bodies).size, 3, "follow-up bodies must differ per recipient");
+  for (const b of bodies) { assert.doesNotMatch(b, /rather not hear from me/); assert.doesNotMatch(b, /modeling a company/); }
+  const camp2 = M.createCampaign({ approved: true });
+  camp2.items = [mk("pa", "Ann A", "ann@evercore.com", 1), mk("pb", "Bob B", "bob@evercore.com", 1)];
+  const fin = M.runFollowUps(camp2, { continueTap: true, touch: 2 });
+  assert.equal(fin.final, true);
+  const fb = fin.followups.map((f) => f.draft.body);
+  assert.equal(fb.length, 2);
+  assert.notEqual(fb[0], fb[1], "final closes vary too");
+  for (const b of fb) assert.match(b, /close the loop/);
+});

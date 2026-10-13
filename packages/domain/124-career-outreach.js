@@ -1452,11 +1452,25 @@ const CareerOutreach = (() => {
         if (opts.suppression && opts.suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { excluded.suppressed++; continue; }
         const first = ((item.candidate || {}).full_name || "").split(/\s+/)[0] || "there";
         const origSubject = item.draft ? item.draft.subject : "Coffee chat";
+        const firm = (item.candidate || {}).current_firm || "your firm";
         // W3 (i): no opt-out line in follow-up drafts by default (owner
         // order 2026-10-13); suppression still honors any reply opt-out.
+        // The angle/close lines ROTATE (owner W3(i): no identical skeleton)
+        // so two follow-ups to the same firm do not share a body, and no
+        // variant invents a user fact (the old single template asserted a
+        // modeling project the user may never have done).
+        const angles = [
+          `Circling back on my note below — I know inboxes bury things. If a 15-minute chat about ${firm} is ever easy, I'm flexible on timing.`,
+          `One follow-up on my note below: the offer stands — 15 minutes on how ${firm} staffs and develops juniors, whenever suits you.`,
+          `A shorter version of my note below: I'd value 15 minutes with someone doing the work at ${firm}; happy to work around your calendar.`,
+        ];
+        const closes = [
+          `If a chat about ${firm} is ever useful, I'm around. Wishing you well.`,
+          `If timing ever opens up, I'd still value the conversation. All the best either way.`,
+        ];
         const body = final
-          ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. If a chat about ${(item.candidate || {}).current_firm || "your firm"} is ever useful, I'm around. Wishing you well.\n\nThanks`
-          : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\nThanks`;
+          ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. ${closes[entries.length % closes.length]}\n\nThanks`
+          : `Hi ${first},\n\n${angles[entries.length % angles.length]}\n\nThanks`;
         entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
       }
       for (const _item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;

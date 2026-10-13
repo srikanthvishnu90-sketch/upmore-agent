@@ -283,9 +283,9 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-275 | Career Os | Wins log: I text wins all semester; they land in my living resume | T-67..T-74 | COMPLETE |
 | SC-276 | Career Os | Review packet: my promotion case built from the wins log | T-67..T-74 | COMPLETE |
 | SC-277 | Career Os | Return-offer playbook for my internship summer | T-67..T-74 | COMPLETE |
-| SC-278 | Career Os | First-90-days plan at the new job | T-67..T-74 | LEARN |
+| SC-278 | Career Os | First-90-days plan at the new job | T-67..T-74 | COMPLETE |
 | SC-279 | Career Os | Quarterly check-in: my career goals versus reality, plan adjusted | T-67..T-74 | COMPLETE |
-| SC-280 | Career Os | Market-shift alert: my role's pay band moved — shown with the data | T-67..T-74 | LEARN |
+| SC-280 | Career Os | Market-shift alert: my role's pay band moved — shown with the data | T-67..T-74 | COMPLETE |
 | SC-281 | Career Os | Skill-demand trend: what postings in my field started requiring this year | T-67..T-74 | COMPLETE |
 | SC-282 | Career Os | Two-year re-route: from today's job to the dream role, steps and dates | T-67..T-74 | COMPLETE |
 | SC-283 | Career Os | Living resume rebuilt after a promotion — all variants refreshed | T-67..T-74 | COMPLETE |

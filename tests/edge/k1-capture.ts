@@ -176,4 +176,37 @@ const REAL = "over twins of the owner's real Chase rows pulled fresh from Simple
     { label: "The match, on stand-in forms", messages: [U("do my 1099s match what I actually got paid?"), A(withForms)] },
   ]);
 }
+// ---------- Doorstep additions (owner addendum, 2026-10-12): C7's dispute filled to the doorstep, C10's reversal draft ----------
+// Appended as extra conversations in the items' own files: the production dispute path narrows to the exact
+// charges, the pick fills the dispute word-for-word ("Nothing has been sent"), and the recovery scan's
+// draft_request for the newest fee is the reversal action filled in, awaiting the owner's send.
+{
+  const { disputeReply } = await import("../../supabase/functions/agent-chat/_shared/dispute_answer.ts");
+  const { AgentRecovery } = await import("../../supabase/functions/_shared/agent_core.js");
+  const { mapTransactions: mt } = await import("../../supabase/functions/_shared/proactive.ts");
+  const oldest = [...K1_TX].sort((a: any, b: any) => String(a.posted_on).localeCompare(String(b.posted_on)));
+  const pick = (await disputeReply("dispute the $15.31 Kalshi charge", "2026-10-12", async () => oldest as any, {}))!;
+  const draft = (await disputeReply("dispute Kalshi Kalshi Ny 08/ $15.31 on Aug 5", "2026-10-12", async () => oldest as any, {}))!;
+  const c7 = JSON.parse(await Deno.readTextFile(`${OUT}/C7-duplicate-and-overlapping-charge-detector.messages.json`));
+  c7.messages.push(U("dispute the $15.31 Kalshi charge"), A(pick), U("dispute Kalshi Kalshi Ny 08/ $15.31 on Aug 5"), A(draft));
+  await Deno.writeTextFile(`${OUT}/C7-duplicate-and-overlapping-charge-detector.messages.json`, JSON.stringify(c7, null, 1));
+  let md7 = await Deno.readTextFile(`${OUT}/C7-duplicate-and-overlapping-charge-detector.md`);
+  md7 += `\n## Doorstep — the dispute filled in, not filed (production dispute path)\n\nUSER: dispute the $15.31 Kalshi charge\n---\nUPMORE: ${pick}\n---\nUSER: dispute Kalshi Kalshi Ny 08/ $15.31 on Aug 5\n---\nUPMORE: ${draft}\n---\n`;
+  await Deno.writeTextFile(`${OUT}/C7-duplicate-and-overlapping-charge-detector.md`, md7);
+
+  const mapped = mt(K1_TX as any);
+  const scanRows = mapped.map((t: any, i: number) => ({ account_id: t.account_id, provider_transaction_id: String(t.id), fact_hash: "d" + i, currency: "USD", presence: "observed", is_pending: !!t.is_pending, is_transfer: !!t.is_transfer, merchant_key: null, merchant_raw: t.merchant_raw, amount_cents: t.amount_cents, posted_on: t.posted_at }));
+  const scan = (AgentRecovery as any).scan(scanRows, { today: "2026-10-12" });
+  const newest = scan.candidates.filter((c: any) => c.kind === "bank_fee").slice(-1)[0];
+  const draftText = newest.action.text;
+  const c10 = JSON.parse(await Deno.readTextFile(`${OUT}/C10-fee-audit.messages.json`));
+  c10.messages.push(A(`Doorstep — the reversal request for the newest fee, drafted by the recovery scan and ready for your approval (nothing sent):\n\n${draftText}`));
+  await Deno.writeTextFile(`${OUT}/C10-fee-audit.messages.json`, JSON.stringify(c10, null, 1));
+  let md10 = await Deno.readTextFile(`${OUT}/C10-fee-audit.md`);
+  md10 += `\n## Doorstep — the reversal request filled in, not sent (AgentRecovery draft_request: requires_user_approval, executes: false)\n\nUPMORE: ${draftText}\n---\n`;
+  await Deno.writeTextFile(`${OUT}/C10-fee-audit.md`, md10);
+  // Standalone doorstep texts for the photo renderer.
+  await Deno.writeTextFile(`${OUT}/.k1-doorstep.json`, JSON.stringify({ disputeDraft: draft, reversalDraft: draftText }, null, 1));
+  console.log("doorstep additions written");
+}
 console.log("done");

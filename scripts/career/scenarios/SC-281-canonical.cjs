@@ -1,0 +1,13 @@
+"use strict"; const {H,OS,fixture}=require("./w14-lib.cjs");
+(async()=>{ const s=H.session("SC-281","skill-demand-trend");
+  s.user("Skill-demand trend: what postings in my field started requiring this year");
+  const fx=fixture("test-career-os-w14.json");
+  const priorSkills=[...new Set(fx.postings_prior.flatMap(p=>OS.skillsIn(p.jd_text+" "+p.title)))];
+  const curSkills=[...new Set(fx.postings_current.flatMap(p=>OS.skillsIn(p.jd_text+" "+p.title)))];
+  const emerged=curSkills.filter(k=>!priorSkills.includes(k));
+  const trend={prior_postings:fx.postings_prior.length,current_postings:fx.postings_current.length,prior_skills:priorSkills,current_skills:curSkills,started_requiring_this_year:emerged,coverage:"TEST fixture corpus only (test-career-os-w14.json): 1 prior posting (2026-07-01) vs 3 current postings (2026-10-10..12), all Software engineering — NOT a live market-wide sample; the repo holds no larger dated posting corpus for this field"};
+  s.tool("129.skillsIn prior-vs-current (TEST fixture corpus)",trend);
+  const gap=OS.skillGap({profileSkills:fx.profile_skills,postings:fx.postings_current}); s.tool("129.skillGap (current postings)",gap);
+  s.agent(`Skill-demand trend — grounded only in the corpus I can actually inspect, labeled honestly:\nCoverage: ${trend.coverage}.\nStarted requiring this year (in current postings, absent from the prior posting): ${emerged.join(", ")||"none detected"}.\nAlready required in both periods: ${curSkills.filter(k=>priorSkills.includes(k)).join(", ")||"none"}.\nAgainst your profile (${fx.profile_skills.join(", ")}), the current-posting gaps in learn order are: ${gap.learn_next_order.join(" → ")||"none"}.\nNo market-wide claim is made beyond this corpus — a live dated corpus for your field would widen this, and the trend would be recomputed from it, not asserted.`);
+  s.verify("emerged skills are exactly current-minus-prior skillsIn output over the fixture postings; counts and dates from the fixture itself",trend);
+  await s.finish({status:emerged.length?"COMPLETE":"LEARN",outcome:`Skill-demand trend computed from the repo's TEST posting corpus (1 prior vs 3 current): postings started requiring ${emerged.join(", ")}; coverage labeled as fixture-only, no market-wide claim`,reason:emerged.length?undefined:"no emergent skill detected",unblock:emerged.length?undefined:"a dated posting corpus with skill changes"}); })();

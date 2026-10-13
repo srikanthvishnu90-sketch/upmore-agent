@@ -95,6 +95,7 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 - 2026-10-12 career ACC slice (branch career/acc): supabase/functions/gmail-oauth/** (index.ts extension + career.ts pure helpers), packages/domain/120-career-access.js, tests/career-access.test.cjs, tests/edge/gmail-oauth-career.test.ts, docs/career/deploy-checklist-access.md — claimed by the ACC build worker; other career slices leave Requests instead of editing these.
 - 2026-10-12 career/disc worker (branch career/disc ONLY): packages/domain/121-career-jobs.js, tests/career-jobs.test.cjs, scripts/career/proof-jobs.mjs, docs/career/evidence/jobs-feeds.json — DISC-003..008 (ATS feeds, dedupe, new-posting detection, ghost flags, fit scoring, shortlist+feedback). Persona fixture cherry-picked from pivot/career ca565c2.
 - 2026-10-12 (career/prof, PROF slice): packages/domain/122-career-profile.js, packages/domain/123-career-tailor.js, packages/career-data/fixtures/test-persona.json, packages/career-data/fixtures/test-resume.txt, tests/career-profile.test.cjs, tests/career-tailor.test.cjs — claimed by the PROF build worker on branch career/prof only.
+- 2026-10-12 (branch career/intl, INTL slice worker): packages/domain/125-career-intel.js, packages/career-data/**, tests/career-intel.test.cjs — Doc 3 CIR schema/validator, thesis composer, claim verifier, honest-advice lint, first 5 CIRs (INTL-001..008). Validator is the contract for all 30 CIRs: `node packages/domain/125-career-intel.js validate <file>`.
 
 ## Rules that apply to both
 

@@ -309,4 +309,5 @@ function referralOut(text) {
   };
 }
 
-module.exports = { adaptCir, researchTalkPrep, teachingDemoPrep, portfolioWalkthrough, hiringManagerBrief, barRaiserPrep, belowFloorAnalysis, equityScenarios, signingBonusPivot, returnOfferConversion, compExpectationAnswer, pressurePlan, leverageScript, referralOut, DISCLAIMER };
+const CareerW11Ext = { adaptCir, researchTalkPrep, teachingDemoPrep, portfolioWalkthrough, hiringManagerBrief, barRaiserPrep, belowFloorAnalysis, equityScenarios, signingBonusPivot, returnOfferConversion, compExpectationAnswer, pressurePlan, leverageScript, referralOut, DISCLAIMER };
+if (typeof module !== "undefined" && module.exports) module.exports = CareerW11Ext;

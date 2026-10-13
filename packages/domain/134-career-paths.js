@@ -333,4 +333,5 @@ function sweMarketRead(store, opts) {
   return { as_of: now, text, claims, allowed_numbers: [], companies_checked: rows.map((r) => r.company), known_vs_anecdotal: { known: rows.length, anecdotal_claims_made: 0 } };
 }
 
-module.exports = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead };
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead };
+if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;

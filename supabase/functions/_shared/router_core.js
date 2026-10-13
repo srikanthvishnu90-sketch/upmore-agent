@@ -24408,6 +24408,1110 @@ const CareerDiscover = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerDiscover;
 
+/* Career application packets (SC-081..SC-102 build, T-29..T-38 + T-97 packet assembler).
+   Assembles ONE application packet per role from the real modules:
+   120 portal records + handoff tickets, 122 profile, 123 tailor/truth-audit/
+   answer bank/cover letter/render, 121 fit scoring. Adds the rails this slice
+   needed that no module owned: CIR(125-schema) -> tailor-CIR adapter,
+   current-employer refusal, confirmation capture on a TEST board, referral
+   hold decision, CIR gap callout, cover-letter voice + portal-asks gate,
+   one-page + ATS render checks, and the mini-campaign seam (124-career-
+   outreach does not exist on pivot/career — see docs/bug-ledger.md BUG-003;
+   this is a plan/record builder only, it never sends).
+   Doorstep rule: submitToTestBoard is a LOCAL test board. It never touches a
+   real employer. Pure/UMD like the other domain modules. */
+const CareerPackets = (() => {
+  const Access = typeof CareerAccess !== "undefined" ? CareerAccess : require("./120-career-access.js");
+  const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : require("./123-career-tailor.js");
+  const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|company|the)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  // ---- CIR adapter: 125-schema record -> the {company, facts[]} 123 consumes ----
+  function cirForTailor(cir) {
+    if (!cir) return null;
+    if (Array.isArray(cir.facts) && cir.facts.length) return { company: cir.company || cir.company_name, facts: cir.facts, aiPolicy: cir.aiPolicy || null };
+    const facts = [];
+    const push = (x) => { const t = typeof x === "string" ? x : x && (x.statement || x.text); if (t) facts.push({ text: t }); };
+    if (cir.hiring_bar_summary) push(cir.hiring_bar_summary);
+    for (const g of ["stated", "revealed"]) for (const s of ((cir.screening_signals || {})[g] || [])) push(s);
+    for (const s of (cir.values_culture_signals || []).slice(0, 2)) push(s);
+    for (const s of ((cir.skills_dist || {}).entries || []).slice(0, 3)) if (s.label) facts.push({ text: `${cir.company_name}: ${s.label} — ${s.note || "named in the company record"}` });
+    if (!facts.length && cir.thesis_text) facts.push({ text: cir.thesis_text });
+    return { company: cir.company_name || cir.company, company_id: cir.company_id || null, facts, aiPolicy: cir.aiPolicy || null, source: "CIR-125-schema" };
+  }
+
+  // ---- SC-081: Workday-style portal account creation (record + disclosure) ----
+  function createPortalAccount(input) {
+    const o = input || {};
+    const rec = Access.portalRecord({ company: o.company, alias_email: o.alias_email, password_vault_ref: o.password_vault_ref, created_at: o.now });
+    if (!rec.ok) return rec;
+    return { ok: true, record: rec.record, disclosure: `Created a ${o.company} portal account record: sign in as ${rec.record.alias_email}; the generated password is stored only in your vault under "${rec.record.password_vault_ref}" — I never put the password itself in chat, logs, or this record.`, audit: Access.auditEntry({ source: "portal", what: `portal account created for ${o.company} as ${rec.record.alias_email}`, at: o.now }) };
+  }
+
+  // ---- SC-084: current-employer refusal ----
+  function currentEmployerCheck(profile, company) {
+    const target = norm(company);
+    const hits = Profile.confirmedFacts(profile).filter((f) => (f.kind === "experience") && f.org && norm(f.org) === target);
+    // Only a CURRENT role counts: no end date, or an end date in the future.
+    const now = Date.now();
+    const current = hits.filter((f) => !f.end || Date.parse(`${f.end}-01T00:00:00Z`) >= now);
+    return { isCurrentEmployer: current.length > 0, factIds: current.map((f) => f.id), orgs: current.map((f) => f.org) };
+  }
+  function guardEmployer(profile, company, opts) {
+    const chk = currentEmployerCheck(profile, company);
+    if (chk.isCurrentEmployer && !(opts && opts.knowingOverride)) {
+      return { ok: false, refused: true, code: "current_employer", check: chk, text: `${company} is your current employer (fact ${chk.factIds.join(", ")}). I refuse this application by default — applying to your own employer through the agent can surface internally. If you truly mean it, say "override, I know" and I will proceed with that override recorded.` };
+    }
+    return { ok: true, check: chk, overrideRecorded: !!(chk.isCurrentEmployer && opts && opts.knowingOverride) };
+  }
+
+  // ---- T-97 packet assembler ----
+  function assemblePacket(input) {
+    const o = input || {};
+    const guard = guardEmployer(o.profile, o.company, o);
+    if (!guard.ok) return guard;
+    const cirT = cirForTailor(o.cir);
+    const portalAsksCover = !!o.portalAsksCoverLetter;
+    const tailored = Tailor.tailorResume(o.profile, o.jdText, { family: o.family, cir: cirT, wantCoverLetter: portalAsksCover, company: o.company, jobId: o.jobId });
+    if (!tailored.ok) return { ok: false, refused: true, code: "truth_audit", tailored };
+    const voice = /startup|yc |y combinator/i.test(String(o.companyKind || "")) || (o.voice === "startup") ? "startup" : /bank|law|consult/i.test(String(o.companyKind || "")) || o.voice === "bank" ? "bank" : (o.voice || "professional");
+    return {
+      ok: true, company: o.company, jobId: o.jobId || null, portal: o.portal || null,
+      employerGuard: guard, tailored, coverLetter: portalAsksCover ? tailored.coverLetter : null,
+      coverLetterSkippedReason: portalAsksCover ? null : "portal does not ask for a cover letter — none generated (SC-086 rule)",
+      voice: tailored.coverLetter ? voice : null,
+      answerBank: cirT ? Tailor.buildAnswerBank(o.profile, o.jdText, cirT) : { ok: false, entries: [] },
+      onePage: checkOnePage(tailored.rendered), ats: checkAts(tailored.rendered),
+    };
+  }
+
+  // ---- SC-101 one-page rule + SC-102 ATS-safe render checks ----
+  function checkOnePage(rendered) {
+    if (!rendered || !rendered.text) return { ok: false, enforced: false, reason: "no rendered resume (outline mode)" };
+    const lines = rendered.text.split("\n").filter((l) => l.trim()).length;
+    const words = rendered.text.split(/\s+/).filter(Boolean).length;
+    // One student page ≈ 55 non-blank lines / ~650 words in the ATS text render.
+    return { ok: lines <= 55 && words <= 650, enforced: true, lines, words, limit: "1 page (<=55 lines, <=650 words in text render)" };
+  }
+  function checkAts(rendered) {
+    if (!rendered) return { ok: false, reason: "no render" };
+    const standard = ["SKILLS", "EXPERIENCE", "PROJECTS", "EDUCATION", "LEADERSHIP"];
+    const hasTableRows = rendered.text.split("\n").some((l) => /^\s*\|/.test(l) || /\|[-: ]+\|/.test(l));
+    return { ok: rendered.singleColumn === true && rendered.headings.every((h) => standard.includes(h)) && !hasTableRows && rendered.text.length > 50, singleColumn: rendered.singleColumn, headings: rendered.headings, textExtractable: rendered.text.length > 50, tables: hasTableRows, preferredFormat: "plain text (single column, standard headings)", pdf: rendered.pdf, pdfNote: rendered.pdfNote };
+  }
+
+  // ---- SC-083: confirmation capture on a LOCAL test board (never a real employer) ----
+  let confSeq = 0;
+  function makeTestBoard(opts) {
+    const o = opts || {};
+    return { kind: "TEST-BOARD (local, labeled TEST)", company: o.company, silent: !!o.silent, submissions: [] };
+  }
+  function submitToTestBoard(board, packet, input) {
+    const o = input || {};
+    const rec = { board: board.kind, company: board.company, jobId: packet.jobId, submitted_at: o.now || new Date().toISOString(), resumeVersion: packet.tailored && packet.tailored.version && packet.tailored.version.versionId, auditOk: !!(packet.tailored && packet.tailored.audit && packet.tailored.audit.ok) };
+    if (board.silent) { rec.confirmation = null; rec.status = "UNCONFIRMED — flagged: test board issued no confirmation; in production this stays unconfirmed until the employer's email/portal status proves it"; }
+    else { rec.confirmation = { id: `TEST-CONF-${board.company.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase()}-${++confSeq}`, channel: "test-board capture (local)", received_at: rec.submitted_at }; rec.status = "CONFIRMED (test board)"; }
+    board.submissions.push(rec);
+    return rec;
+  }
+
+  // ---- SC-098: CIR gap callout ----
+  function gapCallout(profile, cir, fit) {
+    const cirT = cirForTailor(cir);
+    const gaps = [];
+    const profSkills = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation && !f.unproven).map((f) => f.name.toLowerCase());
+    for (const f of (cirT ? cirT.facts : [])) for (const s of Tailor.skillsInText(f.text)) if (!profSkills.includes(s.toLowerCase())) gaps.push({ skill: s, cirFact: f.text });
+    const seen = new Set(); const uniq = gaps.filter((g) => !seen.has(g.skill) && seen.add(g.skill));
+    return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No CIR-named skill gap against your proven skills.", proceedIsUserCall: true };
+  }
+
+  // ---- SC-099: referral hold decision ----
+  function referralHoldDecision(input) {
+    const o = input || {};
+    const hoursToDeadline = o.hoursToDeadline, referralEtaHours = o.referralEtaHours;
+    if (o.referralExpected && referralEtaHours <= 48 && hoursToDeadline > 48 + referralEtaHours) {
+      return { decision: "HOLD", holdHours: 48, reason: `${o.contactName || "Your contact"}'s referral is expected in ~${referralEtaHours}h and the deadline is ~${hoursToDeadline}h away — holding 48 hours keeps the referral attached without risking the deadline.`, applyAfterReferral: true };
+    }
+    if (o.referralExpected) return { decision: "APPLY_NOW_REFER_AFTER", reason: `Deadline (~${hoursToDeadline}h) is too close to wait for a referral expected in ~${referralEtaHours}h — apply now; most portals let an employee refer after submission while the application is in review.`, applyAfterReferral: false };
+    return { decision: "APPLY_NOW", reason: "No referral is expected — nothing to hold for.", applyAfterReferral: false };
+  }
+
+  // ---- SC-100: mini-campaign seam (plan + records only; NO sends) ----
+  function miniCampaign(input) {
+    const o = input || {};
+    const people = (o.people || []).slice(0, 10);
+    if (people.length < 5) return { ok: false, code: "too_few_targets", text: "A mini-campaign is 5–10 people at one company; fewer than 5 named people were supplied, so nothing was built from invented names." };
+    const warmthRank = { alumni: 0, club: 1, major: 2, hometown: 3, cold: 4 };
+    const sequenced = people.map((p, i) => ({ seq: i + 1, name: p.name, company: o.company, warmth: p.warmth || "cold", sharedFact: p.sharedFact || null, status: "drafted — awaiting your approval, NOT sent" })).sort((a, b) => (warmthRank[a.warmth] - warmthRank[b.warmth]) || a.seq - b.seq).map((p, i) => ({ ...p, seq: i + 1 }));
+    return { ok: true, kind: "mini_campaign_plan (124 outreach seam, built in 133 — BUG-003)", company: o.company, count: sequenced.length, sequenced, sends: 0, text: `No warm referral path at ${o.company}, so instead of a cold application I built a ${sequenced.length}-person mini-campaign there, sequenced warm to cold. Every draft waits for your approval — nothing has been sent.` };
+  }
+
+  // ---- SC-096: med-school essay packet from real experiences only ----
+  function medEssayPacket(profile, prompts) {
+    const facts = Profile.confirmedFacts(profile).filter((f) => ["experience", "project", "leadership", "education"].includes(f.kind));
+    if (!facts.length) return { ok: false, reason: "no confirmed clinical/research/service facts — essays are never invented" };
+    return { ok: true, essays: (prompts || ["Personal statement"]).map((prompt) => ({ prompt, outline: facts.map((f) => ({ point: f.text, factId: f.id })), instruction: "Outline + your real experiences, fact-cited. You write the essay prose — every claim traces to the cited fact." })) };
+  }
+
+  return { cirForTailor, createPortalAccount, currentEmployerCheck, guardEmployer, assemblePacket, checkOnePage, checkAts, makeTestBoard, submitToTestBoard, gapCallout, referralHoldDecision, miniCampaign, medEssayPacket, norm };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerPackets;
+
+/* Career paths for ladders that have no Company Intelligence Record (Doc 3 §4 short paths + §4.1/§4.4/§4.6/§4.7):
+   law, medicine, government/intelligence, venture capital, data science, startups, APM, and the general
+   cross-company ladders (IB ladder, search funds, boutique-vs-bulge-bracket, state-school FAANG, SWE market).
+   Built 2026-10-13 (branch career/sc-w12, scenarios SC-222..SC-240) because 125-career-intel's
+   respondToRequest/composeThesis only answer from a CIR; Doc 3 still requires an honest, sourced answer
+   for these paths. Discipline is identical to 125: every claim carries a source_url + as_of, every number
+   in a composed answer must trace to a sourced field of the path record (verified with 125's verifyClaims),
+   and every answer must pass 125's lintAdvice. Where a path touches law/medicine/immigration-adjacent
+   territory it is career-planning information only, labeled not-advice, with a referral out.
+   Pure module: no IO; the clock is passed in. */
+"use strict";
+const CI = require("./125-career-intel.js");
+
+const AS_OF = "2026-10-12";
+const PLAN_NUMBERS = [30, 90]; // plan-shape horizons (§2.3 part 6), not world claims — same rule as 125
+
+const S = {
+  goldmanProgram: "https://www.goldmansachs.com/careers/students/programs-and-internships/emea/summer-analyst-programme",
+  goldmanPress: "https://www.linkedin.com/news/story/wall-street-entry-level-job-race-starts-earlier-than-ever-7609228/",
+  goldmanGuide: "https://www.finbound.org/blog/goldman-sachs-application-process-guide",
+  wsoBoutique: "https://www.wallstreetoasis.com/forum/investment-banking/how-to-obtain-a-sophomore-summer-boutique-ib-internship",
+  aba509: "https://www.law.gwu.edu/aba-required-disclosures",
+  abaOutcomes: "https://legalclarity.org/aba-509-reports-law-school-lsat-bar-passage-and-more/",
+  amcasGuide: "https://connections.villanova.edu/blog/2024/08/07/the-ultimate-guide-to-the-medical-school-application/",
+  prehealth: "https://prehealth.ua.edu/medical-school-admissions-guide/",
+  mcatTiming: "https://wpapp.kaptest.com/study/mcat/when-should-i-take-the-mcat/",
+  icClearance: "https://ms-ic.test.usajobs.gov/usmc/security-clearance-process",
+  cisaFaq: "http://cisa.gov/general-recruitment-and-hiring-faqs",
+  clearanceTimes: "https://news.clearancejobs.com/2026/09/02/how-long-does-it-take-to-process-a-security-clearance-q3-2026-fy-update/",
+  apmYale: "https://cdo.som.yale.edu/blog/2024/11/08/how-to-get-into-the-google-apm-program-2024/",
+  apmGuide: "https://www.aced.io/guides/google-associate-product-manager-interview?src=apmlist%3Fref%3Dapmlist&utm_medium=affiliate&utm_campaign=apmlist-table",
+  ycWork: "https://www.workatastartup.com/",
+};
+
+const fact = (statement, source_url, as_of) => ({ statement, source_url, as_of: as_of || AS_OF });
+const step = (stepText, note, source_url) => ({ step: stepText, note, source_url, as_of: AS_OF });
+
+const PATHS = [
+  {
+    id: "ib-ladder", title: "Investment banking — the real ladder (general, cross-company)",
+    bottom_line: "For bulge brackets and elite boutiques the process is earlier and more school-sensitive than most students expect, and the junior-summer internship that converts to full-time is the seat that matters. Almost nobody walks in cold as a junior: the people who land it stacked smaller, less glamorous rungs in freshman and sophomore summers and networked at volume.",
+    ladder: [
+      step("Freshman summer: a small finance employer", "A search fund, small private-equity shop, boutique or regional bank, family office, or a corporate-finance role at a startup. Often unpaid or low-paid; the point is the pattern on the resume, not the logo.", S.goldmanPress),
+      step("Sophomore summer: one step up", "A middle-market or boutique bank, or a bulge-bracket insight / sophomore program. Recruiting for this rung starts far earlier than students expect.", S.wsoBoutique),
+      step("Junior summer: the converting internship", "The bulge-bracket or elite-boutique Summer Analyst internship; full-time analyst classes largely come from it. At Goldman the programme is for penultimate / final-year students and applications are reviewed on a rolling basis, so early files are worth more.", S.goldmanProgram),
+      step("Full-time analyst, then exits", "Two to three years as an analyst is the standard springboard to private equity, hedge funds and corporate development — which is why the junior-summer seat is contested so hard.", S.goldmanPress),
+    ],
+    filters: [
+      fact("School signal matters a lot at the screen, or a substitute for it: finance-club leadership, technical readiness and logged networking assembled early.", S.goldmanPress),
+      fact("Goldman Sachs publishes no GPA cutoff on the programme pages checked for its CIR — GPA screens students quote are community-reported norms, not firm policy.", S.goldmanProgram),
+      fact("Technicals are tested directly: accounting, the three statements, DCF, comps and LBO basics.", S.goldmanGuide),
+      fact("Timing is itself a screen: rolling review means the same file submitted earlier is worth more.", S.goldmanGuide),
+    ],
+    plan: {
+      "30d": ["Build the coffee-chat target list: analysts and associates at boutiques and middle-market banks, alumni first.", "Start technicals on a schedule: accounting and the three statements first, then valuation."],
+      semester: ["Land the first small rung for the coming summer — search fund, boutique, regional bank or corporate finance — and lead one visible thing in a finance club."],
+      year: ["Be in the pool for the next rung up with the first internship, the club role and the technical base already done, not started."],
+    },
+    honesty: ["Odds through the cold online application alone, from a non-target school, are low — the route that works is referrals plus stacked smaller internships plus visible club leadership.", "Timelines move earlier almost every cycle; every date here is as of the source date and must be re-checked on the firm's own page."],
+    sources: [{ label: "Goldman Sachs Summer Analyst programme (official)", url: S.goldmanProgram, as_of: AS_OF }, { label: "Press reporting on the current IB recruiting cycle", url: S.goldmanPress, as_of: AS_OF }, { label: "Goldman application-process guide (community)", url: S.goldmanGuide, as_of: AS_OF }],
+  },
+  {
+    id: "search-fund-internships", title: "Search-fund internships — do they help for bulge-bracket recruiting?",
+    bottom_line: "Yes — as pattern-building, not as a substitute. A search-fund internship is the documented freshman-summer rung on the banking ladder: it tells a recruiter you hustled into deal-adjacent work early. It does not replace school signal or technicals, and it only counts if you can talk about the work in depth.",
+    ladder: [
+      step("What the work actually is", "Sourcing acquisition targets, screening industries, basic diligence and model support for a solo operator buying one small company. The tasks are unglamorous and the supervision is thin.", S.wsoBoutique),
+      step("How a bank recruiter reads it", "As relevant early experience — if your interview answers show real work: what you screened, what you modeled, what you recommended. A title with no substance behind it collapses under follow-up questions.", S.goldmanPress),
+      step("Where it sits on the ladder", "Freshman summer at a small finance employer such as a search fund is the first rung of the pattern that ends at the junior-summer bulge-bracket internship.", S.goldmanPress),
+    ],
+    filters: [
+      fact("It helps most combined with technicals (accounting, valuation, modeling) and club signal — the stack recruiters screen for.", S.goldmanPress),
+      fact("Unpaid roles with no real work are a known trap: the interview tests the work, not the title.", S.wsoBoutique),
+    ],
+    plan: {
+      "30d": ["If you take one, agree the actual tasks in writing before you start: sourcing, screening, model work you can describe later."],
+      semester: ["Pair the internship with technical training so the experience and the interview answers reinforce each other."],
+      year: ["Use it as the first rung: sophomore summer one step up (boutique or middle-market bank), junior summer the converting internship."],
+    },
+    honesty: ["This is a reported pattern from recruiting coverage and community sources, labeled as such — no bank publishes that a search-fund internship raises your odds."],
+    sources: [{ label: "Press reporting on the IB ladder pattern", url: S.goldmanPress, as_of: AS_OF }, { label: "Community thread on sophomore boutique internships", url: S.wsoBoutique, as_of: AS_OF }],
+  },
+  {
+    id: "boutique-vs-bulge-bracket", title: "Goldman (bulge bracket) vs a boutique — structural comparison",
+    bottom_line: "Neither is simply better; they are different bets. The bulge bracket sells brand, training scale and exit optionality, and hires in large classes through a formal, early, rolling process. A boutique sells earlier deal responsibility and a smaller, more senior room, and hires in small classes where direct networking weighs more and timing is often later or off-cycle. Pick by what you want to exit to and how you actually get in from your school.",
+    ladder: [
+      step("Bulge bracket (e.g. Goldman Sachs IBD)", "Large analyst classes; the Summer Analyst internship is the main door and it converts; applications reviewed on a rolling basis with a cap on business / location combinations per year.", S.goldmanProgram),
+      step("Elite / independent boutique", "Small classes, lean deal teams, more live-deal exposure per analyst; recruiting is thinner and more relationship-driven, and sophomore boutique internships are a documented entry pattern.", S.wsoBoutique),
+      step("Middle-market / regional boutique", "The most accessible first rung from a non-target school; real modeling and deal process, weaker national brand, strong step-up story for a later lateral.", S.wsoBoutique),
+    ],
+    filters: [
+      fact("Exit math differs: bulge-bracket brand is the most legible signal to mega-fund private-equity recruiting; boutique analysts exit well too, more often to middle-market funds and corporate development.", S.goldmanPress),
+      fact("Hiring volume differs by an order of magnitude in feel: a bulge bracket runs a programme; a boutique hires a handful of analysts per office and year (reported norm, not a published count).", S.wsoBoutique),
+    ],
+    plan: {
+      "30d": ["Write down the exit you actually want (mega-fund PE, middle-market PE, corporate development, staying in banking) — it decides the target list."],
+      semester: ["Run both tracks in parallel: formal applications to the bulge brackets, direct outreach to boutiques where a conversation can still move a file."],
+      year: ["Judge offers on team, deal flow and exits of the last analyst classes — ask alumni from each firm where their class actually went."],
+    },
+    honesty: ["This comparison is structural and qualitative: there is no CIR for a boutique bank in the current corpus, so no hiring-volume or outcome numbers are claimed for boutiques."],
+    sources: [{ label: "Goldman Sachs Summer Analyst programme (official)", url: S.goldmanProgram, as_of: AS_OF }, { label: "Community thread on boutique internships", url: S.wsoBoutique, as_of: AS_OF }],
+  },
+  {
+    id: "faang-state-school", title: "State school to FAANG — what offsets the brand gap",
+    bottom_line: "Yes, it happens every cycle — but the funnel is harder without a school-brand signal, so the application alone rarely does it. What offsets the gap is proof that travels without the brand: a serious internship, shipped projects with real users, open-source or competitive-programming signal, referrals, and interview skill, which is learnable and heavily weighted once you reach the loop.",
+    ladder: [
+      step("First rung: any real engineering internship", "A mid-size company or startup internship converts 'student' into 'has shipped' — the single biggest offset to a school signal.", S.apmYale),
+      step("Proof artifacts", "Projects with real users, a public write-up, merged open-source work — evidence an interviewer can inspect instead of trusting a logo.", S.apmYale),
+      step("Referral + early application", "Employee referrals and applying when postings open; big-tech new-grad funnels reward both.", S.apmGuide),
+      step("The loop itself", "Once in the interview loop, school mostly stops mattering: data structures, algorithms and problem communication decide.", S.apmGuide),
+    ],
+    filters: [
+      fact("Revealed screen at brand-name tech: evidence of building real things and communicating clearly, over pedigree alone, once the loop starts.", S.apmGuide),
+    ],
+    plan: {
+      "30d": ["Days 1-30 of the 90-day plan: pick one project scope you can ship, start a daily interview-problem schedule, and list alumni from your school at your target companies."],
+      semester: ["Days 31-90 and beyond: ship the project with real users, land the first internship rung, run the referral conversations, then apply early to the new-grad pool."],
+      year: ["If the direct route misses, take the strongest adjacent rung (fintech, infrastructure, a respected mid-size) and re-aim with a year of signal."],
+    },
+    honesty: ["No FAANG-company CIR exists in the current corpus (Google is a later company file), so this is the general ladder, labeled as such — no school-share or hiring numbers are claimed."],
+    sources: [{ label: "Yale CDO guide to a big-tech early-career programme", url: S.apmYale, as_of: AS_OF }, { label: "APM / big-tech interview guide (community)", url: S.apmGuide, as_of: AS_OF }],
+  },
+  {
+    id: "apm", title: "Product management straight out of college — APM reality",
+    bottom_line: "Direct PM seats for new graduates exist but are few and extremely competitive: the structured route is an APM / rotational programme (Google's is a two-year rotational programme for new and recent graduates), and most working PMs arrived sideways — from engineering, consulting, startups, or an internal transfer. The credible undergraduate play is to ship a product with real users and get a PM-adjacent internship.",
+    ladder: [
+      step("APM / rotational programmes", "Google's APM programme is a two-year rotational programme; the guide literature describes applications opening in a defined window and a multi-round loop across product design, strategy and analytical reasoning.", S.apmYale),
+      step("PM-adjacent internships", "Product internships, product-analytics, growth, or a startup PM role — smaller rooms where a student can own a real surface.", S.apmGuide),
+      step("The sideways majority route", "Engineer, consultant or operator first, then transfer — the background most PM job descriptions quietly assume.", S.apmYale),
+    ],
+    filters: [
+      fact("Programmes ask for internship or project experience in product, software or a similar technical field — 'interested in product' with no shipped thing is the common rejection pattern (reported).", S.apmGuide),
+      fact("What screens test: product sense through something you built, metrics you moved, and structured thinking about real products.", S.apmGuide),
+    ],
+    plan: {
+      "30d": ["Ship or extend one product with real users and instrument it: you need numbers from your own work to talk about."],
+      semester: ["Land a PM-adjacent internship or a startup product role; keep a metrics log of everything you ship."],
+      year: ["Apply to the APM windows with the shipped product, the internship and referral conversations already done."],
+    },
+    honesty: ["Seat counts per programme are not published in the sources used, so none are claimed — 'few and extremely competitive' is the honest formulation."],
+    sources: [{ label: "Yale CDO: How to get into the Google APM program", url: S.apmYale, as_of: AS_OF }, { label: "Google APM interview guide (community)", url: S.apmGuide, as_of: AS_OF }],
+  },
+  {
+    id: "big-law", title: "Big Law path — law school first, and the school decides most of it",
+    bottom_line: "Big Law is downstream of law-school admissions, and admissions run heavily on LSAT and undergraduate GPA. Large firms recruit through on-campus interviewing at specific schools, so the share of a school's graduates landing at large firms varies enormously by school — and that share is public: every ABA-accredited school must publish Standard 509 disclosures and employment summaries. Debt is the honest catch: price the degree from the school's own disclosures before you fall in love with the outcome at the top of the distribution.",
+    ladder: [
+      step("Undergraduate GPA + LSAT", "The two numbers admissions weight most; published medians per school are in the school's Standard 509 report — compare your numbers to medians, never to marketing.", S.aba509),
+      step("Law school (JD)", "A three-year programme at most US schools; class rank and journal membership become the signals firms screen on inside the school.", S.aba509),
+      step("On-campus interviewing (OCI) and summer associate roles", "Large firms hire summer associates through school-run OCI, concentrated at a subset of schools; the summer role is the converting door to a full-time offer.", S.abaOutcomes),
+      step("Full-time associate", "Employment outcomes are reported per school roughly ten months after graduation in the ABA employment summary — read your target school's, by employer size, before applying.", S.abaOutcomes),
+    ],
+    filters: [
+      fact("ABA Standard 509 reports are standardized disclosures every accredited school publishes annually: admissions data, tuition, employment outcomes and bar passage in the same format across schools.", S.abaOutcomes),
+      fact("Big Law pays at the top of the legal market and demands long hours with high attrition — the salary is real and so is the churn (reported norm across the profession).", S.abaOutcomes),
+    ],
+    plan: {
+      "30d": ["Pull the Standard 509 reports and employment summaries for every school on your list and build the comparison yourself: LSAT / GPA medians, large-firm share, total cost."],
+      semester: ["Protect the undergraduate GPA and run a real LSAT preparation block; add one law-adjacent experience (legal aid clinic, court volunteering) to test the interest honestly."],
+      year: ["Apply to a spread of schools where your numbers sit at or above the published medians and whose employment summaries show the outcome you want."],
+    },
+    honesty: ["No admission chance is stated for any school — the published medians are the honest comparison tool.", "This is career-planning information, not legal advice."],
+    sources: [{ label: "ABA Required Disclosures (school example, GWU Law)", url: S.aba509, as_of: AS_OF }, { label: "Guide to ABA 509 reports and employment data", url: S.abaOutcomes, as_of: AS_OF }],
+  },
+  {
+    id: "pre-med", title: "Pre-med path — prerequisites, MCAT, clinical ladder",
+    bottom_line: "Medicine is a long, sequenced pipeline and the sequence is the strategy: prerequisite sciences and a strong science GPA, the MCAT, real clinical exposure, and an application cycle that opens the summer roughly a year before matriculation — so the MCAT and the experiences must be finished earlier than most students plan. This is career planning only, not medical advice.",
+    ladder: [
+      step("Prerequisite sciences", "General and organic chemistry, biology, physics, biochemistry, plus psychology / sociology for the MCAT's fourth section; schools evaluate an overall GPA and a science (BCPM) GPA separately.", S.prehealth),
+      step("Clinical and service ladder", "Shadowing, hospital volunteering, scribe / EMT / clinical roles, research (weighted more by research-intensive schools), and sustained service — started years before applying, per standard pre-health advising timelines.", S.prehealth),
+      step("The MCAT", "A four-section exam across the natural, behavioral and social sciences plus critical analysis; official scores are released about a month after the test date, so the test date must be planned backwards from the application opening.", S.mcatTiming),
+      step("The application cycle (AMCAS)", "The application typically opens in early May, submission begins in late May to early June, verified applications transmit in late June, and interviews run from late summer into winter — applying early in the window is the standard advice because most schools review on a rolling basis.", S.amcasGuide),
+      step("Medical school and residency", "Four years of medical school, then residency; competitive specialties are a second, very selective tournament inside the first one.", S.prehealth),
+    ],
+    filters: [
+      fact("One university pre-health guide puts most competitive applicants at a 3.5 or higher in both overall and science GPA — a guide's benchmark, not an admissions rule.", S.prehealth),
+      fact("Admissions are described as holistic, but the transcript remains a central piece of evidence of handling the academic load.", S.prehealth),
+    ],
+    plan: {
+      "30d": ["Map your remaining prerequisites against the MCAT content areas and book a meeting with your school's pre-health advising office."],
+      semester: ["Start or deepen one clinical role you can sustain, and set the MCAT date backwards from the cycle you intend to apply in."],
+      year: ["Complete the clinical / research / service stack and draft the personal statement from real experiences, in time to submit early in the window."],
+    },
+    honesty: ["Alternatives with different trade-offs are real paths, not failures: DO programmes, PA, NP, public health and biomedical research.", "Career-planning information only — not medical advice, and not an admissions prediction."],
+    sources: [{ label: "AMCAS application guide and timeline (Villanova)", url: S.amcasGuide, as_of: AS_OF }, { label: "University pre-health advising guide (Alabama)", url: S.prehealth, as_of: AS_OF }, { label: "MCAT timing guide (Kaplan, citing AAMC score-release timing)", url: S.mcatTiming, as_of: AS_OF }],
+  },
+  {
+    id: "venture-capital", title: "Venture capital seats — how few, and what routes are real",
+    bottom_line: "Honest version: entry-level venture seats are genuinely scarce — most firms have no analyst class at all, partnerships are small, and hiring is episodic and network-driven rather than a campus season. The routes that actually produce venture investors are operator or founder experience, banking / private-equity training, and visible early-stage work (scout and campus programmes, angel writing, community building) that makes a partner want you in the room.",
+    ladder: [
+      step("Route A: operator / founder first", "Build or run something at a startup; venture firms hire people whose judgment about products and founders is evidenced, not asserted.", S.ycWork),
+      step("Route B: finance training first", "Banking or private-equity analyst years, then a move to growth or venture — the spreadsheet-and-diligence route into firms that do later-stage work.", S.goldmanPress),
+      step("Route C: visible early-stage surface", "Scout programmes, campus funds, writing investment memos publicly, and being useful to founders before you need anything — the network route, and the only one open to most undergraduates.", S.ycWork),
+    ],
+    filters: [
+      fact("There is no published cohort data for venture entry roles in the sources used — any specific seat count would be invented, so none is claimed.", S.ycWork),
+      fact("Pay and openings at the entry level are scarce relative to banking / consulting classes (reported norm across recruiting coverage).", S.goldmanPress),
+    ],
+    plan: {
+      "30d": ["Pick the route honestly: if you want venture long-term, optimize the next two years for the route's evidence (a startup role, a finance seat, or public memos)."],
+      semester: ["Produce public proof of judgment: investment memos, a campus-fund seat, or operator work at a startup whose founders will vouch for you."],
+      year: ["Apply to the episodic analyst / associate openings with a track record a partner can verify in one phone call."],
+    },
+    honesty: ["Treat any 'venture fellowship' that charges you or promises placement as a red flag until its alumni outcomes are independently verifiable."],
+    sources: [{ label: "YC Work at a Startup (operator-route job board)", url: S.ycWork, as_of: AS_OF }, { label: "Press reporting on finance recruiting routes", url: S.goldmanPress, as_of: AS_OF }],
+  },
+  {
+    id: "data-science", title: "Data science entry — the master's reality vs applied roles",
+    bottom_line: "Split the market honestly: research-flavoured data-science and ML roles commonly expect a master's or PhD and a research record, while applied roles — data analyst, analytics engineer, applied ML engineer at product companies — hire bachelor's graduates who show SQL, Python and shipped analysis. Entry-level data science is competitive; the applied ladder is the realistic first rung for most undergraduates.",
+    ladder: [
+      step("Rung 1: data analyst / analytics roles", "SQL, Python, experimentation and dashboards on real data — hired from bachelor's cohorts and the fastest way to own production data work.", S.apmGuide),
+      step("Rung 2: applied ML / analytics engineering", "Models and pipelines in production at a product company; portfolio evidence outweighs coursework lists.", S.apmGuide),
+      step("Rung 3: research-track data science / ML", "The roles whose postings ask for graduate degrees and publications; a master's is the common ticket, a PhD for research-scientist titles.", S.apmGuide),
+    ],
+    filters: [
+      fact("For applied roles, projects with real data and measurable decisions carry the weight; for research roles, the degree and the research record are the screen (reported pattern across postings).", S.apmGuide),
+    ],
+    plan: {
+      "30d": ["Audit your stack against applied postings: SQL and Python to interview depth first, statistics alongside."],
+      semester: ["Ship one analysis on real data with a decision attached, and land an analyst or data internship — the rung that makes the next claim true."],
+      year: ["Decide the graduate-school question with evidence: apply to research-track roles and count how many screens are degree walls for the rooms you want."],
+    },
+    honesty: ["No population dataset for data-science hiring exists in the current corpus, so no placement or salary numbers are claimed."],
+    sources: [{ label: "Big-tech interview / role guide (community)", url: S.apmGuide, as_of: AS_OF }],
+  },
+  {
+    id: "startups", title: "Startup entry — the build-or-sell proof route",
+    bottom_line: "Startups hire proof, not pedigree: the easiest way in is to show you can build or sell something — a shipped product, a small paid project for a real customer, open-source work, or revenue you generated. Early-stage job boards (YC's Work at a Startup is the canonical one) plus direct outreach to founders with a specific, small offer beat mass applications.",
+    ladder: [
+      step("Proof artifact first", "One thing a founder can inspect in minutes: a live product, a repo with real usage, a paid freelance result, a sales or growth experiment with numbers from your own work.", S.ycWork),
+      step("The small paid project offer", "Offer a scoped, small project aimed at the company's actual problem — the lowest-risk way for a founder to say yes, and a common route into a first role.", S.ycWork),
+      step("Boards and direct outreach", "Apply through early-stage boards and message founders with the artifact attached and one specific observation about their product.", S.ycWork),
+    ],
+    filters: [
+      fact("Founder screening is evidence-first: what you have built or sold is the interview before the interview (the operating norm of early-stage hiring boards).", S.ycWork),
+    ],
+    plan: {
+      "30d": ["Ship or polish the one artifact, and write the two-sentence version of what it proves."],
+      semester: ["Run founder outreach in small, personalized batches with the artifact; take the paid project or internship that results."],
+      year: ["Convert the project into a role, or use the shipped record to step to a larger startup or a brand-name rung."],
+    },
+    honesty: ["Startup outcomes are high-variance: equity at a seed company is usually worth little, and the honest pay comparison is cash plus learning speed, not headline total compensation."],
+    sources: [{ label: "YC Work at a Startup", url: S.ycWork, as_of: AS_OF }],
+  },
+  {
+    id: "government-intel", title: "Government / intelligence path — clearance timelines and citizenship, honestly",
+    bottom_line: "The path is real and slower than private hiring: you apply on USAJobs or agency sites, receive a conditional offer, and only then does the clearance investigation begin — and for intelligence roles, citizenship is not a preference but a gating factor examined as part of the clearance itself. Plan finances and start dates around a process measured in months, and never resign a current job on a conditional offer.",
+    ladder: [
+      step("Apply: USAJobs / agency postings and student programmes", "Federal hiring runs through posted announcements with formal qualification screens; internships and recent-graduate programmes are the student doors.", S.cisaFaq),
+      step("Conditional (tentative) offer", "Selection comes first; the offer is contingent on pre-employment requirements including the background investigation.", S.cisaFaq),
+      step("Clearance investigation", "The process begins when you accept a conditional offer and examines life history and fitness to safeguard classified information; candor is treated as an essential ingredient, and a polygraph may be required for intelligence roles.", S.icClearance),
+      step("Adjudication and final offer", "Agencies advise explicitly: do not give notice to a current employer until pre-employment requirements are complete and a firm offer with a start date is in hand.", S.cisaFaq),
+    ],
+    filters: [
+      fact("The Intelligence Community's own clearance page lists citizenship among the factors examined when granting a clearance, alongside loyalty, trustworthiness and freedom from conflicting allegiances.", S.icClearance),
+      fact("Recent DCSA processing figures reported for industry applicants put an initial Top Secret clearance at an end-to-end timeline of 243 days and an initial Secret clearance at 197 days — government-contractor figures, reported by ClearanceJobs from the official advisory-committee briefing, and individual cases vary widely.", S.clearanceTimes),
+      fact("Pre-employment processing generally takes weeks or months depending on the depth of the background check, per agency hiring FAQs.", S.cisaFaq),
+    ],
+    plan: {
+      "30d": ["Build the USAJobs profile and a list of agencies and student programmes whose missions you can speak to specifically."],
+      semester: ["Apply broadly across agencies (clearance sponsorship is the scarce resource, not applications) and keep records and references organized for the investigation forms."],
+      year: ["Hold a parallel plan for the waiting period: the clearance clock runs on its own schedule, so keep income and skills moving meanwhile."],
+    },
+    honesty: ["This is career-planning information about a public hiring process, not legal advice; eligibility specifics for a given role are set by its announcement.", "Foreign contacts and dual citizenship do not automatically disqualify, but they lengthen and complicate adjudication — the honest move is full disclosure to the investigator, never concealment."],
+    sources: [{ label: "Intelligence Community careers — security clearance process (USAJobs IC)", url: S.icClearance, as_of: AS_OF }, { label: "CISA general recruitment and hiring FAQs", url: S.cisaFaq, as_of: AS_OF }, { label: "ClearanceJobs: DCSA processing-time update, third-quarter fiscal-year edition", url: S.clearanceTimes, as_of: "2026-09-02" }],
+  },
+];
+
+function getPath(id) { return PATHS.find((p) => p.id === id) || null; }
+
+// Claims ledger for a path: every number appearing in any sourced field traces to that field's source.
+function pathClaims(path) {
+  const claims = [];
+  const harvest = (text, source_url, as_of) => {
+    for (const n of CI.numbersIn(text)) {
+      if (!claims.some((c) => c.value === n)) claims.push({ text: String(text).slice(0, 60), value: n, unit: null, source_url, as_of: as_of || AS_OF, sample_size: null });
+    }
+  };
+  harvest(path.bottom_line, path.sources[0].url);
+  for (const s of path.ladder) harvest(`${s.step} ${s.note}`, s.source_url, s.as_of);
+  for (const f of path.filters) harvest(f.statement, f.source_url, f.as_of);
+  for (const h of path.honesty) harvest(h, path.sources[0].url);
+  return claims;
+}
+
+function answerPath(path, profile, opts) {
+  const o = opts || {};
+  const who = profile ? ` For you (${[profile.year, profile.major, profile.school].filter(Boolean).join(", ") || "profile on file"}): start at the rung your current evidence actually supports, and treat the plan below as the sequence.` : "";
+  const sections = {
+    bottom_line: `Bottom line: ${path.bottom_line}${who}`,
+    ladder: `The ladder (in order):\n${path.ladder.map((s) => `- ${s.step} — ${s.note} (source: ${s.source_url}, as of ${s.as_of})`).join("\n")}`,
+    filters: `The real filters:\n${path.filters.map((f) => `- ${f.statement} (source: ${f.source_url}, as of ${f.as_of})`).join("\n")}`,
+    plan: `The plan:\nNext 30 days:\n${path.plan["30d"].map((a) => `- ${a}`).join("\n")}\nThis semester:\n${path.plan.semester.map((a) => `- ${a}`).join("\n")}\nThis year:\n${path.plan.year.map((a) => `- ${a}`).join("\n")}`,
+    honesty: `Honest notes:\n${path.honesty.map((h) => `- ${h}`).join("\n")}`,
+    sources: `Sources (checked ${AS_OF}): ${path.sources.map((s) => `${s.label} — ${s.url}`).join("; ")}. This path has no company CIR in the current corpus; this is the labeled general-ladder answer built from public structural sources, and every claim above carries its source.`,
+  };
+  const text = [sections.bottom_line, sections.ladder, sections.filters, sections.plan, sections.honesty, sections.sources].join("\n\n");
+  const claims = pathClaims(path);
+  // Numbers inside plan strings trace to the path's primary source when they appear in sourced fields too;
+  // plan-only numerals (a scoped count in an action) are plan instructions, harvested here with the primary source.
+  for (const list of Object.values(path.plan)) for (const a of list) for (const n of CI.numbersIn(a)) {
+    if (!claims.some((c) => c.value === n) && !PLAN_NUMBERS.includes(n)) claims.push({ text: a.slice(0, 60), value: n, unit: null, source_url: path.sources[0].url, as_of: AS_OF, sample_size: null });
+  }
+  return { path_id: path.id, title: path.title, as_of: (o.now || AS_OF), sections, text, claims, allowed_numbers: PLAN_NUMBERS.slice(), sources: path.sources };
+}
+
+function verifyPathAnswer(ans) {
+  const v = CI.verifyClaims(ans.text, ans.claims, { allowedNumbers: ans.allowed_numbers || [] });
+  const lint = CI.lintAdvice(ans.text);
+  return { ok: v.ok && lint.ok, verify: v, lint };
+}
+
+// SC-229: the SWE market read, built ONLY from the CIR corpus's own dated hiring-cadence facts.
+// Known (sourced cadence facts) is kept separate from anecdotal (explicitly not claimed).
+function sweMarketRead(store, opts) {
+  const o = opts || {};
+  const now = o.now || AS_OF;
+  const sweIds = ["stripe", "palantir", "snowflake", "airbnb", "duolingo", "notion", "anduril", "two-sigma"];
+  const rows = [];
+  for (const id of sweIds) {
+    const cir = store && store.byId ? store.byId[id] : null;
+    if (cir && cir.hiring_cadence) rows.push({ company: cir.company_name, cadence: cir.hiring_cadence.statement, source_url: cir.hiring_cadence.source_url, as_of: cir.hiring_cadence.as_of });
+  }
+  const claims = [];
+  for (const r of rows) for (const n of CI.numbersIn(r.cadence)) {
+    if (!claims.some((c) => c.value === n)) claims.push({ text: r.cadence.slice(0, 60), value: n, unit: null, source_url: r.source_url, as_of: r.as_of, sample_size: null });
+  }
+  if (!claims.some((c) => c.value === rows.length)) claims.push({ text: "CIRs checked", value: rows.length, unit: "count", source_url: rows[0] ? rows[0].source_url : S.apmGuide, as_of: now, sample_size: null });
+  const text = [
+    `Bottom line: is the SWE market bad right now? Here is what is actually known from dated sources, kept separate from what is anecdotal. As of ${now}, the ${rows.length} software-engineering company records in this corpus were each checked against live official postings or programme pages in October 2026, and entry-level SWE hiring is still running at every one of them — but it is posting-driven and competitive, not a single annual cohort season with guaranteed windows.`,
+    `What is known (each line is a company's own hiring-cadence fact from its CIR, with its date):\n${rows.map((r) => `- ${r.company}: ${r.cadence} (source: ${r.source_url}, as of ${r.as_of})`).join("\n")}`,
+    `What is anecdotal, and labeled as such: claims that "entry-level SWE is dead" or that any specific percentage of roles vanished circulate on forums and social posts; no source in this corpus supports a market-wide number, so none is claimed here. What the dated record does support: windows open and close per posting (one London SWE internship in the corpus is already marked closed), rolling and posting-driven hiring rewards early, referred, well-matched applications, and students without an internship rung face a harder funnel than a few cycles ago — a directional read from the cadence facts above, not a measured market statistic.`,
+    `What to do differently: apply when postings open rather than on a fixed season calendar; build the internship rung and the referral list before the application, not after; and treat specialization (a real project in the team's stack) as the offset to a crowded general pool.`,
+  ].join("\n\n");
+  return { as_of: now, text, claims, allowed_numbers: [], companies_checked: rows.map((r) => r.company), known_vs_anecdotal: { known: rows.length, anecdotal_claims_made: 0 } };
+}
+
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead };
+if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;
+
+/* Career warm-path graph (REF-001..010; SC-161..175 slice, w09).
+   Pure domain logic, UMD like 124/126/127. User-owned data ONLY: LinkedIn export,
+   alumni directory, club roster, pasted contacts — no scraping, no LinkedIn automation.
+   Nothing here sends: every ask is a draft on a card until the user approves it.
+   Honesty rules: warmth is never inflated (cross-city alumni are discounted AND the
+   discount is disclosed); a departed contact is never written to blindly; a contact at
+   the user's CURRENT employer is excluded by default with the reason surfaced;
+   referral-bonus amounts are reported ONLY from a CIR field that carries them —
+   no CIR in the corpus carries a bonus amount, so bonus intel says so (BUG-122).
+   Persistence is injected: makeGraphStore() -> { people, interactions, referrals }.
+   The application-row seam is 126-career-track (vendored from origin/career/sc-f04):
+   markReferralSubmitted writes source/referred_by + a referral_submitted event onto
+   the matching application row in that store. */
+const CareerGraph = (() => {
+  "use strict";
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  const norm = (v) => lc(v).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const normCo = (v) => norm(v).replace(/\b(inc|llc|ltd|corp|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
+
+  function makeGraphStore() { return { people: [], interactions: [], referrals: [] }; }
+  function normalizePerson(r) {
+    return Object.assign({ person_id: null, full_name: "", current_firm: "", prior_firms: [], title: "", role_kind: null,
+      geography: "", office: "", schools: [], major: null, hometown: null, clubs: [], work_email: null, linkedin: null,
+      relationship_to_user: "none", connection_degree: null, at_company: true, departed_at: null, next_firm: null,
+      is_professor: false, is_family_friend: false, source_list: [], last_verified_at: null, label: null }, r || {});
+  }
+  // Identity keys: exact email / exact linkedin / name+firm / name+school (never name alone).
+  function identityKeys(p) {
+    const keys = [];
+    if (p.work_email) keys.push("email:" + norm(p.work_email));
+    if (p.linkedin) keys.push("li:" + norm(p.linkedin).replace(/ /g, ""));
+    if (p.full_name && p.current_firm) keys.push("nf:" + norm(p.full_name) + "@" + normCo(p.current_firm));
+    if (p.full_name && (p.schools || []).length) keys.push("ns:" + norm(p.full_name) + "@" + norm(p.schools[0]));
+    return keys;
+  }
+  function mergeInto(a, b) {
+    for (const k of ["title", "role_kind", "geography", "office", "major", "hometown", "work_email", "linkedin", "relationship_to_user", "connection_degree", "departed_at", "next_firm", "last_verified_at", "label"])
+      if ((a[k] == null || a[k] === "") && b[k] != null && b[k] !== "") a[k] = b[k];
+    if (b.at_company === false) { a.at_company = false; }
+    for (const k of ["schools", "clubs", "prior_firms", "source_list"]) a[k] = [...new Set([...(a[k] || []), ...(b[k] || [])])];
+    if (b.is_professor) a.is_professor = true;
+    if (b.is_family_friend) a.is_family_friend = true;
+    return a;
+  }
+  function mergeIdentities(records) {
+    const out = []; const merges = []; const byKey = new Map();
+    for (const raw of records || []) {
+      const r = normalizePerson(raw);
+      if (!r.person_id) r.person_id = "person-" + hash(norm(r.full_name) + "|" + norm(r.work_email || r.linkedin || r.current_firm));
+      const keys = identityKeys(r);
+      let hit = null;
+      for (const k of keys) if (byKey.has(k)) { hit = byKey.get(k); break; }
+      if (hit) { merges.push({ kept: hit.person_id, absorbed_name: r.full_name, sources: r.source_list, keys_matched: keys.filter((k) => byKey.has(k)) }); mergeInto(hit, r); for (const k of keys) byKey.set(k, hit); }
+      else { out.push(r); for (const k of keys) byKey.set(k, r); }
+    }
+    return { people: out, merges, input_count: (records || []).length, merged_count: out.length };
+  }
+  function importGraph(store, sources) {
+    const all = [];
+    for (const src of sources || []) for (const r of src.records || []) all.push(Object.assign({}, r, { source_list: [...new Set([...(r.source_list || []), src.source])] }));
+    const { people, merges } = mergeIdentities(all);
+    store.people = people;
+    return { imported: all.length, people: store.people.length, merges, sources: (sources || []).map((x) => x.source) };
+  }
+
+  // ---------- warmth ----------
+  // Base points mirror 124 rankContacts (alumni 40 / shared org 25 / hometown 15 / 1st-degree 20)
+  // plus: major 10, club roster 25, professor 30, family friend 35, warm interaction history up to 15.
+  // Honest discounts, always disclosed in `adjustments`: cross-city alumni -15 (SC-173),
+  // departed contact -> excluded, current-employer contact -> excluded (SC-171).
+  function rankWarmth(person, profile, opts) {
+    opts = opts || {}; profile = profile || {};
+    const p = normalizePerson(person); const why = []; const adjustments = []; let score = 0;
+    const rel = norm(p.relationship_to_user);
+    if (profile.school && (p.schools || []).map(norm).includes(norm(profile.school))) { score += 40; why.push("alumni:" + profile.school); }
+    if ((p.clubs || []).length && profile.clubs && (p.clubs || []).some((c) => (profile.clubs || []).map(norm).includes(norm(c)))) { score += 25; why.push("shared club"); }
+    else if (/club|fraternity|same org/.test(rel)) { score += 25; why.push("shared org"); }
+    if (profile.major && p.major && norm(profile.major) === norm(p.major)) { score += 10; why.push("same major"); }
+    if (profile.hometown && p.hometown && norm(profile.hometown) === norm(p.hometown)) { score += 15; why.push("same hometown"); }
+    if (p.connection_degree === 1 || /1st|first/.test(rel)) { score += 20; why.push("1st-degree"); }
+    else if (p.connection_degree === 2 || /2nd|second|mutual/.test(rel)) { score += 10; why.push("2nd-degree via mutual"); }
+    if (p.is_professor) { score += 30; why.push("professor"); }
+    if (p.is_family_friend) { score += 35; why.push("family friend"); }
+    if (/recruiter/.test(norm(p.role_kind || p.title))) why.push("recruiter (routing ask, not practitioner ask)");
+    const lastDays = opts.lastInteractionDaysAgo;
+    if (lastDays != null) { if (lastDays <= 30) { score += 15; why.push("talked within 30 days"); } else if (lastDays <= 90) { score += 8; why.push("talked within 90 days"); } else if (lastDays >= 180) adjustments.push({ delta: 0, note: `dormant: last interaction ${lastDays} days ago — warmth is historical, not current` }); }
+    // SC-173: alumni in a different city than the ROLE — discount and disclose, never inflate.
+    let crossCity = false;
+    if (opts.roleCity && (p.geography || p.office)) {
+      const pc = norm(p.geography || p.office), rc = norm(opts.roleCity);
+      if (pc && !pc.includes(rc) && !rc.includes(pc)) { crossCity = true; score -= 15; adjustments.push({ delta: -15, note: `cross-city: contact is in ${p.geography || p.office}, role is in ${opts.roleCity} — alumni warmth discounted, not inflated` }); }
+    }
+    return { person_id: p.person_id, name: p.full_name, firm: p.current_firm, score: Math.max(0, score), why, adjustments, cross_city: crossCity };
+  }
+  function exclusionFor(p, profile) {
+    if (p.at_company === false) return { excluded: true, reason: "departed", detail: `left ${p.current_firm}${p.departed_at ? " (" + p.departed_at + ")" : ""}${p.next_firm ? " — now at " + p.next_firm : ""}; do not write to them as a ${p.current_firm} contact` };
+    if (profile && profile.current_employer && normCo(p.current_firm) === normCo(profile.current_employer))
+      return { excluded: true, reason: "current_employer", detail: `${p.full_name} sits at your current employer (${profile.current_employer}) — excluded by default; asking there can surface your search at work. Override only knowingly, in person, on a card.` };
+    return { excluded: false };
+  }
+  function findPaths(store, company, profile, opts) {
+    opts = opts || {};
+    const rows = (store.people || []).filter((p) => normCo(p.current_firm) === normCo(company));
+    const paths = [], excluded = [];
+    for (const p of rows) {
+      const ex = exclusionFor(p, profile);
+      const w = rankWarmth(p, profile, opts);
+      const row = Object.assign({}, w, { title: p.title, role_kind: p.role_kind || null, relationship: p.relationship_to_user, sources: p.source_list });
+      if (ex.excluded && !opts.includeExcluded) { excluded.push(Object.assign({}, row, { exclusion: ex })); continue; }
+      if (ex.excluded) row.exclusion = ex;
+      paths.push(row);
+    }
+    paths.sort((a, b) => b.score - a.score); excluded.sort((a, b) => b.score - a.score);
+    return { company, paths, excluded, best: paths[0] || null };
+  }
+  function pickStrongerPath(store, company, profile, opts) {
+    const { paths, excluded } = findPaths(store, company, profile, opts);
+    if (!paths.length) return { company, chosen: null, held: [], excluded, reason: "no live path at this company" };
+    const [chosen, ...rest] = paths;
+    return { company, chosen, held: rest.map((r) => Object.assign({}, r, { held_reason: "weaker path — held, not contacted, so the two asks never collide or burn both contacts" })), excluded,
+      rationale: `${chosen.name} scores ${chosen.score} (${chosen.why.join(", ") || "no shared fact"}) vs ${rest.length ? rest[0].name + " at " + rest[0].score : "no second path"}. One ask, through the stronger path only.` };
+  }
+  function departedNextPath(store, departedName, profile, opts) {
+    const dep = (store.people || []).find((p) => norm(p.full_name) === norm(departedName));
+    if (!dep) return { found: false, departed: departedName };
+    const company = dep.current_firm;
+    const res = findPaths(store, company, profile, opts);
+    return { found: true, departed: { name: dep.full_name, firm: company, departed_at: dep.departed_at || null, next_firm: dep.next_firm || null, do_not_contact_as: company + " contact" },
+      next_paths: res.paths, note: res.paths.length ? `Next path at ${company}: ${res.paths[0].name} (${res.paths[0].why.join(", ") || "cold"}).` : `No other live path at ${company} in your graph — a mini-campaign (SC-170 pattern) is the honest next step, not writing to the departed contact.` };
+  }
+
+  // ---------- relationship memory / keep-warm ----------
+  function relationshipMemory(store, name) {
+    const rows = (store.interactions || []).filter((i) => norm(i.full_name) === norm(name)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    const person = (store.people || []).find((p) => norm(p.full_name) === norm(name)) || null;
+    if (!rows.length) return { name, found: !!person, person, last: null, history: [], summary: person ? "In your graph, but no interaction logged yet." : "Not in your graph." };
+    const last = rows[rows.length - 1];
+    return { name, found: true, person, last: { at: last.at, channel: last.channel || null, topic: last.topic || null, summary: last.summary || null, outcome: last.outcome || null },
+      history: rows, summary: `Last talked ${last.at}: ${last.summary || last.topic || "(no summary logged)"}` };
+  }
+  function keepWarm(store, opts) {
+    opts = opts || {}; const now = Date.parse(opts.now || new Date().toISOString());
+    const due = [];
+    for (const p of store.people || []) {
+      const mem = relationshipMemory(store, p.full_name);
+      if (!mem.last) continue;
+      const days = Math.floor((now - Date.parse(mem.last.at)) / 86400000);
+      const weeks = opts.weeks || 6;
+      if (days >= weeks * 7 && mem.last.outcome === "good_chat")
+        due.push({ name: p.full_name, firm: p.current_firm, days_since: days, last_topic: mem.last.topic, suggested_reason: opts.reasonFor ? opts.reasonFor(p, mem) : `It has been ${days} days since your good chat about ${mem.last.topic || "your last topic"} — a short, real update keeps the path warm.`, status: "suggested_not_sent" });
+    }
+    return due.sort((a, b) => b.days_since - a.days_since);
+  }
+  function logInteraction(store, row) { const r = Object.assign({ at: new Date().toISOString() }, row); store.interactions.push(r); return r; }
+
+  // ---------- blurb + asks (drafts only; approval card required) ----------
+  function forwardableBlurb(profile, facts) {
+    const usable = (facts || []).filter((f) => f && (f.action || f.text) && ["experience", "project", "leadership", "education"].includes(f.kind || "experience"));
+    if (!usable.length || !profile || !profile.name) return { ok: false, reason: "no_real_profile_facts", blurb: null, lines: [] };
+    const lines = [];
+    const edu = usable.find((f) => f.kind === "education");
+    lines.push({ text: `${profile.name} is a ${profile.year || "student"}${profile.school ? " at " + profile.school : ""}${edu ? " (" + (edu.title || "degree on file") + ")" : ""}.`, fact_id: edu ? edu.id : "profile" });
+    const exp = usable.find((f) => f.kind === "experience") || usable[0];
+    lines.push({ text: `${exp.action ? exp.action[0].toUpperCase() + exp.action.slice(1) : exp.text}${exp.result ? " — " + exp.result : ""}.`, fact_id: exp.id || null });
+    const lead = usable.find((f) => f.kind === "leadership" || f.kind === "project");
+    if (lead && lead !== exp) lines.push({ text: `${lead.action ? lead.action[0].toUpperCase() + lead.action.slice(1) : lead.text}${lead.result ? " — " + lead.result : ""}.`, fact_id: lead.id || null });
+    const blurb = lines.map((l) => l.text).join(" ");
+    return { ok: true, blurb, lines, word_count: blurb.split(/\s+/).length, rule: "Built only from real profile facts; every line carries its fact_id. Three lines, forwardable as-is." };
+  }
+  function askKindFor(person) {
+    const p = normalizePerson(person);
+    if (p.is_professor) return "professor";
+    if (p.is_family_friend) return "family_friend";
+    if (/recruiter|talent|hiring/.test(norm(p.role_kind || "") + " " + norm(p.title))) return "recruiter";
+    return "practitioner";
+  }
+  function draftReferralAsk(person, user, opts) {
+    opts = opts || {}; const p = normalizePerson(person); const kind = askKindFor(p);
+    const first = (p.full_name || "").split(/\s+/)[0] || "there";
+    if ((opts.touchNumber || 1) <= 1 && !opts.hadGoodChat)
+      return { ok: false, reason: "referral_ask_never_in_email_one", kind, draft: null, rule: "A referral ask comes after a good coffee chat, never in email one (SC-151 rule carried into this slice)." };
+    let body;
+    if (kind === "recruiter") body = `Hi ${first},\n\nThanks for the conversation about the ${opts.role || "role"} at ${p.current_firm}. I'm applying this week — could you confirm the right requisition/team for my background and whether an employee referral should be attached before I submit, so I follow your process exactly?\n\nHappy to send my resume and the blurb below.\n\n${opts.blurb || ""}\n\nThanks,\n${user.name || ""}`;
+    else if (kind === "professor") body = `Dear Professor ${p.full_name.split(/\s+/).slice(-1)[0]},\n\nI'm applying for the ${opts.role || "role"} at ${p.current_firm}, where I understand you previously worked. Would you be willing to refer me, or to point me to the right person on the team? I've attached my resume; my relevant work: ${opts.proof || "(proof from profile)"}.\n\nThank you for considering it — and for your class, which is part of why I'm aiming at this work.\n\n${user.name || ""}`;
+    else if (kind === "family_friend") body = `Hi ${first},\n\nHope you and the family are well. I'm applying for the ${opts.role || "role"} at ${p.current_firm} and wanted to ask — only if you're genuinely comfortable — whether you'd be open to referring me. No pressure at all and no hard feelings either way; I completely understand if the timing or fit isn't right.\n\n${opts.blurb || ""}\n\nWith thanks,\n${user.name || ""}`;
+    else body = `Hi ${first},\n\nReally enjoyed our chat${opts.chatNote ? " — " + opts.chatNote : ""}. I'm applying for the ${opts.role || "role"} at ${p.current_firm}. Would you be open to referring me? Here's a forwardable blurb so it's zero work:\n\n${opts.blurb || ""}\n\nTotally fine if not — either way, thank you for the conversation.\n\nThanks,\n${user.name || ""}`;
+    return { ok: true, kind, status: "draft_only", requires_card_approval: true,
+      draft: { to: p.work_email || null, person_id: p.person_id, subject: kind === "professor" ? `Referral request — ${opts.role || "role"} at ${p.current_firm}` : `Referral for ${opts.role || "the role"} at ${p.current_firm}?`, body },
+      tone_note: kind === "family_friend" ? "Extra care: explicit no-pressure out, family warmth first, the user's yes required before anything sends." : kind === "recruiter" ? "Recruiter ask = process/routing (right requisition, referral attached pre-submit). Practitioner ask = endorsement. Different asks, deliberately." : null };
+  }
+  function thankYouReferralCombo(person, user, opts) {
+    opts = opts || {};
+    if (!opts.offeredToRefer) return { ok: false, reason: "no_referral_offer_on_record", draft: null, rule: "The combo is only drafted when they actually offered to refer in the chat — it is never used to manufacture an offer." };
+    if (!opts.note) return { ok: false, reason: "user_note_required: the thank-you must cite one real thing said", draft: null };
+    const p = normalizePerson(person); const first = (p.full_name || "").split(/\s+/)[0];
+    const body = `Hi ${first},\n\nThank you for the chat — ${opts.note}\n\nAnd thank you for offering to refer me for the ${opts.role || "role"} at ${p.current_firm}. To make it zero work, here's the forwardable blurb:\n\n${opts.blurb || ""}\n\nI'll confirm the exact role link today so your referral attaches to the right posting.\n\nGrateful,\n${user.name || ""}`;
+    return { ok: true, status: "draft_only", requires_card_approval: true, draft: { to: p.work_email || null, person_id: p.person_id, subject: `Thank you — and the referral blurb`, body } };
+  }
+  function dormantRevival(person, user, opts) {
+    opts = opts || {};
+    if (!opts.realUpdate || !opts.realUpdate.fact_id) return { ok: false, reason: "real_update_required", draft: null, rule: "A dormant contact is revived honestly, with a real update from your profile — never a fabricated milestone." };
+    const p = normalizePerson(person); const first = (p.full_name || "").split(/\s+/)[0];
+    const body = `Hi ${first},\n\nIt's been a while since we last spoke${opts.lastTopic ? " about " + opts.lastTopic : ""} — no agenda in resurrecting the thread, just a real update: ${opts.realUpdate.text}\n\nI'm now aiming at ${opts.goal || "my next step"}, and your perspective last time genuinely shaped that. Would a brief catch-up be welcome sometime in the next few weeks? No worries at all if not.\n\n${user.name || ""}`;
+    return { ok: true, status: "draft_only", requires_card_approval: true, honest: true, draft: { to: p.work_email || null, person_id: p.person_id, subject: "A real update since last season", body }, update_fact_id: opts.realUpdate.fact_id };
+  }
+
+  // ---------- referral timing + lifecycle + tracking seam (126) ----------
+  function referralTiming(opts) {
+    opts = opts || {};
+    const deadlineDays = opts.deadlineDays, eta = opts.referralEtaDays != null ? opts.referralEtaDays : 2, holdHours = opts.holdHours || 48;
+    if (deadlineDays == null) return { decision: "ASK", reason: "No real deadline on file for this posting — timing cannot be decided honestly without it.", hold_hours: holdHours };
+    if (deadlineDays * 24 <= holdHours + 12) return { decision: "APPLY_NOW_REFER_AFTER", reason: `Deadline is in ${deadlineDays} day(s) — inside the ${holdHours}h hold window plus a safety margin. Apply now so the application exists, then attach the referral after (most portals accept a referral note/referral link post-submit; a missed deadline accepts nothing).`, hold_hours: holdHours, eta_days: eta };
+    return { decision: "WAIT_FOR_REFERRAL", max_wait_hours: holdHours, reason: `Deadline is ${deadlineDays} days out and the referral ETA is ~${eta} day(s): holding up to ${holdHours}h keeps the referral attached pre-submit without risking the deadline. Hard stop: submit at T-${Math.max(12, deadlineDays * 24 - holdHours)}h even if the referral has not landed.`, hold_hours: holdHours, eta_days: eta };
+  }
+  function createReferral(store, input) {
+    const r = { referral_id: "ref-" + hash(s(input.company) + "|" + s(input.contact_name) + "|" + s(input.role) + "|" + (store.referrals.length + 1)),
+      company: s(input.company), role: s(input.role || ""), contact_name: s(input.contact_name), contact_person_id: input.contact_person_id || null,
+      ask_kind: input.ask_kind || null, status: "draft_on_card", draft: input.draft || null, created_at: new Date().toISOString(),
+      approved_at: null, submitted_at: null, application_id: null, label: "TEST" };
+    store.referrals.push(r); return r;
+  }
+  function approveReferral(store, id) { const r = store.referrals.find((x) => x.referral_id === id); if (!r) throw new Error("referral not found"); r.status = "approved_not_sent"; r.approved_at = new Date().toISOString(); return r; }
+  // Seam into 126-career-track: referral submitted -> application row updated in place.
+  function markReferralSubmitted(graphStore, trackStore, Track, referralId, opts) {
+    opts = opts || {};
+    const r = graphStore.referrals.find((x) => x.referral_id === referralId); if (!r) throw new Error("referral not found: " + referralId);
+    r.status = "submitted"; r.submitted_at = opts.at || new Date().toISOString();
+    let app = Track.findByCompany(trackStore, r.company);
+    if (!app) app = Track.addApplication(trackStore, { company: r.company, role: r.role, role_family: opts.role_family || "SWE", source: "referred", referred_by: r.contact_name, resume_version: opts.resume_version || "", stage: "Submitted" }, { now: Date.parse(r.submitted_at) });
+    else {
+      app.source = "referred"; app.referred_by = r.contact_name;
+      app.events.push({ type: "referral_submitted", at: r.submitted_at, source: "user-reported", detail: `referral submitted by ${r.contact_name} (TEST)`, evidence: r.referral_id });
+    }
+    r.application_id = app.app_id;
+    return { referral: r, application: app };
+  }
+  function conversionByContact(store) {
+    const by = {};
+    for (const i of store.interactions || []) { by[i.full_name] = by[i.full_name] || { chats: 0, referrals: 0 }; if (i.outcome === "good_chat" || i.channel === "coffee_chat") by[i.full_name].chats++; }
+    for (const r of store.referrals || []) { by[r.contact_name] = by[r.contact_name] || { chats: 0, referrals: 0 }; if (r.status === "submitted") by[r.contact_name].referrals++; }
+    return by;
+  }
+
+  // ---------- mini-campaign at one company (SC-170) ----------
+  function miniCampaign(store, company, profile, opts) {
+    opts = opts || {}; const n = opts.count || 8;
+    const { paths, excluded } = findPaths(store, company, profile, opts);
+    const cold = (store.people || []).filter((p) => normCo(p.current_firm) === normCo(company) && !paths.some((x) => x.person_id === p.person_id) && !excluded.some((x) => x.person_id === p.person_id) && p.at_company !== false);
+    const seq = paths.slice(0, n).map((p, i) => ({ order: i + 1, name: p.name, warmth: p.score, why: p.why, ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }));
+    for (const c of cold) { if (seq.length >= n) break; const w = rankWarmth(c, profile, opts); seq.push({ order: seq.length + 1, name: c.full_name, warmth: w.score, why: w.why.length ? w.why : ["cold — no shared fact on file"], ask: "coffee chat first — referral ask never in email one", status: "queued_not_sent" }); }
+    return { company, count: seq.length, requested: n, sequence: seq, excluded, rule: "Sequenced warm to cold; one person at a time, replies re-rank the rest; per-firm cap 15/30d (124 CAPS) is never approached by an 8-person sequence." };
+  }
+
+  // ---------- referral-bonus intel (SC-161) ----------
+  function referralBonusIntel(cirs, companies) {
+    const rows = [];
+    for (const co of companies || []) {
+      const cir = (cirs || []).find((c) => normCo(c.company_name || c.company_id) === normCo(co) || norm(c.company_id) === norm(co));
+      if (!cir) { rows.push({ company: co, cir: false, bonus_amount: null, bonus_status: "NO_CIR", referral_weight: null, note: "No CIR on file — no bonus claim made." }); continue; }
+      const notes = cir.referral_weight_notes || {};
+      const weight = s(notes.note || notes.statement || "") || null;
+      const bonusField = cir.referral_bonus || cir.referral_bonus_notes || null;
+      rows.push({ company: cir.company_name || co, cir: true, company_id: cir.company_id, bonus_amount: bonusField ? (bonusField.amount || null) : null,
+        bonus_status: bonusField ? "SOURCED" : "NOT_IN_CIR",
+        referral_weight: weight,
+        note: bonusField ? "Bonus figure carried by the CIR field, source-labeled there." : "This CIR carries referral-WEIGHT notes but no referral-BONUS amount. No amount is claimed — inventing one would be exactly the failure this program exists to prevent. Practical read from the CIR note: a referral routes you into the process; the artifacts still carry the decision, so practitioner asks (people who can speak to your work) outrank routing asks." });
+    }
+    return { rows, sourced_bonus_count: rows.filter((r) => r.bonus_status === "SOURCED").length,
+      headline: "No target in the merged CIR corpus publishes a sourced referral-bonus amount, so none is reported. What IS sourced per company is the referral-weight note below." };
+  }
+
+  // ---------- CIR -> 127 adapter (BUG-123) ----------
+  // pivot/career's normalized CIR schema (statement fields; screening_signals as
+  // {stated, revealed}; hiring_bar_summary.statement) crashes 127's normalizeCir,
+  // which expects the pre-normalization shapes. adaptCirForPrep converts WITHOUT
+  // altering claim text; 127 itself stays vendored unchanged.
+  function adaptCirForPrep(cir) {
+    if (!cir) return null;
+    const flat = (v) => { if (Array.isArray(v)) return v; if (v && typeof v === "object") return [...(v.stated || []), ...(v.revealed || []), ...(v.claims || [])]; return []; };
+    const toText = (x) => { if (typeof x === "string") return x; if (!x) return x; const o = Object.assign({}, x); if (!o.text && (o.statement || o.summary || o.claim)) o.text = o.statement || o.summary || o.claim; return o; };
+    const bar = cir.hiring_bar_summary;
+    return Object.assign({}, cir, {
+      hiring_bar_summary: typeof bar === "string" ? bar : { text: s(bar && (bar.statement || bar.summary || bar.text)) },
+      screening_signals: flat(cir.screening_signals).map(toText),
+      interview_styles: flat(cir.interview_styles).map(toText),
+      values_culture_signals: flat(cir.values_culture_signals).map(toText),
+      compensation_notes: flat(cir.compensation_notes).map(toText),
+      process_stages: (cir.process_stages || []).map((st) => typeof st === "string" ? st : Object.assign({}, st, { name: st.stage || st.name, description: st.description || st.claim || "" })),
+      red_flags: (cir.red_flags || []).map((x) => typeof x === "string" ? x : s(x.claim || x.statement || x.text || "")),
+    });
+  }
+
+  return { makeGraphStore, normalizePerson, identityKeys, mergeIdentities, importGraph, adaptCirForPrep,
+    rankWarmth, findPaths, pickStrongerPath, departedNextPath, exclusionFor,
+    relationshipMemory, keepWarm, logInteraction,
+    forwardableBlurb, askKindFor, draftReferralAsk, thankYouReferralCombo, dormantRevival,
+    referralTiming, createReferral, approveReferral, markReferralSubmitted, conversionByContact,
+    miniCampaign, referralBonusIntel };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerGraph;
+
+/* Career W11 extensions (SC-201..205 prep tail + SC-212..220 negotiation gaps).
+   NEW file by design: the vendored engines 127-career-prep.js / 128-career-negotiation.js stay
+   byte-identical to their sibling branches; everything here either adapts data for them or adds
+   the scenario-specific shapes they do not carry. Same laws as 127/128: NO network, NO invented
+   facts (company claims only from a CIR, carried with source labels; personal claims only from
+   facts the caller supplies), NO SENDS (every outward text is { requires_approval: true,
+   sent: false }), comp figures ONLY from CIR compensation_notes via 128's benchmark, and tax /
+   legal specifics are referred out, never answered. */
+"use strict";
+const N = (() => { try { return require("./128-career-negotiation.js"); } catch { return null; } })();
+const DISCLAIMER = "Advice, not a guarantee of outcome. Not legal or tax advice — have an employment lawyer review any agreement before you sign.";
+const s = (v) => (v == null ? "" : String(v));
+const card = (kind, title, body, destination) => ({ type: "approval_card", kind, title, body, destination: destination || "recruiter (address confirmed on the card before send)", requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." });
+
+// ---------- BUG-141 adapter: pivot/career CIRs store screening_signals as {stated, revealed} ----------
+// 127's normalizeCir calls .map on screening_signals and crashes on the merged-corpus shape.
+// Flattening stated+revealed into one list (entries untouched) lets the vendored engine consume
+// pivot CIRs unchanged. Every other list field already matches 127's expectations.
+function adaptCir(cir) {
+  if (!cir || typeof cir !== "object") return cir;
+  const out = Object.assign({}, cir);
+  const flat = (v) => {
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === "object") return [...(v.stated || []), ...(v.revealed || [])];
+    return v;
+  };
+  for (const k of ["screening_signals", "interview_styles", "values_culture_signals"]) {
+    if (out[k] != null) out[k] = flat(out[k]);
+  }
+  return out;
+}
+
+// ---------- SC-201 research-talk prep (PhD / research role) ----------
+// Grounded ONLY in the talk record the caller supplies + optional CIR interview styles.
+// No result, venue or audience fact is invented; missing talk fields are named as gaps.
+function researchTalkPrep(opts) {
+  opts = opts || {}; const talk = opts.talk || {};
+  const gaps = ["title", "problem", "method", "result", "limitations"].filter((k) => !s(talk[k]));
+  return {
+    kind: "research_talk", title: s(talk.title) || null,
+    narrative_arc: [
+      { beat: "Problem & why it matters", say: s(talk.problem) || "[GAP: supply the problem statement]" },
+      { beat: "What was hard / what prior work missed", say: s(talk.gap) || "[not supplied — do not improvise a literature claim; state only what you read]" },
+      { beat: "Method", say: s(talk.method) || "[GAP: supply the method]" },
+      { beat: "Result (only the numbers in your record)", say: s(talk.result) || "[GAP: supply the result]" },
+      { beat: "Limitations, stated before they ask", say: s(talk.limitations) || "[GAP: supply honest limitations]" },
+      { beat: "What you would do next", say: s(talk.next) || "[not supplied]" },
+    ],
+    likely_questions: [
+      "Why does this problem matter beyond your subfield?",
+      "What is the strongest objection to your method, and what evidence answers it?",
+      "What would change your conclusion?",
+      "How does this connect to the work this lab / team does? (Answer only from the team's published work you have actually read.)",
+      "What did you personally do versus collaborators?",
+    ],
+    drills: ["Give the talk in 10 minutes, then in 2 minutes — same result numbers both times.", "Practice the limitations slide until it takes under 60 seconds; panels trust candidates who volunteer limits."],
+    gaps, cir_grounded: !!opts.cir,
+    honesty: "Built only from the talk record you supplied. No venue, audience or result fact was added.",
+  };
+}
+
+// ---------- SC-202 teaching-demo prep (academic role) ----------
+// No CIR exists for academic employers in the corpus; this prep claims nothing about any
+// institution — it structures the demo the caller describes.
+function teachingDemoPrep(opts) {
+  opts = opts || {}; const lesson = opts.lesson || {};
+  const mins = Number(lesson.minutes) || 20;
+  const blocks = [
+    { block: "Hook + objective", minutes: Math.max(2, Math.round(mins * 0.1)), do: `Open with the puzzle in "${s(lesson.topic) || "[topic]"}" and state what students will be able to DO by the end.` },
+    { block: "Core concept, worked example", minutes: Math.round(mins * 0.4), do: "One concept, one fully worked example on the board — narrate your reasoning, not just steps." },
+    { block: "Check for understanding", minutes: Math.round(mins * 0.25), do: "Cold-call-free check: a 60-second pair task or poll on the exact misconception this topic is known for in YOUR teaching notes (not supplied = prepare it tonight)." },
+    { block: "Second example, students lead", minutes: Math.round(mins * 0.15), do: "Students start the solution; you correct the path, not just the answer." },
+    { block: "Close + bridge", minutes: Math.max(2, mins - Math.round(mins * 0.9)), do: "Summarize the one takeaway and name what it unlocks next class." },
+  ];
+  return {
+    kind: "teaching_demo", topic: s(lesson.topic) || null, audience: s(lesson.audience) || null, minutes: mins,
+    blocks, total_block_minutes: blocks.reduce((a, b) => a + b.minutes, 0),
+    likely_committee_questions: [
+      "Why did you choose this example for this level?",
+      "A student says the opposite of the correct idea confidently — walk us through your next 30 seconds.",
+      "How do you know they learned it (what evidence, not vibes)?",
+      "How would you adapt this for a student who already knows the material?",
+    ],
+    materials_checklist: ["Slides/board plan printable as a handout", "Worked example solved in advance, twice", "Backup explanation if the demo tech fails", "One formative check with an answer key for yourself"],
+    cir_grounded: false,
+    honesty: "No CIR covers academic employers, so nothing about any institution's process is claimed. This plan structures only the lesson you described.",
+  };
+}
+
+// ---------- SC-203 portfolio walkthrough prep (design interview) ----------
+// Project order + narrative come ONLY from project records the caller supplies; the company
+// side (what the panel probes) comes from the CIR via the vendored prep engine's caller.
+function portfolioWalkthrough(opts) {
+  opts = opts || {}; const projects = opts.projects || [];
+  const ordered = [...projects].sort((a, b) => (b.lead ? 1 : 0) - (a.lead ? 1 : 0));
+  return {
+    kind: "portfolio_walkthrough", company: s(opts.company) || null, cir_grounded: !!opts.cir,
+    order: ordered.map((p, i) => ({
+      order: i + 1, project: s(p.name),
+      arc: [
+        `Context & your role: ${s(p.role) || "[state your exact role — panels probe this first]"}`,
+        `The hard decision: ${s(p.decision) || "[name the trade-off you owned]"}`,
+        `Evidence it worked: ${s(p.evidence) || "[only metrics you actually have — none supplied]"}`,
+        `What you would redo: ${s(p.redo) || "[prepare one honest redo]"}`,
+      ],
+    })),
+    probe_questions: [
+      "Show me where the design almost went the other way — what decided it?",
+      "What did the research / data say that you disagreed with?",
+      "Where is your work in this screen, specifically (not the team's)?",
+      "How did engineering constraints change the design?",
+    ],
+    gaps: projects.length ? [] : ["No project records supplied — the walkthrough cannot be built from nothing."],
+    honesty: "Every project claim above is copied from the records you supplied; nothing was embellished.",
+  };
+}
+
+// ---------- SC-204 hiring-manager round: deeper team brief ----------
+// Roadmap/team facts are NEVER invented: they appear only if the caller supplies public facts;
+// otherwise they are listed as questions to ask the HM — which is what the round is for.
+function hiringManagerBrief(opts) {
+  opts = opts || {};
+  const supplied = (opts.teamFacts || []).filter((f) => f && s(f.text));
+  return {
+    kind: "hiring_manager_round",
+    known_about_team: supplied.map((f) => ({ text: s(f.text), source: s(f.source || "provided public fact") })),
+    roadmap_status: supplied.length ? "SUPPLIED_FACTS_ONLY" : "UNKNOWN — no team/roadmap facts were supplied, so none are claimed. Earning them is the point of this round.",
+    questions_to_ask_them: [
+      "What does success in this role look like at 6 months, in your words?",
+      "What is the team's hardest open problem right now, and why is it still open?",
+      "How are projects staffed — do I join a team, or get matched after starting?",
+      "What happened with the last person in this role (growth, scope, or exit — whatever you can share)?",
+      "What would make you regret hiring for this role?",
+    ],
+    what_the_hm_is_testing: ["Can you talk about THEIR problems, not only your past?", "Do you ask about success criteria before day one?", "Is your interest in this team specific or generic?"],
+    honesty: "Team and roadmap statements above are only the public facts supplied; everything else is framed as a question to ask, never as a fact about the team.",
+  };
+}
+
+// ---------- SC-205 bar-raiser-style panel prep ----------
+// The panel style is user-described (no Amazon CIR exists in the corpus — stated, not hidden).
+// Prep = hardest-question set + scored-mock plan built on the caller's own story bank.
+function barRaiserPrep(opts) {
+  opts = opts || {};
+  return {
+    kind: "bar_raiser_panel", cir_grounded: false,
+    cir_note: "No CIR for this employer exists in the merged corpus, so no company process, bar or comp claim is made. 'Bar-raiser-style' is YOUR description of the panel; prep below targets the hardest-questioner dynamic generically.",
+    hardest_questions: [
+      "Tell me about your biggest failure — and do not soften it. What exactly was YOUR mistake?",
+      "Give me a decision you made with incomplete data that turned out wrong. Walk the reasoning.",
+      "Where do you disagree with how this panel has framed the problem?",
+      "Your story's result — how do you KNOW your action caused it, versus the team or timing?",
+      "If we hire you and it fails in year one, what most likely caused it?",
+    ],
+    rules: [
+      "Every claim gets a follow-up: prepare the second layer (numbers, alternatives considered, what you'd do now) for each story.",
+      "Never defend an inflated claim — concede the limit and show the corrected reasoning; panels score judgment, not perfection.",
+      "Answer the question asked before expanding; the hardest questioner is timing your precision.",
+    ],
+    mock_plan: "Run a text mock where every answer gets one hostile follow-up; score with the same structure/evidence/specificity rubric (127 scoreAnswer). Fix the weakest dimension, then re-mock.",
+    stories_supplied: (opts.stories || []).length,
+  };
+}
+
+// ---------- SC-212 below-floor analysis ----------
+function belowFloorAnalysis(offer, bench, opts) {
+  opts = opts || {}; const floor = Number(opts.floor);
+  if (!Number.isFinite(floor)) return { status: "NEEDS_FLOOR", note: "No floor was stated by the user — the counter-vs-walk math cannot run on an unstated floor." };
+  const tc = N ? N.totalComp(offer) : null;
+  const annualized = tc ? tc.annualized_total : (offer.base_salary || 0);
+  const gap = floor - annualized;
+  const fig = bench && bench.figures && bench.figures[0];
+  return {
+    status: gap > 0 ? "BELOW_FLOOR" : "AT_OR_ABOVE_FLOOR", floor,
+    annualized_total: annualized, year1_total: tc ? tc.year1_total : null, gap_to_floor: Math.max(0, gap),
+    counter_math: gap > 0
+      ? `Closing the gap on base alone needs base ≈ $${((offer.base_salary || 0) + gap).toLocaleString()}. Closing it on signing alone needs a $${gap.toLocaleString()} signing increase (year-1 only — it does not fix the annualized gap). A split (part base, part signing) is the realistic ask.`
+      : "The offer already meets your floor on annualized math — negotiating now is upside, not rescue.",
+    sourced_anchor: fig ? { low: fig.low, high: fig.high, source_url: fig.source_url, as_of: fig.as_of } : null,
+    honesty: fig
+      ? `The sourced range tops at $${fig.high.toLocaleString()} (${fig.source_url}, as of ${fig.as_of}). ${gap > 0 && (offer.base_salary || 0) + gap > fig.high ? "Your floor sits ABOVE the sourced top of range — a counter to the floor is unlikely to land on base; expect to decide between a partial close and walking." : "A counter toward the floor is inside the sourced range — it is a defensible ask."}`
+      : "No sourced benchmark figure exists for this company, so no claim is made about how likely a counter is to land — the math above is your floor against their numbers only.",
+    walk_framing: "Walking is rational IF: the gap survives their best counter AND you have a live alternative or can extend your search. It is not rational as a bluff — never threaten to walk unless you will.",
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ---------- SC-213 equity explainer (scenario arithmetic, never a prediction) ----------
+function equityScenarios(offer) {
+  const eq = (offer && offer.equity) || {};
+  const timeline = eq.vest_years ? {
+    vest_years: eq.vest_years, cliff: eq.cliff || null,
+    plain: `Vesting over ${eq.vest_years} years${eq.cliff ? ` with a ${eq.cliff} cliff` : ""}: before the cliff you own nothing vested; after it, vesting proceeds on the schedule in the grant paperwork (the letter does not state the cadence — ask for it). Leaving before a vest date forfeits the unvested part.`,
+  } : { vest_years: null, cliff: null, plain: "The letter states no vesting period — ask for the vesting schedule in writing before valuing anything." };
+  if (eq.grant_value != null && eq.vest_years) {
+    const perYear = Math.round(eq.grant_value / eq.vest_years);
+    const scenarios = [0, 0.5, 1, 2].map((m) => ({
+      label: m === 0 ? "Company value falls / grant repriced to zero" : m === 1 ? "Grant value holds exactly as stated" : `Grant value × ${m}`,
+      total_if_fully_vested: Math.round(eq.grant_value * m), per_year_average: Math.round(perYear * m),
+      note: "Hypothetical arithmetic on the letter's stated grant value — NOT a prediction of the stock price.",
+    }));
+    return { status: "VALUED_BY_LETTER", kind: eq.type || "equity", grant_value: eq.grant_value, timeline, scenarios,
+      plain: `This grant's value is stated IN the letter: $${eq.grant_value.toLocaleString()} total, ≈ $${perYear.toLocaleString()}/yr if it holds its stated value and you vest fully. Real value moves with the share price between grant and sale, and you only keep what vests while you are employed.`, disclaimer: DISCLAIMER };
+  }
+  if (eq.shares != null || eq.type) {
+    return { status: "UNVALUED", kind: eq.type || "equity", shares: eq.shares || null, timeline, scenarios: [],
+      plain: `This grant is ${eq.shares ? eq.shares.toLocaleString() + " " : ""}${eq.type || "equity"} with NO share price and NO grant value in the letter — so no honest dollar figure exists yet. What decides its worth: (1) the current per-share value (for options, the strike vs the latest valuation), (2) whether the company ever becomes liquid, (3) how much vests before you leave. Ask the recruiter, in writing: the strike/valuation, the total shares outstanding (your %), and the vesting cadence. Until then it is unvalued — not worth $0, and not worth a guessed number either.`,
+      questions_for_recruiter: ["What is the current strike price and the latest 409A / board valuation per share?", "How many shares are outstanding in total (so I can compute my percentage)?", "What is the vesting cadence after the cliff — monthly or quarterly?", "Is there an exercise window after leaving, and how long is it? (The tax side of exercising is a CPA question — see the referral in SC-220.)"],
+      disclaimer: DISCLAIMER };
+  }
+  return { status: "NO_EQUITY_STATED", timeline, scenarios: [], plain: "The letter states no equity at all — there is nothing to explain or value.", disclaimer: DISCLAIMER };
+}
+
+// ---------- SC-214 signing-bonus pivot (when base won't move) ----------
+function signingBonusPivot(offer, opts) {
+  opts = opts || {}; const gap = Number(opts.gap) || 0;
+  const ask = gap > 0 ? gap : 10000;
+  const email = `Subject: ${offer.role || "Offer"} — one adjustment that gets me to yes\n\nHi [Recruiter name],\n\nThank you again — I've thought hard about the package. I understand base is set by the band and I respect that. The one adjustment that gets me to a signed yes: a signing bonus of $${((offer.signing_bonus || 0) + ask).toLocaleString()} (an increase of $${ask.toLocaleString()} over the current $${(offer.signing_bonus || 0).toLocaleString()}). It closes my year-1 gap without changing the band, and it's a one-time cost rather than a recurring one.\n\nIf we can do that, I'm ready to sign and stop my other processes.\n\nWith appreciation,\n[Your name]`;
+  const call = `OPEN: "I want to say yes. Base being band-fixed, I went looking for the lever that doesn't break your band."\nASK: "A signing increase of $${ask.toLocaleString()} — to $${((offer.signing_bonus || 0) + ask).toLocaleString()} total — closes my year-1 gap. One-time cost, no band change."\nIF PUSHED: "If signing can't reach it either, a written 6-month review with a defined adjustment is my fallback — but signing is the clean yes."\nCLOSE: "Get me that in writing and I sign the same day."`;
+  return { ask_increase: ask, new_signing_total: (offer.signing_bonus || 0) + ask, scripts: { email, call },
+    why_it_works: "Signing bonuses are one-time costs, so comp teams can often approve them where a base move (which compounds and breaks the band) is impossible. It fixes year 1 only — say so honestly and keep the 6-month review as the annualized fallback.",
+    card: card("signing_bonus_pivot_email", `Signing-bonus pivot for ${offer.company || "offer"} — review before anything sends`, email), disclaimer: DISCLAIMER };
+}
+
+// ---------- SC-215 internship return-offer conversion ----------
+function returnOfferConversion(offer, bench, opts) {
+  opts = opts || {}; const outcomes = opts.outcomes || [];
+  const fig = bench && bench.figures && bench.figures[0];
+  return {
+    kind: "return_offer_conversion", company: offer.company || null,
+    ask_before_signing: [
+      "Team placement: which team, and is placement decided before or after I sign?",
+      "Level and title in writing, and the exact comp breakdown (base / signing / bonus / equity + vesting).",
+      `Start date and any flexibility; the decision deadline in writing (this letter says ${offer.expiry_date || "no expiry parsed — get it in writing"}).`,
+      "What happens to the offer if I need to renege for grad school / a visa change — ask, don't assume.",
+      "Can I speak with a converted intern from last summer before deciding?",
+    ],
+    conversion_play: [
+      "Thank the team in writing within 24 hours — your manager and mentor personally, naming the work (your outcomes below are the material).",
+      "Benchmark BEFORE reacting: " + (fig ? `the sourced figure on file is $${fig.low.toLocaleString()}–$${fig.high.toLocaleString()} — read its own words before using it: "${s(fig.figure_text).slice(0, 160)}" (${fig.source_url}, as of ${fig.as_of}). If that figure is for a different level than this offer, it is context, NOT your anchor — your anchor is your internship outcomes below. Your base is $${(offer.base_salary || 0).toLocaleString()}.` : "no sourced figure exists in this company's CIR — anchor on your internship outcomes and any competing offer, never an invented market number."),
+      "Your leverage is real but perishable: shipped internship work + a team that already wants you. Use it once, warmly, with one concrete ask — not a sequence of asks.",
+      "Never accept verbally on the spot; every counter goes out on an approval card.",
+    ],
+    your_counter_evidence: outcomes,
+    card: card("return_offer_thankyou", `Return-offer thank-you + questions for ${offer.company || "offer"} — review before anything sends`,
+      `Subject: Thank you — and a few questions before I sign\n\nHi [Manager name],\n\nThank you for the return offer — working with this team this summer was the strongest part of my year, especially ${outcomes[0] || "the project I shipped"}. Before I sign, could you help me with: my team placement, the decision deadline in writing, and a short call with a converted intern from last summer?\n\nI'm excited to land this — I just want to sign with clear eyes.\n\nBest,\n[Your name]`),
+    disclaimer: DISCLAIMER,
+  };
+}
+
+// ---------- SC-216 comp-expectation answer mid-process ----------
+function compExpectationAnswer(bench) {
+  const fig = bench && bench.figures && bench.figures[0];
+  if (!fig) return { status: "NO_SOURCED_FIGURE", wording: null,
+    fallback: "\"I'm focused on the role and the team first. I don't have a sourced range for this company that I'd want to anchor on — could you share the band budgeted for this level? I'll be transparent that I want to land inside a fair band for the level.\"",
+    note: "This company's CIR publishes no figure, so no range is quoted — inventing one would be exactly the anchor mistake this scenario tests.", disclaimer: DISCLAIMER };
+  const wording = `"Based on the published range for this role — $${fig.low.toLocaleString()}–$${fig.high.toLocaleString()} (source: ${fig.source_url}, as of ${fig.as_of}) — I'd expect a package in that band for this level, and I'm flexible on how it's composed across base, signing and equity once we get there."`;
+  return { status: "OK", wording, figure: fig,
+    card: card("comp_expectation_reply", `Comp-expectation reply for ${bench.company || "this process"} — approve the wording before it is used`, wording, "recruiter (channel confirmed on the card)"),
+    note: "Range is quoted ONLY from the CIR figure with its source + date. The wording keeps composition flexible so it does not anchor base alone.", disclaimer: DISCLAIMER };
+}
+
+// ---------- SC-217 exploding-offer (48h) pressure plan ----------
+function pressurePlan(offer, opts) {
+  opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+  const exp = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
+  const hoursLeft = exp != null ? Math.round((exp - now) / 3600000) : null;
+  return {
+    kind: "exploding_offer", company: offer.company || null, expiry_date: offer.expiry_date || null, hours_left_at_plan: hoursLeft,
+    same_day_sequence: [
+      "Hour 0–1: parse the offer into the log (done), screenshot/save the letter, and tell the recruiter IN WRITING that you received it and are reviewing carefully — this creates a paper trail without accepting anything.",
+      "Hour 1–3: benchmark from the CIR (sourced figures only) and run the total-comp math; list the 3 questions whose answers could change your decision.",
+      "Hour 3–5: send the extension request (card-gated draft) asking for a standard review window (a week) and naming a concrete reason — school / family / counsel review. Exploding deadlines soften most often when the ask is specific and polite.",
+      "Same day: notify any other live process that a deadline exists (honest leverage, SC-218 wording) — only processes that are real.",
+      "Before expiry minus 6 hours: decide on the WRITTEN terms only. If an extension is promised verbally, ask for it by email before relying on it.",
+    ],
+    do_not: ["Do not accept verbally under time pressure — a verbal yes you renege on burns the bridge and possibly worse.", "Do not invent a competing offer to counter the pressure.", "Do not let the deadline lapse silently — either an extension, an acceptance, or a warm decline lands before it."],
+    note: "A 48-hour deadline is a pressure tactic, not a law of nature — but treat the date as real until an extension exists in writing.", disclaimer: DISCLAIMER,
+  };
+}
+
+// ---------- SC-218 competing-deadline leverage (honest only) ----------
+function leverageScript(offer, competing) {
+  if (!competing || !competing.company || !competing.expiry_date) {
+    return { status: "REFUSED_NO_REAL_COMPETING_OFFER", script: null,
+      note: "No real competing offer with a stored deadline was supplied, so no leverage script is written. Inventing a competing deadline is a fabrication — if the other process is real, parse its letter into the log first and this script writes itself from those stored facts." };
+  }
+  const body = `Subject: Timeline update on my side\n\nHi [Recruiter name],\n\nI want to be transparent because ${offer.company || "your team"} is my first choice: I hold another offer (from ${competing.company}) with a decision deadline of ${competing.expiry_date}. I'd much rather land here. If we can get to terms I'm comfortable signing — [your concrete ask] — before that date, I'll sign here and close the other process the same day.\n\nThank you for working with me on the timing,\n[Your name]`;
+  return { status: "OK", script: body, competing_facts_used: { company: competing.company, expiry_date: competing.expiry_date },
+    honesty_checks: { competing_offer_exists_in_log: true, deadline_is_the_stored_one: true, first_choice_claim_must_be_true: "Only send if this company genuinely is your first choice — the script's power is that every word is checkable." },
+    card: card("leverage_email", `Competing-deadline note to ${offer.company || "offer"} — review before anything sends`, body), disclaimer: DISCLAIMER };
+}
+
+// ---------- SC-220 tax / legal referred out ----------
+const TAX_LEGAL_RE = /tax|withhold|1099|w-?2|equity.*(exercise|strike|iso|nso|amt)|non-?compete|non-?solicit|arbitration|severance|visa|immigration|signing bonus.*clawback|clawback|intellectual property assignment|ip assignment/i;
+function referralOut(text) {
+  const q = s(text);
+  if (!TAX_LEGAL_RE.test(q)) return { referred: false, note: "No tax/legal trigger detected in the question." };
+  return {
+    referred: true, answered: false,
+    label: "This is a tax/legal question about your offer. It is REFERRED OUT — the agent does not answer tax or legal specifics, and anything below is logistics, not advice.",
+    refer_to: [
+      { who: "Employment lawyer (licensed in the state where you'll work)", for: "non-compete / non-solicit, IP assignment, arbitration, severance, clawback and any clause that survives employment" },
+      { who: "CPA or tax advisor (ideally one who handles equity comp)", for: "option exercise timing, ISO/NSO and AMT exposure, withholding on bonuses, multi-state tax" },
+    ],
+    bring: ["The full offer letter AND every attachment/exhibit (the binding terms are usually in the attachments)", "The equity plan document and your grant notice", "Your deadline date — tell them the expiry up front; both professionals triage by deadline", "This exact question, written down, plus what decision it changes"],
+    while_you_wait: "Do not sign, exercise anything, or let the deadline lapse silently while waiting: if the deadline is tight, send the card-gated extension request (it needs no legal input) and tell the recruiter counsel is reviewing — a normal, expected sentence.",
+    disclaimer: DISCLAIMER,
+  };
+}
+
+const CareerW11Ext = { adaptCir, researchTalkPrep, teachingDemoPrep, portfolioWalkthrough, hiringManagerBrief, barRaiserPrep, belowFloorAnalysis, equityScenarios, signingBonusPivot, returnOfferConversion, compExpectationAnswer, pressurePlan, leverageScript, referralOut, DISCLAIMER };
+if (typeof module !== "undefined" && module.exports) module.exports = CareerW11Ext;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -24495,4 +25599,4 @@ const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and 
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover, CareerPackets, CareerPaths, CareerGraph, CareerW11Ext };

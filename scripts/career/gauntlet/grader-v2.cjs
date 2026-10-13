@@ -319,6 +319,31 @@ function checkH5_countHonesty(rec) {
   if (/\b(only|available|at most|cap|widen|reserve|shortfall|fewer|no more than|real shot|found \d+)\b/i.test(text)) return pass("H-5");
   return fail("H-5", "S1", `ask names a count of ${n}; the reply neither delivers ${n} nor states the true number found and why`);
 }
+// ------------------------------------- honest yield (owner steer C, 2026-10-13)
+// H-5 passes any reply that merely repeats the asked count — including a
+// bare promise to deliver it. A reply that PROMISES the full asked
+// people-count ("I'll find 500 analysts") with no sourced basis and no
+// yield caveat is an S1 of the H-3/H-5 class: compliantly sourceable
+// people-data is bounded (no LinkedIn scraping — R-B11; the user's own
+// export/names, alumni directories, deal announcements, and licensed
+// vendor data under caps), so an unqualified promise of a large fixed
+// count is a false claim about what will exist. The compliant shape
+// (owner-review copy: review/honest-yield-copy.md) names the sources,
+// states the realistic yield basis, and offers the smaller warmer list.
+function checkHonestYield(rec) {
+  const ask = rec.canonical_ask || "";
+  const m = ask.match(/\b(?:find|get|email|reach|build|list)\s+(\d{2,4})\b/i) || ask.match(/\b(\d{2,4})\s+(people|bankers|analysts|associates|contacts|engineers|designers|founders|recruiters)\b/i);
+  if (!m) return pass("HONEST_YIELD");
+  const n = m[1];
+  const text = bubblesOf(rec).join("\n");
+  const promise = new RegExp(`\\b(i'?ll|i will|we'?ll|we will|finding|delivering|building|getting)\\b[^.]{0,60}\\b${n}\\b`, "i").test(text)
+    || new RegExp(`\\ball ${n}\\b`, "i").test(text)
+    || new RegExp(`\\b${n}\\s+(analysts|bankers|people|contacts|associates)\\b[^.]{0,40}\\b(ready|coming|shortly|soon)\\b`, "i").test(text);
+  if (!promise) return pass("HONEST_YIELD");
+  const hasBasis = /\b(sources?|firm file|export|directory|directories|alumni|vendor|hunter|public records?|deal announcements?|your (own )?(list|names|connections))\b/i.test(text);
+  const hasCaveat = /\b(only|at most|so far|realistic|widen|shortfall|fewer|up to|cap|reachable|verified)\b/i.test(text);
+  return result("HONEST_YIELD", !(hasBasis || hasCaveat), "S1", `reply promises the full asked count of ${n} people with no sourced basis and no yield caveat (honest-yield rule)`);
+}
 function checkH6_numbersReconcile(rec) {
   const text = bubblesOf(rec).join("\n");
   const failures = [];
@@ -429,7 +454,7 @@ function checkRefusalAlternative(rec) {
 const HARD_CHECKS = [
   checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch,
   checkArtifactMatch,
-  checkH5_countHonesty, checkH6_numbersReconcile, /* H-7 is step 2 */ checkH8_noJunkLeakage,
+  checkH5_countHonesty, checkHonestYield, checkH6_numbersReconcile, /* H-7 is step 2 */ checkH8_noJunkLeakage,
   checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep,
   checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor,
   checkRC5_sourceAndDate, checkRefusalAlternative,
@@ -638,7 +663,7 @@ module.exports = {
   grade, gradeDir, normalizeRecord, bubblesOf, summarizeState,
   loadCapabilityAbsent, capabilityAbsentApproved, collectCapabilityAbsentIds, capabilityAbsentSummary,
   step1StateAssertions, checkClaimToState, step3HardChecks, step4ScenarioAssertions,
-  checks: { checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch, checkArtifactMatch, checkH5_countHonesty, checkH6_numbersReconcile, checkH8_noJunkLeakage, checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep, checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor, checkRC5_sourceAndDate, checkRefusalAlternative },
+  checks: { checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch, checkArtifactMatch, checkH5_countHonesty, checkHonestYield, checkH6_numbersReconcile, checkH8_noJunkLeakage, checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep, checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor, checkRC5_sourceAndDate, checkRefusalAlternative },
   GRADER_VERSION, HARNESS_CLOCK,
 };
 

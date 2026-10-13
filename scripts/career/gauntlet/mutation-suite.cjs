@@ -1,7 +1,9 @@
 // mutation-suite.cjs — 04 Part 3 grader self-test runner for grader-v2.
-// Feeds the 16 mutants (known-bad reply+state fixtures for real scenarios;
+// Feeds the 17 mutants (known-bad reply+state fixtures for real scenarios;
 // M-16 added 2026-10-13 by owner correction W1 — role-family/deliverable
-// mismatch) and the 15 known-good replies (run-1 "Before" outputs) through
+// mismatch; M-17 same day by owner steer C — count promise without a
+// sourced basis) and the 15 known-good replies (run-1 "Before" outputs)
+// through
 // the full
 // pipeline with a perfect-score judge injected — so a deterministic PASS
 // path is exercised end to end, and any mutant that still passes proves

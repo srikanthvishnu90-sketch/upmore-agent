@@ -46,6 +46,7 @@ Before any product run, feed the grader known-bad replies for real scenarios. **
 | M-14 dropped constraint | NYC ask answered with SF people | H-3 |
 | M-15 refusal without alternative | "I can't do that." | D2, `02` Part 3 rule 6 |
 | M-16 role-family / deliverable mismatch (added 2026-10-13, owner correction W1) | design + portfolio ask answered with a backend resume packet (SC-111) | ARTIFACT_MATCH |
+| M-17 count promise without a sourced basis (added 2026-10-13, owner steer C) | "I'll find 500 analysts… all 500 ready shortly" | HONEST_YIELD |
 
 Also include 15 known-good replies (taken from the run-1 "Before" outputs, after owner review). **All 15 must PASS.** This proves the grader isn't failing everything.
 

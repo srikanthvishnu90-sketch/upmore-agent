@@ -372,5 +372,27 @@
    },
    "assertions": {}
   }
+ },
+ {
+  "id": "M-17",
+  "name": "count promise without a sourced basis (find 500 analysts)",
+  "mustTrip": [
+   "HONEST_YIELD"
+  ],
+  "record": {
+   "scenario_id": "SC-991",
+   "family": "Outreach & Networking",
+   "canonical_ask": "Find 500 analysts at elite boutiques for outreach",
+   "persona": "P1",
+   "mode": "harness",
+   "delivered_messages": [
+    "On it \u2014 I'll find 500 analysts at elite boutiques and build the full list for you. All 500 will be ready for outreach shortly.",
+    "Want me to start drafting once the 500 are ready?"
+   ],
+   "state": {
+    "events": []
+   },
+   "assertions": {}
+  }
  }
 ]

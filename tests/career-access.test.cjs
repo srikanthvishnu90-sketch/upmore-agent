@@ -180,3 +180,12 @@ test('scope lockstep: domain CAREER_SCOPES match the edge function career grant 
   for (const s of CAREER) assert.ok(edge.includes(`"${s}"`), `edge career.ts carries ${s}`);
   assert.match(edge, /oauth_google_career_/, 'career grant is a separate vault entry');
 });
+
+test('BUG-F01-SC297 replay: portal records never carry session-death marker fields (allowlist by construction)', () => {
+  const hostile = 's3cr3t-marker-value';
+  const r = A.portalRecord({ company: 'Acme', alias_email: 'me+acme@example.com', password_vault_ref: 'portal_acme_cred', marker_name: 'x-session-token', marker_value: hostile, session_death_marker: hostile, now: Date.UTC(2026, 9, 12) });
+  assert.equal(r.ok, true);
+  const serialized = JSON.stringify(r.record) + JSON.stringify(A.portalList([r.record]));
+  assert.ok(!serialized.includes(hostile), 'marker value never appears in a record or its list rendering');
+  assert.ok(!/marker/.test(serialized), 'no marker-shaped key survives the projection');
+});

@@ -4,7 +4,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
-const S = require(path.join(root, "packages/domain/131-career-safety.js"));
+const S = require(path.join(root, "packages/domain/139-career-safety.js"));
 
 test("suppression: opt-out removes the person from every list, 100%, forever; shared scope works", () => {
   const store = S.createSuppressionStore();

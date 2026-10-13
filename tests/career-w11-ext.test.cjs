@@ -14,8 +14,13 @@ const NOW = "2026-10-12T12:00:00Z";
 const offerA = () => N.parseOffer(fixture("test-offer-a.txt"), { now: NOW });
 const offerB = () => N.parseOffer(fixture("test-offer-b.txt"), { now: NOW });
 
-test("BUG-141 adapter: pivot CIRs (dict screening_signals) compose via vendored 127", () => {
-  assert.throws(() => P.composeBrief({ cir: cir("snowflake") }), /map is not a function/);
+test("BUG-141 adapter: pivot CIRs (dict screening_signals) compose via 127", () => {
+  // Integration note (pivot/career): on W11's vendored 127 this threw "map is not a function";
+  // main's 127 carries the BUG-202 canonical-schema patch (normalizeCir accepts dict
+  // screening_signals), so the raw CIR now composes directly and the adapter is a
+  // harmless pass-through. This test pins the FIXED behavior: no throw, real stages out.
+  const raw = P.composeBrief({ cir: cir("snowflake") });
+  assert.equal(raw.status, "OK"); assert.ok(raw.stages.length >= 3);
   const b = P.composeBrief({ cir: X.adaptCir(cir("snowflake")), role: "SWE Intern" });
   assert.equal(b.status, "OK"); assert.ok(b.stages.length >= 3);
   const sp = P.salaryPrep({ cir: X.adaptCir(cir("bain")) });

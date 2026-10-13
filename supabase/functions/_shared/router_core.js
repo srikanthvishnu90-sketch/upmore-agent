@@ -20188,7 +20188,18 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       }
       const badSources = [...new Set(paused.flatMap(p => p.blocked_by))];
       const linkFor = typeof o.secureLinkFor === "function" ? o.secureLinkFor : () => o.secureLink || null;
-      const messages = badSources.map(source => ({ source, text: reauthMessage(source, linkFor(source)) }));
+      // One message per dead GRANT, not per need-name: Gmail and Calendar are two needs satisfied by
+      // the SAME career Google grant, so a dead grant produced two near-identical nags ("access to
+      // Gmail…", "access to Google Calendar…") in the first build — BUG-005, found by SC-004/SC-020.
+      // Group blocked needs by their dead provider set; the message names that provider.
+      const groups = new Map();
+      for (const need of badSources) {
+        const dead = providersFor(need).filter(p => byProvider[p] && byProvider[p].status !== "ok");
+        const key = dead.length ? dead.slice().sort().join("+") : need;
+        if (!groups.has(key)) groups.set(key, { source: dead.length === 1 ? dead[0] : need, needs: [] });
+        groups.get(key).needs.push(need);
+      }
+      const messages = [...groups.values()].map(g => ({ source: g.source, needs: g.needs, text: reauthMessage(g.source, linkFor(g.source)) }));
       return { per_source: perSource, paused, running, reauth: messages, messages: messages.map(m => m.text), one_message_per_source: true };
     }
 
@@ -20297,6 +20308,16 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
     function handleDisconnect(text, ctx) {
+      // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
+      // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
+      // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
+      // the user meant — BUG-003, found by SC-015.
+      if (/\bdisconnect\b[^.]*\b(all|everything)\b/.test(String(text || "").toLowerCase())) {
+        return {
+          intent: "disconnect", edge_action: "disconnect", source: "all",
+          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host confirms once it is deleted.",
+        };
+      }
       const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
       const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
       const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
@@ -20327,9 +20348,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
       if (/^disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
       if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
-      if (/\bwhat accounts are connected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
+      // The ledger's own phrasings route too, not just the canonical ones: "what accounts do I have
+      // connected?" and "show me everything you've accessed for me" both fell through to null in the
+      // first build — BUG-002 (SC-002) and BUG-004 (SC-005), found by the F01 scenario runs.
+      if (/\bwhat accounts\b[^.]*\bconnected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b|\bwhich accounts\b[^.]*\bconnected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
       if (/\bportal accounts\b|\bwhich companies.*accounts\b/.test(t)) return chatHandlers.portal_accounts(text, ctx);
-      if (/\baccess log\b|\blogin log\b|\bshow my access\b/.test(t)) return chatHandlers.access_log(text, ctx);
+      if (/\baccess log\b|\blogin log\b|\bshow my access\b|\bshow me everything you(?:'ve| have) accessed\b|\bwhat have you accessed\b/.test(t)) return chatHandlers.access_log(text, ctx);
       return null; // not an access-layer message: the router falls through to its other handlers
     }
 
@@ -24140,7 +24164,7 @@ const CareerApply = (() => {
 
   // ---------- duplicate protection (APPE-008) ----------
   function checkDuplicate(log, posting) {
-    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role, jobId: posting.job_id || posting.jobId });
+    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role });
     const prior = hits.find((r) => r.jobId === (posting.job_id || posting.jobId)) || hits[0] || null;
     return prior ? { duplicate: true, prior, reason: `already applied to ${prior.company} — ${prior.role} on ${prior.timestamp ? String(prior.timestamp).slice(0, 10) : "an earlier date"} (${prior.applicationId})` } : { duplicate: false, prior: null };
   }
@@ -24284,7 +24308,103 @@ const CareerApply = (() => {
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
   }
 
-  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard };
+  // ---------- assessment invites (Doc 2 §5.3: NEVER taken for the user) ----------
+  function handleAssessmentInvite(invite, opts) {
+    const o = opts || {};
+    return {
+      company: invite.company || null, assessment: invite.assessment || "online assessment",
+      deadline: invite.deadline || null,
+      scheduled: { scheduled: true, at: o.scheduleAt || invite.deadline || null, reminder: "prep pack ready before the deadline" },
+      prep: ["Timed practice in the assessment's stated format (your own work — practice only)", "Review the profile facts this role was tailored from, so your stories match your resume", "Logistics check: quiet room, charged laptop, deadline in your timezone"],
+      takenByAgent: false,
+      rule: "The agent schedules and preps but NEVER takes an assessment for the user (Doc 2 §5.3) — taking it would be dishonest and gets candidates banned.",
+    };
+  }
+
+  // ---------- duplicate protection via inbox (T-37, SC-079) ----------
+  // ATS confirmation emails are evidence of a manual application. Parse the
+  // injected inbox fixture/mail rows ({from, subject, date}) for application
+  // confirmations and reconcile them into the log so a later apply attempt is
+  // refused as a duplicate even when the agent never submitted it.
+  function parseInboxConfirmations(emails) {
+    const out = [];
+    for (const e of emails || []) {
+      const text = `${e.from || ""} ${e.subject || ""}`;
+      if (!/application (received|confirmation|submitted)|thanks for applying|your application (to|for|was)/i.test(text) && !/application/i.test(e.subject || "")) continue;
+      const m = String(e.subject || "").match(/application (?:to|for|received:?)\s*(.+?)(?:\s*[-–|]|$)/i) || String(e.subject || "").match(/your application (?:to|for)\s*(.+?)(?:\s*[-–|]|$)/i);
+      out.push({ company: e.company || (m ? m[1].trim() : null), role: e.role || null, date: e.date || null, source: "inbox-confirmation", subject: e.subject || null });
+    }
+    return out.filter((x) => x.company);
+  }
+  function reconcileInbox(log, emails) {
+    const confs = parseInboxConfirmations(emails);
+    const added = [];
+    for (const c of confs) {
+      if (findApplications(log, { company: c.company }).length) continue;
+      added.push(buildAuditRecord(log, { company: c.company, role: c.role || "role per confirmation email", timestamp: c.date ? `${String(c.date).slice(0, 10)}T09:00:00Z` : null, status: "confirmed via inbox (manual application detected)", channel: "inbox-reconciliation" }));
+    }
+    return { confirmations: confs, added };
+  }
+
+  // ---------- reapply cooldown sentinel (T-37, SC-080) ----------
+  // cooldownDays comes from the company's record (CIR mechanics / fixture);
+  // the lift date is computed, never guessed.
+  function checkCooldown(record, todayStr) {
+    if (!record || !record.lastApplied || !record.cooldownDays) return { active: false, reason: "no cooldown record for this company" };
+    const lift = new Date(Date.parse(`${String(record.lastApplied).slice(0, 10)}T00:00:00Z`) + record.cooldownDays * 86400000);
+    const liftStr = lift.toISOString().slice(0, 10);
+    const active = todayStr < liftStr;
+    return { active, company: record.company, lastApplied: String(record.lastApplied).slice(0, 10), cooldownDays: record.cooldownDays, liftsOn: liftStr, reason: active ? `reapply cooldown at ${record.company}: last applied ${String(record.lastApplied).slice(0, 10)}, ${record.cooldownDays}-day cooldown lifts ${liftStr}` : `cooldown lifted on ${liftStr}` };
+  }
+
+  // ---------- approved autopilot rule (SC-078, LOCKED decision shape) ----------
+  // Applications may run without a per-batch card ONLY under a rule the user
+  // explicitly approved, with caps, and a nightly summary. There is no silent
+  // mode: a rule that was not approved does not exist, the rule's own daily
+  // cap can only lower the hard 15/day cap, and every run is summarised.
+  function createRule(spec, opts) {
+    const o = opts || {};
+    if (o.approvedByUser !== true) return { ok: false, refused: true, reason: "an autopilot rule activates only on the user's explicit approval — there is no silent autopilot (locked decision)" };
+    const s = spec || {};
+    return { ok: true, rule: { minFit: typeof s.minFit === "number" ? s.minFit : 80, companies: (s.companies || []).slice(), maxPerDay: Math.min(typeof s.maxPerDay === "number" ? s.maxPerDay : 10, DAILY_CAP), excludeBuckets: (s.excludeBuckets || ["Reach"]).slice(), approvedByUser: true, nightlySummary: true } };
+  }
+  function evaluateRule(rule, postings, ctx) {
+    const c = ctx || {};
+    const Jobs = require("./121-career-jobs.js");
+    const today = c.date || "2026-10-12";
+    const already = applicationsOn(c.log, today);
+    const capToday = Math.max(0, Math.min(rule.maxPerDay, DAILY_CAP) - already);
+    const applied = [], skipped = [];
+    for (const p of postings || []) {
+      if (applied.length >= capToday) { skipped.push({ company: p.company, role: p.title, reason: `rule cap reached (${rule.maxPerDay}/day)` }); continue; }
+      if (rule.companies.length && !rule.companies.some((x) => norm(x) === norm(p.company))) { skipped.push({ company: p.company, role: p.title, reason: "company not in the rule's list" }); continue; }
+      const fit = Jobs.scoreFit(p, c.scoringProfile);
+      if (fit.excluded) { skipped.push({ company: p.company, role: p.title, reason: `hard filter: ${fit.hard_fails[0]}` }); continue; }
+      if (fit.score < rule.minFit) { skipped.push({ company: p.company, role: p.title, reason: `fit ${fit.score} < rule minimum ${rule.minFit}` }); continue; }
+      if (rule.excludeBuckets.includes(fit.bucket)) { skipped.push({ company: p.company, role: p.title, reason: `bucket ${fit.bucket} is excluded by the rule` }); continue; }
+      const dup = checkDuplicate(c.log, p);
+      if (dup.duplicate) { skipped.push({ company: p.company, role: p.title, reason: dup.reason }); continue; }
+      applied.push(buildAuditRecord(c.log, { jobId: p.job_id, company: p.company, role: p.title, url: p.url, timestamp: `${today}T18:00:00Z`, resumeVersionId: c.resumeVersionId || null, status: "submitted under approved autopilot rule (TEST record)", channel: "autopilot-rule" }));
+    }
+    return { applied, skipped, capToday };
+  }
+  function nightlySummary(log, dateStr) {
+    const todays = (log.records || []).filter((r) => r.timestamp && String(r.timestamp).slice(0, 10) === dateStr);
+    return { date: dateStr, submitted: todays.length, byCompany: todays.reduce((a, r) => { a[r.company] = (a[r.company] || 0) + 1; return a; }, {}), records: todays.map((r) => r.applicationId), text: `${todays.length} application(s) submitted under your approved rule on ${dateStr}: ${todays.map((r) => `${r.company} — ${r.role}`).join("; ") || "none"}.` };
+  }
+
+  // ---------- recruiting-window sweep (SC-067) ----------
+  // Window registry rows are passed in (CIR mechanics / labeled fixture):
+  // {company, program, classYears:[2028], opensOn, closesOn, status}.
+  function checkWindows(registry, gradYear, todayStr) {
+    return (registry || []).map((w) => {
+      const forClass = (w.classYears || []).includes(gradYear);
+      const open = forClass && w.opensOn <= todayStr && todayStr <= w.closesOn;
+      return { company: w.company, program: w.program, forYourClass: forClass, open, opensOn: w.opensOn, closesOn: w.closesOn, note: !forClass ? `not a class-of-${gradYear} program` : open ? `open now — closes ${w.closesOn}` : todayStr < w.opensOn ? `opens ${w.opensOn}` : `closed on ${w.closesOn}` };
+    });
+  }
+
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;
 
@@ -25512,6 +25632,559 @@ function referralOut(text) {
 const CareerW11Ext = { adaptCir, researchTalkPrep, teachingDemoPrep, portfolioWalkthrough, hiringManagerBrief, barRaiserPrep, belowFloorAnalysis, equityScenarios, signingBonusPivot, returnOfferConversion, compExpectationAnswer, pressurePlan, leverageScript, referralOut, DISCLAIMER };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerW11Ext;
 
+/* Career warm-path graph engine (T-07 / T-26 / T-27 / T-73 seam / T-98; Referrals SC-146..175).
+   Built 2026-10-13 on career/sc-w08 because 124-career-outreach only ranks a flat contact list
+   (rankContacts/warmPaths) — there was no multi-source graph, no identity merge across sources,
+   no second-degree pathfinding, no referral->application link, no conversion/decay tracking.
+   Pure domain logic, UMD like 122/124/126. Sources are USER-OWNED only: LinkedIn export,
+   alumni directory, club roster, pasted contacts, and labeled public-source records the user
+   supplies. NO scraping, NO LinkedIn automation, NO sends — referral/intro asks are DRAFTS
+   on approval cards (T3). Identity merge (T-03 seam): same person in N sources = ONE record;
+   match on normalized email, else exact normalized name + (same company or same school).
+   Warmth order is CANONICAL (SC-147): alumni > club > major > hometown > cold.
+   CRM stages: cold -> contacted -> chat_scheduled -> chatted -> warm -> referral_asked ->
+   referred -> converted (plus dormant). Stage only moves forward unless explicitly set. */
+const CareerGraphCore = (() => {
+  "use strict";
+  const DAY = 86400000;
+  const STAGES = ["cold", "contacted", "chat_scheduled", "chatted", "warm", "referral_asked", "referred", "converted", "dormant"];
+  const WARMTH = [
+    { key: "alumni", points: 50, test: (p, u) => !!u.school && !!p.school && norm(p.school) === norm(u.school) },
+    { key: "club", points: 40, test: (p, u) => (p.clubs || []).some((c) => (u.clubs || []).map(norm).includes(norm(c))) },
+    { key: "major", points: 30, test: (p, u) => !!u.major && !!p.major && norm(p.major) === norm(u.major) },
+    { key: "hometown", points: 20, test: (p, u) => !!u.hometown && !!p.hometown && norm(p.hometown) === norm(u.hometown) },
+  ];
+  function norm(v) { return String(v == null ? "" : v).toLowerCase().replace(/\(test\)/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); }
+  function normCo(v) { return norm(v); }
+  const daysBetween = (a, b) => Math.floor((b - a) / DAY);
+
+  function createGraph(user) {
+    return { user: Object.assign({ name: "", school: null, major: null, hometown: null, clubs: [] }, user || {}),
+      people: [], interactions: [], referrals: [], snapshots: [], _seq: 0 };
+  }
+  function keyOf(r) { return r.email ? "email:" + norm(r.email) : "name:" + norm(r.name) + "|" + normCo(r.company || r.school || ""); }
+  function samePerson(a, b) {
+    if (a.email && b.email && norm(a.email) === norm(b.email)) return true;
+    if (norm(a.name) && norm(a.name) === norm(b.name)) {
+      if (a.company && b.company && normCo(a.company) === normCo(b.company)) return true;
+      if (a.school && b.school && norm(a.school) === norm(b.school)) return true;
+      if (!a.company && !b.company) return true;
+    }
+    return false;
+  }
+  // Import one labeled source list; returns {added, merged}. Merged records keep the richest fields.
+  function importRecords(graph, records, source) {
+    let added = 0, merged = 0;
+    for (const r0 of records || []) {
+      const r = Object.assign({}, r0, { source: r0.source || source });
+      const hit = graph.people.find((p) => samePerson(p, r));
+      if (hit) {
+        merged++;
+        for (const k of ["position", "company", "school", "major", "hometown", "email", "connectedOn", "connectedVia", "joinedCompanyAt", "priorCompany", "relationship"])
+          if (!hit[k] && r[k]) hit[k] = r[k];
+        hit.clubs = [...new Set([].concat(hit.clubs || [], r.clubs || []))];
+        hit.publicLinks = [...new Set([].concat(hit.publicLinks || [], r.publicLinks || []))];
+        hit.sources = [...new Set([].concat(hit.sources || [], r.source))];
+        if (r.company && hit.company && normCo(r.company) !== normCo(hit.company)) { hit.priorCompany = hit.priorCompany || hit.company; hit.company = r.company; hit.joinedCompanyAt = r.joinedCompanyAt || hit.joinedCompanyAt; }
+      } else {
+        graph._seq++;
+        graph.people.push(Object.assign({ person_id: "P-" + String(graph._seq).padStart(3, "0"), stage: "cold",
+          clubs: [], publicLinks: [], lastContactAt: null, chats: 0 }, r, { sources: [r.source] }));
+        added++;
+      }
+    }
+    return { added, merged, total: graph.people.length };
+  }
+  function importLinkedInCsv(graph, csvText, profile122) {
+    // Uses 122's real export parser when injected; falls back to the JSON-shaped records.
+    if (!profile122 || !profile122.parseLinkedInConnections) throw new Error("122-career-profile parser required (real LinkedIn export shape)");
+    const { connections, errors } = profile122.parseLinkedInConnections(csvText);
+    const recs = connections.map((c) => ({ name: c.name, email: c.email, company: c.company, position: c.position, connectedOn: c.connectedOn, source: "linkedin-export" }));
+    return Object.assign(importRecords(graph, recs, "linkedin-export"), { parse_errors: errors });
+  }
+  const byName = (graph, name) => graph.people.find((p) => norm(p.name) === norm(name)) || null;
+  const atCompany = (graph, company) => graph.people.filter((p) => normCo(p.company) === normCo(company));
+
+  // ---------- warmth + path ranking (SC-146/147/159) ----------
+  function sharedFacts(graph, person) {
+    const u = graph.user, out = [];
+    for (const w of WARMTH) if (w.test(person, u)) out.push({ kind: w.key, points: w.points,
+      fact: w.key === "alumni" ? `Both ${u.school}` : w.key === "club" ? `Shared club: ${(person.clubs || []).find((c) => (u.clubs || []).map(norm).includes(norm(c)))}`
+        : w.key === "major" ? `Same major: ${u.major}` : `Same hometown: ${u.hometown}`, source: (person.sources || []).join("+") });
+    if (person.connectedVia) out.push({ kind: "second_degree", points: 10, fact: `Connected via ${person.connectedVia}`, source: "graph" });
+    return out;
+  }
+  function warmthOf(graph, person) {
+    const facts = sharedFacts(graph, person);
+    const top = facts.filter((f) => f.kind !== "second_degree").sort((a, b) => b.points - a.points)[0] || null;
+    const direct = person.connectedVia ? 5 : 15; // first-degree beats second-degree at equal warmth
+    return { score: (top ? top.points : 0) + direct + (facts.some((f) => f.kind === "second_degree") ? 5 : 0),
+      tier: top ? top.kind : "cold", shared_fact: top ? top.fact : "No shared fact on record — cold path", all_facts: facts };
+  }
+  function rankPaths(graph, company) {
+    return atCompany(graph, company).map((p) => { const w = warmthOf(graph, p);
+      return { person_id: p.person_id, name: p.name, position: p.position || null, company: p.company, degree: p.connectedVia ? 2 : 1,
+        via: p.connectedVia || null, warmth_tier: w.tier, warmth_score: w.score, shared_fact: w.shared_fact, stage: p.stage, sources: p.sources }; })
+      .sort((a, b) => b.warmth_score - a.warmth_score || a.name.localeCompare(b.name));
+  }
+  function topWarmPathSweep(graph, companies) {
+    return (companies || []).map((company) => { const paths = rankPaths(graph, company);
+      return { company, paths_found: paths.length, best: paths[0] || null, all: paths }; });
+  }
+  function secondDegreeMap(graph, company) {
+    return rankPaths(graph, company).filter((p) => p.degree === 2)
+      .map((p) => Object.assign({}, p, { path: `You → ${p.via} → ${p.name}` }));
+  }
+  function publicSourceLookup(graph, company) {
+    return atCompany(graph, company).filter((p) => (p.sources || []).some((s) => String(s).startsWith("public:")))
+      .map((p) => ({ name: p.name, position: p.position || null, company: p.company, public_links: p.publicLinks, sources: p.sources,
+        note: "Public sources only (GitHub / speakers / team pages as supplied by the user) — no LinkedIn scraping." }));
+  }
+  // Mentor map seam (T-73): warmest senior people per target company.
+  function mentorMap(graph, companies) {
+    return (companies || []).map((company) => ({ company,
+      mentors: rankPaths(graph, company).filter((p) => /manager|lead|senior|principal|director|advocate/i.test(p.position || "")).slice(0, 3) }));
+  }
+
+  // ---------- relationship memory + CRM (SC-151/152/155/156, T-26) ----------
+  function setStage(graph, name, stage, opts) {
+    opts = opts || {}; const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    if (!STAGES.includes(stage)) return { ok: false, reason: "unknown_stage:" + stage };
+    const from = p.stage; p.stage = stage;
+    graph.interactions.push({ person_id: p.person_id, name: p.name, kind: opts.kind || "stage_change", at: opts.at || null,
+      summary: opts.summary || `stage ${from} -> ${stage}`, stage_after: stage });
+    if (opts.at) p.lastContactAt = opts.at;
+    return { ok: true, person: p.name, from, to: stage };
+  }
+  function recordInteraction(graph, name, input) {
+    const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const ix = { person_id: p.person_id, name: p.name, kind: input.kind || "chat", at: input.at || null, summary: input.summary || "", stage_after: p.stage };
+    graph.interactions.push(ix); if (input.at) p.lastContactAt = input.at;
+    if (input.kind === "coffee_chat") { p.chats = (p.chats || 0) + 1; if (p.stage === "contacted" || p.stage === "chat_scheduled" || p.stage === "cold") p.stage = "chatted"; }
+    return { ok: true, interaction: ix };
+  }
+  function relationshipMemory(graph, name) {
+    const p = byName(graph, name);
+    if (!p) return { found: false, name, history: [] };
+    const history = graph.interactions.filter((i) => i.person_id === p.person_id);
+    const last = history[history.length - 1] || null;
+    return { found: true, name: p.name, company: p.company, stage: p.stage, chats: p.chats || 0,
+      last_contact_at: p.lastContactAt, last_summary: last ? last.summary : null, history };
+  }
+  function planReferralAsk(graph, name, opts) {
+    // SC-151 law: a referral ask NEVER goes in email one — it needs a held chat first.
+    opts = opts || {}; const p = byName(graph, name);
+    if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    if (!(p.chats > 0) && p.stage !== "chatted" && p.stage !== "warm") return { ok: false, blocked: true,
+      reason: "no_held_chat_on_record: referral asks come after a good coffee chat, never in email one (SC-151)", stage: p.stage };
+    return { ok: true, kind: "referral_ask", requires_approval: true, sends: false, t3: true,
+      draft: { to_name: p.name, subject: `Referral for ${opts.company || p.company} — ${opts.role || "the role"}`,
+        body: `Hi ${p.name.split(/\s+/)[0]}, thanks again for the chat${opts.chat_note ? ` — ${opts.chat_note}` : ""}. I applied for ${opts.role || "a role"} at ${opts.company || p.company}. Would you be willing to refer me? Happy to send a short blurb and my resume so it's easy. No pressure at all if the timing isn't right.\n\nThanks,\n${graph.user.name}` } };
+  }
+  function recordReferralSignal(graph, name, input) {
+    input = input || {}; const p = byName(graph, name);
+    if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const ref = { person_id: p.person_id, name: p.name, company: input.company || p.company, role: input.role || null,
+      status: input.status || "submitted", at: input.at || null, app_id: null };
+    graph.referrals.push(ref); setStage(graph, name, "referred", { at: input.at, kind: "referral", summary: `referral ${ref.status} for ${ref.company}` });
+    return { ok: true, referral: ref };
+  }
+  // Link a submitted referral onto the REAL application row (126 store shape: array or {rows}).
+  function linkReferralToApplication(graph, trackStore, name, company) {
+    const rows = Array.isArray(trackStore) ? trackStore : (trackStore && trackStore.rows) || [];
+    const app = rows.find((r) => normCo(r.company) === normCo(company));
+    const ref = graph.referrals.filter((r) => norm(r.name) === norm(name)).slice(-1)[0];
+    if (!app) return { ok: false, reason: "no_application_row_for:" + company };
+    if (!ref) return { ok: false, reason: "no_referral_signal_for:" + name };
+    app.source = "referred"; app.referred_by = name; ref.app_id = app.app_id;
+    app.events = app.events || []; app.events.push({ type: "referral_linked", at: ref.at, source: "graph", detail: `referral submitted by ${name} (graph ${ref.person_id})`, evidence: ref.person_id });
+    return { ok: true, app_id: app.app_id, company: app.company, source_after: app.source, referred_by: app.referred_by };
+  }
+  function conversionTracking(graph) {
+    const per = graph.people.filter((p) => (p.chats || 0) > 0 || graph.referrals.some((r) => r.person_id === p.person_id)).map((p) => {
+      const refs = graph.referrals.filter((r) => r.person_id === p.person_id);
+      return { name: p.name, company: p.company, chats: p.chats || 0, stage: p.stage, referrals: refs.length,
+        converted: refs.length > 0 }; });
+    const chatted = per.length, converted = per.filter((x) => x.converted).length;
+    return { contacts_with_chats: chatted, converted_to_referral: converted,
+      conversion_pct: chatted ? Math.round(1000 * converted / chatted) / 10 : 0, per_contact: per };
+  }
+
+  // ---------- keep-warm decay (T-27, SC-157/158) ----------
+  function keepWarmSuggestions(graph, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const afterDays = opts.afterDays || 42; // six weeks
+    return graph.people.filter((p) => ["chatted", "warm", "referred"].includes(p.stage) && p.lastContactAt
+      && daysBetween(Date.parse(p.lastContactAt), now) >= afterDays)
+      .map((p) => ({ name: p.name, company: p.company, stage: p.stage, days_since: daysBetween(Date.parse(p.lastContactAt), now),
+        reason: `${daysBetween(Date.parse(p.lastContactAt), now)} days since your last touch — past the 6-week keep-warm line, and the relationship was warm (${p.stage}).` }))
+      .sort((a, b) => b.days_since - a.days_since);
+  }
+  function draftUpdateTouch(graph, name, profile122Profile, opts) {
+    // Built ONLY from confirmed master-profile facts (122) — no invented news.
+    opts = opts || {}; const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const facts = ((profile122Profile && profile122Profile.facts) || []).filter((f) => !f.needs_confirmation);
+    const news = opts.factId ? facts.find((f) => f.id === opts.factId) : facts[facts.length - 1];
+    if (!news) return { ok: false, reason: "no_confirmed_profile_fact_to_share" };
+    return { ok: true, requires_approval: true, sends: false, fact_id: news.id,
+      draft: { to_name: p.name, body: `Hi ${p.name.split(/\s+/)[0]}, quick update since we last spoke: ${news.text} Thought you'd appreciate hearing it — your advice helped. Hope things are well at ${p.company}.\n\nBest,\n${graph.user.name}` } };
+  }
+
+  // ---------- forwardable intro (T-98, SC-150/162) ----------
+  function forwardableBlurb(graph, profile122Profile) {
+    const facts = ((profile122Profile && profile122Profile.facts) || []).filter((f) => !f.needs_confirmation);
+    const edu = facts.find((f) => f.kind === "education"), exp = facts.find((f) => f.kind === "experience" || f.kind === "project");
+    if (!edu || !exp) return { ok: false, reason: "profile_needs_education_and_experience_facts" };
+    const lines = [`${graph.user.name} — ${edu.text}`, `${exp.text}`, `Reachable via me; happy to share a resume on request.`];
+    return { ok: true, blurb: lines.join("\n"), lines, fact_ids: [edu.id, exp.id], note: "Three lines, built only from confirmed profile facts." };
+  }
+  function draftIntroRequest(graph, mutualName, targetName, blurb) {
+    const m = byName(graph, mutualName), t = byName(graph, targetName);
+    if (!m || !t) return { ok: false, reason: "mutual_or_target_not_in_graph" };
+    if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
+    return { ok: true, requires_approval: true, sends: false, t3: true, card: { kind: "intro_request", mutual: m.name, target: t.name },
+      draft: { to_name: m.name, subject: `Intro to ${t.name} at ${t.company}?`,
+        body: `Hi ${m.name.split(/\s+/)[0]}, would you be willing to introduce me to ${t.name} at ${t.company}? Forwardable blurb below so it's one copy-paste — no worries at all if not.\n\n${blurb}\n\nThanks,\n${graph.user.name}` } };
+  }
+
+  // ---------- new-hire radar (SC-160): graph delta between snapshots ----------
+  function snapshot(graph, at) { const snap = { at: at || null, people: graph.people.map((p) => ({ name: p.name, company: p.company })) }; graph.snapshots.push(snap); return snap; }
+  function newHireRadar(graph, prevSnap, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const targets = (opts.targetCompanies || []).map(normCo);
+    const prev = {}; for (const p of (prevSnap && prevSnap.people) || []) prev[norm(p.name)] = p.company;
+    return graph.people.filter((p) => targets.includes(normCo(p.company)) && (
+      (prev[norm(p.name)] && normCo(prev[norm(p.name)]) !== normCo(p.company)) ||
+      (p.joinedCompanyAt && daysBetween(Date.parse(p.joinedCompanyAt), now) <= (opts.withinDays || 90))))
+      .map((p) => { const w = warmthOf(graph, p);
+        return { name: p.name, company: p.company, prior_company: p.priorCompany || prev[norm(p.name)] || null, joined_at: p.joinedCompanyAt || null,
+          warmth_tier: w.tier, shared_fact: w.shared_fact, flag: "New hire from your network/school at a target company — usually the warmest path in." }; });
+  }
+
+  return { STAGES, WARMTH, norm, createGraph, importRecords, importLinkedInCsv, byName, atCompany,
+    sharedFacts, warmthOf, rankPaths, topWarmPathSweep, secondDegreeMap, publicSourceLookup, mentorMap,
+    setStage, recordInteraction, relationshipMemory, planReferralAsk, recordReferralSignal,
+    linkReferralToApplication, conversionTracking, keepWarmSuggestions, draftUpdateTouch,
+    forwardableBlurb, draftIntroRequest, snapshot, newHireRadar };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerGraphCore;
+
+/* Career Apply — third block (W06, SC-101..120; hard tasks T-35 eligibility judge, T-42 deadline
+   radar, T-91 feed mesh seam, T-95/T-96 seams via 121).
+   Pieces the earlier modules deliberately do not own:
+     APPLICATION LOG SEAM (SC-115/116): a local, injectable application-log + inbox shape that
+       mirrors 121 job ids and the 126 tracker's patterns (the tracker worker is building 126 in a
+       sibling branch; when 126 lands, this seam is the shape it should consume — flagged in the
+       family doc). Entries: { app_id, job_id, company, title, role_family, seniority_band,
+       bucket_at_apply, fit_score_at_apply, applied_at, stage, variant_id, events[] }.
+       Inbox messages: { msg_id, from, subject, at, app_ref, kind, snippet }. TEST fixtures live in
+       packages/career-data/fixtures/test-application-log.json + test-inbox.json — labeled TEST,
+       nothing real is claimed from them.
+     statusAnswer(log, inbox, company)  log stage cross-checked against inbox messages; proof =
+       the entry ids + message ids, never a bare claim.
+     rejectionAutopsy(log, inbox)       rates + patterns computed FROM the rows (family, bucket,
+       silent vs emailed rejections); no sugarcoating is a formatting rule: rates are stated raw.
+     parseSalaryBand(text) / salaryFilter(postings, floorAnnual)   SC-118.
+     detectDateAnomalies(fields, truth) / correctedFields          SC-103 ATS-mangle repair.
+     variant registry + guardAttach                                SC-104/SC-120.
+     deadlineRadar(cirs, {now})                                   SC-107 (T-42): dated closes
+       parsed from CIR entry_routes facts; warn_at = close - 14 days.
+     triageLinks(links, {postings, cirs, now})                     SC-114: duplicate / expired /
+       clearance-blocked / live / unverifiable, each with a reason; never fetches a pasted link.
+     eligibilityJudge(posting, profile, opts)                      SC-113 (T-35): 121 hard
+       filters + proven-skill coverage of must-haves; verdict submit | skip with reasons.
+   Pure domain module, UMD. No fetch, no deploy, no secrets. */
+const CareerApply3 = (() => {
+  const J = (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })();
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  // ---------- application log seam (SC-115/116) ----------
+  function statusAnswer(log, inbox, company) {
+    const apps = ((log && log.applications) || []).filter((a) => normName(a.company) === normName(company));
+    const msgs = (inbox && inbox.messages) || [];
+    return apps.map((a) => {
+      const proof = msgs.filter((m) => m.app_ref === a.app_id);
+      const latest = proof.length ? proof[proof.length - 1] : null;
+      const consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
+      return { app_id: a.app_id, company: a.company, title: a.title, stage: a.stage, applied_at: a.applied_at, variant_id: a.variant_id, log_events: (a.events || []).map((e) => e.kind), inbox_proof: proof.map((m) => ({ msg_id: m.msg_id, kind: m.kind, at: m.at, subject: m.subject })), latest_inbox_kind: latest ? latest.kind : null, cross_check: proof.length ? "log + inbox agree on this application's existence" : "log only — no inbox message references this application" };
+    });
+  }
+  function rejectionAutopsy(log, inbox) {
+    const apps = (log && log.applications) || [];
+    const msgs = (inbox && inbox.messages) || [];
+    const rej = apps.filter((a) => a.stage === "rejected");
+    const by = (key) => { const m = {}; for (const a of rej) m[a[key]] = (m[a[key]] || 0) + 1; return m; };
+    const emailed = rej.filter((a) => msgs.some((m) => m.app_ref === a.app_id && m.kind === "rejection"));
+    const reach = apps.filter((a) => a.bucket_at_apply === "Reach");
+    const reachRej = reach.filter((a) => a.stage === "rejected");
+    return {
+      total: apps.length, rejected: rej.length, rejection_rate_pct: apps.length ? Math.round(100 * rej.length / apps.length) : 0,
+      by_family: by("role_family"), by_bucket: by("bucket_at_apply"), by_company: by("company"),
+      emailed_rejections: emailed.length, silent_rejections: rej.length - emailed.length,
+      reach_applied: reach.length, reach_rejected: reachRej.length, reach_rejection_rate_pct: reach.length ? Math.round(100 * reachRej.length / reach.length) : 0,
+      avg_fit_of_rejected: rej.length ? Math.round(rej.reduce((n, a) => n + (a.fit_score_at_apply || 0), 0) / rej.length) : 0,
+      still_alive: apps.filter((a) => !["rejected"].includes(a.stage)).length,
+    };
+  }
+
+  // ---------- salary bands (SC-118) ----------
+  function parseSalaryBand(text) {
+    const t = s(text);
+    const range = t.match(/\$\s?(\d{1,3}(?:,\d{3})?|\d+(?:\.\d+)?\s?k)\s?(?:-|–|to)\s?\$\s?(\d{1,3}(?:,\d{3})?|\d+(?:\.\d+)?\s?k)/i);
+    const num = (x) => { x = x.replace(/,/g, "").trim(); return /k$/i.test(x) ? parseFloat(x) * 1000 : parseFloat(x); };
+    if (range) {
+      const hourly = /per hour|\/hr|hourly/i.test(t.slice(Math.max(0, range.index - 40), range.index + range[0].length + 40));
+      let lo = num(range[1]), hi = num(range[2]);
+      if (hourly) { lo = Math.round(lo * 2080); hi = Math.round(hi * 2080); }
+      return { found: true, min_annual: lo, max_annual: hi, basis: hourly ? "hourly band annualized at 2080h" : "annual band as posted", raw: range[0] };
+    }
+    const single = t.match(/\$\s?(\d{1,3}(?:,\d{3})?|\d+(?:\.\d+)?\s?k)\s?(?:\/hr|per hour|hourly)/i) || t.match(/(?:salary|base salary|pay)[^$\n]{0,30}\$\s?(\d{1,3}(?:,\d{3})?|\d+(?:\.\d+)?\s?k)/i);
+    if (single) { const v = num(single[1]); const hourly = /\/hr|per hour|hourly/i.test(single[0]); const ann = hourly ? Math.round(v * 2080) : v; return { found: true, min_annual: ann, max_annual: ann, basis: hourly ? "hourly rate annualized at 2080h" : "single figure as posted", raw: single[0] }; }
+    return { found: false, min_annual: null, max_annual: null, basis: "no salary band in the posting text", raw: null };
+  }
+  function salaryFilter(postings, floorAnnual) {
+    const above = [], below = [], noBand = [];
+    for (const p of postings || []) {
+      const band = parseSalaryBand(p.jd_text);
+      const row = { posting: p, band };
+      if (!band.found) noBand.push(row);
+      else if (band.max_annual < floorAnnual) below.push(row);
+      else above.push(row);
+    }
+    return { above, below, noBand };
+  }
+
+  // ---------- ATS date-mangle repair (SC-103) ----------
+  function detectDateAnomalies(fields, truth) {
+    // fields: [{field, value}] as the portal shows them; truth: {field: "YYYY-MM"} from the profile.
+    const out = [];
+    for (const f of fields || []) {
+      const want = (truth || {})[f.field];
+      const issues = [];
+      const m = s(f.value).match(/^(\d{4})-(\d{2})/);
+      if (!m) issues.push("unparseable date format");
+      else if (Number(m[2]) > 12) issues.push(`month ${m[2]} is impossible — day/month swapped by the parser`);
+      if (want && m && `${m[1]}-${m[2]}` !== want) issues.push(`portal shows ${f.value}; profile fact says ${want}`);
+      if (issues.length) out.push({ field: f.field, portal_value: f.value, corrected_value: want || null, issues });
+    }
+    return out;
+  }
+
+  // ---------- variant registry + attach guard (SC-104/120) ----------
+  function guardAttach(variants, company, variantId) {
+    const v = (variants || []).find((x) => x.variant_id === variantId);
+    if (!v) return { ok: false, reason: `variant ${variantId} is not in the registry — nothing attaches` };
+    if (normName(v.company) !== normName(company)) return { ok: false, reason: `variant ${variantId} was tailored for ${v.company}; attaching it to ${company} is blocked before submit` };
+    return { ok: true, variant: v };
+  }
+
+  // ---------- deadline radar (SC-107, T-42) ----------
+  const MONTHS = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+  function parseDates(text) {
+    const out = [];
+    const re = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d\d)\b/gi;
+    let m; while ((m = re.exec(s(text)))) out.push(new Date(Date.UTC(Number(m[3]), MONTHS[lc(m[1])] - 1, Number(m[2]))).toISOString().slice(0, 10));
+    return out;
+  }
+  function deadlineRadar(cirs, opts) {
+    opts = opts || {};
+    const now = opts.now || Date.now();
+    const entries = [];
+    for (const cir of cirs || []) {
+      for (const r of cir.entry_routes || []) {
+        const dates = [...new Set((r.facts || []).flatMap((f) => parseDates(f.claim)))].sort();
+        const close = dates.length ? dates[dates.length - 1] : null;
+        const days = close ? Math.round((Date.parse(close) - now) / 86400000) : null;
+        entries.push({ company: cir.company_name, route: r.route, status: r.status, close_date: close, days_to_close: days, warn_at: close ? new Date(Date.parse(close) - 14 * 86400000).toISOString().slice(0, 10) : null, state: close == null ? "no dated close in CIR" : days < 0 ? "closed" : days <= 14 ? "WARN — inside 2 weeks" : "open" });
+      }
+    }
+    return entries;
+  }
+
+  // ---------- link triage (SC-114) ----------
+  function triageLinks(links, opts) {
+    opts = opts || {};
+    const postings = opts.postings || [];
+    const byUrl = new Map(); for (const p of postings) byUrl.set(s(p.url).split("?")[0], p);
+    const seen = new Map();
+    return (links || []).map((url) => {
+      const clean = s(url).split("?")[0];
+      if (seen.has(clean)) return { url, verdict: "duplicate", reason: `same posting as ${seen.get(clean)} — already in the list`, posting: null };
+      const hit = byUrl.get(clean) || postings.find((p) => p.url && clean && (clean.includes(p.req_id || "§") || (p.source_urls || []).some((u) => s(u).split("?")[0] === clean)));
+      if (hit) {
+        seen.set(clean, url);
+        const clearance = /\b(ts\/sci|top secret|security clearance)\b/i.test(hit.jd_text);
+        const hard = J ? J.hardFilters(hit, opts.profile || {}) : [];
+        return { url, verdict: clearance ? "skip — clearance-blocked" : hard.length ? "skip — hard filter" : "apply", reason: clearance ? "posting requires a security clearance" : hard.length ? hard[0] : "live in the current feed poll", posting: { job_id: hit.job_id, company: hit.company, title: hit.title } };
+      }
+      seen.set(clean, url);
+      return { url, verdict: "ask — unverifiable", reason: "not in the current live feed poll (expired, portal-only, or a board we cannot read) — not guessed", posting: null };
+    });
+  }
+
+  // ---------- eligibility judge (SC-113, T-35) ----------
+  function eligibilityJudge(posting, profile, opts) {
+    opts = opts || {};
+    if (!J) throw new Error("132 requires 121-career-jobs alongside it");
+    const fit = J.scoreFit(posting, profile);
+    if (fit.excluded) return { verdict: "skip", stage: "hard filter", reasons: fit.reasons, fit };
+    const proven = new Set((profile.skills || []).filter((x) => x.proven !== false).map((x) => lc(x.name)));
+    const jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
+    const must = (opts.mustHaveSkills || []).filter((x) => !proven.has(lc(x)));
+    if (must.length && (opts.mustHaveCoverage || 0) === 0) return { verdict: "skip", stage: "skill evidence", reasons: [`no evidenced skill covers the must-haves: ${must.join(", ")}`], fit, missing_must_haves: must };
+    return { verdict: "submit", stage: "eligible", reasons: fit.reasons, fit, missing_must_haves: must };
+  }
+
+  return { statusAnswer, rejectionAutopsy, parseSalaryBand, salaryFilter, detectDateAnomalies, guardAttach, deadlineRadar, parseDates, triageLinks, eligibilityJudge };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerApply3;
+
+/* Career safety & honesty guards (T-80 kill switch, T-82 distress protocol, OUTE-007/008 decided caps +
+   suppression, Doc 1 §9 / Doc 2 §5.3 refusals, truthful AI-use answers). Pure, no I/O, UMD like the
+   other domain modules. These are the rails that must REFUSE well: a burst send, a fake referral, and
+   taking an assessment for the user are never executed — each refusal names the why and offers the
+   honest alternative. Suppression is severity-1: once a person opts out, no code path in this module
+   lets them back into a send list. The kill switch halts every queue and resolves any in-flight item
+   to a definite state — a send is either provider-confirmed sent, or it is not sent; never half-sent. */
+const CareerSafety = (() => {
+  const DAILY_START = 15, DAILY_CEILING = 30; // decided caps (owner, 2026-10-12): start 10–15/day, ceiling 30, users cannot raise
+
+  // ---------- Suppression (OUTE-008): per-user + shared, forever ----------
+  const keyOf = (p) => String((p && (p.email || p.name)) || "").trim().toLowerCase();
+  function createSuppressionStore(seed) {
+    const store = { records: [] };
+    for (const r of (seed && seed.records) || []) store.records.push({ key: keyOf(r), name: r.name || null, email: r.email || null, reason: r.reason || "opt_out", at: r.at || null, scope: r.scope || "per_user" });
+    return store;
+  }
+  function suppress(store, person, opts) {
+    const o = opts || {}, key = keyOf(person);
+    if (!key) return { ok: false, code: "person_required" };
+    if (store.records.some((r) => r.key === key)) return { ok: true, already: true, key };
+    const rec = { key, name: person.name || null, email: person.email || null, reason: o.reason || "opt_out", at: o.at || null, scope: o.scope || "per_user" };
+    store.records.push(rec);
+    return { ok: true, already: false, record: rec };
+  }
+  const isSuppressed = (store, person) => store.records.some((r) => r.key === keyOf(person));
+  // Filter a candidate/send list: suppressed people come OUT, with the removal proven in the result.
+  function applySuppression(store, list) {
+    const kept = [], removed = [];
+    for (const p of list || []) (isSuppressed(store, p) ? removed : kept).push(p);
+    return { kept, removed, removed_count: removed.length, kept_count: kept.length, honored_100: removed.every((p) => isSuppressed(store, p)) && kept.every((p) => !isSuppressed(store, p)) };
+  }
+  // Mid-campaign opt-out: remove the person from every not-yet-sent queue entry; already-sent mail is history.
+  function forceOptOut(store, campaign, person, opts) {
+    const sup = suppress(store, person, opts);
+    const before = (campaign.queue || []).length;
+    campaign.queue = (campaign.queue || []).filter((q) => keyOf(q) !== keyOf(person));
+    return { suppressed: sup, removed_from_queue: before - campaign.queue.length, queue_remaining: campaign.queue.length, person: keyOf(person) };
+  }
+
+  // ---------- Burst refusal + the safe schedule (OUTE-007) ----------
+  function sendSchedule(total) {
+    const days = []; let remaining = total, cap = DAILY_START, day = 0;
+    while (remaining > 0 && day < 120) {
+      day++;
+      const today = Math.min(cap, remaining);
+      days.push({ day, cap, sends: today });
+      remaining -= today;
+      if (day % 2 === 0) cap = Math.min(DAILY_CEILING, cap + 5); // ramp +5 per 2 days, ceiling decided
+    }
+    return { days, total_days: days.length, weeks: Math.ceil(days.length / 7), total };
+  }
+  function planSendRequest(input) {
+    const o = input || {}, total = Number(o.total || 0), today = Number(o.requested_today || 0);
+    if (today > DAILY_CEILING) {
+      const sched = sendSchedule(total || today);
+      return { ok: false, refused: true, code: "burst_refused", ceiling: DAILY_CEILING,
+        text: `I won't send ${today} today — the cap is ${DAILY_CEILING}/day and it can't be talked up: blasting burns your mailbox's reputation and gets the account flagged. The safe schedule for ${sched.total} sends is about ${sched.total_days} days (~${sched.weeks} weeks) starting at ${DAILY_START}/day and ramping to ${DAILY_CEILING}/day. One approval starts it.`,
+        schedule: sched };
+    }
+    return { ok: true, refused: false, today, ceiling: DAILY_CEILING };
+  }
+
+  // ---------- Fake-referral guard (Doc 1 §9) ----------
+  // A referral claim may only be used when a stored fact supports it. profileFacts: [{id, text}].
+  function referralClaimCheck(input) {
+    const o = input || {}, claim = String(o.claim || "");
+    const m = claim.match(/(?:told me to reach out|referred me|sent me your way|recommended I (?:contact|reach out))/i);
+    if (!m) return { ok: true, claim_found: false };
+    const facts = o.profileFacts || [];
+    const supported = facts.some((f) => /referr|told (?:me|him|her) to reach out|introduction|intro from/i.test(String(f.text || "")) && (!o.claimed_by || String(f.text || "").toLowerCase().includes(String(o.claimed_by).toLowerCase().split(" ")[0])));
+    if (supported) return { ok: true, claim_found: true, supported: true };
+    const warm = (o.trueAngles || [])[0] || null;
+    return { ok: false, refused: true, code: "fake_referral_refused", supported: false,
+      text: `I can't say ${o.claimed_by || "someone"} told you to reach out — nothing in your profile or connections supports that, and a fake referral torches trust the moment it's checked.${warm ? ` The true warm angle you do have: ${warm}. Want the draft built on that instead?` : ""}`,
+      true_angle: warm };
+  }
+
+  // ---------- Assessment refusal (Doc 2 §5.3): never taken for the user ----------
+  function assessmentRequest(input) {
+    const o = input || {};
+    return { ok: false, refused: true, code: "assessment_not_taken",
+      text: `I won't take your ${o.assessment || "assessment"} for you — that's the employer's test of you, and a mismatch between it and your interviews ends candidacies. What I will do: schedule it, remind you, and run prep — practice problems at the same difficulty, timed, with feedback on your own attempts.`,
+      prep_offered: ["timed practice set at the assessment's difficulty", "review of your own attempted solutions", "scheduling + reminder so it never sneaks up"] };
+  }
+
+  // ---------- Truthful AI-use answer (Doc 2, employer AI rules) ----------
+  function aiUseAnswer(input) {
+    const o = input || {}, company = o.company || "the company";
+    if (o.company_bans_ai_text) {
+      return { truthful: true, path: "outline_only",
+        draft: `AI tools helped me organize my materials, and I wrote the submitted text myself, as your policy asks. Every fact in my application is mine and I can speak to all of it.`,
+        note: `${company} bans AI-written submission text, so the application itself followed the outline-only path; this answer says exactly that.` };
+    }
+    return { truthful: true, path: "ai_assisted_disclosed",
+      draft: `Yes — I used an AI assistant to help tailor and proofread my application materials. The experience, projects, and facts are entirely mine, everything was reviewed by me, and I'm happy to walk through any of it in detail.`,
+      note: "The answer discloses the AI help that actually happened (tailoring/proofreading) and claims nothing that did not." };
+  }
+
+  // ---------- Distress protocol (T-82) ----------
+  const CRISIS_RE = /\b(kill myself|end it all|self[- ]?harm|suicide|don't want to (?:live|be here)|no reason to (?:live|go on))\b/i;
+  function distressResponse(input) {
+    const o = input || {}, text = String(o.text || "");
+    const crisis = CRISIS_RE.test(text);
+    const facts = o.profileFacts || [];
+    const grounding = facts.length ? `Here is what is also true, from your own record: ${facts[0]}.` : "Here is what is also true: one rough stretch is not a verdict on you.";
+    return {
+      protocol: "distress", crisis,
+      warmth_first: true, honesty_kept: true,
+      text: crisis
+        ? `I'm really glad you told me. Please reach out right now to someone who can help in person — in the US you can call or text 988 (Suicide and Crisis Lifeline) any time, or text HOME to 741741. You matter more than any job search; everything here can wait. ${grounding}`
+        : `That sounds genuinely rough, and I'm not going to pretend a pep talk fixes it. ${grounding} Not everything is working — some of it is a brutal market for interns right now, and that's real, not a character flaw. Let's make today tiny: one step, then stop.`,
+      one_step: o.oneStep || "Send the one follow-up email that's already drafted — two minutes, then you're done for today.",
+      resources: crisis ? ["988 Suicide and Crisis Lifeline (US): call or text 988", "Crisis Text Line: text HOME to 741741"] : [],
+      plan_shrunk_to_one_step: true,
+    };
+  }
+
+  // ---------- Kill switch (T-80): halt every queue, nothing half-sent ----------
+  function createQueueState(seed) {
+    return { campaigns: (seed && seed.campaigns) || [], applications: (seed && seed.applications) || [], followups: (seed && seed.followups) || [], halted: false, halted_at: null };
+  }
+  function stopEverything(state, opts) {
+    const o = opts || {};
+    const report = { sent_confirmed: 0, aborted_not_sent: 0, queued_halted: 0, by_queue: {} };
+    const all = [["campaigns", state.campaigns || []], ["applications", state.applications || []], ["followups", state.followups || []]];
+    for (const [name, items] of all) {
+      const r = { sent_confirmed: 0, aborted_not_sent: 0, queued_halted: 0 };
+      for (const it of items) {
+        if (it.state === "sent") { it.halt_note = "already sent (provider-confirmed) — stays sent"; r.sent_confirmed++; }
+        else if (it.state === "sending") { it.state = "aborted_not_sent"; it.halt_note = "was in-flight with no provider confirmation — resolved as NOT sent, never half-sent"; r.aborted_not_sent++; }
+        else if (it.state === "queued" || it.state === "scheduled") { it.state = "halted"; r.queued_halted++; }
+      }
+      report.by_queue[name] = r;
+      report.sent_confirmed += r.sent_confirmed; report.aborted_not_sent += r.aborted_not_sent; report.queued_halted += r.queued_halted;
+    }
+    state.halted = true; state.halted_at = o.at || null;
+    const halfSent = [...(state.campaigns || []), ...(state.applications || []), ...(state.followups || [])].filter((i) => i.state === "sending");
+    return { halted: true, report, half_sent_remaining: halfSent.length,
+      text: `Stopped everything. ${report.sent_confirmed} already-sent item(s) stay sent (they were provider-confirmed). ${report.aborted_not_sent} in-flight item(s) had no confirmation and are marked NOT sent — nothing is half-sent. ${report.queued_halted} queued item(s) are halted and will not move until you say resume.` };
+  }
+
+  return { DAILY_START, DAILY_CEILING, keyOf, createSuppressionStore, suppress, isSuppressed, applySuppression, forceOptOut, sendSchedule, planSendRequest, referralClaimCheck, assessmentRequest, aiUseAnswer, distressResponse, createQueueState, stopEverything };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerSafety;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -25599,4 +26272,4 @@ const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and 
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover, CareerPackets, CareerPaths, CareerGraph, CareerW11Ext };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover, CareerPackets, CareerPaths, CareerGraph, CareerW11Ext, CareerGraphCore, CareerApply3, CareerSafety };

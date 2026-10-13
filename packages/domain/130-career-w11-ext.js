@@ -237,7 +237,7 @@ function returnOfferConversion(offer, bench, opts) {
     ],
     conversion_play: [
       "Thank the team in writing within 24 hours — your manager and mentor personally, naming the work (your outcomes below are the material).",
-      "Benchmark BEFORE reacting: " + (fig ? `the sourced range for this company tops at $${fig.high.toLocaleString()} (${fig.source_url}, as of ${fig.as_of}); your base is $${(offer.base_salary || 0).toLocaleString()}.` : "no sourced figure exists in this company's CIR — anchor on your internship outcomes and any competing offer, never an invented market number."),
+      "Benchmark BEFORE reacting: " + (fig ? `the sourced figure on file is $${fig.low.toLocaleString()}–$${fig.high.toLocaleString()} — read its own words before using it: "${s(fig.figure_text).slice(0, 160)}" (${fig.source_url}, as of ${fig.as_of}). If that figure is for a different level than this offer, it is context, NOT your anchor — your anchor is your internship outcomes below. Your base is $${(offer.base_salary || 0).toLocaleString()}.` : "no sourced figure exists in this company's CIR — anchor on your internship outcomes and any competing offer, never an invented market number."),
       "Your leverage is real but perishable: shipped internship work + a team that already wants you. Use it once, warmly, with one concrete ask — not a sequence of asks.",
       "Never accept verbally on the spot; every counter goes out on an approval card.",
     ],

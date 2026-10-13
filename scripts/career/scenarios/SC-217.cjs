@@ -1,0 +1,13 @@
+"use strict"; const { H, N, X, fixture, NOW } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-217", "exploding-offer-48h");
+  s.user("Exploding offer (48 hours): same-day pressure plan and extension ask");
+  s.tool("user-pasted offer (TEST fixture test-offer-c-exploding.txt)", fixture("test-offer-c-exploding.txt"));
+  const store = N.createStore(); const o = N.storeOffer(store, N.parseOffer(fixture("test-offer-c-exploding.txt"), { now: NOW }));
+  s.tool("128.parseOffer + storeOffer (exploding offer in the log)", o);
+  const plan = X.pressurePlan(o, { now: NOW });
+  const ext = N.extensionDraft(o, { days: 7, reason: "a 48-hour window does not allow a careful review" });
+  const tracked = N.trackExtension(store, o, ext);
+  s.tool("130.pressurePlan + 128.extensionDraft/trackExtension", { plan, requested: ext.requested_deadline, tracked });
+  s.agent(`Pressure plan — ${o.company} expires ${o.expiry_date} (${plan.hours_left_at_plan} hours from now on the plan clock). The offer is already parsed into the log: base $${o.base_salary.toLocaleString()}, signing $${o.signing_bonus.toLocaleString()}, $${o.equity.grant_value.toLocaleString()} RSU grant.\n\nSAME-DAY SEQUENCE:\n${plan.same_day_sequence.map((x, i) => `${i + 1}. ${x}`).join("\n")}\n\nDO NOT:\n${plan.do_not.map((x) => `• ${x}`).join("\n")}\n\nThe extension ask (${ext.current_deadline} → ${ext.requested_deadline}) is drafted and on the card below — not sent. ${plan.note}`, { card: ext.card });
+  s.verify("stored expiry 2026-10-14; hours_left positive and ≤60 at NOW; extension tracked drafted_not_sent; card sent=false", { expiry: o.expiry_date, hours_left: plan.hours_left_at_plan, tracked });
+  await s.finish({ status: "COMPLETE", outcome: "Exploding 48-hour offer handled same-day: parsed into the log, a 5-step pressure plan with explicit do-nots, and a card-gated extension ask tracked as drafted_not_sent" }); })();

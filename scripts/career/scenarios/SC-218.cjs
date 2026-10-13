@@ -1,0 +1,13 @@
+"use strict"; const { H, N, X, fixture, NOW, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-218", "competing-deadline-leverage");
+  s.user("Competing deadline used honestly as leverage in the other call");
+  const refused = X.leverageScript(N.parseOffer(fixture("test-offer-a.txt"), { now: NOW }), null);
+  s.tool("130.leverageScript with NO competing offer on file (fabrication control)", refused);
+  const store = N.createStore();
+  const a = N.storeOffer(store, N.parseOffer(fixture("test-offer-a.txt"), { now: NOW }));
+  const b = N.storeOffer(store, N.parseOffer(fixture("test-offer-b.txt"), { now: NOW }));
+  const lev = X.leverageScript(a, b);
+  s.tool("130.leverageScript (both offers stored in the log)", lev);
+  s.agent(`First, the control: when you asked earlier with no second offer on file, I refused to write leverage — ${refused.note}\n\nNow both offers are in the log (Airbnb + Notion, both expiring ${b.expiry_date}), so the script can be written from stored facts only:\n\n${lev.script}\n\nHonesty checks: ${JSON.stringify(lev.honesty_checks)} The draft is on the card below; nothing sent.`, { card: lev.card });
+  s.verify("refusal path returns no script; honest path quotes the competing offer's stored company + expiry verbatim; card sent=false", { refused_status: refused.status, facts_used: lev.competing_facts_used, stored_b: { company: b.company, expiry_date: b.expiry_date } });
+  await s.finish({ status: "COMPLETE", outcome: "Competing-deadline leverage written only from a real stored competing offer (Notion, expiry 2026-10-30), card-gated; the no-competing-offer control honestly refuses to fabricate leverage. Builds on the sibling collision run (old SC-199) — see " + F10 }); })();

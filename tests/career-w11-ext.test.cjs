@@ -65,11 +65,14 @@ test("SC-214 signingBonusPivot: ask closes the named gap; card gated, not sent",
   assert.match(p.scripts.email, /25,000/);
 });
 
-test("SC-215 returnOfferConversion: asks + play cite the sourced figure when one exists", () => {
+test("SC-215 returnOfferConversion: sourced figure cited WITH its level context (BUG-142 guard)", () => {
   const d = N.parseOffer(fixture("test-offer-d-return.txt"), { now: NOW });
   const r = X.returnOfferConversion(d, N.benchmark(cir("snowflake")), { outcomes: ["Shipped the quota-service prototype"] });
   assert.ok(r.ask_before_signing.length >= 5); assert.equal(r.card.sent, false);
-  assert.match(r.conversion_play[1], /no sourced figure exists/); // snowflake CIR publishes no new-grad figure
+  // Snowflake's only sourced CIR figure is a SENIOR range — the play must quote its own words
+  // and warn it is not the anchor for a new-grad return offer, never present it as level-matched.
+  assert.match(r.conversion_play[1], /Senior Software Engineer/);
+  assert.match(r.conversion_play[1], /NOT your anchor/);
 });
 
 test("SC-216 compExpectationAnswer: sourced range quoted; no-figure CIR gets fallback, no number", () => {

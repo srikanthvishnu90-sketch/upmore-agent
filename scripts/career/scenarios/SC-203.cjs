@@ -1,0 +1,11 @@
+"use strict"; const { H, P, X, cir, fixtureJson } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-203", "portfolio-walkthrough-prep");
+  s.user("Portfolio walkthrough prep for a design interview");
+  const fx = fixtureJson("test-research-talk.json");
+  const brief = P.composeBrief({ cir: cir("figma"), role: "Product Designer" });
+  s.tool("127.composeBrief (Figma CIR via BUG-141 adapter)", { status: brief.status, company: brief.company, stages: brief.stages, bar: brief.bar });
+  const walk = X.portfolioWalkthrough({ company: "Figma", cir: cir("figma"), projects: fx.projects });
+  s.tool("130.portfolioWalkthrough (projects = TEST fixture records)", walk);
+  s.agent(`Portfolio walkthrough prep — Figma design interview.\n\nCOMPANY SIDE (from Figma's CIR, as of ${brief.sources[0].as_of}): stages on file: ${brief.stages.map((x) => x.name).join(" | ") || "none stated"}.\n\nYOUR WALKTHROUGH ORDER:\n${walk.order.map((o) => `${o.order}. ${o.project}\n${o.arc.map((a) => "   " + a).join("\n")}`).join("\n")}\n\nPROBES TO REHEARSE:\n${walk.probe_questions.map((q) => `• ${q}`).join("\n")}\n\n${walk.honesty}`);
+  s.verify("lead project ordered first; every arc line copied from fixture records; brief grounded in Figma CIR", { order: walk.order.map((o) => o.project), brief_status: brief.status });
+  await s.finish({ status: "COMPLETE", outcome: "Portfolio walkthrough prep: Figma CIR-grounded panel context plus a 2-project walkthrough ordered lead-first, each narrative arc built only from the supplied project records, with probe questions" }); })();

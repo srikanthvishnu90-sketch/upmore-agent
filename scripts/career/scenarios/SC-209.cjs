@@ -1,0 +1,13 @@
+"use strict"; const { H, N, F10 } = require("./w11-lib.cjs");
+(async () => { const s = H.session("SC-209", "recruiter-roleplay");
+  s.user("Roleplay: the agent plays the recruiter; scored practice call");
+  let st = { turn: 0, pushes: 0 };
+  const turns = [];
+  const play = (line) => { s.user(line); const r = N.roleplayTurn(st, line); st = r; turns.push(r); s.tool("128.roleplayTurn", r); s.agent(`(Recruiter) ${r.recruiter}`); };
+  play("Thanks, I'm excited about the team and the role.");
+  play("I was hoping base could be $142,000, based on the published range for this role.");
+  play("If we land there, I'm ready to sign today.");
+  const last = turns[turns.length - 1];
+  s.agent(`Practice call complete. ${last.feedback}`);
+  s.verify("roleplay state advanced across 3 user turns; recruiter pushed back once; feedback issued at close with concrete-ask count", { turns: turns.map((t) => ({ turn: t.turn, pushes: t.pushes, done: t.done })), feedback: last.feedback });
+  await s.finish({ status: "COMPLETE", outcome: "Agent played the recruiter across a 3-turn practice call (warm open, band pushback, signing close) and delivered scored feedback on concrete asks. Prior sibling evidence under old numbering SC-184 — see " + F10 }); })();

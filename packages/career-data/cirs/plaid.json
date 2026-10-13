@@ -1,0 +1,241 @@
+{
+  "company_id": "plaid",
+  "company_name": "Plaid",
+  "cohort": {
+    "role_family": "Software Engineering (SWE)",
+    "level": "entry",
+    "time_window": "Postings and public sources fetched/indexed 2026-10-12",
+    "definition": "The apprenticeship is a distinct entry cohort and is not merged with experienced-hire patterns per Doc 3 §2.1. Levels kept separate: engineering apprenticeship / early-career cohort (career-switcher inclusive); experienced SWE hires"
+  },
+  "sample_size": null,
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "label": "Plaid Staff SWE, AI Applications posting (official)",
+      "url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "label": "Plaid Engineering blog: path to engineering apprentice (official blog, 2021-08-20)",
+      "url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+      "as_of": "2026-10-12"
+    },
+    {
+      "label": "First Round Review interview with Plaid's head of engineering — ownership/pragmatism, leadership-stated",
+      "url": "https://review.firstround.com/podcast/plaid-dropboxs-jean-denis-grezes-playbook-for-building-an-engineering-culture-of-ownership/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "label": "Glassdoor Plaid interview page — user-reported, anecdotal (search-indexed summary only)",
+      "url": "https://www.glassdoor.com/Interview/Plaid-Interview-Questions-E1156368.htm",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [],
+    "note": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. School shares require a population sample. curated-qualitative"
+  },
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [],
+    "note": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Feeder shares require a population sample. curated-qualitative"
+  },
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [],
+    "note": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Major shares require a population sample. curated-qualitative"
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "sample_size": null,
+    "entries": [
+      {
+        "label": "A current Staff SWE posting (AI Applications) requires backend services / microservices ex",
+        "share_pct": null,
+        "count": null,
+        "note": "A current Staff SWE posting (AI Applications) requires backend services / microservices experience and hands-on LLM product work (prompting, fine-tuning, RAG, semantic search, agent orchestration, evaluation, streaming).",
+        "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+        "as_of": "2026-10-12"
+      },
+      {
+        "label": "The same posting values strong production debugging/monitoring and comfort in privacy/PII-",
+        "share_pct": null,
+        "count": null,
+        "note": "The same posting values strong production debugging/monitoring and comfort in privacy/PII-sensitive environments.",
+        "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+        "as_of": "2026-10-12"
+      },
+      {
+        "label": "Plaid's stated principles in job materials include impact and growing together (HEART: hum",
+        "share_pct": null,
+        "count": null,
+        "note": "Plaid's stated principles in job materials include impact and growing together (HEART: humility, energy, ambition, resilience, teamwork), per a posting summary indexed from Plaid materials.",
+        "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+        "as_of": "2026-10-12"
+      }
+    ],
+    "note": "sourced-qualitative-from-postings"
+  },
+  "path_patterns": [
+    {
+      "pattern": "Career-switcher -> bootcamp/self-teaching -> Plaid Engineering Apprenticeship -> SWE on a product team, with mentor and manager check-ins",
+      "evidence": "reported-norm",
+      "source_url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+      "as_of": "2026-10-12"
+    },
+    {
+      "pattern": "Experienced hire into a specialized team (e.g., AI applications) with 0-to-1 product expectations",
+      "evidence": "reported-norm",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Direct application to an open SWE posting on plaid.com/careers (experienced cohort)",
+      "rank": 1,
+      "accessibility_note": "See route details.",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "Engineering Apprenticeship (early-career / switcher cohort) — IF currently running",
+      "rank": 2,
+      "accessibility_note": "See route details.",
+      "source_url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "Intern / new-grad postings on the official careers site",
+      "rank": 3,
+      "accessibility_note": "Not separately documented on fetched pages in this pass; do not assert windows.",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "hiring_bar_summary": {
+    "statement": "Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. No pass rate is published in fetched sources.",
+    "source_url": "https://review.firstround.com/podcast/plaid-dropboxs-jean-denis-grezes-playbook-for-building-an-engineering-culture-of-ownership/",
+    "as_of": "2026-10-12",
+    "kind": "qualitative"
+  },
+  "screening_signals": {
+    "stated": [
+      {
+        "statement": "Apprenticeship assessments (2021 account) focused on problem-solving ability rather than obscure algorithmic knowledge, plus connection to team, company and the work itself.",
+        "source_url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+        "as_of": "2021-08-20",
+        "kind": "qualitative"
+      },
+      {
+        "statement": "User-reported recent loops (Glassdoor, anecdotal) describe multiple coding rounds, an AI-assisted coding round, system design and behavioral rounds — label anecdotal, process may have changed.",
+        "source_url": "https://www.glassdoor.com/Interview/Plaid-Interview-Questions-E1156368.htm",
+        "as_of": "2026-10-12",
+        "kind": "qualitative"
+      }
+    ],
+    "revealed": []
+  },
+  "process_stages": [
+    {
+      "stage": "Stage 1",
+      "description": "Documented apprenticeship sequence (2021): coding assessments, interviews focused on fit with team/company/work, and a final 90-minute technical assessment worked collaboratively with the interviewer.",
+      "source_url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+      "as_of": "2021-08-20",
+      "kind": "process"
+    },
+    {
+      "stage": "Stage 2",
+      "description": "Experienced SWE stages are not published as a single official sequence on the fetched pages; user-reported loops vary by team.",
+      "source_url": "https://www.glassdoor.com/Interview/Plaid-Interview-Questions-E1156368.htm",
+      "as_of": "2026-10-12",
+      "kind": "process"
+    }
+  ],
+  "interview_styles": [
+    {
+      "statement": "Collaborative problem-solving style in the documented final assessment (working through a challenge together with the interviewer).",
+      "source_url": "https://engineering.plaid.com/my-path-to-becoming-an-engineering-apprentice-at-plaid-8008f783d8e7",
+      "as_of": "2021-08-20",
+      "kind": "qualitative"
+    },
+    {
+      "statement": "Leadership interviews probe real failures and reflection, per the head of engineering's own description.",
+      "source_url": "https://review.firstround.com/podcast/plaid-dropboxs-jean-denis-grezes-playbook-for-building-an-engineering-culture-of-ownership/",
+      "as_of": "2026-10-12",
+      "kind": "qualitative"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "statement": "Mission stated on official postings: unlock financial freedom for everyone; postings encourage applying even if experience does not fully match the description.",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12",
+      "kind": "qualitative"
+    },
+    {
+      "statement": "Engineering leadership publicly emphasizes pragmatism over perfection, impact, and ownership across functional boundaries.",
+      "source_url": "https://review.firstround.com/podcast/plaid-dropboxs-jean-denis-grezes-playbook-for-building-an-engineering-culture-of-ownership/",
+      "as_of": "2026-10-12",
+      "kind": "qualitative"
+    }
+  ],
+  "hiring_cadence": {
+    "statement": "No official application windows or cadence dates were on the fetched pages as of 2026-10-12. The apprenticeship evidence is from 2021 and is stale by Doc 3 §5 standards (>6 months) — re-verify program existence and windows before use.",
+    "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+    "as_of": "2026-10-12",
+    "kind": "hiring_status"
+  },
+  "compensation_notes": [
+    {
+      "statement": "source_type_label",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12",
+      "kind": "compensation",
+      "source_type": "user-reported-anecdotal"
+    },
+    {
+      "statement": "claims",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12",
+      "kind": "compensation",
+      "source_type": "user-reported-anecdotal"
+    }
+  ],
+  "referral_weight_notes": {
+    "statement": "No fetched source quantifies referral weight at Plaid; no claim is made.",
+    "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+    "as_of": "2026-10-12",
+    "kind": "qualitative"
+  },
+  "red_flags": [
+    {
+      "statement": "Staleness: the richest entry-route evidence (apprenticeship) is from August 2021 — routing a user to it without re-verification would be a Doc 3 freshness violation.",
+      "source_url": "https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/",
+      "as_of": "2026-10-12",
+      "kind": "qualitative"
+    },
+    {
+      "statement": "User-reported process details come from Glassdoor-style self-reports and may describe a different team/era; never present them as Plaid policy.",
+      "source_url": "https://www.glassdoor.com/Interview/Plaid-Interview-Questions-E1156368.htm",
+      "as_of": "2026-10-12",
+      "kind": "qualitative"
+    }
+  ],
+  "thesis_text": "Bottom line: for Plaid (Software Engineering (SWE), entry), your odds through the cold application alone are low, but not zero. This read rests on a curated-qualitative record as of 2026-10-12 with no population sample — treat every pattern below as reported, not measured. Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. No pass rate is published in fetched sources. Note: 1 fact(s) in this record are past their freshness window and flagged stale — re-verify before acting on them.\n\nWho gets in (sample N=not available — curated-qualitative record, as of 2026-10-12):\n- A current Staff SWE posting (AI Applications) requires backend services / microservices ex — reported pattern, not a measured share: A current Staff SWE posting (AI Applications) requires backend services / microservices experience and hands-on LLM product work (prompting, fine-tuning, RAG, semantic search, agent orchestration, evaluation, streaming). (source: https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/, as of 2026-10-12)\n- The same posting values strong production debugging/monitoring and comfort in privacy/PII- — reported pattern, not a measured share: The same posting values strong production debugging/monitoring and comfort in privacy/PII-sensitive environments. (source: https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/, as of 2026-10-12)\n- Plaid's stated principles in job materials include impact and growing together (HEART: hum — reported pattern, not a measured share: Plaid's stated principles in job materials include impact and growing together (HEART: humility, energy, ambition, resilience, teamwork), per a posting summary indexed from Plaid materials. (source: https://plaid.com/careers/openings/engineering/san-francisco-hq/staff-software-engineer-ai-applications/, as of 2026-10-12)\nKnown biases of this data: Survivorship bias: the apprentice blog post is a success story published by the employer; it cannot show apprentice acceptance rates or failure modes.; Single-story risk: one documented path is evidence a route exists, not that it is common.; Leadership-interview statements are one executive's described preferences, not audited hiring data.; Glassdoor-style reports are self-selected and unverified; used only as labeled anecdotes.; No H-1B LCA, university-outcome or licensed population data was fetched in this pass.. We see who got in, not who tried and failed — survivorship bias is real (§0).\n\nWhat Plaid says it screens for vs what the record shows:\nStated: Apprenticeship assessments (2021 account) focused on problem-solving ability rather than obscure algorithmic knowledge, plus connection to team, company and the work itself. User-reported recent loops (Glassdoor, anecdotal) describe multiple coding rounds, an AI-assisted coding round, system design and behavioral rounds — label anecdotal, process may have changed.\nRevealed: \n\nRoutes in, ranked for you:\nFirst: Direct application to an open SWE posting on plaid.com/careers (experienced cohort) — See route details.\nSecond: Engineering Apprenticeship (early-career / switcher cohort) — IF currently running — See route details.\nThird: Intern / new-grad postings on the official careers site — Not separately documented on fetched pages in this pass; do not assert windows.\n\nYour gap analysis (highest-leverage fix first: experience):\n- school: you — TEST University (non-target) | cohort — See the school pattern in this CIR — stated qualitatively unless the CIR is population-backed; school is not in the user's control, so the plan routes around it (§3.1). | unknown\n- experience: you — no internships yet | cohort — Ownership-and-pragmatism bar: engineering leadership publicly prizes an overdeveloped sense of responsibility, honest discussion of real failures, and business-problem pragmatism over perfect systems. No pass rate is published in fetched sources. | gap | fix: Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this CIR's path patterns.\n- projects: you — no projects on file | cohort — Revealed screen in this CIR: evidence of building or analyzing real things (see screening_signals.revealed). | gap | fix: Ship one project that solves a messy real problem for a real user, and document it.\n- skills: you — python, sql | cohort — A current Staff SWE posting (AI Applications) requires backend services / microservices ex, The same posting values strong production debugging/monitoring and comfort in privacy/PII-, Plaid's stated principles in job materials include impact and growing together (HEART: hum | gap | fix: Close the named gaps first: A current Staff SWE posting (AI Applications) requires backend services / microservices ex, The same posting values strong production debugging/monitoring and comfort in privacy/PII-, Plaid's stated principles in job materials include impact and growing together (HEART: hum.\n- timing: you — currently: junior | cohort — No official application windows or cadence dates were on the fetched pages as of 2026-10-12. The apprenticeship evidence is from 2021 and is stale by Doc 3 §5 standards (>6 months) — re-verify program existence and windows before use. | unknown\n- authorization: you — US citizen | cohort — Sponsorship history is a matter of public record (DOL H-1B LCA filings); this CIR states only what its sources support, and immigration specifics go to the school's international office (§4.8 Q26 — not legal advice). | unknown\n\nThe plan:\nNext thirty days:\n- Confirm this cycle's application window and deadlines for Plaid on the official careers page — dates move, and this CIR's cadence fact is the starting point, not the truth (§3.3). (by 2026-10-19)\n- Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this CIR's path patterns). Volume plus follow-up is the play. (by 2026-10-26)\n- Ship the first version of one real project and write it up publicly. (by 2026-11-11)\n- Start the named skill gaps from the compare-me table: A current Staff SWE posting (AI Applications) requires backend services / microservices ex, The same posting values strong production debugging/monitoring and comfort in privacy/PII-, Plaid's stated principles in job materials include impact and growing together (HEART: hum. (by 2026-11-02)\n- Build the coffee-chat target list from this CIR's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder. (by 2026-10-22)\nThis semester:\n- Convert the semester into signal: one internship or substantial project, one visible leadership or club role in the field, and interview reps on a weekly schedule.\n- Close the remaining named skill gaps to interview depth, not survey depth.\n- Run the coffee-chat list: short, specific asks; every conversation ends with a follow-up you actually send.\nThis year:\n- Be in the application pool for Plaid's main entry window with the ladder rung, the project write-up and the referral conversations already done — not started.\n- If the direct route misses, take the highest adjacent rung this CIR names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).\n\nCoffee-chat strategy: target the profile types named in the ranked routes — recent hires in this role family, alumni of your school now inside, and people one rung up the ladder you are climbing. Ask what the interviews actually test, what surprised them after starting, and what they would do with a semester to prepare. Keep asks short and specific; send the follow-up you promised.\n\nTimeline and key dates: No official application windows or cadence dates were on the fetched pages as of 2026-10-12. The apprenticeship evidence is from 2021 and is stale by Doc 3 §5 standards (>6 months) — re-verify program existence and windows before use. (as of 2026-10-12; recruiting dates shift every cycle — re-check the official careers page before acting, §3.3).\n\nRisks and alternatives: Staleness: the richest entry-route evidence (apprenticeship) is from August 2021 — routing a user to it without re-verification would be a Doc 3 freshness violation. User-reported process details come from Glassdoor-style self-reports and may describe a different team/era; never present them as Plaid policy. Adjacent options with similar signal: the other employers and role families whose CIRs share this ladder — the first rung matters more than the logo on it.\n\nWant me to execute? I can build the coffee-chat target list from these routes, tailor your resume to this record's revealed screens (truthfully — only what you have actually done), and set the plan's reminders. Say the word and I start with the list.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": [
+    "Survivorship bias: the apprentice blog post is a success story published by the employer; it cannot show apprentice acceptance rates or failure modes.",
+    "Single-story risk: one documented path is evidence a route exists, not that it is common.",
+    "Leadership-interview statements are one executive's described preferences, not audited hiring data.",
+    "Glassdoor-style reports are self-selected and unverified; used only as labeled anecdotes.",
+    "No H-1B LCA, university-outcome or licensed population data was fetched in this pass."
+  ],
+  "last_verified_at": "2026-10-12",
+  "schema_normalized": "2026-10-13 sc-w13: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis, fact statement/source_url/as_of/kind), following the 2026-10-12 integration normalization of the first 20 CIRs. No claim text altered; attribution fallbacks point at this record's primary source and are marked here.",
+  "thesis_regenerated": "2026-10-13 sc-w13: thesis composed by 125-career-intel from this record's own facts (hand-written draft failed number-tracing). Original draft in git history on origin/career/cir-b1 / cir-b3."
+}

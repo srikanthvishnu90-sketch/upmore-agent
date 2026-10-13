@@ -1,12 +1,12 @@
 "use strict";
-// Shared loader for W11 scenario runners (SC-201..220): vendored engines 127/128 + W11 ext 130,
+// Shared loader for W11 scenario runners (SC-201..220): vendored engines 127/128 + W11 ext 145,
 // real CIR JSON from pivot/career (all 30), TEST fixtures. CIRs route through X.adaptCir (BUG-141).
 const fs = require("fs"); const path = require("path");
 const ROOT = path.join(__dirname, "..", "..", "..");
 const H = require(path.join(ROOT, "scripts/career/scenario-harness.cjs"));
 const P = require(path.join(ROOT, "packages/domain/127-career-prep.js"));
 const N = require(path.join(ROOT, "packages/domain/128-career-negotiation.js"));
-const X = require(path.join(ROOT, "packages/domain/130-career-w11-ext.js"));
+const X = require(path.join(ROOT, "packages/domain/145-career-w11-ext.js"));
 const rawCir = (id) => JSON.parse(fs.readFileSync(path.join(ROOT, `packages/career-data/cirs/${id}.json`), "utf8"));
 const cir = (id) => X.adaptCir(rawCir(id));
 const fixture = (name) => fs.readFileSync(path.join(ROOT, `packages/career-data/fixtures/${name}`), "utf8");

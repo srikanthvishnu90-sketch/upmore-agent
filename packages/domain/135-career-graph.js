@@ -10,7 +10,34 @@
    Persistence is injected: makeGraphStore() -> { people, interactions, referrals }.
    The application-row seam is 126-career-track (vendored from origin/career/sc-f04):
    markReferralSubmitted writes source/referred_by + a referral_submitted event onto
-   the matching application row in that store. */
+   the matching application row in that store.
+   CONSOLIDATION (item-10 dedupe, 2026-10-13): this module is the SINGLE warm-path
+   graph engine. 138-career-graphcore.js (the w08 engine, renamed at the sc-w08 merge
+   in c2b2c03) is retired and deleted; everything it uniquely provided is ported
+   below, adapted to THIS schema (full_name/current_firm/schools[]): createGraph +
+   importRecords (with an adapter for 138-shaped records: name/company/school/email/
+   position/connectedVia/publicLinks), STAGES + setStage, recordInteraction,
+   rankPaths/topWarmPathSweep/secondDegreeMap, publicSourceLookup, mentorMap,
+   planReferralAsk, recordReferralSignal, linkReferralToApplication,
+   conversionTracking, keepWarmSuggestions, draftUpdateTouch, draftIntroRequest,
+   importLinkedInCsv, snapshot/newHireRadar, byName/atCompany, sharedFacts/warmthOf.
+   DROPPED from 138: its parallel person/store schema (name/company/school singular,
+   P-###-only identity — importRecords adapts those records in, it does not keep a
+   second store), and its standalone `norm` export (135's internal norm covers it).
+   WARMTH CONFLICT, decided: 135's rankWarmth (additive numeric score, cross-city
+   alumni -15 disclosed) is UNCHANGED and remains the scoring for the w09 family
+   (findPaths/pickStrongerPath/miniCampaign). The ported rankPaths/warmthOf keep
+   138's canonical TIER precedence (alumni > club > major > hometown > cold,
+   tier points 50/40/30/20) because SC-147 pins that exact order and 135's additive
+   points (major 10 < hometown 15) would invert major/hometown in a tier ranking.
+   The two models therefore coexist by surface: numeric score on rankWarmth rows,
+   canonical tier on rankPaths rows — never mixed in one row.
+   DUAL-SHAPE returns (both pinned by tests, kept deliberately): relationshipMemory
+   returns the union of 135's fields (person/last/summary) and 138's (company/stage/
+   chats/last_contact_at/last_summary); forwardableBlurb dispatches on its first
+   argument — (profile, facts) is the 135 shape (lines as {text, fact_id} objects),
+   (graphStore, profile122Profile) is the ported 138 shape (lines as strings +
+   fact_ids array). */
 const CareerGraph = (() => {
   "use strict";
   const s = (v) => (v == null ? "" : String(v));
@@ -19,12 +46,14 @@ const CareerGraph = (() => {
   const normCo = (v) => norm(v).replace(/\b(inc|llc|ltd|corp|the)\b/g, " ").replace(/\s+/g, " ").trim();
   function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
 
-  function makeGraphStore() { return { people: [], interactions: [], referrals: [] }; }
+  function makeGraphStore() { return { people: [], interactions: [], referrals: [], snapshots: [], _seq: 0, user: null }; }
+  function createGraph(user) { const store = makeGraphStore(); store.user = Object.assign({ name: "", school: null, major: null, hometown: null, clubs: [] }, user || {}); return store; }
   function normalizePerson(r) {
     return Object.assign({ person_id: null, full_name: "", current_firm: "", prior_firms: [], title: "", role_kind: null,
       geography: "", office: "", schools: [], major: null, hometown: null, clubs: [], work_email: null, linkedin: null,
       relationship_to_user: "none", connection_degree: null, at_company: true, departed_at: null, next_firm: null,
-      is_professor: false, is_family_friend: false, source_list: [], last_verified_at: null, label: null }, r || {});
+      is_professor: false, is_family_friend: false, source_list: [], last_verified_at: null, label: null,
+      stage: "cold", chats: 0, last_contact_at: null, connected_via: null, connected_on: null, joined_company_at: null, prior_company: null, public_links: [] }, r || {});
   }
   // Identity keys: exact email / exact linkedin / name+firm / name+school (never name alone).
   function identityKeys(p) {
@@ -39,7 +68,9 @@ const CareerGraph = (() => {
     for (const k of ["title", "role_kind", "geography", "office", "major", "hometown", "work_email", "linkedin", "relationship_to_user", "connection_degree", "departed_at", "next_firm", "last_verified_at", "label"])
       if ((a[k] == null || a[k] === "") && b[k] != null && b[k] !== "") a[k] = b[k];
     if (b.at_company === false) { a.at_company = false; }
-    for (const k of ["schools", "clubs", "prior_firms", "source_list"]) a[k] = [...new Set([...(a[k] || []), ...(b[k] || [])])];
+    for (const k of ["schools", "clubs", "prior_firms", "source_list", "public_links"]) a[k] = [...new Set([...(a[k] || []), ...(b[k] || [])])];
+    for (const k of ["connected_via", "connected_on", "joined_company_at", "last_contact_at"]) if (!a[k] && b[k]) a[k] = b[k];
+    if (b.chats) a.chats = Math.max(a.chats || 0, b.chats); if (b.stage && b.stage !== "cold") a.stage = b.stage;
     if (b.is_professor) a.is_professor = true;
     if (b.is_family_friend) a.is_family_friend = true;
     return a;
@@ -133,12 +164,16 @@ const CareerGraph = (() => {
 
   // ---------- relationship memory / keep-warm ----------
   function relationshipMemory(store, name) {
-    const rows = (store.interactions || []).filter((i) => norm(i.full_name) === norm(name)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
     const person = (store.people || []).find((p) => norm(p.full_name) === norm(name)) || null;
-    if (!rows.length) return { name, found: !!person, person, last: null, history: [], summary: person ? "In your graph, but no interaction logged yet." : "Not in your graph." };
+    const rows = (store.interactions || []).filter((i) => (person && i.person_id && i.person_id === person.person_id) || norm(i.full_name || i.name || "") === norm(name)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    const chats = person ? (person.chats || rows.filter((i) => i.kind === "coffee_chat" || i.channel === "coffee_chat").length) : 0;
+    if (!rows.length) return { name, found: !!person, person, last: null, history: [], summary: person ? "In your graph, but no interaction logged yet." : "Not in your graph.",
+      company: person ? person.current_firm : null, stage: person ? (person.stage || "cold") : null, chats, last_contact_at: person ? (person.last_contact_at || null) : null, last_summary: null };
     const last = rows[rows.length - 1];
-    return { name, found: true, person, last: { at: last.at, channel: last.channel || null, topic: last.topic || null, summary: last.summary || null, outcome: last.outcome || null },
-      history: rows, summary: `Last talked ${last.at}: ${last.summary || last.topic || "(no summary logged)"}` };
+    return { name, found: true, person, last: { at: last.at, channel: last.channel || last.kind || null, topic: last.topic || null, summary: last.summary || null, outcome: last.outcome || null },
+      history: rows, summary: `Last talked ${last.at}: ${last.summary || last.topic || "(no summary logged)"}`,
+      company: person ? person.current_firm : null, stage: person ? (person.stage || "cold") : null, chats,
+      last_contact_at: (person && person.last_contact_at) || last.at || null, last_summary: last.summary || null };
   }
   function keepWarm(store, opts) {
     opts = opts || {}; const now = Date.parse(opts.now || new Date().toISOString());
@@ -157,6 +192,16 @@ const CareerGraph = (() => {
 
   // ---------- blurb + asks (drafts only; approval card required) ----------
   function forwardableBlurb(profile, facts) {
+    // Ported 138 shape: forwardableBlurb(graphStore, profile122Profile) -> lines as
+    // strings + fact_ids array, built ONLY from confirmed 122 facts.
+    if (profile && Array.isArray(profile.people)) {
+      const graph = profile; const prof122 = facts || {};
+      const confirmed = ((prof122 && prof122.facts) || []).filter((f) => !f.needs_confirmation);
+      const edu = confirmed.find((f) => f.kind === "education"), exp = confirmed.find((f) => f.kind === "experience" || f.kind === "project");
+      if (!edu || !exp) return { ok: false, reason: "profile_needs_education_and_experience_facts" };
+      const lines = [`${(graph.user || {}).name || ""} \u2014 ${edu.text}`, `${exp.text}`, `Reachable via me; happy to share a resume on request.`];
+      return { ok: true, blurb: lines.join("\n"), lines, fact_ids: [edu.id, exp.id], note: "Three lines, built only from confirmed profile facts." };
+    }
     const usable = (facts || []).filter((f) => f && (f.action || f.text) && ["experience", "project", "leadership", "education"].includes(f.kind || "experience"));
     if (!usable.length || !profile || !profile.name) return { ok: false, reason: "no_real_profile_facts", blurb: null, lines: [] };
     const lines = [];
@@ -239,7 +284,7 @@ const CareerGraph = (() => {
   function conversionByContact(store) {
     const by = {};
     for (const i of store.interactions || []) { by[i.full_name] = by[i.full_name] || { chats: 0, referrals: 0 }; if (i.outcome === "good_chat" || i.channel === "coffee_chat") by[i.full_name].chats++; }
-    for (const r of store.referrals || []) { by[r.contact_name] = by[r.contact_name] || { chats: 0, referrals: 0 }; if (r.status === "submitted") by[r.contact_name].referrals++; }
+    for (const r of store.referrals || []) { const cn = r.contact_name || r.name; if (!cn) continue; by[cn] = by[cn] || { chats: 0, referrals: 0 }; if (r.status === "submitted") by[cn].referrals++; }
     return by;
   }
 
@@ -292,11 +337,213 @@ const CareerGraph = (() => {
     });
   }
 
+  // ---------- ported from 138-career-graphcore (w08 engine; adapted to 135 schema) ----------
+  const DAY = 86400000;
+  const STAGES = ["cold", "contacted", "chat_scheduled", "chatted", "warm", "referral_asked", "referred", "converted", "dormant"];
+  const WARMTH = [
+    { key: "alumni", points: 50 }, { key: "club", points: 40 }, { key: "major", points: 30 }, { key: "hometown", points: 20 },
+  ];
+  const daysBetween = (a, b) => Math.floor((b - a) / DAY);
+  const byName = (graph, name) => (graph.people || []).find((p) => norm(p.full_name) === norm(name)) || null;
+  const atCompany = (graph, company) => (graph.people || []).filter((p) => normCo(p.current_firm) === normCo(company));
+  // Adapter: a 138-shaped record (name/company/school singular/email/position/
+  // connectedVia/publicLinks) becomes a 135 person; no second schema is kept.
+  function adaptRecord(r0, source) {
+    const r = r0 || {};
+    return normalizePerson({
+      full_name: r.full_name || r.name || "", current_firm: r.current_firm || r.company || "",
+      title: r.title || r.position || "", work_email: r.work_email || r.email || null, linkedin: r.linkedin || null,
+      schools: r.schools || (r.school ? [r.school] : []), major: r.major || null, hometown: r.hometown || null,
+      clubs: r.clubs || [], prior_firms: r.prior_firms || (r.priorCompany ? [r.priorCompany] : []),
+      prior_company: r.prior_company || r.priorCompany || null, stage: r.stage || "cold", chats: r.chats || 0,
+      last_contact_at: r.last_contact_at || r.lastContactAt || null, connected_via: r.connected_via || r.connectedVia || null,
+      connected_on: r.connected_on || r.connectedOn || null, joined_company_at: r.joined_company_at || r.joinedCompanyAt || null,
+      public_links: r.public_links || r.publicLinks || [], relationship_to_user: r.relationship_to_user || r.relationship || "none",
+      source_list: [...new Set([...(r.source_list || []), ...(r.sources || []), r.source || source].filter(Boolean))],
+    });
+  }
+  function samePerson(a, b) {
+    if (a.work_email && b.work_email && norm(a.work_email) === norm(b.work_email)) return true;
+    if (norm(a.full_name) && norm(a.full_name) === norm(b.full_name)) {
+      if (a.current_firm && b.current_firm && normCo(a.current_firm) === normCo(b.current_firm)) return true;
+      if ((a.schools || []).length && (b.schools || []).length && norm(a.schools[0]) === norm(b.schools[0])) return true;
+      if (!a.current_firm && !b.current_firm) return true;
+    }
+    return false;
+  }
+  function importRecords(graph, records, source) {
+    let added = 0, merged = 0;
+    graph.snapshots = graph.snapshots || []; graph._seq = graph._seq || 0;
+    for (const r0 of records || []) {
+      const r = adaptRecord(r0, source);
+      const hit = (graph.people || []).find((p) => samePerson(p, r));
+      if (hit) {
+        merged++;
+        if (r.current_firm && hit.current_firm && normCo(r.current_firm) !== normCo(hit.current_firm)) { hit.prior_company = hit.prior_company || hit.current_firm; hit.prior_firms = [...new Set([...(hit.prior_firms || []), hit.current_firm])]; hit.current_firm = r.current_firm; if (r.joined_company_at) hit.joined_company_at = r.joined_company_at; }
+        mergeInto(hit, r);
+      } else {
+        graph._seq++;
+        r.person_id = "P-" + String(graph._seq).padStart(3, "0");
+        graph.people.push(r); added++;
+      }
+    }
+    // Alias sync: ported (138-shaped) callers read name/company/email/position/
+    // sources/publicLinks/connectedVia/lastContactAt off person records; the
+    // canonical fields stay full_name/current_firm/work_email/title/source_list/
+    // public_links/connected_via/last_contact_at and the aliases point at them.
+    for (const p of graph.people) { p.name = p.full_name; p.company = p.current_firm; p.email = p.work_email; p.position = p.title;
+      p.school = (p.schools || [])[0] || null; p.sources = p.source_list; p.publicLinks = p.public_links;
+      p.connectedVia = p.connected_via; p.lastContactAt = p.last_contact_at; }
+    return { added, merged, total: graph.people.length };
+  }
+  function importLinkedInCsv(graph, csvText, profile122) {
+    if (!profile122 || !profile122.parseLinkedInConnections) throw new Error("122-career-profile parser required (real LinkedIn export shape)");
+    const { connections, errors } = profile122.parseLinkedInConnections(csvText);
+    const recs = connections.map((c) => ({ name: c.name, email: c.email, company: c.company, position: c.position, connectedOn: c.connectedOn, source: "linkedin-export" }));
+    return Object.assign(importRecords(graph, recs, "linkedin-export"), { parse_errors: errors });
+  }
+  function sharedFacts(graph, person) {
+    const u = (graph && graph.user) || {}; const p = normalizePerson(person); const out = [];
+    const tests = {
+      alumni: !!u.school && (p.schools || []).map(norm).includes(norm(u.school)),
+      club: (p.clubs || []).some((c) => (u.clubs || []).map(norm).includes(norm(c))),
+      major: !!u.major && !!p.major && norm(p.major) === norm(u.major),
+      hometown: !!u.hometown && !!p.hometown && norm(p.hometown) === norm(u.hometown),
+    };
+    for (const w of WARMTH) if (tests[w.key]) out.push({ kind: w.key, points: w.points,
+      fact: w.key === "alumni" ? `Both ${u.school}` : w.key === "club" ? `Shared club: ${(p.clubs || []).find((c) => (u.clubs || []).map(norm).includes(norm(c)))}`
+        : w.key === "major" ? `Same major: ${u.major}` : `Same hometown: ${u.hometown}`, source: (p.source_list || []).join("+") });
+    if (p.connected_via) out.push({ kind: "second_degree", points: 10, fact: `Connected via ${p.connected_via}`, source: "graph" });
+    return out;
+  }
+  function warmthOf(graph, person) {
+    const facts = sharedFacts(graph, person); const p = normalizePerson(person);
+    const top = facts.filter((f) => f.kind !== "second_degree").sort((a, b) => b.points - a.points)[0] || null;
+    const direct = p.connected_via ? 5 : 15;
+    return { score: (top ? top.points : 0) + direct + (facts.some((f) => f.kind === "second_degree") ? 5 : 0),
+      tier: top ? top.kind : "cold", shared_fact: top ? top.fact : "No shared fact on record \u2014 cold path", all_facts: facts };
+  }
+  function rankPaths(graph, company) {
+    return atCompany(graph, company).map((p) => { const w = warmthOf(graph, p);
+      return { person_id: p.person_id, name: p.full_name, position: p.title || null, company: p.current_firm, degree: p.connected_via ? 2 : 1,
+        via: p.connected_via || null, warmth_tier: w.tier, warmth_score: w.score, shared_fact: w.shared_fact, stage: p.stage || "cold", sources: p.source_list }; })
+      .sort((a, b) => b.warmth_score - a.warmth_score || a.name.localeCompare(b.name));
+  }
+  function topWarmPathSweep(graph, companies) {
+    return (companies || []).map((company) => { const paths = rankPaths(graph, company);
+      return { company, paths_found: paths.length, best: paths[0] || null, all: paths }; });
+  }
+  function secondDegreeMap(graph, company) {
+    return rankPaths(graph, company).filter((p) => p.degree === 2)
+      .map((p) => Object.assign({}, p, { path: `You \u2192 ${p.via} \u2192 ${p.name}` }));
+  }
+  function publicSourceLookup(graph, company) {
+    return atCompany(graph, company).filter((p) => (p.source_list || []).some((x) => String(x).startsWith("public:")))
+      .map((p) => ({ name: p.full_name, position: p.title || null, company: p.current_firm, public_links: p.public_links, sources: p.source_list,
+        note: "Public sources only (GitHub / speakers / team pages as supplied by the user) \u2014 no LinkedIn scraping." }));
+  }
+  function mentorMap(graph, companies) {
+    return (companies || []).map((company) => ({ company,
+      mentors: rankPaths(graph, company).filter((p) => /manager|lead|senior|principal|director|advocate/i.test(p.position || "")).slice(0, 3) }));
+  }
+  function setStage(graph, name, stage, opts) {
+    opts = opts || {}; const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    if (!STAGES.includes(stage)) return { ok: false, reason: "unknown_stage:" + stage };
+    const from = p.stage || "cold"; p.stage = stage;
+    graph.interactions.push({ person_id: p.person_id, name: p.full_name, full_name: p.full_name, kind: opts.kind || "stage_change", channel: opts.kind || "stage_change", at: opts.at || null,
+      summary: opts.summary || `stage ${from} -> ${stage}`, stage_after: stage });
+    if (opts.at) p.last_contact_at = opts.at;
+    return { ok: true, person: p.full_name, from, to: stage };
+  }
+  function recordInteraction(graph, name, input) {
+    input = input || {}; const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const ix = { person_id: p.person_id, name: p.full_name, full_name: p.full_name, kind: input.kind || "chat", channel: input.kind || "chat", at: input.at || null, summary: input.summary || "", stage_after: p.stage || "cold" };
+    graph.interactions.push(ix); if (input.at) p.last_contact_at = input.at;
+    if (input.kind === "coffee_chat") { p.chats = (p.chats || 0) + 1; ix.outcome = "good_chat"; if (["contacted", "chat_scheduled", "cold"].includes(p.stage || "cold")) { p.stage = "chatted"; ix.stage_after = p.stage; } }
+    return { ok: true, interaction: ix };
+  }
+  function planReferralAsk(graph, name, opts) {
+    // SC-151 law: a referral ask NEVER goes in email one \u2014 it needs a held chat first.
+    opts = opts || {}; const p = byName(graph, name);
+    if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    if (!(p.chats > 0) && p.stage !== "chatted" && p.stage !== "warm") return { ok: false, blocked: true,
+      reason: "no_held_chat_on_record: referral asks come after a good coffee chat, never in email one (SC-151)", stage: p.stage || "cold" };
+    return { ok: true, kind: "referral_ask", requires_approval: true, sends: false, t3: true,
+      draft: { to_name: p.full_name, subject: `Referral for ${opts.company || p.current_firm} \u2014 ${opts.role || "the role"}`,
+        body: `Hi ${p.full_name.split(/\s+/)[0]}, thanks again for the chat${opts.chat_note ? ` \u2014 ${opts.chat_note}` : ""}. I applied for ${opts.role || "a role"} at ${opts.company || p.current_firm}. Would you be willing to refer me? Happy to send a short blurb and my resume so it's easy. No pressure at all if the timing isn't right.\n\nThanks,\n${(graph.user || {}).name || ""}` } };
+  }
+  function recordReferralSignal(graph, name, input) {
+    input = input || {}; const p = byName(graph, name);
+    if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const ref = { person_id: p.person_id, name: p.full_name, contact_name: p.full_name, company: input.company || p.current_firm, role: input.role || null,
+      status: input.status || "submitted", at: input.at || null, app_id: null };
+    graph.referrals.push(ref); setStage(graph, name, "referred", { at: input.at, kind: "referral", summary: `referral ${ref.status} for ${ref.company}` });
+    return { ok: true, referral: ref };
+  }
+  function linkReferralToApplication(graph, trackStore, name, company) {
+    const rows = Array.isArray(trackStore) ? trackStore : (trackStore && trackStore.rows) || [];
+    const app = rows.find((r) => normCo(r.company) === normCo(company));
+    const ref = graph.referrals.filter((r) => norm(r.name || r.contact_name || "") === norm(name)).slice(-1)[0];
+    if (!app) return { ok: false, reason: "no_application_row_for:" + company };
+    if (!ref) return { ok: false, reason: "no_referral_signal_for:" + name };
+    app.source = "referred"; app.referred_by = name; ref.app_id = app.app_id;
+    app.events = app.events || []; app.events.push({ type: "referral_linked", at: ref.at, source: "graph", detail: `referral submitted by ${name} (graph ${ref.person_id})`, evidence: ref.person_id });
+    return { ok: true, app_id: app.app_id, company: app.company, source_after: app.source, referred_by: app.referred_by };
+  }
+  function conversionTracking(graph) {
+    const per = graph.people.filter((p) => (p.chats || 0) > 0 || graph.referrals.some((r) => r.person_id === p.person_id)).map((p) => {
+      const refs = graph.referrals.filter((r) => r.person_id === p.person_id);
+      return { name: p.full_name, company: p.current_firm, chats: p.chats || 0, stage: p.stage || "cold", referrals: refs.length,
+        converted: refs.length > 0 }; });
+    const chatted = per.length, converted = per.filter((x) => x.converted).length;
+    return { contacts_with_chats: chatted, converted_to_referral: converted,
+      conversion_pct: chatted ? Math.round(1000 * converted / chatted) / 10 : 0, per_contact: per };
+  }
+  function keepWarmSuggestions(graph, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const afterDays = opts.afterDays || 42;
+    return graph.people.filter((p) => ["chatted", "warm", "referred"].includes(p.stage || "cold") && p.last_contact_at
+      && daysBetween(Date.parse(p.last_contact_at), now) >= afterDays)
+      .map((p) => ({ name: p.full_name, company: p.current_firm, stage: p.stage, days_since: daysBetween(Date.parse(p.last_contact_at), now),
+        reason: `${daysBetween(Date.parse(p.last_contact_at), now)} days since your last touch \u2014 past the 6-week keep-warm line, and the relationship was warm (${p.stage}).` }))
+      .sort((a, b) => b.days_since - a.days_since);
+  }
+  function draftUpdateTouch(graph, name, profile122Profile, opts) {
+    opts = opts || {}; const p = byName(graph, name); if (!p) return { ok: false, reason: "person_not_in_graph:" + name };
+    const facts = ((profile122Profile && profile122Profile.facts) || []).filter((f) => !f.needs_confirmation);
+    const news = opts.factId ? facts.find((f) => f.id === opts.factId) : facts[facts.length - 1];
+    if (!news) return { ok: false, reason: "no_confirmed_profile_fact_to_share" };
+    return { ok: true, requires_approval: true, sends: false, fact_id: news.id,
+      draft: { to_name: p.full_name, body: `Hi ${p.full_name.split(/\s+/)[0]}, quick update since we last spoke: ${news.text} Thought you'd appreciate hearing it \u2014 your advice helped. Hope things are well at ${p.current_firm}.\n\nBest,\n${(graph.user || {}).name || ""}` } };
+  }
+  function draftIntroRequest(graph, mutualName, targetName, blurb) {
+    const m = byName(graph, mutualName), tg = byName(graph, targetName);
+    if (!m || !tg) return { ok: false, reason: "mutual_or_target_not_in_graph" };
+    if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
+    return { ok: true, requires_approval: true, sends: false, t3: true, card: { kind: "intro_request", mutual: m.full_name, target: tg.full_name },
+      draft: { to_name: m.full_name, subject: `Intro to ${tg.full_name} at ${tg.current_firm}?`,
+        body: `Hi ${m.full_name.split(/\s+/)[0]}, would you be willing to introduce me to ${tg.full_name} at ${tg.current_firm}? Forwardable blurb below so it's one copy-paste \u2014 no worries at all if not.\n\n${blurb}\n\nThanks,\n${(graph.user || {}).name || ""}` } };
+  }
+  function snapshot(graph, at) { graph.snapshots = graph.snapshots || []; const snap = { at: at || null, people: graph.people.map((p) => ({ name: p.full_name, company: p.current_firm })) }; graph.snapshots.push(snap); return snap; }
+  function newHireRadar(graph, prevSnap, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const targets = (opts.targetCompanies || []).map(normCo);
+    const prev = {}; for (const pp of (prevSnap && prevSnap.people) || []) prev[norm(pp.name)] = pp.company;
+    return graph.people.filter((p) => targets.includes(normCo(p.current_firm)) && (
+      (prev[norm(p.full_name)] && normCo(prev[norm(p.full_name)]) !== normCo(p.current_firm)) ||
+      (p.joined_company_at && daysBetween(Date.parse(p.joined_company_at), now) <= (opts.withinDays || 90))))
+      .map((p) => { const w = warmthOf(graph, p);
+        return { name: p.full_name, company: p.current_firm, prior_company: p.prior_company || prev[norm(p.full_name)] || null, joined_at: p.joined_company_at || null,
+          warmth_tier: w.tier, shared_fact: w.shared_fact, flag: "New hire from your network/school at a target company \u2014 usually the warmest path in." }; });
+  }
+
   return { makeGraphStore, normalizePerson, identityKeys, mergeIdentities, importGraph, adaptCirForPrep,
     rankWarmth, findPaths, pickStrongerPath, departedNextPath, exclusionFor,
     relationshipMemory, keepWarm, logInteraction,
     forwardableBlurb, askKindFor, draftReferralAsk, thankYouReferralCombo, dormantRevival,
     referralTiming, createReferral, approveReferral, markReferralSubmitted, conversionByContact,
-    miniCampaign, referralBonusIntel };
+    miniCampaign, referralBonusIntel,
+    STAGES, WARMTH, createGraph, importRecords, importLinkedInCsv, byName, atCompany, samePerson,
+    sharedFacts, warmthOf, rankPaths, topWarmPathSweep, secondDegreeMap, publicSourceLookup, mentorMap,
+    setStage, recordInteraction, planReferralAsk, recordReferralSignal, linkReferralToApplication,
+    conversionTracking, keepWarmSuggestions, draftUpdateTouch, draftIntroRequest, snapshot, newHireRadar };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerGraph;

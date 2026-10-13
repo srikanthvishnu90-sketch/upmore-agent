@@ -1,6 +1,6 @@
 "use strict";
 const test = require("node:test"); const assert = require("node:assert");
-const G = require("../packages/domain/138-career-graphcore.js");
+const G = require("../packages/domain/135-career-graph.js");
 const P = require("../packages/domain/122-career-profile.js");
 const S = require("../packages/domain/136-career-season.js");
 const T = require("../packages/domain/126-career-track.js");

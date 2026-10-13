@@ -1,0 +1,10 @@
+"use strict"; const { H, P, cirById, briefText } = require("./prep-common.cjs");
+(async () => { const s = H.session("SC-176", "two-interviews-one-day-no-cirs");
+  await s.user("I have Datadog at 10 and Ramp at 2");
+  const items = [{ time: "10:00", company: "Datadog", brief: P.composeBrief({ company: "Datadog", cir: cirById("datadog") }) }, { time: "14:00", company: "Ramp", brief: P.composeBrief({ company: "Ramp", cir: cirById("ramp") }) }];
+  const plan = P.twoInterviewPlan(items);
+  await s.tool("127-career-prep.twoInterviewPlan + calendar order", plan);
+  await s.agent(`Order locked: Datadog 10:00 first, Ramp 14:00 second, and here's the honest state of both briefs:\n\n${items.map((x) => `${x.time} — ${x.company}: ${x.brief.status === "NO_CIR" ? "NO grounded brief available — no merged CIR on file for this company on this branch, so I won't invent its stages or bar." : "brief ready"}`).join("\n")}\n\nGap plan (calendar-aware, works regardless): ${plan.gap_plan}\n\nWhat I CAN prep today for both: your story bank, a scored behavioral mock, and JD-grounded emphasis if you paste the two JDs. The company-specific briefs unblock when the Datadog and Ramp CIRs (already authored in the cir-b1 batch) are merged.`);
+  s.verify("plan state", { ordered: plan.ordered, brief_statuses: items.map((x) => x.brief.status) });
+  await s.finish({ status: "LEARN", outcome: "Both interviews ordered with a gap plan, but neither company brief could be grounded: Datadog and Ramp CIRs are not merged on this branch, and the agent said so for both instead of inventing briefs.", reason: "datadog.json and ramp.json exist only on origin/career/cir-b1; pivot/career carries neither.", unblock: "Merge origin/career/cir-b1's datadog.json + ramp.json into pivot/career; twoInterviewPlan + composeBrief then deliver both grounded briefs in order." });
+})();

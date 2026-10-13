@@ -75,7 +75,7 @@ conflict and a restart, the product asked *"I do not have your graduation date s
 what is it?"* — the exact fact the new resume on file carries; and C37's "stop everything"
 received no bubble at all, with all 3 pending items still `pending` after a simulated restart.
 
-## Stage 3 — Causal grouping + repairs (IN PROGRESS)
+## Stage 3 — Causal grouping + repairs (COMPLETE — integrated at 9af41fd)
 
 Causal families from the baseline failure inventory (coordinator grouping):
 1. **No chat route to career domain modules** (route/dispatch boundary) — drives 13 NOT
@@ -104,7 +104,35 @@ Audit Phase B items NOT in these three lanes (card-renderer sanitization D-01/D-
 parser fix, dedupe D-11) remain with the sibling reply-quality program; the pilot re-run
 will show whether they still bite once routing exists.
 
-## Stage 4 — Pilot re-run (PENDING — on the integrated R1+R2+R3 build, trial-2 evidence; trial-1 baseline preserved untouched)
+**Outcome (all three lanes fail-first, then merged by the coordinator):**
+- R1 routing (`career/gauntlet-r1-routing` @ 33fcfbb): new `142-career-router.js`, registered
+  in the router bundle. 9/9 tests (0/9 before). Its cases (C01/C05/C11/C15/C23/C31) went from
+  silence to oracle-clean substantive replies; C05 shortlist precision 5/5 vs corpus ground
+  truth, mirror deduped, closed role excluded.
+- R2 containment (`career/gauntlet-r2-containment` @ c375994): new `143-career-containment.js`
+  wrapping the whole turn dispatch; 10/10 tests (9/10 failing before). Oracle hard fails across
+  all 16 pilot records 26 → 1 under the wrapper alone (the 1 = U03's script, which never calls
+  the turn entry).
+- R3 action seams (`career/gauntlet-r3-actions` @ 6aeae84): new `141-career-doorstep.js` +
+  130 write path. 7/7 tests (0/7 before). C03/C15/C17/C18/C20/C37 all PASS by computed
+  assertions through the repaired chain, incl. the full C17 doorstep proof chain.
+- Integration (coordinator): R1×R2 conflict in `pilot-lib.cjs` resolved by hand into one
+  chain — containment-wrapped dispatch 120 → 130 → 142 → 141, R1's stagingContext kept;
+  the one registration line R3 specified was wired there. Two R2 tests asserted another
+  lane's absence (exact fallback text); the coordinator updated them to the observed
+  integrated behavior with the invariant (no silence) preserved and the reason in the commit.
+  Integrated tree: **career suite 393/393, gauntlet lane tests 28/28, router bundle 2/2.**
+- All three lanes independently flagged a grading-integrity defect in the pilot runner:
+  `run-pilot.cjs` writes verdicts/assertions as literal constants, so its printed verdicts
+  cannot change on re-run. Stage 4 therefore re-grades with live-computed assertions
+  (the pilot lane owns its runner and fixes it there); trial-1 records stay untouched.
+- New defects observed at integration (for expansion): the router's recipient-name parsing
+  turns "send my resume from my Gmail" into a contact named "my" (safe — it clarifies and
+  sends nothing — but sloppy; P2). Fixture inconsistency: forms fixtures' "P1" (Casey
+  Nguyen) ≠ profiles' P1 (Maya Rivera) — seam fills trace to the profile in context.
+  Corpus gap: no Java-preferred-not-required posting exists (C11 baseline used GJ-T03).
+
+## Stage 4 — Pilot re-run (IN PROGRESS — integrated build 9af41fd + this ledger commit; trial-2 evidence, graded live; trial-1 baseline preserved untouched)
 
 ## Stage 4.5 — Grand re-run, all 300 canonical scenarios (PENDING, owner expansion)
 

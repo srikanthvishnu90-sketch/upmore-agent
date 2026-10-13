@@ -1,0 +1,171 @@
+{
+  "company_id": "millennium",
+  "cohort_definition": "Millennium cohort split honestly into two populations: (a) the core business — experienced portfolio-manager teams (pods) and the analysts/developers who join those teams, hired experienced; and (b) a small, separate student population — the 2027 Internship Program (quantitative, engineering/AI, markets & products, business services) plus the new 2027 investment internship. Entry-level claims apply only to (b).",
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample used. Curated-qualitative CIR from public sources only (Doc 3 §1.6 Phase 1); no cohort percentages are stated because none were sourced.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "Millennium official student opportunities page: applications open for the 2027 Internship Program across Quantitative, Engineering and AI, Markets & Products, and Business Services",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    },
+    {
+      "claim": "Google Cloud announcement (December 2023) describing Millennium's multi-manager model, quoted from the firms' joint release: more than 300 investment teams operating with autonomy on a central technology platform",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12",
+      "source_type": "official partner announcement quoting the firm"
+    },
+    {
+      "claim": "eFinancialCareers reporting (2026) on Millennium's new investment internship commencing 2027: about 30 interns hired across New York, London and Hong Kong, working with senior portfolio managers and considered for full-time analyst roles; firm declined to comment",
+      "source_url": "https://www.efinancialcareers.co.uk/news/millennium-investment-internship",
+      "as_of": "2026-10-12",
+      "source_type": "credible trade-press reporting (labeled reported)"
+    }
+  ],
+  "school_dist": [
+    {
+      "claim": "No sourced school distribution is published by Millennium. Omitted rather than estimated.",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "prior_employer_dist": [
+    {
+      "claim": "For the core platform, hiring is of established investment teams: Millennium describes a multi-manager model of 300+ investment teams that operate autonomously — teams and portfolio managers are recruited with existing strategies and track records, not trained from scratch.",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12",
+      "source_type": "official partner announcement quoting the firm"
+    }
+  ],
+  "major_dist": [
+    {
+      "claim": "No major distribution is published. Student roles are organized by function (quantitative, engineering/AI, markets & products, business services) rather than by named majors on the official student page.",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "skills_dist": [
+    {
+      "claim": "Student quantitative roles: turning data into models and investment insights; engineering roles: building trading, AI and risk systems at the intersection of technology and finance (official student page descriptions).",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "path_patterns": [
+    {
+      "pattern": "Experienced portfolio manager / team with a proven strategy -> recruited onto the platform with capital allocation, central risk, technology and infrastructure -> pod operates autonomously",
+      "basis": "official partner announcement quoting the firm",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "pattern": "2027 Internship Program (quantitative / engineering & AI / markets & products / business services) -> possible full-time conversion (conversion terms not published in sources used)",
+      "basis": "official student page",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "pattern": "2027 investment internship (reported: ~30 interns, New York/London/Hong Kong) -> work directly with senior portfolio managers -> considered for full-time analyst roles",
+      "basis": "credible trade-press reporting; firm declined to comment",
+      "source_url": "https://www.efinancialcareers.co.uk/news/millennium-investment-internship",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Millennium 2027 Internship Program",
+      "who_it_fits": "Students; applications were open on the official student page as of verification, across four functional families",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "Investment internship commencing 2027",
+      "who_it_fits": "Students seeking direct portfolio-team exposure; reported as already fully subscribed for the 2027 start — treat as a watch-next-cycle route, not an open one",
+      "source_url": "https://www.efinancialcareers.co.uk/news/millennium-investment-internship",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "Experienced pod / team hiring",
+      "who_it_fits": "Portfolio managers and team members with established strategies and track records; this is the firm's main investment hiring engine",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "hiring_bar_summary": "Honest read: Millennium is not, at its core, an entry-level employer. It is a platform that allocates capital to experienced, autonomous investment teams; the analyst seats inside pods are typically hired by those teams for immediate contribution. The student doors that exist (the general 2027 internship program and the new investment internship) are real but tiny relative to the platform, and the investment internship was reported full more than a year before its 2027 start. Plan for Millennium as an experienced-hire destination, with the internships as a low-probability direct shot.",
+  "screening_signals": [
+    {
+      "claim": "For pods: an existing, deployable strategy and track record are the screen — the platform supplies capital, risk management and technology, teams supply proven investing.",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12",
+      "source_type": "official partner announcement quoting the firm"
+    },
+    {
+      "claim": "For students: the official page frames selection by functional strength (quantitative modeling, engineering, markets/products knowledge, business services) applied to real work alongside experienced professionals.",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "process_stages": [
+    {
+      "claim": "Student hiring runs through Millennium's campus careers portal linked from the official student page; no official stage-by-stage process description was published in sources used, so none is asserted.",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "interview_styles": [
+    {
+      "claim": "No firm-published interview format was found in sources used; candidate-report details were not treated as firm facts and are omitted.",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "omitted - no official source"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Autonomy within a platform: investment teams operate with a high degree of independence, underpinned by centralized tools, analytics, risk and technology — the firm's own description of its model.",
+      "source_url": "https://www.tradersmagazine.com/xtra/google-cloud-announces-millennium-management-will-use-its-platform-to-help-investment-teams/",
+      "as_of": "2026-10-12",
+      "source_type": "official partner announcement quoting the firm"
+    }
+  ],
+  "hiring_cadence": "Experienced pod hiring is continuous and opportunistic (capital follows teams, not a calendar). Student hiring is cycle-based: the official page states applications are open for the 2027 Internship Program; trade press reported the separate 2027 investment internship already fully subscribed well before its start, and other internship recruiting expected to open later in the year — re-verify on the official page each cycle.",
+  "compensation_notes": [
+    {
+      "note": "No compensation figure is stated for the cohorts in scope: no official Millennium posting sampled published a range for pod, analyst or intern roles in this family. (A third-party listing for an unrelated compliance role carried a range; it is not cohort evidence and was not used.)",
+      "source_type": "omitted - no official source",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": "No firm-published statement on referral weight was found. For pod hiring, the operative 'referral' is reputation and track record in the market — teams are sourced as businesses, not via employee referrals in the campus sense.",
+  "red_flags": [
+    "Any source presenting Millennium as a normal undergraduate analyst employer is misleading: the platform's center of gravity is experienced teams.",
+    "The investment internship's reported early fill means timelines quoted from one cycle cannot be assumed for the next.",
+    "Pod economics and drawdown rules circulate widely in unofficial write-ups; none were verified from a firm source here, so none are stated as facts in this record."
+  ],
+  "thesis_text": "Bottom line: Millennium should be filed under 'later, once you are proven' for almost every student. The firm is a multi-manager platform — 300+ autonomous investment teams on shared capital, risk and technology, by the firm's own description — and platforms buy track records; they do not manufacture them. What the data actually shows for entry-level: a real but small student layer (a 2027 internship program across quantitative, engineering/AI, markets and products, and business services) and a new investment internship that trade press reported as filled with about 30 interns, across New York, London and Hong Kong, more than a year before it begins. Ranked routes for a student: (1) apply to the official 2027 internship program in your functional family and treat it as a lottery ticket with real conversion value, (2) build the exact profile pods hire — a strategy-relevant analyst or quant/engineering seat at a bank, fund or trading firm — and target Millennium as an experienced hire, (3) watch the investment internship's next cycle early, because this one filled before most students knew it existed. The mistake to avoid is spending a recruiting season aiming at Millennium pods directly; the pods are the destination, not the door.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": "Built only from public firm pages, official postings and credible public reporting. No LinkedIn or logged-in data (Doc 3 §1.1). Firm-published program statistics are marketing-adjacent and self-reported; interview details from candidate-report sites are anecdotal and labeled as such. Survivorship bias applies: sources describe who is hired, not who applied and failed.",
+  "last_verified_at": "2026-10-12",
+  "hiring_cadence_sources": [
+    {
+      "claim": "Applications are now open for Millennium's 2027 Internship Program",
+      "source_url": "https://www.mlp.com/careers/students/",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    },
+    {
+      "claim": "2027 investment internship places filled; other internship applications expected from August (reporting)",
+      "source_url": "https://www.efinancialcareers.co.uk/news/millennium-investment-internship",
+      "as_of": "2026-10-12",
+      "source_type": "credible trade-press reporting"
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "company_id": "kkr",
+  "cohort_definition": "KKR private equity analyst/associate path: (a) undergraduate Summer Analyst and K-Star full-time analyst entry, and (b) the experienced analyst/associate route fed mainly by investment-banking analyst programs. Entry-level and experienced cohorts kept separate per Doc 3 §2.1.",
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample used. Curated-qualitative CIR from public sources only (Doc 3 §1.6 Phase 1); no cohort percentages are stated because none were sourced.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "KKR official career opportunities / student careers pages",
+      "source_url": "https://www.kkr.com/careers/student-careers/student-career-opportunities/post",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    },
+    {
+      "claim": "University of Pennsylvania career services posting of KKR's 2027 Summer Analyst Program (Institutional Risk), recruiting began July 13, 2026",
+      "source_url": "https://careerservices.upenn.edu/jobs/kkr-2027-summer-analyst-program-institutional-risk/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting of an official KKR program description"
+    },
+    {
+      "claim": "Indiana University Kelley career services postings of KKR's 2027 K-Star Full-Time Analyst Program, application deadline October 5 (year per posting cycle)",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting of an official KKR program description"
+    },
+    {
+      "claim": "KKR Private Equity Analyst/Associate and Credit Solutions Associate postings as republished from KKR's careers board",
+      "source_url": "https://startup.jobs/private-equity-analyst-associate-singapore-careers-at-kkr-5252798",
+      "as_of": "2026-10-12",
+      "source_type": "official job posting (republished)"
+    },
+    {
+      "claim": "On-cycle private equity recruiting explainer describing mega-fund associate hiring of first-year banking analysts, including the January 2026 restart in which KKR participated",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12",
+      "source_type": "credible public recruiting explainer (reported norm)"
+    }
+  ],
+  "school_dist": [
+    {
+      "claim": "No sourced school distribution exists in public sources used; KKR does not publish one. Omitted rather than estimated.",
+      "source_url": "https://www.kkr.com/careers/student-careers/student-career-opportunities/post",
+      "as_of": "2026-10-12",
+      "source_type": "official careers page"
+    }
+  ],
+  "prior_employer_dist": [
+    {
+      "claim": "Experienced PE/credit analyst-associate postings ask for prior investment banking, credit, lending, consulting, transaction services or other buy-side experience rather than direct-from-undergrad backgrounds.",
+      "source_url": "https://startup.jobs/us-credit-solutions-group-associate-careers-at-kkr-5661891",
+      "as_of": "2026-10-12",
+      "source_type": "official job posting (republished)"
+    },
+    {
+      "claim": "Reported norm: mega-fund PE associate classes are recruited predominantly from first- and second-year investment-banking analyst programs at bulge-bracket and elite-boutique banks, via headhunter-run on-cycle and off-cycle processes.",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12",
+      "source_type": "reported norm (recruiting explainer)"
+    }
+  ],
+  "major_dist": [
+    {
+      "claim": "No major distribution is published. K-Star and Summer Analyst postings require an outstanding academic record and demonstrated investing interest through coursework, clubs or prior experience, without naming a required major.",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    }
+  ],
+  "skills_dist": [
+    {
+      "claim": "Financial modeling including DCF and LBO-style analysis, accounting fundamentals, due-diligence management, and investment-committee writing are the core skills named across KKR PE and credit postings.",
+      "source_url": "https://startup.jobs/private-equity-analyst-associate-singapore-careers-at-kkr-5252798",
+      "as_of": "2026-10-12",
+      "source_type": "official job posting (republished)"
+    },
+    {
+      "claim": "Some undergraduate roles are explicitly quantitative/technical: the 2027 Institutional Risk Summer Analyst role requires strong Python with pandas, NumPy and SciPy and work on large actuarial datasets.",
+      "source_url": "https://careerservices.upenn.edu/jobs/kkr-2027-summer-analyst-program-institutional-risk/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    }
+  ],
+  "path_patterns": [
+    {
+      "pattern": "Undergraduate summer internship at KKR (Summer Analyst Program, 10 weeks) -> possible full-time offer for exceptional performers -> analyst role",
+      "basis": "official program description",
+      "source_url": "https://careerservices.upenn.edu/jobs/kkr-2027-summer-analyst-program-institutional-risk/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "pattern": "Undergraduate -> K-Star full-time analyst program (credit/real-asset strategies) -> analyst career inside KKR",
+      "basis": "official program description",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "pattern": "Investment-banking analyst program (about two years) -> headhunter-run on-cycle/off-cycle PE recruiting -> KKR PE associate, typically starting 18-24 months after the offer",
+      "basis": "reported norm",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "KKR Summer Analyst Program (undergraduate internship)",
+      "who_it_fits": "Undergraduates graduating in the window named in the posting (for the 2027 program, December 2027-June 2028 in the sampled posting)",
+      "source_url": "https://careerservices.upenn.edu/jobs/kkr-2027-summer-analyst-program-institutional-risk/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "K-Star Full-Time Analyst Program",
+      "who_it_fits": "Current undergraduates graduating December 2026-June 2027 in the sampled postings, for asset-backed finance and real-estate credit teams",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "route": "Experienced Analyst/Associate hiring into PE and credit teams",
+      "who_it_fits": "Candidates with roughly 1-4 years in investment banking, credit/lending or relevant buy-side roles, per sampled postings",
+      "source_url": "https://startup.jobs/us-credit-solutions-group-associate-careers-at-kkr-5661891",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "hiring_bar_summary": "Honest read: direct undergraduate entry into KKR's core private equity investing teams is rare. KKR does run real undergraduate doors (Summer Analyst and K-Star), but the sampled K-Star postings sit in credit and real-asset strategies, and the flagship PE associate seat is filled overwhelmingly through the bank-analyst-first route (reported norm, sourced below). Postings consistently demand an outstanding academic record, genuine demonstrated investing interest, and modeling fluency.",
+  "screening_signals": [
+    {
+      "claim": "Outstanding academic record is an explicit stated qualification in K-Star and Summer Analyst postings.",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    },
+    {
+      "claim": "Demonstrated interest in the specific strategy (coursework, clubs, prior experience) is an explicit stated qualification.",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    },
+    {
+      "claim": "For experienced roles: prior deal experience, modeling skill (DCF/LBO), and diligence exposure are the stated screens.",
+      "source_url": "https://startup.jobs/private-equity-analyst-associate-singapore-careers-at-kkr-5252798",
+      "as_of": "2026-10-12",
+      "source_type": "official job posting (republished)"
+    }
+  ],
+  "process_stages": [
+    {
+      "claim": "Undergraduate programs: online application through KKR's careers site / university postings; the 2025 program description states interviews take place on a rolling basis.",
+      "source_url": "https://startup.jobs/meet-kkr-in-california-2025-summer-analyst-program-careers-at-kkr-4793261",
+      "as_of": "2026-10-12",
+      "source_type": "official program description (republished)"
+    },
+    {
+      "claim": "Experienced PE associate recruiting (reported norm): headhunter screening, then compressed rounds of technical, modeling-test, deal-discussion and behavioral interviews; on-cycle rounds can conclude in days.",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12",
+      "source_type": "reported norm (recruiting explainer)"
+    }
+  ],
+  "interview_styles": [
+    {
+      "claim": "Reported norm for PE associate interviews: LBO modeling tests, valuation and accounting technicals, and walking interviewers through a deal from the candidate's banking resume.",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12",
+      "source_type": "reported norm (recruiting explainer)"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "KKR postings emphasize integrity, strong work ethic, teamwork, ownership and disciplined, patient investing; candidates are expected to contribute in a collaborative environment.",
+      "source_url": "https://startup.jobs/private-equity-analyst-associate-singapore-careers-at-kkr-5252798",
+      "as_of": "2026-10-12",
+      "source_type": "official job posting (republished)"
+    }
+  ],
+  "hiring_cadence": "Undergraduate: the sampled 2027 Summer Analyst posting opened for recruiting on July 13, 2026 with a one-week application window on the university board (July 13-20, 2026) — windows are short and must be re-verified each cycle. K-Star sampled postings carried an October 5 application deadline. Experienced PE associate recruiting follows the industry on-cycle/off-cycle calendar, which shifted in 2025-2026 (a bank-led pause, then a January 2026 restart that included KKR); date-stamp and re-verify before relying on any cycle date.",
+  "compensation_notes": [
+    {
+      "note": "No compensation figure is stated: no official KKR posting sampled for this cohort published a salary range, and third-party estimates were not used.",
+      "source_type": "omitted - no official source",
+      "source_url": "https://www.kkr.com/careers/student-careers/student-career-opportunities/post",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": "No firm-published statement on referral weight was found. For the experienced route, headhunters are the de facto gatekeepers (reported norm), which functions differently from an employee referral: candidates typically need to be in a banking analyst seat that headhunters cover.",
+  "red_flags": [
+    "Treating KKR PE associate as an undergraduate target: the direct-from-college PE seat is the exception, not the route.",
+    "On-cycle timing is volatile (the 2025 pause and January 2026 restart); any plan built on a fixed recruiting month will go stale.",
+    "Short undergraduate application windows: the sampled Summer Analyst university posting was open about one week."
+  ],
+  "thesis_text": "Bottom line: KKR is two different problems. As an undergraduate you are not really applying to 'private equity at KKR' — you are applying to a small set of named programs (Summer Analyst, K-Star) that sit mostly in credit, real assets, insurance and client-facing strategies, with full-time offers going to exceptional summer performers. The core PE associate seat works the other way: the widely reported norm is that mega-funds recruit associates out of first- and second-year banking analyst programs through headhunters, on a compressed and shifting calendar, roughly two years before the start date. What KKR says it screens for is consistent across its own postings: an outstanding academic record, demonstrated investing interest, modeling and accounting fluency, and integrity/teamwork signals. Ranked routes for a typical undergraduate: (1) land a top banking or strong finance internship and keep the KKR summer/K-Star doors in view, (2) apply to the KKR undergraduate programs in their short windows, (3) plan the real PE attempt for the banking-analyst years, with LBO modeling and deal fluency built before on-cycle starts. Anyone selling a direct, reliable undergrad-to-PE-analyst path at KKR is selling the exception as the rule.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": "Built only from public firm pages, official postings and credible public reporting. No LinkedIn or logged-in data (Doc 3 §1.1). Firm-published program statistics are marketing-adjacent and self-reported; interview details from candidate-report sites are anecdotal and labeled as such. Survivorship bias applies: sources describe who is hired, not who applied and failed.",
+  "last_verified_at": "2026-10-12",
+  "hiring_cadence_sources": [
+    {
+      "claim": "Recruiting began July 13, 2026; posting expired July 20, 2026",
+      "source_url": "https://careerservices.upenn.edu/jobs/kkr-2027-summer-analyst-program-institutional-risk/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    },
+    {
+      "claim": "K-Star: apply by 11:59 p.m. ET on October 5",
+      "source_url": "https://careers.kelley.iu.edu/jobs/kkr-2027-k-star-full-time-analyst-program-asset-backed-finance-investment-management-services/",
+      "as_of": "2026-10-12",
+      "source_type": "university career-services posting"
+    },
+    {
+      "claim": "January 2026 on-cycle restart included KKR among more than a dozen major funds",
+      "source_url": "https://www.joinleland.com/library/a/private-equity-interviews-on-cycle-vs-off-cycle",
+      "as_of": "2026-10-12",
+      "source_type": "credible public recruiting explainer"
+    }
+  ]
+}

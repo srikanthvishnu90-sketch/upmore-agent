@@ -425,9 +425,18 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
   `scoringProfile` strips residence, so through the current router an AP05-style role
   surfaces as needs_user_input rather than a hard exclusion until 142 passes it
   through.
-- G1 guidance (144) · G2 fill surfacing (141) · G3 prep scoring (127) · G4 outreach
-  workflow (124): running. C-expansion (C-A canonical, C-B1/B2 variants, U journeys)
-  + item-10 dedupe survey: running on the frozen b7d9f83 build.
+- **G2 fill surfacing (141) — BUILT, merged 9bf0090**: one blocker state machine —
+  every dry-validation blocker (late-material, missing-required, hidden-default) is
+  collected, asked in plain words in the fill reply, and gates the REVIEW state
+  (AWAITING_ANSWERS until cleared); submits with open blockers refuse in plain words;
+  internal codes live on result objects only, never in prose (oracle + no-code pattern
+  assertions in tests). AP13 before/after verbatim in the lane report (raw
+  `LATE_MATERIAL_QUESTION` at submit → a named ask before review). Fail-first 0/6 → 6/6;
+  preservation suites (r2b, r2-integration, r3, r1, r2, r2a) all green — round-2 guards
+  untouched.
+- G1 guidance (144) · G3 prep scoring (127) · G4 outreach workflow (124): running.
+  C-expansion (C-A canonical, C-B1/B2 variants, U journeys) + item-10 dedupe survey:
+  running on the frozen b7d9f83 build.
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

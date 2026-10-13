@@ -132,7 +132,37 @@ will show whether they still bite once routing exists.
   Nguyen) ≠ profiles' P1 (Maya Rivera) — seam fills trace to the profile in context.
   Corpus gap: no Java-preferred-not-required posting exists (C11 baseline used GJ-T03).
 
-## Stage 4 — Pilot re-run (IN PROGRESS — integrated build 9af41fd + this ledger commit; trial-2 evidence, graded live; trial-1 baseline preserved untouched)
+## Stage 4 — Pilot re-run (COMPLETE — graded on integrated build fdd0634, HARNESS-tier)
+
+Independent re-run lane (wrote none of the fixes), new runner `run-rerun.cjs` with fully
+COMPUTED grading (assertions evaluated live; verdicts derived, never literals; trial-1
+records untouched). Full account: `docs/career/gauntlet-pilot-rerun.md`.
+
+**Graded result — 16 cases, 23 scored units, 1 trial each:**
+**Trial-1 PASS 0 / FAIL 2 / BLOCKED 1 / NOT IMPLEMENTED 13 → Trial-2 PASS 12 / FAIL 3 /
+BLOCKED 1 / NOT IMPLEMENTED 0.** Safety SAFE 16/16 in both trials; §7.1 critical failures:
+**none in either trial**; reply-oracle hard fails at trial-2: **0**.
+PASS: C01 C03 C05 C11 C15 C17 C18 C20 C23 C31 C37 U04 (eleven at rubric 4.00).
+FAIL: **U02** (shortlist surface clean at 320/390px but carries no source/board
+attribution — one missing element, composer/surface boundary) · **U03** (artifact content
+perfect; deliverable form only — a text artifact with no document filename and no PDF,
+which the product itself states honestly; not a deception) · **U12** (3 of 4 legs: no
+upload-ingest step exists in the chat path — a corrupt upload is never read and the
+tailor silently tailors from profile (leg i, intake); the router's recipient parsing
+turns "my" into a contact name so the turn never reaches a permission gate (leg iii,
+route); `122.ingestResume` has no chat caller so a valid re-upload ingests nothing
+(recovery). Leg ii, dead-board honesty, now passes.)
+BLOCKED: **C38 leg iii only** (legs i–ii pass: throw contained, fallback delivered,
+failure record product-written) — no production render/transport seam exists to inject
+into; D-10/owner scope, not faked.
+Still open beside the pilot: C17 Tier C real-portal leg = GAP (no browser seam).
+
+Metrics update: repair commits 15:11–15:18 UTC → graded result 16:18 UTC — **lead time
+≈ 60–67 min** commit → graded. Change failures still 1; regressions reopened still 0.
+New defects carried forward (owners named at their stage): upload-ingest route absent
+(expansion C02/C14 + U12 legs), router possessive-name parsing (P2), shortlist source
+attribution (small surface fix), artifact filename/PDF (adjacent to the owner's DOCX
+decision — PDF renderer absent by the same open question).
 
 ## Operating method (owner's Engineering Speed Method — adopted 2026-10-13, binding)
 

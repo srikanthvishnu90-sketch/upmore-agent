@@ -361,6 +361,36 @@ test('[ADV] adversarial log in docs/depth/RAIL-2.md, every row',async()=>{
   const bad=await world();bad.m.state.tokens={};const r=await bad.s.start('buy $500 of VOO');assert.equal(r.outcome,'blocked');assert.equal(r.reason,'broker_reconnect','a revoked token is Reconnect, never an unknown ticker, zero cash or "try later"');assert.match(r.text,/here's the link to reconnect\.\n\nhttps:\/\/\S+\/connect\/alpaca$/);assert.equal(posts(bad.m).length,0);
 });
 
+// Announced dividends and the cash cross-check (C22): the adapter's two reads the dividend surface always asked for —
+// dividends_calendar over the Market Data API's corporate actions (GET /v1/corporate-actions?types=cash_dividend,
+// rows nested under corporate_actions.cash_dividends) and cash_activity over the activities reference's multi-type
+// form (GET /v2/account/activities?activity_types=...), netted per day and symbol. Before they were wired, the
+// connector threw NOT_WIRED for both kinds: every announced ask answered "dividends_calendar_unreadable" and no
+// received payment was ever checked against the cash that landed.
+const CA2=(id,symbol,amt,decl,ex,pay,proc)=>({id,corporate_action_type:'cash_dividend',symbol,cash_amount:amt,currency:'USD',declaration_date:decl,ex_date:ex,record_date:ex,payable_date:pay,process_date:proc});
+const CAL2=[CA2('ca-voo-1','VOO',1.85,'2026-10-05','2026-10-16','2026-10-30','2026-10-06'),CA2('ca-msft-1','MSFT',0.91,'2026-10-08','2026-11-19','2026-12-10','2026-10-09'),CA2('ca-voo-old','VOO',1.62,'2026-08-28','2026-09-18','2026-09-25','2026-09-01')];
+test('[S34] announced dividends from the corporate-actions read: a held symbol\'s declared amount, ex-date, pay date and expected total; a symbol not held and a past ex-date never surface; a down calendar is the honest unreadable answer',async()=>{
+  const w=await world({mock:{positions:{VOO:40},corporate_actions:CAL2}});
+  const r=await w.s.start('what dividends are coming up');
+  assert.equal(r.text,'Announced dividends on your holdings, coming up: VOO $1.85 a share, ex-date Oct 16, 2026, pays Oct 30, 2026 — $74.00 on your 40 shares. From Alpaca mock server market data, as of 14:00 UTC.');
+  assert.doesNotMatch(r.text,/MSFT/,'declared but not held');
+  const req=w.m.state.requests.filter(q=>q.path==='/v1/corporate-actions');assert.equal(req.length,1);assert.match(req[0].query,/types=cash_dividend/);
+  const down=await world({mock:{positions:{VOO:40},corporate_actions:CAL2}});down.m.fault('calendar_down');
+  const d=await down.s.start('what dividends are coming up');assert.equal(d.reason,'dividends_calendar_unreadable');assert.doesNotMatch(d.text,/\$\d/);
+  assert.equal(posts(w.m).length+posts(down.m).length,0);
+});
+
+test('[S35] the cash cross-check: a received payment is verified against the multi-type cash read to the cent; withholding is stated as both amounts, never silently netted; no cash read, no claim',async()=>{
+  const nov2=Date.UTC(2026,10,2,14,0,0);
+  const w=await world({mock:{positions:{VOO:40},activities:[ACT('p1','DIV','2026-10-30','74.00','VOO',{qty:'40',per_share_amount:'1.85'})]}});w.t.now=nov2;w.m.state.requests.length=0;
+  const r=await w.s.start('what dividends did I get');
+  assert.equal(r.text,'Dividends this year (Jan 1 to Nov 2): $74.00 from 1 payment in your Alpaca account. VOO $74.00 (Oct 30). Checked against your cash activity: every one of the 1 payment matches its cash credit to the cent on its payment date. From Alpaca mock server\'s activity, as of 14:00 UTC.');
+  const cash=w.m.state.requests.filter(q=>q.path==='/v2/account/activities');assert.equal(cash.length,1);assert.match(cash[0].query,/activity_types=DIV,DIVCGL,DIVCGS,DIVROC,DIVTXEX,DIVNRA,DIVFT,DIVTW,DIVWH,DIVFEE/);
+  const wh=await world({mock:{positions:{VOO:40},activities:[ACT('p1','DIV','2026-10-30','74.00','VOO',{qty:'40',per_share_amount:'1.85'}),ACT('w1','DIVWH','2026-10-30','-3.70','VOO',{qty:'',per_share_amount:''})]}});wh.t.now=nov2;
+  assert.equal((await wh.s.start('what dividends did I get')).text,'Dividends this year (Jan 1 to Nov 2): $74.00 from 1 payment in your Alpaca account. VOO $74.00 (Oct 30). $3.70 was withheld or charged against them, so $70.30 landed. Checked against your cash activity: every one of the 1 payment matches its cash credit to the cent on its payment date. From Alpaca mock server\'s activity, as of 14:00 UTC.');
+  assert.equal(posts(w.m).length+posts(wh.m).length,0);
+});
+
 // Dividends (megadoc G15): Alpaca's account activities, read-only, over the mock's real HTTP. Paged by the last id, a
 // canceled row dropped, withholding counted against the total, a kind the broker refuses said as unread (never $0.00),
 // the main DIV read failing means no answer, and one person's activities never reach another's read.

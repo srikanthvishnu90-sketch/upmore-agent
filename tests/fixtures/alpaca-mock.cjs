@@ -23,6 +23,10 @@ function start(opts) {
     // Non-trade activities (Trading API GET /v2/account/activities/{type}; fields per alpaca-py NonTradeActivity): id,
     // activity_type, date, net_amount (string), description, status, symbol, qty, per_share_amount. refuse_types answer 422.
     activities: (o.activities || []).slice(), refuse_types: (o.refuse_types || []).slice(),
+    // Corporate actions (Market Data API GET /v1/corporate-actions), served in Alpaca's nested shape:
+    // {corporate_actions:{cash_dividends:[{id, symbol, cash_amount, declaration_date, ex_date, record_date,
+    // payable_date, process_date}]} , next_page_token}. Market data, so not per-account. calendar_down answers 500.
+    corporate_actions: (o.corporate_actions || []).slice(),
     // Performance reads: the account's equity (GET /v2/account "equity"), its daily history ([["YYYY-MM-DD", dollars]],
     // served as alpaca-py's PortfolioHistory: timestamp[] in seconds, equity[]), and daily bars per symbol for the data API.
     equity_cents: o.equity_cents, last_equity_cents: o.last_equity_cents, history: (o.history || []).slice(), bars: Object.assign({}, o.bars || {}),
@@ -113,6 +117,18 @@ function start(opts) {
         return send(res, 200, { bars: list.map(([d, c]) => ({ t: `${d}T04:00:00Z`, o: c, h: c, l: c, c, v: 1000, n: 10, vw: c })), symbol: decodeURIComponent(m[1]), next_page_token: null });
       }
       if (req.method === "GET" && (m = /^\/v2\/stocks\/([^/]+)\/(quotes|trades)\/latest$/.exec(path))) { const sym = decodeURIComponent(m[1]), q = st.quotes[sym]; if (!q) return send(res, 404, { message: "not found" }); return m[2] === "quotes" ? send(res, 200, { symbol: sym, quote: { t: new Date(q.t).toISOString(), ax: "V", ap: q.ask / 100, as: 1, bx: "V", bp: q.bid / 100, bs: 1, c: ["R"], z: "B" } }) : send(res, 200, { symbol: sym, trade: { t: new Date(q.t).toISOString(), x: "V", p: q.ask / 100, s: 10, c: ["@"], i: 1, z: "B" } }); }
+      // Corporate actions (Market Data API GET /v1/corporate-actions): the start/end window is on process_date, rows
+      // sorted by it; only the cash_dividends group is served (the fixtures declare cash dividends only). A page_token
+      // is the last id of the previous page, as the activities endpoints do here.
+      if (req.method === "GET" && path === "/v1/corporate-actions") {
+        if (st.faults.calendar_down) return send(res, 500, { message: "internal error" });
+        const types = String(url.searchParams.get("types") || "").split(",").filter(Boolean), syms = String(url.searchParams.get("symbols") || "").split(",").filter(Boolean);
+        const start = url.searchParams.get("start"), end = url.searchParams.get("end"), limit = Math.min(Number(url.searchParams.get("limit") || 100), 1000), token = url.searchParams.get("page_token");
+        let list = types.length && !types.includes("cash_dividend") ? [] : st.corporate_actions.filter(x => (!syms.length || syms.includes(x.symbol)) && (!start || String(x.process_date || "") >= start) && (!end || String(x.process_date || "") <= end)).slice().sort((a, b) => String(a.process_date).localeCompare(String(b.process_date)) || String(a.id).localeCompare(String(b.id)));
+        if (token) { const i = list.findIndex(x => x.id === token); list = i >= 0 ? list.slice(i + 1) : []; }
+        const page = list.slice(0, limit);
+        return send(res, 200, { corporate_actions: { cash_dividends: page }, next_page_token: list.length > limit && page.length ? page[page.length - 1].id : null });
+      }
       let sub, trading = false;
       if ((m = /^\/v1\/trading\/accounts\/([^/]+)(\/.*)$/.exec(path))) {
         if (given !== want) return send(res, 401, { code: 40110000, message: "request is not authorized" }); // OAuth tokens never reach the Broker API
@@ -127,6 +143,16 @@ function start(opts) {
         if (st.faults.history_down) return send(res, 500, { message: "internal error" });
         const from = String(url.searchParams.get("start") || "").slice(0, 10), pts = (ac.history || []).filter(([d]) => !from || d >= from);
         return send(res, 200, { timestamp: pts.map(([d]) => Date.parse(`${d}T04:00:00Z`) / 1000), equity: pts.map(([, v]) => v), profit_loss: pts.map(() => 0), profit_loss_pct: pts.map(() => 0), base_value: pts.length ? pts[0][1] : 0, timeframe: "1D" });
+      }
+      // The multi-type form of the activities read (GET /v2/account/activities?activity_types=DIV,DIVWH,...): the
+      // same rows as the per-type reads, in one call. A refused type refuses the whole call, as a 422 there would.
+      if (req.method === "GET" && sub === "/account/activities") {
+        const types = String(url.searchParams.get("activity_types") || "").split(",").filter(Boolean);
+        if (types.some(t => (ac.refuse_types || st.refuse_types).includes(t))) return send(res, 422, { code: 42210000, message: "invalid activity type" });
+        const after = url.searchParams.get("after"), size = Math.min(Number(url.searchParams.get("page_size") || 100), 100), token = url.searchParams.get("page_token");
+        let list = (ac.activities || []).filter(a => types.includes(a.activity_type) && (!after || a.date > after)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+        if (token) { const i = list.findIndex(a => a.id === token); list = i >= 0 ? list.slice(i + 1) : []; }
+        return send(res, 200, list.slice(0, size));
       }
       if (req.method === "GET" && (m = /^\/account\/activities\/([A-Z]+)$/.exec(sub))) {
         const type = m[1]; if ((ac.refuse_types || st.refuse_types).includes(type)) return send(res, 422, { code: 42210000, message: `invalid activity type ${type}` });

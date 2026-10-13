@@ -15,6 +15,9 @@
                                    A small curated band table for the STARTER_FEED companies,
                                    labeled as public-knowledge estimates (as of 2026-10);
                                    every other company is "unknown" and is labeled, never guessed.
+     discoveryPlan / discover                 the canonical board registry lives in 121
+                                   (BOARD_REGISTRY); discovery polls live boards only and
+                                   returns deadBoards with reasons instead of silently 404ing.
      watchSet / addWatch / cadenceFor         SC-030: the watch set is the persona's starred
                                    companies plus user-added watches; cadence comes from
                                    121's POLL_MINUTES (starred 15 min, default 60).
@@ -114,6 +117,20 @@ const CareerDiscover = (() => {
     return set && set.has(normName(company)) ? minutes.starred : minutes.default;
   }
 
-  return { ghostGuard, deadlineInfo, sortByClosingPressure, cirClosedRoutes, companySize, sizeFilter, watchSet, addWatch, cadenceFor, SIZE_BANDS };
+  // ---------- board registry / discovery plan (REPLY-QUALITY PASS, 2026-10-13) ----------
+  // The canonical company->board registry lives in 121 (BOARD_REGISTRY). Discovery must
+  // SKIP dead boards and SAY SO — never silently 404 against a board with no public API.
+  function discoveryPlan() {
+    if (!J || !J.BOARD_REGISTRY) throw new Error("131 requires 121 BOARD_REGISTRY alongside it");
+    return { feeds: J.boardFeeds(), deadBoards: J.deadBoards() };
+  }
+  async function discover(opts) {
+    opts = opts || {};
+    const plan = discoveryPlan();
+    const result = await J.poll(plan.feeds, opts);
+    return Object.assign({}, result, { deadBoards: plan.deadBoards });
+  }
+
+  return { ghostGuard, deadlineInfo, sortByClosingPressure, cirClosedRoutes, companySize, sizeFilter, watchSet, addWatch, cadenceFor, SIZE_BANDS, discoveryPlan, discover };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerDiscover;

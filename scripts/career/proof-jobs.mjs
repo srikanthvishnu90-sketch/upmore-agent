@@ -14,18 +14,13 @@ const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
 const J = require(path.join(root, "packages/domain/121-career-jobs.js"));
 
-const CANDIDATES = [
-  // Greenhouse — SWE/fintech first
-  J.feeds.greenhouse("stripe"), J.feeds.greenhouse("robinhood"), J.feeds.greenhouse("airbnb"),
-  J.feeds.greenhouse("datadog"), J.feeds.greenhouse("coinbase"), J.feeds.greenhouse("figma"),
-  J.feeds.greenhouse("janestreet"), J.feeds.greenhouse("goldmansachs"),
-  // Lever
-  J.feeds.lever("leverdemo"), J.feeds.lever("netflix"), J.feeds.lever("ramp"),
-  // Ashby
-  J.feeds.ashby("ashby"), J.feeds.ashby("ramp"), J.feeds.ashby("openai"), J.feeds.ashby("linear"),
-  // SmartRecruiters
-  J.feeds.smartrecruiters("Square"), J.feeds.smartrecruiters("BoschGroup"), J.feeds.smartrecruiters("Visa"),
-];
+// Canonical registry: packages/domain/121-career-jobs.js BOARD_REGISTRY (REPLY-QUALITY PASS
+// 2026-10-13). Live boards only are pulled; dead boards (Goldman Sachs, Netflix, Square, Visa)
+// are listed in the evidence as deadBoards with reasons, never silently 404'd. Ramp is Ashby
+// (its Lever board 404s — that was one of run 1's three dead feeds).
+const CANDIDATES = J.boardFeeds();
+const DEAD_BOARDS = J.deadBoards();
+console.log(`dead boards skipped (not fetched): ${DEAD_BOARDS.map((b) => b.company).join(", ")}`);
 
 const kv = new Map();
 const store = { get: (k) => kv.get(k) || null, set: (k, v) => kv.set(k, v) };
@@ -48,6 +43,7 @@ const evidence = {
   label: "STAGING-path proof — real public ATS feeds, no deploy, no login (Doc 2 App. A.2/B.2)",
   generated_at: fetched_at,
   profile_used: { persona_id: persona.persona_id, kind: "TEST synthetic persona fixture (packages/career-data/fixtures/test-persona.json) — NOT a real person", profile },
+  dead_boards: DEAD_BOARDS,
   feeds: first.feeds.map((f) => ({ source: f.source, company_token: f.company_token, url: f.url, http_status: f.status, postings_count: f.postings.length, fetched_at, error: f.error || null, samples: f.postings.slice(0, 2).map(sample) })),
   totals: {
     feeds_tried: CANDIDATES.length,

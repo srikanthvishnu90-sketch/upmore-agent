@@ -167,6 +167,51 @@ test("replay: location alias — persona says NYC, posting says New York, NY (bu
 test("replay: stripHtml handles Greenhouse-escaped content and entities", () => {
   assert.equal(J.stripHtml("&lt;p&gt;A &amp; B&lt;/p&gt;"), "A & B");
 });
+test("board registry schema: every entry has provider, board, status, checkedAt, note", () => {
+  assert.ok(Array.isArray(J.BOARD_REGISTRY)); assert.ok(J.BOARD_REGISTRY.length >= 17);
+  for (const b of J.BOARD_REGISTRY) {
+    assert.ok(b.company, JSON.stringify(b)); assert.ok(b.provider, JSON.stringify(b));
+    assert.ok(b.board, JSON.stringify(b)); assert.ok(["live", "dead"].includes(b.status), JSON.stringify(b));
+    assert.equal(b.checkedAt, "2026-10-13"); assert.ok(b.note && b.note.length > 10, JSON.stringify(b));
+    if (b.status === "live") assert.match(b.url, /^https:\/\//);
+    if (b.status === "dead") assert.equal(b.url, null);
+  }
+});
+test("board registry: Ramp is Ashby live (was Lever, which 404s); no Lever Ramp entry remains", () => {
+  const ramp = J.BOARD_REGISTRY.filter((b) => b.board === "ramp");
+  assert.equal(ramp.length, 1);
+  assert.equal(ramp[0].provider, "ashby"); assert.equal(ramp[0].status, "live");
+  assert.equal(ramp[0].url, "https://api.ashbyhq.com/posting-api/job-board/ramp");
+  assert.equal(J.feeds.ashby("ramp").url, ramp[0].url);
+  assert.ok(!J.BOARD_REGISTRY.some((b) => b.provider === "lever" && b.board === "ramp"));
+});
+test("board registry: Goldman Sachs and Netflix are honestly dead — custom/no-public-api, no invented endpoint", () => {
+  for (const name of ["Goldman Sachs", "Netflix"]) {
+    const e = J.BOARD_REGISTRY.find((b) => b.company === name);
+    assert.ok(e, name); assert.equal(e.status, "dead"); assert.equal(e.provider, "custom/no-public-api");
+    assert.match(e.note, /404/);
+  }
+  const dead = J.deadBoards();
+  assert.deepEqual(dead.map((b) => b.company).sort(), ["Goldman Sachs", "Netflix", "Square", "Visa"]);
+  assert.ok(dead.every((b) => b.reason && b.reason.length > 10));
+});
+test("board registry: boardFeeds() returns live boards only, as fetchable feed descriptors", () => {
+  const feeds = J.boardFeeds();
+  assert.equal(feeds.length, J.BOARD_REGISTRY.filter((b) => b.status === "live").length);
+  assert.ok(feeds.every((f) => f.status === "live" && /^https:\/\//.test(f.url)));
+  assert.ok(!feeds.some((f) => /goldmansachs|netflix/i.test(f.company_token)));
+});
+test("dead boards are never fetched: fetchFeed skips without calling fetch, poll reports deadBoards", async () => {
+  const dead = J.BOARD_REGISTRY.find((b) => b.company === "Netflix");
+  let called = false;
+  const r = await J.fetchFeed(dead, { fetch: async () => { called = true; throw new Error("must not be called"); } });
+  assert.equal(called, false); assert.equal(r.skipped, true); assert.deepEqual(r.postings, []); assert.match(r.error, /marked dead/);
+  const kv = new Map(); const store = { get: (k) => kv.get(k) || null, set: (k, v) => kv.set(k, v) };
+  const p = await J.poll([J.feeds.greenhouse("stripe"), dead], { fetch: async () => ({ status: 200, json: async () => GH }), store, now: NOW });
+  assert.equal(p.postings.length, 2);
+  assert.equal(p.deadBoards.length, 1); assert.equal(p.deadBoards[0].company, "Netflix");
+});
+
 test("replay: snapshot repost counting — a role that vanishes and returns counts as reposted", () => {
   const [p] = J.normalizeGreenhouse(GH, "stripe");
   const s1 = J.makeSnapshot([p], NOW, null);

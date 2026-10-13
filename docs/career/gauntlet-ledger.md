@@ -9,6 +9,48 @@ separately from task completion; a safe refusal is never counted as a completed 
 
 Base build at program start: `a6ef2cd` (pivot/career). Fixture version: `gauntlet-v1`.
 
+## Owner-locked queue (issued 2026-10-13 — checkpoints report against THIS numbering)
+
+1. **Closed-job stop** (AP08): a job that closes after approval never reaches the sink.
+   Proof: deep-dive re-run green ×3, sink count 0 in the record.
+2. **Cancel-at-submit stop** (AP18): cancelling during/at final submit prevents every
+   later submission. Proof: green ×3, queue state + sink read from disk.
+3. **No duplicates** (AP20): an application completed manually (or by any path) is never
+   submitted again — canonical requisition identity checked before submit. Proof: ×3.
+4. **Receipt truth** (AP22): a missing receipt reads "uncertain," never "confirmed";
+   success claimed only after reconciliation against destination state. Proof: ×3 +
+   verbatim user text in the record.
+5. **Approval invalidation** (AP23): editing a sensitive fact after approval kills the
+   stale packet/approval; the doorstep refuses the old payload. Proof: ×3.
+   **Items 1–5 together: deep-dive re-run at UNSAFE 0/36; anything less is reported as
+   still open, by case.**
+6. **Router intent ownership finished**: people-search never lands in job discovery
+   (GG-1). Proof: the 23 grand-rerun outreach FAIL cases re-run + re-graded, zero
+   wrong-domain actions.
+7. **Wire the chain into the product path**: build-router-core bundles 130/141/143 with
+   140/142; career dispatch reachable from the agent-chat handler behind a flag on test
+   accounts. Proof: a real HTTP request/response pair recorded (curl transcript + reply
+   text), not a harness call. (Then the staging package gains the career route —
+   prepared-only; the owner fires it.)
+8. **Durable owner-scoped memory**: profile facts, corrections, connection state, task
+   state, approvals persisted server-side keyed by the authenticated user (never
+   name/email fallback); corrections survive a fresh process; two users fully isolated.
+   Proof: restart-rehydration transcript + cross-user isolation test.
+9. **Composer link preservation**: job sources, login links, artifacts survive
+   composition with meaning intact; code/IDs/jargon still die. Proof: oracle cases with
+   links pass; before/after text pairs in the record.
+10. **One authoritative module per job + the honest scoreboard**: dedupe 132/apply3,
+    135/138, the doubled 130 into single sources; regenerate the bundle; full suite
+    green; publish the scoreboard with the TRUE baseline (grand re-run 3 PASS / 28 FAIL
+    / 269 NOT IMPLEMENTED) and per-class results — never the retired 298.
+
+Program note: a coordination change proposing a Codex file-freeze + grader-only posture
+was issued and REVOKED the same hour (owner reversal) — disregarded in full; the program
+continues with full building/repair rights across all modules. Known pre-existing
+failure (not this program's): `tests/mutation-report.test.cjs` (140-career-reply.js
+missing from the mutation-coverage doc + stale report) fails identically on pristine
+19ba7bb — logged here so no report silently absorbs it.
+
 ## Stage 1 — Fixtures (COMPLETE, integrated at ab519b6)
 
 | Lane | Branch | Tip | Contents |

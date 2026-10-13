@@ -7561,6 +7561,14 @@
               DIVWH, DIVFEE withheld (negative net_amount). NonTradeActivity fields per Alpaca's SDK (alpaca-py 0.44.0,
               alpaca/trading/models.py): id, activity_type, date, net_amount, description, status, symbol, qty,
               per_share_amount; paged by page_token (the last id) at page_size 100, direction desc (account-activities.md)
+       GET    /v2/account/activities?activity_types=DIV,DIVCGL,...  the same NonTradeActivity rows read in ONE call
+              (the account-activities reference's multi-type form), netted per day and symbol: the cash that actually
+              landed, which C22 checks each dividend payment's net against to the cent (cashActivity)
+       GET    {data}/v1/corporate-actions?types=cash_dividend&start=&end=  announced dividends, the Market Data API's
+              corporate actions (docs.alpaca.markets/reference/corporateactions-1): the response nests the rows under
+              corporate_actions.cash_dividends, each {id, symbol, cash_amount (the declared amount per share; a row
+              may carry it as rate instead), declaration_date, ex_date, record_date, payable_date, process_date},
+              paged by next_page_token; start/end bound process_date, not the ex-date
        GET    /v2/account/activities/{CSD,CSW,JNLC,ACATC,ACATS,JNLS}  money and shares moved in or out (performance)
        GET    /v2/account/portfolio/history?timeframe=1D&start=  daily equity (timestamp[], equity[]; alpaca-py
               PortfolioHistory). Alpaca's reference warns it can be wrong; never shown unless it agrees with GET /v2/account
@@ -7771,6 +7779,49 @@
         const a = await activityRows(DIV_PAID.concat(DIV_HELD), DIV_PAID.slice(1).concat(DIV_HELD), from);
         return { value: a.rows.filter(x => Number.isSafeInteger(x.cents)).map(x => Object.assign(x, { withheld: DIV_HELD.includes(x.type) })), unread: a.unread, truncated: a.truncated, from: from || null, source, as_of: clock() };
       }
+      // Announced dividends (C22): the declared cash dividends in Alpaca's corporate-actions data, over a process-date
+      // window a year either side of today (an announcement is processed before its ex-date; the trade flow keeps only
+      // the rows whose ex-date is today or later, for symbols the person holds). Nothing is filtered or completed
+      // here: a row without a usable per-share amount keeps per_share_cents null and the flow never surfaces it.
+      async function dividendsCalendar() {
+        const today = new Date(clock()).toISOString().slice(0, 10), DAYMS = 86400000, t0 = Date.parse(`${today}T00:00:00Z`);
+        const qs0 = [`types=cash_dividend`, `start=${new Date(t0 - 370 * DAYMS).toISOString().slice(0, 10)}`, `end=${new Date(t0 + 370 * DAYMS).toISOString().slice(0, 10)}`, `limit=1000`];
+        const out = []; let token = null;
+        for (let page = 0; page < 5; page++) {
+          const qs = qs0.concat(token ? [`page_token=${encodeURIComponent(token)}`] : []).join("&");
+          const r = await call("GET", `${dataBase}/v1/corporate-actions?${qs}`, null, "corporate actions");
+          const j = r.json || {}, list = j.corporate_actions && Array.isArray(j.corporate_actions.cash_dividends) ? j.corporate_actions.cash_dividends : [];
+          for (const x of list) {
+            if (!x || !x.symbol) continue;
+            const per = strToCents(String(x.cash_amount !== undefined && x.cash_amount !== null ? x.cash_amount : x.rate), "round");
+            out.push({ symbol: String(x.symbol).toUpperCase(), per_share_cents: Number.isSafeInteger(per) ? per : null, ex_date: typeof x.ex_date === "string" ? x.ex_date.slice(0, 10) : null, pay_date: typeof x.payable_date === "string" ? x.payable_date.slice(0, 10) : null, record_date: typeof x.record_date === "string" ? x.record_date.slice(0, 10) : null, declared_on: typeof x.declaration_date === "string" ? x.declaration_date.slice(0, 10) : null });
+          }
+          token = j.next_page_token || null; if (!token) break;
+        }
+        return { value: out, source: mock ? "Alpaca mock server market data" : "Alpaca market data", as_of: clock() };
+      }
+      // The account's dividend cash on or after `from`, read in one call (the activities reference's multi-type form
+      // of the endpoint dividends() reads one type at a time) and netted per day and symbol: what actually landed in
+      // cash, withholding already against it. C22 checks each payment's net from the per-type read against this
+      // figure to the cent. A failed read throws, so no verification is claimed without it; canceled rows are dropped.
+      async function cashActivity(from) {
+        const after = from ? new Date(Date.parse(`${from}T00:00:00Z`) - 86400000).toISOString().slice(0, 10) : null, byKey = new Map();
+        let token = null;
+        for (let page = 0; page < 10; page++) {
+          const qs = [`activity_types=${DIV_PAID.concat(DIV_HELD).join(",")}`, `direction=desc`, `page_size=100`].concat(after ? [`after=${after}`] : [], token ? [`page_token=${encodeURIComponent(token)}`] : []).join("&");
+          const r = await call("GET", P(`/account/activities?${qs}`), null, "cash activity");
+          const list = Array.isArray(r.json) ? r.json : [];
+          for (const j of list) {
+            const date = String(j.date || "").slice(0, 10), cents = strToCents(j.net_amount, "round");
+            if (String(j.status || "").toLowerCase() === "canceled" || (from && date < from) || !Number.isSafeInteger(cents)) continue;
+            const sym = j.symbol ? String(j.symbol).toUpperCase() : null, k = `${date}|${sym || ""}`, g = byKey.get(k) || { date, symbol: sym, cents: 0 };
+            g.cents += cents; byKey.set(k, g);
+          }
+          if (list.length < 100) break;
+          token = list[list.length - 1].id;
+        }
+        return { value: [...byKey.values()].sort((a, b) => b.date.localeCompare(a.date)), source, as_of: clock() };
+      }
       // Money and shares moved in or out on or after `from` (performance, megadoc G02): cash deposits (CSD), withdrawals
       // (CSW), cash journals (JNLC) and cash transfers (ACATC) are flows; a securities transfer (ACATS) or a stock journal
       // (JNLS) moves shares without a cash amount, so it is flagged and no return is worked out over it. All must read.
@@ -7859,7 +7910,7 @@
       // The broker adapter interface every provider implements (73-broker-accounts.js): getAccount, getPositions, placeOrder,
       // cancelOrder, getOrderStatus, plus the reads the trade flow prices and checks with.
       return { provider: "alpaca", getAccount: account, getPositions: positions, placeOrder: submit, cancelOrder: cancel, getOrderStatus: getOrder,
-        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, dividends, cashFlows, portfolioHistory, bars, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
+        submit, getOrder, byClientOrderId, replace, cancel, account, positions, position, dividends, dividendsCalendar, cashActivity, cashFlows, portfolioHistory, bars, quote, asset, assets, marketClock, logs, label, source, live: true, paper: false, mock, order_cap_cents: cap, account_id: c.account_id, auth_failed: () => authFailed };
     }
 
     // The trade flow's connector interface (read / write / verify) over the adapter. write never retries; a thrown write
@@ -7881,6 +7932,8 @@
         if (kind === "position") return adapter.position(q.symbol);
         if (kind === "holdings") return adapter.positions();
         if (kind === "dividends") return adapter.dividends(q.from || null);
+        if (kind === "dividends_calendar") return adapter.dividendsCalendar();
+        if (kind === "cash_activity") return adapter.cashActivity(q.from || null);
         if (kind === "cash_flows") return adapter.cashFlows(q.from);
         if (kind === "portfolio_history") return adapter.portfolioHistory(q.from);
         if (kind === "bars") return adapter.bars(q.symbol, q.from);

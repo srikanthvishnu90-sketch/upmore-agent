@@ -1,9 +1,9 @@
 {
  "capability": "RAIL-2",
- "run_at": "2026-10-12T20:54:09.572Z",
+ "run_at": "2026-10-13T01:46:10.065Z",
  "baseline_all_green": true,
- "sub_capabilities": 33,
- "proven": 41,
+ "sub_capabilities": 35,
+ "proven": 44,
  "problems": [],
  "rows": [
   {
@@ -487,6 +487,39 @@
    "title": "GTC only for whole shares",
    "defect": "a fractional stop is offered good till canceled, which the broker refuses",
    "test": "a fractional stop is offered as a day order",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S34",
+   "id": "D42",
+   "title": "The calendar read reads the cash-dividend group",
+   "defect": "the adapter reads the stock_dividends group of the corporate-actions response, so no cash dividend ever surfaces",
+   "test": "VOO's declared $1.85 surfaces with its dates and $74.00 expected",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S34",
+   "id": "D43",
+   "title": "The pay date is the payable date",
+   "defect": "the pay date is read from the ex-date, so the answer names the wrong day",
+   "test": "pays Oct 30, 2026, the row's payable_date",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S35",
+   "id": "D44",
+   "title": "The cash read nets the day",
+   "defect": "each cash row replaces the day's net instead of adding to it, so the last row alone is checked and a verified payment reads as a mismatch",
+   "test": "$74.00 paid with $3.70 withheld verifies against the $70.30 that landed",
    "bites": true,
    "applied": true,
    "collateral": [],

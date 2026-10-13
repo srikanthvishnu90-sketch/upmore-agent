@@ -57,6 +57,22 @@ test("each provider's descriptor names the provider, and the store only when the
   assert.equal(d("PAYPAL *PAYIN4"), "paypal|null");
 });
 
+test("the owner's Affirm shapes: the code after PAY names no store, and the AFFIRM.COM number is the plan's stable id", () => {
+  // Descriptor structure from the provider file (Affirm, checked 2026-10-12): in "AFFIRM * PAY <CODE>" the
+  // 8-character code is a per-payment reference — letters-only and digit-leading codes both occur — and in
+  // "AFFIRM.COM PAYMENTS <number>" the number is the same on every payment of that plan.
+  for (const code of ["Y8PRUXM0", "IAYRAUTH", "6KHJY9TY", "OIDHK430"]) {
+    const d = B.detect(`AFFIRM * PAY ${code} SAN FRANCISCO CA`, PROVIDERS);
+    assert.deepEqual([d.provider.id, d.merchant, d.plan_id], ["affirm", null, null], code);
+  }
+  const s = B.detect("AFFIRM.COM PAYMENTS 185-54233729 CA", PROVIDERS);
+  assert.deepEqual([s.provider.id, s.merchant, s.plan_id], ["affirm", null, "185-54233729"]);
+  const rows = [tx("2026-07-27", -1084, "AFFIRM * PAY SD6B2XRK SAN FRANCISCO CA"), tx("2026-08-24", -1084, "AFFIRM * PAY ZQILNSJX SAN FRANCISCO CA"), tx("2026-09-25", -1084, "AFFIRM * PAY Y8PRUXM0 SAN FRANCISCO CA")];
+  const p = B.plans(ROWS.slice(0, 4).concat(rows), NOW, opts).plans.filter((x) => x.provider.id === "affirm" && x.amount_cents === 1084);
+  assert.equal(p.length, 1);
+  assert.deepEqual([p[0].cadence, p[0].seen.length, p[0].label], ["monthly", 3, "Affirm"]);
+});
+
 test("look-alikes are never read as a pay-later payment", () => {
   for (const raw of ["ZIPCAR TRIP", "ZIPRECRUITER", "AFFIRMATIVE INSURANCE", "PAYPAL INST XFER", "PAYPAL *TARGET", "ZIP CODE 30301 PARKING", "TARGET 00012345"]) assert.equal(B.detect(raw, PROVIDERS), null, raw);
 });

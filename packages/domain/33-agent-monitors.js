@@ -561,12 +561,21 @@
     }
 
     /* 12. Buy now, pay later: every plan in progress and when its next
-           instalment is expected, from the payments already made. */
+           instalment is expected, from the payments already made.
+           A plan is its provider and its instalment amount: the descriptor's
+           tail is never the plan (packages/offers/bnpl-providers.json,
+           descriptor_structure — in "AFFIRM * PAY <CODE>" the code is a fresh
+           per-payment reference on every payment, and a plan's payments post
+           25-45 days apart when monthly, so neither the code nor the place
+           after it may split one plan into several). This monitor runs in the
+           financial bundle, which carries no Bnpl module, so the grouping
+           below mirrors Bnpl.plans (97-bnpl.js) rather than calling it. */
     const BNPL_RE = /\b(affirm|klarna|afterpay|sezzle|zip ?pay|quadpay|paypal pay in 4|pay in 4|shop ?pay installments?)\b/i;
     function payLaterPlans(input) {
       const byPlan = {};
       spend(clean(input.transactions)).filter(t => BNPL_RE.test(t.merchant)).forEach(t => {
-        const k = `${t.key}|${Math.abs(t.amount).toFixed(2)}`;
+        const provider = (BNPL_RE.exec(t.merchant) || [""])[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+        const k = `${provider}|${Math.abs(t.amount).toFixed(2)}`;
         (byPlan[k] = byPlan[k] || []).push(t);
       });
       const plans = Object.keys(byPlan).sort().map(k => {
@@ -575,13 +584,15 @@
         const gaps = [];
         for (let i = 1; i < txs.length; i++) gaps.push(daysBetween(txs[i - 1].date, txs[i].date));
         const step = Math.round(median(gaps));
-        if (step < 6 || step > 32) return null;
+        if (step < 6 || step > 45) return null;
         const last = txs[txs.length - 1];
         const next = step >= 27 ? addMonths(last.date, 1) : addDays(last.date, step);
         // Most plans are four payments. Past four, or once the next date is
         // well behind us, the plan has most likely finished.
         if (daysBetween(next, input.today) > step) return null;
-        return { merchant: last.merchant, amount: cents(Math.abs(last.amount)), paid: txs.length, every_days: step, next, rows: txs.map(proof) };
+        // A per-payment reference ("PAY <8-character code>") is never part of a plan's name.
+        const shown = last.merchant.replace(/\bPAY\s+[A-Z0-9]{8}\b/gi, "PAY");
+        return { merchant: shown, amount: cents(Math.abs(last.amount)), paid: txs.length, every_days: step, next, rows: txs.map(proof) };
       }).filter(Boolean);
       if (!plans.length) return [];
       plans.sort((a, b) => a.next.localeCompare(b.next));

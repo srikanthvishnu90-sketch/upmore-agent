@@ -8,8 +8,12 @@
        opts          { tz (IANA zone, default UTC), providers (packages/offers/bnpl-providers.json; the router bundle's
                      BNPL_PROVIDERS_JSON when left out), accounts (list only: adds item 87's heads-up line) }
      Functions:
-       detect(raw, providers)                 { provider, merchant } or null: the provider from the descriptor patterns on
-                                              file, the store only when the descriptor carries it after "*" or "/"
+       detect(raw, providers)                 { provider, merchant, plan_id } or null: the provider from the descriptor
+                                              patterns on file, the store only when the descriptor carries it after "*"
+                                              or "/"; a provider whose file carries descriptor_structure forms (Affirm)
+                                              is read by those forms instead: a form can say a token is a per-payment
+                                              reference (dropped: never a store, never in a plan's name) or a stable
+                                              plan id (kept: payments carrying it are one plan)
        plans(transactions, now, opts)         the plans read from the rows (below)
        list(transactions, words, now, opts)   item 85's answer; one provider named in the words narrows it
        check(accounts, transactions, words, now, opts)  item 87: the next 30 days from cash, the repeating bills and
@@ -18,9 +22,12 @@
                                               Afterpay plan") is laid out on that provider's Pay in 4 terms
        ask(words)                             "list" | "check" | null, conservative (paying, paying off, moving a date,
                                               advice and anything long go on)
-     How plans are read: debits whose descriptor names a provider, grouped by provider, store (when named) and amount, then
-     chained every 2 weeks (11-17 days apart, at most 4: the Pay in 4 shape every provider on file publishes) or monthly
-     (26-35 days). A different first payment 2 weeks before a chain joins it only for a provider whose first payment can
+     How plans are read: debits whose descriptor names a provider, grouped by provider, store (when named) and amount —
+     or, when the descriptor carries a stable plan id, by that id, so its payments stay one plan even if an amount
+     differs slightly — then chained every 2 weeks (11-17 days apart, at most 4: the Pay in 4 shape every provider on
+     file publishes) or monthly (25-45 days: a monthly installment posts early or late in the real rows — a short
+     month, a weekend, a late posting — and 25-45 days is never a Pay in 4 gap). A different first payment 2 weeks
+     before a chain joins it only for a provider whose first payment can
      differ (Zip's fee, Afterpay's large orders). Payments left are said only when the plan's shape makes them certain: a
      Pay in 4 whose first payment is in the rows (the rows reach back past it and no payment from that provider sits 2
      weeks before it); otherwise "up to". A monthly plan's total is never in the rows: said as unknown, never guessed. A
@@ -57,7 +64,7 @@
     function book(providers) {
       const d = providers || (typeof BNPL_PROVIDERS_JSON !== "undefined" ? BNPL_PROVIDERS_JSON : null);
       if (!d || !Array.isArray(d.providers)) throw new Error("Bnpl: the provider file (packages/offers/bnpl-providers.json) was not passed in");
-      if (!compiled.has(d)) compiled.set(d, d.providers.map((p) => Object.assign({}, p, { res: p.descriptors.map((s) => new RegExp(s, "i")), every2: p.products.find((x) => x.every_days === 14) || null, monthly: p.products.find((x) => x.cadence === "monthly") || null })));
+      if (!compiled.has(d)) compiled.set(d, d.providers.map((p) => Object.assign({}, p, { res: p.descriptors.map((s) => new RegExp(s, "i")), every2: p.products.find((x) => x.every_days === 14) || null, monthly: p.products.find((x) => x.cadence === "monthly") || null, forms: ((p.descriptor_structure && p.descriptor_structure.forms) || []).map((f) => Object.assign({}, f, { re: new RegExp(f.pattern, "i") })) })));
       return { data: d, list: compiled.get(d) };
     }
     // What follows the provider in a descriptor, after "*" or "/", when it names a store; generic words never do.
@@ -70,9 +77,16 @@
       if (!s || GENERIC.test(s) || !/[a-z]{2}/i.test(s)) return null;
       return MA.display(s);
     }
+    // A descriptor form on file (descriptor_structure in the provider file) says what each token in the shape IS:
+    // a per-payment reference (a fresh code on every payment: it names neither a store nor the plan, and is never
+    // shown), a stable plan id (the same on every payment of one plan), or, where a form names one, the store.
+    function describe(p, s, m) {
+      for (const f of p.forms) { const fm = f.re.exec(s); if (fm) return { provider: p, merchant: f.store_group ? MA.display(String(fm[f.store_group]).replace(/\s+/g, " ").trim()) : null, plan_id: f.stable_id_group ? fm[f.stable_id_group] : null }; }
+      return { provider: p, merchant: merchantOf(s, m), plan_id: null };
+    }
     function detect(raw, providers) {
       const s = String(raw || "");
-      for (const p of book(providers).list) for (const re of p.res) { const m = re.exec(s); if (m) return { provider: p, merchant: merchantOf(s, m) }; }
+      for (const p of book(providers).list) for (const re of p.res) { const m = re.exec(s); if (m) return describe(p, s, m); }
       return null;
     }
 
@@ -85,7 +99,7 @@
       for (const r of rows) {
         const d = detect(r.merchant_raw, B.data);
         if (!d) continue;
-        const x = { row: r, on: dayOf(r), cents: cents(r), provider: d.provider, merchant: d.merchant };
+        const x = { row: r, on: dayOf(r), cents: cents(r), provider: d.provider, merchant: d.merchant, plan_id: d.plan_id || null };
         if (r.is_pending) { if (x.cents < 0) pending.push(x); continue; }
         if (!usd(r)) { if (x.cents < 0) foreign.push(x); continue; }
         if (x.on > end || x.on < from) continue;
@@ -95,7 +109,7 @@
       const sameSource = (a, b) => a.provider.id === b.provider.id && (a.merchant === b.merchant || !a.merchant || !b.merchant);
       // Chains of equal payments: every 2 weeks first (at most 4), then monthly among what is left.
       const groups = new Map();
-      for (const x of seen.slice().sort((a, b) => a.on.localeCompare(b.on) || a.cents - b.cents)) { const k = `${x.provider.id}|${x.merchant || ""}|${x.cents}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); }
+      for (const x of seen.slice().sort((a, b) => a.on.localeCompare(b.on) || a.cents - b.cents)) { const k = `${x.provider.id}|${x.merchant || ""}|${x.cents}`; const key = x.plan_id ? `${x.provider.id}|plan:${x.plan_id}` : k; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(x); }
       const chains = [];
       for (const list of groups.values()) {
         const two = [];
@@ -108,7 +122,7 @@
         for (const c of two) (c.length > 1 ? chains.push({ cadence: "biweekly", rows: c }) : singles.push(c[0]));
         const month = [];
         for (const x of singles) {
-          const open = month.find((c) => { const g = daysBetween(c[c.length - 1].on, x.on); return g >= 26 && g <= 35; });
+          const open = month.find((c) => { const g = daysBetween(c[c.length - 1].on, x.on); return g >= 25 && g <= 45; });
           if (open) open.push(x); else month.push([x]);
         }
         for (const c of month) chains.push({ cadence: c.length > 1 ? "monthly" : "single", rows: c });
@@ -122,7 +136,7 @@
       const out = [];
       for (const c of chains.filter((c) => !c.used)) {
         const x = c.rows[c.rows.length - 1], p = x.provider, all = (c.first ? [c.first] : []).concat(c.rows), first = all[0];
-        const plan = { provider: p, label: label(x), merchant: x.merchant, amount_cents: -x.cents, first_cents: c.first ? -c.first.cents : null, cadence: c.cadence, seen: all.map((y) => y.on), paid_cents: -sum(all.map((y) => y.cents)), last: x.on, first_on: first.on, product: null, payments: null, first_known: false, left: null, left_max: null, owed_cents: null, next: null, status: "active" };
+        const plan = { provider: p, label: label(x), merchant: x.merchant, plan_id: x.plan_id || null, amount_cents: -x.cents, first_cents: c.first ? -c.first.cents : null, cadence: c.cadence, seen: all.map((y) => y.on), paid_cents: -sum(all.map((y) => y.cents)), last: x.on, first_on: first.on, product: null, payments: null, first_known: false, left: null, left_max: null, owed_cents: null, next: null, status: "active" };
         if (c.cadence === "biweekly") {
           plan.product = p.every2; plan.payments = p.every2 ? p.every2.payments : null;
           const before = addDays(first.on, -(14 + GRACE));
@@ -148,7 +162,7 @@
       // Money back from a provider: a plan whose payments it equals is refunded; anything else is said, unmatched.
       const unmatched = [];
       for (const cr of credits.sort((a, b) => a.on.localeCompare(b.on))) {
-        const hits = out.filter((pl) => pl.status !== "refunded" && pl.cadence !== "single" && pl.provider.id === cr.provider.id && (pl.merchant === cr.merchant || !cr.merchant) && pl.first_on <= cr.on && pl.paid_cents === cr.cents);
+        const hits = out.filter((pl) => pl.status !== "refunded" && pl.cadence !== "single" && pl.provider.id === cr.provider.id && (pl.merchant === cr.merchant || !cr.merchant) && (!pl.plan_id || !cr.plan_id || pl.plan_id === cr.plan_id) && pl.first_on <= cr.on && pl.paid_cents === cr.cents);
         if (hits.length === 1) Object.assign(hits[0], { status: "refunded", refund: { cents: cr.cents, on: cr.on }, left: 0, owed_cents: null, next: null });
         else unmatched.push(cr);
       }

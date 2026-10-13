@@ -66,6 +66,24 @@
       let s = String(raw || "").toLowerCase();
       s = s.replace(/^(sq \*|paypal \*|tst\*|amzn\*|amazon\*|pp\*|sp \*|py \*)\s*/i, "");
       s = s.replace(/\s+#?\d{3,}.*$/, ""); // trailing store numbers and references
+      // Real bank descriptors carry tails that are not the merchant, and they differ charge to charge, so one
+      // merchant would key as several: a masked account tail ("XXXXX0000"), the charge's own date with the state
+      // code in front of it ("NH 09/22"), and a fresh reference code minted per payment ("AFFIRM * PAY Y8PRUXM0").
+      // A code word is long and carries its digits scattered — one in its first three characters and another
+      // later ("Y8PRUXM0", "3U3M7JEN"); a name never looks like that ("1PASSWORD" and "7ELEVEN" carry a single
+      // leading digit, "MICROSOFT365" carries its digits only at the end — all keep theirs). The first word of
+      // the descriptor is the merchant's own and is never dropped.
+      const toks = s.split(/\s+/), keep = [];
+      for (const t of toks) {
+        if (/^x{2,}\d*$/.test(t)) continue; // masked tail
+        if (/^(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01])(?:\/\d{2,4})?$/.test(t)) { if (keep.length > 1 && /^[a-z]{2}$/.test(keep[keep.length - 1])) keep.pop(); continue; } // the charge's date, and the state code that rode in front of it
+        if (keep.length >= 1 && t.length >= 6 && !t.includes("*")) { const dig = [...t].map((c, i) => (/\d/.test(c) ? i : -1)).filter(i => i >= 0); if (dig.length >= 2 && dig[0] <= 2 && dig.some(i => i >= 4)) continue; } // per-payment reference code
+        keep.push(t);
+      }
+      // A "WEB ID:" tail is card-network furniture, not the merchant ("ROBINHOOD DEBITS ... WEB ID:"): the
+      // store-number strip above eats it only when a long digit run precedes it, which a masked tail blocks.
+      if (keep.length > 2 && keep[keep.length - 1].replace(/[^a-z]/g, "") === "id" && keep[keep.length - 2].replace(/[^a-z]/g, "") === "web") keep.length -= 2;
+      s = keep.join(" ");
       // A per-charge reference after "*" ("AMAZON PRIME*AB1CD2", "AMZN MKTP US*2K4LM"): a code mixing letters and digits,
       // or a long number, never a name ("GOOGLE *YOUTUBEPREMIUM", "UBER *TRIP", "MICROSOFT*365", "1PASSWORD" keep theirs: a
       // code never has four letters in a row), so one
@@ -438,6 +456,109 @@
       return out;
     }
 
+    /* 10b. Double subscriptions (real-world C7): the same service paid for
+           twice at once — two plans of it (iCloud at $0.99 and $2.99), or the
+           same plan billed two ways (Spotify direct and through the App Store).
+           A stream is one service, one billing channel, one account, one
+           amount, on a steady cadence. Two live streams for one service are
+           reported with both sets of charges. A stream a cancellation claim
+           covers is dead only when no charge posts after the claim: the claim
+           alone never counts as proof (a charge after it is a zombie, and
+           chargedAfterCancel reports that separately). */
+    const SERVICES = Object.freeze([...new Set(Object.values(SAME_JOB).flat())]);
+    function serviceOf(key) {
+      const padded = " " + String(key || "") + " ";
+      return SERVICES.find(n => padded.includes(" " + n + " ")) || null;
+    }
+    function channelOfKey(key) {
+      const k = String(key || "");
+      if (/^(apl itunes|apple com bill|itunes)\b/.test(k)) return { channel: "app_store", rest: k.replace(/^(apl itunes|apple com bill|itunes)\s*/, "") };
+      if (/^google\s/.test(k)) return { channel: "play_store", rest: k.replace(/^google\s*/, "") };
+      return { channel: "direct", rest: k };
+    }
+    function doubleSubscriptions(input) {
+      const txs = spend(clean(input.transactions));
+      const claims = (input.cancelClaims || []).filter(c => c && c.merchant);
+      const groups = {};
+      txs.forEach(t => {
+        const { channel, rest } = channelOfKey(t.key);
+        const service = serviceOf(rest) || serviceOf(t.key);
+        const gk = `${service || "?"}|${channel}|${t.accountId || ""}`;
+        (groups[gk] = groups[gk] || []).push({ t, service, channel });
+      });
+      const streams = [];
+      Object.values(groups).forEach(rows => {
+        rows.sort((a, b) => a.t.date.localeCompare(b.t.date));
+        const clusters = [];
+        rows.forEach(r => {
+          const amt = Math.abs(r.t.amount);
+          let c = clusters.find(x => Math.abs(x.amount - amt) <= Math.max(1, x.amount * 0.05));
+          if (!c) { c = { amount: amt, rows: [] }; clusters.push(c); }
+          c.rows.push(r);
+        });
+        clusters.forEach(c => {
+          if (c.rows.length < 2) return;
+          const gaps = [];
+          for (let i = 1; i < c.rows.length; i++) gaps.push(daysBetween(c.rows[i - 1].t.date, c.rows[i].t.date));
+          const bands = gaps.map(bandOf).filter(Boolean);
+          if (!bands.length) return;
+          const counts = {};
+          bands.forEach(b => { counts[b] = (counts[b] || 0) + 1; });
+          const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b))[0];
+          if (counts[top] < gaps.length * 0.75) return;
+          const last = c.rows[c.rows.length - 1].t, first = c.rows[0].t;
+          const sinceLast = daysBetween(last.date, input.today);
+          if (sinceLast === null || sinceLast > 2 * stepOf(top)) return; // dormant: not being paid for now
+          streams.push({ service: c.rows[0].service, channel: c.rows[0].channel, accountId: last.accountId, amount: cents(Math.abs(last.amount)), interval: top,
+            rows: c.rows.map(r => r.t), firstDate: first.date, lastDate: last.date, merchant: last.merchant });
+        });
+      });
+      // An app-store or play-store stream whose descriptor names no service is still paired when exactly one
+      // direct stream matches its amount to the cent and its cadence: the store bills the plan's own price,
+      // so a near price (Apple Music at $10.99 against Spotify at $11.99) is a different service, not a match.
+      streams.filter(s => !s.service).forEach(s => {
+        const cand = streams.filter(x => x.service && x.channel === "direct" && x.interval === s.interval && Math.abs(x.amount - s.amount) <= Math.max(0.02, s.amount * 0.01));
+        if (cand.length === 1) { s.service = cand[0].service; s.correlated = true; }
+      });
+      // Dead streams: a claim names the service and the amount, nothing in the stream posts after it, and
+      // the stream's next expected charge date has passed without one — the same rule the cancel flow's own
+      // verdict uses, so a kill is never declared before the missed charge proves it.
+      const isDead = s => claims.some(c => {
+        const ck = merchantKey(c.merchant);
+        if (!s.service || !(ck === s.service || serviceOf(ck) === s.service)) return false;
+        if (Number.isFinite(Number(c.amount_cents)) && Math.abs(s.amount - Number(c.amount_cents) / 100) > Math.max(s.amount * 0.05, 1)) return false;
+        const since = String(c.created_at || "").slice(0, 10);
+        if (!since || s.rows.some(t => t.date > since)) return false;
+        const expected = addDays(s.lastDate, stepOf(s.interval));
+        return expected !== null && expected < input.today;
+      });
+      const live = streams.filter(s => s.service && !isDead(s));
+      const byService = {};
+      live.forEach(s => { (byService[s.service] = byService[s.service] || []).push(s); });
+      const acctName = id => { const a = (input.accounts || []).find(x => x && (x.id === id || x.account_id === id)); return a ? (a.nickname || a.name || null) : null; };
+      const chanWords = { direct: "direct", app_store: "through the App Store", play_store: "through Google Play" };
+      const out = [];
+      Object.keys(byService).sort().forEach(service => {
+        const ss = byService[service];
+        if (ss.length < 2) return;
+        ss.sort((a, b) => (b.amount * PER_YEAR[b.interval]) - (a.amount * PER_YEAR[a.interval]));
+        const monthly = cents(ss.reduce((sum, s) => sum + s.amount * PER_YEAR[s.interval] / 12, 0));
+        const direct = ss.find(s => s.channel === "direct");
+        const name = direct ? direct.merchant : safeMerchant(service);
+        const parts = ss.map(s => `${usd(s.amount)} ${s.interval} billed ${chanWords[s.channel]}${s.correlated ? " (matched by amount and cadence)" : ""}, last charged ${s.lastDate}${acctName(s.accountId) ? ` on ${acctName(s.accountId)}` : ""}`);
+        out.push({
+          key: `double_subscription:${service}:${ss.map(s => `${s.channel}:${s.accountId || ""}:${s.amount.toFixed(2)}`).join("+")}`,
+          kind: "double_subscription", capabilityId: "subscriptions.cancel",
+          title: `${name} is being paid for ${ss.length} times over`,
+          detail: `${parts.join("; ")}. Together about ${usd(monthly)} a month (${usd(monthly * 12)} a year) for one service. One of them can go: tell me which to cancel and I'll put up its card.`,
+          counterparty: name, amount: monthly, dueOn: null,
+          evidence: { rule: "Two live charge streams for the same service: each at least two charges on a steady cadence, neither dormant, and neither dead under a cancellation claim (a claim with no later charge and the next expected charge date already passed).",
+            rows: ss.flatMap(s => s.rows.map(proof)), computed: { service, streams: ss.map(s => ({ channel: s.channel, account_id: s.accountId, amount: s.amount, interval: s.interval, occurrences: s.rows.length, last_date: s.lastDate, correlated: !!s.correlated })), monthly_total: monthly, yearly_total: cents(monthly * 12) } },
+        });
+      });
+      return out;
+    }
+
     /* 11. A balance above the deposit insurance limit. FDIC and NCUA insure
            $250,000 per depositor, per institution, per ownership category.
            Only one account at a time is known here, so this flags a single
@@ -463,12 +584,21 @@
     }
 
     /* 12. Buy now, pay later: every plan in progress and when its next
-           instalment is expected, from the payments already made. */
+           instalment is expected, from the payments already made.
+           A plan is its provider and its instalment amount: the descriptor's
+           tail is never the plan (packages/offers/bnpl-providers.json,
+           descriptor_structure — in "AFFIRM * PAY <CODE>" the code is a fresh
+           per-payment reference on every payment, and a plan's payments post
+           25-45 days apart when monthly, so neither the code nor the place
+           after it may split one plan into several). This monitor runs in the
+           financial bundle, which carries no Bnpl module, so the grouping
+           below mirrors Bnpl.plans (97-bnpl.js) rather than calling it. */
     const BNPL_RE = /\b(affirm|klarna|afterpay|sezzle|zip ?pay|quadpay|paypal pay in 4|pay in 4|shop ?pay installments?)\b/i;
     function payLaterPlans(input) {
       const byPlan = {};
       spend(clean(input.transactions)).filter(t => BNPL_RE.test(t.merchant)).forEach(t => {
-        const k = `${t.key}|${Math.abs(t.amount).toFixed(2)}`;
+        const provider = (BNPL_RE.exec(t.merchant) || [""])[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+        const k = `${provider}|${Math.abs(t.amount).toFixed(2)}`;
         (byPlan[k] = byPlan[k] || []).push(t);
       });
       const plans = Object.keys(byPlan).sort().map(k => {
@@ -477,13 +607,15 @@
         const gaps = [];
         for (let i = 1; i < txs.length; i++) gaps.push(daysBetween(txs[i - 1].date, txs[i].date));
         const step = Math.round(median(gaps));
-        if (step < 6 || step > 32) return null;
+        if (step < 6 || step > 45) return null;
         const last = txs[txs.length - 1];
         const next = step >= 27 ? addMonths(last.date, 1) : addDays(last.date, step);
         // Most plans are four payments. Past four, or once the next date is
         // well behind us, the plan has most likely finished.
         if (daysBetween(next, input.today) > step) return null;
-        return { merchant: last.merchant, amount: cents(Math.abs(last.amount)), paid: txs.length, every_days: step, next, rows: txs.map(proof) };
+        // A per-payment reference ("PAY <8-character code>") is never part of a plan's name.
+        const shown = last.merchant.replace(/\bPAY\s+[A-Z0-9]{8}\b/gi, "PAY");
+        return { merchant: shown, amount: cents(Math.abs(last.amount)), paid: txs.length, every_days: step, next, rows: txs.map(proof) };
       }).filter(Boolean);
       if (!plans.length) return [];
       plans.sort((a, b) => a.next.localeCompare(b.next));
@@ -637,13 +769,13 @@
 
     const ALL = Object.freeze([newSubscriptions, priceRises, trialsConverting, duplicateCharges,
       lowBalanceAhead, bankFees, chargedAfterCancel, deadlineWindows, unclaimedSearchDue, overlaps,
-      overInsuranceLimit, payLaterPlans]);
+      doubleSubscriptions, overInsuranceLimit, payLaterPlans]);
     const PRIORITY = Object.freeze({ charged_after_cancel: 1, duplicate_charge: 1, low_balance: 1, trial_converting: 1,
       bank_fee: 2, price_rise: 2, deadline: 2, pay_later: 2, over_insurance_limit: 2,
-      new_subscription: 3, overlap: 3, unclaimed_search: 3 });
+      new_subscription: 3, overlap: 3, double_subscription: 3, unclaimed_search: 3 });
     // Monitors that read bank transactions. They must never run on sample data.
     const NEEDS_LIVE = Object.freeze(["new_subscription", "price_rise", "duplicate_charge", "low_balance",
-      "bank_fee", "charged_after_cancel", "overlap", "over_insurance_limit", "pay_later"]);
+      "bank_fee", "charged_after_cancel", "overlap", "double_subscription", "over_insurance_limit", "pay_later"]);
 
     /* Runs every monitor. One monitor failing never stops the others, and its
        failure is reported rather than hidden.
@@ -672,7 +804,7 @@
 
     return { merchantKey, safeMerchant, clean, recurring, newSubscriptions, priceRises, trialsConverting,
       duplicateCharges, lowBalanceAhead, bankFees, chargedAfterCancel, deadlineWindows,
-      unclaimedSearchDue, overlaps, overInsuranceLimit, payLaterPlans, cashFlowForecast,
+      unclaimedSearchDue, overlaps, doubleSubscriptions, overInsuranceLimit, payLaterPlans, cashFlowForecast,
       cancelClaimVerdict, recoveryVerdict, runAll, NEEDS_LIVE, addDays, addMonths, daysBetween };
   })();
 

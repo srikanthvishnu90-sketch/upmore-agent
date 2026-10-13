@@ -88,8 +88,31 @@
         "AFFIRM",
         "AFFIRM PAY",
         "AFFIRM.COM",
-        "AFFIRM INC"
+        "AFFIRM INC",
+        "AFFIRM * PAY Y8PRUXM0 SAN FRANCISCO CA",
+        "AFFIRM.COM PAYMENTS 185-54233729 CA"
       ],
+      "descriptor_structure": {
+        "checked_on": "2026-10-12",
+        "source": {
+          "kind": "owner_rows",
+          "note": "Read off the owner's own Chase checking rows, Jul 15-Sep 25 2026 (15 Affirm payments, $317.63): the two shapes below are the only Affirm shapes in those rows. The code and id values are the rows' own; the plan grouping they imply was counted by hand from the rows (6 plans) before any code read them."
+        },
+        "forms": [
+          {
+            "shape": "AFFIRM * PAY <code> <place>",
+            "pattern": "^\\s*AFFIRM\\s*\\*\\s*PAY\\s+([A-Z0-9]{8})\\b",
+            "per_payment_group": 1,
+            "note": "The 8-character code after PAY is a PER-PAYMENT reference: a fresh one is minted for every payment (Y8PRUXM0, KJ4OR9CH, SD6B2XRK, WJSJ24AL, 3U3M7JEN, N7Q3CCLN, OIDHK430, 6KHJY9TY, D15Z7DSK, 6GGIXBJA, and the letters-only IAYRAUTH and ZQILNSJX all occur), so it identifies neither the plan nor a store and must never be shown as part of a plan's name. 'PAY' in this shape is a generic word, not a store, and the place after the code is where Affirm sits, not a store either: this shape names no store. A plan in this shape is identified by its installment amount and its cadence, nothing else."
+          },
+          {
+            "shape": "AFFIRM.COM PAYMENTS <plan id> <place>",
+            "pattern": "^\\s*AFFIRM\\.COM\\s+PAYMENTS\\s+([0-9]+-[0-9]+)\\b",
+            "stable_id_group": 1,
+            "note": "The number after PAYMENTS is a STABLE plan/account id: the same on every payment of that plan (185-54233729 on all three payments of the $61.44 plan in the owner's rows), so payments carrying it are one plan even if an amount were to differ slightly (a fee). The place after it names no store."
+          }
+        ]
+      },
       "descriptor_not_used": [
         "SP AFF* and SP+AFF are reported by third parties only and look like a store-platform prefix; not read as Affirm until a row confirms it"
       ],

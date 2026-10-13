@@ -176,6 +176,13 @@ const OWNER: [string, string | null][] = [
   ["run my annual money checkup", "annualCheckupReply"],
   ["re-underwrite my entire financial life", "annualCheckupReply"],
   ["pay maya 40 only if my paycheck landed", null],
+  // Market and news intelligence (C17-C45), last in the handler's chain: the movers, digest, compare and
+  // explain asks belong to marketReply; a bank watch phrased like a price alert does not.
+  ["why is my portfolio down today", "marketReply"],
+  ["send me the news that matters to my money", "marketReply"],
+  ["VOO versus VTI - just tell me which", "marketReply"],
+  ["should i care about ASTS", "marketReply"],
+  ["tell me when my balance drops below $500", null],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

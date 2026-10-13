@@ -16,6 +16,7 @@ import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 import { budgetReply } from "../../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 import { deadlinesReply } from "../../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
+import { marketReply } from "../../../supabase/functions/agent-chat/_shared/market_answer.ts";
 import { feeAuditReply } from "../../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
 import { paycheckReply } from "../../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
 import { tipFeesReply } from "../../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
@@ -70,6 +71,8 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   whatsNewReply: (m) => whatsNewReply(m, TODAY, async () => TX as any[], async () => []),
   // The person's settings row as the handler reads it: here the budget only, no deadline facts (MOCK).
   deadlinesReply: (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: () => BUDGETS }),
+  // Market and news intelligence (C17-C45) over the dated stand-in dataset, last in the handler's chain.
+  marketReply: (m) => marketReply(m, NOW, {}),
 };
 const handler = SRC_HANDLER;
 export const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);

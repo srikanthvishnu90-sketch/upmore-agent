@@ -36,7 +36,7 @@
 // (alerts on, the daily budget unless within 2 days); a date the person told Upmore applies to them is theirs (a watch).
 // What they tell it ("I pay estimated taxes", "my FSA plan year ends December 31") is a watch of kind "deadline_fact".
 // Dates only, never what to file, pay or pick; nothing about accounts, so it runs with nothing linked too.
-import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, AgentMoneyPlans, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend } from "./router_core.js";
+import { AgentProactive, AgentLedger, AgentLoop, AgentControl, AgentAlerts, AgentMoneyPlans, StandingRent, TheNumbers, Budgets, CategoryRules, Deadlines, Reminders, IouLog, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, MarketIntel, MARKET_DATA_JSON } from "./router_core.js";
 
 export interface ProactiveSettings {
   alerts: boolean;                  // event alerts and findings (low balance ahead, large charge, price rise, ...)
@@ -184,6 +184,15 @@ export function plan(input: ProactiveInput, now: number) {
     for (const m of d.messages) { sentKeys.add(m.key); out.messages.push({ key: m.key, kind: m.kind, text: m.text, capability_id: m.capability_id, urgent: false, cadence: m.cadence, source: m.source, as_of: m.as_of }); }
     out.suppressed.push(...d.suppressed);
   };
+  // Market and news intelligence (capability items C17-C45; packages/domain/118-market-intel.js over the dated
+  // stand-in dataset MARKET_DATA_JSON): the person's own market watches only — each text carries the dataset's
+  // source line itself, so no account citation is appended. Dates are read in UTC, as the dataset is dated.
+  const marketLater = () => {
+    for (const m of (MarketIntel as any).proactive({ now, watches: s.watches || [], sent: [...sentKeys], data: MARKET_DATA_JSON })) {
+      sentKeys.add(m.key);
+      out.messages.push({ key: m.key, kind: "watch", text: m.text, capability_id: m.cap, urgent: !!m.urgent, cadence: !!m.cadence, source: (MARKET_DATA_JSON as any).source, as_of: (MARKET_DATA_JSON as any).as_of });
+    }
+  };
   // Reminders the person set in chat ("remind me to pay rent on the 28th", packages/domain/103-reminders.js): their own
   // words on the day they asked for, from 9 a.m. their time, as a watch (asked for, so outside the budget and through
   // quiet hours from 9 a.m.), once each by its key. No number and no account: the source is their own message.
@@ -210,7 +219,7 @@ export function plan(input: ProactiveInput, now: number) {
   }
   // Nothing linked: nothing to say from accounts, and never a number from nothing. The rent the person set up is theirs,
   // and so are the dates they told Upmore about and their reminders; a public date needs no account either.
-  if (!accounts.length) { deadlinesLater(); rentLater(); return out; }
+  if (!accounts.length) { deadlinesLater(); marketLater(); rentLater(); return out; }
   const prov: any = (AgentLedger as any).provenance(accounts, transactions, today);
   const cite = ` (${prov.source}, as of ${asOfText(prov.as_of, tz)})`;
   const push = (m: Omit<ProactiveMessage, "source" | "as_of" | "offer"> & { offer?: ProactiveOffer }) => {
@@ -368,6 +377,8 @@ export function plan(input: ProactiveInput, now: number) {
   }
   // Deadlines after the findings, so a finding about the person's own money uses the day's budget first.
   deadlinesLater();
+  // Market watches the person set (C17-C45): their own asks, said with the dataset's source line, once per key.
+  marketLater();
   // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
   rentLater();
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
@@ -695,6 +706,11 @@ export function parseCommand(text: string, current: Partial<ProactiveSettings> |
   // savings", "my vacation fund is in ally savings", "stop my vacation goal". Restated; nothing is moved.
   const gc: any = (SavingsGoals as any).command(t, s.watches || [], now, zone);
   if (gc) return { settings: gc.watches ? { watches: capWatches(gc.watches) } : {}, reply: gc.reply };
+  // Market watches (C17-C45; packages/domain/118-market-intel.js): "tell me if NVDA drops below $110", "tell me when
+  // 30-year mortgages drop below 6%", "watch ASTS and RKLB for me", the briefing and alert toggles. Restated exactly;
+  // nothing trades from a watch — a fired alert names the trade words and the trade flow's own card decides.
+  const mk: any = (MarketIntel as any).command(t, s.watches || [], now);
+  if (mk) return { settings: mk.watches ? { watches: capWatches(mk.watches) } : {}, reply: mk.reply };
   // Category rules: "recategorize Target as groceries", "count Costco as groceries", "stop counting Target as
   // groceries", "show my category rules" (packages/domain/95-category-rules.js). Restated exactly; they change how
   // spending is counted, nothing at the bank, and never move money.
@@ -758,7 +774,7 @@ const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
 // The table holds at most 20 watches. Budgets (one per category, at most 8), deadline facts (one per kind, at most 6) and
 // reminders (at most 5) are never pushed out by a new watch: the oldest plain watches go first, and a new one always fits.
 export const MAX_WATCHES = 20;
-const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w) || (SavingsGoals as any).isGoal(w) || (!!w && w.kind === "low_balance_episode");
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w) || (SavingsGoals as any).isGoal(w) || (MarketIntel as any).isMarketWatch(w) || (!!w && w.kind === "low_balance_episode");
 export function capWatches(list: any[]): any[] {
   const all = list || [], keep = all.filter(sticky);
   const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));

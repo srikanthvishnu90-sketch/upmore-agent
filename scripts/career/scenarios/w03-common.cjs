@@ -10,7 +10,9 @@ const USER = { name: "Alex Testcase (TEST)", school: "University of Michigan", y
 const PROFILE = { school: "University of Michigan" };
 const FIRST = ["Aaron", "Bianca", "Carlos", "Dana", "Elias", "Farah", "Gavin", "Hana", "Ivan", "Julia", "Kwame", "Lena", "Marco", "Nadia", "Owen", "Priya", "Quentin", "Rosa", "Stefan", "Tara", "Umar", "Vera", "Wesley", "Yuki"];
 const LAST = ["Voss", "Reed", "Mendez", "Whitfield", "Ford", "Iqbal", "Holt", "Sato", "Petrov", "Brandt", "Mensah", "Fischer", "Ruiz", "Rahman", "Delacroix", "Natarajan", "Walsh", "Kim", "Novak", "Osei", "Lindqvist", "Barros", "Kowalski", "Tanaka"];
-function name(i) { return FIRST[i % 24] + " " + LAST[Math.floor(i / 24) % 24] + (i >= 576 ? " " + Math.floor(i / 576) : ""); }
+// Surname index decorrelates from the first-name cycle so same-firm pairs never cross the engine's
+// 0.80 fuzzy-identity threshold by accident (an earlier scheme parked ~10% of every pool in the review bucket).
+function name(i) { return FIRST[i % 24] + " " + LAST[(i % 24 + Math.floor(i / 24) * 3) % 24] + (i >= 576 ? " " + Math.floor(i / 576) : ""); }
 function domainOf(firm) { for (const k of Object.keys(FIRM_SETS.sets)) { const f = FIRM_SETS.sets[k].firms.find((x) => x.name === firm); if (f) return f.domain; } return firm.toLowerCase().replace(/[^a-z0-9]+/g, "") + ".example.test"; }
 function emailFor(nm, firm) { return nm.toLowerCase().replace(/[^a-z ]/g, "").replace(/ +/g, ".") + "@" + domainOf(firm); }
 function person(i, o) {

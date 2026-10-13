@@ -235,7 +235,7 @@ Ask "find my auto policy" and I'll point to it in seconds.`;
     if (/(donation|charit)/.test(m) && /(receipt|tax|ready|roundup|round up)/.test(m)) return "charity";
     if (/\bmileage\b/.test(m)) return "mileage";
     if (/(organize|organise) my financial documents|every statement, policy, deed/.test(m)) return "organize";
-    if (/^(find|where is) my /.test(m)) return "find";
+    if (/^(find|where is) my /.test(m) && /(policy|statement|deed|title|passport|document|receipt|tax|w-?2|1099|folder|file|return)/.test(m)) return "find";
     if (/(show|get|pull|retrieve|open) my (passport|social security|ssn|.*policy|documents?)\b/.test(m) || /^my passport\b/.test(m)) return "vault_pull";
     if (/(what('s| is) in my vault|list my (documents|vault))/.test(m)) return "vault_pull";
     return null;

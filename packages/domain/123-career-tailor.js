@@ -13,10 +13,15 @@
    null } — a tailored resume is never shipped with an audit warning.
    Unconfirmed (needs_confirmation) facts support nothing: resume-ingested
    drafts must be confirmed by the user first.
-   PDF: packages/domain/62-agent-documents.js provides a document VAULT
-   (metadata, receipts, policies) — it has no PDF/DOCX renderer. So render()
-   returns text + markdown only and says pdf:null honestly; no renderer is
-   rebuilt here.
+   DOCUMENTS (CA-02, Spec 3 v2 §10.4 + §2.5): render() also returns real
+   PDF + DOCX artifacts rendered from this same resume JSON by
+   packages/domain/148-career-render.js (a hand-built text pipeline —
+   PDF 1.4 + OOXML, no dependencies; NOT the 62-agent-documents.js vault,
+   which is metadata only). Each render is parse-checked there with two
+   independent parsers per format; the verdict (PASS/WARN/FAIL + reasons,
+   never a numeric score) rides on rendered.parseCheck. In a runtime
+   where 148 is not loaded, render() falls back to text + markdown with
+   pdf/docx null and a note saying exactly that.
    AI-USE RULES (Doc 2 S8, owner ruling 2026-10-12): when the CIR input says
    the company bans AI-written application text (cir.aiPolicy === "ban" or
    cir.bansAiWrittenText), tailorResume degrades to mode:"outline" —
@@ -28,6 +33,16 @@
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // CA-02 document renderer (148) is loaded lazily, only when render()
+  // runs — same global-or-require pattern as Profile above.
+  let _renderMod;
+  function renderModule() {
+    if (_renderMod !== undefined) return _renderMod;
+    _renderMod = null;
+    if (typeof CareerRender !== "undefined") _renderMod = CareerRender;
+    else if (typeof require !== "undefined") { try { _renderMod = require("./148-career-render.js"); } catch { _renderMod = null; } }
+    return _renderMod;
+  }
 
   const BANNED_PHRASES = [
     "i hope this email finds you well",
@@ -258,8 +273,9 @@ const CareerTailor = (() => {
     return { added, moved, removed, summary: `${added.length} added, ${removed.length} removed, ${moved.length} moved (${changed} content changes)` };
   }
 
-  // ---- ATS-safe render (Doc 2 §3.1 step 6) ----
-  function render(resume) {
+  // ---- ATS-safe render (Doc 2 §3.1 step 6; documents: CA-02 / Spec 3 §10.4) ----
+  function render(resume, opts) {
+    const o = opts || {};
     const secs = resume.sections || [];
     const head = [resume.header && resume.header.name, resume.header && resume.header.email, resume.header && resume.header.location].filter(Boolean).join(" | ");
     const links = Object.values((resume.header && resume.header.links) || {}).filter(Boolean).join(" | ");
@@ -269,7 +285,15 @@ const CareerTailor = (() => {
       textParts.push("", s.heading.toUpperCase(), ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
       mdParts.push("", `## ${s.heading}`, ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
     }
-    return { text: textParts.join("\n"), markdown: mdParts.join("\n"), pdf: null, pdfNote: "No PDF renderer exists in packages/domain/62-agent-documents.js (it is a document vault, not a renderer); plain text is the ATS-safe extractable form.", singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+    const base = { text: textParts.join("\n"), markdown: mdParts.join("\n"), singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+    const R = renderModule();
+    if (!R) return { ...base, pdf: null, docx: null, filename: null, parseCheck: null, pdfNote: "Document renderer (148-career-render.js) is not loaded in this runtime; plain text is the ATS-safe extractable form and no document file was produced." };
+    const pdfRes = o.format !== "docx" ? R.renderPdf(resume) : null;
+    const docxRes = o.format !== "pdf" ? R.renderDocx(resume) : null;
+    const pdf = pdfRes && pdfRes.ok ? R.artifact("pdf", pdfRes) : null;
+    const docx = docxRes && docxRes.ok ? R.artifact("docx", docxRes) : null;
+    const parseCheck = (pdf || docx) ? R.parseCheck({ resume, pdf: pdf ? pdfRes.buffer : null, docx: docx ? docxRes.buffer : null }) : null;
+    return { ...base, ok: true, pdf, docx, filename: (pdf && pdf.filename) || (docx && docx.filename) || null, parseCheck, pdfNote: "PDF + DOCX rendered from the same resume JSON by 148-career-render.js (text pipeline, Spec 3 §10.4); parse-check verdict in parseCheck (§2.5)." };
   }
 
   // ---- cover letter (Doc 2 §3.4; APPL-002) ----
@@ -355,11 +379,14 @@ const CareerTailor = (() => {
       assembled.sections.push({ heading: "Additional", lines: o.extraLines.map((l) => (typeof l === "string" ? { text: l, factIds: [], type: "bullet" } : l)) });
     }
     const auditResult = auditResume(assembled, profile);
-    if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null };
+    if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null, rendered: null };
     const baseLines = o.baseLines || o.baseResumeLines || [];
     const diff = diffResume(baseLines, assembled, profile);
     const rendered = render(assembled);
     const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null };
+    // §10.5: the approval snapshot records the exact rendered artifacts
+    // (filename + sha256 + size) so a submitted resume can be reproduced.
+    if (rendered && (rendered.pdf || rendered.docx)) version.artifacts = { pdf: rendered.pdf ? { filename: rendered.pdf.filename, sha256: rendered.pdf.sha256, bytes: rendered.pdf.bytes } : null, docx: rendered.docx ? { filename: rendered.docx.filename, sha256: rendered.docx.sha256, bytes: rendered.docx.bytes } : null, parseCheck: rendered.parseCheck ? rendered.parseCheck.status : null };
     if (aiBan) {
       return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version };
     }

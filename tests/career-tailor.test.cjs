@@ -39,7 +39,9 @@ test("SWE variant (most realised): skills block, projects with stack, audit pass
   assert.match(r.rendered.text, /SKILLS/);
   assert.match(r.rendered.text, /Kubernetes/); // evidenced by F-003
   assert.ok(!/\|.*\|/.test(r.rendered.text.split("\n").slice(3).join("\n")), "no table pipes in body");
-  assert.equal(r.rendered.pdf, null); // 62-agent-documents has no PDF renderer; honest null
+  assert.ok(r.rendered.pdf && r.rendered.pdf.filename === "Alex_Testcase_Resume.pdf", "CA-02: real PDF artifact (148-career-render), R8 filename");
+  assert.ok(r.rendered.docx && r.rendered.docx.base64, "CA-02: real DOCX artifact from the same JSON");
+  assert.equal(r.rendered.parseCheck.status, "PASS", JSON.stringify(r.rendered.parseCheck.reasons));
   assert.equal(r.version.jobId, "TEST-JOB-1");
 });
 

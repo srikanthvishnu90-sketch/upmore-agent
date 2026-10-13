@@ -71,6 +71,8 @@ const CareerPackets = (() => {
       coverLetterSkippedReason: portalAsksCover ? null : "portal does not ask for a cover letter — none generated (SC-086 rule)",
       voice: tailored.coverLetter ? voice : null,
       answerBank: cirT ? Tailor.buildAnswerBank(o.profile, o.jdText, cirT) : { ok: false, entries: [] },
+      // CA-02: the packet doorstep names the real document files.
+      document: tailored.rendered ? { filename: tailored.rendered.filename || null, pdf: tailored.rendered.pdf ? tailored.rendered.pdf.filename : null, docx: tailored.rendered.docx ? tailored.rendered.docx.filename : null, parseCheck: tailored.rendered.parseCheck ? tailored.rendered.parseCheck.status : null } : null,
       onePage: checkOnePage(tailored.rendered), ats: checkAts(tailored.rendered),
     };
   }
@@ -87,7 +89,11 @@ const CareerPackets = (() => {
     if (!rendered) return { ok: false, reason: "no render" };
     const standard = ["SKILLS", "EXPERIENCE", "PROJECTS", "EDUCATION", "LEADERSHIP"];
     const hasTableRows = rendered.text.split("\n").some((l) => /^\s*\|/.test(l) || /\|[-: ]+\|/.test(l));
-    return { ok: rendered.singleColumn === true && rendered.headings.every((h) => standard.includes(h)) && !hasTableRows && rendered.text.length > 50, singleColumn: rendered.singleColumn, headings: rendered.headings, textExtractable: rendered.text.length > 50, tables: hasTableRows, preferredFormat: "plain text (single column, standard headings)", pdf: rendered.pdf, pdfNote: rendered.pdfNote };
+    // CA-02: a parse-check FAIL (missing/extra content, placeholders,
+    // images, layout tables in the file) fails the ATS check too.
+    const pc = rendered.parseCheck || null;
+    const pcOk = !pc || pc.status !== "FAIL";
+    return { ok: rendered.singleColumn === true && rendered.headings.every((h) => standard.includes(h)) && !hasTableRows && rendered.text.length > 50 && pcOk, singleColumn: rendered.singleColumn, headings: rendered.headings, textExtractable: rendered.text.length > 50, tables: hasTableRows, preferredFormat: "PDF by default; DOCX where the portal requires it (Spec 3 R9) — both rendered from the same resume JSON and parse-checked (§2.5)", pdf: rendered.pdf, docx: rendered.docx || null, filename: rendered.filename || null, parseCheck: pc ? { status: pc.status, reasons: pc.reasons } : null, pdfNote: rendered.pdfNote };
   }
 
   // ---- SC-083: confirmation capture on a LOCAL test board (never a real employer) ----

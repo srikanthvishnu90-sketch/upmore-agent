@@ -18,6 +18,7 @@ const path = require("node:path");
 const Jobs = require("../packages/domain/121-career-jobs.js");
 const Profile = require("../packages/domain/122-career-profile.js");
 const Tailor = require("../packages/domain/123-career-tailor.js");
+const Render = require("../packages/domain/148-career-render.js");
 const Outreach = require("../packages/domain/124-career-outreach.js");
 const Apply = require("../packages/domain/132-career-apply.js");
 const { CASES, postingFor } = require("./fixtures/spec2-injection-corpus.cjs");
@@ -284,5 +285,39 @@ test("S2 §11(C) dedupe precision/recall on 300 labelled pairs", { skip: "needs 
 test("S2 §11(D) matching quality on 200 labelled pairs incl. authorization traps", { skip: "SUT not built: matcher stages 3-4 (semantic + LLM judge) are Codex-lane / post-wedge" }, () => {});
 test("S2 §11(F) sandbox apply suite (captcha hand-off, timeout -> needs_human, name-mismatch block)", { skip: "SUT not built: CA-03 portal driver (plan cites Spec 2 §6 as its spine); doorstep rules apply when built" }, () => {});
 test("S2 §11(H) load test: 5,000 companies on the poll schedule", { skip: "SUT not built: the polling worker (Spec 2 §8.1) is a [DECISION]-gated build (worker hosting)" }, () => {});
-test("S3 §13.2 parse tests: 50 resumes x DOCX/PDF x 2 parsers", { skip: "SUT not built: CA-02 renderer + parse-check (Spec 3 §2.5); text render exists in 123, files do not" }, () => {});
+test("S3 §13.2 parse tests: 50+ varied resumes x DOCX/PDF x 2 parsers — reading order + field capture (CA-02, Spec 3 §2.5)", () => {
+  // 8 fixture personas x 9 role families = 72 varied resumes. Each is
+  // rendered to PDF + DOCX from its source JSON and parse-checked with
+  // TWO independent parsers per format (in-repo pairs); every 6th resume
+  // is additionally cross-checked with the external open-source parsers
+  // (poppler pdftotext + python-docx) when they exist in the runtime.
+  const personaFiles = ["test-persona.json", "persona-biglaw.json", "persona-international-swe.json", "persona-mba-switcher.json", "persona-nontarget-freshman.json", "persona-premed.json", "persona-switcher-nurse.json", "persona-target-junior.json"];
+  const JDS = { swe: "Software Engineer. Required: Python, JavaScript, React, SQL, Git.", ib_finance: "Investment Banking Analyst. Required: Excel, Financial Modeling, Valuation.", consulting: "Consulting Analyst, strategy and client engagement. Required: Excel, PowerPoint.", quant: "Quant Trader. Required: Probability, Statistics, Python.", pm: "Product Manager. Required: user research, roadmap.", data_ml: "Data Scientist. Required: Python, Machine Learning, Statistics.", design: "Product Designer. Required: Figma, portfolio.", law: "Summer Associate at a law firm. Legal intern, law review, moot court.", medicine: "Medical school applicant. Clinical experience, patient care, MCAT, shadowing." };
+  let checked = 0, externalChecked = 0;
+  for (const pf of personaFiles) {
+    const prof = Profile.profileFromData(JSON.parse(fs.readFileSync(path.join(fixtureDir, pf), "utf8")));
+    for (const [fam, jd] of Object.entries(JDS)) {
+      const r = Tailor.tailorResume(prof, jd, { family: fam });
+      assert.equal(r.ok, true, `${pf} / ${fam}: ${JSON.stringify(r.violations || [])}`);
+      const pdf = Buffer.from(r.rendered.pdf.base64, "base64");
+      const docx = Buffer.from(r.rendered.docx.base64, "base64");
+      const pc = Render.parseCheck({ resume: r.resume, pdf, docx });
+      assert.equal(pc.status, "PASS", `${pf} / ${fam}: ${JSON.stringify(pc.reasons)}`);
+      assert.equal(pc.formats.pdf.parsers, 2); assert.equal(pc.formats.docx.parsers, 2);
+      // field capture: name + contact email + every heading recovered by both parsers
+      const aPdf = Render.extractPdfLines(pdf).join("\n"), aDocx = Render.extractDocxLines(docx).join("\n");
+      for (const text of [aPdf, aDocx]) {
+        assert.ok(text.includes(r.resume.header.name), `${pf} / ${fam}: name captured`);
+        assert.ok(text.toLowerCase().includes(String(r.resume.header.email).toLowerCase()), `${pf} / ${fam}: email captured`);
+      }
+      checked++;
+      if (checked % 6 === 0) {
+        const pcx = Render.parseCheck({ resume: r.resume, pdf, docx }, { useExternalParsers: true });
+        if (pcx.formats.pdf.parserB === "poppler pdftotext" && pcx.formats.docx.parserB === "python-docx") { assert.equal(pcx.status, "PASS", `${pf} / ${fam} external: ${JSON.stringify(pcx.reasons)}`); externalChecked++; }
+      }
+    }
+  }
+  assert.ok(checked >= 50, `§13.2 requires 50+ varied resumes; checked ${checked}`);
+  assert.ok(externalChecked >= 5, `external parser cross-checks ran (${externalChecked})`);
+});
 test("S3 §8B.4 healthcare credential rules (exact copy, PHI block on detection)", { skip: "SUT not built: no healthcare fact path exists; rule recorded in the CA-02 plan; family ships only after 3 sources + human reviewer" }, () => {});

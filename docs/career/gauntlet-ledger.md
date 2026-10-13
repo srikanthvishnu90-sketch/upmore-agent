@@ -2319,3 +2319,102 @@ no-secrets.test.cjs proves both directions: a real-shaped JWT assembled at
 runtime is still caught, and M-10's decoded message still decodes to a JWT
 the scanner catches. Full scan now 0 findings; the scan itself was not
 weakened (no pattern touched, no file allowlisted).
+
+## CA-02 BUILT — resume document rendering + parse-check (Lane B, 2026-10-13)
+
+Status: **built + proven at harness tier.** The CA-02 capability-absent entry's
+build side is satisfied; removing the entry itself awaits the owner's list
+version-bump plus the U03 / AP12 re-grades (their document legs are now
+unblocked — see below). No deploy, no send: artifacts are produced in-process
+by the harness exactly as 123/133 produce them.
+
+**What was built**
+- `packages/domain/148-career-render.js` (new): ONE resume JSON (the tailor's
+  assembled, truth-audited output) → PDF + DOCX + the existing text/markdown.
+  PDF is a hand-built text-based PDF 1.4 (Helvetica / Helvetica-Bold, real
+  selectable text, single column, deterministic bytes — no /ID, no dates).
+  DOCX is a hand-built OOXML package; its ZIP writer was audited from the
+  reverted `career/rq-docx` renderer (de0f634) and re-based as module 148
+  (141 is the doorstep module on this branch), with R6 sizes and the R8
+  filename fixed. Text pipeline only (Spec 3 §10.4) — never HTML-to-image.
+  Every rendered line is `line.text` from the source JSON; fact IDs and audit
+  metadata never enter the documents (asserted). A truth-audit-refused resume
+  renders NOTHING in any format (refusal propagates from 123 through 148).
+- Parse-check (Spec 3 §2.5) in the same module: extract text back with TWO
+  independent parsers per format (PDF: content-stream operator parser + raw
+  string scan, poppler pdftotext as the opt-in external second; DOCX: ZIP/
+  XML paragraph walk + run scan, python-docx as the opt-in external second),
+  diff reading order + content against the source JSON (PDF ground truth =
+  the renderer's deterministic layout lines), and check size, page count,
+  fonts, no images, no text frames/tables, heading allowlist, contact in
+  body, date regex. Verdict is PASS / WARN / FAIL with reasons — never a
+  numeric score (asserted: no score field exists).
+- Wiring (this lane's files only): 123 `render()` returns
+  `{ text, markdown, pdf, docx, filename, parseCheck }` — artifacts are
+  `{ filename, contentType, bytes, sha256, base64 }`; `format:"docx"|"pdf"`
+  selects one (R9; PDF is the default deliverable). The tailor version
+  record snapshots artifact filename + sha256 (§10.5). 133 `assemblePacket`
+  exposes `document { filename, pdf, docx, parseCheck }` for the doorstep,
+  and `checkAts` fails on a parse-check FAIL. 142 already passes
+  `rendered.pdf` through to the chat artifact untouched — proven by the
+  updated gauntlet R1 C11 test, which now decodes the artifact's base64 and
+  asserts real `%PDF-` bytes + matching sha256 (was: "pdf stays null").
+
+**Proof (fail-first: the render suite was written and run red against the
+pre-CA-02 tree before 148 existed)**
+- `tests/career-render.test.cjs`: 25/25 — one test per render rule R1–R11,
+  parse-check PASS/FAIL-missing/FAIL-extra/WARN-moved, placeholder FAIL
+  (R11), refusal renders nothing, determinism (byte-identical re-render),
+  §8D-1 allowed-rephrase traceability with the not-allowed additions
+  absent, external-parser agreement (poppler + python-docx).
+- Spec 3 §13.2 gate UN-SKIPPED in `tests/career-spec-gates.test.cjs`:
+  72 varied resumes (8 fixture personas x 9 role families) x DOCX/PDF x
+  2 parsers — reading order + field capture, 72/72 parse-check PASS;
+  external-parser cross-checks on a subset all PASS.
+- Defects found by the fail-first tests and fixed before landing:
+  (1) parse-check date regex missed the MM/YYYY form entirely (a numeric-
+  date resume graded PASS) — regex set rebuilt, R7 test is the replay;
+  (2) 123's audit-refusal return carried no `rendered` field at all —
+  now explicitly `rendered: null`;
+  (3) parser-agreement diff treated poppler's punctuation spacing
+  (", ," vs ",,") as a content disagreement — normalisation now drops
+  spaces adjacent to punctuation (word spaces preserved).
+- External byte verification on the IB/finance sample: PDF 1,730 bytes,
+  1 page, Letter, `pdfinfo`/`pdftotext` clean; DOCX 2,449 bytes,
+  `unzip -t` clean, python-docx opens it (23 paragraphs).
+- Full surface after this build: 3,183 tests / 3,153 pass / 7 fail /
+  23 skipped. Of the 7: SC-277 + SC-286 + SC-287 are the standing
+  Codex-lane defect replays (pre-existing); no-secrets is the standing
+  fixture-JWT item (Lane A fixing in-tree); the other 3 were CA-02
+  contract fallout FIXED in this commit (gauntlet-r1 C11 assertion,
+  mutation-coverage regeneration accounting 148 as a named gap) —
+  re-run of the fixed files: 39/39 pass. Router bundle rebuilt (108
+  modules, 148 included); bundle check green.
+
+**Scenarios unblocked**
+- SC-102 (ATS-safe render): scenario script rewritten to the built reality
+  and runs clean — COMPLETE at harness tier.
+- U03 + AP12 (the CA-02 plan's exit pair): their recorded blocker was the
+  missing document deliverable (U03: "text artifact, no document filename,
+  no PDF"; AP12: no DOCX route). The SUT now exists; both are ready for
+  re-grade by the gauntlet lane. Not claimed PASS here — re-grades are
+  Lane A's runs.
+- Any 300-set ask of the form "give me the resume as a PDF/DOCX" now has
+  a real render leg behind 123/133; chat surfacing already flows through
+  142's artifact passthrough (C11-proven).
+
+**Honest limits**
+- PDF text is WinAnsi: characters outside it render as '?' and are
+  reported on the render result (`unencodable`) — never silently dropped.
+- PDF line wrap uses a conservative Helvetica width estimate (visual
+  only; extraction is verbatim, so parse fidelity does not depend on it).
+- DOCX bullets use the plain '•' glyph in a ListBullet paragraph (no
+  numbering.xml) — R5-compliant and parser-stable.
+- Data wart flagged for the profile lane, NOT fixed here: the
+  international-SWE fixture's skills line assembles to ", , " (empty
+  skill names upstream of the renderer). The renderer renders the source
+  faithfully and the parse-check PASSes it (file == source); whether an
+  empty-name skill should reach the line is a 122/123 selection question.
+- Deployed path unchanged: there is still no deployed career agent
+  (CA-08); in the Deno bundle 148 is included, but a runtime without
+  Node zlib gets 123's honest fallback note instead of artifacts.

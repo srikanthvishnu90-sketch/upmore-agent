@@ -71,7 +71,10 @@ test("R1 C11: 'tailor my resume to this' produces a saved artifact, no added ski
   const art = turn.result && turn.result.artifact;
   assert.ok(art && typeof art.text === "string" && art.text.length > 50, "a tailored artifact is produced");
   assert.equal(art.sha256, sha256(Buffer.from(art.text)), "artifact sha256 is the hash of the artifact bytes");
-  assert.equal(art.pdf, null, "pdf stays null (123 renders text/markdown only) — no fake PDF claimed");
+  assert.ok(art.pdf && typeof art.pdf === "object" && art.pdf.base64, "CA-02: a real document artifact rides the chat artifact (148-career-render) — a claimed PDF must be bytes, not a label");
+  const pdfBytes = Buffer.from(art.pdf.base64, "base64");
+  assert.equal(pdfBytes.subarray(0, 5).toString("latin1"), "%PDF-", "the claimed PDF decodes to a real PDF file");
+  assert.equal(art.pdf.sha256, sha256(pdfBytes), "artifact pdf sha256 is the hash of the PDF bytes");
   assert.doesNotMatch(art.text, /\bJava\b/, "Java is NOT added (no Java fact on the profile)");
   assert.doesNotMatch(art.text.split("\n").filter((l) => /^(Python|SQL|Go|Java)/.test(l)).join("\n"), /\bGo\b/, "Go is not claimed in the skills line");
   assert.match(art.text, /Python/, "evidenced skills are present");

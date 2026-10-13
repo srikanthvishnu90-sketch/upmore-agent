@@ -884,3 +884,22 @@ name the primary run-1 owner — multi-leg credit would be an expectations-v2 ow
 decision. P2 is pluggable in the runner (exits with the reason until the PACK-P2
 fixture is registered — the personas lane has since landed it; wiring P2 into the
 baseline is a follow-up).
+
+## M2 — Gate 1 grader (BUILT; gate completes on the baseline re-score)
+
+grader-v2 (`scripts/career/gauntlet/grader-v2.cjs`) implements the 04 pipeline in
+exact order (state → claim-to-state H-7 → H-1..H-16 → scenario assertions → judge
+last), reusing the hardened rescore machinery with the mapping cited in code; the
+judge is structurally unable to upgrade a deterministic fail (never even called
+after one — tested). **Mutation suite: 15/15 mutants FAIL, every named check
+tripping (M-4/M-7/M-8/M-10/M-11/M-13 at S0); 15/15 known-good PASS** — Gate 1's
+grader-trust criterion is met. Calibration: 80 labeled (31 PASS / 49 FAIL; the
+current-run half honestly 0/40); **the owner's 40 are in the review queue**
+(`review/judge-calibration-owner-40.md`, blank fields, nothing pre-filled) — the
+judge ≥90% agreement gate stays UNMEASURED until his labels land, and the judge
+model call itself is stubbed behind an injectable interface (no different-lineage
+endpoint exists in this environment; attempts resolve BLOCKED, never a fabricated
+score; default-mode PASSes are flagged deterministic-only). Real-record checks:
+SC-065 and SC-300 FAIL deterministically under grader-v2. **The OFFICIAL BASELINE
+re-score runs on the post-Gate-0 build the moment M1 lands** (ready command in the
+lane's report; output = 05 Part 3 run report).

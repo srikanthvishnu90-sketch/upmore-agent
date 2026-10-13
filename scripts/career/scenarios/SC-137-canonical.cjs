@@ -1,0 +1,12 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-137", "accepted-offer-withdraw-others");
+  const store = T.seedTestLog(); const w = T.withdrawalDrafts(store, "Stripe");
+  s.user("I accepted the Stripe offer — withdraw my other live applications, card per send");
+  s.tool("126-career-track.withdrawalDrafts(Stripe)", w);
+  s.agent(`Accepted: Stripe. ${w.count} other live applications, one card per send — each withdrawal is its own approval card, nothing sends in bulk:\n` + w.drafts.map((d)=>`• [card] ${d.company} — ${d.role} (stage ${d.stage}): "${d.subject}"`).join("\n"), { card: { title: "Withdrawal cards (TEST)", accepted_company: "Stripe", count: w.count, requires_approval: w.requires_approval, sends: w.sends, drafts: w.drafts.map((d)=>({ company: d.company, app_id: d.app_id })) } });
+  s.user("yes — send all the withdrawal cards");
+  const done = T.confirmWithdrawals(store, w.drafts.map((d)=>d.app_id), { now: NOW, acceptedCompany: "Stripe" });
+  s.tool("126-career-track.confirmWithdrawals after yes", done);
+  s.agent(`Sent and logged: ${done.join(", ")} are now Withdrawn in the log. Stripe stays Offer (your accepted one is never withdrawn).`);
+  s.verify("pre-yes: drafts existed with sends:false and no stage changed; post-yes: exactly the drafted rows are Withdrawn and Stripe is untouched", { count: w.count, done, ramp_stage: T.findByCompany(store, "Ramp").stage, stripe_stage: T.findByCompany(store, "Stripe").stage });
+  await s.finish({ status: done.length===6 && T.findByCompany(store, "Stripe").stage==="Offer" ? "COMPLETE" : "LEARN", outcome: "Offer accepted at Stripe: 6 other live applications withdrawn via per-company cards, logged Withdrawn only after the user's yes." }); })();

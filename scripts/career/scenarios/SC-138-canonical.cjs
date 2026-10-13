@@ -1,0 +1,12 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-138", "manual-update-ramp-interview");
+  s.user("I got an interview at Ramp");
+  const store = T.seedTestLog(); const r = T.manualUpdate(store, "Ramp", "Interview rounds", { now: NOW, detail: "user reported: I got an interview at Ramp" });
+  s.tool("126-career-track.manualUpdate(Ramp, Interview rounds)", { ok: r.ok, stage: r.application && r.application.stage });
+  const brief = P.composeBrief({ cir: cir("ramp.json"), company: "Ramp", role: "Software Engineering Intern" });
+  s.tool("127-career-prep.composeBrief(Ramp) — prep triggered", { status: brief.status });
+  const st = T.statusByCompany(store, "Ramp", { now: NOW });
+  s.agent(`Logged: Ramp → Interview rounds, marked as reported by you (not from the inbox). Prep triggered — a Ramp brief is grounded in the CIR on file (status ${brief.status}) and your Ramp status now reads: stage ${st.stage}, last signal ${st.last_signal.type} (${st.last_signal.source}).`, { card: { title: "Manual update logged (TEST)", company: "Ramp", stage: st.stage, last_signal: st.last_signal, prep_brief_status: brief.status } });
+  const ev = T.findByCompany(store, "Ramp").events.at(-1);
+  s.verify("log row moved, event source is 'user-reported', status answer reflects it, prep brief produced for Ramp", { stage: st.stage, event_source: ev.source, event_type: ev.type, brief_status: brief.status });
+  await s.finish({ status: r.ok && ev.source==="user-reported" ? "COMPLETE" : "LEARN", outcome: "Manual chat update 'I got an interview at Ramp' logged as user-reported, Ramp at Interview rounds, prep brief triggered." }); })();

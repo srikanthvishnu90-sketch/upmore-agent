@@ -1,0 +1,12 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-139", "thirty-days-silent-ghosted");
+  const store = T.createMemoryStore([]); T.addApplication(store, { company: "FinalCo (TEST)", role: "Software Engineering Intern", role_family: "SWE", applied_at: "2026-09-01T12:00:00Z", resume_version: "swe-v2", stage: "Final" }, { now: NOW });
+  T.findByCompany(store, "FinalCo (TEST)").events.push({ type: "interview", at: "2026-09-12T12:00:00Z", source: "seed", detail: "final round (TEST)" });
+  s.user("FinalCo has been silent since my final round on Sep 12 — that's 30 days. What now?");
+  const q = T.quietReport(store, { now: NOW }); s.tool("126-career-track.quietReport (Final stage)", q);
+  const marked = T.markGhosted(store, { now: NOW }); const g = T.ghostedOptions(store, "FinalCo (TEST)", { now: NOW });
+  s.tool("126-career-track.markGhosted+ghostedOptions", { marked, g });
+  s.agent(`Labeled honestly: Ghosted — ${g.days_quiet} days silent after your final round, now marked in the log. Your options:\n` + g.options.map((o,i)=>`${i+1}. ${o}`).join("\n"), { card: { title: "Ghosted — options (TEST)", company: g.company, label: g.label, days_quiet: g.days_quiet, options: g.options } });
+  const app = T.findByCompany(store, "FinalCo (TEST)");
+  s.verify("Final-stage row is covered by the quiet rule at exactly 30 days, stage moved to Ghosted by markGhosted, options produced from module state", { days_quiet: g.days_quiet, stage: app.stage, options: g.options.length });
+  await s.finish({ status: app.stage==="Ghosted" && g.days_quiet===30 ? "COMPLETE" : "LEARN", outcome: "Thirty days silent after a final round (TEST fixture): labeled Ghosted in the log, three concrete options given." }); })();

@@ -1,0 +1,10 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-122", "confirmation-email-moves-tracker");
+  const store = T.createMemoryStore([]); T.addApplication(store, { company: "Ramp", role: "Software Engineering Intern", role_family: "SWE", applied_at: "2026-10-02T12:00:00Z", resume_version: "swe-v2", source: "cold", stage: "Submitted" }, { now: NOW });
+  s.user("[TEST inbox event] A confirmation email from Ramp just landed in Gmail");
+  const r = T.ingestMessage(store, msg("TEST-msg-confirm-ramp"), { now: NOW });
+  s.tool("126-career-track.ingestMessage(confirmation)", r);
+  const app = T.findByCompany(store, "Ramp");
+  s.agent(`Texting you: ${r.alert.text} The tracker moved itself — Ramp: Submitted → ${app.stage}, from the inbox message, no action needed from you.`, { card: { title: "Tracker update (TEST)", company: "Ramp", stage_after: app.stage, evidence: app.events.at(-1).evidence, alert: r.alert } });
+  s.verify("stage moved by the ingest itself, event sourced 'inbox' with the message id as evidence, alert record produced", { moved: r.moved, stage: app.stage, source: app.events.at(-1).source, evidence: app.events.at(-1).evidence });
+  await s.finish({ status: r.moved && app.stage==="Confirmed" ? "COMPLETE" : "LEARN", outcome: "Confirmation email landed (TEST fixture): tracker moved Ramp to Confirmed on its own and an alert/text record was produced." }); })();

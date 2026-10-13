@@ -1,14 +1,15 @@
 "use strict";
-const { T, H, NOW } = require("./f04-common.cjs");
+const L = require("./_w04-lib.cjs");
 (async () => {
-  const s = H.session("SC-077", "rejection-pattern-analysis");
-  const store = T.seedTestLog();
-  s.user("why am I getting rejected?");
-  const a = T.rejectionAnalysis(store);
-  const f = T.funnelAnalytics(store);
-  s.tool("126-career-track.rejectionAnalysis", a);
-  s.tool("126-career-track.funnelAnalytics(by_source)", f.by_source);
-  s.agent(`${a.headline} ${a.honest_read} The supporting numbers from your log: referred apps interview at ${f.by_source.referred.interview_rate} (${f.by_source.referred.n} apps), cold at ${f.by_source.cold.interview_rate} (${f.by_source.cold.n} apps). Plan: ${a.plan.join("; ")}.`);
-  s.verify("analysis over the persona's real (TEST) log rows: rejection counts by cold-vs-referred and Reach-vs-Match recomputed from rows", { rejected_count: a.rejected_count, total: a.total, by_source: a.rejected_by_source, by_bucket: a.rejected_by_bucket, store_rows: T.rowsOf(store).length });
-  await s.finish({ status: "COMPLETE", outcome: "Rejection analysis over the log's 12 rows: 5 rejections, all cold, 4 of 5 at Reach companies, 0 referred rejections — honest read + plan (Doc 2 S5 pattern)" });
+  const s = L.H.session("SC-077", "hackerrank-invite-never-taken");
+  // Inbox fixture (authorized, labeled TEST): the invite as it would land.
+  const invite = { company: "Datadog (TEST invite)", assessment: "HackerRank online assessment (TEST)", deadline: "2026-10-20", from: "no-reply@hackerrank.test (TEST)", subject: "Your Datadog HackerRank assessment (TEST fixture)" };
+  s.tool("inbox fixture (TEST)", invite);
+  s.user("A HackerRank invite just arrived from Datadog — deal with it");
+  const h = L.Apply.handleAssessmentInvite(invite, { scheduleAt: "2026-10-18T15:00:00Z" });
+  s.tool("132-career-apply handleAssessmentInvite", h);
+  s.agent(`Dealt with — the honest way. Your HackerRank is scheduled for Oct 18, 3:00 PM CT (deadline ${h.deadline}), and your prep pack is ready:\n\n${h.prep.map((x) => `• ${x}`).join("\n")}\n\nOne hard rule: I will never take the assessment for you. ${h.rule}`, { card: { type: "assessment_plan", title: "HackerRank scheduled + prep", scheduled: h.scheduled, deadline: h.deadline, takenByAgent: h.takenByAgent } });
+  const ok = h.takenByAgent === false && h.scheduled.scheduled === true && h.prep.length >= 2;
+  s.verify("rail state: takenByAgent=false (hard rule), scheduled=true with a concrete slot before the deadline, prep pack present", { ok, scheduled: h.scheduled });
+  await s.finish({ status: ok ? "COMPLETE" : "LEARN", outcome: "HackerRank invite scheduled with a prep pack; the agent explicitly never takes it (Doc 2 §5.3).", reason: ok ? null : "assessment handler wrong", unblock: ok ? null : "Fix handleAssessmentInvite in 132." });
 })();

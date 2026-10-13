@@ -1,12 +1,14 @@
 "use strict";
-const { T, H, NOW } = require("./f04-common.cjs");
+const L = require("./_w04-lib.cjs");
 (async () => {
-  const s = H.session("SC-074", "reapply-cooldown-respected");
-  const store = T.seedTestLog();
-  s.user("reapply to that Goldman role");
-  const r = T.reapplyCheck(store, "Goldman Sachs", { now: NOW });
-  s.tool("126-career-track.reapplyCheck", r);
-  s.agent(`I can't reapply yet. Your log shows the Goldman Sachs rejection on 2026-10-05. Under the ${r.cooldown_days}-day cooldown the reopen date is ${r.reopen_date}. Honest gap: no CIR in the repo carries a cooldown field and there is no Goldman CIR at all, so that 180 days is a labeled default policy, not a Goldman-published rule.`);
-  s.verify("refusal and reopen date computed from the log's rejection event date + the labeled default policy", { allowed: r.allowed, reopen_date: r.reopen_date, rejection_event: T.findByCompany(store, "Goldman Sachs").events.filter((e) => e.type === "rejection") });
-  await s.finish({ status: "LEARN", outcome: "Reapply correctly refused with reopen date 2027-04-03 computed from the log, but the cooldown length is a default policy — no CIR cooldown data exists to source it from", reason: "CIR records (15 companies) contain no cooldown field and no Goldman Sachs CIR exists, so the firm-specific cooldown the ledger row implies cannot be verified from CIR data", unblock: "Add cooldown_days (with source) to the CIR schema / a Goldman Sachs CIR record; the module will then read the firm rule instead of the labeled 180-day default" });
+  const s = L.H.session("SC-074", "eeo-decline-default-shown");
+  s.user("The form has EEO questions (gender, race, veteran status) — handle them");
+  const p = L.persona();
+  const saved = L.Apply.savedAnswerFor(p, "eeo");
+  const seam = L.Apply.confirmSensitive(p, "Gender / race / veteran status (EEO self-identification)");
+  s.tool("132-career-apply EEO seam", { savedDefault: saved, seam });
+  s.agent(`These are EEO self-identification fields. Your saved default — shown to you now, exactly as stored — is: '${saved}'. That is what will be entered for each EEO field: gender → ${saved}; race/ethnicity → ${saved}; veteran status → ${saved}. I never guess a demographic answer and never change this default without you. Say the word if you want a different answer stored.`, { card: { type: "eeo_default", title: "EEO fields — your saved default", default: saved, fields: ["gender", "race/ethnicity", "veteran status", "disability status"] } });
+  const ok = saved === "decline to answer" && seam.kind === "eeo" && seam.savedAnswer === saved;
+  s.verify("the value the form gets is the profile's own saved demographicPreference ('decline to answer' on the canonical persona's defaults), surfaced to the user before use", { saved, seamKind: seam.kind, ok });
+  await s.finish({ status: ok ? "COMPLETE" : "LEARN", outcome: "EEO fields take the saved 'decline to answer' default, shown to the user verbatim before use.", reason: ok ? null : "saved EEO default missing or mismatched", unblock: ok ? null : "Fix savedAnswerFor(eeo) in 132 / persona defaults." });
 })();

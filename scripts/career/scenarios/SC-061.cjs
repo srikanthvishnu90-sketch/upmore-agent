@@ -1,13 +1,23 @@
 "use strict";
-const { T, H, NOW } = require("./f04-common.cjs");
+const L = require("./_w04-lib.cjs");
 (async () => {
-  const s = H.session("SC-061", "status-of-everything");
-  const store = T.seedTestLog();
-  s.user("where do I stand with my applications?");
-  const sum = T.statusSummary(store, { now: NOW });
-  s.tool("126-career-track.statusSummary", sum);
-  const lines = sum.applications.map((a) => `${a.company}: ${a.stage} (applied ${a.applied_at.slice(0, 10)}, ${a.days_since_applied}d ago, resume ${a.resume_version}, ${a.source})`);
-  s.agent(`From your application log — ${sum.total} applications, ${sum.open} still open:\n` + lines.join("\n"));
-  s.verify("status answer computed from the log's rows: total, by-stage counts, and per-app stage all read back from the store", { total: sum.total, by_stage: sum.by_stage, open: sum.open, store_rows: T.rowsOf(store).length, stages_match_store: sum.applications.every((a) => T.findByCompany(store, a.company).stage === a.stage) });
-  await s.finish({ status: "COMPLETE", outcome: "Status answer computed from the 12-row TEST log (7 open, 5 rejected, 1 offer) — every stage read from the store, not chat memory" });
+  const s = L.H.session("SC-061", "adjust-resume-and-auto-apply");
+  s.user("Adjust my resume and auto apply");
+  // Locked decision: auto-apply runs ONLY under an approved rule / batch card.
+  const postings = await L.feedMany(L.STARRED_FEEDS);
+  const candidates = postings.filter((p) => /engineer/i.test(p.title) && /intern|new grad/i.test(p.title)).slice(0, 4);
+  const scoring = L.scoringProfile();
+  const items = candidates.map((post) => { const t = L.Tailor.tailorResume(L.persona(), post.jd_text, { jobId: post.job_id, company: post.company }); const f = L.Jobs.scoreFit(post, scoring); return { company: post.company, role: post.title, fit: f.excluded ? null : f.score, resumeVersion: t.ok ? t.version.versionId : null, posting: post, auditOk: t.ok }; });
+  const log = L.Apply.createLog();
+  const card = L.Apply.batchCard(items, { title: "Auto-apply batch — your approval runs it" });
+  s.agent(`Here's how "auto apply" works under your locked rules: I tailor your resume per role (truth audit on every version), and applications run only under a rule or batch card you approved — never silently. These ${items.length} roles are tailored and ready:`, { card });
+  s.agent("Approve this batch and it runs; or set a standing rule (like SC-078's) and matching roles run under it with a nightly summary. Nothing has been submitted yet.");
+  const beforeYes = log.records.length;
+  s.user("yes — run this batch");
+  const recs = items.map((i) => L.Apply.buildAuditRecord(log, { jobId: i.posting.job_id, company: i.company, role: i.role, url: i.posting.url, timestamp: "2026-10-13T09:00:00Z", resumeVersionId: i.resumeVersion, status: "submitted under user-approved batch card (TEST record)", channel: "batch-card" }));
+  s.tool("132-career-apply records after approval", recs.map((r) => r.applicationId));
+  s.agent(`Ran the batch: ${recs.length} applications recorded, each with its own tailored resume version and audit record.`);
+  const ok = items.length >= 1 && items.every((i) => i.auditOk) && beforeYes === 0 && log.records.length === items.length;
+  s.verify("every role tailored per-role with audit passing BEFORE the card; zero records before the yes; one audit record per role after it; no silent autopilot anywhere in the flow", { beforeYes, afterYes: log.records.length, auditOk: items.map((i) => i.auditOk) });
+  await s.finish({ status: ok ? "COMPLETE" : "LEARN", outcome: `"Adjust my resume and auto apply" ran the locked way: per-role tailoring + approved batch card, ${recs.length} applications recorded, no silent autopilot.`, reason: ok ? null : "flow invariant broken — see verification", unblock: ok ? null : "See tool records." });
 })();

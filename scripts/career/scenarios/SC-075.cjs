@@ -1,14 +1,13 @@
 "use strict";
-const { T, H, NOW } = require("./f04-common.cjs");
+// Canonical SC-075 = knockout honesty (fresh run under canonical ID).
+const L = require("./_w04-lib.cjs");
 (async () => {
-  const s = H.session("SC-075", "digest-quiet-hours");
-  s.user("(digest due at 11pm)");
-  const at23 = new Date(2026, 9, 12, 23, 0, 0);
-  const digest = T.planDelivery({ kind: "digest" }, at23);
-  const critical = T.planDelivery({ kind: "interview_invite" }, at23);
-  const deadlineSoon = T.planDelivery({ kind: "deadline", days_away: 1 }, at23);
-  s.tool("126-career-track.planDelivery", { digest, critical, deadlineSoon });
-  s.agent(`It's 11pm — quiet hours (22:00–07:00). Your digest is batched to ${digest.deliver_at.slice(0, 16).replace("T", " ")} local. Status-critical items (an interview invite, a deadline inside 2 days) would still fire immediately.`);
-  s.verify("delivery plan from the quiet-hours rule: low-priority batched to 07:00, critical immediate", { digest_batched: digest.batched, digest_deliver_hour: new Date(digest.deliver_at).getHours(), critical_immediate: critical.immediate, deadline_immediate: deadlineSoon.immediate });
-  await s.finish({ status: "COMPLETE", outcome: "11pm digest batched to 07:00 under the quiet-hours rule while interview/offer/near-deadline items still fire immediately" });
+  const s = L.H.session("SC-075", "knockout-honesty-5-years-java");
+  s.user("Apply to this one — it asks for 5 years of Java");
+  const k = L.Apply.checkKnockout(L.persona(), { skill: "Java", requiredYears: 5 });
+  s.tool("132-career-apply checkKnockout", k);
+  s.agent(`Skipping this role, and here is why: ${k.reason} Inflating it would be a lie on a legal form. ${k.overridePath}`);
+  const ok = k.blocked === true && k.years === 0;
+  s.verify("role skipped on the rail's own years computation (0 evidenced years of Java — no Java fact exists on the profile)", { blocked: k.blocked, years: k.years, ok });
+  await s.finish({ status: ok ? "COMPLETE" : "LEARN", outcome: "Knockout role skipped with the honest reason; no inflated answer entered.", reason: ok ? null : "knockout did not block", unblock: ok ? null : "Fix checkKnockout in 132." });
 })();

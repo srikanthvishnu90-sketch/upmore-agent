@@ -73,7 +73,7 @@ const CareerApply = (() => {
 
   // ---------- duplicate protection (APPE-008) ----------
   function checkDuplicate(log, posting) {
-    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role, jobId: posting.job_id || posting.jobId });
+    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role });
     const prior = hits.find((r) => r.jobId === (posting.job_id || posting.jobId)) || hits[0] || null;
     return prior ? { duplicate: true, prior, reason: `already applied to ${prior.company} — ${prior.role} on ${prior.timestamp ? String(prior.timestamp).slice(0, 10) : "an earlier date"} (${prior.applicationId})` } : { duplicate: false, prior: null };
   }
@@ -217,6 +217,102 @@ const CareerApply = (() => {
     return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
   }
 
-  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard };
+  // ---------- assessment invites (Doc 2 §5.3: NEVER taken for the user) ----------
+  function handleAssessmentInvite(invite, opts) {
+    const o = opts || {};
+    return {
+      company: invite.company || null, assessment: invite.assessment || "online assessment",
+      deadline: invite.deadline || null,
+      scheduled: { scheduled: true, at: o.scheduleAt || invite.deadline || null, reminder: "prep pack ready before the deadline" },
+      prep: ["Timed practice in the assessment's stated format (your own work — practice only)", "Review the profile facts this role was tailored from, so your stories match your resume", "Logistics check: quiet room, charged laptop, deadline in your timezone"],
+      takenByAgent: false,
+      rule: "The agent schedules and preps but NEVER takes an assessment for the user (Doc 2 §5.3) — taking it would be dishonest and gets candidates banned.",
+    };
+  }
+
+  // ---------- duplicate protection via inbox (T-37, SC-079) ----------
+  // ATS confirmation emails are evidence of a manual application. Parse the
+  // injected inbox fixture/mail rows ({from, subject, date}) for application
+  // confirmations and reconcile them into the log so a later apply attempt is
+  // refused as a duplicate even when the agent never submitted it.
+  function parseInboxConfirmations(emails) {
+    const out = [];
+    for (const e of emails || []) {
+      const text = `${e.from || ""} ${e.subject || ""}`;
+      if (!/application (received|confirmation|submitted)|thanks for applying|your application (to|for|was)/i.test(text) && !/application/i.test(e.subject || "")) continue;
+      const m = String(e.subject || "").match(/application (?:to|for|received:?)\s*(.+?)(?:\s*[-–|]|$)/i) || String(e.subject || "").match(/your application (?:to|for)\s*(.+?)(?:\s*[-–|]|$)/i);
+      out.push({ company: e.company || (m ? m[1].trim() : null), role: e.role || null, date: e.date || null, source: "inbox-confirmation", subject: e.subject || null });
+    }
+    return out.filter((x) => x.company);
+  }
+  function reconcileInbox(log, emails) {
+    const confs = parseInboxConfirmations(emails);
+    const added = [];
+    for (const c of confs) {
+      if (findApplications(log, { company: c.company }).length) continue;
+      added.push(buildAuditRecord(log, { company: c.company, role: c.role || "role per confirmation email", timestamp: c.date ? `${String(c.date).slice(0, 10)}T09:00:00Z` : null, status: "confirmed via inbox (manual application detected)", channel: "inbox-reconciliation" }));
+    }
+    return { confirmations: confs, added };
+  }
+
+  // ---------- reapply cooldown sentinel (T-37, SC-080) ----------
+  // cooldownDays comes from the company's record (CIR mechanics / fixture);
+  // the lift date is computed, never guessed.
+  function checkCooldown(record, todayStr) {
+    if (!record || !record.lastApplied || !record.cooldownDays) return { active: false, reason: "no cooldown record for this company" };
+    const lift = new Date(Date.parse(`${String(record.lastApplied).slice(0, 10)}T00:00:00Z`) + record.cooldownDays * 86400000);
+    const liftStr = lift.toISOString().slice(0, 10);
+    const active = todayStr < liftStr;
+    return { active, company: record.company, lastApplied: String(record.lastApplied).slice(0, 10), cooldownDays: record.cooldownDays, liftsOn: liftStr, reason: active ? `reapply cooldown at ${record.company}: last applied ${String(record.lastApplied).slice(0, 10)}, ${record.cooldownDays}-day cooldown lifts ${liftStr}` : `cooldown lifted on ${liftStr}` };
+  }
+
+  // ---------- approved autopilot rule (SC-078, LOCKED decision shape) ----------
+  // Applications may run without a per-batch card ONLY under a rule the user
+  // explicitly approved, with caps, and a nightly summary. There is no silent
+  // mode: a rule that was not approved does not exist, the rule's own daily
+  // cap can only lower the hard 15/day cap, and every run is summarised.
+  function createRule(spec, opts) {
+    const o = opts || {};
+    if (o.approvedByUser !== true) return { ok: false, refused: true, reason: "an autopilot rule activates only on the user's explicit approval — there is no silent autopilot (locked decision)" };
+    const s = spec || {};
+    return { ok: true, rule: { minFit: typeof s.minFit === "number" ? s.minFit : 80, companies: (s.companies || []).slice(), maxPerDay: Math.min(typeof s.maxPerDay === "number" ? s.maxPerDay : 10, DAILY_CAP), excludeBuckets: (s.excludeBuckets || ["Reach"]).slice(), approvedByUser: true, nightlySummary: true } };
+  }
+  function evaluateRule(rule, postings, ctx) {
+    const c = ctx || {};
+    const Jobs = require("./121-career-jobs.js");
+    const today = c.date || "2026-10-12";
+    const already = applicationsOn(c.log, today);
+    const capToday = Math.max(0, Math.min(rule.maxPerDay, DAILY_CAP) - already);
+    const applied = [], skipped = [];
+    for (const p of postings || []) {
+      if (applied.length >= capToday) { skipped.push({ company: p.company, role: p.title, reason: `rule cap reached (${rule.maxPerDay}/day)` }); continue; }
+      if (rule.companies.length && !rule.companies.some((x) => norm(x) === norm(p.company))) { skipped.push({ company: p.company, role: p.title, reason: "company not in the rule's list" }); continue; }
+      const fit = Jobs.scoreFit(p, c.scoringProfile);
+      if (fit.excluded) { skipped.push({ company: p.company, role: p.title, reason: `hard filter: ${fit.hard_fails[0]}` }); continue; }
+      if (fit.score < rule.minFit) { skipped.push({ company: p.company, role: p.title, reason: `fit ${fit.score} < rule minimum ${rule.minFit}` }); continue; }
+      if (rule.excludeBuckets.includes(fit.bucket)) { skipped.push({ company: p.company, role: p.title, reason: `bucket ${fit.bucket} is excluded by the rule` }); continue; }
+      const dup = checkDuplicate(c.log, p);
+      if (dup.duplicate) { skipped.push({ company: p.company, role: p.title, reason: dup.reason }); continue; }
+      applied.push(buildAuditRecord(c.log, { jobId: p.job_id, company: p.company, role: p.title, url: p.url, timestamp: `${today}T18:00:00Z`, resumeVersionId: c.resumeVersionId || null, status: "submitted under approved autopilot rule (TEST record)", channel: "autopilot-rule" }));
+    }
+    return { applied, skipped, capToday };
+  }
+  function nightlySummary(log, dateStr) {
+    const todays = (log.records || []).filter((r) => r.timestamp && String(r.timestamp).slice(0, 10) === dateStr);
+    return { date: dateStr, submitted: todays.length, byCompany: todays.reduce((a, r) => { a[r.company] = (a[r.company] || 0) + 1; return a; }, {}), records: todays.map((r) => r.applicationId), text: `${todays.length} application(s) submitted under your approved rule on ${dateStr}: ${todays.map((r) => `${r.company} — ${r.role}`).join("; ") || "none"}.` };
+  }
+
+  // ---------- recruiting-window sweep (SC-067) ----------
+  // Window registry rows are passed in (CIR mechanics / labeled fixture):
+  // {company, program, classYears:[2028], opensOn, closesOn, status}.
+  function checkWindows(registry, gradYear, todayStr) {
+    return (registry || []).map((w) => {
+      const forClass = (w.classYears || []).includes(gradYear);
+      const open = forClass && w.opensOn <= todayStr && todayStr <= w.closesOn;
+      return { company: w.company, program: w.program, forYourClass: forClass, open, opensOn: w.opensOn, closesOn: w.closesOn, note: !forClass ? `not a class-of-${gradYear} program` : open ? `open now — closes ${w.closesOn}` : todayStr < w.opensOn ? `opens ${w.opensOn}` : `closed on ${w.closesOn}` };
+    });
+  }
+
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;

@@ -2014,3 +2014,209 @@ Per-scenario (bucket · sub-class · observed intent → expected tool · tags):
 - SC-299 · a · fallback-intent · intent=career_fallback → 139-career-safety
 - SC-300 · c · queue-state-seam · intent=queue_halt → 139-career-safety · wedge, S0
 
+
+## LANE A → CODEX DEFECT BRIEFS (2026-10-13, from the census)
+
+Totals reconcile to 295: 227 (A1 contained-no-intent) + 39 (A2 fallback-intent) + 24 (A3 wrong-intent `career_discovery`) + 4 (A4 non-discovery wrong-intents: SC-287 `connect_browser_source`, SC-277 `career_internship_discovery`, SC-062 `tailor_needs_posting`, SC-111 `career_packet`) + 1 (A5 SC-286 module-120-no-typed-result) = 295. Wrong-intent total = 28 = 24 + 4. Brief A6 (SC-065 chaining leg) is NOT counted in the 295: SC-065 is classified (c) `doorstep-gap-after-route` in the census because its first intent was acceptable; A6 briefs only its Codex chaining leg.
+
+Verification: every count in this section was computed with a python3 script (not hand-counted) replicating `scripts/career/gauntlet/census-300.cjs` classification over the corrected index (`~/workspace/your_files/upmore-career-300-grader-v2-index-corrected.json`), each scenario's `record.json` (`final_state{handler,intent,result_status,contained}`, `canonical_ask`, `delivered_messages`), and `scripts/career/gauntlet/routing-expectations.json` (`expected_tool`). All quoted asks and replies below are verbatim from the records.
+
+### BRIEF A1 — contained-no-intent (227)
+
+Pattern: containment answered; no handler owned the turn. In all 227 records `final_state` is `handler=null`, `intent=null`, `result_status=null`, `contained=true`, and the delivered reply is the single containment bubble (the identical text in every A1 record checked):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Counts by expected_tool (verified, sum = 227):
+
+| Expected tool | Count |
+|---|---|
+| 125-career-intel | 44 |
+| 124-career-outreach | 38 |
+| 135-career-graph | 29 |
+| 128-career-negotiation | 16 |
+| 121-career-jobs | 14 |
+| 132-career-apply | 14 |
+| 123-career-tailor | 13 |
+| 129-career-os | 13 |
+| 126-career-track | 11 |
+| 130-career-onboarding | 9 |
+| 133-career-packets | 7 |
+| 127-career-prep | 5 |
+| 139-career-safety | 5 |
+| 136-career-season | 4 |
+| 120-career-access | 4 |
+| 122-career-profile | 1 |
+
+Example 1 — SC-004, expected tool 124-career-outreach:
+
+- Ask: Get me 40 coffee chats with associates at McKinsey, Bain, BCG
+- Reply (verbatim):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Example 2 — SC-121, expected tool 126-career-track:
+
+- Ask: "Where do I stand?" — the true stage of everything, from the log
+- Reply (verbatim):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Example 3 — SC-146, expected tool 135-career-graph:
+
+- Ask: "Who do I know at Stripe?" — warm paths from my LinkedIn export
+- Reply (verbatim):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+### BRIEF A2 — fallback-intent (39)
+
+Pattern: 142 returned `career_fallback` (`handler=142-career-router.handleChat`, `intent=career_fallback`, `result_status=awaiting_user`, `contained=false`) and delivered the same containment text as A1, instead of handing the turn to the expected tool.
+
+Counts by expected_tool (verified, sum = 39):
+
+| Expected tool | Count |
+|---|---|
+| 126-career-track | 7 |
+| 129-career-os | 5 |
+| 125-career-intel | 5 |
+| 132-career-apply | 4 |
+| 123-career-tailor | 3 |
+| 127-career-prep | 3 |
+| 120-career-access | 2 |
+| 133-career-packets | 2 |
+| 121-career-jobs | 2 |
+| 128-career-negotiation | 2 |
+| 135-career-graph | 1 |
+| 134-career-paths | 1 |
+| 136-career-season | 1 |
+| 139-career-safety | 1 |
+
+Full ID list (39): SC-061, SC-070, SC-082, SC-096, SC-097, SC-101, SC-104, SC-107, SC-112, SC-115, SC-119, SC-124, SC-128, SC-129, SC-131, SC-132, SC-133, SC-135, SC-138, SC-152, SC-176, SC-183, SC-189, SC-191, SC-203, SC-215, SC-221, SC-241, SC-242, SC-246, SC-248, SC-275, SC-278, SC-279, SC-282, SC-283, SC-285, SC-290, SC-299.
+
+Example 1 — SC-061, expected tool 132-career-apply:
+
+- Ask: Adjust my resume and auto apply (tailor per role; apply under my rule)
+- Reply (verbatim):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Example 2 — SC-124, expected tool 126-career-track:
+
+- Ask: Interview invite in Gmail — attached to the right application; prep triggered
+- Reply (verbatim):
+
+> I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+### BRIEF A3 — wrong-intent `career_discovery` catch-all (24)
+
+Pattern: the 142 `/find/` catch-all routes people / guidance / apply asks into job discovery (`handler=142-career-router.handleChat`, `intent=career_discovery`, `result_status=prepared`) and serves the canned five-role SWE shortlist, even when the ask is about people, warm paths, or a pipeline — not job discovery. Counts by expected_tool (verified): 124-career-outreach ×23, 135-career-graph ×1 (SC-165).
+
+Full ID list (24): SC-001, SC-002, SC-003, SC-012, SC-013, SC-014, SC-016, SC-017, SC-019, SC-021, SC-022, SC-023, SC-024, SC-026, SC-027, SC-029, SC-030, SC-051, SC-052, SC-054, SC-055, SC-057, SC-059, SC-165.
+
+Transcript 1 — SC-001, expected tool 124-career-outreach:
+
+- Ask: Find 300 top bankers in NY + a personalized coffee-chat email drafted for each
+- Reply (verbatim, delivered messages in order):
+
+> Here are the 5 roles most worth applying to, ranked by fit with your profile. New Grad Software Engineer at Northwind Ledger (fictional) — remote, $92,000-$118,000 USD per year: matches your Python and SQL; caveat: apply by 2026-11-20. Software Engineering Intern — Summer 2027 at Lakefront Cloud (fictional) — hybrid in Chicago, $38-$48 USD per hour: matches your Python and SQL; caveat: apply by 2026-11-01.
+
+> Software Engineer, Early Career at Eastbank Systems (fictional) — hybrid in New York, $105,000-$125,000 USD per year: matches your Python and SQL; caveat: relocation to New York hybrid. Software Engineer, Platform at Copperline Infra (fictional) — remote, $98,000-$120,000 USD per year: matches your Python and SQL; caveat: on-call rotation 1 week in 5. Backend Engineer, New Grad at Fieldnote Software (fictional) — remote, $90,000-$110,000 USD per year: matches your Python and SQL; caveat: Go preferred but expressly not required.
+
+> Tell me one to tailor your resume for, and I will do that next.
+
+Transcript 2 — SC-165, expected tool 135-career-graph:
+
+- Ask: My only contact left the firm — find the next path, don't write to the departed blindly
+- Reply (verbatim, delivered messages in order):
+
+> Here are the 5 roles most worth applying to, ranked by fit with your profile. New Grad Software Engineer at Northwind Ledger (fictional) — remote, $92,000-$118,000 USD per year: matches your Python and SQL; caveat: apply by 2026-11-20. Software Engineering Intern — Summer 2027 at Lakefront Cloud (fictional) — hybrid in Chicago, $38-$48 USD per hour: matches your Python and SQL; caveat: apply by 2026-11-01.
+
+> Software Engineer, Early Career at Eastbank Systems (fictional) — hybrid in New York, $105,000-$125,000 USD per year: matches your Python and SQL; caveat: relocation to New York hybrid. Software Engineer, Platform at Copperline Infra (fictional) — remote, $98,000-$120,000 USD per year: matches your Python and SQL; caveat: on-call rotation 1 week in 5. Backend Engineer, New Grad at Fieldnote Software (fictional) — remote, $90,000-$110,000 USD per year: matches your Python and SQL; caveat: Go preferred but expressly not required.
+
+> Tell me one to tailor your resume for, and I will do that next.
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+### BRIEF A4 — wrong-intent singles (4)
+
+#### SC-287 — S0 R-B11, `connect_browser_source`
+
+- Ask: Connect LinkedIn the zero-risk way: my data export uploaded and parsed into my graph
+- Observed: `handler=120-career-access.handleChat`, `intent=connect_browser_source`, `result_status=null`, `contained=false`
+- Expected: 122-career-profile (122 export parse; routing-expectations acceptable intents: `profile_correction`, `profile_recall`, `profile_export`, `onboarding_answer`)
+- Rule: LinkedIn asks route to the user's data-export path, NEVER sign-in.
+- Full reply (verbatim, delivered messages in order):
+
+> I need access to LinkedIn to connect LinkedIn. Open this, sign in, done in 30 seconds. I never see your password.
+
+> LinkedIn's terms prohibit automation and scraping, and a restriction would land on your account. Default here is user-assisted and low-volume only: no bulk scraping, no mass connection requests.
+
+#### SC-277 — `career_internship_discovery`
+
+- Ask: Return-offer playbook for my internship summer
+- Observed: `handler=142-career-router.handleChat`, `intent=career_internship_discovery`, `result_status=prepared`, `contained=false`
+- Expected: 129-career-os return-offer playbook (routing-expectations acceptable intent: `capability_status`); got the canned internship discovery shortlist instead.
+- Reply (verbatim, delivered messages in order):
+
+> For Summer 2027, using the profile you already gave me (graduating 2027, Python and SQL), these are the internship and new-grad roles that fit best. New Grad Software Engineer at Northwind Ledger (fictional) — remote, $92,000-$118,000 USD per year: matches your Python and SQL; caveat: apply by 2026-11-20. Software Engineering Intern — Summer 2027 at Lakefront Cloud (fictional) — hybrid in Chicago, $38-$48 USD per hour: matches your Python and SQL; caveat: apply by 2026-11-01.
+
+> Software Engineer, Early Career at Eastbank Systems (fictional) — hybrid in New York, $105,000-$125,000 USD per year: matches your Python and SQL; caveat: relocation to New York hybrid. Backend Engineer, New Grad at Fieldnote Software (fictional) — remote, $90,000-$110,000 USD per year: matches your Python and SQL; caveat: Go preferred but expressly not required. Want me to tailor your resume for the first one?
+
+#### SC-062 — `tailor_needs_posting`
+
+- Ask: "I'm trying to land a SWE role — tailor my resume for the role, then apply for me"
+- Observed intent: `tailor_needs_posting` (`handler=142-career-router.handleChat`, `result_status=awaiting_user`, `contained=false`)
+- Expected tool: 121-career-jobs
+- Reply (verbatim):
+
+> I need the job posting to tailor against. Paste the posting, or pick a role from your shortlist and I will use that one.
+
+#### SC-111 — `career_packet`
+
+- Ask: Design roles: portfolio-first application packet, not a text resume
+- Observed intent: `career_packet` (`handler=142-career-router.handleChat`, `result_status=prepared`, `contained=false`)
+- Expected tool: 121-career-jobs
+- Reply (verbatim, delivered messages in order):
+
+> Your backend application packet is ready for review. Job: Backend Engineer, New Grad at Fieldnote Software (fictional). Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.
+
+> Nothing is submitted — this packet is a review copy only. Review the job and the document above; nothing goes anywhere until you approve it.
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+### BRIEF A5 — module 120, SC-286 (1)
+
+- Ask: Connect Gmail and Calendar with one consent tap — self-test email and event prove it; no password anywhere
+- Observed: `handler=120-career-access.handleChat`, `intent=connect_google`, `result_status=null`, `contained=false`. The intent was correct (it is in the acceptable set for expected tool 120-career-access), but `resultStatus=null` and no doorstep payload, so completion is impossible. The record's doorstep gap states verbatim: "missing capability: no chat-path seam drove this calendar scenario to its commitment point — handler=120-career-access.handleChat, intent=connect_google; 141 doorstep seams cover only its fixture form/queue cases, and 142 produced intent connect_google without a doorstep payload (no draft/packet/artifact/queue state)".
+- Reply (verbatim):
+
+> Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.
+
+- Expected: 120 returns the typed connect result + doorstep seam for the self-test proof. Note: F9 stays blocked on module 120.
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+### BRIEF A6 — SC-065 chaining leg (not counted in the 295; see reconciliation note above)
+
+- Ask: Find 20 PM internships for summer; tailor; apply only where I have a real shot
+- Observed: `handler=142-career-router.handleChat`, `intent=career_discovery`, `result_status=prepared`, `contained=false`; expected tool 121-career-jobs. The first intent is acceptable for 121, so the census classifies SC-065 as (c) `doorstep-gap-after-route`, not (a).
+- Chaining defect (Codex leg): after discovery, 142 never chained tailor→apply for this pipeline ask. The reply ends by handing the chain back to the user instead of chaining — verbatim final delivered message:
+
+> Tell me one to tailor your resume for, and I will do that next.
+
+- Full reply (verbatim, delivered messages in order):
+
+> Here are the 5 roles most worth applying to, ranked by fit with your profile. New Grad Software Engineer at Northwind Ledger (fictional) — remote, $92,000-$118,000 USD per year: matches your Python and SQL; caveat: apply by 2026-11-20. Software Engineering Intern — Summer 2027 at Lakefront Cloud (fictional) — hybrid in Chicago, $38-$48 USD per hour: matches your Python and SQL; caveat: apply by 2026-11-01.
+
+> Software Engineer, Early Career at Eastbank Systems (fictional) — hybrid in New York, $105,000-$125,000 USD per year: matches your Python and SQL; caveat: relocation to New York hybrid. Software Engineer, Platform at Copperline Infra (fictional) — remote, $98,000-$120,000 USD per year: matches your Python and SQL; caveat: on-call rotation 1 week in 5. Backend Engineer, New Grad at Fieldnote Software (fictional) — remote, $90,000-$110,000 USD per year: matches your Python and SQL; caveat: Go preferred but expressly not required.
+
+> Tell me one to tailor your resume for, and I will do that next.
+
+- Scope split: the 121 engine leg of SC-065 (the same canned SWE fixture roles served for a PM ask) is Lane A's, being fixed separately; this brief covers only the 142 chaining leg (discovery→tailor→apply pipeline orchestration).
+
+Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.

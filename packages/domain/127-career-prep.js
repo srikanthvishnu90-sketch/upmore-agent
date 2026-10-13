@@ -107,7 +107,7 @@ const CareerPrep = (() => {
   }
 
   // ---------- PREP-004 story bank ----------
-  function makePrepStore() { return { stories: [], mocks: [], debriefs: [], packs: [], drills: [] }; }
+  function makePrepStore() { return { stories: [], mocks: [], debriefs: [], packs: [], drills: [], sent: [] }; }
   function mineStories(facts) {
     return (facts || []).filter((f) => f && (f.action || f.result) && ["experience", "project", "leadership"].includes(f.kind))
       .map((f) => ({
@@ -382,6 +382,100 @@ const CareerPrep = (() => {
     store.packs.push(pack); return pack;
   }
 
+  // ---------- FIN-A1 additions (canonical SC-181..190, 2026-10-13) ----------
+  function sharedGround(person, profile) {
+    profile = profile || {}; const out = [];
+    const factsText = ((person && person.publicFacts) || []).map((f) => s(f.text)).join(" ");
+    const low = lc(factsText);
+    const check = (label, val) => { if (val && low.includes(lc(val))) out.push({ ground: label, basis: val }); };
+    check("same school", profile.school); check("same club", (profile.clubs || [])[0]);
+    check("same hometown", s(profile.hometown).replace(/\s*\(TEST\)\s*/g, "")); check("same major", profile.major);
+    for (const sk of profile.skills || []) check("shared skill: " + sk, sk);
+    return out;
+  }
+  function interviewerResearch(opts) {
+    opts = opts || {};
+    const people = (opts.people || []).map((p) => { const b = interviewerBrief(p);
+      return { name: b.name, role: b.role, company: b.company, team: s(p.team || "") || null, path: p.path || [], status: b.status,
+        brief: b.brief, unknown: b.unknown, shared_ground: b.status === "OK" ? sharedGround(p, opts.profile) : [], note: b.note }; });
+    return { kind: "interviewer_research", people, grounded: people.filter((p) => p.status === "OK").length,
+      note: "Paths, teams and shared ground come only from the public professional facts supplied per person (TEST fixtures in scenario runs); a person with no supplied facts stays UNKNOWN — no bio is invented." };
+  }
+  function coffeeChatPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const c = opts.contact || {};
+    const path = c.path || []; const shared = sharedGround({ publicFacts: c.publicFacts || [] }, opts.profile);
+    const cirPoint = n && n.values[0] ? n.values[0].text : (n && n.bar ? n.bar : null);
+    const talking_points = [
+      cirPoint ? `What the company says it optimizes for: ${cirPoint}` : "Your own shipped work — the thing on your profile with real users and a real number attached.",
+      path.length ? `Their path in: ${path.join(" -> ")} — ask what each step actually taught them.` : "How they got into this seat — the step that mattered most is rarely the first one.",
+      shared.length ? `Real shared ground: ${shared.map((g) => g.basis).join("; ")} — open there, briefly, then get out of the way.` : "Your current project and the one decision in it you are still unsure about — specific beats impressive."];
+    const stylePoint = n && n.styles[0] ? n.styles[0].text : null;
+    const questions = [
+      "What does your team actually spend its week on — and what would surprise an outsider about that split?",
+      stylePoint ? `Your firm's signature round is described as: ${stylePoint.slice(0, 140)} — what separates people who do well in it from people who prepare generically?` : "Which round or conversation in your process separates strong candidates, and what does 'strong' look like in it?",
+      "What did you misunderstand about this role before you started, and when did it click?",
+      "If you were starting again from my seat this semester, what would you do in the next 30 days — and what would you stop doing?",
+      "Who else should I learn from, and may I mention you connected us?"];
+    return { kind: "coffee_chat_prep", who: { name: s(c.name), role: s(c.role || ""), company: s(c.company || (n && n.company_name) || "") },
+      path, talking_points, questions,
+      do_not_ask: ["Do not ask for a referral in a first chat — earn the second conversation instead", "Do not ask anything they would have to keep confidential (unreleased products, internal comp, other candidates)", "Do not ask what the role pays — comp questions go to the recruiter, with CIR-sourced ranges only", "Do not pitch yourself for more than 60 seconds total"],
+      shared_ground: shared, cir_grounded: !!n, cir_source: n ? { type: "CIR", company_id: n.company_id, as_of: n.as_of } : null };
+  }
+  function systemDesignPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    const drills = technicalDrills(opts); const sd = drills.sets.find((x) => x.type === "system_design");
+    return { kind: "system_design_prep", company: n ? n.company_name : null, cir_grounded: !!n, level: s(opts.level || "experienced-hire"),
+      prompts: sd ? sd.prompts : ["Design a notification system for 10M users.", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."],
+      prompt_source: sd ? sd.source : { type: "generic_system_design_bank" },
+      framework: ["Clarify requirements and scale numbers out loud before drawing anything", "High-level design: API, data model, core components", "Deep-dive the bottleneck the interviewer steers to; name the trade-off of each choice", "Scale and failure: caching, queues, partitioning, backpressure, observability", "Close with what you would build differently at 10x and why"],
+      level_notes: ["Experienced-hire bar: you drive the design — the interviewer should mostly react", "Ground choices in a system you have actually run where you honestly can; say so when you cannot", "Every claim gets a number: QPS, storage, latency budget"] };
+  }
+  function casePrepPlan(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const sess = caseSession(opts);
+    const weeks = Math.max(2, Math.min(10, opts.weeks || 6));
+    const perWeek = Math.max(5, Math.round(40 / weeks)); const total = perWeek * weeks;
+    return { kind: "case_prep_plan", company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
+      practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
+        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the CIRs on file do not quantify it. It is a planning target, not a requirement." },
+      schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
+        plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each scored with scoreCaseResponse and the gaps re-drilled next session`) } };
+  }
+  const MM_DRILL = [
+    { id: "mm-1", topic: "market_making", q: "A stock's fair value you estimate at $10.00. How do you quote, and what moves your spread?", key: ["bid", "ask", "fair value", "spread", "inventory", "informed"], expect: "Bid below / ask above your fair-value estimate; widen with inventory risk, volatility, or informed (adverse-selection) flow." },
+    { id: "mm-2", topic: "market_making", q: "You are long 500 shares from fills and a big buy order arrives. What do you do to your quotes and why?", key: ["skew", "lower", "inventory", "sell"], expect: "Skew quotes down (cheaper ask, lower bid) to shed inventory and discourage more buys — you are paid to provide liquidity, not to accumulate directional risk." }];
+  function marketMakingDrill() { return { kind: "market_making", questions: MM_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect })) }; }
+  function gradeMarketMaking(id, answer) {
+    const d = MM_DRILL.find((x) => x.id === id); if (!d) return null;
+    const low = lc(answer); const hits = d.key.filter((k) => low.includes(k)); const score = Math.round((hits.length / d.key.length) * 5);
+    return { id, topic: d.topic, score_0_5: score, hits, missed: d.key.filter((k) => !low.includes(k)), answer_key: d.expect, gap: score >= 4 ? null : `Missing: ${d.key.filter((k) => !low.includes(k)).join(", ")}` };
+  }
+  function quantPrepSet(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const q = quantDrill();
+    return { kind: "quant_prep", company: n ? n.company_name : null, cir_grounded: !!n,
+      topics: [...new Set([...q.questions.map((x) => x.topic), "market_making"])],
+      probability_and_ev: q.questions, market_making: marketMakingDrill().questions,
+      drills_note: "Probability/EV/mental-math items are auto-graded numerically (gradeDrillAnswer); market-making items are keyword-graded (gradeMarketMaking). Company framing, where claimed, comes only from the CIR on file." };
+  }
+  function pmPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const stories = opts.stories || [];
+    const shipped = stories.filter((x) => (x.metrics || []).length).sort((a, b) => (b.metrics || []).length - (a.metrics || []).length)[0] || stories[0] || null;
+    return { kind: "pm_prep", company: n ? n.company_name : null, cir_grounded: !!n,
+      styles: n ? n.styles : [],
+      shipped_thing: shipped ? { title: shipped.title, action: shipped.action, result: shipped.result, metrics: shipped.metrics || [], story_id: shipped.story_id } : null,
+      product_sense_walkthrough: shipped ? [`Open with the shipped thing: ${shipped.title} — ${shipped.action}; result: ${shipped.result}.`, "Walk it as a product: who the user is, the painful workflow it replaced, the one metric that proved it worked.", "Name a decision you reversed from usage evidence — PM interviewers probe for that specifically."] : ["No shipped story mined from the profile yet — mine one before product-sense prep can anchor."],
+      product_sense_questions: ["How would you improve the product you shipped — and what would you measure before building anything?", "Pick a product you use daily: what is its north-star metric, and what input metrics actually move it?", "Your key metric drops 20% week over week. Walk me through your first hour.", "Design this company's product for a user segment it does not serve today."],
+      metrics_ready: shipped ? (shipped.metrics || []).map((m) => `${shipped.title}: ${m}`) : [],
+      note: "Metrics listed are copied from the user's own profile facts — none are invented for polish." };
+  }
+  function sendThankYou(store, draft, opts) {
+    opts = opts || {};
+    if (!draft || draft.status !== "draft_only") return { status: "not_sent", reason: "Only a thankYouDraft (draft_only) can be sent." };
+    if (opts.approved !== true) return { status: "not_sent", reason: "Approval card gate: nothing sends without the user's explicit yes." };
+    if (!store.sent) store.sent = [];
+    const row = { kind: "thank_you", to: draft.to, subject: draft.subject, body: draft.body, status: "sent", sent_at: new Date().toISOString(), rail: "approval_card_approved" };
+    store.sent.push(row); return { status: "sent", row };
+  }
+
   // ---------- PREP-008 live assist OFF + voice honesty ----------
   function liveAssistGuard(text) {
     if (/\b(during|live|feed me|listen in|real interview|while i'?m in)\b/i.test(s(text)) && /\b(answer|assist|help|feed)\b/i.test(s(text))) {
@@ -496,6 +590,8 @@ const CareerPrep = (() => {
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,
     caseSession, scoreCaseResponse, interviewerBrief, captureDebrief, thankYouDraft,
     salaryPrep, coffeeChatBrief, twoInterviewPlan, rejectionPivot, assemblePack,
+    interviewerResearch, sharedGround, coffeeChatPrep, systemDesignPrep, casePrepPlan,
+    quantPrepSet, marketMakingDrill, gradeMarketMaking, pmPrep, sendThankYou,
     liveAssistGuard, voiceMockAvailability, GENERIC_BEHAVIORAL };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPrep;

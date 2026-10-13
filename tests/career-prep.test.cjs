@@ -105,3 +105,53 @@ test("coffeeChat, twoInterviewPlan ordering, rejectionPivot NO_CIR honesty", () 
   const piv = P.rejectionPivot({ funnel: { company: "Stripe", stage: "Online assessment" }, similar: [{ company: "Snowflake", cir: snow }] });
   assert.equal(piv.status, "NO_CIR"); assert.ok(piv.gaps.length); assert.equal(piv.similar_roles[0].cir_grounded, true);
 });
+
+// ---- FIN-A1 replay tests: canonical SC-181..190 capabilities (written BEFORE the fix) ----
+const pal = cir("palantir"), js = cir("jane-street"), fig = cir("figma"), mck = cir("mckinsey"), gs = cir("goldman-sachs-ibd");
+const profA1 = { school: "TEST University", clubs: ["TEST University Investing Club"], hometown: "Chicago, IL (TEST)", major: "Computer Science", skills: ["Python", "Go", "Kubernetes"] };
+test("FIN-A1 interviewerResearch: 3 TEST people, paths/teams + shared ground from supplied facts only", () => {
+  const people = [
+    { name: "Maya Chen (TEST)", role: "Software Engineer", company: "Stripe", team: "Payments (TEST)", path: ["TEST University CS", "Stripe Payments"], publicFacts: [{ text: "Maya studied at TEST University and now works on Payments infra in Python.", source: "TEST fixture" }] },
+    { name: "Ghost (TEST)", role: "Recruiter", company: "Stripe", publicFacts: [] }];
+  const r = P.interviewerResearch({ people, profile: profA1 });
+  assert.equal(r.people.length, 2); assert.equal(r.people[0].team, "Payments (TEST)");
+  assert.ok(r.people[0].shared_ground.some((g) => /TEST University/.test(g.basis)), JSON.stringify(r.people[0].shared_ground));
+  assert.equal(r.people[1].status, "UNKNOWN"); assert.deepEqual(r.people[1].shared_ground, []);
+});
+test("FIN-A1 coffeeChatPrep: exactly 3 talking points, 5 questions, do-not-ask list, path present", () => {
+  const b = P.coffeeChatPrep({ contact: { name: "Pat FDE (TEST)", role: "Forward Deployed Engineer", company: "Palantir Technologies", path: ["CS degree (TEST)", "data engineer (TEST)", "Palantir FDE"] }, cir: pal, profile: profA1 });
+  assert.equal(b.talking_points.length, 3); assert.equal(b.questions.length, 5); assert.ok(b.do_not_ask.length >= 3);
+  assert.equal(b.path.length, 3); assert.ok(b.cir_grounded);
+});
+test("FIN-A1 systemDesignPrep: experienced-hire set from a CIR with design stages (Snowflake)", () => {
+  const d = P.systemDesignPrep({ cir: snow, level: "experienced-hire" });
+  assert.ok(d.prompts.length >= 2); assert.ok(d.framework.length >= 4); assert.match(d.level, /experienced/); assert.ok(d.cir_grounded);
+});
+test("FIN-A1 casePrepPlan: 30-50 norm labeled community-reported (never official), scheduled to land inside it", () => {
+  const p = P.casePrepPlan({ cir: mck, weeks: 6 });
+  assert.equal(p.practice_norm.label, "community-reported"); assert.equal(p.practice_norm.official, false);
+  assert.ok(p.practice_norm.low === 30 && p.practice_norm.high === 50);
+  assert.ok(p.schedule.total_cases >= 30 && p.schedule.total_cases <= 50, JSON.stringify(p.schedule));
+});
+test("FIN-A1 quantPrepSet: probability + mental math + market-making drills, market-making graded", () => {
+  const q = P.quantPrepSet({ cir: js });
+  assert.ok(q.topics.includes("probability") && q.topics.includes("mental_math") && q.topics.includes("market_making"));
+  assert.ok(q.market_making.length >= 2);
+  const g = P.gradeMarketMaking("mm-1", "I would bid below and ask above my fair value estimate, widening the spread when inventory grows or flow looks informed.");
+  assert.ok(g.score_0_5 >= 4, JSON.stringify(g));
+});
+test("FIN-A1 pmPrep: product sense anchored to a shipped thing with its real metrics", () => {
+  const stories = P.mineStories(persona.facts);
+  const pm = P.pmPrep({ cir: fig, stories });
+  assert.ok(pm.shipped_thing && pm.shipped_thing.title); assert.ok(pm.shipped_thing.metrics.length >= 1);
+  assert.ok(pm.product_sense_questions.length >= 3); assert.ok(pm.metrics_ready.length >= 1);
+});
+test("FIN-A1 sendThankYou: refuses without approval, sends (TEST rail row) only with approved=true", () => {
+  const store = P.makePrepStore();
+  const d = P.captureDebrief(store, { company: "Stripe", interviewer: "Maya Chen (TEST)", wentWell: ["the design discussion"] });
+  const draft = P.thankYouDraft({ company: "Stripe", interviewer: "Maya Chen (TEST)", debrief: d, senderName: "Alex Testcase (TEST)" });
+  const no = P.sendThankYou(store, draft, { approved: false });
+  assert.equal(no.status, "not_sent"); assert.equal((store.sent || []).length, 0);
+  const yes = P.sendThankYou(store, draft, { approved: true });
+  assert.equal(yes.status, "sent"); assert.equal(store.sent.length, 1); assert.equal(store.sent[0].to, "Maya Chen (TEST)");
+});

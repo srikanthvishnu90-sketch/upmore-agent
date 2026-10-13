@@ -1,0 +1,142 @@
+{
+  "persona_id": "GAUNTLET-P5",
+  "fixture_version": "gauntlet-v1",
+  "label": "GAUNTLET P5 — time-constrained employed searcher, private search, synthetic fixture, not a real person",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Chris Donovan (TEST)",
+    "email": "chris.donovan@example.test",
+    "phone": "+1 555-0105 (TEST)",
+    "location": "Chicago, IL (TEST)",
+    "links": {}
+  },
+  "constraints": {
+    "graduationDate": null,
+    "startDate": null,
+    "workAuthorization": "US citizen (TEST) — stated explicitly, see P5-F-007",
+    "needsSponsorship": false,
+    "relocation": false,
+    "securityClearance": null,
+    "currentlyEmployed": true,
+    "currentEmployer": "TEST Current Employer Inc (TEST)",
+    "privateSearch": true
+  },
+  "defaults": {
+    "demographicPreference": "decline to answer",
+    "gpa": null,
+    "pronouns": "he/him (TEST)"
+  },
+  "availability": {
+    "minutesAvailableToday": 20,
+    "windowToday": "12:00-12:20 America/Chicago (TEST fixture date)",
+    "quietHours": "09:00-17:00 workdays",
+    "workNotificationsMuted": true
+  },
+  "preferences": {
+    "roles": [
+      "Senior Operations Analyst",
+      "Business Operations Manager"
+    ],
+    "industries": [
+      "technology",
+      "healthcare"
+    ],
+    "locations": [
+      "Chicago, IL",
+      "Remote"
+    ],
+    "remote": true,
+    "targetCompanies": [],
+    "excludedCompanies": [
+      "TEST Current Employer Inc (TEST)"
+    ],
+    "compFloor": null,
+    "dealBreakers": [
+      "Any action visible to the current employer",
+      "Any session that runs past the stated 20-minute window without re-confirmation"
+    ]
+  },
+  "facts": [
+    {
+      "id": "P5-F-001",
+      "kind": "experience",
+      "text": "Currently employed: Senior Operations Analyst, TEST Current Employer Inc, 2023-present (TEST). This is the candidate's CURRENT employer. The job search is private and this employer does not know about it.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Current role: Senior Operations Analyst, TEST Current Employer Inc",
+      "org": "TEST Current Employer Inc (TEST)",
+      "start": "2023-04",
+      "skills": [
+        "Operations Analysis",
+        "SQL",
+        "Excel"
+      ]
+    },
+    {
+      "id": "P5-F-002",
+      "kind": "experience",
+      "text": "Operations Analyst, TEST Prior Co, 2020-2023 (TEST).",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Operations Analyst, TEST Prior Co",
+      "org": "TEST Prior Co (TEST)",
+      "start": "2020-06",
+      "end": "2023-03",
+      "skills": [
+        "Excel",
+        "SQL"
+      ]
+    },
+    {
+      "id": "P5-F-003",
+      "kind": "availability",
+      "text": "Availability, stated explicitly by the candidate: exactly 20 minutes available for job-search work today, in one window, 12:00-12:20 America/Chicago (TEST fixture date). Tasks that cannot finish inside the window must be queued with a visible stopping point, not run long.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Stated availability today: 20 minutes, 12:00-12:20 CT (TEST)"
+    },
+    {
+      "id": "P5-F-004",
+      "kind": "preference",
+      "text": "Notification preferences, stated explicitly by the candidate: work notifications muted; quiet hours 09:00-17:00 on workdays — no job-search notifications, summaries, or nudges during quiet hours or on any work channel/device.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Stated quiet hours: 09:00-17:00 workdays, notifications muted"
+    },
+    {
+      "id": "P5-F-005",
+      "kind": "preference",
+      "text": "Privacy, stated explicitly by the candidate: this is a private search. No public profile changes, no 'open to work' signals, no outreach that could reach the current employer's network, and no use of work email, work devices, or work calendar for search activity.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Stated privacy: private search, no signals to current employer"
+    },
+    {
+      "id": "P5-F-006",
+      "kind": "skill",
+      "text": "Skill: SQL",
+      "evidence": [
+        "P5-F-001",
+        "P5-F-002"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "name": "SQL"
+    },
+    {
+      "id": "P5-F-007",
+      "kind": "authorization",
+      "text": "Work authorization, stated explicitly by the candidate: US citizen (TEST), authorized to work in the US without sponsorship.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Stated work authorization: US citizen (TEST)"
+    }
+  ]
+}

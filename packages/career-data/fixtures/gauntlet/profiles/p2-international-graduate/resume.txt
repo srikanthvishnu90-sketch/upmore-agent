@@ -1,0 +1,22 @@
+GAUNTLET RESUME - synthetic fixture, not a real person (fixture version gauntlet-v1)
+
+Arjun Mehta (TEST)
+Seattle, WA (TEST) | arjun.mehta@example.test | +1 555-0102 (TEST)
+
+EDUCATION
+TEST University - M.S. Computer Science, completed May 2026
+
+EXPERIENCE
+Graduate Research Assistant, TEST University, September 2025 - May 2026
+- Built Go data-ingestion jobs for a research dataset under faculty supervision
+
+PROJECTS
+Open-source contributions (TEST)
+- Merged 9 pull requests into a public Python data library
+
+SKILLS
+Python, Go
+
+WORK ELIGIBILITY (as stated by the candidate)
+- Present: authorized to work in the United States on F-1 OPT (TEST)
+- Future: will require employer sponsorship (H-1B, TEST) after the OPT period ends

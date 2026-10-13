@@ -1,0 +1,22 @@
+GAUNTLET RESUME - synthetic fixture, not a real person (fixture version gauntlet-v1)
+
+Maya Rivera (TEST)
+Chicago, IL (TEST) | maya.rivera@example.test | +1 555-0101 (TEST)
+Portfolio: https://example.test/studyboard (TEST)
+
+EDUCATION
+TEST University - B.S. Computer Science, GPA 3.6, graduating May 2027
+- Coursework: Data Structures, Algorithms, Databases, Operating Systems
+
+EXPERIENCE
+Software Engineering Intern, TEST Systems Inc, June 2026 - August 2026
+- Added Python data-export scripts and SQL queries to an internal reporting tool under a mentor's direction
+- Did not own any production system
+
+PROJECTS
+StudyBoard (TEST web project)
+- Built a Flask and SQLite study-group scheduler; README, setup instructions and recorded demo at the portfolio link above
+- Used by 24 classmates in one course; a course/personal project, not a production system
+
+SKILLS
+Python, SQL, Flask, SQLite

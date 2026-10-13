@@ -1,0 +1,135 @@
+{
+  "persona_id": "GAUNTLET-P2",
+  "fixture_version": "gauntlet-v1",
+  "label": "GAUNTLET P2 — international graduate, synthetic fixture, not a real person",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Arjun Mehta (TEST)",
+    "email": "arjun.mehta@example.test",
+    "phone": "+1 555-0102 (TEST)",
+    "location": "Seattle, WA (TEST)",
+    "links": {
+      "github": "https://example.test/arjun-mehta (TEST)"
+    }
+  },
+  "constraints": {
+    "graduationDate": "2026-05",
+    "startDate": "immediate (TEST) — subject to the unknown answers in the manifest",
+    "workAuthorization": "F-1 OPT (TEST) — present eligibility only, see P2-F-002; future sponsorship see P2-F-003",
+    "needsSponsorship": true,
+    "needsSponsorshipTiming": "future — after OPT ends, not at hire (see P2-F-003)",
+    "relocation": null,
+    "securityClearance": null
+  },
+  "defaults": {
+    "demographicPreference": "decline to answer",
+    "gpa": null,
+    "pronouns": "he/him (TEST)"
+  },
+  "preferences": {
+    "roles": [
+      "Software Engineer"
+    ],
+    "industries": [
+      "technology"
+    ],
+    "locations": [
+      "Seattle, WA",
+      "New York, NY"
+    ],
+    "remote": true,
+    "targetCompanies": [],
+    "excludedCompanies": [],
+    "compFloor": null,
+    "dealBreakers": []
+  },
+  "facts": [
+    {
+      "id": "P2-F-001",
+      "kind": "education",
+      "text": "M.S. Computer Science at TEST University, completed May 2026.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "M.S. Computer Science, TEST University",
+      "org": "TEST University",
+      "end": "2026-05",
+      "skills": [
+        "Python",
+        "Go"
+      ]
+    },
+    {
+      "id": "P2-F-002",
+      "kind": "authorization",
+      "text": "PRESENT eligibility, stated explicitly by the candidate: currently authorized to work in the United States on F-1 OPT (TEST), valid at the fixture date. This fact is about the present only and says nothing about the future.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Present eligibility: F-1 OPT (TEST), currently authorized"
+    },
+    {
+      "id": "P2-F-003",
+      "kind": "authorization",
+      "text": "FUTURE sponsorship need, stated explicitly by the candidate: will require employer sponsorship (H-1B, TEST) after the OPT period ends. This is a separate fact from present eligibility (P2-F-002) and must never be merged with it, e.g. an answer must not say 'not authorized' now nor 'never needs sponsorship'.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Future need: H-1B sponsorship after OPT (TEST)"
+    },
+    {
+      "id": "P2-F-004",
+      "kind": "project",
+      "text": "Open-source contributor (TEST): merged 9 pull requests into a public Python data library.",
+      "evidence": [
+        "https://example.test/arjun-mehta/oss (TEST)"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Open-source contributions (TEST)",
+      "skills": [
+        "Python"
+      ]
+    },
+    {
+      "id": "P2-F-005",
+      "kind": "experience",
+      "text": "Graduate Research Assistant, TEST University, 2025-2026: built Go data-ingestion jobs for a research dataset under faculty supervision.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Graduate Research Assistant, TEST University",
+      "org": "TEST University",
+      "start": "2025-09",
+      "end": "2026-05",
+      "skills": [
+        "Go",
+        "Python"
+      ]
+    },
+    {
+      "id": "P2-F-006",
+      "kind": "skill",
+      "text": "Skill: Python",
+      "evidence": [
+        "P2-F-004",
+        "P2-F-005"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "name": "Python"
+    },
+    {
+      "id": "P2-F-007",
+      "kind": "skill",
+      "text": "Skill: Go",
+      "evidence": [
+        "P2-F-005"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "name": "Go"
+    }
+  ]
+}

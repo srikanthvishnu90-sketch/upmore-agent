@@ -66,6 +66,33 @@ test("SC-030 watch: added company polls at the starred cadence (15 min), others 
   assert.equal(D.cadenceFor("Ramp", set1), 15);
 });
 
+test("board registry: discoveryPlan skips dead boards and names them with reasons", () => {
+  const plan = D.discoveryPlan();
+  assert.ok(plan.feeds.length > 0);
+  assert.ok(plan.feeds.every((f) => f.status === "live"));
+  assert.ok(!plan.feeds.some((f) => /goldmansachs|netflix/i.test(f.company_token || "")));
+  assert.deepEqual(plan.deadBoards.map((b) => b.company).sort(), ["Goldman Sachs", "Netflix", "Square", "Visa"]);
+  for (const b of plan.deadBoards) { assert.equal(b.status, "dead"); assert.ok(b.reason.length > 10); }
+  const ramp = plan.feeds.find((f) => f.board === "ramp");
+  assert.equal(ramp.provider, "ashby"); assert.equal(ramp.url, "https://api.ashbyhq.com/posting-api/job-board/ramp");
+});
+test("board registry: discover() never fetches a dead board and reports deadBoards in its result", async () => {
+  const seenUrls = [];
+  const mockFetch = async (url) => {
+    seenUrls.push(url);
+    if (/greenhouse/.test(url)) return { status: 200, json: async () => ({ name: "Stripe", jobs: [] }) };
+    if (/ashby/.test(url)) return { status: 200, json: async () => ({ name: "X", jobs: [] }) };
+    if (/lever/.test(url)) return { status: 200, json: async () => [] };
+    if (/smartrecruiters/.test(url)) return { status: 200, json: async () => ({ content: [] }) };
+    throw new Error("unexpected url " + url);
+  };
+  const kv = new Map(); const store = { get: (k) => kv.get(k) || null, set: (k, v) => kv.set(k, v) };
+  const r = await D.discover({ fetch: mockFetch, store, now: NOW });
+  assert.ok(!seenUrls.some((u) => /goldmansachs|netflix/i.test(u)), seenUrls.join(","));
+  assert.equal(seenUrls.length, D.discoveryPlan().feeds.length);
+  assert.deepEqual(r.deadBoards.map((b) => b.company).sort(), ["Goldman Sachs", "Netflix", "Square", "Visa"]);
+});
+
 test("BUG-005 replay (SC-032): Greenhouse placeholder requisition_id must not collapse job_ids", () => {
   const gh = { name: "Stripe", jobs: [
     { id: 111, title: "Senior Brand Designer", location: { name: "US" }, absolute_url: "https://x/111", updated_at: "2026-10-10T00:00:00Z", requisition_id: "See Opening ID", departments: [{ name: "Design" }], content: "x" },

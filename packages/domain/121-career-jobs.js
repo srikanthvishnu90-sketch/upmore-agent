@@ -167,9 +167,48 @@ const CareerJobs = (() => {
     feeds.smartrecruiters("Square"), feeds.smartrecruiters("BoschGroup"),
   ];
 
+  // ---------- canonical board registry (REPLY-QUALITY PASS, 2026-10-13) ----------
+  // This is THE company->board registry: scripts/career/proof-jobs.mjs pulls from it and
+  // 131-career-discover plans discovery from it. Every entry carries an explicit status.
+  // An entry is 'live' ONLY if a real fetch from this machine returned postings JSON
+  // (evidence: docs/career/board-registry-fix-2026-10-13.md). A board whose public ATS
+  // endpoints all 404 — or answer with an empty body indistinguishable from a nonexistent
+  // company — is 'dead': it is never fetched, and callers report it in deadBoards.
+  const CHECKED_AT = "2026-10-13";
+  const liveBoard = (company, provider, board, note) => Object.assign(feeds[provider](board),
+    { company, provider, board, status: "live", checkedAt: CHECKED_AT, note });
+  const deadBoard = (company, board, note) => ({ source: "custom", company_token: board, url: null,
+    company, provider: "custom/no-public-api", board, status: "dead", checkedAt: CHECKED_AT, note });
+  const BOARD_REGISTRY = [
+    liveBoard("Stripe", "greenhouse", "stripe", "verified live 2026-10-13: HTTP 200, 722 postings"),
+    liveBoard("Robinhood", "greenhouse", "robinhood", "verified live 2026-10-13: HTTP 200, 178 postings"),
+    liveBoard("Airbnb", "greenhouse", "airbnb", "verified live 2026-10-13: HTTP 200, 164 postings"),
+    liveBoard("Datadog", "greenhouse", "datadog", "verified live 2026-10-13: HTTP 200, 437 postings"),
+    liveBoard("Coinbase", "greenhouse", "coinbase", "verified live 2026-10-13: HTTP 200, 225 postings"),
+    liveBoard("Figma", "greenhouse", "figma", "verified live 2026-10-13: HTTP 200, 148 postings"),
+    liveBoard("Jane Street", "greenhouse", "janestreet", "verified live 2026-10-13: HTTP 200, 229 postings"),
+    deadBoard("Goldman Sachs", "goldmansachs", "no public ATS API: Greenhouse boards goldmansachs/goldman/goldmansachsembassy/gs/goldman-sachs all HTTP 404, Lever goldmansachs 404, Ashby goldmansachs/goldman-sachs 404, SmartRecruiters GoldmanSachs 200 with totalFound 0 (identical to a gibberish token); careers site is a custom surface (goldmansachs.com/careers, HTTP 200 HTML, no public postings JSON) — checked 2026-10-13"),
+    liveBoard("Lever (demo board)", "lever", "leverdemo", "verified live 2026-10-13: HTTP 200, 10 postings"),
+    deadBoard("Netflix", "netflix", "no public ATS API: Lever netflix/netflixjobs HTTP 404, Ashby netflix 404, Greenhouse netflix 404; jobs.netflix.com / explore.jobs.netflix.net are custom surfaces (HTTP 200 HTML, no public postings JSON) — checked 2026-10-13"),
+    liveBoard("Ashby", "ashby", "ashby", "verified live 2026-10-13: HTTP 200, 66 postings"),
+    liveBoard("Ramp", "ashby", "ramp", "FIXED 2026-10-13: was Lever (api.lever.co/v0/postings/ramp = HTTP 404); Ramp's real board is Ashby — HTTP 200, 165 postings"),
+    liveBoard("OpenAI", "ashby", "openai", "verified live 2026-10-13: HTTP 200, 1001 postings"),
+    liveBoard("Linear", "ashby", "linear", "verified live 2026-10-13: HTTP 200, 31 postings"),
+    deadBoard("Square", "Square", "SmartRecruiters endpoint answers HTTP 200 with totalFound 0 and zero postings (run 1 and 2026-10-13); SmartRecruiters returns the identical 200/totalFound 0 body for a gibberish company token, so the 200 evidences no real board and no postings have ever been pulled from it — checked 2026-10-13"),
+    liveBoard("Bosch Group", "smartrecruiters", "BoschGroup", "verified live 2026-10-13: HTTP 200, 100 postings on first page, totalFound 4948"),
+    deadBoard("Visa", "Visa", "SmartRecruiters endpoint answers HTTP 200 with totalFound 0 and zero postings (run 1 and 2026-10-13); SmartRecruiters returns the identical 200/totalFound 0 body for a gibberish company token, so the 200 evidences no real board and no postings have ever been pulled from it — checked 2026-10-13"),
+  ];
+  const liveBoards = () => BOARD_REGISTRY.filter((b) => b.status === "live");
+  const deadBoards = () => BOARD_REGISTRY.filter((b) => b.status === "dead")
+    .map((b) => ({ company: b.company, provider: b.provider, board: b.board, status: b.status, checkedAt: b.checkedAt, reason: b.note }));
+  // Feed descriptors for the live boards only — dead boards produce no fetchable feed.
+  const boardFeeds = () => liveBoards().map((b) => ({ source: b.source, company_token: b.company_token, url: b.url, company: b.company, provider: b.provider, board: b.board, status: b.status, checkedAt: b.checkedAt, note: b.note }));
+
   const realFetch = (url) => (typeof fetch !== "undefined" ? fetch(url, { headers: { accept: "application/json" } }) : Promise.reject(new Error("no fetch available; inject opts.fetch")));
 
   async function fetchFeed(feed, opts) {
+    // Dead boards are never fetched: no silent 404s, the skip is the result.
+    if (feed && feed.status === "dead") return { source: feed.source, company_token: feed.company_token, url: feed.url || null, status: 0, postings: [], skipped: true, error: `board marked dead (${(feed.company || feed.company_token || "?")}: ${feed.note || "no public API"})` };
     const f = (opts && opts.fetch) || realFetch;
     try {
       const res = await f(feed.url);
@@ -230,7 +269,9 @@ const CareerJobs = (() => {
     const new_postings = diffNew(postings, prior);
     const snapshot = makeSnapshot(postings, opts.now, prior && prior.history);
     if (store) await store.set(key, snapshot);
-    return { postings, new_postings, feeds: results, snapshot };
+    const skippedDead = (feedList || []).filter((fd) => fd && fd.status === "dead")
+      .map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" }));
+    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead };
   }
 
   // ---------- ghost / quality flags (DISC-008) ----------
@@ -445,7 +486,7 @@ const CareerJobs = (() => {
     return enriched.slice(0, limit);
   }
 
-  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)) }; },
+  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
     roleFamily, seniorityBand, stripHtml, hash };

@@ -348,6 +348,10 @@
     ["i paid the wrong person", "notYetReply"],
     ["get my money back from Amazon", "notYetReply"],
     ["remind sam about the 37", "notYetReply"],
-    ["what is an ipo", null]
+    ["what is an ipo", null],
+    ["reconcile my 1099 income", "form1099Reply"],
+    ["do my 1099s match what I actually got paid?", "form1099Reply"],
+    ["run my annual money checkup", "annualCheckupReply"],
+    ["re-underwrite my entire financial life", "annualCheckupReply"]
   ]
 }

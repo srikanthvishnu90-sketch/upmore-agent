@@ -170,6 +170,11 @@ const OWNER: [string, string | null][] = [
   ["how much did i pay in fees this year", "feeAuditReply"],
   ["how much do i tip on doordash", "tipFeesReply"],
   ["are delivery fees getting worse", "tipFeesReply"],
+  // K1 (2026-10-12): 1099 reconciliation (C165), after tip fees in the handler's chain.
+  ["reconcile my 1099 income", "form1099Reply"],
+  ["do my 1099s match what I actually got paid?", "form1099Reply"],
+  ["run my annual money checkup", "annualCheckupReply"],
+  ["re-underwrite my entire financial life", "annualCheckupReply"],
   ["pay maya 40 only if my paycheck landed", null],
 ];
 

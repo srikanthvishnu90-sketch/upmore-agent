@@ -154,11 +154,12 @@ const REAL = "over twins of the owner's real Chase rows pulled fresh from Simple
 }
 // ---------- C201 ----------
 {
+  const { annualCheckupReply } = await import("../../supabase/functions/agent-chat/_shared/annual_checkup_answer.ts");
+  const report = (await annualCheckupReply("Run my annual money checkup", NOW, read, TZ))!;
   const checkup = (await moneyReply("How am I doing?", NOW, read, TZ))!;
-  const year = (await moneyReply("my year in money", NOW, read, TZ))!;
-  await save("C201-annual-money-checkup", "C201 — Annual money checkup", HDR(REAL) + "\n\nNOT FINISHED as specified: no single annual underwriting report exists yet (every account, fee, rate, policy and subscription in one report with the dollars at stake per item and approved actions executing). The two nearest production surfaces are captured below — the monthly checkup and the year in money — and their numbers tie to the raw rows.", [
-    { label: "Nearest surface 1 — the checkup", messages: [U("How am I doing?"), A(checkup)] },
-    { label: "Nearest surface 2 — the year in money", messages: [U("my year in money"), A(year)] },
+  await save("C201-annual-money-checkup", "C201 — Annual money checkup", HDR(REAL) + "\n\nBuilt this run (annual_checkup_answer.ts, wired in handler.ts): one composed report over accounts, the fee scan, recurring run-rates, pay-later, the year's in/out and rates/policies, each with its dollars at stake and its approval-gated handoff. It executes nothing itself — approved actions run through their own capabilities behind their own approval cards. Conversation 2 is the monthly checkup surface for contrast.", [
+    { label: "The annual checkup, composed over the real rows", messages: [U("Run my annual money checkup"), A(report)] },
+    { label: "For contrast — the monthly checkup", messages: [U("How am I doing?"), A(checkup)] },
   ]);
 }
 // ---------- C165 ----------

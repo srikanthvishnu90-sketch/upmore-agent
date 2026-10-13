@@ -1596,3 +1596,421 @@ small open cleanup for the next wave (allowlist the two fixture paths in
 the scan with a comment, or re-encode the fixture JWTs split at
 runtime). Router bundle rebuilt (107 modules); router-bundle --check
 passes inside the full run.
+
+---
+
+## 300/300 CAMPAIGN — LANE A CENSUS (2026-10-13, owner order: honest 300/300 ASAP)
+
+**Method.** Every one of the 300 FAILs in the corrected Gate-1 baseline
+(`docs/stability/runs/2026-10-13-c637458.md`, grader-v2 re-score of the grand
+records at build 7be2759) is classified by its FIRST blocker in the causal
+chain, from recorded evidence only: the corrected index's failed checks, each
+record's `final_state` (handler / intent / containment) and `doorstep` block,
+and `scripts/career/gauntlet/routing-expectations.json` (expected tool +
+acceptable intents). Generator: `scripts/career/gauntlet/census-300.cjs`
+(re-runnable; no verdict altered, no hand classification). Buckets:
+(a) ROUTING — Codex lane · (b) REPLY-CONTRACT — Muse lane (module 140 path) ·
+(c) MISSING/WEAK TOOL OR ENGINE — Muse lane · (d) CAPABILITY-ABSENT-LISTED
+(terminal verdict today is NI with the entry's exact honest reply) ·
+(e) OWNER-GATED (PASS impossible today even with perfect code).
+
+**The headline the owner should read:** the 0/300 is a routing collapse, not
+300 broken engines. In 295 of 300 turns the chain never handed the ask to the
+tool that owns it — 227 turns were answered by containment with no handler at
+all, 39 by the `career_fallback` intent, 28 by a wrong intent (24 of them the
+142 `/find/` catch-all serving the canned five-role SWE shortlist), and 1 by
+module 120 returning no typed result (SC-286). The engines behind the routes
+are largely built and module-proven (see `borderline_not_absent` in
+`docs/quality-spec/capability-absent.json`); they are unreachable, not absent.
+
+**(b) is 0 as a PRIMARY cause — deliberately not padded.** No scenario reached
+a correct route + doorstep and then failed on reply text alone, so no scenario
+is counted here. The reply-contract load is real but secondary today: H-12
+(no single next step) rides on 271 records, R-C5 (advice without named
+source/as-of) on 80, H-5 (count honesty) on 38, H-3 on 4. These become the
+primary fight the moment routing lands, family by family; Lane A pre-fixes
+them in 140/engine reply payloads where module-level proof is possible.
+
+**(e) is 0 as a PRIMARY cause — with 12 annotated owner-gated legs.** No
+harness verdict is blocked FIRST by an owner input: every owner-gated leg
+sits behind a routing failure that must be fixed first. The legs: the nine
+CA-04 scenarios (SC-001/002/003/007/008/009/011/012 + SC-244) complete
+in-harness on fixture people but their real-people leg needs the owner's
+Hunter/vendor decision; SC-105's real read needs his signed-in portal
+session; SC-196's real-content proof needs one real setback fact; SC-084's
+live proof needs a named person who can confirm a referral was received.
+
+**Named cases.**
+- SC-277 / SC-287 → (a) wrong-intent: SC-277 (expected 129-career-os) got the
+  canned internship-discovery shortlist; SC-287 (expected 122 export parse)
+  was served by 120's `connect_browser_source` and the reply instructed
+  LinkedIn sign-in — the S0 (R-B11). Fix = route LinkedIn asks to the export
+  path; never sign-in.
+- SC-286 → (a): 120-career-access took the turn with the right intent
+  (`connect_google`) but returned `resultStatus=null` and no doorstep
+  payload. This is the F9/module-120 blocker in access clothing.
+- SC-300 → (c), Muse lane: 141 ran with the correct `queue_halt` intent but
+  could not see the outreach queue state ("I cannot find the outreach queue
+  state, so I halted nothing") — the 124/141 split-store seam (DD-11 class).
+  R-A4 S0. The router-side leg (every path honoring the global pause) stays
+  in Codex's wedge brief.
+- SC-065 → (c) by the stated rule (acceptable first intent + doorstep gap),
+  with a Codex leg: 121 served the same canned SWE fixture roles for a PM
+  ask (H-4, engine weakness, Muse lane) AND 142 never chained
+  discovery→tailor→apply (pipeline orchestration, Codex lane).
+- (d) = SC-105 (CA-03 real portal read), SC-179 (voice mock — no speech
+  path exists; routing-expectations marks its expected tool
+  "R-C7-honest-unavailable"), SC-244 (CA-04/T-05 population data).
+  DISCREPANCY FLAGGED: `capability-absent.json` CA-01 names "SC-174" for the
+  voice leg, but the canonical SC-174 ask is a dedupe scenario (classified
+  (a) above) and the canonical voice-mock ask is SC-179. The list needs an
+  owner-approved correction (SC-174 → SC-179 in CA-01); Lane A does not
+  edit the approved list unilaterally.
+- Wedge 30: 29 × (a) + 1 × (c) (SC-300). The wedge cannot move until the
+  router lands; Lane A's wedge work is the SC-300 seam fix plus defect
+  briefs (below) plus pre-built engines (124/146/147) already on tree.
+
+**Running PASS count (grader-v2, corrected baseline): PASS 0 / FAIL 300.**
+Updated after every Lane A fix wave.
+
+| Bucket | Count |
+|---|---|
+| (a) ROUTING — Codex lane | 295 |
+| (b) REPLY-CONTRACT — Muse lane | 0 |
+| (c) MISSING/WEAK TOOL OR ENGINE — Muse lane | 2 |
+| (d) CAPABILITY-ABSENT-LISTED | 3 |
+| (e) OWNER-GATED | 0 |
+| **Total** | **300** |
+
+| Family | n | (a) | (b) | (c) | (d) | (e) |
+|---|---|---|---|---|---|---|
+| Outreach & Networking | 60 | 60 | 0 | 0 | 0 | 0 |
+| Apply Engine | 60 | 58 | 0 | 1 | 1 | 0 |
+| Track & Follow-Up | 25 | 25 | 0 | 0 | 0 | 0 |
+| Referrals & Warm Paths | 30 | 30 | 0 | 0 | 0 | 0 |
+| Interview Prep | 30 | 29 | 0 | 0 | 1 | 0 |
+| Negotiation | 15 | 15 | 0 | 0 | 0 | 0 |
+| Intelligence & Honest Advice | 50 | 49 | 0 | 0 | 1 | 0 |
+| Career Os | 15 | 15 | 0 | 0 | 0 | 0 |
+| Access, Safety & Honesty | 15 | 14 | 0 | 1 | 0 | 0 |
+
+Sub-classes:
+- a:contained-no-intent: 227
+- a:fallback-intent: 39
+- a:wrong-intent:career_discovery: 24
+- d:absent-terminal: 3
+- a:wrong-intent:tailor_needs_posting: 1
+- c:doorstep-gap-after-route: 1
+- a:wrong-intent:career_packet: 1
+- a:wrong-intent:career_internship_discovery: 1
+- a:module-120-no-typed-result: 1
+- a:wrong-intent:connect_browser_source: 1
+- c:queue-state-seam: 1
+
+Wedge 30 by bucket: {"a":29,"c":1}
+
+Secondary reply-contract load (failures riding on top of the primary cause; these become primary only after routing lands): {"H-12":271,"R-C5":80,"H-5":38,"H-3":4,"H-7":0,"ARTIFACT_MATCH":1}
+
+Per-scenario (bucket · sub-class · observed intent → expected tool · tags):
+
+- SC-001 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach · listed:CA-04
+- SC-002 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach · listed:CA-04
+- SC-003 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach · listed:CA-04
+- SC-004 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-005 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-006 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-007 · a · contained-no-intent · intent=none → 124-career-outreach · wedge, listed:CA-04
+- SC-008 · a · contained-no-intent · intent=none → 124-career-outreach · listed:CA-04
+- SC-009 · a · contained-no-intent · intent=none → 124-career-outreach · listed:CA-04
+- SC-010 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-011 · a · contained-no-intent · intent=none → 124-career-outreach · wedge, listed:CA-04
+- SC-012 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach · wedge, listed:CA-04
+- SC-013 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-014 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-015 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-016 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-017 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-018 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-019 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-020 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-021 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-022 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-023 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach · wedge
+- SC-024 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-025 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-026 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-027 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-028 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-029 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-030 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-031 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-032 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-033 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-034 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-035 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-036 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-037 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-038 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-039 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-040 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-041 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-042 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-043 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-044 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-045 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-046 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-047 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-048 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-049 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-050 · a · contained-no-intent · intent=none → 124-career-outreach · wedge
+- SC-051 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-052 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-053 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-054 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-055 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-056 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-057 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-058 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-059 · a · wrong-intent:career_discovery · intent=career_discovery → 124-career-outreach
+- SC-060 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-061 · a · fallback-intent · intent=career_fallback → 132-career-apply
+- SC-062 · a · wrong-intent:tailor_needs_posting · intent=tailor_needs_posting → 121-career-jobs
+- SC-063 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-064 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-065 · c · doorstep-gap-after-route · intent=career_discovery → 121-career-jobs
+- SC-066 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-067 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-068 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-069 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-070 · a · fallback-intent · intent=career_fallback → 123-career-tailor
+- SC-071 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-072 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-073 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-074 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-075 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-076 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-077 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-078 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-079 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-080 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-081 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-082 · a · fallback-intent · intent=career_fallback → 120-career-access
+- SC-083 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-084 · a · contained-no-intent · intent=none → 133-career-packets · owner-gated-leg
+- SC-085 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-086 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-087 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-088 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-089 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-090 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-091 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-092 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-093 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-094 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-095 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-096 · a · fallback-intent · intent=career_fallback → 133-career-packets
+- SC-097 · a · fallback-intent · intent=career_fallback → 123-career-tailor
+- SC-098 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-099 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-100 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-101 · a · fallback-intent · intent=career_fallback → 133-career-packets
+- SC-102 · a · contained-no-intent · intent=none → 133-career-packets
+- SC-103 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-104 · a · fallback-intent · intent=career_fallback → 132-career-apply
+- SC-105 · d · absent-terminal · intent=career_fallback → R-C7-honest-unavailable · listed:CA-03, owner-gated-leg
+- SC-106 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-107 · a · fallback-intent · intent=career_fallback → 132-career-apply
+- SC-108 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-109 · a · contained-no-intent · intent=none → 123-career-tailor
+- SC-110 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-111 · a · wrong-intent:career_packet · intent=career_packet → 121-career-jobs
+- SC-112 · a · fallback-intent · intent=career_fallback → 121-career-jobs
+- SC-113 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-114 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-115 · a · fallback-intent · intent=career_fallback → 132-career-apply
+- SC-116 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-117 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-118 · a · contained-no-intent · intent=none → 132-career-apply
+- SC-119 · a · fallback-intent · intent=career_fallback → 121-career-jobs
+- SC-120 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-121 · a · contained-no-intent · intent=none → 126-career-track
+- SC-122 · a · contained-no-intent · intent=none → 126-career-track
+- SC-123 · a · contained-no-intent · intent=none → 126-career-track
+- SC-124 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-125 · a · contained-no-intent · intent=none → 126-career-track
+- SC-126 · a · contained-no-intent · intent=none → 126-career-track
+- SC-127 · a · contained-no-intent · intent=none → 126-career-track
+- SC-128 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-129 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-130 · a · contained-no-intent · intent=none → 126-career-track
+- SC-131 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-132 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-133 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-134 · a · contained-no-intent · intent=none → 126-career-track
+- SC-135 · a · fallback-intent · intent=career_fallback → 127-career-prep
+- SC-136 · a · contained-no-intent · intent=none → 127-career-prep
+- SC-137 · a · contained-no-intent · intent=none → 126-career-track
+- SC-138 · a · fallback-intent · intent=career_fallback → 126-career-track
+- SC-139 · a · contained-no-intent · intent=none → 126-career-track
+- SC-140 · a · contained-no-intent · intent=none → 126-career-track
+- SC-141 · a · contained-no-intent · intent=none → 136-career-season
+- SC-142 · a · contained-no-intent · intent=none → 136-career-season
+- SC-143 · a · contained-no-intent · intent=none → 124-career-outreach
+- SC-144 · a · contained-no-intent · intent=none → 136-career-season
+- SC-145 · a · contained-no-intent · intent=none → 136-career-season
+- SC-146 · a · contained-no-intent · intent=none → 135-career-graph · wedge
+- SC-147 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-148 · a · contained-no-intent · intent=none → 135-career-graph · wedge
+- SC-149 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-150 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-151 · a · contained-no-intent · intent=none → 135-career-graph · wedge
+- SC-152 · a · fallback-intent · intent=career_fallback → 135-career-graph
+- SC-153 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-154 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-155 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-156 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-157 · a · contained-no-intent · intent=none → 135-career-graph · wedge
+- SC-158 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-159 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-160 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-161 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-162 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-163 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-164 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-165 · a · wrong-intent:career_discovery · intent=career_discovery → 135-career-graph
+- SC-166 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-167 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-168 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-169 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-170 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-171 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-172 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-173 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-174 · a · contained-no-intent · intent=none → 135-career-graph · listed:CA-01
+- SC-175 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-176 · a · fallback-intent · intent=career_fallback → 127-career-prep
+- SC-177 · a · contained-no-intent · intent=none → 127-career-prep
+- SC-178 · a · contained-no-intent · intent=none → 127-career-prep
+- SC-179 · d · absent-terminal · intent=none → R-C7-honest-unavailable
+- SC-180 · a · contained-no-intent · intent=none → 127-career-prep
+- SC-181 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-182 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-183 · a · fallback-intent · intent=career_fallback → 128-career-negotiation
+- SC-184 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-185 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-186 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-187 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-188 · a · contained-no-intent · intent=none → 121-career-jobs
+- SC-189 · a · fallback-intent · intent=career_fallback → 129-career-os
+- SC-190 · a · contained-no-intent · intent=none → 129-career-os
+- SC-191 · a · fallback-intent · intent=career_fallback → 129-career-os
+- SC-192 · a · contained-no-intent · intent=none → 129-career-os
+- SC-193 · a · contained-no-intent · intent=none → 129-career-os
+- SC-194 · a · contained-no-intent · intent=none → 129-career-os
+- SC-195 · a · contained-no-intent · intent=none → 129-career-os
+- SC-196 · a · contained-no-intent · intent=none → 121-career-jobs · owner-gated-leg
+- SC-197 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-198 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-199 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-200 · a · contained-no-intent · intent=none → 129-career-os
+- SC-201 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-202 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-203 · a · fallback-intent · intent=career_fallback → 127-career-prep
+- SC-204 · a · contained-no-intent · intent=none → 127-career-prep
+- SC-205 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-206 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-207 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-208 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-209 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-210 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-211 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-212 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-213 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-214 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-215 · a · fallback-intent · intent=career_fallback → 128-career-negotiation
+- SC-216 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-217 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-218 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-219 · a · contained-no-intent · intent=none → 128-career-negotiation
+- SC-220 · a · contained-no-intent · intent=none → 130-career-onboarding
+- SC-221 · a · fallback-intent · intent=career_fallback → 125-career-intel
+- SC-222 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-223 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-224 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-225 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-226 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-227 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-228 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-229 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-230 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-231 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-232 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-233 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-234 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-235 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-236 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-237 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-238 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-239 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-240 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-241 · a · fallback-intent · intent=career_fallback → 125-career-intel
+- SC-242 · a · fallback-intent · intent=career_fallback → 125-career-intel
+- SC-243 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-244 · d · absent-terminal · intent=none → 125-career-intel · listed:CA-04
+- SC-245 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-246 · a · fallback-intent · intent=career_fallback → 125-career-intel
+- SC-247 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-248 · a · fallback-intent · intent=career_fallback → 125-career-intel
+- SC-249 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-250 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-251 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-252 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-253 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-254 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-255 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-256 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-257 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-258 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-259 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-260 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-261 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-262 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-263 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-264 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-265 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-266 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-267 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-268 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-269 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-270 · a · contained-no-intent · intent=none → 125-career-intel
+- SC-271 · a · contained-no-intent · intent=none → 129-career-os
+- SC-272 · a · contained-no-intent · intent=none → 129-career-os
+- SC-273 · a · contained-no-intent · intent=none → 129-career-os
+- SC-274 · a · contained-no-intent · intent=none → 129-career-os
+- SC-275 · a · fallback-intent · intent=career_fallback → 129-career-os
+- SC-276 · a · contained-no-intent · intent=none → 129-career-os
+- SC-277 · a · wrong-intent:career_internship_discovery · intent=career_internship_discovery → 129-career-os
+- SC-278 · a · fallback-intent · intent=career_fallback → 129-career-os
+- SC-279 · a · fallback-intent · intent=career_fallback → 129-career-os
+- SC-280 · a · contained-no-intent · intent=none → 129-career-os
+- SC-281 · a · contained-no-intent · intent=none → 129-career-os
+- SC-282 · a · fallback-intent · intent=career_fallback → 134-career-paths
+- SC-283 · a · fallback-intent · intent=career_fallback → 123-career-tailor
+- SC-284 · a · contained-no-intent · intent=none → 135-career-graph
+- SC-285 · a · fallback-intent · intent=career_fallback → 136-career-season
+- SC-286 · a · module-120-no-typed-result · intent=connect_google → 120-career-access · wedge
+- SC-287 · a · wrong-intent:connect_browser_source · intent=connect_browser_source → 122-career-profile · wedge, listed:CA-05, S0
+- SC-288 · a · contained-no-intent · intent=none → 120-career-access
+- SC-289 · a · contained-no-intent · intent=none → 120-career-access
+- SC-290 · a · fallback-intent · intent=career_fallback → 120-career-access
+- SC-291 · a · contained-no-intent · intent=none → 120-career-access
+- SC-292 · a · contained-no-intent · intent=none → 120-career-access
+- SC-293 · a · contained-no-intent · intent=none → 139-career-safety
+- SC-294 · a · contained-no-intent · intent=none → 139-career-safety
+- SC-295 · a · contained-no-intent · intent=none → 139-career-safety
+- SC-296 · a · contained-no-intent · intent=none → 139-career-safety
+- SC-297 · a · contained-no-intent · intent=none → 122-career-profile
+- SC-298 · a · contained-no-intent · intent=none → 139-career-safety
+- SC-299 · a · fallback-intent · intent=career_fallback → 139-career-safety
+- SC-300 · c · queue-state-seam · intent=queue_halt → 139-career-safety · wedge, S0
+

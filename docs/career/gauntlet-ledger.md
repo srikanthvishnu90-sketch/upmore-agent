@@ -2220,3 +2220,49 @@ Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix c
 - Scope split: the 121 engine leg of SC-065 (the same canned SWE fixture roles served for a PM ask) is Lane A's, being fixed separately; this brief covers only the 142 chaining leg (discovery→tailor→apply pipeline orchestration).
 
 Fix owner: Codex (142 router / 120 access). Lane A re-grades on landing; a fix counts only when Muse's grader runs it with transcripts.
+
+## LANE A FIX WAVE 1 (2026-10-13) — running PASS count: 1/300 fresh-proven
+
+**SC-300 (c) queue-state seam — FIXED, fresh-proven PASS.** Commits `705f880`
+(kill switch always halts: 141 now sets the global user pause flag even when
+queue state can't be read — the flag did not exist anywhere in the career
+modules; reply states what was halted and what is unverified, per R-A4) and
+`9724cae` (the unreadable-queue reply now ends with exactly one concrete
+next action, H-12). Fail-first suite `tests/career-killswitch-ra4.test.cjs`:
+red before, 6/6 green after. Fresh record at build `9724cae`
+(`upmore-career-gauntlet-fresh-300/SC-300/`) graded with grader-v2 +
+approved capability-absent list: **FAIL (R-A4, S0) → PASS**, zero failures.
+Verbatim new reply: "Stopped everything: the global pause is now set for
+your account, so no outreach can start or continue from any queue. I could
+not read the queue's own records in this session, so how many already went
+out and how many were waiting is unverified. Next step — tell me when the
+queue state is reloaded and I will reconcile the exact counts against it."
+The router-side leg (every path honoring the pause) remains in Codex's
+wedge brief. New tool: `scripts/career/gauntlet/run-grand-fresh.cjs`
+(parameterized fresh runner; never overwrites the baseline records).
+
+**SC-065 (c) engine leg — FIXED at the engine surface, chat delta zero
+until Codex wires 142.** Commit `3878ccb`: 121 gains `askRoleFamilies()`,
+a hard family filter in `buildShortlist` (opt-in, legacy behavior
+byte-identical without it), `shortlistForAsk()` (typed ok /
+no_matching_roles / no_family_in_ask — honest empty, never cross-domain
+padding), and an opt-in ask-family exclusion in `scoreFit`. Fail-first:
+`tests/career-jobs-domain.test.cjs` 0/8 → 8/8; neighbors 41/41. Corpus
+proof: a PM ask over the real fixture pool (21 scored roles, zero PM) now
+returns `no_matching_roles` with the true reason + one next step; an SWE
+control ask still serves 5 SWE roles. Fresh SC-065 chat grade is UNCHANGED
+(FAIL: STATE_doorstep_gap + H-4) because 142's `rankedShortlist` never
+passes the ask into 121 — the exact one-spot wiring Codex needs is now
+specified in Brief A6's terms (pass askFamilies into scoreFit and/or
+consume shortlistForAsk + surface the honest-empty reply). Fixture-pool
+gap also recorded: the gauntlet jobs corpus contains zero PM postings.
+
+**Running count.** Corrected baseline stands at PASS 0/300 (records at
+7be2759). Fresh-proven at current builds: **PASS 1/300 (SC-300)**; SC-065
+re-run fresh, still FAIL on Codex-lane legs only. A full fresh 300 re-run
+is the next Lane A step once Codex's router lands (and once the concurrent
+lane's uncommitted tree WIP settles — a full-suite run during this wave
+was not a clean signal for that reason; per-suite results above are the
+verified ones). Remaining Lane A primary buckets: none — (b) and (c) are
+exhausted until routing exposes the secondary reply-contract load
+(H-12 ×271, R-C5 ×80, H-5 ×38) family by family.

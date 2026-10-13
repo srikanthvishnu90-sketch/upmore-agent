@@ -93,6 +93,7 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 - Codex: supabase/functions/_shared/**, supabase/migrations/**, supabase/functions/agent-chat/**, agent-workflows/**, agent-payments/**, src/upmore-app-template.html, src/build-app.py, src/bill-workflow-*.js, packages/domain/33-40 (existing modules), scripts/parity-check, scripts/capture-*.py, scripts/merge-claude-research.py, docs/competition/**, docs/testing/evidence-ledger.json, docs/implementation/**, docs/compliance/**.
 - Shared, append-only: this file; docs/testing/claude-review.txt (Claude writes).
 - 2026-10-12 career ACC slice (branch career/acc): supabase/functions/gmail-oauth/** (index.ts extension + career.ts pure helpers), packages/domain/120-career-access.js, tests/career-access.test.cjs, tests/edge/gmail-oauth-career.test.ts, docs/career/deploy-checklist-access.md — claimed by the ACC build worker; other career slices leave Requests instead of editing these.
+- 2026-10-12 career/disc worker (branch career/disc ONLY): packages/domain/121-career-jobs.js, tests/career-jobs.test.cjs, scripts/career/proof-jobs.mjs, docs/career/evidence/jobs-feeds.json — DISC-003..008 (ATS feeds, dedupe, new-posting detection, ghost flags, fit scoring, shortlist+feedback). Persona fixture cherry-picked from pivot/career ca565c2.
 
 ## Rules that apply to both
 

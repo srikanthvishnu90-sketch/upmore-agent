@@ -964,3 +964,24 @@ onboarding tools (OB cases graded-ready). Blocking evidence: routing baseline
 correct-tool 1.7% (Gate 2 cannot certify), fallback axis 0/269, all three named
 replays red, Gate 3 chat-path re-grades and the staging career route waiting.
 Surfaced to the owner in the 2026-10-13 checkpoint per the rule — his call.
+
+## Operating-prompt conflict scan — COMPLETE (merged 45eb18d)
+
+31 items: **CONFLICT 7 · PROMPT-ADDS 6 · SPEC-ADDS 14 · STATE-NOTE 4**, every item
+quoting both texts with the governing default named (spec wins). The 7 conflicts:
+OP-C01 cap start (12/+5-per-3d governs; code disagrees with itself — 124 starts 12,
+139 starts 15 at +5-per-2d) · OP-C05 "risky" population (spec caps pattern-inferred;
+prompt caps catch_all — both applied until ruled) · OP-C10 sample drafts (1
+governs, prompt says 3) · OP-C12 approval button ([Yes] governs, prompt says
+[Approve]) · OP-C15 exclusion overrides (spec's exception paths govern; the prompt
+drops absolutely — flagged as a genuine owner call, prompt is newer + stricter) ·
+OP-C16 follow-up closure scope (campaign-scoped governs) · OP-C27 restate-vs-
+answer-first (replies answer-first; Part 1 graded as internal process only).
+Highest-severity SPEC-ADDS: **OP-C24 — entire S0 families in spec 01 (T3/salary/
+EEO, the crisis protocol, CAPTCHA no-solver) have NO operating-prompt counterpart;
+an implementation scoped from Parts 2–4 alone would miss S0 rules — grading stays
+on 01 in full, and Codex's implementation scope needs this flag.** The scan also
+corrected a stale citation in this program's own owner-decisions doc (Doc 1 §4.1
+actually prints 5–7/14–16, matching code — OP-C02) and confirmed the approved-vendor
+list is EMPTY in practice (OP-C07). Seven new owner decisions were added to
+`review/owner-decisions-2026-10-13.md`; the §F list feeds the next run report.

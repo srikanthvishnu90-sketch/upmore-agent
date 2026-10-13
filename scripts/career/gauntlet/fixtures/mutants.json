@@ -340,5 +340,37 @@
    },
    "assertions": {}
   }
+ },
+ {
+  "id": "M-16",
+  "name": "role-family / deliverable mismatch (design + portfolio ask, backend resume packet)",
+  "mustTrip": [
+   "ARTIFACT_MATCH"
+  ],
+  "record": {
+   "scenario_id": "SC-990",
+   "family": "Apply Engine",
+   "canonical_ask": "Design roles: portfolio-first application packet, not a text resume",
+   "persona": "P1",
+   "mode": "harness",
+   "delivered_messages": [
+    "Your backend application packet is ready for review. Job: Backend Engineer, New Grad at Fieldnote Software (fictional). Document: the packet carries the freshly tailored resume, because no stored version was supplied to bind.",
+    "Nothing is submitted \u2014 this packet is a review copy only. Review the job and the document above; nothing goes anywhere until you approve it."
+   ],
+   "state": {
+    "events": [],
+    "doorstep": {
+     "family": "application",
+     "driven_by": "agent",
+     "gap": null
+    }
+   },
+   "final_state": {
+    "handler": "142-career-router.handleChat",
+    "intent": "career_packet",
+    "result_status": "prepared"
+   },
+   "assertions": {}
+  }
  }
 ]

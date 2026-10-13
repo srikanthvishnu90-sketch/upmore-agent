@@ -258,6 +258,58 @@ function checkH4_domainMatch(rec) {
   const d = rescore.domainMatch(shim, text);
   return result("H-4", !d.pass, "S1", d.note);
 }
+// ------------------------------------------ artifact match (W1, 2026-10-13) -
+// Deterministic assertion class added by the owner correction program (W1)
+// after SC-111 passed the Gate 1 baseline falsely: the ask was "Design
+// roles: portfolio-first application packet, not a text resume" and the
+// delivered artifact was a backend-engineer packet carrying a text resume.
+// H-4 could not see it — its role tokens apply only to job-discovery asks
+// and no check compared the ask's artifact demand (role family, level,
+// deliverable type) with the artifact actually produced. This check runs
+// only on artifact-producing turns (application doorstep, packet/tailor
+// intent, attached artifacts, or a reply announcing a prepared packet) and
+// compares the three axes. S1 — the H-4 severity class: the user is handed
+// the wrong artifact as if it were the thing they asked for.
+const ART_ROLE_FAMILIES = [
+  { id: "design", ask: /\b(design|designer|ux|ui\/ux|product design)\b/i, art: /\b(designer|ux design|ui design|product design|design role)/i },
+  { id: "software", ask: /\b(software|swe|developer|engineering roles?|backend|front[- ]?end|full[- ]?stack)\b/i, art: /\b(software engineer|software developer|backend|front[- ]?end|full[- ]?stack|\bswe\b)/i },
+  { id: "product", ask: /\b(product manager|product management|pm roles?|product roles?)\b/i, art: /\b(product manager|product management)/i },
+  { id: "data", ask: /\b(data science|data scientist|data analyst|data engineer|analytics roles?)\b/i, art: /\b(data scientist|data analyst|data engineer)/i },
+];
+function artifactSentences(text) {
+  const sents = text.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+  const marked = sents.filter((s) => /(packet|resume|cover letter|portfolio|job:|role:|position|application)/i.test(s));
+  return marked.length ? marked : sents;
+}
+function checkArtifactMatch(rec) {
+  const text = bubblesOf(rec).join("\n");
+  const door = (rec.state && rec.state.doorstep) || rec.doorstep || null;
+  const intent = String((rec.final_state && rec.final_state.intent) || (rec.state && rec.state.tool) || "");
+  const producesArtifact = (door && /application|packet/.test(String(door.family || "")))
+    || /packet|tailor/.test(intent)
+    || (Array.isArray(rec.artifacts) && rec.artifacts.length > 0)
+    || /application packet|packet is (ready|prepared)/i.test(text);
+  if (!producesArtifact) return pass("ARTIFACT_MATCH");
+  const ask = rec.canonical_ask || "";
+  const artText = artifactSentences(text).join(" ");
+  const failures = [];
+  // Deliverable type: an explicit negation in the ask binds the artifact.
+  const negatesResume = /\bnot a (text )?resume\b|\bno (text )?resume\b|\binstead of a (text )?resume\b/i.test(ask);
+  const wantsPortfolio = /\bportfolio\b/i.test(ask);
+  const hasResume = /\bresume\b/i.test(artText);
+  const hasPortfolio = /\bportfolio\b/i.test(artText);
+  if (negatesResume && hasResume) failures.push("ask says not a text resume, but the produced artifact carries a resume");
+  if (wantsPortfolio && hasResume && !hasPortfolio) failures.push("ask demands a portfolio deliverable, but the produced artifact is a resume with no portfolio");
+  // Role family: ask families vs artifact families, both read from text.
+  const askFams = ART_ROLE_FAMILIES.filter((f) => f.ask.test(ask)).map((f) => f.id);
+  const artFams = ART_ROLE_FAMILIES.filter((f) => f.art.test(artText)).map((f) => f.id);
+  if (askFams.length && artFams.length && !askFams.some((f) => artFams.includes(f))) failures.push(`ask role family {${askFams.join(", ")}} vs artifact role family {${artFams.join(", ")}}`);
+  // Level: internship vs new-grad/entry-level.
+  const askLevel = /\binternship\b|\bintern\b/i.test(ask) ? "internship" : (/\bnew grad(uate)?\b|\bentry[- ]level\b/i.test(ask) ? "new-grad" : null);
+  const artLevel = /\binternship\b|\bintern\b/i.test(artText) ? "internship" : (/\bnew grad(uate)?\b/i.test(artText) ? "new-grad" : null);
+  if (askLevel && artLevel && askLevel !== artLevel) failures.push(`ask level ${askLevel} vs artifact level ${artLevel}`);
+  return result("ARTIFACT_MATCH", failures.length > 0, "S1", failures.join("; "));
+}
 function checkH5_countHonesty(rec) {
   const ask = rec.canonical_ask, text = bubblesOf(rec).join("\n");
   const m = ask.match(/\b(?:find|get|email|reach|build|list|draft for|send to)\s+(\d{1,4})\b/i) || ask.match(/\b(\d{1,4})\s+(people|bankers|analysts|associates|founders|internships|roles|applications|contacts|engineers|designers|traders|managers|lawyers|residents|teachers|PMs|emails)\b/i);
@@ -376,6 +428,7 @@ function checkRefusalAlternative(rec) {
 }
 const HARD_CHECKS = [
   checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch,
+  checkArtifactMatch,
   checkH5_countHonesty, checkH6_numbersReconcile, /* H-7 is step 2 */ checkH8_noJunkLeakage,
   checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep,
   checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor,
@@ -585,7 +638,7 @@ module.exports = {
   grade, gradeDir, normalizeRecord, bubblesOf, summarizeState,
   loadCapabilityAbsent, capabilityAbsentApproved, collectCapabilityAbsentIds, capabilityAbsentSummary,
   step1StateAssertions, checkClaimToState, step3HardChecks, step4ScenarioAssertions,
-  checks: { checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch, checkH5_countHonesty, checkH6_numbersReconcile, checkH8_noJunkLeakage, checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep, checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor, checkRC5_sourceAndDate, checkRefusalAlternative },
+  checks: { checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch, checkArtifactMatch, checkH5_countHonesty, checkH6_numbersReconcile, checkH8_noJunkLeakage, checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep, checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor, checkRC5_sourceAndDate, checkRefusalAlternative },
   GRADER_VERSION, HARNESS_CLOCK,
 };
 

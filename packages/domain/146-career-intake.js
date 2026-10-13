@@ -38,6 +38,7 @@ const CareerIntake = (() => {
       title: clean(o.title || "") || null, office: clean(o.office || "") || null,
       email: clean(o.email || "") || null, email_status: o.email_status || null,
       currency_status: o.currency_status || null, currency_note: o.currency_note || null,
+      relationship_to_user: clean(o.relationship_to_user || "") || null,
       sources: [], flags: [],
       former_employer_note: o.former_employer_note || null, last_verified_at: o.last_verified_at || null };
   }
@@ -50,6 +51,11 @@ const CareerIntake = (() => {
     if (!s) return null;
     if (s.includes("infer")) return "inferred_held";
     if (/not found|none|missing/.test(s)) return "not_found";
+    // Negation guard (Spec 1 §6): a label that says the address was NOT
+    // checked must never fall through to the "verif" substring branch below
+    // and come out "verified" — "UNVERIFIED" and "not verified" did exactly
+    // that before this guard. Fail closed: unverified.
+    if (/not|un|never|fail|invalid|pending/.test(s)) return "unverified";
     if (s.includes("publish")) return "published";
     if (s.includes("verif")) return "verified";
     return "unverified";
@@ -84,7 +90,8 @@ const CareerIntake = (() => {
 
   const HEADER_ALIASES = { name: "full_name", "full name": "full_name", firm: "current_firm", company: "current_firm",
     title: "title", position: "title", office: "office", city: "office", location: "office", email: "email", "email address": "email",
-    "email status": "email_status", currency: "currency_status", "currency status": "currency_status", "currency note": "currency_note" };
+    "email status": "email_status", currency: "currency_status", "currency status": "currency_status", "currency note": "currency_note",
+    relationship: "relationship_to_user", "relationship to user": "relationship_to_user" };
 
   function parsePasted(text) {
     const records = [], errors = [];
@@ -198,7 +205,7 @@ const CareerIntake = (() => {
       if (!byKey.has(k)) { byKey.set(k, r); continue; }
       const keep = byKey.get(k);
       for (const src of r.sources) if (!keep.sources.includes(src)) keep.sources.push(src);
-      for (const f of ["current_firm", "title", "office", "email", "email_status", "currency_status", "currency_note", "last_verified_at", "former_employer_note"]) if (!keep[f] && r[f]) keep[f] = r[f];
+      for (const f of ["current_firm", "title", "office", "email", "email_status", "currency_status", "currency_note", "last_verified_at", "former_employer_note", "relationship_to_user"]) if (!keep[f] && r[f]) keep[f] = r[f];
       for (const fl of r.flags) if (!keep.flags.includes(fl)) keep.flags.push(fl);
     }
     const records = [...byKey.values()];

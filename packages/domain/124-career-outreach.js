@@ -104,8 +104,31 @@ const CareerOutreach = (() => {
   function levenshtein(a, b) { const m = a.length, n = b.length; const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]); for (let j = 0; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
   const nameSim = (a, b) => { a = norm(a); b = norm(b); if (!a || !b) return 0; const max = Math.max(a.length, b.length); return max ? 1 - levenshtein(a, b) / max : 0; };
   const HARD_FUZZY = 0.92;
+  // Spec 1 §6 verification states, normalized ONCE at the candidate choke
+  // point. Incoming records and vendor verifiers speak many vocabularies
+  // (valid / accept_all / unknown / stale / generic / disposable ...); the
+  // module's consumers recognize exactly verified / risky / invalid /
+  // unknown. Before this normalization existed, any string outside the
+  // module's own three words passed through verbatim and was treated as an
+  // ordinary sendable — an "unknown" or "accept_all" result silently rode
+  // as a full-strength send and escaped the 10% risky cap. Rules: unknown
+  // is HELD (never upgraded, never sendable); accept_all/catch-all is
+  // uncertainty and lands in risky; stale refreshes before relying, so it
+  // is unknown until re-verified; a generic role inbox is not a verified
+  // person; disposable is excluded from professional outreach; any word we
+  // do not recognize fails closed to unknown.
+  function normVerification(v) {
+    const s = norm(v);
+    if (!s) return null;
+    if (s === "verified" || s === "valid" || s === "deliverable") return "verified";
+    if (s === "invalid" || s === "undeliverable" || s === "bounced" || s === "disposable" || s === "suppressed") return "invalid";
+    if (s === "risky" || s === "accept all" || s === "catch all") return "risky";
+    return "unknown";
+  }
   function normalizeCandidate(r) {
-    return Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false, latest_title: null, former_employer_note: "" }, r || {});
+    const c = Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false, latest_title: null, former_employer_note: "" }, r || {});
+    c.email_verification = normVerification(c.email_verification);
+    return c;
   }
   function resolveCandidates(records) {
     const out = [], review = []; const list = (records || []).map(normalizeCandidate);
@@ -167,7 +190,7 @@ const CareerOutreach = (() => {
     const ownEmployers = new Set([].concat(profile.current_employer || [], profile.past_employers || []).map(norm).filter(Boolean));
     if (opts.warmthPriority && query) query = Object.assign({}, query, { warmth_priority: opts.warmthPriority });
     const { candidates, review } = resolveCandidates(records);
-    const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0 };
+    const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0, unknown_verification: 0 };
     const kept = [];
     for (const c of candidates) {
       if (c.opt_out) { exclusions.opt_out++; continue; }
@@ -177,6 +200,9 @@ const CareerOutreach = (() => {
       if (isEuUk(c)) { exclusions.eu_uk++; continue; }
       if (!c.work_email) { exclusions.no_email++; continue; }
       if (c.email_verification === "invalid") { exclusions.invalid_email++; continue; }
+      // Spec 1 §6: unknown verification is held out of the sendable pool —
+      // counted and surfaced, never silently treated as sendable.
+      if (c.email_verification === "unknown") { exclusions.unknown_verification++; continue; }
       c.scores = scoreCandidate(c, query, profile, nowMs); kept.push(c);
     }
     kept.sort((a, b) => b.scores.total - a.scores.total);
@@ -804,6 +830,7 @@ const CareerOutreach = (() => {
       if (campaign.status === "draft" && !opts.allowDraftEnqueue) { /* enqueue into a draft campaign is allowed; sending is what needs approval */ }
       if (!base.email) { reject("no_email"); continue; }
       if (base.verification === "invalid") { reject("invalid_email"); continue; }
+      if (base.verification === "unknown") { reject("verification_unknown_held"); continue; }
       if (isEuUk(c)) { reject("eu_uk_excluded_v1"); continue; }
       if (suppression && suppression.isSuppressed({ email: base.email, person_id: base.person_id }, campaign.userId)) { reject("suppressed"); continue; }
       const touches = campaign.touches[base.person_id || base.email] || 0;

@@ -1453,3 +1453,146 @@ the same 3 (SC-286 / SC-287 / SC-277 quality-contract replays,
 career-quality-contracts.test.cjs) fail identically on the pristine
 tree without this change; they are pre-existing Codex-lane items, not
 regressions. Router bundle rebuilt (107 modules, --check clean).
+
+## SPEC 1 FOLD-IN — CONTACT DISCOVERY & NETWORKING (2026-10-13, continuation coordinator)
+
+Spec 1 filed into the repo at `docs/career/upmore-spec1-contact-discovery-networking.txt`
+(61,194 bytes, verbatim) alongside Specs 2/3. Spec 1 is research/proposed
+design by its own header — it authorizes no purchase, scrape, send, or
+deploy; the quality pack and locked owner law win every conflict.
+
+**§12 adversarial corpus — in the grader corpus.** All 32 cases live in
+`tests/fixtures/spec1-adversarial-corpus.cjs`, each with Spec 1's expected
+decision, its SUT, and its mode. Gates: `tests/career-spec1-gates.test.cjs`
+— **17 live tests PASS, 17 cases registered SKIPPED with the missing SUT or
+the open owner decision named** (a registered case is never a pass). Live
+coverage: #1 identical names/offices (146), #2 moved-employer stale record
+(146), #6 generic inbox (124), #7 catch-all certainty (124 verifier +
+10% wave cap), #8 unknown-upgrade (124), #9 no-padding honest yield (124),
+#10 suppression evasion (124), #14 double-send idempotency (124),
+#17/#18 approval binding incl. recipient edits (124 draft store),
+#21 send-time opt-out (124), #22 redirect/attachment (124 reply path),
+#27 EU/UK exclusion (124), #30 tenant scoping of private suppressions
+(124), #31 unapproved campaign sends nothing (124). Registered: #3, #4,
+#5, #11 (gated live via 123 in career-spec-gates), #12, #13, #15, #16,
+#19, #20 (CA-03), #23 (141 doorstep), #24 (Spec 2 §11 C), #25 (gated
+live via the 40-case injection corpus), #26, #28, #29, #32 (owner
+decision, below).
+
+**§5/§6 audit of 124 + 146 — three defects found, fail-first, fixed in-lane.**
+
+1. **124 passed any verification string through verbatim** (Spec 1 §6).
+   `normalizeCandidate` never normalized `email_verification`, and
+   buildList / enqueue / planWave recognized only this module's own words
+   (verified / risky / invalid). Vendor vocabulary — `unknown`,
+   `unverified`, `accept_all`, `catch_all`, `stale`, `generic`, `valid`,
+   `disposable` — was silently treated as an ordinary sendable and escaped
+   the 10% risky cap entirely: the exact silent-upgrade class the intake
+   lane had. Fix: `normVerification` at the normalizeCandidate choke
+   point (valid→verified; undeliverable/disposable/suppressed→invalid;
+   accept_all/catch_all→risky; unknown/unverified/stale/generic and ANY
+   unrecognized word→unknown, fail-closed), an `unknown_verification`
+   exclusion in buildList, and an enqueue refusal
+   `verification_unknown_held`. Unknown is now HELD everywhere — never
+   upgraded, never sendable.
+2. **146's `normEmailStatus` was negation-blind** (Spec 1 §6). A pasted
+   status of "UNVERIFIED", "not verified", or "not published" matched the
+   "verif"/"publish" substring branches and came out **verified /
+   published** — an un-checked address silently upgraded to a confirmation
+   at intake. Fix: a negation guard (`not|un|never|fail|invalid|pending`)
+   runs before those branches and resolves to `unverified`. Controls hold:
+   plain VERIFIED still reads verified, plain "published" still published.
+3. **146 silently dropped the relationship bridge** (Spec 1 §5). A pasted
+   list's Relationship column had no alias, so the alumni_bridge /
+   prior_relationship evidence that 124's ranker consumes never survived
+   intake. Fix: `relationship` / `relationship to user` aliases →
+   `relationship_to_user` carried verbatim on the record and through
+   dedupe merges — never mapped to a stronger claim. Neither module
+   assigns §5 identity labels (no `identity_label` exists anywhere in
+   124/146), so nothing can be upgraded into a `confirmed_job_contact`;
+   the audit verified no code path asserts job-contact confirmation.
+
+**Fail-first evidence:** pre-fix, the new gates file failed 6 tests — the
+§6 normalization unit, #6/#8 unknown-held, #7's accept_all leg, 146
+negation, 146 relationship (the already-guarded behaviors — verifier
+catch-all, wave cap, idempotency, draft-store binding, send-time
+suppression, EU/UK, scoping, approval gate — passed pre-fix and still
+pass). One test-side correction during the wave: the #2 test initially
+asserted the wrong flagged-record shape; the module's behavior (counts +
+flagged entry carrying the file's own note) was verified correct and the
+test was fixed, not the module. Post-fix: **spec1 gates 17 pass / 0 fail
+/ 17 skipped.**
+
+**F1 design basis recorded (Spec 1 §9 + §11).** The source-policy
+registry is the F1 design basis for every future data source: per source —
+source id, rights status, terms citation, owner/purpose, field-level
+provenance, permission status (approved/restricted), permitted and
+prohibited actions, geography/subject restrictions, storage basis and
+retention period, verification method and timestamp, cache/delete terms,
+estimated and actual cost, rate/concurrency limits, fallback policy,
+rights-expiry review date, tenant scope. A source with no registry entry
+does not run. Cost per usable contact (§11) is the F1 cost metric:
+**cost per usable contact = total attributable cost / usable contacts**,
+where a usable contact is "a unique, current, relevant professional with
+a permitted contact route, identity evidence, recent mailbox verification
+where applicable and no suppression condition," and total attributable
+cost includes subscriptions, per-record charges, search/retrieval, model,
+verification, infrastructure, rights/compliance, and human review —
+failed, duplicate, unusable, stale, and suppressed results count in the
+cost, never in the yield.
+
+**FLAGGED for the owner — NOT resolved (locked law stands).** (i) Spec 1
+§7 proposes ONE follow-up (day 5–7) then close; locked law in force is the
+two-touch sequence (follow-up ~day 6 AND a final ~day 15, then closed
+forever; 124's code runs day 5–7 business days / day 14–16). (ii) Spec 1
+§7 proposes max 2 active unsolicited contacts per company/job; locked
+caps in force are the 12/day ramp (ceiling 30/day) and 15 per firm per
+30 days. Both proposals are recorded as decision lines in
+`~/workspace/your_files/review/owner-decisions-2026-10-13.md`; corpus
+case #32 is registered on the same basis. Nothing in this wave
+implements either proposal.
+
+**W1–W6 verification (this session, against the tree and the files).**
+All six DONE with proof; nothing unfinished found. W1: corrected
+baseline report `docs/stability/runs/2026-10-13-c637458.md` — PASS 0 /
+FAIL 300 / NI 0 / BLOCKED 0, SC-111 FAIL via ARTIFACT_MATCH, mutation
+suite 16/16 + 15/15 at that build (17/17 + 15/15 at HEAD). W2: Gate-5
+RUN-PLAN — plus-aliases of the two allowlisted inboxes, 4 sends day 1 +
+day 2 carries the rest, caps untouched, G5-D6 = the Hunter clarification
+email as an Upmore-sent Gate-5 item. W3: post-fix sample — 10 regenerated
+drafts at the top of `upmore-career-emails-for-review.md` under
+"POST-FIX SAMPLE FOR RE-REVIEW"; the 105 originals remain unapproved.
+W4: Gate 0 recorded MET under the owner's D-3 condition (addendum in
+`docs/stability/runs/2026-10-13-2c81bd8.md`, frozen-finance exclusions
+listed by name). W5: census language corrected — 8 of 9 families valid
+at module level, F9 the gap on Codex's module 120. W6: 40-label
+calibration doc holds exactly 40 replies
+(`review/judge-calibration-owner-40.md`); 50-person pilot plan and
+honest-yield copy in `~/workspace/your_files/review/`; HONEST_YIELD
+(M-17) live in the grader suite; 146 intake lane and 147 DePaulConnect
+drafting lane on-tree (intake real-input run recorded in the section
+above). Open owner inputs are unchanged and listed in the review queue.
+
+**Codex lane:** no new landings this session — the only codex/* branches
+remain the two dated 2026-10-10; HEAD at wave start was 7165483. The
+standing blocker record (142 router, 140 preserveUrls, 120 export path,
+queue items 7/8/9) is unchanged; nothing new to grade under the
+both-test rule.
+
+**Regression evidence (Spec 1 wave):** full surface `node --test
+tests/*.cjs` = **3,143 tests, 3,115 pass, 4 fail, 24 skipped** (the 17
+new registered Spec 1 skips are inside the 24). All 4 fails are
+PRE-EXISTING, verified identical on the pristine tree via stash: the 3
+Codex-lane quality contracts (SC-277 / SC-286 / SC-287) plus
+`no-secrets.test.cjs`, which trips on JWT-shaped strings planted as
+grader fixtures by the W1 wave (`scripts/career/gauntlet/fixtures/
+mutants.json:223`, `tests/career-quality-grader.test.cjs:31,67`) — Gate
+0's "secret scan 0 findings" was true at 2c81bd8 and went stale when
+those fixtures landed at c637458/be8eecd. That is a real inconsistency
+between two Muse-lane test files (the scan cannot tell a planted fake
+JWT from a real one); it is NOT a regression of this wave — staging this
+wave's new files adds zero scan hits — and it is recorded here as a
+small open cleanup for the next wave (allowlist the two fixture paths in
+the scan with a comment, or re-encode the fixture JWTs split at
+runtime). Router bundle rebuilt (107 modules); router-bundle --check
+passes inside the full run.

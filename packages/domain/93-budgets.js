@@ -48,6 +48,15 @@
       subscriptions: "subscriptions and streaming I recognize",
       transport: "rideshare, transit, parking and tolls I recognize",
       shopping: "stores like Amazon, Target and Walmart I recognize",
+      prediction_markets: "prediction markets I recognize (Polymarket, Kalshi and the like, from merchant knowledge)",
+      sports_betting: "sports betting I recognize (Rebet and the like, from merchant knowledge)",
+      health: "health & wellness I recognize (pharmacies and the merchants in merchant knowledge)",
+      work_services: "freelance/work services I recognize (Fiverr and the like, from merchant knowledge)",
+      entertainment: "entertainment I recognize (Topgolf and the like, from merchant knowledge)",
+      fees: "bank fees I recognize (a monthly service fee and the like)",
+      pay_later: "pay-later payments I recognize (Affirm and the like)",
+      person_to_person: "person-to-person payments I recognize (Zelle, Apple Cash, Venmo and the like)",
+      investing: "investing transfers I recognize (a Robinhood debit and the like)",
     };
     const LIST = "food delivery, groceries, restaurants (eating out, dining, coffee), food (groceries, restaurants and delivery together), gas, subscriptions, transport, shopping";
     // The category a message names, from the same words "how much did i spend on ..." reads.

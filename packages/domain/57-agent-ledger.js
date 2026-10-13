@@ -102,16 +102,43 @@
       const k = mkey(raw), shown = safeText(raw); const hit = DISPLAY.find(([re]) => re.test(k) || re.test(String(raw || "").toLowerCase()));
       return { raw, key: k, display: hit ? hit[1] : mkey(shown).replace(/\b\d{3,}\b/g, "").trim().replace(/\b[a-z]/g, ch => ch.toUpperCase()) || shown };
     }
-    function categorize(t, rules) {
+    // Merchant knowledge (packages/offers/merchant-knowledge.json; MERCHANT_KNOWLEDGE_JSON in the router bundle,
+    // the file itself when this module is required in node): what a merchant actually IS, as dated data, consulted
+    // BEFORE the word rules below — Polymarket is a prediction market, not groceries for the bare word "market"
+    // in CATEGORY_RULES. The word rules stay the fallback for merchants not on file (a RIVER MARKET DELI is
+    // groceries by the "market" word rule). Lazy for the same reason as in 80-money-answers.js: the bundle's JSON
+    // const initializes after the modules, and vm tests without the data keep the old word-rule behaviour.
+    function knowledgeData(explicit) {
+      if (explicit && Array.isArray(explicit.merchants)) return explicit;
+      if (typeof MERCHANT_KNOWLEDGE_JSON !== "undefined" && MERCHANT_KNOWLEDGE_JSON && Array.isArray(MERCHANT_KNOWLEDGE_JSON.merchants)) return MERCHANT_KNOWLEDGE_JSON;
+      if (typeof require === "function") { try { const d = require("../offers/merchant-knowledge.json"); if (d && Array.isArray(d.merchants)) return d; } catch (e) { /* no file: word rules only */ } }
+      return null;
+    }
+    let kFrom = null, kList = null;
+    function knowledgeList(explicit) {
+      const d = knowledgeData(explicit);
+      if (!d) return null;
+      if (kFrom !== d) { kFrom = d; kList = d.merchants.filter(m => m && m.ledger_category && m.match && m.name).map(m => { let re = null; try { re = new RegExp(m.match, "i"); } catch (e) { /* bad data pattern: skip it */ } return re ? { category: m.ledger_category, name: m.name, re, id: m.id || null, is: m.is || null } : null; }).filter(Boolean); }
+      return kList;
+    }
+    function knowledgeFor(text, explicit) {
+      const list = knowledgeList(explicit);
+      if (!list) return null;
+      for (const k of list) if (k.re.test(text)) return k;
+      return null;
+    }
+    function categorize(t, rules, knowledge) {
       const text = `${t.merchant_raw || t.merchant || ""} ${t.note || ""}`.toLowerCase(), c = cents(t);
       if (t.category_override) return { category: t.category_override, by: "user override on this transaction" };
       for (const r of rules || []) { const re = r.match instanceof RegExp ? r.match : new RegExp(String(r.match).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); if (re.test(text)) return { category: r.category, by: `your rule: ${r.match}` }; }
       if (t.is_transfer) return { category: "transfers", by: "transfer between your accounts" };
       if (c > 0) { const inc = CATEGORY_RULES.find(([cat, re]) => cat === "income" && re.test(text)); return inc ? { category: "income", by: "default rule" } : { category: "refunds_and_credits", by: "credit without a payroll descriptor" }; }
+      const k = knowledgeFor(text, knowledge);
+      if (k) return { category: k.category, by: `merchant knowledge: ${k.is || k.name}` };
       const hit = CATEGORY_RULES.find(([cat, re]) => cat !== "income" && re.test(text));
       return hit ? { category: hit[0], by: "default rule" } : { category: "other", by: "no rule matched" };
     }
-    function enrich(transactions, rules) { return (transactions || []).map(t => { const m = normalizeMerchant(t.merchant_raw || t.merchant), cat = categorize(t, rules); return Object.assign({}, t, { amount_cents: cents(t), merchant_key: m.key, merchant_display: m.display, category: cat.category, categorized_by: cat.by, posted_at: ymd(t.posted_at) }); }); }
+    function enrich(transactions, rules, knowledge) { return (transactions || []).map(t => { const m = normalizeMerchant(t.merchant_raw || t.merchant), cat = categorize(t, rules, knowledge); return Object.assign({}, t, { amount_cents: cents(t), merchant_key: m.key, merchant_display: m.display, category: cat.category, categorized_by: cat.by, posted_at: ymd(t.posted_at) }); }); }
 
     // TXN-001/002: filters and search over enriched rows.
     function list(transactions, f, rules) {
@@ -337,6 +364,6 @@
     }
     function debtPayoffProjection(accounts, extra_cents) { const p = payoffPlans(accounts, extra_cents); return p.plans === null ? p : { months: p.avalanche.months, total_interest_cents: p.avalanche.total_interest_cents, payoff_month: p.avalanche.payoff_month, order: p.avalanche.order, text: p.text, source: p.source, as_of: p.as_of }; }
 
-    return { balance, listAccounts, netWorth, cashPosition, balanceHistory, netWorthHistory, closedCandidates, duplicates, dedupe, normalizeMerchant, categorize, enrich, list, search, pendingVsPosted, csv, transfers, recurring, recurringCalendar, spendingByCategory, merchantLeaderboard, annualReport, incomeVsSpend, savingsRate, monthOverMonth, categoryTrends, anomalyExplain, merchantHistory, explainLarge, budgets, safeToSpend, cashflowForecast, paycheckAllocation, goals, whatIf, cards, utilizationAlerts, dueDates, minVsFull, annualFeeAudit, debtInventory, amortize, payoffPlans, extraPaymentImpact, debtPayoffProjection, provenance, money, LIQUID, LIABILITY };
+    return { knowledgeFor, knowledgeData, balance, listAccounts, netWorth, cashPosition, balanceHistory, netWorthHistory, closedCandidates, duplicates, dedupe, normalizeMerchant, categorize, enrich, list, search, pendingVsPosted, csv, transfers, recurring, recurringCalendar, spendingByCategory, merchantLeaderboard, annualReport, incomeVsSpend, savingsRate, monthOverMonth, categoryTrends, anomalyExplain, merchantHistory, explainLarge, budgets, safeToSpend, cashflowForecast, paycheckAllocation, goals, whatIf, cards, utilizationAlerts, dueDates, minVsFull, annualFeeAudit, debtInventory, amortize, payoffPlans, extraPaymentImpact, debtPayoffProjection, provenance, money, LIQUID, LIABILITY };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentLedger;

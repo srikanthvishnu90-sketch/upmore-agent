@@ -20060,6 +20060,1358 @@ const Government = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = Government;
 
+  /* Career access layer (Career Appendix A in all 3 docs; capability inventory ACCS-001..007): the pure half of
+     how the career agent logs in to everything. No I/O, no provider calls, no secrets: OAuth tokens, browser
+     session profiles and generated portal passwords live in the vault, held by the host (supabase/functions/
+     gmail-oauth for Google; the manual-connect rail for browser sources). This module works only over RECORDS
+     about access — connection rows, health-check results, vault REFERENCES (names, never values) — and turns
+     them into the connected-accounts list (ACCS-002), the session health plan (ACCS-003, Appendix A.3 step 3 /
+     Appendix B test T8), portal-account records (ACCS-005), handoff tickets (ACCS-006) and the login audit
+     view (ACCS-007), plus the chat intent handlers the router calls (see CHAT HANDLERS at the bottom).
+     Rules zero, from Appendix A: the agent never asks for a password, card or code in chat and never stores
+     secrets in prompts, logs or memory; CAPTCHA/MFA/SSO blocks are a user handoff, never a solving service;
+     LinkedIn is user-assisted, low-volume only, no scraping. Statuses here are records, not proof: a source is
+     "connected" when a connection record says so, and the host verifies it with a real health check.
+     Channel note (owner, 2026-10-12): surfaces are consumed iMessage FIRST, so every text this module builds is
+     a short plain-text message that also reads fine in the app chat; nothing here is channel-specific.
+     Sending identity (owner, 2026-10-12): the user's own Gmail via the career OAuth grant is THE send rail —
+     CAREER_SCOPES below must stay in lockstep with supabase/functions/gmail-oauth/career.ts (a test pins both). */
+  const CareerAccess = (() => {
+    const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+    const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+    const CALENDAR_FREEBUSY_SCOPE = "https://www.googleapis.com/auth/calendar.freebusy";
+    const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+    const CAREER_SCOPES = Object.freeze([GMAIL_SCOPE, GMAIL_SEND_SCOPE, CALENDAR_FREEBUSY_SCOPE, CALENDAR_EVENTS_SCOPE]);
+    const HANDOFF_TTL_MS = 30 * 60 * 1000; // a handoff link is a step the user does now, not a standing door
+
+    const LABELS = { gmail: "Gmail", google_career: "Google (career)", google: "Google", calendar: "Google Calendar", linkedin: "LinkedIn", handshake: "Handshake", outlook: "Outlook", portal: "company portal" };
+    const label = s => LABELS[String(s || "").toLowerCase()] || (String(s || "that source").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+    const iso = t => (t == null ? null : new Date(t).toISOString());
+    const parseScopes = input => Array.isArray(input) ? input.map(String).filter(Boolean) : typeof input === "string" ? input.split(/[\s,]+/).filter(Boolean) : [];
+    function scopeSet(scopes) {
+      if (!scopes.length) return "none";
+      const has = s => scopes.includes(s);
+      if (has(GMAIL_SEND_SCOPE) && has(CALENDAR_FREEBUSY_SCOPE) && has(CALENDAR_EVENTS_SCOPE)) return "career";
+      if (scopes.length === 1 && has(GMAIL_SCOPE)) return "readonly";
+      return "partial";
+    }
+    // A task's named need maps to the record that satisfies it: "calendar" is satisfied by the career Google
+    // grant, and "gmail" by either grant (career preferred — it is the one that can send).
+    const PROVIDES = { gmail: ["gmail", "google_career"], calendar: ["google_career", "calendar"], google_career: ["google_career"], google: ["google_career"], linkedin: ["linkedin"], handshake: ["handshake"], outlook: ["outlook"] };
+    const providersFor = need => PROVIDES[String(need || "").toLowerCase()] || [String(need || "").toLowerCase()];
+
+    // ---------- ACCS-002: connected-accounts list, from status records ----------
+    // Accepts connection rows ([{provider, email, scopes, connected_at}]), the gmail-oauth status object
+    // (buildStatus output), or a mix flattened by the caller. Output is records only: no vault values exist here.
+    function normalizeRows(input) {
+      if (!input) return [];
+      if (Array.isArray(input)) return input.slice();
+      const rows = [];
+      if (input.legacy || input.career) { // gmail-oauth status object
+        if (input.legacy && input.legacy.connected) rows.push({ provider: "gmail", email: input.legacy.email, scopes: input.legacy.scopes, connected_at: input.legacy.connected_at });
+        if (input.career && input.career.connected) rows.push({ provider: "google_career", email: input.career.email, scopes: input.career.scopes, connected_at: input.career.connected_at });
+        return rows;
+      }
+      if (input.provider) return [input];
+      return [];
+    }
+    function connectedAccounts(input) {
+      const rows = normalizeRows(input);
+      const accounts = [], seen = new Set();
+      for (const r of rows) {
+        const provider = String(r.provider || "").toLowerCase(); if (!provider || seen.has(provider)) continue; seen.add(provider);
+        const scopes = parseScopes(r.scopes);
+        accounts.push({ source: provider, provider, label: label(provider), email: r.email || null, scopes, scope_set: scopeSet(scopes), connected_at: r.connected_at || null });
+      }
+      // Gmail is ONE source to the user, held by up to two grants: the career grant upgrades the legacy
+      // read-only one (read + send), it is not a second account. Merge them into a single Gmail entry —
+      // regression: the first build listed "Gmail (read-only)" and a separate "Google (career)" line while
+      // the career grant was connected, telling the user send was unavailable when it was the send rail.
+      const legacy = accounts.find(a => a.provider === "gmail"), careerRow = accounts.find(a => a.provider === "google_career");
+      if (legacy && careerRow) {
+        const mergedScopes = [...new Set([...legacy.scopes, ...careerRow.scopes])];
+        Object.assign(legacy, { scopes: mergedScopes, scope_set: scopeSet(careerRow.scopes), email: careerRow.email || legacy.email, via: "google_career" });
+        accounts.splice(accounts.indexOf(careerRow), 1);
+      } else if (careerRow) {
+        Object.assign(careerRow, { source: "gmail", label: label("gmail") });
+      }
+      // Calendar is a source the user asks about, even though its grant is the career Google row.
+      const career = accounts.find(a => a.provider === "google_career" || a.via === "google_career");
+      if (career && career.scopes.some(s => s.includes("/calendar"))) {
+        accounts.push({ source: "calendar", provider: "google_career", label: label("calendar"), email: career.email, scopes: career.scopes.filter(s => s.includes("/calendar")), scope_set: "career", connected_at: career.connected_at, via: "google_career" });
+      }
+      const gmail = accounts.find(a => a.source === "gmail");
+      return {
+        accounts, count: accounts.length,
+        gmail: gmail ? { connected: true, scope_set: gmail.scope_set, can_send: gmail.scopes.includes(GMAIL_SEND_SCOPE), email: gmail.email } : { connected: false, scope_set: "none", can_send: false, email: null },
+        calendar_connected: !!accounts.find(a => a.source === "calendar"),
+        connected_email: (gmail && gmail.email) || (accounts[0] && accounts[0].email) || null,
+        granted_scopes: [...new Set(accounts.flatMap(a => a.scopes))],
+        text: accounts.length
+          ? accounts.map(a => `${a.label}: connected${a.email ? ` as ${a.email}` : ""}${a.source === "gmail" || a.provider === "gmail" ? (a.scope_set === "readonly" ? " (read-only)" : a.scope_set === "career" ? " (read + send)" : "") : a.source === "calendar" ? " (free/busy + events, via your Google grant)" : ""}`).join("\n")
+          : "Nothing is connected yet. Say \"connect my Google\" to start.",
+      };
+    }
+
+    // ---------- ACCS-003: session health planner (Appendix A.3 step 3; replay of Appendix B test T8) ----------
+    // health: [{source|provider, status: "ok"|"expired"|"missing"|"unknown", checked_at}] — one record per source
+    // the host health-checked. tasks: [{id, title?, needs: [source, ...]}]. A task pauses only when a source it
+    // needs is expired/missing (or has no ok record at all); every other task keeps running. Exactly ONE re-auth
+    // message per affected source, however many tasks need it, in Appendix A.3 step 2's words.
+    function reauthMessage(source, secureLink) {
+      const base = `I need access to ${label(source)} to do this. Open this, sign in, done in 30 seconds. I never see your password.`;
+      return secureLink ? `${base} ${secureLink}` : base;
+    }
+    function healthPlan(input) {
+      const o = input || {}, health = o.health || o.records || [], tasks = o.tasks || [];
+      const byProvider = {};
+      for (const h of health) {
+        const p = String(h.provider || h.source || "").toLowerCase(); if (!p) continue;
+        byProvider[p] = { status: String(h.status || "unknown").toLowerCase(), checked_at: h.checked_at || h.at || null };
+      }
+      const perSource = {}, needOf = {}; // source-as-asked -> {status, providers}
+      const needs = [...new Set(tasks.flatMap(t => (t.needs || []).map(n => String(n).toLowerCase())))];
+      for (const need of needs) {
+        const providers = providersFor(need);
+        // ok if ANY providing grant is ok; expired/missing only when every providing grant is bad (or none checked ok).
+        let status = "missing";
+        if (providers.some(p => byProvider[p] && byProvider[p].status === "ok")) status = "ok";
+        else if (providers.some(p => byProvider[p] && byProvider[p].status === "expired")) status = "expired";
+        else if (providers.some(p => byProvider[p])) status = String(byProvider[providers.find(p => byProvider[p])].status);
+        perSource[need] = { status, providers, checked_at: (providers.map(p => byProvider[p]).find(Boolean) || {}).checked_at || null };
+        needOf[need] = perSource[need].status;
+      }
+      const paused = [], running = [];
+      for (const t of tasks) {
+        const blockedBy = (t.needs || []).map(n => String(n).toLowerCase()).filter(n => needOf[n] !== "ok");
+        if (blockedBy.length) paused.push({ id: t.id, title: t.title || null, blocked_by: blockedBy }); else running.push({ id: t.id, title: t.title || null });
+      }
+      const badSources = [...new Set(paused.flatMap(p => p.blocked_by))];
+      const linkFor = typeof o.secureLinkFor === "function" ? o.secureLinkFor : () => o.secureLink || null;
+      const messages = badSources.map(source => ({ source, text: reauthMessage(source, linkFor(source)) }));
+      return { per_source: perSource, paused, running, reauth: messages, messages: messages.map(m => m.text), one_message_per_source: true };
+    }
+
+    // ---------- ACCS-005: portal-account records (Appendix A.1 method 4) ----------
+    // Records only. The generated password itself NEVER enters this module: the caller stores it in the vault
+    // and passes only the vault reference (a name). A record handed a secret-shaped field is refused outright,
+    // so no code path can serialize a portal password into a list, a log or a chat answer.
+    const SECRET_FIELDS = ["password", "generated_password", "secret", "token", "credential", "credentials", "value"];
+    function portalRecord(input) {
+      const o = input || {};
+      for (const f of SECRET_FIELDS) if (o[f] != null && o[f] !== "") return { ok: false, code: "secret_in_record", text: "Portal records hold the vault reference only, never the password itself. Store the generated password in the vault and pass its reference." };
+      const company = String(o.company || "").trim();
+      const alias = String(o.alias_email || o.aliasEmail || "").trim();
+      const ref = String(o.password_vault_ref || o.vault_ref || o.passwordVaultRef || "").trim();
+      if (!company) return { ok: false, code: "company_required", text: "A portal record names its company." };
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(alias)) return { ok: false, code: "alias_required", text: `A portal record for ${company} needs its unique alias email.` };
+      if (!ref || /\s/.test(ref) || ref === alias) return { ok: false, code: "vault_ref_required", text: `A portal record for ${company} needs the vault reference its generated password is stored under (a name, not the password).` };
+      return { ok: true, record: { company, company_key: company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), alias_email: alias, password_vault_ref: ref, username: o.username ? String(o.username) : alias, created_at: iso(o.created_at || o.now) || null, source: "portal" } };
+    }
+    function portalList(records) {
+      const rows = (records || []).map(r => r && r.record ? r.record : r).filter(r => r && r.company);
+      return {
+        companies: rows.map(r => ({ company: r.company, alias_email: r.alias_email, password_vault_ref: r.password_vault_ref, created_at: r.created_at || null })),
+        count: rows.length,
+        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it.",
+      };
+    }
+
+    // ---------- ACCS-006: user-assisted handoff tickets (Appendix A.1 method 5, A.3 step 4) ----------
+    // A challenge (CAPTCHA / MFA / SSO / device check) stops the run. The ticket carries the screenshot
+    // REFERENCE and a single-use resume token; resume validates the ticket, never the user's credentials.
+    // There is deliberately no "solve" path and no field for a code or a password.
+    const CHALLENGES = Object.freeze(["captcha", "mfa", "sso", "device_verification", "sign_in"]);
+    let ticketSeq = 0;
+    function createHandoff(input) {
+      const o = input || {};
+      const source = String(o.source || "").toLowerCase();
+      const challenge = String(o.challenge || "").toLowerCase();
+      if (!source) return { ok: false, code: "source_required", text: "A handoff names the source that blocked the run." };
+      if (!CHALLENGES.includes(challenge)) return { ok: false, code: "bad_challenge", text: `A handoff is only for a step the user must do themselves (${CHALLENGES.join(", ")}).` };
+      if (!o.screenshot_ref && !o.screenshotRef) return { ok: false, code: "screenshot_required", text: "A handoff carries a screenshot reference so the user can see exactly which step is theirs." };
+      const now = o.now != null ? Number(o.now) : Date.now();
+      const token = o.resumeToken || o.resume_token || `hrt_${(++ticketSeq).toString(36)}_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+      const ticket = { id: o.id || `handoff_${now.toString(36)}_${++ticketSeq}`, source, challenge, screenshot_ref: o.screenshot_ref || o.screenshotRef, run_id: o.run_id || o.runId || null, resume_token: token, status: "awaiting_user", created_at: iso(now), expires_at: iso(now + (o.ttl_ms || HANDOFF_TTL_MS)) };
+      return { ok: true, ticket, text: `${label(source)} needs a step only you can do (${challenge.replace(/_/g, " ")}). Open this link, finish that one step, and the run picks up where it left off. I never see your password or code.` };
+    }
+    function resumeHandoff(ticket, input) {
+      const o = input || {}, now = o.now != null ? Number(o.now) : Date.now();
+      if (!ticket || !ticket.resume_token) return { ok: false, code: "no_ticket", text: "There is no handoff to resume." };
+      if (ticket.status === "resumed") return { ok: false, code: "already_used", text: "That handoff was already used. A fresh one is created if the run blocks again." };
+      if (ticket.status !== "awaiting_user") return { ok: false, code: "not_waiting", text: "That handoff is no longer waiting on you." };
+      if (ticket.expires_at && now > Date.parse(ticket.expires_at)) return { ok: false, code: "expired", ticket: { ...ticket, status: "expired" }, text: "That handoff link expired. The run creates a fresh one when it reaches that step again." };
+      if (String(o.resume_token || o.resumeToken || "") !== String(ticket.resume_token)) return { ok: false, code: "bad_token", text: "That resume link does not match this handoff. Nothing was resumed." };
+      return { ok: true, ticket: { ...ticket, status: "resumed", resumed_at: iso(now), resume_token: null }, run_id: ticket.run_id, source: ticket.source, text: `Done — resuming the ${label(ticket.source)} run where it stopped.` };
+    }
+
+    // ---------- ACCS-007: login audit log (Appendix A.3 step 7) ----------
+    // Every login-requiring action: {source, at, what}. Entries are records the host writes as it acts; this
+    // module only shapes and renders them, and refuses secret-shaped fields for the same reason as portals.
+    function auditEntry(input) {
+      const o = input || {};
+      for (const f of SECRET_FIELDS) if (o[f] != null && o[f] !== "") return { ok: false, code: "secret_in_record", text: "Audit entries record what was done, never a secret value." };
+      const source = String(o.source || "").toLowerCase(), what = String(o.what || o.action || "").trim();
+      if (!source || !what) return { ok: false, code: "entry_incomplete", text: "An audit entry names its source and what was done." };
+      return { ok: true, entry: { source, at: iso(o.at || o.now) || iso(Date.now()), what, outcome: o.outcome ? String(o.outcome) : null } };
+    }
+    function auditLog(entries) {
+      const rows = (entries || []).map(e => e && e.entry ? e.entry : e).filter(e => e && e.source && e.what)
+        .map(e => ({ source: String(e.source).toLowerCase(), at: e.at || null, what: String(e.what), outcome: e.outcome || null }))
+        .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No login-requiring actions yet." };
+    }
+
+    // ---------- ACCS-004: browser-source connect plan (records/plans only — the live window is the host's) --
+    // LinkedIn / Handshake connect by the user signing in ONCE inside a shown cloud-browser session; the agent
+    // never sees the password. This returns the plan + exact user text; it does not open anything itself.
+    function browserConnectPlan(source) {
+      const s = String(source || "").toLowerCase();
+      if (!["linkedin", "handshake"].includes(s)) return { ok: false, code: "not_a_browser_source", text: `${label(s)} does not connect this way.` };
+      return {
+        ok: true, source: s, method: "cloud_browser_user_sign_in", agent_sees_password: false, session_stored_as: "vault_reference_only",
+        risk_note: s === "linkedin" ? "LinkedIn's terms prohibit automation and scraping, and a restriction would land on your account. Default here is user-assisted and low-volume only: no bulk scraping, no mass connection requests." : "Handshake sign-in goes through your school SSO; you do that step yourself in the shown session.",
+        text: reauthMessage(s, null).replace("to do this", `to connect ${label(s)}`),
+      };
+    }
+
+    // ---------- CHAT HANDLERS (ACCS-001/002/007 surfaces; iMessage first, channel-agnostic) ----------
+    // The router calls CareerAccess.handleChat(text, ctx) — or a single handler from chatHandlers — with:
+    //   ctx.statusRecords  connection rows or the gmail-oauth status object (for connected / disconnect views)
+    //   ctx.portalRecords  portal keeper records        ctx.auditEntries  audit log entries
+    //   ctx.secureLinkFor(source) -> the host's secure connect link (vault link flow; never built here)
+    //   ctx.health, ctx.tasks    for the health-plan answer
+    // A handler never claims an edge action happened: connect returns the ACTION the host must run against
+    // gmail-oauth ({edge_action:"start_career"} plus the secure link when the host supplied one), and
+    // disconnect returns {edge_action:"disconnect", source} for the host to execute and confirm.
+    function handleConnectGoogle(text, ctx) {
+      const c = ctx || {};
+      const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
+      return {
+        intent: "connect_google", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
+      };
+    }
+    function handleConnected(text, ctx) {
+      const r = connectedAccounts((ctx || {}).statusRecords);
+      return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
+    }
+    function handleDisconnect(text, ctx) {
+      const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
+      const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
+      const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
+      return {
+        intent: "disconnect", edge_action: "disconnect", source,
+        reply: source === "calendar"
+          ? "Calendar lives in your career Google grant, so disconnecting it removes that grant (Gmail send goes with it; a separate read-only Gmail connection stays). The host confirms once it is deleted."
+          : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
+      };
+    }
+    function handleAccessLog(text, ctx) {
+      const r = auditLog((ctx || {}).auditEntries);
+      return { intent: "access_log", entries: r.entries, reply: r.text };
+    }
+    function handlePortalList(text, ctx) {
+      const r = portalList((ctx || {}).portalRecords);
+      return { intent: "portal_accounts", companies: r.companies, reply: r.text };
+    }
+    function handleConnectBrowser(text, ctx) {
+      const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
+      const plan = browserConnectPlan(source);
+      const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
+      return { intent: "connect_browser_source", ...plan, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""}` : plan.text };
+    }
+    const chatHandlers = { connect_google: handleConnectGoogle, connected_accounts: handleConnected, disconnect: handleDisconnect, access_log: handleAccessLog, portal_accounts: handlePortalList, connect_browser_source: handleConnectBrowser };
+    function handleChat(text, ctx) {
+      const t = String(text || "").trim().toLowerCase();
+      if (/^disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
+      if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
+      if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
+      if (/\bwhat accounts are connected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
+      if (/\bportal accounts\b|\bwhich companies.*accounts\b/.test(t)) return chatHandlers.portal_accounts(text, ctx);
+      if (/\baccess log\b|\blogin log\b|\bshow my access\b/.test(t)) return chatHandlers.access_log(text, ctx);
+      return null; // not an access-layer message: the router falls through to its other handlers
+    }
+
+    return {
+      GMAIL_SCOPE, GMAIL_SEND_SCOPE, CALENDAR_FREEBUSY_SCOPE, CALENDAR_EVENTS_SCOPE, CAREER_SCOPES, HANDOFF_TTL_MS, CHALLENGES,
+      label, parseScopes, scopeSet, connectedAccounts, reauthMessage, healthPlan,
+      portalRecord, portalList, createHandoff, resumeHandoff, auditEntry, auditLog, browserConnectPlan,
+      chatHandlers, handleChat,
+    };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = CareerAccess;
+
+/* Career job discovery + fit scoring (DISC-003..008; Doc 2 section 2 + Appendix B.2).
+   Pure domain module, UMD like the other domain modules. Fetch is INJECTED (opts.fetch) so tests run
+   offline on recorded-shape fixtures and the proof script (scripts/career/proof-jobs.mjs) runs the
+   same code path against the REAL public ATS feeds. No deploy, no secrets: these are public,
+   no-login JSON endpoints (Doc 2 Appendix A.2: Greenhouse/Lever/Ashby/SmartRecruiters = public feeds).
+
+   Normalized posting: { job_id, company, title, role_family, seniority_band, location, remote, url,
+                         posted_at, jd_text, source, sources, source_urls, department, req_id }
+   job_id is stable: source+company+req id when the feed gives one, else an FNV-1a hash of the URL.
+
+   Functions:
+     feeds.greenhouse(token) / lever(company) / ashby(name) / smartrecruiters(company)
+                                   feed descriptors { source, company_token, url } for Appendix B.2 endpoints
+     fetchFeed(feed, {fetch})      one feed -> { status, url, postings, error? } (never throws on HTTP error)
+     fetchAll(feeds, {fetch})      many feeds -> { postings (deduped), feeds: [per-feed results] }
+     normalize* (per ATS)          raw feed JSON -> normalized postings
+     dedupe(postings)              company + normalized title + location (+ req id when both sides have one)
+     diffNew(current, prior)       DISC-004: only genuinely new job_ids vs a prior snapshot
+     poll(feeds, {fetch, store, snapshotKey, now})
+                                   fetch + dedupe + diff against the injectable KV snapshot store, save the
+                                   new snapshot (+ repost history), return { postings, new_postings, feeds }
+     qualityFlags(posting, {now, repost_count})   DISC-008 ghost/quality flags with plain-language reasons
+     scoreFit(posting, profile, cir?)              DISC-005: hard filters first (a hard fail is EXCLUDED with
+                                   the reason, never scored), then soft score 0-100 with reasons + gaps and a
+                                   Reach/Match/Safety bucket (optional CIR bar; absent -> neutral bar 60)
+     buildShortlist(scored, {limit, feedback})     DISC-006: top-N per day; yes/no feedback memory (injected
+                                   store rows) nudges later scores by role_family / company / skills
+     recordFeedback(store, entry)  append a yes/no row to the injected feedback store
+   Role families are SWE + Finance first (owner ruling 2026-10-12): STARTER_FEEDS weights banks, trading
+   firms, fintechs and big-tech SWE boards. Poll cadence per Doc 1/2 Appendix B speed rules: starred
+   companies every 15 min, the rest hourly (POLL_MINUTES) — detection, not scheduling, lives here. */
+const CareerJobs = (() => {
+  const DAY = 86400000;
+  const POLL_MINUTES = { starred: 15, default: 60 };
+  const NEUTRAL_BAR = 60;
+
+  // ---------- helpers ----------
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  function hash(str) { // FNV-1a 32-bit, deterministic across runs/machines
+    let h = 0x811c9dc5;
+    const t = s(str);
+    for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, "0");
+  }
+  function stripHtml(html) {
+    return s(html).replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+  const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normTitle = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\b(senior|sr|junior|jr|lead|staff|principal|i|ii|iii|iv)\b/g, " ").replace(/\s+/g, " ").trim();
+  const normLoc = (v) => lc(v).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().replace(/\bnyc\b/g, "new york").split(" ").slice(0, 3).join(" ");
+  const iso = (v) => { if (!v) return null; const d = new Date(typeof v === "number" ? v : Date.parse(v)); return isNaN(d) ? null : d.toISOString(); };
+
+  // ---------- classification ----------
+  const FAMILY_RULES = [
+    ["Finance", /\b(quant|trader|trading|investment bank|banking analyst|private equity|equity research|portfolio|fp&a|financial analyst|finance|accounting|audit|treasury|capital markets|wealth|risk analyst|actuar|underwrit)/],
+    ["SWE", /\b(software|backend|back end|frontend|front end|full stack|fullstack|mobile|ios|android|devops|sre|site reliability|platform engineer|infrastructure|systems engineer|firmware|embedded|web developer|engineer,? software|application engineer|quality engineer|qa engineer|security engineer)/],
+    ["Data/ML", /\b(data scien|machine learning|ml engineer|ai engineer|data engineer|data analyst|analytics engineer|research scien)/],
+    ["PM", /\b(product manager|program manager|product management|technical program)/],
+    ["Design", /\b(designer|design|ux|ui\b|user research)/],
+    ["Consulting", /\b(consultant|consulting|advisory associate|strategy associate)/],
+    ["Operations", /\b(operations|business operations|bizops|supply chain|logistics)/],
+    ["Marketing", /\b(marketing|growth|brand|content strateg)/],
+    ["Sales", /\b(account executive|sales|business development|bd representative|sdr|bdr)\b/],
+  ];
+  function roleFamily(title, jd) {
+    const t = lc(title);
+    for (const [fam, re] of FAMILY_RULES) if (re.test(t)) return fam;
+    const j = lc(jd).slice(0, 600);
+    for (const [fam, re] of FAMILY_RULES) if (re.test(j)) return fam;
+    if (/\bengineer/.test(t)) return "SWE";
+    if (/\banalyst/.test(t)) return "Finance";
+    return "Other";
+  }
+  function seniorityBand(title, jd) {
+    const t = lc(title), j = lc(jd);
+    if (/\b(intern|internship|co-op)\b/.test(t)) return "intern";
+    if (/\b(director|vp|vice president|head of|chief)\b/.test(t)) return "director";
+    if (/\bmanager\b/.test(t)) return "manager";
+    if (/\b(staff|principal)\b/.test(t)) return "staff";
+    if (/\b(senior|sr\.?)\b/.test(t)) return "senior";
+    if (/\b(new grad|early career|entry level|graduate program|rotational|university)\b/.test(t + " " + j.slice(0, 400))) return "new_grad";
+    if (/\b(junior|jr\.?|associate)\b/.test(t)) return "junior";
+    if (/\b(intern|internship)\b/.test(j.slice(0, 300))) return "intern";
+    return "mid";
+  }
+  function remoteOf(location, jd) {
+    const t = lc(location) + " " + lc(jd).slice(0, 500);
+    if (/\bhybrid\b/.test(t)) return "hybrid";
+    if (/\bremote\b/.test(t)) return "remote";
+    return "onsite";
+  }
+
+  function basePosting(p) {
+    const req = p.req_id ? s(p.req_id) : "";
+    const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
+                       : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
+    const jd_text = stripHtml(p.jd_text || "");
+    return {
+      job_id, company: s(p.company), title: s(p.title),
+      role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
+      location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
+      url: s(p.url), posted_at: iso(p.posted_at), jd_text,
+      source: p.source, sources: [p.source], source_urls: [s(p.url)],
+      department: s(p.department || ""), req_id: req || null,
+    };
+  }
+
+  // ---------- per-ATS normalization (recorded shapes; see tests) ----------
+  function normalizeGreenhouse(json, token) {
+    const company = (json && json.name) || token;
+    return ((json && json.jobs) || []).map((j) => basePosting({
+      source: "greenhouse", company, title: j.title, req_id: j.requisition_id || j.id,
+      location: (j.location && j.location.name) || (j.offices && j.offices[0] && j.offices[0].name) || "",
+      url: j.absolute_url, posted_at: j.updated_at || j.created_at,
+      jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
+    }));
+  }
+  function normalizeLever(json, companyToken) {
+    return (Array.isArray(json) ? json : []).map((j) => basePosting({
+      source: "lever", company: companyToken, title: j.text, req_id: j.id,
+      location: (j.categories && j.categories.location) || "", url: j.hostedUrl || j.applyUrl,
+      posted_at: j.createdAt, jd_text: j.descriptionPlain || j.description || "",
+      department: (j.categories && (j.categories.team || j.categories.department)) || "",
+    }));
+  }
+  function normalizeAshby(json, name) {
+    return ((json && json.jobs) || []).map((j) => basePosting({
+      source: "ashby", company: (json && json.name) || name, title: j.title, req_id: j.id,
+      location: j.location || j.locationName || "", url: j.jobUrl || j.applyUrl,
+      posted_at: j.publishedAt || j.createdAt, jd_text: j.descriptionPlain || j.descriptionHtml || "",
+      department: j.departmentName || j.teamName || "",
+    }));
+  }
+  function normalizeSmartRecruiters(json, companyToken) {
+    return ((json && json.content) || []).map((j) => {
+      const loc = j.location || {};
+      const location = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") + (loc.remote ? " (Remote)" : loc.hybrid ? " (Hybrid)" : "");
+      const sections = j.jobAd && j.jobAd.sections ? Object.values(j.jobAd.sections).map((x) => (x && (x.text || "")) || "").join(" ") : "";
+      return basePosting({
+        source: "smartrecruiters", company: (j.company && j.company.name) || companyToken, title: j.name, req_id: j.ref || j.id,
+        location, url: `https://jobs.smartrecruiters.com/${companyToken}/${j.id}`,
+        posted_at: j.releasedDate || j.createdOn, jd_text: sections, department: (j.department && j.department.label) || "",
+      });
+    });
+  }
+  const NORMALIZERS = { greenhouse: normalizeGreenhouse, lever: normalizeLever, ashby: normalizeAshby, smartrecruiters: normalizeSmartRecruiters };
+
+  // ---------- feeds (Doc 2 Appendix B.2, exact endpoints) ----------
+  const feeds = {
+    greenhouse: (token) => ({ source: "greenhouse", company_token: token, url: `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(token)}/jobs?content=true` }),
+    lever: (company) => ({ source: "lever", company_token: company, url: `https://api.lever.co/v0/postings/${encodeURIComponent(company)}?mode=json` }),
+    ashby: (name) => ({ source: "ashby", company_token: name, url: `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(name)}` }),
+    smartrecruiters: (company) => ({ source: "smartrecruiters", company_token: company, url: `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings` }),
+  };
+  // Starter boards, SWE + Finance first (owner ruling 2026-10-12).
+  const STARTER_FEEDS = [
+    feeds.greenhouse("stripe"), feeds.greenhouse("robinhood"), feeds.greenhouse("coinbase"),
+    feeds.greenhouse("datadog"), feeds.greenhouse("airbnb"), feeds.greenhouse("figma"),
+    feeds.lever("leverdemo"), feeds.ashby("ramp"), feeds.ashby("openai"), feeds.ashby("ashby"),
+    feeds.smartrecruiters("Square"), feeds.smartrecruiters("BoschGroup"),
+  ];
+
+  const realFetch = (url) => (typeof fetch !== "undefined" ? fetch(url, { headers: { accept: "application/json" } }) : Promise.reject(new Error("no fetch available; inject opts.fetch")));
+
+  async function fetchFeed(feed, opts) {
+    const f = (opts && opts.fetch) || realFetch;
+    try {
+      const res = await f(feed.url);
+      const status = res.status != null ? res.status : (res.ok ? 200 : 0);
+      if (status < 200 || status >= 300) return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings: [], error: `HTTP ${status}` };
+      const json = typeof res.json === "function" ? await res.json() : res;
+      const postings = NORMALIZERS[feed.source](json, feed.company_token);
+      return { source: feed.source, company_token: feed.company_token, url: feed.url, status, postings };
+    } catch (e) {
+      return { source: feed.source, company_token: feed.company_token, url: feed.url, status: 0, postings: [], error: s(e && e.message || e) };
+    }
+  }
+
+  // ---------- dedupe ----------
+  // City segment only: "San Francisco, CA" and "San Francisco, California" are the same place to a feed.
+  function dedupeKey(p) { return `${normName(p.company)}|${normTitle(p.title)}|${normLoc(s(p.location).split(",")[0])}`; }
+  function dedupe(postings) {
+    const groups = new Map();
+    for (const p of postings || []) {
+      const key = dedupeKey(p);
+      // Req ids are source-scoped: two DIFFERENT boards carrying the same role merge even though
+      // their req ids differ; two postings on the SAME board with different req ids are distinct roles.
+      const hit = (groups.get(key) || []).find((g) => g.source !== p.source || !(g.req_id && p.req_id && g.req_id !== p.req_id));
+      if (!hit) { groups.set(key, (groups.get(key) || []).concat([Object.assign({}, p, { sources: [...(p.sources || [p.source])], source_urls: [...(p.source_urls || [p.url])] })])); continue; }
+      for (const u of p.source_urls || [p.url]) if (!hit.source_urls.includes(u)) hit.source_urls.push(u);
+      for (const src of p.sources || [p.source]) if (!hit.sources.includes(src)) hit.sources.push(src);
+      if ((p.jd_text || "").length > (hit.jd_text || "").length) hit.jd_text = p.jd_text;
+      if (!hit.posted_at || (p.posted_at && p.posted_at < hit.posted_at)) hit.posted_at = p.posted_at;
+      if (!hit.department && p.department) hit.department = p.department;
+    }
+    return [...groups.values()].flat();
+  }
+
+  // ---------- new-posting detection (DISC-004) ----------
+  function diffNew(current, prior) {
+    const seen = new Set((prior && prior.job_ids) || []);
+    return (current || []).filter((p) => !seen.has(p.job_id));
+  }
+  function makeSnapshot(postings, now, priorHistory) {
+    const history = Object.assign({}, (priorHistory || {}));
+    const at = new Date(now || Date.now()).toISOString();
+    for (const p of postings) {
+      const h = history[p.job_id];
+      if (!h) history[p.job_id] = { first_seen: at, last_seen: at, repost_count: 0, present: true };
+      else { if (!h.present) h.repost_count = (h.repost_count || 0) + 1; h.last_seen = at; h.present = true; }
+    }
+    for (const id of Object.keys(history)) if (!postings.some((p) => p.job_id === id)) history[id].present = false;
+    return { saved_at: at, job_ids: postings.map((p) => p.job_id), history };
+  }
+  // Injectable KV: { get(key), set(key, value) } — sync or async, plain JSON values.
+  async function poll(feedList, opts) {
+    opts = opts || {};
+    const store = opts.store, key = opts.snapshotKey || "career:jobs:snapshot";
+    const prior = store ? await store.get(key) : null;
+    const results = [];
+    for (const fd of feedList) results.push(await fetchFeed(fd, opts));
+    const postings = dedupe(results.flatMap((r) => r.postings));
+    const new_postings = diffNew(postings, prior);
+    const snapshot = makeSnapshot(postings, opts.now, prior && prior.history);
+    if (store) await store.set(key, snapshot);
+    return { postings, new_postings, feeds: results, snapshot };
+  }
+
+  // ---------- ghost / quality flags (DISC-008) ----------
+  function qualityFlags(posting, opts) {
+    opts = opts || {};
+    const now = opts.now || Date.now();
+    const age_days = posting.posted_at ? Math.max(0, Math.floor((now - Date.parse(posting.posted_at)) / DAY)) : null;
+    const repost_count = opts.repost_count || 0;
+    const jd = lc(posting.jd_text);
+    const flags = [];
+    if (age_days != null && age_days >= 60) flags.push({ code: "stale", reason: `open ${age_days} days` });
+    else if (age_days != null && age_days >= 30) flags.push({ code: "aging", reason: `open ${age_days} days` });
+    if (repost_count >= 1) flags.push({ code: "reposted", reason: `reposted ${repost_count === 1 ? "once" : repost_count + " times"}` });
+    if (!posting.department && !/\b(team|group|organization|org)\b/.test(jd.slice(0, 800))) flags.push({ code: "missing_team", reason: "no named team in the posting" });
+    if (!/(\$\s?\d|salary|compensation range|pay range|base salary)/.test(jd)) flags.push({ code: "missing_salary", reason: "no salary or compensation range shown" });
+    const bad = flags.some((f) => f.code === "stale" || f.code === "reposted");
+    const summary = flags.length ? `${flags.map((f) => f.reason).join(", ")}${bad ? " — lower odds" : ""}` : "no quality flags";
+    return { age_days, repost_count, flags, summary, lower_odds: bad };
+  }
+
+  // ---------- fit scoring (DISC-005) ----------
+  function profileSkills(profile) {
+    const raw = (profile && (profile.skills || (profile.facts && profile.facts.skills))) || [];
+    return raw.map((x) => typeof x === "string" ? { name: x, proven: true } : { name: s(x.name || x.skill), proven: x.proven !== false && !x.unproven }).filter((x) => x.name);
+  }
+  function hardFilters(posting, profile) {
+    const fails = [];
+    const c = (profile && profile.constraints) || {};
+    const prefs = (profile && profile.preferences) || {};
+    const jd = lc(posting.jd_text), title = lc(posting.title);
+    // excluded company = a stated deal-breaker
+    const excluded = (prefs.excluded_companies || []).map(normName);
+    if (excluded.includes(normName(posting.company))) fails.push(`company: ${posting.company} is on your excluded list`);
+    // location
+    const wantLocs = (c.locations || prefs.locations || []).map(normLoc).filter(Boolean);
+    if (wantLocs.length && posting.remote !== "remote") {
+      const pl = normLoc(posting.location);
+      if (!wantLocs.some((w) => pl.includes(w) || w.includes(pl.split(" ")[0]))) fails.push(`location: posting is in ${posting.location || "an unlisted place"}; you want ${[...(c.locations || prefs.locations)].join(", ")}`);
+    }
+    if (prefs.remote_only && posting.remote === "onsite") fails.push(`location: posting is on-site in ${posting.location}; you want remote`);
+    // work authorization (Doc 2 section 2 example: "requires US citizenship; you said you need sponsorship")
+    const needsSponsorship = c.needs_sponsorship === true || /sponsor/i.test(s(c.work_authorization));
+    const citizenOnly = /\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/.test(jd);
+    const noSponsor = /\b(no sponsorship|will not sponsor|cannot sponsor|unable to sponsor|without sponsorship|does not offer sponsorship)\b/.test(jd);
+    if (citizenOnly && !/citizen/i.test(s(c.work_authorization))) fails.push(`work authorization: posting requires US citizenship; your profile says ${s(c.work_authorization) || "not a US citizen"}`);
+    else if (needsSponsorship && noSponsor) fails.push(`work authorization: posting offers no sponsorship; you said you need sponsorship`);
+    else if (needsSponsorship && citizenOnly) fails.push(`work authorization: posting requires US citizenship; you said you need sponsorship`);
+    // clearance
+    const needsClearance = /\b(ts\/sci|top secret|security clearance|secret clearance)\b/.test(jd);
+    if (needsClearance && (!c.clearance || /none|no\b/i.test(s(c.clearance)))) fails.push(`clearance: posting requires a security clearance; none on your profile`);
+    // graduation window
+    const gradYear = c.graduation_year || (c.graduation_date ? Number(s(c.graduation_date).slice(0, 4)) : null);
+    const jdGradYears = [...new Set([...jd.matchAll(/\b(?:graduat\w*|class of)\D{0,12}(20\d\d)\b/g)].map((m) => Number(m[1])))];
+    if (gradYear && jdGradYears.length && /\b(intern|new grad|early career|university)\b/.test(title + " " + jd.slice(0, 300)) && !jdGradYears.includes(gradYear))
+      fails.push(`graduation window: posting targets ${jdGradYears.join("/")}; you graduate ${gradYear}`);
+    // seniority
+    const years = typeof profile.experience_years === "number" ? profile.experience_years : null;
+    const level = lc(profile.level || c.level || "");
+    if ((posting.seniority_band === "senior" || posting.seniority_band === "staff" || posting.seniority_band === "director") && (level === "new_grad" || level === "student" || (years != null && years < 2)))
+      fails.push(`seniority: posting is ${posting.seniority_band}-level; your profile is ${level || years + " yrs experience"}`);
+    if (posting.seniority_band === "intern" && years != null && years >= 3 && level !== "student") fails.push(`seniority: posting is an internship; your profile shows ${years} yrs experience`);
+    const reqYears = jd.match(/\b(\d+)\+?\s*(?:years|yrs)(?:\s*of)?\s*(?:experience|exp)\b/);
+    if (reqYears && years != null && years + 1 < Number(reqYears[1])) fails.push(`seniority: posting asks ${reqYears[1]}+ years of experience; your profile shows ${years}`);
+    // degree
+    const deg = lc(profile.degree || c.degree || "");
+    if (/\bph\.?d\.?\b/.test(jd.slice(0, 1200)) && /\brequired\b/.test(jd.slice(0, 1200)) && !/ph/.test(deg)) fails.push(`degree: posting requires a PhD; your profile degree is ${deg || "not listed"}`);
+    if (/\bmaster'?s\b/.test(jd.slice(0, 1200)) && /\brequired\b/.test(jd.slice(0, 1200)) && deg && !/master|ph/.test(deg)) fails.push(`degree: posting requires a master's; your profile degree is ${deg}`);
+    return fails;
+  }
+
+  function scoreFit(posting, profile, cir) {
+    const fails = hardFilters(posting, profile || {});
+    if (fails.length) return { job_id: posting.job_id, excluded: true, score: null, bucket: null, reasons: fails, gaps: fails, matched_skills: [], missing_skills: [], hard_fails: fails };
+    const prefs = (profile && profile.preferences) || {};
+    const jd = lc(posting.title + " " + posting.jd_text);
+    const skills = profileSkills(profile);
+    const matched = skills.filter((x) => jd.includes(lc(x.name)));
+    const missing = skills.filter((x) => !jd.includes(lc(x.name)));
+    const reasons = [], gaps = [];
+    // skills overlap: 0-50
+    let skillScore = 0;
+    if (skills.length) { skillScore = Math.round(50 * matched.length / Math.max(3, Math.min(skills.length, 10))); }
+    if (matched.length) reasons.push(`skills match: ${matched.slice(0, 6).map((x) => x.name).join(", ")}`);
+    const unproven = matched.filter((x) => !x.proven);
+    if (unproven.length) gaps.push(`matched skills with no evidence link on your profile: ${unproven.map((x) => x.name).join(", ")}`);
+    // experience relevance: 0-25 (role-family preference + keyword overlap with the profile's own words)
+    let expScore = 0;
+    const wantFamilies = (prefs.role_families || prefs.roles || []).map(lc);
+    if (wantFamilies.includes(lc(posting.role_family))) { expScore += 12; reasons.push(`role family ${posting.role_family} is one you asked for`); }
+    const profileWords = new Set(lc([profile.experience_text || "", profile.summary || "", skills.map((x) => x.name).join(" ")].join(" ")).split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
+    const jdWords = new Set(jd.split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
+    const overlap = [...profileWords].filter((w) => jdWords.has(w)).length;
+    expScore += Math.min(13, overlap);
+    if (overlap >= 5) reasons.push(`your experience language overlaps this description (${overlap} shared terms)`);
+    else gaps.push(`little overlap between your experience and this description (${overlap} shared terms)`);
+    if (missing.length && matched.length) gaps.push(`your other profile skills not mentioned here: ${missing.slice(0, 5).map((x) => x.name).join(", ")}`);
+    // company preference: 0-15, starred first
+    let companyScore = 0;
+    const starred = (prefs.starred_companies || []).map(normName);
+    if (starred.includes(normName(posting.company))) { companyScore = 15; reasons.push(`${posting.company} is a company you starred`); }
+    // role-family / location soft points: 0-10 combined into experience bucket cap check below
+    let score = Math.max(0, Math.min(100, skillScore + expScore + companyScore + (posting.remote === "remote" && prefs.remote_ok !== false ? 3 : 0)));
+    score = Math.max(0, Math.min(100, score));
+    // bucket from the CIR bar (optional plain object: { bar } or { bar_score } or { competitiveness: 0-100 })
+    const bar = cir && typeof cir === "object" ? (typeof cir.bar === "number" ? cir.bar : typeof cir.bar_score === "number" ? cir.bar_score : typeof cir.competitiveness === "number" ? cir.competitiveness : NEUTRAL_BAR) : NEUTRAL_BAR;
+    const diff = score - bar;
+    const bucket = diff >= 15 ? "Safety" : diff >= -10 ? "Match" : "Reach";
+    reasons.push(`bucket ${bucket}: score ${score} vs bar ${bar}${cir ? " (company bar)" : " (neutral bar; no company record yet)"}`);
+    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [] };
+  }
+
+  // ---------- APPE-001 persona fixture -> scoring profile ----------
+  // The master profile holds facts with IDs (Doc 2 section 1); this adapts that fact shape
+  // (packages/career-data/fixtures/test-persona.json, a synthetic TEST persona) into the profile
+  // shape scoreFit consumes, citing fact IDs so a score can be traced back to profile facts.
+  function profileFromPersona(persona) {
+    const facts = (persona && persona.facts) || [];
+    const byKind = (k) => facts.filter((f) => f.kind === k);
+    const skills = byKind("skill").map((f) => ({ name: f.text, proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.fact_id }));
+    const constraintText = byKind("constraint").map((f) => f.text).join(" ");
+    const prefText = byKind("preference").map((f) => f.text).join(" ");
+    const grad = constraintText.match(/graduat\w*[^0-9]*(20\d\d)/i) || byKind("education").map((f) => f.text).join(" ").match(/class of (20\d\d)/i);
+    const starred = (prefText.match(/starred companies:\s*([^.;]+)/i) || [])[1];
+    const locations = ["New York", "NYC", "Chicago", "San Francisco", "Seattle", "Austin", "Boston", "Remote"].filter((l) => new RegExp(l, "i").test(prefText));
+    // Canonical master-profile schema (122-career-profile): structured basics/constraints/preferences
+    // win over prose parsing when present. Added at integration 2026-10-12 so ONE persona fixture
+    // serves both the profile store and fit scoring.
+    const canonSkills = byKind("skill").map((f) => ({ name: String(f.text || "").replace(/^Skill:\s*/i, ""), proven: !f.unproven && (f.evidence || []).length > 0, fact_id: f.id || f.fact_id }));
+    const canonGradYear = persona && persona.constraints && persona.constraints.graduationDate ? Number(String(persona.constraints.graduationDate).slice(0, 4)) : null;
+    const canonStarred = persona && persona.preferences && Array.isArray(persona.preferences.targetCompanies) ? persona.preferences.targetCompanies : null;
+    const canonLocations = persona && persona.preferences && Array.isArray(persona.preferences.locations) ? persona.preferences.locations : null;
+    const prof0 = {
+      persona_id: persona && persona.persona_id, label: persona && persona.label,
+      skills: (persona && persona.constraints) ? canonSkills : skills,
+      degree: (byKind("education")[0] || {}).text || "",
+      level: /sophomore|student|class of/i.test(byKind("education").map((f) => f.text).join(" ")) ? "student" : "",
+      experience_years: 1,
+      experience_text: facts.filter((f) => ["experience", "project", "leadership"].includes(f.kind)).map((f) => f.text).join(" "),
+      constraints: {
+        work_authorization: /us citizen/i.test(constraintText) ? "US citizen" : constraintText,
+        needs_sponsorship: /without sponsorship/i.test(constraintText) ? false : /need sponsorship|requires sponsorship/i.test(constraintText),
+        graduation_year: grad ? Number(grad[1]) : null,
+        graduation_date: grad ? `${grad[1]}-05` : null,
+        clearance: /clearance/i.test(constraintText) ? constraintText : null,
+        locations,
+      },
+      preferences: {
+        role_families: [/swe|software/i.test(prefText) ? "SWE" : null, /finance|quant|bank/i.test(prefText) ? "Finance" : null].filter(Boolean),
+        locations, starred_companies: starred ? starred.split(",").map((x) => x.trim()).filter(Boolean) : [],
+      },
+    };
+    if (persona && persona.constraints) {
+      if (canonGradYear) { prof0.constraints.graduation_year = canonGradYear; prof0.constraints.graduation_date = String(persona.constraints.graduationDate); }
+      if (typeof persona.constraints.needsSponsorship === "boolean") prof0.constraints.needs_sponsorship = persona.constraints.needsSponsorship;
+      if (persona.constraints.workAuthorization) prof0.constraints.work_authorization = persona.constraints.workAuthorization;
+    }
+    if (canonStarred) prof0.preferences.starred_companies = canonStarred;
+    if (canonLocations) { prof0.preferences.locations = canonLocations; prof0.constraints.locations = canonLocations; }
+    return prof0;
+  }
+
+  // ---------- shortlist + feedback memory (DISC-006) ----------
+  function feedbackNudge(feedbackRows, posting) {
+    let nudge = 0; const why = [];
+    for (const r of feedbackRows || []) {
+      const yes = r.decision === "yes";
+      if (r.role_family && lc(r.role_family) === lc(posting.role_family)) { nudge += yes ? 4 : -6; why.push(`${yes ? "you said yes to" : "you passed on"} a ${posting.role_family} role before (${yes ? "+4" : "-6"})`); }
+      if (r.company && normName(r.company) === normName(posting.company)) { nudge += yes ? 5 : -8; why.push(`${yes ? "you said yes to" : "you passed on"} ${posting.company} before (${yes ? "+5" : "-8"})`); }
+      for (const sk of r.skills || []) if ((posting.matched_skills || []).some((m) => lc(m) === lc(sk))) { nudge += yes ? 1 : -1; }
+    }
+    return { nudge: Math.max(-20, Math.min(20, nudge)), why: [...new Set(why)] };
+  }
+  async function feedbackRowsOf(store) {
+    if (!store) return [];
+    if (Array.isArray(store)) return store;
+    if (typeof store.get === "function") return (await store.get("career:jobs:feedback")) || [];
+    if (Array.isArray(store.rows)) return store.rows;
+    return [];
+  }
+  async function recordFeedback(store, entry) {
+    const row = { decision: entry.decision, role_family: entry.role_family || null, company: entry.company || null, skills: entry.skills || [], job_id: entry.job_id || null, at: entry.at || new Date().toISOString() };
+    if (Array.isArray(store)) { store.push(row); return row; }
+    if (store && typeof store.get === "function" && typeof store.set === "function") { const rows = (await store.get("career:jobs:feedback")) || []; rows.push(row); await store.set("career:jobs:feedback", rows); return row; }
+    if (store && Array.isArray(store.rows)) { store.rows.push(row); return row; }
+    throw new Error("feedback store must be an array, {rows}, or a KV {get,set}");
+  }
+  async function buildShortlist(scored, opts) {
+    opts = opts || {};
+    const limit = opts.limit || opts.perDay || 10;
+    const rows = await feedbackRowsOf(opts.feedbackStore || opts.feedback);
+    const enriched = [];
+    for (const item of scored || []) {
+      if (item.excluded || item.score == null) continue;
+      const posting = item.posting || item;
+      const merged = Object.assign({}, posting, { matched_skills: item.matched_skills || [] });
+      const fb = feedbackNudge(rows, merged);
+      enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge });
+    }
+    enriched.sort((a, b) => b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
+    return enriched.slice(0, limit);
+  }
+
+  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)) }; },
+    normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
+    dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
+    roleFamily, seniorityBand, stripHtml, hash };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
+
+/* Career master profile (Doc 2 §1; capabilities DISC-002, APPE-001).
+   The master profile is the single source of truth for every tailored output.
+   EVERY fact carries a stable fact ID (F-001, F-002, ...): IDs are assigned once
+   in insertion order from the profile's own counter, never reused, and an
+   update never changes an ID, so a tailored line can cite the exact fact that
+   supports it and an auditor can check nothing was invented.
+   Skills: a skill fact with no evidence (empty `evidence` list and no other
+   fact naming the skill) is flagged `unproven: true` — it may be shown to the
+   user, but the truth audit in 123-career-tailor.js will not let it support a
+   tailored line.
+   Ingestion:
+     - LinkedIn data archive: Connections.csv + Profile.csv (documented
+       LinkedIn export formats; real headers are used in the tests). Parsed
+       into profile facts + connection records, each tagged source
+       "linkedin-export". Malformed rows (wrong column count) are collected
+       as errors and skipped, never thrown and never silently canonised.
+     - Plain-text resume: parsed into DRAFT facts, every one with
+       needs_confirmation:true and status:"draft". A draft fact does not
+       support tailoring until confirmFact() is called — ingestion never
+       silently canonises.
+   Fact-mining interview: factMiningQuestions(entry) returns the digging
+   questions for a thin entry (missing stack / scale / what-it-replaced /
+   metric / outcome), modelled on Doc 2 §1 ("what stack, how many users,
+   what did it replace, any metric?").
+   Pure: no I/O. The caller passes CSV / resume text in. UMD like the other
+   domain modules. */
+const CareerProfile = (() => {
+  const KINDS = ["experience", "project", "skill", "education", "award", "leadership", "publication", "certification", "language", "preference", "other"];
+
+  function nextId(profile) {
+    profile._seq = (profile._seq || 0) + 1;
+    return `F-${String(profile._seq).padStart(3, "0")}`;
+  }
+  function bumpSeqForId(profile, id) {
+    const n = Number(String(id || "").replace(/^F-/, ""));
+    if (Number.isFinite(n) && n > (profile._seq || 0)) profile._seq = n;
+  }
+
+  function createProfile(seed) {
+    const s = seed || {};
+    const p = {
+      id: s.id || "profile-1",
+      label: s.label || null,
+      isTestFixture: !!s.isTestFixture,
+      basics: Object.assign({ name: null, email: null, phone: null, location: null, links: {} }, s.basics || {}),
+      preferences: Object.assign({ roles: [], industries: [], locations: [], remote: null, companySize: null, compFloor: null, dealBreakers: [], targetCompanies: [], excludedCompanies: [] }, s.preferences || {}),
+      constraints: Object.assign({ graduationDate: null, startDate: null, workAuthorization: null, needsSponsorship: null, relocation: null, securityClearance: null }, s.constraints || {}),
+      defaults: Object.assign({ pronouns: null, demographicPreference: "decline to answer", gpa: null }, s.defaults || {}),
+      facts: [],
+      connections: [],
+      _seq: 0,
+    };
+    for (const f of s.facts || []) addFact(p, f, { keepId: true });
+    for (const c of s.connections || []) p.connections.push(Object.assign({}, c));
+    return p;
+  }
+
+  // profileFromData is createProfile with the fixture/JSON shape kept verbatim.
+  function profileFromData(data) { return createProfile(data || {}); }
+
+  function normalizeFact(profile, input, opts) {
+    const o = opts || {};
+    const f = Object.assign({}, input || {});
+    f.id = o.keepId && f.id ? String(f.id) : nextId(profile);
+    if (o.keepId) bumpSeqForId(profile, f.id);
+    f.kind = KINDS.includes(f.kind) ? f.kind : "other";
+    f.title = f.title || f.name || "";
+    f.text = f.text || f.title || "";
+    f.bullets = Array.isArray(f.bullets) ? f.bullets.slice() : [];
+    f.skills = Array.isArray(f.skills) ? f.skills.slice() : (f.name && f.kind === "skill" ? [f.name] : []);
+    f.evidence = Array.isArray(f.evidence) ? f.evidence.slice() : [];
+    f.source = f.source || "user";
+    f.needs_confirmation = !!f.needs_confirmation;
+    f.status = f.needs_confirmation ? "draft" : (f.status || "confirmed");
+    if (f.kind === "skill") {
+      f.name = f.name || f.title;
+      f.unproven = f.evidence.length === 0;
+    }
+    return f;
+  }
+
+  function addFact(profile, input, opts) {
+    const f = normalizeFact(profile, input, opts);
+    // A skill is proven if another already-stored fact evidences it by name,
+    // even when its own evidence list is empty at insert time; recompute on add.
+    profile.facts.push(f);
+    refreshSkillFlags(profile);
+    return f;
+  }
+  function refreshSkillFlags(profile) {
+    for (const f of profile.facts) {
+      if (f.kind !== "skill") continue;
+      const name = (f.name || "").toLowerCase();
+      const evidencedByFactText = profile.facts.some((x) => x.id !== f.id && x.kind !== "skill" && ((x.skills || []).some((s) => String(s).toLowerCase() === name) || String(x.text || "").toLowerCase().includes(name)));
+      f.unproven = !(f.evidence && f.evidence.length) && !evidencedByFactText;
+    }
+  }
+  function updateFact(profile, id, patch) {
+    const f = getFact(profile, id);
+    if (!f) return null;
+    const keepId = f.id;
+    Object.assign(f, patch || {});
+    f.id = keepId; // IDs are stable: an update never reassigns one.
+    if (f.kind === "skill") f.unproven = !(f.evidence && f.evidence.length);
+    refreshSkillFlags(profile);
+    return f;
+  }
+  function getFact(profile, id) { return (profile.facts || []).find((f) => f.id === id) || null; }
+  function listFacts(profile, filter) {
+    return (profile.facts || []).filter((f) => !filter || Object.entries(filter).every(([k, v]) => f[k] === v));
+  }
+  function confirmFact(profile, id) {
+    const f = getFact(profile, id);
+    if (!f) return null;
+    f.needs_confirmation = false; f.status = "confirmed";
+    return f;
+  }
+  function confirmedFacts(profile) { return (profile.facts || []).filter((f) => !f.needs_confirmation); }
+  function unprovenSkills(profile) { refreshSkillFlags(profile); return (profile.facts || []).filter((f) => f.kind === "skill" && f.unproven); }
+  function skillEvidence(profile, skillName) {
+    const name = String(skillName || "").toLowerCase();
+    const skill = (profile.facts || []).find((f) => f.kind === "skill" && (f.name || "").toLowerCase() === name);
+    const supporting = (profile.facts || []).filter((f) => !f.needs_confirmation && f.kind !== "skill" && ((f.skills || []).some((s) => String(s).toLowerCase() === name) || String(f.text || "").toLowerCase().includes(name)));
+    const evidenceIds = new Set([].concat((skill && skill.evidence) || [], supporting.map((f) => f.id)));
+    return { skill: skill || null, proven: evidenceIds.size > 0 && (!!skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
+  }
+
+  // ---- fact-mining interview (Doc 2 §1) ----
+  const METRIC_RE = /\b\d+(\.\d+)?\s*(%|users?|customers?|teams?|members?|people|hours?|minutes?|pages?|companies|participants|requests|ms\b|x\b)/i;
+  const NUMBER_RE = /\b\d[\d,.]*\b/;
+  function factMiningQuestions(entry) {
+    const e = entry || {};
+    const text = [e.title, e.text, ...(e.bullets || [])].filter(Boolean).join(" ");
+    const stack = (e.skills && e.skills.length) || /\b(react|python|java|javascript|typescript|go|sql|excel|kubernetes|docker|aws|node)\b/i.test(text);
+    const qs = [];
+    if (!stack) qs.push("What stack or tools did you use for this — languages, frameworks, and infrastructure?");
+    if (!/\b\d+\s+(?:\w+\s+)?(users?|customers?|teams?|members?|people|participants)\b/i.test(text)) qs.push("How many users, teams, or people used or were affected by this?");
+    if (!/replac|instead of|manual|spreadsheet|previously|before this/i.test(text)) qs.push("What did this replace, or what was done manually before it?");
+    if (!METRIC_RE.test(text) && !NUMBER_RE.test(text)) qs.push("Is there any metric — a percentage, a time saved, a count, or a result you can point to?");
+    if (!/result|outcome|cut |increased|reduced|improved|led to|shipped|launched/i.test(text)) qs.push("What changed because of this work — what was the outcome?");
+    if (!(e.start || e.end || /\b(19|20)\d{2}\b/.test(text))) qs.push("When did you do this, and for how long?");
+    return qs;
+  }
+  const isThin = (entry) => factMiningQuestions(entry).length >= 2;
+
+  // ---- CSV (LinkedIn exports use quoted fields with embedded commas) ----
+  function parseCsv(text) {
+    const rows = []; let row = [], cur = "", inQ = false;
+    const s = String(text || "");
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (inQ) {
+        if (c === '"' && s[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else cur += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") { row.push(cur); cur = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && s[i + 1] === "\n") i++;
+        row.push(cur); cur = "";
+        if (row.some((x) => String(x).trim() !== "")) rows.push(row);
+        row = [];
+      } else cur += c;
+    }
+    row.push(cur);
+    if (row.some((x) => String(x).trim() !== "")) rows.push(row);
+    return rows;
+  }
+  function rowsToObjects(text, headerNeedle) {
+    const rows = parseCsv(text);
+    const hi = rows.findIndex((r) => r.some((c) => String(c).trim().toLowerCase() === headerNeedle));
+    if (hi < 0) return { headers: [], objects: [], errors: [{ row: 0, reason: `header row containing "${headerNeedle}" not found` }], preamble: rows.length };
+    const headers = rows[hi].map((h) => String(h).trim());
+    const objects = [], errors = [];
+    rows.slice(hi + 1).forEach((r, idx) => {
+      if (r.length !== headers.length) { errors.push({ row: hi + 2 + idx, reason: `expected ${headers.length} columns, got ${r.length}`, raw: r }); return; }
+      const obj = {}; headers.forEach((h, j) => { obj[h] = String(r[j] == null ? "" : r[j]).trim(); });
+      objects.push(obj);
+    });
+    return { headers, objects, errors, preamble: hi };
+  }
+
+  // LinkedIn Connections.csv headers (real export):
+  // First Name,Last Name,URL,Email Address,Company,Position,Connected On
+  function parseLinkedInConnections(csvText) {
+    const { objects, errors } = rowsToObjects(csvText, "first name");
+    const connections = objects.map((o) => ({
+      firstName: o["First Name"] || "", lastName: o["Last Name"] || "",
+      name: `${o["First Name"] || ""} ${o["Last Name"] || ""}`.trim(),
+      url: o["URL"] || null, email: o["Email Address"] || null,
+      company: o["Company"] || null, position: o["Position"] || null,
+      connectedOn: o["Connected On"] || null, source: "linkedin-export",
+    })).filter((c) => c.name);
+    return { connections, errors };
+  }
+  // LinkedIn Profile.csv headers (real export):
+  // First Name,Last Name,Maiden Name,Address,Birth Date,Headline,Summary,Industry,Zip Code,Geo Location,Twitter Handles,Websites,Instant Messengers
+  function parseLinkedInProfile(csvText) {
+    const { objects, errors } = rowsToObjects(csvText, "first name");
+    if (!objects.length) return { profileRow: null, errors };
+    const o = objects[0];
+    return {
+      profileRow: {
+        firstName: o["First Name"] || "", lastName: o["Last Name"] || "",
+        headline: o["Headline"] || null, summary: o["Summary"] || null,
+        industry: o["Industry"] || null, geoLocation: o["Geo Location"] || null,
+        websites: o["Websites"] || null, source: "linkedin-export",
+      },
+      errors,
+    };
+  }
+  function ingestLinkedIn(profile, input) {
+    const inp = input || {};
+    const addedFacts = [], errors = [];
+    if (inp.connectionsCsv) {
+      const r = parseLinkedInConnections(inp.connectionsCsv);
+      errors.push(...r.errors.map((e) => ({ ...e, file: "Connections.csv" })));
+      for (const c of r.connections) profile.connections.push(c);
+      if (r.connections.length) addedFacts.push(addFact(profile, { kind: "other", title: `LinkedIn connections (${r.connections.length})`, text: `Imported ${r.connections.length} LinkedIn connections from a LinkedIn data export.`, source: "linkedin-export" }));
+    }
+    if (inp.profileCsv) {
+      const r = parseLinkedInProfile(inp.profileCsv);
+      errors.push(...r.errors.map((e) => ({ ...e, file: "Profile.csv" })));
+      if (r.profileRow) {
+        const pr = r.profileRow;
+        if (pr.firstName || pr.lastName) profile.basics.name = profile.basics.name || `${pr.firstName} ${pr.lastName}`.trim();
+        if (pr.geoLocation) profile.basics.location = profile.basics.location || pr.geoLocation;
+        addedFacts.push(addFact(profile, { kind: "other", title: pr.headline || "LinkedIn headline", text: [pr.headline, pr.summary].filter(Boolean).join(" — ") || "LinkedIn profile imported.", source: "linkedin-export" }));
+      }
+    }
+    return { addedFacts, connections: profile.connections.slice(), errors };
+  }
+
+  // ---- plain-text resume ingestion -> DRAFT facts only ----
+  const SECTION_KIND = { education: "education", experience: "experience", "work experience": "experience", employment: "experience", projects: "project", "personal projects": "project", leadership: "leadership", awards: "award", certifications: "certification", skills: "skill", "technical skills": "skill" };
+  function parseResumeText(text) {
+    const lines = String(text || "").split(/\r?\n/);
+    const drafts = [];
+    let section = null, current = null;
+    const flush = () => { if (current) { drafts.push(current); current = null; } };
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (/^test resume/i.test(line)) continue;
+      const sec = SECTION_KIND[line.toLowerCase().replace(/:$/, "")];
+      if (sec && line.length < 40) { flush(); section = sec; continue; }
+      if (!section) continue; // header/contact block is not a fact
+      if (section === "skill") {
+        for (const name of line.split(/[,;•|]/).map((x) => x.trim()).filter(Boolean)) {
+          drafts.push({ kind: "skill", name, title: name, text: `Skill: ${name}`, skills: [name], evidence: [], source: "resume-ingest", needs_confirmation: true, status: "draft" });
+        }
+        continue;
+      }
+      const bullet = line.match(/^[-•*]\s+(.*)$/);
+      if (bullet && current) { current.bullets.push(bullet[1]); current.text += ` ${bullet[1]}`; continue; }
+      if (bullet && !current) { current = { kind: section, title: bullet[1], text: bullet[1], bullets: [], source: "resume-ingest", needs_confirmation: true, status: "draft" }; continue; }
+      flush();
+      current = { kind: section, title: line, text: line, bullets: [], source: "resume-ingest", needs_confirmation: true, status: "draft" };
+    }
+    flush();
+    return drafts;
+  }
+  function ingestResume(profile, text) {
+    const drafts = parseResumeText(text).map((d) => addFact(profile, d));
+    // addFact normalises needs_confirmation from the draft flag; re-assert it so
+    // a resume draft can never arrive confirmed by accident.
+    for (const f of drafts) { f.needs_confirmation = true; f.status = "draft"; }
+    refreshSkillFlags(profile);
+    return { drafts, factIds: drafts.map((f) => f.id) };
+  }
+
+  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, refreshSkillFlags };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
+
+/* Career tailoring + truth audit (Doc 2 §3, §3.5, §4.2, S8; capabilities
+   APPL-001, APPL-002, APPE-002, APPE-003, APPE-004).
+   Pipeline (Doc 2 §3.1): parse the JD (must-have vs nice-to-have, level,
+   keywords) -> select profile facts ranked by relevance / recency / impact
+   -> assemble bullets where EVERY output line carries its fact IDs ->
+   role-family variant conventions -> truth audit as a HARD GATE -> ATS-safe
+   render (single-column plain text + clean markdown; standard headings).
+   TRUTH AUDIT (APPE-002): auditResume(lines, profile) maps every content
+   line to >=1 CONFIRMED fact ID whose text supports it. A keyword/skill may
+   appear ONLY if a profile fact evidences that skill. A number may appear
+   only if a supporting fact states it. Anything unmappable is a violation,
+   and tailorResume REFUSES: { ok:false, refused:true, violations, output:
+   null } — a tailored resume is never shipped with an audit warning.
+   Unconfirmed (needs_confirmation) facts support nothing: resume-ingested
+   drafts must be confirmed by the user first.
+   PDF: packages/domain/62-agent-documents.js provides a document VAULT
+   (metadata, receipts, policies) — it has no PDF/DOCX renderer. So render()
+   returns text + markdown only and says pdf:null honestly; no renderer is
+   rebuilt here.
+   AI-USE RULES (Doc 2 S8, owner ruling 2026-10-12): when the CIR input says
+   the company bans AI-written application text (cir.aiPolicy === "ban" or
+   cir.bansAiWrittenText), tailorResume degrades to mode:"outline" —
+   outline + fact-cited bullets for the USER to write from — and no cover
+   letter prose is generated at all.
+   Banned phrases: shared with Doc 1 §3.2 (outreach) plus Doc 2 §3.4 cover
+   letter filler. Cover letters are linted; a banned phrase is a failure,
+   never shipped.
+   Pure: profile, JD text and CIR are passed in. UMD. */
+const CareerTailor = (() => {
+  const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+
+  const BANNED_PHRASES = [
+    "i hope this email finds you well",
+    "i came across your profile and was impressed",
+    "pick your brain",
+    "i'd love to connect",
+    "i am writing to express my interest",
+    "to whom it may concern",
+    "passionate team player",
+    "results-driven professional",
+    "team player with a proven track record",
+    "synergy",
+    "think outside the box",
+    "fast-paced environment enthusiast",
+  ];
+  function bannedPhrasesIn(text) {
+    const t = String(text || "").toLowerCase();
+    return BANNED_PHRASES.filter((p) => t.includes(p));
+  }
+
+  // Skill lexicon for JD parsing + audit keyword checks. Deliberately finite:
+  // a word not in this list is ordinary prose, not a claimed skill.
+  const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R"];
+  const lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
+  function skillsInText(text) {
+    const t = ` ${String(text || "").toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
+    const found = [];
+    for (const s of SKILL_LEXICON) {
+      const needle = ` ${s.toLowerCase()} `;
+      // single-letter / dotted skills need token care; substring on padded text is the deterministic rule here.
+      if (t.includes(needle) || t.includes(` ${s.toLowerCase()},`) || t.includes(` ${s.toLowerCase()}.`)) if (!found.includes(s)) found.push(s);
+    }
+    return found;
+  }
+  const numbersIn = (text) => (String(text || "").match(/\d[\d,.]*%?/g) || []).map((x) => x.replace(/,/g, ""));
+
+  // ---- JD parsing (Doc 2 §3.1 step 1) ----
+  function parseJD(text) {
+    const raw = String(text || "");
+    const low = raw.toLowerCase();
+    const niceIdx = low.search(/nice to have|preferred qualifications|bonus points|plus(es)?[:\s]|preferred[:\s]/);
+    const mustText = niceIdx >= 0 ? raw.slice(0, niceIdx) : raw;
+    const niceText = niceIdx >= 0 ? raw.slice(niceIdx) : "";
+    const mustSkills = skillsInText(mustText);
+    const niceSkills = skillsInText(niceText).filter((s) => !mustSkills.includes(s));
+    let level = "unspecified";
+    if (/intern(ship)?\b/i.test(raw)) level = "intern";
+    else if (/new grad|entry[- ]level|junior/i.test(raw)) level = "new-grad/junior";
+    else if (/senior|staff|principal/i.test(raw)) level = "senior";
+    else if (/manager|lead\b/i.test(raw)) level = "manager/lead";
+    const keywords = [...new Set(raw.toLowerCase().replace(/[^a-z0-9+# ]/g, " ").split(/\s+/).filter((w) => w.length > 4))].slice(0, 200);
+    const family = detectFamily(raw);
+    return { mustHaveSkills: mustSkills, niceToHaveSkills: niceSkills, level, keywords, family, rawText: raw };
+  }
+  function detectFamily(text) {
+    const t = String(text || "").toLowerCase();
+    const score = {
+      swe: /\b(software engineer|backend|front[- ]?end|full[- ]?stack|api|deployment|kubernetes|react)\b/.test(t) ? 2 : 0,
+      quant: /\b(quant|trader|probability|stochastic|low[- ]latency|market making)\b/.test(t) ? 2 : 0,
+      ib_finance: /\b(investment banking|analyst|m&a|dcf|valuation|deal|banking)\b/.test(t) ? 2 : 0,
+      consulting: /\b(consulting|consultant|case study|client engagement|strategy)\b/.test(t) ? 2 : 0,
+      pm: /\b(product manager|product management|roadmap|user research)\b/.test(t) ? 2 : 0,
+      data_ml: /\b(data scientist|machine learning|ml engineer|data analyst|analytics)\b/.test(t) ? 2 : 0,
+      design: /\b(product designer|ux|ui designer|figma|portfolio)\b/.test(t) ? 2 : 0,
+    };
+    const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
+    return best && best[1] > 0 ? best[0] : "swe";
+  }
+
+  // ---- role-family variants (Doc 2 §3.3) — SWE + IB/finance most fully realised ----
+  const FAMILIES = {
+    swe: { label: "SWE", sectionOrder: ["Skills", "Experience", "Projects", "Education", "Leadership"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Skills block first (languages, infra), projects with stack and scale, internships with measurable impact, GitHub link in header."], pageLimit: 1 },
+    ib_finance: { label: "IB/finance", sectionOrder: ["Education", "Experience", "Leadership", "Projects", "Skills"], skillsBlock: "technical-line", bulletStyle: "concise-deal", conventions: ["Strict one-pager: education first for students, GPA shown, deal/transaction and modelling experience, finance club roles, skills rendered as a single 'Technical skills:' line (Excel, Bloomberg, Capital IQ only where evidenced)."], pageLimit: 1 },
+    quant: { label: "Quant/trader", sectionOrder: ["Education", "Projects", "Experience", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Competitions, research, probability/statistics coursework and data or low-latency projects lead."], pageLimit: 1 },
+    consulting: { label: "Consulting", sectionOrder: ["Education", "Experience", "Leadership", "Projects", "Skills"], skillsBlock: "grouped", bulletStyle: "accomplished-x-by-y-z", conventions: ["Every bullet in 'Accomplished X by Y, resulting in Z' form, from the fact's action/method/result fields only; leadership and quantified results lead."], pageLimit: 1 },
+    pm: { label: "PM", sectionOrder: ["Experience", "Projects", "Leadership", "Skills", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Shipped things, metrics moved, user research and cross-functional leadership lead."], pageLimit: 1 },
+    data_ml: { label: "Data/ML", sectionOrder: ["Skills", "Projects", "Experience", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Models shipped, evaluation metrics and tooling lead; papers where present."], pageLimit: 1 },
+    design: { label: "Design", sectionOrder: ["Projects", "Experience", "Skills", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Portfolio-first: projects lead and the portfolio link sits in the header."], pageLimit: 1 },
+  };
+
+  // ---- fact selection: relevance, then recency, then impact (Doc 2 §3.1 step 3) ----
+  function scoreFact(fact, jd) {
+    const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
+    const fskills = (fact.skills || []).map((s) => String(s).toLowerCase());
+    let relevance = 0;
+    for (const s of wanted) relevance += fskills.includes(s.toLowerCase()) ? 3 : (String(fact.text || "").toLowerCase().includes(s.toLowerCase()) ? 1 : 0);
+    for (const kw of jd.keywords || []) if (kw.length > 5 && String(fact.text || "").toLowerCase().includes(kw)) relevance += 0.25;
+    const endMs = fact.end ? Date.parse(`${fact.end}-01T00:00:00Z`) : (fact.start ? Date.parse(`${fact.start}-01T00:00:00Z`) : 0);
+    const recency = Number.isFinite(endMs) && endMs ? Math.min(2, Math.max(0, (endMs / 1e12))) : 0;
+    const impact = numbersIn(fact.text).length + (fact.metrics ? fact.metrics.length : 0);
+    return { factId: fact.id, relevance: Math.round(relevance * 100) / 100, recency: Math.round(recency * 100) / 100, impact, total: Math.round((relevance * 10 + recency + impact) * 100) / 100 };
+  }
+  function selectFacts(profile, jd, opts) {
+    const o = opts || {};
+    const pool = Profile.confirmedFacts(profile).filter((f) => f.kind !== "skill");
+    return pool.map((f) => ({ fact: f, score: scoreFact(f, jd) })).sort((a, b) => b.score.total - a.score.total).slice(0, o.limit || 8);
+  }
+  function provenSkills(profile, jd) {
+    const wanted = [...(jd.mustHaveSkills || []), ...(jd.niceToHaveSkills || [])];
+    const all = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation);
+    const rows = all.map((f) => ({ name: f.name, factId: f.id, proven: !f.unproven, evidence: f.evidence || [] }));
+    // Wanted skills first, then the rest, each only ever listed with its proof state.
+    return rows.sort((a, b) => (wanted.includes(b.name) - wanted.includes(a.name)));
+  }
+
+  function bulletFor(fact, family) {
+    const fam = FAMILIES[family] || FAMILIES.swe;
+    if (fam.bulletStyle === "accomplished-x-by-y-z" && fact.action && fact.method && fact.result) {
+      return { text: `Accomplished ${fact.action} by ${fact.method}, resulting in ${fact.result}`, factIds: [fact.id] };
+    }
+    const base = (fact.bullets && fact.bullets[0]) || fact.text;
+    return { text: base, factIds: [fact.id] };
+  }
+
+  function assemble(profile, jd, opts) {
+    const o = opts || {};
+    const family = o.family || jd.family || "swe";
+    const fam = FAMILIES[family] || FAMILIES.swe;
+    const selected = selectFacts(profile, jd, o);
+    const byKind = { experience: [], project: [], education: [], leadership: [] };
+    for (const { fact } of selected) if (byKind[fact.kind]) byKind[fact.kind].push(fact);
+    const sections = [];
+    const skillsProven = provenSkills(profile, jd).filter((s) => s.proven);
+    const skillsLine = skillsProven.length ? { heading: "Skills", lines: [] } : null;
+    if (skillsLine) {
+      if (fam.skillsBlock === "technical-line") {
+        skillsLine.lines.push({ text: `Technical skills: ${skillsProven.map((s) => s.name).join(", ")}`, factIds: skillsProven.map((s) => s.factId), type: "skills" });
+      } else {
+        skillsLine.lines.push({ text: skillsProven.map((s) => s.name).join(", "), factIds: skillsProven.map((s) => s.factId), type: "skills" });
+      }
+    }
+    const mk = (heading, facts) => facts.length ? { heading, lines: facts.flatMap((f) => [{ text: f.title, factIds: [f.id], type: "entry" }, ...((f.bullets && f.bullets.length ? f.bullets : [f.text]).map((b) => family === "consulting" && f.action ? bulletFor(f, family) : { text: b, factIds: [f.id], type: "bullet" }))]) } : null;
+    // consulting: one structured bullet per fact replaces the raw bullets
+    const mkSection = (heading, facts) => {
+      if (!facts.length) return null;
+      if (family === "consulting") return { heading, lines: facts.flatMap((f) => [{ text: f.title, factIds: [f.id], type: "entry" }, bulletFor(f, family)]) };
+      return mk(heading, facts);
+    };
+    const sectionByHeading = {
+      Skills: skillsLine,
+      Experience: mkSection("Experience", byKind.experience),
+      Projects: mkSection("Projects", byKind.project),
+      Education: mkSection("Education", byKind.education),
+      Leadership: mkSection("Leadership", byKind.leadership),
+    };
+    for (const h of fam.sectionOrder) if (sectionByHeading[h]) sections.push(sectionByHeading[h]);
+    for (const h of Object.keys(sectionByHeading)) if (sectionByHeading[h] && !sections.includes(sectionByHeading[h])) sections.push(sectionByHeading[h]);
+    const lines = sections.flatMap((s) => s.lines.map((l) => ({ ...l, section: s.heading })));
+    return { family, familyLabel: fam.label, conventions: fam.conventions, pageLimit: fam.pageLimit, header: { name: profile.basics.name, email: profile.basics.email, location: profile.basics.location, links: profile.basics.links || {} }, sections, lines, selectedFactIds: selected.map((x) => x.fact.id) };
+  }
+
+  // ---- TRUTH AUDIT — hard gate (APPE-002) ----
+  function auditResume(resume, profile) {
+    const lines = Array.isArray(resume) ? resume : (resume && resume.lines) || [];
+    const violations = [];
+    for (const line of lines) {
+      const text = typeof line === "string" ? line : line.text;
+      const factIds = typeof line === "string" ? [] : (line.factIds || []);
+      if (!text || !String(text).trim()) continue;
+      if (!factIds.length) { violations.push({ line: text, reason: "no fact ID: line maps to no profile fact", factIds: [] }); continue; }
+      const facts = factIds.map((id) => Profile.getFact(profile, id));
+      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
+      if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
+      const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")}`).join(" ").toLowerCase();
+      // Keyword rule: any lexicon skill named in the line must be evidenced.
+      for (const skill of skillsInText(text)) {
+        const ev = Profile.skillEvidence(profile, skill);
+        const cited = factIds.some((id) => ev.evidenceFactIds.includes(id) || (Profile.getFact(profile, id) || {}).name === skill);
+        const inSupport = supportText.includes(skill.toLowerCase()) && ev.proven;
+        if (!ev.proven || (!cited && !inSupport)) violations.push({ line: text, reason: `skill "${skill}" is not evidenced by the cited fact(s)`, factIds, skill });
+      }
+      // Number rule: any number in the line must appear in a supporting fact.
+      for (const n of numbersIn(text)) {
+        if (!supportText.replace(/,/g, "").includes(n)) violations.push({ line: text, reason: `number "${n}" does not appear in any supporting fact`, factIds });
+      }
+      // Support rule: a skill-fact-only line is fine (the skills line); other
+      // lines must share meaningful tokens with their supporting facts.
+      const onlySkillFacts = facts.every((f) => f.kind === "skill");
+      if (!onlySkillFacts) {
+        const tokens = String(text).toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 3);
+        const hits = tokens.filter((w) => supportText.includes(w)).length;
+        if (tokens.length && hits / tokens.length < 0.35) violations.push({ line: text, reason: "line text is not supported by its cited fact(s) (token overlap too low)", factIds });
+      }
+    }
+    return { ok: violations.length === 0, violations, checked: lines.length };
+  }
+  const audit = auditResume;
+
+  // ---- diff vs base resume (Doc 2 §3.1 step 8) ----
+  function diffResume(baseLines, tailored, profile) {
+    const base = (baseLines || []).map((l) => (typeof l === "string" ? l : l.text));
+    const out = ((tailored && tailored.lines) || []).map((l) => l.text);
+    const baseSet = new Map(base.map((t, i) => [t, i]));
+    const outSet = new Map(out.map((t, i) => [t, i]));
+    const added = [], moved = [], removed = [];
+    ((tailored && tailored.lines) || []).forEach((l, i) => {
+      if (!baseSet.has(l.text)) {
+        // Reason cites the EVIDENCE behind the line, not just its own fact:
+        // for a skills line that is the project/experience fact that proves
+        // the skill (Doc 2 §3.1 step 8: "added Kubernetes — you deployed on
+        // EKS in Project X (fact F-…)").
+        const cited = new Set(l.factIds || []);
+        if (profile) for (const id of l.factIds || []) { const f = Profile.getFact(profile, id); if (f && f.kind === "skill") for (const e of f.evidence || []) cited.add(e); }
+        const facts = [...cited];
+        const skillNames = skillsInText(l.text);
+        added.push({ text: l.text, factIds: l.factIds || [], evidenceFactIds: facts, reason: skillNames.length ? `added ${skillNames.join(", ")} — evidenced by fact ${facts.join(", ")}` : `added — supported by fact ${facts.join(", ") || "none"}` });
+      } else if (baseSet.get(l.text) !== i) moved.push({ text: l.text, from: baseSet.get(l.text), to: i, reason: "moved — section order follows the role-family variant" });
+    });
+    base.forEach((t) => { if (!outSet.has(t)) removed.push({ text: t, reason: "removed — not selected for this role (relevance/recency/impact ranking)" }); });
+    const changed = added.length + removed.length;
+    return { added, moved, removed, summary: `${added.length} added, ${removed.length} removed, ${moved.length} moved (${changed} content changes)` };
+  }
+
+  // ---- ATS-safe render (Doc 2 §3.1 step 6) ----
+  function render(resume) {
+    const secs = resume.sections || [];
+    const head = [resume.header && resume.header.name, resume.header && resume.header.email, resume.header && resume.header.location].filter(Boolean).join(" | ");
+    const links = Object.values((resume.header && resume.header.links) || {}).filter(Boolean).join(" | ");
+    const textParts = [head, links].filter(Boolean);
+    const mdParts = [`# ${(resume.header && resume.header.name) || ""}`, [resume.header && resume.header.email, resume.header && resume.header.location].filter(Boolean).join(" | ")].filter(Boolean);
+    for (const s of secs) {
+      textParts.push("", s.heading.toUpperCase(), ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
+      mdParts.push("", `## ${s.heading}`, ...s.lines.map((l) => (l.type === "bullet" ? `- ${l.text}` : l.text)));
+    }
+    return { text: textParts.join("\n"), markdown: mdParts.join("\n"), pdf: null, pdfNote: "No PDF renderer exists in packages/domain/62-agent-documents.js (it is a document vault, not a renderer); plain text is the ATS-safe extractable form.", singleColumn: true, headings: secs.map((s) => s.heading.toUpperCase()) };
+  }
+
+  // ---- cover letter (Doc 2 §3.4; APPL-002) ----
+  function wordCount(t) { return String(t || "").trim().split(/\s+/).filter(Boolean).length; }
+  function generateCoverLetter(profile, jdInput, cir, opts) {
+    const o = opts || {};
+    const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
+    if (cir && (cir.aiPolicy === "ban" || cir.bansAiWrittenText)) {
+      return { ok: false, mode: "outline", reason: "company bans AI-written application text (CIR); outline only — the user writes the letter (Doc 2 S8)", outline: coverOutline(profile, jd, cir), text: null };
+    }
+    const companyFacts = (cir && cir.facts) || [];
+    if (!cir || !cir.company || !companyFacts.length) return { ok: false, reason: "no real company fact in the CIR input; a cover letter is never written from invented company facts", text: null };
+    const selected = selectFacts(profile, jd, { limit: 3 });
+    if (!selected.length) return { ok: false, reason: "no confirmed profile facts to prove fit", text: null };
+    const proof = selected[0].fact;
+    const companyFact = companyFacts[0];
+    const role = o.role || jd.level || "the role";
+    const name = profile.basics.name || "Candidate";
+    const sentences = [
+      `Dear ${cir.company} hiring team,`,
+      `I am applying for ${role} at ${cir.company}. ${companyFact.text || companyFact}`,
+      `In my own work, ${proof.text}`,
+    ];
+    if (selected[1]) sentences.push(`I have also done work that maps directly to this team: ${selected[1].fact.text}`);
+    if (selected[2]) sentences.push(`Earlier experience adds range: ${selected[2].fact.text}`);
+    sentences.push(`That combination — direct, measured work and a specific interest in ${cir.company} — is why I am applying here rather than sending the same letter everywhere. I would welcome the chance to talk through the work in detail.`);
+    sentences.push(`Thank you for your time.`, `Sincerely,`, `${name}`);
+    let text = sentences.join("\n\n");
+    // Deterministic length control into the 150–250 window using only real facts.
+    let guard = 0;
+    while (wordCount(text) < 150 && guard++ < 3) {
+      const extra = selected[guard % selected.length];
+      if (!extra) break;
+      text = text.replace("\n\nThank you", `\n\nOne further proof point from my record: ${extra.fact.text}\n\nThank you`);
+    }
+    const banned = bannedPhrasesIn(text);
+    if (banned.length) return { ok: false, reason: `cover letter contains banned phrase(s): ${banned.join(", ")}`, text: null, banned };
+    const wc = wordCount(text);
+    if (wc < 150 || wc > 250) return { ok: false, reason: `cover letter is ${wc} words, outside the 150-250 window`, text: null, wordCount: wc };
+    const auditResult = auditResume([{ text: proof.text, factIds: [proof.id] }], profile);
+    return { ok: true, text, wordCount: wc, companyFact: companyFact.text || companyFact, proofFactId: proof.id, factIds: selected.map((x) => x.fact.id), banned: [], groundedAuditOk: auditResult.ok };
+  }
+  function coverOutline(profile, jd, cir) {
+    const selected = selectFacts(profile, jd, { limit: 3 });
+    return {
+      company: cir && cir.company,
+      points: [
+        `Open with the specific company fact you care about: ${((cir && cir.facts && cir.facts[0]) || {}).text || (cir && cir.facts && cir.facts[0]) || "pick one real company fact from the CIR"}`,
+        ...selected.map((x) => `Proof point (fact ${x.fact.id}): ${x.fact.text}`),
+        "Close in your own words: why this company, specifically.",
+      ],
+      instruction: "This company bans AI-written application text. Use this outline and the cited facts, and write the letter yourself.",
+    };
+  }
+
+  // ---- "why this company" answer bank (Doc 2 §3.5; APPE-004) ----
+  function buildAnswerBank(profile, jdInput, cir, opts) {
+    const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
+    if (!cir || !cir.company || !(cir.facts || []).length) return { ok: false, reason: "answer bank entries need real CIR company facts; none passed in", entries: [] };
+    const selected = selectFacts(profile, jd, { limit: 3 });
+    const cf = cir.facts.map((f) => (typeof f === "string" ? f : f.text));
+    const entries = [
+      { theme: "why_us", company: cir.company, text: `${cir.company}: ${cf[0]} That is specific to ${cir.company}, and it connects to my record: ${selected[0] ? selected[0].fact.text : "see profile"}`, factIds: selected[0] ? [selected[0].fact.id] : [], cirFacts: [cf[0]], rewrittenForCompany: true },
+      { theme: "hard_problem", company: cir.company, text: selected[1] ? selected[1].fact.text : (selected[0] ? selected[0].fact.text : ""), factIds: (selected[1] || selected[0]) ? [(selected[1] || selected[0]).fact.id] : [], cirFacts: [], rewrittenForCompany: false },
+      { theme: "project_story", company: cir.company, text: selected[0] ? selected[0].fact.text : "", factIds: selected[0] ? [selected[0].fact.id] : [], cirFacts: cf.slice(0, 1), rewrittenForCompany: true },
+    ].filter((e) => e.text);
+    return { ok: true, entries };
+  }
+
+  // ---- main entry: tailor with the hard gate ----
+  let versionSeq = 0;
+  function tailorResume(profile, jdInput, opts) {
+    const o = opts || {};
+    const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
+    const cir = o.cir || null;
+    const aiBan = !!(cir && (cir.aiPolicy === "ban" || cir.bansAiWrittenText));
+    const assembled = assemble(profile, jd, o);
+    // Caller/user-supplied extra lines (e.g. "add Rust experience") are
+    // appended BEFORE the audit, so an attempt to insert an unevidenced
+    // skill or claim hits the same hard gate and refuses the whole output.
+    if (Array.isArray(o.extraLines) && o.extraLines.length) {
+      assembled.lines.push(...o.extraLines.map((l) => (typeof l === "string" ? { text: l, factIds: [], type: "bullet" } : l)));
+      assembled.sections.push({ heading: "Additional", lines: o.extraLines.map((l) => (typeof l === "string" ? { text: l, factIds: [], type: "bullet" } : l)) });
+    }
+    const auditResult = auditResume(assembled, profile);
+    if (!auditResult.ok) return { ok: false, refused: true, reason: "truth audit failed; tailored output refused (APPE-002 hard gate)", violations: auditResult.violations, output: null, resume: null };
+    const baseLines = o.baseLines || o.baseResumeLines || [];
+    const diff = diffResume(baseLines, assembled, profile);
+    const rendered = render(assembled);
+    const version = { versionId: o.versionId || `resume-v${++versionSeq}`, jobId: o.jobId || null, company: cir && cir.company || o.company || null, date: o.date || null, family: assembled.family, diff, outcome: null };
+    if (aiBan) {
+      return { ok: true, mode: "outline", reason: "company bans AI-written application text (CIR); degraded to outline+bullets for the user to write (Doc 2 S8)", outline: coverOutline(profile, jd, cir), bullets: assembled.lines, resume: assembled, rendered: null, coverLetter: null, audit: auditResult, diff, version };
+    }
+    const cover = o.wantCoverLetter ? generateCoverLetter(profile, jd, cir, o) : null;
+    return { ok: true, mode: "full", resume: assembled, rendered, coverLetter: cover, audit: auditResult, diff, version };
+  }
+
+  return { BANNED_PHRASES, bannedPhrasesIn, SKILL_LEXICON, skillsInText, parseJD, detectFamily, FAMILIES, scoreFact, selectFacts, provenSkills, auditResume, audit, diffResume, render, generateCoverLetter, coverOutline, buildAnswerBank, tailorResume, wordCount };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerTailor;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -20147,4 +21499,4 @@ const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and 
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor };

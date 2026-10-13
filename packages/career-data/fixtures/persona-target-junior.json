@@ -1,0 +1,91 @@
+{
+  "persona_id": "TEST-PERSONA-002",
+  "label": "TEST PERSONA \u2014 target-school junior, IB (TEST)",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Jordan Lee (TEST)",
+    "email": "jordan.lee.test@example.invalid",
+    "location": "Philadelphia, PA (TEST)"
+  },
+  "constraints": {
+    "graduationDate": "2027-05",
+    "startDate": "2027-06",
+    "workAuthorization": "US citizen (TEST)",
+    "needsSponsorship": false,
+    "relocation": true,
+    "securityClearance": null
+  },
+  "preferences": {
+    "roles": [
+      "Investment Banking Analyst"
+    ],
+    "industries": [
+      "finance"
+    ],
+    "locations": [
+      "New York, NY"
+    ],
+    "remote": false,
+    "targetCompanies": [
+      "Goldman Sachs",
+      "Evercore",
+      "Morgan Stanley"
+    ],
+    "excludedCompanies": [],
+    "compFloor": null,
+    "dealBreakers": []
+  },
+  "facts": [
+    {
+      "id": "F-001",
+      "kind": "education",
+      "text": "B.S. Economics, target university (TEST), GPA 3.8, graduating May 2027",
+      "evidence": [],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-002",
+      "kind": "experience",
+      "text": "Summer Analyst (sophomore), boutique bank (TEST): built merger models, two live deals",
+      "evidence": [
+        "deal sheet (TEST)"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-003",
+      "kind": "leadership",
+      "text": "President, undergraduate finance society (TEST), 120 members",
+      "evidence": [],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-004",
+      "kind": "skill",
+      "text": "Skill: Financial Modeling",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-005",
+      "kind": "skill",
+      "text": "Skill: Excel",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-006",
+      "kind": "skill",
+      "text": "Skill: PowerPoint",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "persona_id": "TEST-PERSONA-004",
+  "label": "TEST PERSONA \u2014 international SWE student, needs sponsorship (TEST)",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Priya Nair (TEST)",
+    "email": "priya.nair.test@example.invalid",
+    "location": "Pittsburgh, PA (TEST)"
+  },
+  "constraints": {
+    "graduationDate": "2027-05",
+    "startDate": "2027-06",
+    "workAuthorization": "F-1 student (TEST)",
+    "needsSponsorship": true,
+    "relocation": true,
+    "securityClearance": null
+  },
+  "preferences": {
+    "roles": [
+      "Software Engineer"
+    ],
+    "industries": [
+      "technology"
+    ],
+    "locations": [
+      "New York, NY",
+      "Seattle, WA",
+      "Remote"
+    ],
+    "remote": true,
+    "targetCompanies": [
+      "Stripe",
+      "Datadog"
+    ],
+    "excludedCompanies": [],
+    "compFloor": null,
+    "dealBreakers": []
+  },
+  "facts": [
+    {
+      "id": "F-001",
+      "kind": "education",
+      "text": "M.S. Computer Science (TEST), graduating May 2027; needs F-1 OPT then H-1B sponsorship",
+      "evidence": [],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-002",
+      "kind": "project",
+      "text": "Open-source contributor: merged 14 PRs into a public data library (TEST)",
+      "evidence": [
+        "github (TEST)"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-003",
+      "kind": "experience",
+      "text": "SWE Intern, health-tech startup (TEST): shipped a Go API used by 30 clinics",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-004",
+      "kind": "skill",
+      "text": "Skill: Go",
+      "evidence": [
+        "F-003"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-005",
+      "kind": "skill",
+      "text": "Skill: Python",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-006",
+      "kind": "skill",
+      "text": "Skill: Kubernetes",
+      "evidence": [],
+      "needs_confirmation": false
+    }
+  ]
+}

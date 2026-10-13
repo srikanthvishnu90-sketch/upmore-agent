@@ -1,0 +1,80 @@
+{
+  "persona_id": "TEST-PERSONA-006",
+  "label": "TEST PERSONA \u2014 nurse switching to data analytics (TEST)",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Casey Brooks (TEST)",
+    "email": "casey.brooks.test@example.invalid",
+    "location": "Denver, CO (TEST)"
+  },
+  "constraints": {
+    "graduationDate": null,
+    "startDate": null,
+    "workAuthorization": "US citizen (TEST)",
+    "needsSponsorship": false,
+    "relocation": true,
+    "securityClearance": null
+  },
+  "preferences": {
+    "roles": [
+      "Data Analyst"
+    ],
+    "industries": [
+      "healthcare",
+      "technology"
+    ],
+    "locations": [
+      "Denver, CO",
+      "Remote"
+    ],
+    "remote": true,
+    "targetCompanies": [],
+    "excludedCompanies": [],
+    "compFloor": null,
+    "dealBreakers": []
+  },
+  "facts": [
+    {
+      "id": "F-001",
+      "kind": "experience",
+      "text": "Registered Nurse, ICU (TEST), 6 years: led a sepsis-alert workflow project; built unit dashboards in Excel/Tableau",
+      "evidence": [],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-002",
+      "kind": "project",
+      "text": "Analyzed 2 years of unit readmission data; presented findings to hospital leadership (TEST)",
+      "evidence": [
+        "F-001"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-003",
+      "kind": "skill",
+      "text": "Skill: SQL",
+      "evidence": [
+        "F-002"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-004",
+      "kind": "skill",
+      "text": "Skill: Tableau",
+      "evidence": [
+        "F-001"
+      ],
+      "needs_confirmation": false
+    },
+    {
+      "id": "F-005",
+      "kind": "skill",
+      "text": "Skill: Python",
+      "evidence": [],
+      "needs_confirmation": false
+    }
+  ]
+}

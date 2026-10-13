@@ -13888,6 +13888,14 @@
     function parse(words) {
       const t = clean(words);
       if (BARE.test(t)) return { kind: "status", category: null, all: true, over: false, unknown: null, bare: true };
+      // C16's own words name no budget: "cap restaurants at $400 a month", "limit dining to $300 a month"
+      // (found 2026-10-12: the capability's headline set command parsed to null and nothing was set). A
+      // cap/limit verb + a known category + an amount + a period is a set; nothing else reads that way.
+      const capM = /^(?:please\s+)?(?:cap|limit)\s+(.+?)\s+(?:at|to)\s+(\$?\d[\d,]*(?:\.\d{2})?)\s*(?:a|per|\/)?\s*(month|mo|monthly|week|wk|weekly|year|yr|yearly)\b/.exec(t);
+      if (capM) {
+        const cat = categoryIn(capM[1]), amt = amountIn(capM[2]);
+        if (cat && amt) return { kind: "set", category: cat.key, amount_cents: amt.cents, amount_text: amt.text, not_monthly: !/^(?:month|mo|monthly)$/.test(capM[3]), unknown: null };
+      }
       if (!/\bbudget(?:s|ing)?\b/.test(t) || t.length > 200) return null;
       let m;
       if ((m = STOP.exec(t))) {
@@ -14027,7 +14035,10 @@
       const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
       return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, p2p, p2pRails, counted: charges.concat(refunds) };
     }
-    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"]];
+    // Apple Cash belongs here: the category label above names it ("Zelle, Apple Cash, Venmo and the like")
+    // and the owner's real September person-to-person is $185.00 — Zelle $100.00 + Apple Cash $85.00 — while
+    // this list without it reported $100.00 (K1, 2026-10-12, real-row twins).
+    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"], [/\bapple cash\b/i, "Apple Cash"]];
     function p2pRail(raw) { const d = String(raw || ""); for (const [re, name] of P2P_RAILS) if (re.test(d)) return name; return null; }
     // A completed month's window (C16): the whole month, no this-evening extension — the month is over.
     function reportWindow(key) {
@@ -14228,7 +14239,18 @@
     const REFUND = /\b(?:refunds?|returns?|reversal|merchandise credit|price adjustment)\b/i;
     // A refund is a credit back from a spend merchant. Person-to-person and investing credits are not refunds:
     // a friend's Venmo cashout is money in, not money back (depth-SPEND-VIEWS ADV: "a friend's payment is no refund").
-    const isRefund = (r) => { if (!MA.isIncome(r)) return false; const g = groupOf(r); return (g !== null && g !== "person_to_person" && g !== "investing") || REFUND.test(String(r.merchant_raw || "")); };
+    // A credit only counts as a refund when it comes back under the SAME merchant identity as a charge on file
+    // (or the descriptor itself says refund/return): a payout rail is a different merchant — "REBET INC VISA
+    // DIRECT" and "REBET SETTLEMENT" are Rebet paying the person (winnings out), not Rebet returning a charge,
+    // and "KALSHI KLEAR LLC" is Kalshi's clearing entity, not the "KALSHI KALSHI.COM" debit merchant. Netting
+    // payouts into spending turned a merchant answer negative on the owner's real rows (K1, 2026-10-12).
+    // REFUND_IDS is set per call by net()/merchantSpendIn from the charges in scope (same ambient pattern as RULES).
+    let REFUND_IDS = null;
+    // Merchant identity at the descriptor level (the monitors' merchantKey, Phase A): the knowledge display
+    // name is the same "Rebet" for a charge and for its payout rail, so identity must come from the raw
+    // descriptor with its per-charge codes stripped — the same key the recurring detector uses.
+    const keyOf = (raw) => (typeof AgentMonitors !== "undefined" && AgentMonitors && AgentMonitors.merchantKey) ? AgentMonitors.merchantKey(raw) : MA.display(raw);
+    const isRefund = (r) => { if (!MA.isIncome(r)) return false; if (REFUND.test(String(r.merchant_raw || ""))) return true; const g = groupOf(r); if (g === null || g === "person_to_person" || g === "investing") return false; return !REFUND_IDS || REFUND_IDS.has(keyOf(r.merchant_raw)); };
     const GROUP_LABEL = MA.GROUP_LABEL; // one label vocabulary with MoneyAnswers (80), knowledge categories included
     const usable = (rows) => (rows || []).filter((r) => r && Number.isFinite(cents(r)));
     const posted = (rows) => usable(rows).filter((r) => !r.is_pending && usd(r) && dayOf(r) !== null);
@@ -14236,13 +14258,19 @@
     const within = (r, from, to) => { const d = dayOf(r); return d !== null && d >= from && d <= to; };
     // Net spending of the rows in [from, to] that keep() keeps: charges minus refunds, in cents.
     function net(rows, from, to, keep) {
-      let charged = 0, refunded = 0;
-      for (const r of posted(rows)) {
-        if (!within(r, from, to) || !keep(r)) continue;
-        if (MA.isSpend(r)) charged -= cents(r);
-        else if (isRefund(r)) refunded += cents(r);
-      }
-      return { total: charged - refunded, refunded };
+      // Refund identities for this scope: the display names of every charge keep() keeps, on any date (a
+      // charge's refund can land in a later window than the charge itself).
+      const prev = REFUND_IDS;
+      REFUND_IDS = new Set(posted(rows).filter((r) => MA.isSpend(r) && keep(r)).map((r) => keyOf(r.merchant_raw)));
+      try {
+        let charged = 0, refunded = 0;
+        for (const r of posted(rows)) {
+          if (!within(r, from, to) || !keep(r)) continue;
+          if (MA.isSpend(r)) charged -= cents(r);
+          else if (isRefund(r)) refunded += cents(r);
+        }
+        return { total: charged - refunded, refunded };
+      } finally { REFUND_IDS = prev; }
     }
     // Net spending per key (a category group or a place) in [from, to]; a row with no key is left out.
     function byKey(rows, from, to, keep, keyOf) {
@@ -14512,6 +14540,13 @@
       lines.push(`Last 90 days (${rangeOf(w90.from, w90.to)}): ${money(w90.cur.total)}, ${w90.cnt} order${w90.cnt === 1 ? "" : "s"}, ${money(avg(w90))} an order on average.`);
       lines.push(trend(w90, 90));
       if (w90.cur.refunded > 0) lines.push(`Refunds taken off: ${money(w90.cur.refunded)}.`);
+      // Money this merchant paid the person (a payout rail or settlement identity, not the charge merchant):
+      // stated as money in, never netted into spending (K1, 2026-10-12, owner's real Rebet rows).
+      const prevIds = REFUND_IDS;
+      REFUND_IDS = new Set(charges.map((r) => keyOf(r.merchant_raw)));
+      const payouts = posted(rows).filter((r) => within(r, w90.from, w90.to) && keep(r) && MA.isIncome(r) && !isRefund(r));
+      REFUND_IDS = prevIds;
+      if (payouts.length) lines.push(`Money in from ${name} in the last 90 days: ${money(payouts.reduce((s, r) => s + cents(r), 0))} across ${payouts.length} payout${payouts.length === 1 ? "" : "s"} — money the merchant paid you, not refunds, so it isn't taken off your spending.`);
       const pend = pendingOf(rows, w90.from, w90.to, keep);
       if (pend.length) lines.push(`Pending, not added yet: ${pendingText(pend)}.`);
       lines.push(MA.txSource(rows, tz, extra));

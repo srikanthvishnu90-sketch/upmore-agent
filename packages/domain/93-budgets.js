@@ -97,6 +97,14 @@
     function parse(words) {
       const t = clean(words);
       if (BARE.test(t)) return { kind: "status", category: null, all: true, over: false, unknown: null, bare: true };
+      // C16's own words name no budget: "cap restaurants at $400 a month", "limit dining to $300 a month"
+      // (found 2026-10-12: the capability's headline set command parsed to null and nothing was set). A
+      // cap/limit verb + a known category + an amount + a period is a set; nothing else reads that way.
+      const capM = /^(?:please\s+)?(?:cap|limit)\s+(.+?)\s+(?:at|to)\s+(\$?\d[\d,]*(?:\.\d{2})?)\s*(?:a|per|\/)?\s*(month|mo|monthly|week|wk|weekly|year|yr|yearly)\b/.exec(t);
+      if (capM) {
+        const cat = categoryIn(capM[1]), amt = amountIn(capM[2]);
+        if (cat && amt) return { kind: "set", category: cat.key, amount_cents: amt.cents, amount_text: amt.text, not_monthly: !/^(?:month|mo|monthly)$/.test(capM[3]), unknown: null };
+      }
       if (!/\bbudget(?:s|ing)?\b/.test(t) || t.length > 200) return null;
       let m;
       if ((m = STOP.exec(t))) {
@@ -236,7 +244,10 @@
       const p2p = p2pRails.reduce((s, [, v]) => s + v, 0);
       return { budget, label: cat ? cat.label : budget.category, amount: budget.amount_cents, spent, left: budget.amount_cents - spent, refunded, pending, foreign, top, p2p, p2pRails, counted: charges.concat(refunds) };
     }
-    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"]];
+    // Apple Cash belongs here: the category label above names it ("Zelle, Apple Cash, Venmo and the like")
+    // and the owner's real September person-to-person is $185.00 — Zelle $100.00 + Apple Cash $85.00 — while
+    // this list without it reported $100.00 (K1, 2026-10-12, real-row twins).
+    const P2P_RAILS = [[/\bvenmo\b/i, "Venmo"], [/\bcash\s?app\b/i, "Cash App"], [/\bzelle\b/i, "Zelle"], [/\bpaypal\b/i, "PayPal"], [/\bapple cash\b/i, "Apple Cash"]];
     function p2pRail(raw) { const d = String(raw || ""); for (const [re, name] of P2P_RAILS) if (re.test(d)) return name; return null; }
     // A completed month's window (C16): the whole month, no this-evening extension — the month is over.
     function reportWindow(key) {

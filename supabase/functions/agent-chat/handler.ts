@@ -57,6 +57,8 @@ import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/
 import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
 import { paycheckReply } from "./_shared/paycheck_answer.ts";
 import { tipFeesReply } from "./_shared/tip_fees_answer.ts";
+import { form1099Reply } from "./_shared/form1099_answer.ts";
+import { annualCheckupReply } from "./_shared/annual_checkup_answer.ts";
 // The asks that need to know whether anything is linked (one count query, only for these).
 const NEEDS_ACCOUNTS = /\b(balance|how much (?:money )?(?:do i have|did i spend|have i spent)|what did i spend|spent on|spending|how am i doing|cash flow|net worth|did (?:my )?rent go through)\b/i;
 import { settingsMessage, supabaseSettingsDb, mayAnswerOffer, readOffer, offerMessage, supabaseOfferDeps, localClock, validZone, DEFAULT_SETTINGS, capWatches } from "../_shared/proactive.ts";
@@ -319,6 +321,15 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // the handler yet, so the receipts reader is empty and the answer is the honest none-on-file line until
       // receipt ingestion lands; itemized transaction rows still count when they state the fields.
       if (!direct) direct = await tipFeesReply(message, new Date(), { receipts: async () => [], transactions: readTx }, { tz });
+      // 1099 reconciliation (capability C165, _shared/form1099_answer.ts): collected forms matched against real
+      // deposits by payer, deltas in dollars, person-to-person money kept out of the income total. No forms
+      // source exists in the handler yet, so the forms reader is empty and the answer is the deposit-side
+      // reconciliation (by payer, with the corrected total) until form ingestion lands.
+      if (!direct) direct = await form1099Reply(message, new Date(), { accounts: readAccounts, transactions: readTx, forms1099: async () => [] }, { tz });
+      // Annual money checkup (capability C201, _shared/annual_checkup_answer.ts): one composed report over
+      // accounts, the C10 fee scan, recurring run-rates, pay-later, the year's in/out and rates/policies —
+      // each with its dollars at stake and its approval-gated handoff; it executes nothing itself.
+      if (!direct) direct = await annualCheckupReply(message, new Date(), { accounts: readAccounts, transactions: readTx }, { tz });
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,

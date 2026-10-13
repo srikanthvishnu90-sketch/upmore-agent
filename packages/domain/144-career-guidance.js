@@ -71,6 +71,12 @@ const CareerGuidance = (() => {
   const firstFact = (profile, pred) => factsOf(profile).find(pred) || null;
 
   const USCIS_SOURCE = { label: "USCIS Policy Manual — students and employment (deep dive 4 source C8)", url: "https://www.uscis.gov/policy-manual/volume-2-part-f-chapter-5" };
+  // The guidance knowledge base's freeze date: the date this module's
+  // knowledge (the deep dive 4 source set) was built, as recorded in the
+  // header above. Guidance records cite it as the basis as-of FOR THE
+  // KNOWLEDGE — never as a date for the user's facts. Profile facts carry
+  // no as-of dates of their own, and none is invented for them.
+  const KNOWLEDGE_AS_OF = "2026-10-13";
 
   // ------------------------------------------------------- CG01: path planning
   function planPaths(ctx) {
@@ -111,16 +117,41 @@ const CareerGuidance = (() => {
     const cons = c.constraints || (profile && profile.constraints) || {};
     if (c.remoteOnly || cons.remoteOnly) constraintNotes.push("framed for a remote-only search, as you stated");
     if (c.needsIncome || cons.needsIncome) constraintNotes.push("paid routes only — an unpaid route is not treated as affordable");
+    // GATE-3 record completion (03 F7): the cited response carries its
+    // basis and a plan of 3-5 timed actions. Sources are the REAL profile
+    // facts this answer used (by fact ID, with the fact's own source
+    // label) — no citation is fabricated; when no anchor fact exists the
+    // source is the profile record itself, which is what was supplied.
+    const anchorFacts = anchorIds.map((id) => _facts.find((f) => f.id === id)).filter(Boolean);
+    const sources = anchorFacts.length
+      ? anchorFacts.map((f) => ({ type: "profile_fact", fact_id: f.id, label: f.title || f.text, source: f.source || "profile record" }))
+      : [{ type: "profile_record", label: (profile && (profile.label || profile.id)) || "profile record supplied in context", source: "profile record" }];
+    const basis = {
+      source_class: "the user's own profile record — confirmed facts only (curated-qualitative, no population sample)",
+      sample_size: _facts.length,
+      as_of: KNOWLEDGE_AS_OF,
+      as_of_covers: "the guidance knowledge base (deep dive 4 freeze, the date in this module's header); the profile facts themselves carry no as-of dates, and none is claimed for them",
+    };
+    const plan = [
+      { action: "Pick the dataset question for part (2) of the experiment", timeframe: "this week" },
+      { action: "Run experiment part (1): extend your existing project with one new feature and write the README section explaining the design choice", timeframe: "next weekend" },
+      { action: "Run experiment part (2): use Python to answer one small question from a public dataset and write a short summary of what the data does and does not show", timeframe: "the following weekend" },
+      { action: "Re-rank the two paths from what the experiment showed, then name the first evidence build or applications for the leading path", timeframe: "after both experiment parts — about two weeks from now" },
+    ];
     const text = [
       `You do not need a verdict today — you need two plausible paths and a cheap way to tell them apart. Nothing in your record decides this yet, and I will not pretend it does.`,
       ...paths.map((p, i) => `Path ${i === 0 ? "A" : "B"} — ${p.title}: it may fit because ${p.why}. Tradeoff: ${p.tradeoffs}.`),
       `The experiment: ${experiment.task}`,
       constraintNotes.length ? `Constraints applied: ${constraintNotes.join("; ")}.` : null,
       `Next step: pick the dataset question for part (2) this week; the paths get re-ranked by what the experiment shows, not by guessing.`,
+      `Basis: ${basis.source_class}; the guidance knowledge behind this answer is as of ${KNOWLEDGE_AS_OF}.`,
+      `Plan: ${plan.map((a, i) => `${i + 1}. (${a.timeframe}) ${a.action}.`).join(" ")}`,
     ].filter(Boolean).join("\n");
     return finalize("plan_paths", {
       paths, experiment, deterministicVerdict: null,
       factIds: anchorIds,
+      sources, basis, as_of: KNOWLEDGE_AS_OF,
+      plan, action_plan: plan,
       unknowns: ["Which field fits — nothing in the record decides this; the experiment is what produces that evidence."],
       nextStep: "Run the two-part experiment over the next two weekends, then re-rank the paths from what it shows.",
       text,

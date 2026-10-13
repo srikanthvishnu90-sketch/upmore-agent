@@ -916,10 +916,20 @@ const CareerDoorstep = (() => {
     }
     const at = isoOf(spec.at || c.now) || isoOf(Date.now());
     const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    // GATE-3 vocabulary alignment (03 F3): the log_write.source on a
+    // DOORSTEP RECORD uses the spec enum inbox | user_reported | portal.
+    // 126's tracker-store vocabulary is hyphenated ("user-reported") and
+    // is pinned by 126's own consumers (status/timeline readers and the
+    // track/G6 suites), so the store value is NOT renamed — the mapping
+    // happens HERE, at the doorstep emission point, for every source value
+    // this record carries. Values outside the enum pass through unmapped
+    // rather than being relabeled into a claim they are not.
+    const SPEC_LOG_SOURCE = { "user-reported": "user_reported", user_reported: "user_reported", inbox: "inbox", portal: "portal" };
+    const specLogSource = (v) => SPEC_LOG_SOURCE[v] || v;
     const event = {
       type: eventType,
       at,
-      source: spec.source || (eventType === "manual_update" ? "user-reported" : "system"),
+      source: specLogSource(spec.source || (eventType === "manual_update" ? "user-reported" : "system")),
       detail: spec.detail || spec.note || `stage set to ${stage}`,
       evidence: spec.evidence || spec.url || null,
     };
@@ -956,12 +966,33 @@ const CareerDoorstep = (() => {
       if (stage) event.stage_after = stage;
     }
     const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    // Triggered follow-ups, from 126's own follow-up state: the quiet-period
+    // radar (deadlineRadar -> quietReport) run over the would-be log (the
+    // existing rows with this write applied). A company whose follow-up is
+    // due arms a nudge follow-up here; when none is due the field is present
+    // and empty WITH the reason, computed from the same radar — never a
+    // follow-up invented for the record.
+    let triggeredFollowups = [], triggeredNote = "126's follow-up radar is unavailable in this build, so no follow-up state could be read";
+    if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
+      const nowMs = Date.parse(at) || Date.now();
+      const rowsAfter = existing ? rows.map((r) => (r && r.app_id === row.app_id ? row : r)) : [...rows, row];
+      const radar = Track.deadlineRadar({ rows: rowsAfter }, [], { now: nowMs, withinDays: 14 });
+      triggeredFollowups = radar.filter((d) => d.kind === "follow_up_due" && norm(d.company) === norm(row.company))
+        .map((d) => ({ kind: "follow_up_nudge", company: d.company, label: d.label, date: d.date, days_away: d.days_away, source: "126 quiet-period radar (deadlineRadar/quietReport)" }));
+      if (!triggeredFollowups.length) {
+        const q = Track.quietReport({ rows: rowsAfter }, { now: nowMs }).find((x) => norm(x.company) === norm(row.company));
+        triggeredNote = q
+          ? `no follow-ups are armed for ${row.company}: 126's quiet-period radar shows ${q.days_quiet} day(s) quiet at stage "${row.stage}" — a nudge arms only at ${Track.NUDGE_AFTER_DAYS != null ? Track.NUDGE_AFTER_DAYS : 10}+ days quiet`
+          : `no follow-ups are armed for ${row.company}: stage "${row.stage}" carries no quiet-period follow-up in 126's radar`;
+      } else triggeredNote = `${triggeredFollowups.length} follow-up(s) armed by 126's quiet-period radar for ${row.company}`;
+    }
     const payload = {
       kind: "tracker_log_write", family: "tracking-write", operation,
       app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
       application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
       status: row.stage, stage: row.stage,
       note: spec.note || null, event: cloneJson(event),
+      triggered_followups: triggeredFollowups, triggered_followups_note: triggeredNote,
       would_write: wouldWrite, target: "tracker", committed: false,
     };
     const stepLog = [

@@ -69,6 +69,13 @@ const CareerTrack = (() => {
     return app;
   }
   // SC-070: manual update via chat; source is ALWAYS marked 'user-reported'.
+  // VOCABULARY NOTE (Gate-3, 03 F3): the tracker store's event-source
+  // vocabulary here is hyphenated ('user-reported') and is read by this
+  // module's status/timeline surfaces and pinned by the track suites, so
+  // it is NOT renamed in the store. The Quality Spec Pack's doorstep
+  // enum is 'user_reported'; that mapping happens at the EMISSION point
+  // in 141-career-doorstep (emitTrackingLog), which is where doorstep
+  // records are produced — never by rewriting stored rows.
   function manualUpdate(store, company, stage, opts) {
     opts = opts || {};
     const app = findByCompany(store, company);

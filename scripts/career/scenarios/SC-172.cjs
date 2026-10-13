@@ -1,0 +1,12 @@
+"use strict"; const { H, G, profile, T } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-172", "recruiter-vs-practitioner-asks");
+  await s.user("Recruiter vs practitioner at the same firm — different asks, drafted accordingly");
+  const rec = T("Rae Recruiter", { current_firm: "Stripe", title: "University Recruiter", role_kind: "recruiter", work_email: "rae@example.test" });
+  const prac = T("Pete Practitioner", { current_firm: "Stripe", title: "Software Engineer", role_kind: "practitioner", work_email: "pete@example.test" });
+  const a = G.draftReferralAsk(rec, profile, { hadGoodChat: true, role: "Software Engineering Intern", blurb: "BLURB" });
+  const b = G.draftReferralAsk(prac, profile, { hadGoodChat: true, role: "Software Engineering Intern", blurb: "BLURB", chatNote: "your point about Stripe's writing culture" });
+  await s.tool("135-career-graph.draftReferralAsk(recruiter)", a); await s.tool("135-career-graph.draftReferralAsk(practitioner)", b);
+  await s.agent(`Same firm, two different asks — because they do two different jobs:\n\nRECRUITER (Rae) — a ROUTING ask: confirm the right requisition and whether the referral attaches before you submit. She can't endorse your engineering; asking her to wastes the ask.\n\n${a.draft.body}\n\nPRACTITIONER (Pete) — an ENDORSEMENT ask: refer me, with the blurb doing the work, grounded in your actual chat.\n\n${b.draft.body}\n\nBoth held draft_only for your yes.`);
+  s.verify("ask kinds + bodies differ", { kinds: [a.kind, b.kind], bodies_differ: a.draft.body !== b.draft.body });
+  await s.finish({ status: "COMPLETE", outcome: "Recruiter ask (process/routing: right requisition, referral attached pre-submit) and practitioner ask (endorsement + blurb) drafted differently for the same firm, both draft_only." });
+})();

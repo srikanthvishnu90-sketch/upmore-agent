@@ -1,0 +1,10 @@
+"use strict"; const { H, G, profile, T } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-173", "cross-city-alumni-warmth");
+  await s.user("Alumni in a different city than the role — warmth ranked honestly, not inflated");
+  const local = G.rankWarmth(T("Local Alum", { current_firm: "Stripe", schools: ["TEST University"], geography: "New York, NY" }), profile, { roleCity: "New York, NY" });
+  const remote = G.rankWarmth(T("Far Alum", { current_firm: "Stripe", schools: ["TEST University"], geography: "San Francisco, CA" }), profile, { roleCity: "New York, NY" });
+  await s.tool("135-career-graph.rankWarmth(same-city)", local); await s.tool("135-career-graph.rankWarmth(cross-city)", remote);
+  await s.agent(`Honest ranking for the New York role:\n\n1. Local Alum — warmth ${local.score} (alumni, same city as the role)\n2. Far Alum — warmth ${remote.score} (alumni 40, minus 15 cross-city discount: they're in San Francisco, the role is in New York)\n\nI did NOT rank them equal just because both are alumni. The cross-city discount is disclosed in the record, not buried: a San Francisco alum can still refer you, but they can't speak to the New York team, grab coffee with the hiring manager, or vouch locally — pretending otherwise inflates the path and mis-sequences your asks.`);
+  s.verify("warmth state", { local: local.score, cross_city: remote.score, discount_disclosed: remote.adjustments.some((a) => a.delta === -15) });
+  await s.finish({ status: "COMPLETE", outcome: "Cross-city alumnus ranked honestly below the same-city alumnus (25 vs 40) with the −15 cross-city discount disclosed in the rail record." });
+})();

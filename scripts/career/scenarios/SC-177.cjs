@@ -1,0 +1,10 @@
+"use strict"; const { H, P, persona, cirForPrep } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-177", "question-bank-story-matching");
+  await s.user("Question bank for this round, my best story matched to each question");
+  const stories = P.mineStories(persona.facts);
+  const bank = P.questionBank({ company: "Stripe", cir: cirForPrep("stripe"), roleFamily: "software_engineering", round: "onsite", stories });
+  await s.tool("127-career-prep.questionBank(Stripe)", { cir_grounded: bank.cir_grounded, count: bank.questions.length, matched: bank.questions.filter((q) => q.matched_story).length });
+  await s.agent(`Stripe question bank for this round — ${bank.questions.length} questions, each tagged with its source, and your best real story matched where one exists:\n\n${bank.questions.slice(0, 8).map((q, i) => `${i + 1}. ${q.q}\n   source: ${q.source.type}${q.matched_story ? " · your story: " + q.matched_story.title : " · no story mined yet — flag for the STAR bank"}`).join("\n")}\n\nCIR-tagged questions come from Stripe's own stages/signals in its record; generic behavioral ones are labeled generic — never dressed up as company intel.`);
+  s.verify("bank state", { cir_grounded: bank.cir_grounded, questions: bank.questions.length, with_story_match: bank.questions.filter((q) => q.matched_story).length, stories_mined: stories.length });
+  await s.finish({ status: "COMPLETE", outcome: "Stripe question bank built from the merged CIR (stages + screening signals + styles) plus labeled generic questions, with the best mined real story matched per question." });
+})();

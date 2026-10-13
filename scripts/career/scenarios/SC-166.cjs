@@ -1,0 +1,14 @@
+"use strict"; const { H, G, profile, T } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-166", "professor-path");
+  await s.user("Professor path: my professor worked at the target — draft the ask");
+  const st = G.makeGraphStore();
+  G.importGraph(st, [{ source: "pasted_contacts", records: [T("Prof. Lena Alvarez", { current_firm: "TEST University", title: "Professor of Computer Science", prior_firms: ["Datadog"], is_professor: true, work_email: "alvarez@example.test" })] }]);
+  const prof = st.people[0];
+  const atTarget = Object.assign({}, prof, { current_firm: "Datadog" });
+  const ask = G.draftReferralAsk(atTarget, profile, { hadGoodChat: true, role: "Software Engineering Intern", proof: "my DeployBoard project (Go/Kubernetes, 12 student teams — fact F-003)" });
+  await s.tool("135-career-graph.importGraph(professor record)", { prior_firms: prof.prior_firms, is_professor: prof.is_professor });
+  await s.tool("135-career-graph.draftReferralAsk(kind=professor)", ask);
+  await s.agent(`Your professor path is real: Prof. Alvarez's record shows prior firm Datadog. The ask is drafted in the professor register — respectful, specific proof attached, and it offers her the lighter option (point me to the right person) instead of demanding the referral outright. Held for your yes:\n\n${ask.draft.body}`);
+  s.verify("professor ask state", { kind: ask.kind, status: ask.status, prior_firm_on_record: prof.prior_firms });
+  await s.finish({ status: "COMPLETE", outcome: "Professor path verified from the record (prior firm Datadog) and a professor-register referral ask drafted with real proof (F-003), held draft_only for approval." });
+})();

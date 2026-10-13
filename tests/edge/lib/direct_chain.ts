@@ -19,6 +19,7 @@ import { deadlinesReply } from "../../../supabase/functions/agent-chat/_shared/d
 import { feeAuditReply } from "../../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
 import { paycheckReply } from "../../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
 import { tipFeesReply } from "../../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
+import { vaultDocsReply } from "../../../supabase/functions/agent-chat/_shared/vault_docs_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_HANDLER from "../../../supabase/functions/agent-chat/handler.ts" with { type: "text" };
 
@@ -64,6 +65,8 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   whatsNewReply: (m) => whatsNewReply(m, TODAY, async () => TX as any[], async () => []),
   // The person's settings row as the handler reads it: here the budget only, no deadline facts (MOCK).
   deadlinesReply: (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: () => BUDGETS }),
+  // Vault & documents (K13): no vault facts in this fixture, so its answers are the honest no-facts lines.
+  vaultDocsReply: (m) => vaultDocsReply(m, NOW, { watches: () => [], transactions: async () => TX as any[], previous: async () => [] }, { tz: "America/New_York" }),
 };
 const handler = SRC_HANDLER;
 export const ORDER = [...handler.matchAll(/direct = await (\w+)\(/g)].map((m) => m[1]);

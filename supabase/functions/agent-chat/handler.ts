@@ -53,6 +53,7 @@ import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
+import { vaultDocsReply } from "./_shared/vault_docs_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
 import { paycheckReply } from "./_shared/paycheck_answer.ts";
@@ -369,6 +370,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
         // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
         // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.
+        // Vault & documents (C142/C153/C155/C157/C158/C203, _shared/vault_docs_answer.ts): breach lockdown, the
+        // gated vault, the CPA tax folder, the mileage log, the charitable roundup and document organization,
+        // over the person's settings-row facts (watches) and their own transaction rows; no facts = NOT_WIRED lines.
+        if (!direct) direct = await vaultDocsReply(message, new Date(), { watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []), transactions: readTx, previous: readPrevious }, { tz });
         if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {

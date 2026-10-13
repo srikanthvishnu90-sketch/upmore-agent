@@ -434,9 +434,19 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
   `LATE_MATERIAL_QUESTION` at submit → a named ask before review). Fail-first 0/6 → 6/6;
   preservation suites (r2b, r2-integration, r3, r1, r2, r2a) all green — round-2 guards
   untouched.
-- G1 guidance (144) · G3 prep scoring (127) · G4 outreach workflow (124): running.
-  C-expansion (C-A canonical, C-B1/B2 variants, U journeys) + item-10 dedupe survey:
-  running on the frozen b7d9f83 build.
+- **G1 guidance (144) — BUILT, merged 3b68752**: new domain module (pure service style,
+  no fabricated odds — `guardReply()` throws on odds patterns; direct odds requests get
+  a sourced refusal) answering all 13 CGD-1 cases at the service level (per-CG-case
+  verdicts in the lane report incl. CG11's three "unknown"s, CG19's do-not-pay, CG23's
+  in-module leak check that throws rather than disclosing private contact data), plus
+  CG13/CG16/CG20 bonuses. 19/19 fail-first → pass; zero regressions (one observed
+  caveat: `tests/career-harness-oracle.test.cjs` times out under lane-load identically
+  on the pristine tree — pre-existing/environmental, logged beside the mutation-report
+  pair). Chat-reachability stays Codex's: the route note gives 16 intents + ctx table
+  as a pure hookup; CG re-grade through chat follows the route.
+- G3 prep scoring (127) · G4 outreach workflow (124): running. C-expansion (C-A
+  canonical, C-B1/B2 variants, U journeys) + item-10 dedupe survey: running on the
+  frozen b7d9f83 build.
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

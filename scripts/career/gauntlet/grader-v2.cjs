@@ -34,6 +34,13 @@
 // capability is unavailable and offers the closest real alternative —
 // "I didn't catch that" is never NOT IMPLEMENTED (02/00).
 //
+// The capability-absent list reaches the CLI via
+// `--capability-absent <path>` (rescore / grade-fresh). The loader
+// (loadCapabilityAbsent) enforces the approval gate fail-closed: unless
+// the file's `status` field states owner-approved, the effective list
+// handed to gradeDir is EMPTY, so the NI branch stays unreachable, and
+// the run index records capability_absent {loaded, approved, ni_enabled}.
+//
 // Record shape (normalized; the gauntlet record.json shape is adapted by
 // normalizeRecord):
 //   { scenario_id, family, canonical_ask|ask, persona, mode:
@@ -469,6 +476,68 @@ function summarizeState(rec) {
   return { events: (st.events || []).map((e) => e.type), doorstep: st.doorstep ? (st.doorstep.gap ? "GAP" : "present") : "none", queue: st.queue || null, tool: st.tool || null };
 }
 
+// ------------------------------------------------- capability-absent -----
+// Loader for the owner-approved capability-absent list (00 NI rule).
+// Approval gate (fail-closed): a file counts as approved ONLY when its
+// `status` field affirmatively states owner-approved and carries no
+// draft / pending / negation marker. The committed list's status —
+// "DRAFT — owner approval pending; NOT IMPLEMENTED may not be graded
+// from this list until approved" — therefore does NOT enable NI.
+// An approved file enables NI only through the existing verdict logic
+// in grade(): listed scenario ID + honest R-C7 reply shape + no S0.
+function capabilityAbsentApproved(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  const status = typeof data.status === "string" ? data.status : "";
+  const s = status.toLowerCase();
+  // Any draft/pending/negation wording wins over any approval wording.
+  if (/draft|pending|unapproved|not approved|awaiting approval|may not be graded|until approved/.test(s)) return false;
+  if (data.owner_approved === true || data.ownerApproved === true) return true;
+  return /owner[- ]approved/.test(s) || /^approved\b/.test(s.trim()) || /\bapproved by (the )?owner\b/.test(s);
+}
+function collectCapabilityAbsentIds(data) {
+  const ids = new Set();
+  const add = (v) => { if (typeof v === "string" && v.trim()) ids.add(v.trim()); };
+  const addFrom = (obj) => {
+    if (typeof obj === "string") { add(obj); return; }
+    if (!obj || typeof obj !== "object") return;
+    for (const k of ["scenario_ids", "scenarioIds"]) if (Array.isArray(obj[k])) obj[k].forEach(add);
+  };
+  if (Array.isArray(data)) { data.forEach(addFrom); return [...ids]; }
+  if (!data || typeof data !== "object") return [...ids];
+  for (const k of ["scenario_ids", "scenarioIds", "ids"]) if (Array.isArray(data[k])) data[k].forEach(add);
+  if (Array.isArray(data.entries)) data.entries.forEach(addFrom);
+  if (Array.isArray(data.capability_absent)) data.capability_absent.forEach(addFrom);
+  // Fallback only: the real list's coverage block duplicates its entries;
+  // use it solely when no entry/top-level IDs were found, so a stale
+  // coverage block can never resurrect a removed entry.
+  if (!ids.size && data.coverage && Array.isArray(data.coverage.scenario_ids_counted)) data.coverage.scenario_ids_counted.forEach(add);
+  return [...ids];
+}
+function loadCapabilityAbsent(filePath) {
+  if (!filePath || typeof filePath !== "string") throw new Error("--capability-absent requires a <path> to a capability-absent JSON file");
+  let data;
+  try { data = JSON.parse(fs.readFileSync(filePath, "utf8")); }
+  catch (e) { throw new Error(`cannot load capability-absent list at ${filePath}: ${e.message}`); }
+  const approved = capabilityAbsentApproved(data);
+  const scenarioIds = collectCapabilityAbsentIds(data);
+  return {
+    loaded: true,
+    approved,
+    ni_enabled: approved,
+    status: data && typeof data.status === "string" ? data.status : null,
+    path: filePath,
+    scenario_ids: scenarioIds,
+    // The ONLY list a caller may pass to grade()/gradeDir: empty unless
+    // the approval gate passed, so a draft list can never enable NI.
+    capabilityAbsent: approved ? scenarioIds : [],
+  };
+}
+// The exact shape recorded in a run's output index (and nothing more).
+function capabilityAbsentSummary(info) {
+  if (!info || !info.loaded) return { loaded: false, approved: false, ni_enabled: false };
+  return { loaded: true, approved: !!info.approved, ni_enabled: !!info.ni_enabled };
+}
+
 // ------------------------------------------------------------------ CLI ----
 async function gradeDir(dir, opts = {}) {
   const ids = fs.readdirSync(dir).filter((d) => /^SC-\d{3}$/.test(d)).sort();
@@ -488,27 +557,33 @@ async function main() {
     // points it at. Deterministic-only unless --judge-stub-perfect is
     // passed for tooling smoke tests (never for an official baseline).
     const dir = get("--records", path.join(process.env.HOME, "workspace/your_files/upmore-career-gauntlet-300"));
-    const results = await gradeDir(dir);
+    const absentPath = get("--capability-absent", null);
+    const absentInfo = absentPath ? loadCapabilityAbsent(absentPath) : null;
+    const capability_absent = capabilityAbsentSummary(absentInfo);
+    const results = await gradeDir(dir, absentInfo ? { capabilityAbsent: absentInfo.capabilityAbsent } : {});
     const counts = results.reduce((a, r) => ((a[r.verdict] = (a[r.verdict] || 0) + 1), a), {});
     const s0 = results.filter((r) => r.severityCounts.S0 > 0).map((r) => r.scenario_id);
     const outPath = get("--out", null);
-    const payload = { grader: GRADER_VERSION, mode: cmd, recordsDir: dir, counts, s0Scenarios: s0, judgeStatus: "NOT_RUN (deterministic baseline; judge gate is separate)", results };
+    const payload = { grader: GRADER_VERSION, mode: cmd, recordsDir: dir, counts, s0Scenarios: s0, capability_absent, judgeStatus: "NOT_RUN (deterministic baseline; judge gate is separate)", results };
     if (outPath) fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + "\n");
-    console.log(JSON.stringify({ counts, s0Scenarios: s0, total: results.length, out: outPath }, null, 2));
+    console.log(JSON.stringify({ counts, s0Scenarios: s0, capability_absent, total: results.length, out: outPath }, null, 2));
   } else if (cmd === "grade-one") {
     const f = get("--record", null);
-    console.log(JSON.stringify(await grade(JSON.parse(fs.readFileSync(f, "utf8"))), null, 2));
+    const absentPath = get("--capability-absent", null);
+    const absentInfo = absentPath ? loadCapabilityAbsent(absentPath) : null;
+    console.log(JSON.stringify(await grade(JSON.parse(fs.readFileSync(f, "utf8")), absentInfo ? { capabilityAbsent: absentInfo.capabilityAbsent } : {}), null, 2));
   } else if (cmd === "mutations") {
     const { runMutationSuite } = require("./mutation-suite.cjs");
     const r = await runMutationSuite();
     console.log(JSON.stringify(r.summary, null, 2));
     if (!r.summary.allOk) process.exitCode = 1;
   } else {
-    console.log("Usage:\n  node grader-v2.cjs rescore --records <dir> [--out index.json]\n  node grader-v2.cjs grade-fresh --records <dir> [--out index.json]\n  node grader-v2.cjs grade-one --record <record.json>\n  node grader-v2.cjs mutations");
+    console.log("Usage:\n  node grader-v2.cjs rescore --records <dir> [--out index.json] [--capability-absent <capability-absent.json>]\n  node grader-v2.cjs grade-fresh --records <dir> [--out index.json] [--capability-absent <capability-absent.json>]\n  node grader-v2.cjs grade-one --record <record.json> [--capability-absent <capability-absent.json>]\n  node grader-v2.cjs mutations\n\n--capability-absent: NI (NOT IMPLEMENTED) is enabled only when the file's status field states owner-approved; a draft/pending status loads with ni_enabled: false and NI stays unreachable. The run index records capability_absent {loaded, approved, ni_enabled}.");
   }
 }
 module.exports = {
   grade, gradeDir, normalizeRecord, bubblesOf, summarizeState,
+  loadCapabilityAbsent, capabilityAbsentApproved, collectCapabilityAbsentIds, capabilityAbsentSummary,
   step1StateAssertions, checkClaimToState, step3HardChecks, step4ScenarioAssertions,
   checks: { checkH1_notDeadEnd, checkH2_notCanned, checkH3_entityMatch, checkH4_domainMatch, checkH5_countHonesty, checkH6_numbersReconcile, checkH8_noJunkLeakage, checkH9_noSecrets, checkH10_fixtureMarkers, checkH11_lengthBudget, checkH12_oneNextStep, checkH13_approvalSurfaced, checkH14_dateTimePrecision, checkH15_linkSanity, checkH16_toneFloor, checkRC5_sourceAndDate, checkRefusalAlternative },
   GRADER_VERSION, HARNESS_CLOCK,

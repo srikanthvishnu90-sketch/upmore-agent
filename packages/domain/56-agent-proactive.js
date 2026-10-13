@@ -108,7 +108,11 @@
       // from the ledger's own recurrence detection (57-agent-ledger.js recurringCalendar — the same calendar the brief
       // and the recap read), listed in ONE finding with each date and amount, days ahead of the charge, so a yearly
       // premium, the rent or a tuition bill never lands as a surprise. The line is the person's own large-charge
-      // threshold when they set one (large_threshold_cents, the ALRT-002 line), else $500. A renewal alert (ALRT-005)
+      // threshold when they set one (large_threshold_cents, the ALRT-002 line), else $500. Like the C28 reminder
+      // below, the radar is a standing ask ("warn me before anything big hits"), so it carries cadence_requested:
+      // the one-a-day findings budget must not starve it day after day until its own deadline is 2 days out
+      // (found 2026-10-12 on the owner's real-row twins: suppressed two days running behind new-subscription
+      // notes). Quiet hours in plan() still hold it. A renewal alert (ALRT-005)
       // or a save-engine annual-renewal note for the same charge on the same day is this listing, not a second finding.
       const Ledger = mod("AgentLedger");
       if (Ledger && input.transactions) {
@@ -121,7 +125,7 @@
           out.proactive.push({ key: "upcoming_large:" + items.map(i => `${i.merchant}|${i.on}|${i.amount_cents}`).join("|"),
             text: `Big charges coming up: ${items.map(i => `${i.merchant} ${money(i.amount_cents)} on ${i.on}`).join(", ")}. Each is over the ${money(threshold)} line, so none of them lands as a surprise.`,
             reason: "a large charge is coming", deadline: dayMs(items[0].on), next_on: items[0].on,
-            amount_cents: items.reduce((s, i) => s + i.amount_cents, 0), capability_id: "ALRT-005", priority: 4,
+            amount_cents: items.reduce((s, i) => s + i.amount_cents, 0), capability_id: "ALRT-005", priority: 4, cadence_requested: true,
             evidence: { rule: "Recurring debits at or over the large-charge line due within 7 days (ledger recurrence).", rows: [], computed: { threshold_cents: threshold, items: items.map(i => ({ merchant: i.merchant, on: i.on, amount_cents: i.amount_cents, cadence: i.cadence })) } } });
           out.sources.radar = { upcoming: items.length, threshold_cents: threshold };
         }

@@ -1,0 +1,10 @@
+"use strict"; const { G, H, graph } = require("./w08-common.cjs");
+(async () => { const s = H.session("SC-156", "relationship-memory");
+  s.user('Relationship memory: "When did I last talk to Daniel, and what about?" — full history');
+  const g = graph();
+  G.recordInteraction(g, "Daniel Warm (TEST)", { kind: "email", at: "2026-08-20T12:00:00Z", summary: "Intro email about Datadog intern roles" });
+  G.recordInteraction(g, "Daniel Warm (TEST)", { kind: "coffee_chat", at: "2026-09-01T12:00:00Z", summary: "Talked Datadog infra and on-call rotations" });
+  const m = G.relationshipMemory(g, "Daniel Warm (TEST)"); s.tool("135.relationshipMemory", m);
+  s.agent(`Last talk: ${m.last_contact_at} — ${m.last_summary}. Full history: ${m.history.length} touches, ${m.chats} coffee chat(s), current stage ${m.stage} at ${m.company}.`);
+  s.verify("answer read from the interaction log on the merged person record", { history_len: m.history.length, last_at: m.last_contact_at });
+  await s.finish({ status: "COMPLETE", outcome: "Relationship memory answered Daniel's last-talk date, topic, and full 2-touch history from the graph" }); })();

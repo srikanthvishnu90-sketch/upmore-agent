@@ -1,0 +1,11 @@
+"use strict"; const { G, T, H, graph } = require("./w08-common.cjs");
+(async () => { const s = H.session("SC-152", "referral-tracked-onto-application");
+  s.user("My contact submits the referral — tracked onto the right application");
+  const g = graph(); const store = T.seedTestLog();
+  const sig = G.recordReferralSignal(g, "Daniel Warm (TEST)", { company: "Datadog", role: "Software Engineering Intern", at: "2026-10-12T12:00:00Z" });
+  const link = G.linkReferralToApplication(g, store, "Daniel Warm (TEST)", "Datadog");
+  s.tool("135.recordReferralSignal + linkReferralToApplication", { sig, link });
+  const app = T.findByCompany(store, "Datadog");
+  s.agent(`Tracked. Your Datadog application is now source: referred, referred_by: Daniel Warm (TEST), with a referral_linked event on its timeline.`);
+  s.verify("application row itself changed: source/referred_by set + event appended; graph referral carries the app_id", { source: app.source, referred_by: app.referred_by, last_event: app.events.at(-1).type, referral_app_id: sig.referral.app_id });
+  await s.finish({ status: "COMPLETE", outcome: "Submitted referral linked onto the Datadog application row (source=referred, referred_by set, event logged)" }); })();

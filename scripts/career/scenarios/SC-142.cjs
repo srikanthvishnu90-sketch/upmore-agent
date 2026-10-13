@@ -1,0 +1,11 @@
+"use strict"; const { S, H } = require("./w08-common.cjs");
+(async () => { const s = H.session("SC-142", "comp-expectation-t3-draft");
+  s.user("Recruiter asks my comp expectations — draft plus T3 card, nothing sent silently");
+  const noFig = S.draftCompExpectation({ company: "Stripe", marketRange: "$25–35/hr (TEST market range)" });
+  s.tool("136.draftCompExpectation(no approved figure)", noFig);
+  s.agent(`I won't put a number in a recruiter's inbox that you haven't approved. Market range on file: $25–35/hr. Approve a figure or a range on the card and I'll draft exactly that — nothing sends silently.`, { card: { title: "T3 — comp expectation needs your figure", tier: "T3", status: "ASK", offered_instead: "$25–35/hr (TEST market range)" } });
+  const ok = S.draftCompExpectation({ company: "Stripe", approvedRange: ["$28/hr", "$32/hr"], userName: "Alex Testcase (TEST)" });
+  s.tool("136.draftCompExpectation(approved range)", ok);
+  s.agent(`Draft ready with exactly your approved range ($28/hr–$32/hr) — still unsent, waiting on your T3 yes:\n\n${ok.draft.body}`, { card: ok.card });
+  s.verify("no-figure path returns ASK with zero sends; approved path's draft carries the approved range verbatim and sends:false", { ask_status: noFig.status, ask_sends: noFig.sends, draft_sends: ok.sends, figure_used: ok.figure_used });
+  await s.finish({ status: "COMPLETE", outcome: "Comp-expectation reply drafted only after a T3-approved range, carried verbatim, never sent silently; without an approved figure the agent ASKs and offers the market range instead" }); })();

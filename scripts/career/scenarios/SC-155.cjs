@@ -1,0 +1,11 @@
+"use strict"; const { G, H, graph } = require("./w08-common.cjs");
+(async () => { const s = H.session("SC-155", "chat-to-referral-conversion");
+  s.user("Coffee-chat to referral conversion tracked per contact");
+  const g = graph();
+  G.recordInteraction(g, "Daniel Warm (TEST)", { kind: "coffee_chat", at: "2026-10-10T12:00:00Z", summary: "Datadog chat" });
+  G.recordInteraction(g, "Maya Alumni (TEST)", { kind: "coffee_chat", at: "2026-10-09T12:00:00Z", summary: "Stripe chat" });
+  G.recordReferralSignal(g, "Daniel Warm (TEST)", { company: "Datadog", at: "2026-10-12T12:00:00Z" });
+  const c = G.conversionTracking(g); s.tool("135.conversionTracking", c);
+  s.agent(`Per contact: ${c.per_contact.map((p) => `${p.name}: ${p.chats} chat(s), ${p.referrals} referral(s), stage ${p.stage}`).join("; ")}. Overall: ${c.conversion_pct}% of chatted contacts converted.`);
+  s.verify("conversion computed from graph chats + referral signals per person", { chatted: c.contacts_with_chats, converted: c.converted_to_referral, pct: c.conversion_pct });
+  await s.finish({ status: "COMPLETE", outcome: "Chat→referral conversion tracked per contact (2 chatted, 1 converted, 50%) from graph state" }); })();

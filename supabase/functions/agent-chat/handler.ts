@@ -50,6 +50,7 @@ import { readRecentTransactions } from "../_shared/recent_transactions.ts";
 import { rewardsReply } from "./_shared/rewards_answer.ts";
 import { cardOffersReply } from "./_shared/card_offers_answer.ts";
 import { priceDropReply } from "./_shared/price_drop_answer.ts";
+import { portalReply } from "./_shared/portal_answer.ts";
 import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
@@ -470,6 +471,23 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         ]);
         if (saved.error) throw saved.error;
         return json(cors, { thread_id: tid, reply: flow.reply, action: null, route: flow.route });
+      }
+    }
+
+    // Provider-portal cases (cluster K8, _shared/portal_answer.ts over packages/domain/118-portal-cases.js):
+    // checked AFTER the flows, so a bare cancel or send keeps its owning flow. Live portals are NOT_WIRED and no
+    // portal-facts store exists yet, so the reader returns {} and the reply is the case's one exact question (or,
+    // once a facts store is wired, its approval card / read-only answer). Execution is never done in this turn.
+    {
+      let portal: string | null = null;
+      try { portal = await portalReply(message, async () => ({})); } catch { portal = null; }
+      if (portal) {
+        const saved = await supabase.from("agent_messages").insert([
+          { thread_id: tid, role: "user", content: userContent },
+          { thread_id: tid, role: "assistant", content: portal, meta: { capability: true, portal_case: true } },
+        ]);
+        if (saved.error) throw saved.error;
+        return json(cors, { thread_id: tid, reply: portal, action: null });
       }
     }
 

@@ -16,6 +16,24 @@ test("the dated government data validates", () => {
   assert.deepEqual(G.validate(DATA), []);
 });
 
+test("doorsteps: every item's flow walks to the owner's final tap and stops there", () => {
+  for (const k of ["property_appeal", "homestead", "irs_notice", "refund_track", "fbar"]) {
+    const d = G.doorstep(k, { data: DATA });
+    assert.equal(d.ready, true, k);
+    assert.match(d.text, /^Doorstep — /);
+    assert.match(d.text, /STOP /);
+    assert.match(d.text, /owner/);
+    assert.doesNotMatch(d.text, /submitted|filed on your behalf/i);
+  }
+  // The packet answers carry their doorstep; a closed case (refund landed) and a not-required FBAR do not.
+  const appeal = G.answer("My assessment jumped 20%. Appeal it.", { today: TODAY, data: DATA, county_id: "cook-il",
+    property: { assessed_cents: 5200000, prior_assessed_cents: 4333300, notice_date: "2026-09-28", equalizer: "2.9237", tax_rate: "0.0693" },
+    comps: [{ address: "a similar home two doors down", assessed_cents: 4480000 }, { address: "a similar home across the street", assessed_cents: 4620000 }] });
+  assert.match(appeal.text, /Doorstep — Cook County Assessor appeal/);
+  const landed = G.answer("Where's my tax refund?", { today: TODAY, data: DATA, refund: { jurisdiction: "federal", amount_cents: 324000, stage: "sent", as_of: "2026-03-02" }, transactions: [{ merchant_raw: "IRS TREAS 310 TAX REF", amount_cents: 324000, posted_on: "2026-03-04" }] });
+  assert.doesNotMatch(landed.text, /Doorstep/);
+});
+
 test("routing: the five asks, and the near-misses that must not route", () => {
   assert.equal(G.kind("My assessment jumped 20%. Appeal it."), "property_appeal");
   assert.equal(G.kind("Am I getting the homestead exemption? File it if not."), "homestead");

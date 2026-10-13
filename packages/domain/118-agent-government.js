@@ -68,6 +68,11 @@ const Government = (() => {
     if (!f.source || !/^https:\/\//.test(f.source.url || "")) problems.push("fbar: a source required");
     const r = d.refund || {};
     if (JSON.stringify(r.stages) !== JSON.stringify(["received", "approved", "sent"])) problems.push("refund: stages must be received, approved, sent");
+    for (const k of ["property_appeal", "homestead", "irs_notice", "refund_track", "fbar"]) {
+      const ds = (d.doorsteps || {})[k];
+      if (!ds || !ds.portal || !Array.isArray(ds.steps) || !ds.steps.length || !ds.stop || !ds.final_tap) problems.push(`doorstep ${k}: portal, steps, stop and final tap required`);
+      else if (!/^STOP/.test(ds.stop)) problems.push(`doorstep ${k}: the stop must be stated first`);
+    }
     return problems;
   }
 
@@ -280,17 +285,35 @@ const Government = (() => {
     return { kind: "fbar", ready: true, aggregate_cents: aggregate, required, text: lines.join("\n") };
   }
 
+  // ---- doorsteps: the guided session to the final tap, which is always the owner's ----
+  // Each item's filing runs through a portal session. The flow walks the person to the doorstep — portal
+  // open, form filled from the packet, review screen reached — and stops: the executing tap is the owner's
+  // own legal tap, and any code or identity digit is typed by him into the counterparty's own page only.
+  function doorstep(k, ctx) {
+    const c = ctx || {}, data = c.data || {};
+    const d = (data.doorsteps || {})[k] || null;
+    if (!d) return { kind: k, ready: false, text: null };
+    const lines = [`Doorstep — ${d.portal}.`, `Session: ${d.session}`, ...d.steps.map((s, i) => `${i + 1}. ${s}`), d.stop, `Final tap: ${d.final_tap}`];
+    return { kind: k, ready: true, portal: d.portal, stop: d.stop, text: lines.join("\n") };
+  }
+
   function answer(message, ctx) {
     const c = ctx || {};
     const k = c.kind || kind(message);
-    if (k === "property_appeal") return propertyAppeal(message, c);
-    if (k === "homestead") return homestead(message, c);
-    if (k === "irs_notice") return irsNotice(message, c);
-    if (k === "refund_track") return refundTrack(message, c);
-    if (k === "fbar") return fbar(message, c);
-    return { kind: null, text: null };
+    let out = null;
+    if (k === "property_appeal") out = propertyAppeal(message, c);
+    else if (k === "homestead") out = homestead(message, c);
+    else if (k === "irs_notice") out = irsNotice(message, c);
+    else if (k === "refund_track") out = refundTrack(message, c);
+    else if (k === "fbar") out = fbar(message, c);
+    else return { kind: null, text: null };
+    // The packet is only half the job: the flow then walks the person to the doorstep of the filing — the
+    // portal session, the form filled, the review screen — and stops before the owner's own tap.
+    const pending = out && out.text && ((k === "property_appeal" && out.ready) || (k === "homestead" && out.eligible) || (k === "irs_notice" && out.ready) || (k === "refund_track" && out.ready && !out.landed) || (k === "fbar" && out.required));
+    if (pending) { const d = doorstep(k, c); if (d.ready) out = { ...out, doorstep: d.text, text: `${out.text}\n${d.text}` }; }
+    return out;
   }
 
-  return { kind, answer, propertyAppeal, homestead, irsNotice, refundTrack, fbar, validate, noticeCodeOf, noticeDateOf, BOUNDARY };
+  return { kind, answer, doorstep, propertyAppeal, homestead, irsNotice, refundTrack, fbar, validate, noticeCodeOf, noticeDateOf, BOUNDARY };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = Government;

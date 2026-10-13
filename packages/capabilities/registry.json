@@ -3615,12 +3615,15 @@
    "domain": "earnings",
    "tier": "T0",
    "owner_doc": "08",
-   "status": "CLAIMED",
-   "test_ref": null,
+   "status": "TESTED",
+   "test_ref": "tests/found-money.test.cjs",
    "gate_reason": null,
    "connectors": [],
-   "implementation": [],
-   "note": null,
+   "implementation": [
+    "packages/domain/118-found-money.js",
+    "packages/domain/91-unclaimed.js"
+   ],
+   "note": "The search plan over verified official state portals (Illinois I-Cash read on the portal itself 2026-10-12; other states via NAUPA's unclaimed.org directory), name/state matching against a supplied property file, and the claim packet the owner files; the state claim flow itself stays the owner's tap (gap:state-claim-flow). Letters and failed banks: packages/domain/91-unclaimed.js (depth UNCLAIMED).",
    "description": "unclaimed property search (state databases)"
   },
   {

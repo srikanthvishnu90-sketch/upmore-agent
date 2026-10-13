@@ -323,6 +323,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // the handler yet, so the receipts reader is empty and the answer is the honest none-on-file line until
       // receipt ingestion lands; itemized transaction rows still count when they state the fields.
       if (!direct) direct = await tipFeesReply(message, new Date(), { receipts: async () => [], transactions: readTx }, { tz });
+      // Crypto tax export (capability C163, _shared/crypto_tax_answer.ts): the person's pasted venue CSV (in this
+      // message, or following the prompt in this thread) normalized and matched lot by lot; with no file, the
+      // honest prompt. Read-only; trade asks never reach here (the crypto guard's carve-out is tax words only).
+      // Runs BEFORE the 1099 reconciliation: an ask naming both crypto and a 1099 ("what's my bitcoin cost
+      // basis for my 1099") belongs to the crypto tax answer — its matcher only claims crypto-tax asks, so
+      // plain 1099 asks still fall through to the reconciliation below (integration fix, 2026-10-12).
+      if (!direct) direct = await cryptoTaxReply(message, readPrevious);
       // 1099 reconciliation (capability C165, _shared/form1099_answer.ts): collected forms matched against real
       // deposits by payer, deltas in dollars, person-to-person money kept out of the income total. No forms
       // source exists in the handler yet, so the forms reader is empty and the answer is the deposit-side
@@ -332,10 +339,6 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // accounts, the C10 fee scan, recurring run-rates, pay-later, the year's in/out and rates/policies —
       // each with its dollars at stake and its approval-gated handoff; it executes nothing itself.
       if (!direct) direct = await annualCheckupReply(message, new Date(), { accounts: readAccounts, transactions: readTx }, { tz });
-      // Crypto tax export (capability C163, _shared/crypto_tax_answer.ts): the person's pasted venue CSV (in this
-      // message, or following the prompt in this thread) normalized and matched lot by lot; with no file, the
-      // honest prompt. Read-only; trade asks never reach here (the crypto guard's carve-out is tax words only).
-      if (!direct) direct = await cryptoTaxReply(message, readPrevious);
       if (!direct && linkedCount > 0) direct = await moneyReply(message, new Date(), {
         accounts: readAccounts,
         transactions: readTx,

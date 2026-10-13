@@ -105,14 +105,155 @@
     }
     function settleIous(ious, requests, transactions, people) {
       const settled = settleRequests(requests, transactions, people);
-      if (!settled.length) return { ious, settled: [] };
       const byId = new Map((requests || []).map(r => [r.id, r]));
+      // Partial and overpaying receipts (K6): an exact match settles above; a smaller posted receipt from the
+      // same person still counts — it reduces the line and the request, and the rest stays open. A larger one
+      // settles the line and the overage is recorded, never silently kept. A receipt row is spent once, ever.
+      const partials = [], overpaid = [];
+      const used = new Set(settled.map(s => s.transaction_id));
+      for (const r of requests || []) (r.settled_by ? used.add(r.settled_by) : null);
+      const entryOf = id => (ious || []).find(e => e.id === id);
+      for (const r of requests || []) {
+        if (r.status !== "open" || !r.iou_id) continue;
+        const entry = entryOf(r.iou_id); if (!entry || entry.status !== "open") continue;
+        const p = person(people, r.from);
+        const names = p ? [p.name, p.handle].filter(Boolean).map(n => String(n).toLowerCase().replace("@", "")) : [String(r.name || "").toLowerCase()];
+        const hit = (transactions || []).filter(t => cents(t) > 0 && !used.has(t.id || t) && cents(t) !== r.amount_cents && ymd(t.posted_at) >= r.created_on && names.some(n => n && String(t.merchant_raw || "").toLowerCase().includes(n)))
+          .sort((a, b) => ymd(a.posted_at) < ymd(b.posted_at) ? -1 : 1)[0];
+        if (!hit) continue;
+        used.add(hit.id || hit);
+        const got = cents(hit);
+        if (got < r.amount_cents) {
+          // The request is reduced in place (the module's style for requests); the caller's IOU entries are
+          // never mutated — the reduced amount lands on the returned copies via `partials` below.
+          r.amount_cents -= got;
+          partials.push({ request_id: r.id, iou_id: r.iou_id, transaction_id: hit.id, paid_cents: got, remaining_cents: r.amount_cents, text: `${r.name} paid ${money(got)} of the ${money(got + r.amount_cents)} for ${r.what} on ${ymd(hit.posted_at)}; ${money(r.amount_cents)} is still open.` });
+        } else {
+          r.status = "settled"; r.settled_by = hit.id; r.settled_on = ymd(hit.posted_at);
+          const over = got - r.amount_cents;
+          overpaid.push({ request_id: r.id, iou_id: r.iou_id, transaction_id: hit.id, overpaid_cents: over, text: `${r.name} paid ${money(got)} for ${r.what} on ${ymd(hit.posted_at)} — ${money(over)} more than the ${money(r.amount_cents)} owed; the line is settled and the overage is ${r.name}'s to sort out with you.` });
+          settled.push({ request_id: r.id, transaction_id: hit.id, text: `${r.name} paid the ${money(entry.original_cents || got)} for ${r.what} on ${ymd(hit.posted_at)}.` });
+        }
+      }
+      if (!settled.length && !partials.length) return { ious, settled: [], partials: [] };
       const next = (ious || []).map(e => {
+        if (e.status !== "open") return e;
         const hit = settled.find(s => { const rq = byId.get(s.request_id); return rq && rq.iou_id === e.id; });
-        if (!hit) return e;
-        return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id });
+        if (hit) { const over = overpaid.find(o => o.iou_id === e.id); return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id }, over ? { overpaid_cents: over.overpaid_cents } : {}); }
+        const part = partials.find(s => s.iou_id === e.id);
+        if (part) return Object.assign({}, e, { amount_cents: part.remaining_cents });
+        return e;
       });
-      return { ious: next, settled: settled.map(s => Object.assign({}, s, { iou_id: (byId.get(s.request_id) || {}).iou_id || null })) };
+      return { ious: next, settled: settled.map(s => Object.assign({}, s, { iou_id: (byId.get(s.request_id) || {}).iou_id || null })), partials, overpaid };
+    }
+
+    // ---- K6 (C13 / C135 / C181): collections over the sandbox P2P rail, escalating reminders, receipt-only closing ----
+    // Real P2P rails (Venmo, Zelle, Cash App, PayPal) have no consumer API, so at the live boundary they are
+    // NOT_WIRED, said in those words. What CAN be proven end to end is the staged-send rail from PAY-001/PAY-003
+    // work, run here as an explicit sandbox rail: requests are recorded in the rail's own outbox (delivery is
+    // verified from that state, never asserted), receipts are posted into the rail's own inbox as feed rows, and
+    // a debt closes only when settleIous matches a posted receipt row. A person's say-so ("they paid") is a
+    // claim, recorded as a claim; it closes nothing. The sandbox is labeled sandbox everywhere it is named.
+    function sandboxRail() {
+      const outbox = [], inbox = [];
+      return {
+        kind: "sandbox_p2p",
+        outbox, inbox,
+        // Stage-and-deliver a PAY-003 request inside the sandbox: the entry in the outbox IS the delivery record.
+        sendRequest(req, on) {
+          const entry = { ref: `sbx-${outbox.length + 1}`, request_id: req.id, to: req.name, amount_cents: req.amount_cents, rail: req.rail || null, delivery: "sandbox_delivered", on: on || req.created_on };
+          outbox.push(entry);
+          req.delivery = "sandbox"; req.sandbox_ref = entry.ref; req.delivered_on = entry.on;
+          return entry;
+        },
+        // A payment arriving: a feed-shaped row in the inbox (posted, never pending), named for its sender so the
+        // one receipt matcher (settleRequests) can match it exactly as it matches a bank row.
+        postReceipt(spec) {
+          const row = { id: spec.id || `sbx-rcpt-${inbox.length + 1}`, account_id: "sandbox", posted_at: spec.on, posted_on: spec.on, amount_cents: spec.amount_cents, merchant_raw: `SANDBOX P2P FROM ${String(spec.from_handle || spec.from_name || "").replace(/^@/, "").toUpperCase()}`, is_pending: false, is_transfer: false };
+          inbox.push(row);
+          return row;
+        },
+        feed() { return inbox.slice(); },
+        delivered(request_id) { return outbox.find(e => e.request_id === request_id) || null; },
+      };
+    }
+    const NOT_WIRED_LINE = "Real rails are NOT_WIRED: Venmo and Zelle have no consumer API, so nothing was sent on a real rail. These requests went out only on the sandbox P2P rail (labeled sandbox), and each one closes only when its payment posts.";
+    // C135: "get everyone who owes me to pay up" — one PAY-003 request per open owes_me line, delivered on the
+    // sandbox rail when one is passed, with delivery read back from the rail's own outbox before it is claimed.
+    function collectAll(ious, ctx) {
+      const c = ctx || {}, rail = c.sandbox_rail || null;
+      const openLines = (ious || []).filter(e => e && e.status === "open" && e.direction === "owes_me");
+      const requests = [], lines = [], asks = [];
+      let total = 0;
+      for (const e of openLines) {
+        const r = requestFromIou(e, c);
+        if (!r.request) { asks.push(r.ask || `I can't stage a request for ${e.name}.`); continue; }
+        total += r.request.amount_cents;
+        if (rail && r.request.rail) { const sent = rail.sendRequest(r.request, c.today); r.request.delivery_verified = rail.delivered(r.request.id) === sent; }
+        else if (rail) { r.request.delivery = "NOT_WIRED"; r.request.delivery_verified = false; }
+        requests.push(r.request);
+        lines.push(`${r.request.name}: ${money(r.request.amount_cents)} for ${r.request.what}${r.request.rail ? ` on ${railName(r.request.rail)}` : ""}${rail && r.request.sandbox_ref ? ` — sandbox ref ${r.request.sandbox_ref}, delivery verified in the sandbox outbox` : r.request.rail ? " — staged, you tap Request" : " — no request rail on file (NOT_WIRED), draft only"}.`);
+      }
+      if (!requests.length && !asks.length) return { requests, total_cents: 0, text: "Nobody owes you anything open in your ledger, so there's nothing to collect." };
+      const text = [`Collecting ${money(total)} from ${requests.length} ${requests.length === 1 ? "person" : "people"}:`, ...lines, ...asks, NOT_WIRED_LINE, "Reminders follow on a schedule while a request stays open; a debt closes only when the payment actually posts."].join("\n");
+      return { requests, total_cents: total, text };
+    }
+    // Escalating reminders (C135): polite first, plainer second, firm from the third. The schedule: +7 days,
+    // +7 more, then every +3 days while the debt stays open. A settled request is never reminded.
+    const ESCALATION = ["friendly", "plain", "firm"];
+    const REMINDER_INTERVALS = [7, 7, 3];
+    function reminderDueOn(req) {
+      let d = req.created_on;
+      for (let i = 0; i <= (req.reminders_sent || 0); i++) d = addDays(d, REMINDER_INTERVALS[Math.min(i, REMINDER_INTERVALS.length - 1)]);
+      return d;
+    }
+    function dueReminders(requests, today) {
+      const out = [];
+      for (const req of requests || []) {
+        if (!req || req.status !== "open") continue;
+        if (today < reminderDueOn(req)) continue;
+        const stage = ESCALATION[Math.min(req.reminders_sent || 0, ESCALATION.length - 1)];
+        const probe = Object.assign({}, req, { tone: stage });
+        const r = reminder(probe, today);
+        if (!r) continue;
+        req.reminders_sent = (req.reminders_sent || 0) + 1;
+        req.tone_stage = stage; req.last_reminder_on = today;
+        out.push(Object.assign({}, r, { tone: stage, stage: req.reminders_sent, text: r.text }));
+      }
+      return out;
+    }
+    // A "paid" claim with no posted receipt (C135 variant, C13 rule): recorded, and the debt stays open in words
+    // and in state. Only settleIous over posted rows closes anything.
+    function notePaidClaim(ious, requests, name) {
+      const k = String(name || "").toLowerCase();
+      const line = (ious || []).find(e => e && e.status === "open" && e.direction === "owes_me" && e.name.toLowerCase() === k);
+      const req = (requests || []).find(r => r && r.status === "open" && r.name.toLowerCase() === k);
+      if (!line && !req) return { closed: false, text: `I don't have an open debt for ${name}, so there's nothing to close.` };
+      const amt = (line || req).amount_cents;
+      return { closed: false, text: `Noted: ${name} says they paid the ${money(amt)}. That doesn't close it — a debt closes only when the payment posts. It's still open at ${money(amt)} and I'll keep watching for the receipt.` };
+    }
+    // C181: family subscription cost-sharing on the same ledger machinery. The plan's members are enumerated
+    // from the plan audit the person confirms; the month's charge is a real posted row; each member's share is
+    // an IOU line (fromTaggedTransaction, tagged with the service and month) plus its PAY-003 request. Receipts
+    // track month to month because each month's charge makes its own lines, settled by settleIous per month.
+    function subscriptionShares(spec, ctx) {
+      const c = ctx || {};
+      const charge = spec.charge || {};
+      const tx = { id: charge.id || `sub-${spec.service}-${spec.month}`, account_id: charge.account_id || "chk", posted_at: charge.posted_on, posted_on: charge.posted_on, amount_cents: -Math.abs(charge.amount_cents || 0), merchant_raw: charge.merchant_raw || spec.service, is_pending: false, is_transfer: false };
+      const led = fromTaggedTransaction(tx, { shared_with: spec.members || [], paid_by: "me", what: `${spec.plan_label || spec.service} — ${spec.month}` });
+      if (!led) return { entries: [], requests: [], text: `I couldn't build the ${spec.service} shares for ${spec.month}: the charge has to be a posted charge with at least one member on the plan.` };
+      for (const e of led.entries) { e.kind = "subscription_share"; e.service = spec.service; e.month = spec.month; }
+      const requests = led.entries.map(e => requestFromIou(e, c).request).filter(Boolean);
+      const per = led.entries.map(e => `${e.name} ${money(e.amount_cents)}`).join(", ");
+      const text = `${spec.plan_label || spec.service} is ${money(led.total_cents)} for ${spec.month}, split ${led.shares.length} ways (${led.shares.map(s => `${s.who === "me" ? "you" : s.who} ${money(s.cents)}`).join(", ")}). Cost-share requests: ${per}. Each closes only when that member's payment posts.`;
+      return { entries: led.entries, requests, total_cents: led.total_cents, shares: led.shares, text };
+    }
+    function subscriptionStatus(entries, month) {
+      const rows = (entries || []).filter(e => e && e.kind === "subscription_share" && (!month || e.month === month));
+      if (!rows.length) return `No cost-share lines for ${month || "that month"}.`;
+      const parts = rows.map(e => e.status === "settled" ? `${e.name} paid ${money(e.original_cents)} (posted ${e.settled_on || "—"})` : `${e.name} still owes ${money(e.amount_cents)}`);
+      const openTotal = rows.filter(e => e.status === "open").reduce((s, e) => s + e.amount_cents, 0);
+      return `${rows[0].service} ${month || rows[0].month}: ${parts.join("; ")}.${openTotal ? ` ${money(openTotal)} still open.` : " All settled for the month."}`;
     }
 
     // PAY-007 / PAY-008: schedule a future payment and cancel it before the rail's cutoff.
@@ -299,6 +440,6 @@
       return { allowed: true };
     }
 
-    return { requestMoney, reminder, settleRequests, fromTaggedTransaction, requestFromIou, settleIous, schedulePayment, cancelScheduled, dueScheduled, ownTransfer, autosave, overdraftPrevention, triageFailed, allowance, dueAllowances, group, addExpense, groupBalances, goalPlan, contribute, gift, socialFeed, household, visibleTo, mayAct, ROLES, TONES, businessDaysBefore, money };
+    return { requestMoney, reminder, settleRequests, fromTaggedTransaction, requestFromIou, settleIous, sandboxRail, collectAll, dueReminders, reminderDueOn, notePaidClaim, subscriptionShares, subscriptionStatus, NOT_WIRED_LINE, schedulePayment, cancelScheduled, dueScheduled, ownTransfer, autosave, overdraftPrevention, triageFailed, allowance, dueAllowances, group, addExpense, groupBalances, goalPlan, contribute, gift, socialFeed, household, visibleTo, mayAct, ROLES, TONES, businessDaysBefore, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentMoneyPlans;

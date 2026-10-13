@@ -126,6 +126,36 @@
    "revenue_ttm": "$103M",
    "would_change": "commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"
   },
+  "NVDA": {
+   "bear": "at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules",
+   "bull": "data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise",
+   "cash": "$56.8B",
+   "does": "designs GPUs and the systems and software around them for data centers, gaming and cars",
+   "latest_quarter": "Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B",
+   "makes_money": "data-center chips and systems are about 88% of revenue; gaming cards are most of the rest",
+   "market_cap": "$4.42T",
+   "name": "NVIDIA",
+   "net_income_ttm": "$76.8B",
+   "pe": 57,
+   "peers": [
+    {
+     "ps": 9.4,
+     "symbol": "AMD"
+    },
+    {
+     "ps": 21.7,
+     "symbol": "AVGO"
+    },
+    {
+     "ps": 2.6,
+     "symbol": "INTC"
+    }
+   ],
+   "price": 182.4,
+   "ps": 29.8,
+   "revenue_ttm": "$148.5B",
+   "would_change": "the export review's outcome, and whether data-center growth holds above 40% for two more quarters"
+  },
   "TSLA": {
    "analyst_spread": "39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470",
    "bear": "at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025",

@@ -144,3 +144,14 @@ test("advice scan: no reply recommends, urges or verdicts", () => {
   assert.doesNotMatch(replies, /you should buy|you should sell|i recommend|strong buy|best pick/i);
   for (const p of MI.proactive({ now: NOW, watches: ["market_brief", "earnings_alerts", "macro_alerts", "ipo_alerts", "halt_alerts", "analyst_alerts", "insider_alerts", "hype_alerts"].map((k) => ({ kind: k, id: k, status: "active" })), sent: [], data })) assert.doesNotMatch(p.text, /you should buy|you should sell|i recommend/i);
 });
+
+test("C33 adversarial: an unknown ticker gets a plain no-data refusal, never a guess", () => {
+  const r = ans("should I care about XYZW");
+  assert.match(r, /XYZW: I don't have fundamentals for that name in the dataset, so I won't guess/);
+});
+
+test("regressions: no watchlist push without the person's watchlist; 'my balance' is never a price alert", () => {
+  assert.equal(MI.proactive({ now: NOW, watches: [], sent: [], data }).filter((p) => p.key.startsWith("watchlist:")).length, 0);
+  assert.equal(MI.proactive({ now: NOW, watches: [{ kind: "market_watchlist", id: "market-watchlist", symbols: ["ASTS", "RKLB"], status: "active" }], sent: [], data }).filter((p) => p.key.startsWith("watchlist:")).length, 1);
+  assert.equal(MI.command("tell me when my balance drops below $100", [], NOW), null);
+});

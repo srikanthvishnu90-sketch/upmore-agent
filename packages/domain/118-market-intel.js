@@ -209,7 +209,8 @@ const MarketIntel = (() => {
     if (command(t, [], 0)) return "command";
     if (/why is my portfolio (down|up)|portfolio (down|up) today|what happened to my portfolio/i.test(t)) return "movers";
     if (/^(more on|depth on)\b/i.test(t)) return "explain";
-    if (/should i care about|explain (this stock|)\s*\$?[a-z]{2,5}\b|what does .* do/i.test(t) && symIn(t)) return "explain";
+    if (/should i care about/i.test(t)) return "explain";
+    if (/explain (this stock|)\s*\$?[a-z]{2,5}\b/i.test(t) && symIn(t)) return "explain";
     if (/deep[- ]?dive|research (whether|on|)\s/i.test(t)) return "deepdive";
     if (/(\bvs\b|\bversus\b|compare)/i.test(t) && symIn(t)) return "compare";
     if (/what('s| has) been going up|up for .* months|going up and why|risers/i.test(t)) return "risers";
@@ -242,7 +243,7 @@ const MarketIntel = (() => {
     if (kind === "watchlist") return watchlistAnswer(d, watches);
     if (kind === "digest") return digest(d, now);
     if (kind === "risers") return risers(d);
-    if (kind === "explain") return sym ? explain(d, sym) : "Name the stock and I'll explain it from the dataset.";
+    if (kind === "explain") { const tok = sym || ((/care about ([a-z]{2,5})\b/i.exec(words) || [])[1] || "").toUpperCase(); return tok ? explain(d, tok) : "Name the stock and I'll explain it from the dataset."; }
     if (kind === "deepdive") return sym ? deepDive(d, sym) : "Name the company and I'll do the deep dive from the dataset.";
     if (kind === "call") return sym ? callTakeaways(d, sym, now) : "Name the company and I'll pull its call takeaways.";
     if (kind === "screen") return sectorScreen(d, words);
@@ -276,6 +277,9 @@ const MarketIntel = (() => {
     let m;
     if ((m = /(?:tell me if|alert me if|tell me when) ([a-z]{2,5}|bitcoin|ethereum) (?:drops? below|falls? below|goes below) \$?([\d,]+(?:\.\d+)?)/i.exec(t)) || (m = /(?:tell me if|alert me if|tell me when) ([a-z]{2,5}|bitcoin|ethereum) (?:rises? above|crosses above|goes above) \$?([\d,]+(?:\.\d+)?)/i.exec(t))) {
       const below = /below/i.test(t), sym = /^bitcoin$/i.test(m[1]) ? "BTC" : /^ethereum$/i.test(m[1]) ? "ETH" : m[1].toUpperCase(), cents = Math.round(Number(m[2].replace(/,/g, "")) * 100);
+      // The symbol must be a name the dataset actually quotes — "tell me when my balance drops below $100" is a
+      // bank watch (AgentAlerts), never a price alert on a made-up ticker "MY".
+      const d0 = dataOf(null); if (d0 && !q(d0, sym)) return null;
       const w = { kind: "price_alert", id: `pa-${sym}-${cents}`, symbol: sym, op: below ? "below" : "above", cents, created_at: now, status: "active" };
       return { watches: list.filter((x) => x.id !== w.id).concat([w]), changed: true, reply: `Set: I'll tell you once if ${sym} ${below ? "drops below" : "rises above"} ${money(cents / 100)}, with the actual price and time. It's checked against the dataset named in my source lines until a live market feed is connected.` };
     }
@@ -297,7 +301,9 @@ const MarketIntel = (() => {
     if (/^(show|list) my (price )?alerts/i.test(t)) {
       const pas = list.filter((w) => w.kind === "price_alert"), rw = list.filter((w) => w.kind === "rate_watch");
       const parts = pas.map((w) => `${w.symbol} ${w.op} ${money(w.cents / 100)}`).concat(rw.map((w) => `30-year mortgages below ${(w.below_x100 / 100).toFixed(2)}%`));
-      return { watches: list, changed: false, reply: parts.length ? `Your live alerts: ${parts.join("; ")}.` : "You have no price or rate alerts set." };
+      // With no market alerts of its own to list, this is the general "show my alerts" read-back's question, not ours.
+      if (!parts.length) return null;
+      return { watches: list, changed: false, reply: `Your live alerts: ${parts.join("; ")}.` };
     }
     if ((m = /stop (?:the )?([a-z]{2,5}) (?:price )?alert/i.exec(t))) {
       const sym = m[1].toUpperCase(), left = list.filter((w) => !(w.kind === "price_alert" && w.symbol === sym));
@@ -324,7 +330,7 @@ const MarketIntel = (() => {
       for (const e of d.earnings || []) { if (!held(d, e.symbol)) continue; if (e.reports_on === ymdOf(now + DAY)) push(`earnings:warn:${e.symbol}:${e.reports_on}`, "C20", `Earnings tomorrow: ${e.symbol} reports ${mdl(e.reports_on)} ${e.when}. Consensus EPS is $${e.consensus_eps.toFixed(2)}; last quarter it ${e.last_quarter}. ${srcLine(d)}`, false, false); }
       for (const r of d.earnings_results || []) { if (!held(d, r.symbol)) continue; if (r.reported_on === ymdOf(now - DAY) || r.reported_on === today) push(`earnings:result:${r.symbol}:${r.reported_on}`, "C20", `${resultText(d, r)} ${srcLine(d)}`, false, false); }
     }
-    if (has(watches, "market_watchlist") || (d.watchlist_default || []).length) {
+    if (has(watches, "market_watchlist")) {
       for (const sym of watchlistOf(watches, d)) { const quote = q(d, sym), s = storyFor(d, sym); if (!quote || !s) continue; const movePct = (quote.price / quote.prev_close - 1) * 100; if (Math.abs(movePct) >= 3) push(`watchlist:${sym}:${today}`, "C21", `Watchlist: ${sym} is ${money(quote.price)} (${pct(movePct)} today). ${s.summary.split(". ")[0]}. (${s.source}) ${srcLine(d)}`, false, false); }
     }
     if (has(watches, "macro_alerts")) for (const e of d.macro || []) { if (e.on === ymdOf(now + DAY)) push(`macro:${e.id}`, "C23", `Tomorrow: ${e.name}, ${mdl(e.on)} at ${e.time}. ${e.history} ${srcLine(d)}`, false, false); }

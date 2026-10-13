@@ -1,0 +1,14 @@
+"use strict"; const fs=require("fs"); const path=require("path"); const ROOT=path.join(__dirname,"..","..","..");
+const {H,OS,fixture}=require("./w14-lib.cjs");
+const P=require(path.join(ROOT,"packages/domain/134-career-paths.js"));
+(async()=>{ const s=H.session("SC-282","two-year-re-route");
+  s.user("Two-year re-route: from today's job to the dream role, steps and dates");
+  const fx=fixture("test-career-os-w14.json");
+  const p=P.getPath("faang-state-school"); const ans=P.answerPath(p,{year:"Junior",major:"Computer Science",school:"TEST University"}); s.tool("134.answerPath(faang-state-school)",ans);
+  const ver=P.verifyPathAnswer(ans); s.tool("134.verifyPathAnswer",ver);
+  const gap=OS.skillGap({profileSkills:fx.profile_skills,postings:fx.postings_current}); s.tool("129.skillGap (gaps to close on the route)",gap);
+  const D=(iso,add)=>{const d=new Date(iso); d.setUTCDate(d.getUTCDate()+add); return d.toISOString().slice(0,10);}; const now="2026-10-13";
+  const dated=[...p.ladder.map((l,i)=>({step:l.step,by:D(now,[30,180,365,730][i]||730),note:l.note,source_url:l.source_url})),{step:"Close the grounded skill gaps in learn order: "+(gap.learn_next_order.join(" → ")||"none"),by:D(now,365),note:"Gaps computed from current higher-paying TEST postings (129.skillGap), not invented.",source_url:null}];
+  s.agent(`Two-year re-route — today: Software Engineering Intern profile (TEST persona, skills ${fx.profile_skills.join(", ")}); dream role: FAANG software engineer (134 path 'faang-state-school').\n${ans.text}\nDated route (start ${now}; horizon dates are the plan's 30-day / semester / 1-year / 2-year rungs anchored to today):\n${dated.map(d=>`• by ${d.by} — ${d.step}`).join("\n")}\nSkill gaps to close en route (from real postings): ${gap.learn_next_order.join(" → ")||"none"}.`);
+  s.verify("path answer passes 134.verifyPathAnswer; every ladder step carried verbatim with its source; dates are horizon anchors computed from 2026-10-13, disclosed as such",{verify:ver,dated});
+  await s.finish({status:ver.ok?"COMPLETE":"LEARN",outcome:"Two-year re-route delivered: verified FAANG path ladder with per-step sources, horizon dates anchored to 2026-10-13 (30d/6mo/1yr/2yr), and posting-grounded skill gaps to close",reason:ver.ok?undefined:"path answer failed verification",unblock:ver.ok?undefined:"a path answer that passes verifyPathAnswer"}); })();

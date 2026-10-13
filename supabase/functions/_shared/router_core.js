@@ -22621,7 +22621,7 @@ const CareerIntel = (() => {
     rows.push({
       dimension: "school",
       user: p.school ? `${p.school}${p.school_tier ? ` (${p.school_tier})` : ""}` : "not on file",
-      cohort: "See the school pattern in this CIR — stated qualitatively unless the CIR is population-backed; school is not in the user's control, so the plan routes around it (§3.1).",
+      cohort: "See the school pattern in this company file — stated in words unless the file is backed by a population sample; school is not in your control, so the plan routes around it.",
       status: p.school ? "unknown" : "gap",
       controllable: false,
       fix: "Do not plan around changing schools; offset with experience, projects and referrals.",
@@ -22632,12 +22632,12 @@ const CareerIntel = (() => {
       cohort: cir.hiring_bar_summary ? cir.hiring_bar_summary.statement : "not on file",
       status: internships.length ? "matches" : "gap",
       controllable: true,
-      fix: internships.length ? "Turn the internship into talkable depth: what you built or analyzed, with numbers from your own work." : "Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this CIR's path patterns.",
+      fix: internships.length ? "Turn the internship into talkable depth: what you built or analyzed, with numbers from your own work." : "Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this company file's path patterns.",
     });
     rows.push({
       dimension: "projects",
       user: projects.length ? projects.map((x) => (typeof x === "string" ? x : x.name || "?")).join("; ") : "no projects on file",
-      cohort: "Revealed screen in this CIR: evidence of building or analyzing real things (see screening_signals.revealed).",
+      cohort: "Revealed screen in this company file: evidence of building or analyzing real things (what the record shows they actually screen for).",
       status: projects.length ? "matches" : "gap",
       controllable: true,
       fix: projects.length ? "Write up the strongest project publicly — what problem, what you did, what changed." : "Ship one project that solves a messy real problem for a real user, and document it.",
@@ -22657,19 +22657,19 @@ const CareerIntel = (() => {
       cohort: cir.hiring_cadence ? cir.hiring_cadence.statement : "not on file",
       status: "unknown",
       controllable: true,
-      fix: "Work backwards from the hiring cadence in this CIR; recruiting timelines move earlier than most students expect (§3.3).",
+      fix: "Work backwards from the hiring cadence in this company file; recruiting timelines move earlier than most students expect.",
     });
     rows.push({
       dimension: "authorization",
       user: p.work_authorization || "not on file",
-      cohort: "Sponsorship history is a matter of public record (DOL H-1B LCA filings); this CIR states only what its sources support, and immigration specifics go to the school's international office (§4.8 Q26 — not legal advice).",
+      cohort: "Sponsorship history is a matter of public record (DOL H-1B LCA filings); this company file states only what its sources support, and immigration specifics go to the school's international office — not legal advice.",
       status: p.work_authorization ? "unknown" : "gap",
       controllable: false,
       fix: "Confirm sponsorship for this exact role family before investing a season of prep; target employers with a filing history for the role.",
     });
     const priority = ["experience", "skills", "projects", "timing", "school", "authorization"];
     const firstGap = priority.map((d) => rows.find((r) => r.dimension === d && r.status === "gap")).find(Boolean) || null;
-    return { company_id: cir.company_id, rows, highest_leverage_fix: firstGap ? { dimension: firstGap.dimension, fix: firstGap.fix } : { dimension: null, fix: "No structural gap found against this CIR — the leverage is interview craft and reps." } };
+    return { company_id: cir.company_id, rows, highest_leverage_fix: firstGap ? { dimension: firstGap.dimension, fix: firstGap.fix } : { dimension: null, fix: "No structural gap found against this company file — the leverage is interview craft and reps." } };
   }
 
   // ---------- INTL-006: path planner ----------
@@ -22687,16 +22687,16 @@ const CareerIntel = (() => {
       action,
       reminder: null,
     });
-    add("30d", 7, `Confirm this cycle's application window and deadlines for ${comp} on the official careers page — dates move, and this CIR's cadence fact is the starting point, not the truth (§3.3).`);
-    if (gapDims.has("experience")) add("30d", 14, "Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this CIR's path patterns). Volume plus follow-up is the play.");
+    add("30d", 7, `Confirm this cycle's application window and deadlines for ${comp} on the official careers page — dates move, and this company file's cadence fact is the starting point, not the truth.`);
+    if (gapDims.has("experience")) add("30d", 14, "Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this company file's path patterns). Volume plus follow-up is the play.");
     if (gapDims.has("projects")) add("30d", 30, "Ship the first version of one real project and write it up publicly.");
     if (gapDims.has("skills")) add("30d", 21, `Start the named skill gaps from the compare-me table: ${gaps.rows.find((r) => r.dimension === "skills").missing.slice(0, 3).join(", ") || "core skills for this role family"}.`);
-    add("30d", 10, "Build the coffee-chat target list from this CIR's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder.");
+    add("30d", 10, "Build the coffee-chat target list from this company file's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder.");
     add("semester", null, "Convert the semester into signal: one internship or substantial project, one visible leadership or club role in the field, and interview reps on a weekly schedule.");
     if (gapDims.has("skills")) add("semester", null, "Close the remaining named skill gaps to interview depth, not survey depth.");
     add("semester", null, `Run the coffee-chat list: short, specific asks; every conversation ends with a follow-up you actually send.`);
     add("year", null, `Be in the application pool for ${comp}'s main entry window with the ladder rung, the project write-up and the referral conversations already done — not started.`);
-    add("year", null, "If the direct route misses, take the highest adjacent rung this CIR names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).");
+    add("year", null, "If the direct route misses, take the highest adjacent rung this company file names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).");
     for (const m of milestones) {
       m.reminder = m.by ? `${comp} plan — by ${m.by}: ${m.action}` : `${comp} plan — this ${m.window}: ${m.action}`;
     }
@@ -22739,7 +22739,7 @@ const CareerIntel = (() => {
         }
       }
     }
-    if (!whoLines.length) whoLines.push("This CIR is curated-qualitative: no population sample exists for it yet, so there are no percentages to show. What follows is the reported pattern from public sources, labeled as such.");
+    if (!whoLines.length) whoLines.push("This company file is based on reported patterns, not a population sample: no population sample exists for it yet, so there are no percentages to show. What follows is the reported pattern from public sources, labeled as such.");
 
     const routes = [...(cir.entry_routes || [])].sort((a, b) => (a.rank || 99) - (b.rank || 99));
     const gapLines = gaps.rows.map((r) => `${r.dimension}: you — ${r.user} | cohort — ${r.cohort} | ${r.status}${r.status === "gap" ? ` | fix: ${r.fix}` : ""}`);
@@ -22748,15 +22748,15 @@ const CareerIntel = (() => {
     const oddsWord = gaps.rows.filter((r) => r.status === "gap").length >= 3 ? "low, but not zero" : gaps.rows.some((r) => r.status === "gap") ? "a real reach that the plan below is built to close" : "credible, if you execute the plan";
 
     const sections = {
-      bottom_line: `Bottom line: for ${comp} (${cir.cohort.role_family}, ${cir.cohort.level}), your odds through the cold application alone are ${oddsWord}. This read rests on a ${cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${cir.hiring_bar_summary.statement}${staleHere}`,
-      who_gets_in: `Who gets in (sample N=${cir.sample_size === null ? "not available — curated-qualitative record" : cir.sample_size}${cir.sample_size != null && cir.sample_size >= K_ANON && cir.sample_size < THIN_BELOW ? " — thin sample" : ""}, as of ${cir.as_of}):\n${whoLines.map((l) => `- ${l}`).join("\n")}\nKnown biases of this data: ${cir.known_biases_of_data.join("; ")}. We see who got in, not who tried and failed — survivorship bias is real (§0).`,
+      bottom_line: `Bottom line: for ${comp} — ${cir.cohort.role_family}, ${cir.cohort.level} — your odds through the cold application alone are ${oddsWord}. This read rests on a ${/qualitative/i.test(String(cir.confidence_level)) ? "reported-pattern" : cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${cir.hiring_bar_summary.statement}${staleHere}`,
+      who_gets_in: `Who gets in (${cir.sample_size === null ? "no population sample — reported-pattern record" : `sample of ${cir.sample_size}`}${cir.sample_size != null && cir.sample_size >= K_ANON && cir.sample_size < THIN_BELOW ? " — thin sample" : ""}, as of ${cir.as_of}):\n${whoLines.map((l) => `- ${l}`).join("\n")}\nKnown biases of this data: ${cir.known_biases_of_data.join("; ")}. We see who got in, not who tried and failed — survivorship bias is real.`,
       stated_vs_revealed: `What ${comp} says it screens for vs what the record shows:\nStated: ${(cir.screening_signals.stated || []).map((f) => f.statement).join(" ")}\nRevealed: ${(cir.screening_signals.revealed || []).map((f) => f.statement).join(" ")}`,
       routes_ranked: `Routes in, ranked for you:\n${routes.map((r, i) => `${["First", "Second", "Third", "Fourth", "Fifth"][i] || "Also"}: ${r.route} — ${r.accessibility_note}`).join("\n")}`,
       gap_analysis: `Your gap analysis (highest-leverage fix first: ${gaps.highest_leverage_fix.dimension || "none structural"}):\n${gapLines.map((l) => `- ${l}`).join("\n")}`,
       plan: `The plan:\nNext 30 days:\n${planLines("30d").join("\n")}\nThis semester:\n${planLines("semester").join("\n")}\nThis year:\n${planLines("year").join("\n")}`,
       coffee_chat_strategy: `Coffee-chat strategy: target the profile types named in the ranked routes — recent hires in this role family, alumni of your school now inside, and people one rung up the ladder you are climbing. Ask what the interviews actually test, what surprised them after starting, and what they would do with a semester to prepare. Keep asks short and specific; send the follow-up you promised.`,
-      timeline: `Timeline and key dates: ${cir.hiring_cadence.statement} (as of ${cir.hiring_cadence.as_of}; recruiting dates shift every cycle — re-check the official careers page before acting, §3.3).`,
-      risks_alternatives: `Risks and alternatives: ${(cir.red_flags || []).map((f) => f.statement).join(" ")} Adjacent options with similar signal: the other employers and role families whose CIRs share this ladder — the first rung matters more than the logo on it.`,
+      timeline: `Timeline and key dates: ${cir.hiring_cadence.statement} (as of ${cir.hiring_cadence.as_of}; recruiting dates shift every cycle — re-check the official careers page before acting).`,
+      risks_alternatives: `Risks and alternatives: ${(cir.red_flags || []).map((f) => f.statement).join(" ")} Adjacent options with similar signal: the other employers and role families whose company files share this ladder — the first rung matters more than the logo on it.`,
       offer_to_execute: `Want me to execute? I can build the coffee-chat target list from these routes, tailor your resume to this record's revealed screens (truthfully — only what you have actually done), and set the plan's reminders. Say the word and I start with the list.`,
     };
     if (cir.sample_size) claim(`sample of ${cir.sample_size}`, cir.sample_size, "sample_size", { source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
@@ -22860,12 +22860,12 @@ const CareerIntel = (() => {
       return {
         action: "refuse",
         reason: "fabrication_or_cheating",
-        text: "I won't help with that. Fabricated experience is the one move that can end this career before it starts: background checks catch it, offers get rescinded, and firms share notes — people get blacklisted for it (§3.2, §4.9 Q30). What I will do: present the real work you have in its strongest truthful form, and build you the fastest honest plan to gain the missing experience — a project, a smaller internship, a role one rung down that makes the claim true. Want me to start there?",
+        text: "I won't help with that. Fabricated experience is the one move that can end this career before it starts: background checks catch it, offers get rescinded, and firms share notes — people get blacklisted for it. What I will do: present the real work you have in its strongest truthful form, and build you the fastest honest plan to gain the missing experience — a project, a smaller internship, a role one rung down that makes the claim true. Want me to start there?",
         offer: "truthful_reframing_and_experience_plan",
       };
     }
     if (/\b(infer|guess|tell me|figure out)\b[^.]*\b(race|gender|ethnicity|religion|national origin|disability)\b/i.test(t) || /\bfrom (his|her|their) (name|photo)\b/i.test(t)) {
-      return { action: "refuse", reason: "protected_attribute_inference", text: "I don't infer or use protected characteristics — not from names, not from photos, not at all (§6). Analysis here runs on experience, education and skills only. Ask me about any of those and I'll dig in." };
+      return { action: "refuse", reason: "protected_attribute_inference", text: "I don't infer or use protected characteristics — not from names, not from photos, not at all. Analysis here runs on experience, education and skills only. Ask me about any of those and I'll dig in." };
     }
     return { action: "proceed" };
   }
@@ -22880,7 +22880,7 @@ const CareerIntel = (() => {
       status_refresh_due: v.stale.filter((s) => s.kind === "hiring_status"),
       process_refresh_due: v.stale.filter((s) => s.kind !== "hiring_status"),
       population_refresh_due: populationDue,
-      schedule: "top-company status monthly, population quarterly, plus event-driven refresh on layoffs, freezes, new programs (§5)",
+      schedule: "top-company status monthly, population quarterly, plus event-driven refresh on layoffs, freezes, new programs",
     };
   }
   function reportOutdated(cir, report, now) {
@@ -22892,7 +22892,7 @@ const CareerIntel = (() => {
       report: String(report || ""),
       action: "flagged_for_reverification",
       facts_to_recheck: [...due.status_refresh_due, ...due.process_refresh_due].map((s) => s.path),
-      note: "A user report never silently edits a CIR: the flagged facts are re-verified against sources first, then the record is rebuilt with a new as_of (§5).",
+      note: "A user report never silently edits a company file: the flagged facts are re-verified against sources first, then the record is rebuilt with a new date.",
     };
   }
 
@@ -22943,7 +22943,7 @@ const CareerTrack = (() => {
   // Quiet-period rule (Doc 2 7.3/7.4 examples: nudge proposed at 10 days, "21 days quiet" ghosted):
   const NUDGE_AFTER_DAYS = 10;
   const GHOST_AFTER_DAYS = 21;
-  // Reapply cooldown default policy (no CIR in the repo carries a cooldown field — see SC-074):
+  // Reapply cooldown default policy (no company file in the repo carries a cooldown field — see SC-074):
   const DEFAULT_COOLDOWN_DAYS = 180;
   const QUIET_HOURS = { start: 22, end: 7 }; // 22:00-07:00 local; low-priority batches to morning
 
@@ -23133,8 +23133,13 @@ const CareerTrack = (() => {
       if (["Interview rounds", "Final"].includes(r.stage)) interviews++;
       if (evs.some((e) => e.type === "rejection")) rejections7++;
     }
-    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
-    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
+    // FIN-E-013: deadlineRadar re-derives the same follow-up from quietReport.
+    // Keep the radar's dated follow-up line (the more informative rendering)
+    // and drop the duplicate nudge line for that company — one event, once.
+    const radar = deadlineRadar(store, [], { now, withinDays: 14 });
+    const radarFollowUps = new Set(radar.filter((d) => d.kind === "follow_up_due").map((d) => normCo(d.company)));
+    for (const q of quietReport(store, { now })) if (q.nudge_due && !radarFollowUps.has(normCo(q.company))) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of radar) next.push(`${d.label}: ${d.date} (${d.days_away} day${d.days_away === 1 ? "" : "s"})`);
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
     const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${plural(counts.responses_last_7d, "response")}, ${plural(counts.active_interviews, "interview")} in progress, ${plural(counts.rejections_last_7d, "rejection")} this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
@@ -23202,7 +23207,7 @@ const CareerTrack = (() => {
         if (!/deadline/i.test(txt.slice(Math.max(0, m.index - 160), m.index + 60))) continue;
         const d = new Date(Date.UTC(Number(m[3]), MONTHS[lc(m[1])], Number(m[2]), 12, 0, 0));
         const key = cir.company_name + d.toISOString().slice(0, 10); if (seen.has(key)) continue; seen.add(key);
-        if (d.getTime() >= (now || Date.now()) - DAY) out.push({ kind: "cir_deadline", company: cir.company_name || cir.company_id || null, label: `${cir.company_name || cir.company_id} application deadline`, date: d.toISOString().slice(0, 10), days_away: daysBetween(now || Date.now(), d.getTime()), source: "CIR record" });
+        if (d.getTime() >= (now || Date.now()) - DAY) out.push({ kind: "cir_deadline", company: cir.company_name || cir.company_id || null, label: `${cir.company_name || cir.company_id} application deadline`, date: d.toISOString().slice(0, 10), days_away: daysBetween(now || Date.now(), d.getTime()), source: "company file record" });
       }
     }
     return out;
@@ -23243,7 +23248,7 @@ const CareerTrack = (() => {
     if (app.stage === "Rejected" || terminalEv) {
       const base = terminalEv ? Date.parse(terminalEv.at) : Date.parse(app.applied_at);
       const reopen = base + cooldownDays * DAY;
-      return { company, allowed: now >= reopen, reopen_date: isoDay(reopen), cooldown_days: cooldownDays, reason: `last rejection ${isoDay(base)} + ${cooldownDays}-day default cooldown policy (no CIR cooldown field exists in the repo — policy default, labeled as such)`, source: "application log + default policy" };
+      return { company, allowed: now >= reopen, reopen_date: isoDay(reopen), cooldown_days: cooldownDays, reason: `last rejection ${isoDay(base)} + ${cooldownDays}-day default cooldown policy (no company-file cooldown field exists — policy default, labeled as such)`, source: "application log + default policy" };
     }
     if (!TERMINAL.includes(app.stage)) return { company, allowed: false, reopen_date: null, reason: `an application to ${company} is already open at stage ${app.stage} — duplicate protection (Doc 2 5.4)`, source: "application log" };
     return { company, allowed: true, reason: "prior application is closed with no rejection cooldown" };
@@ -23355,7 +23360,7 @@ const CareerPrep = (() => {
     const sigList = Array.isArray(sigRaw) ? sigRaw : [].concat((sigRaw && sigRaw.stated) || [], (sigRaw && sigRaw.revealed) || []);
     const compNotes = (cir.compensation_notes || []).map((c) => {
       const f = c.fact || c;
-      return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "CIR comp note"), source: factSource(c) };
+      return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "company file comp note"), source: factSource(c) };
     }).filter((x) => x.text);
     return {
       company_id: s(cir.company_id), company_name: s(cir.company_name || cir.company_id),
@@ -23387,7 +23392,7 @@ const CareerPrep = (() => {
     if (!n) {
       return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
         bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
-        gaps: [`No merged CIR on file for ${company || "this company"} — process stages, hiring bar and comp are NOT claimed.`, "Supply the JD text or merge a CIR for this company to ground a full brief."],
+        gaps: [`No company file on file for ${company || "this company"} — process stages, hiring bar and comp are not claimed.`, "Supply the JD text or add a company file for this company to ground a full brief."],
         sources: [] };
     }
     const emphasis = [
@@ -23397,7 +23402,7 @@ const CareerPrep = (() => {
     return { status: "OK", company: n.company_name, company_id: n.company_id, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
       bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
       compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
-      gaps: n.bar ? [] : ["CIR has no hiring-bar summary; bar not claimed."],
+      gaps: n.bar ? [] : ["The company file has no hiring-bar summary; bar not claimed."],
       sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
   }
 
@@ -23533,7 +23538,7 @@ const CareerPrep = (() => {
     if (/coding|technical screen|online coding/i.test(stageNames) || !n) sets.push({ type: "coding", source: n ? { type: "CIR process_stages", company_id: n.company_id } : { type: "generic_swe_bank" },
       prompts: ["Reverse a linked list in place, then handle cycles.", "Given a stream of events, return the top-K most frequent in the last hour.", "Implement an LRU cache with O(1) get/put."] });
     if (/design/i.test(stageNames)) sets.push({ type: "system_design", source: { type: "CIR process_stages", company_id: n.company_id },
-      prompts: ["Design a notification system for 10M users (a design prompt shape reported for this company's loops — labeled anecdotal in the CIR where applicable).", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."] });
+      prompts: ["Design a notification system for 10M users (a design prompt shape reported for this company's loops — labeled anecdotal in the company file where applicable).", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."] });
     if (/code.review|pair/i.test(JSON.stringify(n ? [...n.styles.map((x) => x.text), n.bar] : []))) sets.push({ type: "code_review_pairing", source: { type: "CIR interview_styles+hiring_bar_summary", company_id: n.company_id },
       prompts: ["Review a provided diff: find the correctness bug before style issues, say why, propose the fix.", "Pair on a production-like codebase task; narrate trade-offs aloud."] });
     if (!sets.length) sets.push({ type: "coding", source: { type: "generic_swe_bank" }, prompts: ["Two-sum variants with follow-ups toward performance/trade-off discussion."] });
@@ -23580,10 +23585,25 @@ const CareerPrep = (() => {
     opts = opts || {}; const n = normalizeCir(opts.cir);
     const style = n && n.styles[0] ? n.styles[0] : null;
     return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n,
-      practice_norms_label: n ? "Norms below are from the CIR on file and keep their source labels; community practice-count advice is folklore and is NOT quantified." : "No CIR on file for this company — generic case framework only; no company-specific norms claimed.",
+      practice_norms_label: n ? "Norms below are from the company file on file and keep their source labels; community practice-count advice is folklore and is NOT quantified." : "No company file on file for this company — generic case framework only; no company-specific norms claimed.",
       style: style ? { text: style.text, source_type: style.source && style.source.source_type } : null,
       case_prompt: "Your client is a regional grocery chain whose profits fell 15% last year while revenue grew 5%. Find out why and recommend what to do.",
       framework: ["Clarify the objective and constraints", "Structure: revenue (price x volume x mix) vs costs (COGS, labour, logistics, shrink)", "Hypothesise, then ask for the data that discriminates", "Synthesise: recommendation, risks, next steps"] };
+  }
+  // Case prep plan (SC-185 canonical): the 30-50 practice-case norm is community
+  // folklore, labeled as such; every plan line is plain prose — no function names.
+  function casePrepPlan(opts) {
+    opts = opts || {}; const session = caseSession(opts);
+    const weeks = opts.weeks || 6, perWeek = opts.casesPerWeek || 7;
+    const focuses = ["framework + structuring drills first", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "mix of interviewer-led cases + mental-math/market-sizing drills", "timed, interviewer-led, full feedback loop"];
+    const plan = [];
+    for (let w = 1; w <= weeks; w++) plan.push(`Week ${w}: ${perWeek} cases (${focuses[Math.min(w - 1, focuses.length - 1)]}), each answer scored against the case rubric and the gaps re-drilled next session`);
+    return { kind: "case_prep_plan", company: session.company, cir_grounded: session.cir_grounded, company_file_grounded: session.cir_grounded,
+      style: session.style, framework: session.framework, case_prompt: session.case_prompt,
+      practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
+        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files on file do not quantify it. It is a planning target, not a requirement." },
+      schedule: { weeks, sessions_per_week: perWeek, total_cases: weeks * perWeek, inside_norm: weeks * perWeek >= 30 && weeks * perWeek <= 50, plan },
+      text: `Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official). Schedule: ${weeks} weeks, ${perWeek} cases a week, ${weeks * perWeek} total.` };
   }
   function scoreCaseResponse(resp) {
     const low = lc(resp); const checks = {
@@ -23604,7 +23624,7 @@ const CareerPrep = (() => {
     if (!facts.length) return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null,
       status: "UNKNOWN", known: [s(person.role || ""), s(person.company || "")].filter(Boolean),
       brief: [], unknown: ["background and prior roles", "team and focus areas", "public talks or posts"],
-      note: "No public professional facts were supplied for this person, so no bio is invented. Prep from the role and the company CIR instead." };
+      note: "No public professional facts were supplied for this person, so no bio is invented. Prep from the role and the company file instead." };
     return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null, status: "OK",
       brief: facts.map((f) => ({ text: s(f.text), source: s(f.source || "provided public fact") })), unknown: [],
       note: "Built only from the public professional facts supplied; nothing inferred about private life." };
@@ -23628,13 +23648,37 @@ const CareerPrep = (() => {
   // ---------- salary-talk prep (NEGO-002 seam) ----------
   function salaryPrep(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir);
-    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), ranges: [], script: null, note: "No CIR on file — no comp numbers are claimed or invented." };
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), ranges: [], script: null, note: "No company file on file — no comp numbers are claimed or invented." };
     const withFigures = n.compNotes.filter((c) => /\$\s?\d/.test(c.text));
     return { status: withFigures.length ? "OK" : "NO_SOURCED_FIGURE", company: n.company_name,
       ranges: withFigures.map((c) => ({ text: c.text, label: c.label, source_type: c.source && c.source.source_type, source_url: c.source && c.source.source_url })),
       all_comp_notes: n.compNotes.map((c) => ({ text: c.text, label: c.label })),
       script: "“I'm focused on finding the right role and team first. Based on the range published for this role [cite the sourced figure above], I'm comfortable discussing a package in that band once we get there — could you share the band budgeted for this level?”",
-      note: withFigures.length ? "Every figure above is copied from the CIR comp notes with its source label; nothing is estimated." : "The CIR explicitly records that no figure is published for this company — say so, anchor on the role's posted band if the employer shares one, and do not invent a number." };
+      note: withFigures.length ? "Every figure above is copied from the company file comp notes with its source label; nothing is estimated." : "The company file explicitly records that no figure is published for this company — say so, anchor on the role's posted band if the employer shares one, and do not invent a number." };
+  }
+
+  // Coffee-chat prep (SC-182 canonical): who/path/talking points/questions,
+  // grounded in the company file's own values; plain prose only.
+  function coffeeChatPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const c = opts.contact || {};
+    const pathIn = opts.path || [s(c.path || "")].filter(Boolean);
+    const value = n && n.values[0] ? n.values[0].text : null;
+    const talking = [];
+    if (value) talking.push(`What the company says it optimizes for: ${value}`);
+    if (pathIn.length) talking.push(`Their path in: ${pathIn.join(" -> ")} — ask what each step actually taught them.`);
+    if (opts.sharedGround) talking.push(`Real shared ground: ${opts.sharedGround} — open there, briefly, then get out of the way.`);
+    while (talking.length < 3) talking.push("What their team actually spends its week on, and what surprised them most after joining.");
+    const questions = [
+      "What does your team actually spend its week on — and what would surprise an outsider about that split?",
+      n && n.bar ? `The company's stated bar is: ${n.bar} — what separates people who do well from people who prepare generically?` : "What separates people who do well in the interviews from people who prepare generically?",
+      "What did you misunderstand about this role before you started, and when did it click?",
+      "If you were starting again from my seat this semester, what would you do in the next 30 days — and what would you stop doing?",
+      "Who else should I learn from, and may I mention you connected us?",
+    ];
+    return { kind: "coffee_chat_prep", who: { name: s(c.name), role: s(c.role || ""), company: s(c.company || (n && n.company_name) || "") },
+      path: pathIn, talking_points: talking.slice(0, 3), questions,
+      do_not_ask: ["Do not ask for a referral in a first chat — earn the second conversation instead", "Do not ask anything they would have to keep confidential (unreleased products, internal comp, other candidates)", "Do not ask what the role pays — comp questions go to the recruiter, with ranges sourced from the company file only", "Do not pitch yourself for more than 60 seconds total"],
+      company_file_grounded: !!n, cir_grounded: !!n };
   }
 
   // ---------- coffee chat + two-interview + pivot + pack ----------
@@ -23650,7 +23694,7 @@ const CareerPrep = (() => {
     const sorted = [...(items || [])].sort((a, b) => s(a.time).localeCompare(s(b.time)));
     return { ordered: sorted.map((x, i) => ({ order: i + 1, time: x.time, company: x.brief.company || x.company, brief_status: x.brief.status || "OK" })),
       gap_plan: sorted.length > 1 ? `Between ${sorted[0].time} and ${sorted[sorted.length - 1].time}: 20 min reset (no new material), re-read the second company's bar + your two matched stories, eat, and travel/buffer 30 min.` : "Single interview — standard prep.",
-      note: "Briefs are delivered in interview order; each brief keeps its own CIR grounding/gaps." };
+      note: "Briefs are delivered in interview order; each brief keeps its own company-file grounding and gaps." };
   }
   function rejectionPivot(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir); const f = opts.funnel || {};
@@ -23659,7 +23703,7 @@ const CareerPrep = (() => {
       "Keep the story bank — stories transfer; only the stage skill changes."];
     return { status: n ? "OK" : "NO_CIR", company: s(f.company || ""), stage: s(f.stage || "") || null,
       cir_bar: n ? n.bar : null, plan,
-      gaps: n ? [] : [`No merged CIR on file for ${s(f.company || "this company")} — the company-specific bar cannot be cited; the plan above is stage-based only.`],
+      gaps: n ? [] : [`No company file on file for ${s(f.company || "this company")} — the company-specific bar cannot be cited; the plan above is stage-based only.`],
       similar_roles: (opts.similar || []).map((x) => ({ company: x.company, cir_grounded: !!x.cir })) };
   }
   function assemblePack(store, parts) {
@@ -23682,7 +23726,7 @@ const CareerPrep = (() => {
     if (/\b(during|live|feed me|listen in|real interview|while i'?m in)\b/i.test(s(text)) && /\b(answer|assist|help|feed)\b/i.test(s(text))) {
       return { refused: true, ruling: "Owner ruling 2026-10-12: live interview assist is OFF (PREP-008).",
         message: "I can't feed you answers during a real interview — that's off, by decision, not by limitation. What I can do is get you ready: a brief, a scored mock, and drills on the exact round, today.",
-        prep_offer: ["composeBrief", "startMock", "technicalDrills / financeDrill / quantDrill"] };
+        prep_offer: ["a company brief", "a scored mock", "drills on the exact round"] };
     }
     return { refused: false };
   }
@@ -23694,8 +23738,8 @@ const CareerPrep = (() => {
     makePrepStore, mineStories, captureStory, findStories, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,
-    caseSession, scoreCaseResponse, interviewerBrief, captureDebrief, thankYouDraft,
-    salaryPrep, coffeeChatBrief, twoInterviewPlan, rejectionPivot, assemblePack,
+    caseSession, casePrepPlan, scoreCaseResponse, interviewerBrief, captureDebrief, thankYouDraft,
+    salaryPrep, coffeeChatBrief, coffeeChatPrep, twoInterviewPlan, rejectionPivot, assemblePack,
     liveAssistGuard, voiceMockAvailability, GENERIC_BEHAVIORAL };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPrep;
@@ -24197,7 +24241,7 @@ const CareerApply = (() => {
     const allowed = Math.min(requestedCount, remaining);
     return { cap: DAILY_CAP, alreadyToday: already, requested: requestedCount, allowed, queuedForTomorrow: requestedCount - allowed, capped: requestedCount > allowed, message: requestedCount > allowed ? `Capped at ${DAILY_CAP} applications per day: ${allowed} can go today, ${requestedCount - allowed} queue for tomorrow.` : `${requestedCount} application(s) fit inside today's cap of ${DAILY_CAP} (${already} already recorded today).` };
   }
-  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference (Doc 2 §5.4)` }; }
+  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference` }; }
 
   // ---------- sensitive-answer seam (APPE-005, Doc 2 §5.3 + S6) ----------
   function classifyQuestion(question) {
@@ -24241,7 +24285,7 @@ const CareerApply = (() => {
     const saved = savedAnswerFor(profile, kind);
     if (saved == null) return { kind, requiresConfirmation: true, savedAnswer: null, entered: false, prompt: `This is a sensitive question and I have no saved answer for it — I will not guess. What should I enter for: "${question}"?` };
     if (o.confirmed === true) return { kind, requiresConfirmation: true, savedAnswer: saved, entered: true, answer: saved, confirmationState: "user-confirmed-in-session" };
-    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive (T3) answer and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
+    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive answer, so this one needs your explicit yes and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
   }
   // Salary: ask, offer a SOURCED range when one is passed in, default to
   // negotiable/open. A number is entered only when the user approved that
@@ -24285,9 +24329,9 @@ const CareerApply = (() => {
     const hits = (warmPaths || []).filter((c) => norm(c.current_firm || c.company) === norm(company));
     if (hits.length) {
       const who = hits[0].full_name || hits[0].name;
-      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications (Doc 2 §6/§7.5)." };
+      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications." };
     }
-    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign (Doc 1) of 5–10 people at ${company} first`], trackedSeparately: true };
+    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign of 5–10 people at ${company} first`], trackedSeparately: true };
   }
 
   // ---------- batch triage (Doc 2 S3) + batch card (SC-054) ----------
@@ -24314,9 +24358,28 @@ const CareerApply = (() => {
       return { job_id: p.job_id, company: p.company, role: p.title, decision: "ask", reasons };
     });
   }
-  function batchCard(items, opts) {
+  // Display-name normalization for card assembly (FIN-E-005): known firms keep
+  // the spelling the company itself uses; anything else is trimmed + title-cased.
+  const COMPANY_DISPLAY = { stripe: "Stripe", datadog: "Datadog", ramp: "Ramp", palantir: "Palantir", notion: "Notion", airbnb: "Airbnb", figma: "Figma", duolingo: "Duolingo", snowflake: "Snowflake", hubspot: "HubSpot", github: "GitHub", linkedin: "LinkedIn", openai: "OpenAI", goldman: "Goldman Sachs", "goldman sachs": "Goldman Sachs", "jane street": "Jane Street", "hudson river trading": "Hudson River Trading", "two sigma": "Two Sigma", "citadel securities": "Citadel Securities" };
+  function displayCompany(name) {
+    const clean = String(name == null ? "" : name).trim().replace(/\s+/g, " ");
+    if (!clean) return clean;
+    return COMPANY_DISPLAY[clean.toLowerCase()] || clean.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+  }
+  function batchCard(rawItems, opts) {
     const o = opts || {};
-    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
+    // FIN-E-005: dedupe identical company+role before the card is assembled —
+    // one row per role, however many layers produced it.
+    const seen = new Set(), items = [];
+    for (const i of rawItems || []) {
+      const company = displayCompany(i.company), role = String(i.role == null ? "" : i.role).trim().replace(/\s+/g, " ");
+      const key = `${company.toLowerCase()}::${role.toLowerCase()}`;
+      if (seen.has(key)) continue; seen.add(key);
+      const fit = i.fit != null ? i.fit : null;
+      items.push({ company, role, fit, fit_label: fit != null ? `fit ${fit}` : "no fit score yet", resumeVersion: i.resumeVersion || null });
+    }
+    const summary = items.map((i) => `${i.company} — ${i.role}: ${i.fit_label}`).join("; ");
+    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items, count: items.length, summary, note: "Nothing submits before your yes. Each approved application gets its own audit record. Where a role has no fit score yet, the card says so instead of claiming a fit." };
   }
 
   // ---------- assessment invites (Doc 2 §5.3: NEVER taken for the user) ----------
@@ -24328,7 +24391,7 @@ const CareerApply = (() => {
       scheduled: { scheduled: true, at: o.scheduleAt || invite.deadline || null, reminder: "prep pack ready before the deadline" },
       prep: ["Timed practice in the assessment's stated format (your own work — practice only)", "Review the profile facts this role was tailored from, so your stories match your resume", "Logistics check: quiet room, charged laptop, deadline in your timezone"],
       takenByAgent: false,
-      rule: "The agent schedules and preps but NEVER takes an assessment for the user (Doc 2 §5.3) — taking it would be dishonest and gets candidates banned.",
+      rule: "The agent schedules and preps but never takes an assessment for the user — taking it would be dishonest and gets candidates banned.",
     };
   }
 
@@ -24415,7 +24478,7 @@ const CareerApply = (() => {
     });
   }
 
-  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard, displayCompany, handleAssessmentInvite, parseInboxConfirmations, reconcileInbox, checkCooldown, createRule, evaluateRule, nightlySummary, checkWindows };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;
 
@@ -24568,7 +24631,7 @@ const CareerPackets = (() => {
     for (const s of (cir.values_culture_signals || []).slice(0, 2)) push(s);
     for (const s of ((cir.skills_dist || {}).entries || []).slice(0, 3)) if (s.label) facts.push({ text: `${cir.company_name}: ${s.label} — ${s.note || "named in the company record"}` });
     if (!facts.length && cir.thesis_text) facts.push({ text: cir.thesis_text });
-    return { company: cir.company_name || cir.company, company_id: cir.company_id || null, facts, aiPolicy: cir.aiPolicy || null, source: "CIR-125-schema" };
+    return { company: cir.company_name || cir.company, company_id: cir.company_id || null, facts, aiPolicy: cir.aiPolicy || null, source: "company file" };
   }
 
   // ---- SC-081: Workday-style portal account creation (record + disclosure) ----
@@ -24653,7 +24716,7 @@ const CareerPackets = (() => {
     const profSkills = Profile.listFacts(profile, { kind: "skill" }).filter((f) => !f.needs_confirmation && !f.unproven).map((f) => f.name.toLowerCase());
     for (const f of (cirT ? cirT.facts : [])) for (const s of Tailor.skillsInText(f.text)) if (!profSkills.includes(s.toLowerCase())) gaps.push({ skill: s, cirFact: f.text });
     const seen = new Set(); const uniq = gaps.filter((g) => !seen.has(g.skill) && seen.add(g.skill));
-    return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No CIR-named skill gap against your proven skills.", proceedIsUserCall: true };
+    return { gaps: uniq, fit: fit || null, text: uniq.length ? `Gap callout: this company's record names ${uniq.map((g) => g.skill).join(", ")} — not evidenced on your profile. ${fit ? `Your fit bucket here is ${fit.bucket} (score ${fit.score} vs bar ${fit.bar}). ` : ""}Your odds are stated, not hidden. Proceed or not — your call.` : "No skill gap named in this company's file against your proven skills.", proceedIsUserCall: true };
   }
 
   // ---- SC-099: referral hold decision ----
@@ -24674,7 +24737,7 @@ const CareerPackets = (() => {
     if (people.length < 5) return { ok: false, code: "too_few_targets", text: "A mini-campaign is 5–10 people at one company; fewer than 5 named people were supplied, so nothing was built from invented names." };
     const warmthRank = { alumni: 0, club: 1, major: 2, hometown: 3, cold: 4 };
     const sequenced = people.map((p, i) => ({ seq: i + 1, name: p.name, company: o.company, warmth: p.warmth || "cold", sharedFact: p.sharedFact || null, status: "drafted — awaiting your approval, NOT sent" })).sort((a, b) => (warmthRank[a.warmth] - warmthRank[b.warmth]) || a.seq - b.seq).map((p, i) => ({ ...p, seq: i + 1 }));
-    return { ok: true, kind: "mini_campaign_plan (124 outreach seam, built in 133 — BUG-003)", company: o.company, count: sequenced.length, sequenced, sends: 0, text: `No warm referral path at ${o.company}, so instead of a cold application I built a ${sequenced.length}-person mini-campaign there, sequenced warm to cold. Every draft waits for your approval — nothing has been sent.` };
+    return { ok: true, kind: "mini_campaign_plan", company: o.company, count: sequenced.length, sequenced, sends: 0, text: `No warm referral path at ${o.company}, so instead of a cold application I built a ${sequenced.length}-person mini-campaign there, sequenced warm to cold. Every draft waits for your approval — nothing has been sent.` };
   }
 
   // ---- SC-096: med-school essay packet from real experiences only ----
@@ -24737,7 +24800,7 @@ const PATHS = [
     ],
     filters: [
       fact("School signal matters a lot at the screen, or a substitute for it: finance-club leadership, technical readiness and logged networking assembled early.", S.goldmanPress),
-      fact("Goldman Sachs publishes no GPA cutoff on the programme pages checked for its CIR — GPA screens students quote are community-reported norms, not firm policy.", S.goldmanProgram),
+      fact("Goldman Sachs publishes no GPA cutoff on the programme pages checked for its company file — GPA screens students quote are community-reported norms, not firm policy.", S.goldmanProgram),
       fact("Technicals are tested directly: accounting, the three statements, DCF, comps and LBO basics.", S.goldmanGuide),
       fact("Timing is itself a screen: rolling review means the same file submitted earlier is worth more.", S.goldmanGuide),
     ],
@@ -24786,7 +24849,7 @@ const PATHS = [
       semester: ["Run both tracks in parallel: formal applications to the bulge brackets, direct outreach to boutiques where a conversation can still move a file."],
       year: ["Judge offers on team, deal flow and exits of the last analyst classes — ask alumni from each firm where their class actually went."],
     },
-    honesty: ["This comparison is structural and qualitative: there is no CIR for a boutique bank in the current corpus, so no hiring-volume or outcome numbers are claimed for boutiques."],
+    honesty: ["This comparison is structural and qualitative: there is no company file for a boutique bank in the current corpus, so no hiring-volume or outcome numbers are claimed for boutiques."],
     sources: [{ label: "Goldman Sachs Summer Analyst programme (official)", url: S.goldmanProgram, as_of: AS_OF }, { label: "Community thread on boutique internships", url: S.wsoBoutique, as_of: AS_OF }],
   },
   {
@@ -24806,7 +24869,7 @@ const PATHS = [
       semester: ["Days 31-90 and beyond: ship the project with real users, land the first internship rung, run the referral conversations, then apply early to the new-grad pool."],
       year: ["If the direct route misses, take the strongest adjacent rung (fintech, infrastructure, a respected mid-size) and re-aim with a year of signal."],
     },
-    honesty: ["No FAANG-company CIR exists in the current corpus (Google is a later company file), so this is the general ladder, labeled as such — no school-share or hiring numbers are claimed."],
+    honesty: ["No FAANG company file exists in the current corpus (Google is a later company file), so this is the general ladder, labeled as such — no school-share or hiring numbers are claimed."],
     sources: [{ label: "Yale CDO guide to a big-tech early-career programme", url: S.apmYale, as_of: AS_OF }, { label: "APM / big-tech interview guide (community)", url: S.apmGuide, as_of: AS_OF }],
   },
   {
@@ -24980,7 +25043,7 @@ function answerPath(path, profile, opts) {
     filters: `The real filters:\n${path.filters.map((f) => `- ${f.statement} (source: ${f.source_url}, as of ${f.as_of})`).join("\n")}`,
     plan: `The plan:\nNext 30 days:\n${path.plan["30d"].map((a) => `- ${a}`).join("\n")}\nThis semester:\n${path.plan.semester.map((a) => `- ${a}`).join("\n")}\nThis year:\n${path.plan.year.map((a) => `- ${a}`).join("\n")}`,
     honesty: `Honest notes:\n${path.honesty.map((h) => `- ${h}`).join("\n")}`,
-    sources: `Sources (checked ${AS_OF}): ${path.sources.map((s) => `${s.label} — ${s.url}`).join("; ")}. This path has no company CIR in the current corpus; this is the labeled general-ladder answer built from public structural sources, and every claim above carries its source.`,
+    sources: `Sources (checked ${AS_OF}): ${path.sources.map((s) => `${s.label} — ${s.url}`).join("; ")}. This path has no company file in the current corpus; this is the labeled general-ladder answer built from public structural sources, and every claim above carries its source.`,
   };
   const text = [sections.bottom_line, sections.ladder, sections.filters, sections.plan, sections.honesty, sections.sources].join("\n\n");
   const claims = pathClaims(path);
@@ -25013,10 +25076,10 @@ function sweMarketRead(store, opts) {
   for (const r of rows) for (const n of CI.numbersIn(r.cadence)) {
     if (!claims.some((c) => c.value === n)) claims.push({ text: r.cadence.slice(0, 60), value: n, unit: null, source_url: r.source_url, as_of: r.as_of, sample_size: null });
   }
-  if (!claims.some((c) => c.value === rows.length)) claims.push({ text: "CIRs checked", value: rows.length, unit: "count", source_url: rows[0] ? rows[0].source_url : S.apmGuide, as_of: now, sample_size: null });
+  if (!claims.some((c) => c.value === rows.length)) claims.push({ text: "company files checked", value: rows.length, unit: "count", source_url: rows[0] ? rows[0].source_url : S.apmGuide, as_of: now, sample_size: null });
   const text = [
     `Bottom line: is the SWE market bad right now? Here is what is actually known from dated sources, kept separate from what is anecdotal. As of ${now}, the ${rows.length} software-engineering company records in this corpus were each checked against live official postings or programme pages in October 2026, and entry-level SWE hiring is still running at every one of them — but it is posting-driven and competitive, not a single annual cohort season with guaranteed windows.`,
-    `What is known (each line is a company's own hiring-cadence fact from its CIR, with its date):\n${rows.map((r) => `- ${r.company}: ${r.cadence} (source: ${r.source_url}, as of ${r.as_of})`).join("\n")}`,
+    `What is known (each line is a company's own hiring-cadence fact from its company file, with its date):\n${rows.map((r) => `- ${r.company}: ${r.cadence} (source: ${r.source_url}, as of ${r.as_of})`).join("\n")}`,
     `What is anecdotal, and labeled as such: claims that "entry-level SWE is dead" or that any specific percentage of roles vanished circulate on forums and social posts; no source in this corpus supports a market-wide number, so none is claimed here. What the dated record does support: windows open and close per posting (one London SWE internship in the corpus is already marked closed), rolling and posting-driven hiring rewards early, referred, well-matched applications, and students without an internship rung face a harder funnel than a few cycles ago — a directional read from the cadence facts above, not a measured market statistic.`,
     `What to do differently: apply when postings open rather than on a fixed season calendar; build the internship rung and the referral list before the application, not after; and treat specialization (a real project in the team's stack) as the offset to a crowded general pool.`,
   ].join("\n\n");
@@ -26006,7 +26069,7 @@ const CareerApply3 = (() => {
         const dates = [...new Set((r.facts || []).flatMap((f) => parseDates(f.claim)))].sort();
         const close = dates.length ? dates[dates.length - 1] : null;
         const days = close ? Math.round((Date.parse(close) - now) / 86400000) : null;
-        entries.push({ company: cir.company_name, route: r.route, status: r.status, close_date: close, days_to_close: days, warn_at: close ? new Date(Date.parse(close) - 14 * 86400000).toISOString().slice(0, 10) : null, state: close == null ? "no dated close in CIR" : days < 0 ? "closed" : days <= 14 ? "WARN — inside 2 weeks" : "open" });
+        entries.push({ company: cir.company_name, route: r.route, status: r.status, close_date: close, days_to_close: days, warn_at: close ? new Date(Date.parse(close) - 14 * 86400000).toISOString().slice(0, 10) : null, state: close == null ? "no dated close in the company file" : days < 0 ? "closed" : days <= 14 ? "WARN — inside 2 weeks" : "open" });
       }
     }
     return entries;
@@ -26230,10 +26293,10 @@ const CareerSeason = (() => {
     // approved range => ASK, with the market range offered instead of a number.
     if (input.approvedFigure == null && !input.approvedRange) return { ok: false, status: "ASK", sends: false,
       reason: "no_user_approved_comp_figure_on_record", offered_instead: input.marketRange || null,
-      unblock: "User approves an exact figure or a range (T3 card) — then the draft carries exactly that." };
+      unblock: "You approve an exact figure or a range — this one needs your explicit yes — then the draft carries exactly that." };
     const figure = input.approvedFigure != null ? String(input.approvedFigure) : `${input.approvedRange[0]}–${input.approvedRange[1]}`;
-    return { ok: true, status: "DRAFT_T3", requires_approval: true, sends: false, t3: true, figure_used: figure,
-      card: { kind: "comp_expectation", tier: "T3", company: input.company || null, figure },
+    return { ok: true, status: "DRAFT_NEEDS_YOUR_YES", requires_approval: true, sends: false, needs_explicit_yes: true, figure_used: figure,
+      card: { type: "comp_expectation", title: "Comp expectation — needs your figure", kind: "comp_expectation", company: input.company || null, figure, action: "Approve the figure, then draft" },
       draft: { body: `Thanks for asking. Based on the role and market, my expectation is ${figure}. I'm flexible on the mix and more focused on the role fit — happy to discuss once we're further along.\n\nBest,\n${input.userName || ""}`,
         note: "Draft only. Nothing is sent silently; the figure is exactly the one the user approved." } };
   }

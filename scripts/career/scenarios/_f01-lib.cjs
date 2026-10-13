@@ -66,8 +66,8 @@ function capabilitySources() {
   for (const id of ["ACCS-001", "ACCS-002", "ACCS-003", "ACCS-005", "ACCS-006", "ACCS-007"]) {
     careerRows.push({ id, status: "built", note: "120-career-access.js + tests/career-access.test.cjs" });
   }
-  careerRows.push({ id: "ACCS-004", status: "blocked", note: "live cloud-browser session rail is owner-gated; plan + user text built in 120" });
-  careerRows.push({ id: "ACCS-001-live-grant", status: "blocked", note: "owner must deploy gmail-oauth + run T1 consent (docs/career/deploy-checklist-access.md)" });
+  careerRows.push({ id: "ACCS-004", status: "blocked", note: "live cloud-browser session rail is owner-gated; plan and user text built" });
+  careerRows.push({ id: "ACCS-001-live-grant", status: "blocked", note: "owner must deploy the Google connection and complete the first consent test" });
   return { registryCaps: registry.capabilities, careerRows, registry };
 }
 

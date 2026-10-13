@@ -1,0 +1,10 @@
+# Finisher bugs — Lane F (T-87 re-sweep, 2026-10-13)
+
+Found during Lane F's fix + re-sweep work. Severity as in Lane E's file.
+
+| ID | Sev | Defect | Evidence | Status |
+|---|---|---|---|---|
+| FIN-F-001 | P2 | Two canonical renders' named generators were missing from this branch: `127-career-prep.casePrepPlan` (SC-185-canonical) and `127-career-prep.coffeeChatPrep` (SC-182-canonical) existed only in the renders' tool records. | SC-185-canonical-mbb-case-prep-plan.messages.json, SC-182-canonical-coffee-chat-prep-brief.messages.json | FIXED — both functions restored in 127 with plain prose (no function names, no "CIR"); canonical scenario runners added (`SC-185-canonical.cjs`, `SC-182-canonical.cjs`); renders regenerated, lint-clean. |
+| FIN-F-002 | P3 | Corpus renders outside the swept sample (431 files total) still carry pre-fix agent prose (652 prose-lint violations corpus-wide, vs 0 on the 40-render swept sample): their `.messages.json` records predate the Lane F module fixes and have not been re-run. | `node scripts/career/prose-lint.cjs` (no args) | OPEN — re-run the remaining scenario runners as their families are next touched; the modules and the lint now exist, so a re-run lands clean or fails loudly. Not a T-87 blocker: the sweep bar is the swept sample. |
+| FIN-F-003 | P3 | SC-068's tailor diff summary is identical ("15 added, 0 removed") for different roles — the diff summary does not discriminate between roles (pre-existing, noted in Lane E's FIN-E-005 evidence). | SC-068-batch-17-match-roles-review-first-3 | OPEN — tailor diff layer (123), not touched in this lane. |
+| FIN-F-004 | P3 | Legacy scenario runners under `scripts/career/scenarios/legacy-*/` cannot run in place: their shared libs live in the parent `scenarios/` directory, so `require("./_f0x-lib.cjs")` fails from the legacy folder. Lane F regenerated them via a temporary flattened copy in `scenarios/` (removed after each run). | legacy-f01/SC-017, legacy-f02/SC-028, legacy-f03/SC-051, legacy-f03b/SC-065 | OPEN — move the libs or fix the requires; harness/renderer work is unaffected. |

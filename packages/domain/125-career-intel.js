@@ -301,7 +301,7 @@ const CareerIntel = (() => {
     rows.push({
       dimension: "school",
       user: p.school ? `${p.school}${p.school_tier ? ` (${p.school_tier})` : ""}` : "not on file",
-      cohort: "See the school pattern in this CIR — stated qualitatively unless the CIR is population-backed; school is not in the user's control, so the plan routes around it (§3.1).",
+      cohort: "See the school pattern in this company file — stated in words unless the file is backed by a population sample; school is not in your control, so the plan routes around it.",
       status: p.school ? "unknown" : "gap",
       controllable: false,
       fix: "Do not plan around changing schools; offset with experience, projects and referrals.",
@@ -312,12 +312,12 @@ const CareerIntel = (() => {
       cohort: cir.hiring_bar_summary ? cir.hiring_bar_summary.statement : "not on file",
       status: internships.length ? "matches" : "gap",
       controllable: true,
-      fix: internships.length ? "Turn the internship into talkable depth: what you built or analyzed, with numbers from your own work." : "Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this CIR's path patterns.",
+      fix: internships.length ? "Turn the internship into talkable depth: what you built or analyzed, with numbers from your own work." : "Land one real internship or role at a smaller, reachable employer first — the ladder pattern in this company file's path patterns.",
     });
     rows.push({
       dimension: "projects",
       user: projects.length ? projects.map((x) => (typeof x === "string" ? x : x.name || "?")).join("; ") : "no projects on file",
-      cohort: "Revealed screen in this CIR: evidence of building or analyzing real things (see screening_signals.revealed).",
+      cohort: "Revealed screen in this company file: evidence of building or analyzing real things (what the record shows they actually screen for).",
       status: projects.length ? "matches" : "gap",
       controllable: true,
       fix: projects.length ? "Write up the strongest project publicly — what problem, what you did, what changed." : "Ship one project that solves a messy real problem for a real user, and document it.",
@@ -337,19 +337,19 @@ const CareerIntel = (() => {
       cohort: cir.hiring_cadence ? cir.hiring_cadence.statement : "not on file",
       status: "unknown",
       controllable: true,
-      fix: "Work backwards from the hiring cadence in this CIR; recruiting timelines move earlier than most students expect (§3.3).",
+      fix: "Work backwards from the hiring cadence in this company file; recruiting timelines move earlier than most students expect.",
     });
     rows.push({
       dimension: "authorization",
       user: p.work_authorization || "not on file",
-      cohort: "Sponsorship history is a matter of public record (DOL H-1B LCA filings); this CIR states only what its sources support, and immigration specifics go to the school's international office (§4.8 Q26 — not legal advice).",
+      cohort: "Sponsorship history is a matter of public record (DOL H-1B LCA filings); this company file states only what its sources support, and immigration specifics go to the school's international office — not legal advice.",
       status: p.work_authorization ? "unknown" : "gap",
       controllable: false,
       fix: "Confirm sponsorship for this exact role family before investing a season of prep; target employers with a filing history for the role.",
     });
     const priority = ["experience", "skills", "projects", "timing", "school", "authorization"];
     const firstGap = priority.map((d) => rows.find((r) => r.dimension === d && r.status === "gap")).find(Boolean) || null;
-    return { company_id: cir.company_id, rows, highest_leverage_fix: firstGap ? { dimension: firstGap.dimension, fix: firstGap.fix } : { dimension: null, fix: "No structural gap found against this CIR — the leverage is interview craft and reps." } };
+    return { company_id: cir.company_id, rows, highest_leverage_fix: firstGap ? { dimension: firstGap.dimension, fix: firstGap.fix } : { dimension: null, fix: "No structural gap found against this company file — the leverage is interview craft and reps." } };
   }
 
   // ---------- INTL-006: path planner ----------
@@ -367,16 +367,16 @@ const CareerIntel = (() => {
       action,
       reminder: null,
     });
-    add("30d", 7, `Confirm this cycle's application window and deadlines for ${comp} on the official careers page — dates move, and this CIR's cadence fact is the starting point, not the truth (§3.3).`);
-    if (gapDims.has("experience")) add("30d", 14, "Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this CIR's path patterns). Volume plus follow-up is the play.");
+    add("30d", 7, `Confirm this cycle's application window and deadlines for ${comp} on the official careers page — dates move, and this company file's cadence fact is the starting point, not the truth.`);
+    if (gapDims.has("experience")) add("30d", 14, "Apply to a first, reachable rung: a smaller employer in the same role family (the ladder pattern in this company file's path patterns). Volume plus follow-up is the play.");
     if (gapDims.has("projects")) add("30d", 30, "Ship the first version of one real project and write it up publicly.");
     if (gapDims.has("skills")) add("30d", 21, `Start the named skill gaps from the compare-me table: ${gaps.rows.find((r) => r.dimension === "skills").missing.slice(0, 3).join(", ") || "core skills for this role family"}.`);
-    add("30d", 10, "Build the coffee-chat target list from this CIR's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder.");
+    add("30d", 10, "Build the coffee-chat target list from this company file's entry routes: recent hires in the same role family, alumni of your school, people one rung up the ladder.");
     add("semester", null, "Convert the semester into signal: one internship or substantial project, one visible leadership or club role in the field, and interview reps on a weekly schedule.");
     if (gapDims.has("skills")) add("semester", null, "Close the remaining named skill gaps to interview depth, not survey depth.");
     add("semester", null, `Run the coffee-chat list: short, specific asks; every conversation ends with a follow-up you actually send.`);
     add("year", null, `Be in the application pool for ${comp}'s main entry window with the ladder rung, the project write-up and the referral conversations already done — not started.`);
-    add("year", null, "If the direct route misses, take the highest adjacent rung this CIR names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).");
+    add("year", null, "If the direct route misses, take the highest adjacent rung this company file names and re-aim with a year of signal (the risks-and-alternatives route in this thesis).");
     for (const m of milestones) {
       m.reminder = m.by ? `${comp} plan — by ${m.by}: ${m.action}` : `${comp} plan — this ${m.window}: ${m.action}`;
     }
@@ -419,7 +419,7 @@ const CareerIntel = (() => {
         }
       }
     }
-    if (!whoLines.length) whoLines.push("This CIR is curated-qualitative: no population sample exists for it yet, so there are no percentages to show. What follows is the reported pattern from public sources, labeled as such.");
+    if (!whoLines.length) whoLines.push("This company file is based on reported patterns, not a population sample: no population sample exists for it yet, so there are no percentages to show. What follows is the reported pattern from public sources, labeled as such.");
 
     const routes = [...(cir.entry_routes || [])].sort((a, b) => (a.rank || 99) - (b.rank || 99));
     const gapLines = gaps.rows.map((r) => `${r.dimension}: you — ${r.user} | cohort — ${r.cohort} | ${r.status}${r.status === "gap" ? ` | fix: ${r.fix}` : ""}`);
@@ -428,15 +428,15 @@ const CareerIntel = (() => {
     const oddsWord = gaps.rows.filter((r) => r.status === "gap").length >= 3 ? "low, but not zero" : gaps.rows.some((r) => r.status === "gap") ? "a real reach that the plan below is built to close" : "credible, if you execute the plan";
 
     const sections = {
-      bottom_line: `Bottom line: for ${comp} (${cir.cohort.role_family}, ${cir.cohort.level}), your odds through the cold application alone are ${oddsWord}. This read rests on a ${cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${cir.hiring_bar_summary.statement}${staleHere}`,
-      who_gets_in: `Who gets in (sample N=${cir.sample_size === null ? "not available — curated-qualitative record" : cir.sample_size}${cir.sample_size != null && cir.sample_size >= K_ANON && cir.sample_size < THIN_BELOW ? " — thin sample" : ""}, as of ${cir.as_of}):\n${whoLines.map((l) => `- ${l}`).join("\n")}\nKnown biases of this data: ${cir.known_biases_of_data.join("; ")}. We see who got in, not who tried and failed — survivorship bias is real (§0).`,
+      bottom_line: `Bottom line: for ${comp} — ${cir.cohort.role_family}, ${cir.cohort.level} — your odds through the cold application alone are ${oddsWord}. This read rests on a ${/qualitative/i.test(String(cir.confidence_level)) ? "reported-pattern" : cir.confidence_level} record as of ${cir.as_of}${cir.sample_size ? ` over a sample of ${cir.sample_size}` : " with no population sample — treat every pattern below as reported, not measured"}. ${cir.hiring_bar_summary.statement}${staleHere}`,
+      who_gets_in: `Who gets in (${cir.sample_size === null ? "no population sample — reported-pattern record" : `sample of ${cir.sample_size}`}${cir.sample_size != null && cir.sample_size >= K_ANON && cir.sample_size < THIN_BELOW ? " — thin sample" : ""}, as of ${cir.as_of}):\n${whoLines.map((l) => `- ${l}`).join("\n")}\nKnown biases of this data: ${cir.known_biases_of_data.join("; ")}. We see who got in, not who tried and failed — survivorship bias is real.`,
       stated_vs_revealed: `What ${comp} says it screens for vs what the record shows:\nStated: ${(cir.screening_signals.stated || []).map((f) => f.statement).join(" ")}\nRevealed: ${(cir.screening_signals.revealed || []).map((f) => f.statement).join(" ")}`,
       routes_ranked: `Routes in, ranked for you:\n${routes.map((r, i) => `${["First", "Second", "Third", "Fourth", "Fifth"][i] || "Also"}: ${r.route} — ${r.accessibility_note}`).join("\n")}`,
       gap_analysis: `Your gap analysis (highest-leverage fix first: ${gaps.highest_leverage_fix.dimension || "none structural"}):\n${gapLines.map((l) => `- ${l}`).join("\n")}`,
       plan: `The plan:\nNext 30 days:\n${planLines("30d").join("\n")}\nThis semester:\n${planLines("semester").join("\n")}\nThis year:\n${planLines("year").join("\n")}`,
       coffee_chat_strategy: `Coffee-chat strategy: target the profile types named in the ranked routes — recent hires in this role family, alumni of your school now inside, and people one rung up the ladder you are climbing. Ask what the interviews actually test, what surprised them after starting, and what they would do with a semester to prepare. Keep asks short and specific; send the follow-up you promised.`,
-      timeline: `Timeline and key dates: ${cir.hiring_cadence.statement} (as of ${cir.hiring_cadence.as_of}; recruiting dates shift every cycle — re-check the official careers page before acting, §3.3).`,
-      risks_alternatives: `Risks and alternatives: ${(cir.red_flags || []).map((f) => f.statement).join(" ")} Adjacent options with similar signal: the other employers and role families whose CIRs share this ladder — the first rung matters more than the logo on it.`,
+      timeline: `Timeline and key dates: ${cir.hiring_cadence.statement} (as of ${cir.hiring_cadence.as_of}; recruiting dates shift every cycle — re-check the official careers page before acting).`,
+      risks_alternatives: `Risks and alternatives: ${(cir.red_flags || []).map((f) => f.statement).join(" ")} Adjacent options with similar signal: the other employers and role families whose company files share this ladder — the first rung matters more than the logo on it.`,
       offer_to_execute: `Want me to execute? I can build the coffee-chat target list from these routes, tailor your resume to this record's revealed screens (truthfully — only what you have actually done), and set the plan's reminders. Say the word and I start with the list.`,
     };
     if (cir.sample_size) claim(`sample of ${cir.sample_size}`, cir.sample_size, "sample_size", { source_url: cir.data_sources[0].url, as_of: cir.as_of, sample_size: cir.sample_size });
@@ -540,12 +540,12 @@ const CareerIntel = (() => {
       return {
         action: "refuse",
         reason: "fabrication_or_cheating",
-        text: "I won't help with that. Fabricated experience is the one move that can end this career before it starts: background checks catch it, offers get rescinded, and firms share notes — people get blacklisted for it (§3.2, §4.9 Q30). What I will do: present the real work you have in its strongest truthful form, and build you the fastest honest plan to gain the missing experience — a project, a smaller internship, a role one rung down that makes the claim true. Want me to start there?",
+        text: "I won't help with that. Fabricated experience is the one move that can end this career before it starts: background checks catch it, offers get rescinded, and firms share notes — people get blacklisted for it. What I will do: present the real work you have in its strongest truthful form, and build you the fastest honest plan to gain the missing experience — a project, a smaller internship, a role one rung down that makes the claim true. Want me to start there?",
         offer: "truthful_reframing_and_experience_plan",
       };
     }
     if (/\b(infer|guess|tell me|figure out)\b[^.]*\b(race|gender|ethnicity|religion|national origin|disability)\b/i.test(t) || /\bfrom (his|her|their) (name|photo)\b/i.test(t)) {
-      return { action: "refuse", reason: "protected_attribute_inference", text: "I don't infer or use protected characteristics — not from names, not from photos, not at all (§6). Analysis here runs on experience, education and skills only. Ask me about any of those and I'll dig in." };
+      return { action: "refuse", reason: "protected_attribute_inference", text: "I don't infer or use protected characteristics — not from names, not from photos, not at all. Analysis here runs on experience, education and skills only. Ask me about any of those and I'll dig in." };
     }
     return { action: "proceed" };
   }
@@ -560,7 +560,7 @@ const CareerIntel = (() => {
       status_refresh_due: v.stale.filter((s) => s.kind === "hiring_status"),
       process_refresh_due: v.stale.filter((s) => s.kind !== "hiring_status"),
       population_refresh_due: populationDue,
-      schedule: "top-company status monthly, population quarterly, plus event-driven refresh on layoffs, freezes, new programs (§5)",
+      schedule: "top-company status monthly, population quarterly, plus event-driven refresh on layoffs, freezes, new programs",
     };
   }
   function reportOutdated(cir, report, now) {
@@ -572,7 +572,7 @@ const CareerIntel = (() => {
       report: String(report || ""),
       action: "flagged_for_reverification",
       facts_to_recheck: [...due.status_refresh_due, ...due.process_refresh_due].map((s) => s.path),
-      note: "A user report never silently edits a CIR: the flagged facts are re-verified against sources first, then the record is rebuilt with a new as_of (§5).",
+      note: "A user report never silently edits a company file: the flagged facts are re-verified against sources first, then the record is rebuilt with a new date.",
     };
   }
 

@@ -14,7 +14,7 @@ const L = require("./_w04-lib.cjs");
   const all = await L.feedMany(L.WIDE_FEEDS);
   const log = L.Apply.createLog();
   const real = L.Apply.evaluateRule(made.rule, all, { scoringProfile: scoring, log, date: "2026-10-13" });
-  const topFits = all.map((p) => ({ p, f: L.Jobs.scoreFit(p, scoring) })).filter((x) => !x.f.excluded).sort((a, b) => b.f.score - a.f.score).slice(0, 3).map((x) => ({ company: x.p.company, title: x.p.title, fit: x.f.score }));
+  const topFits = all.map((p) => ({ p, f: L.Jobs.scoreFit(p, scoring) })).filter((x) => !x.f.excluded).sort((a, b) => b.f.score - a.f.score).filter((x, i, a) => a.findIndex((y) => L.Apply.displayCompany(y.p.company) === L.Apply.displayCompany(x.p.company)) === i).slice(0, 3).map((x) => ({ company: L.Apply.displayCompany(x.p.company), title: x.p.title, fit: x.f.score }));
   s.tool("132-career-apply evaluateRule over live postings", { totalPostings: all.length, applied: real.applied.length, skippedSample: real.skipped.slice(0, 5), topFits });
   // Prove the apply path fires when a posting truly meets the rule — labeled
   // TEST posting through the SAME engine (fixtures authorized), separate log.

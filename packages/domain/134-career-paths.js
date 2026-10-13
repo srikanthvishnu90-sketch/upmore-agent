@@ -47,7 +47,7 @@ const PATHS = [
     ],
     filters: [
       fact("School signal matters a lot at the screen, or a substitute for it: finance-club leadership, technical readiness and logged networking assembled early.", S.goldmanPress),
-      fact("Goldman Sachs publishes no GPA cutoff on the programme pages checked for its CIR — GPA screens students quote are community-reported norms, not firm policy.", S.goldmanProgram),
+      fact("Goldman Sachs publishes no GPA cutoff on the programme pages checked for its company file — GPA screens students quote are community-reported norms, not firm policy.", S.goldmanProgram),
       fact("Technicals are tested directly: accounting, the three statements, DCF, comps and LBO basics.", S.goldmanGuide),
       fact("Timing is itself a screen: rolling review means the same file submitted earlier is worth more.", S.goldmanGuide),
     ],
@@ -96,7 +96,7 @@ const PATHS = [
       semester: ["Run both tracks in parallel: formal applications to the bulge brackets, direct outreach to boutiques where a conversation can still move a file."],
       year: ["Judge offers on team, deal flow and exits of the last analyst classes — ask alumni from each firm where their class actually went."],
     },
-    honesty: ["This comparison is structural and qualitative: there is no CIR for a boutique bank in the current corpus, so no hiring-volume or outcome numbers are claimed for boutiques."],
+    honesty: ["This comparison is structural and qualitative: there is no company file for a boutique bank in the current corpus, so no hiring-volume or outcome numbers are claimed for boutiques."],
     sources: [{ label: "Goldman Sachs Summer Analyst programme (official)", url: S.goldmanProgram, as_of: AS_OF }, { label: "Community thread on boutique internships", url: S.wsoBoutique, as_of: AS_OF }],
   },
   {
@@ -116,7 +116,7 @@ const PATHS = [
       semester: ["Days 31-90 and beyond: ship the project with real users, land the first internship rung, run the referral conversations, then apply early to the new-grad pool."],
       year: ["If the direct route misses, take the strongest adjacent rung (fintech, infrastructure, a respected mid-size) and re-aim with a year of signal."],
     },
-    honesty: ["No FAANG-company CIR exists in the current corpus (Google is a later company file), so this is the general ladder, labeled as such — no school-share or hiring numbers are claimed."],
+    honesty: ["No FAANG company file exists in the current corpus (Google is a later company file), so this is the general ladder, labeled as such — no school-share or hiring numbers are claimed."],
     sources: [{ label: "Yale CDO guide to a big-tech early-career programme", url: S.apmYale, as_of: AS_OF }, { label: "APM / big-tech interview guide (community)", url: S.apmGuide, as_of: AS_OF }],
   },
   {
@@ -290,7 +290,7 @@ function answerPath(path, profile, opts) {
     filters: `The real filters:\n${path.filters.map((f) => `- ${f.statement} (source: ${f.source_url}, as of ${f.as_of})`).join("\n")}`,
     plan: `The plan:\nNext 30 days:\n${path.plan["30d"].map((a) => `- ${a}`).join("\n")}\nThis semester:\n${path.plan.semester.map((a) => `- ${a}`).join("\n")}\nThis year:\n${path.plan.year.map((a) => `- ${a}`).join("\n")}`,
     honesty: `Honest notes:\n${path.honesty.map((h) => `- ${h}`).join("\n")}`,
-    sources: `Sources (checked ${AS_OF}): ${path.sources.map((s) => `${s.label} — ${s.url}`).join("; ")}. This path has no company CIR in the current corpus; this is the labeled general-ladder answer built from public structural sources, and every claim above carries its source.`,
+    sources: `Sources (checked ${AS_OF}): ${path.sources.map((s) => `${s.label} — ${s.url}`).join("; ")}. This path has no company file in the current corpus; this is the labeled general-ladder answer built from public structural sources, and every claim above carries its source.`,
   };
   const text = [sections.bottom_line, sections.ladder, sections.filters, sections.plan, sections.honesty, sections.sources].join("\n\n");
   const claims = pathClaims(path);
@@ -323,10 +323,10 @@ function sweMarketRead(store, opts) {
   for (const r of rows) for (const n of CI.numbersIn(r.cadence)) {
     if (!claims.some((c) => c.value === n)) claims.push({ text: r.cadence.slice(0, 60), value: n, unit: null, source_url: r.source_url, as_of: r.as_of, sample_size: null });
   }
-  if (!claims.some((c) => c.value === rows.length)) claims.push({ text: "CIRs checked", value: rows.length, unit: "count", source_url: rows[0] ? rows[0].source_url : S.apmGuide, as_of: now, sample_size: null });
+  if (!claims.some((c) => c.value === rows.length)) claims.push({ text: "company files checked", value: rows.length, unit: "count", source_url: rows[0] ? rows[0].source_url : S.apmGuide, as_of: now, sample_size: null });
   const text = [
     `Bottom line: is the SWE market bad right now? Here is what is actually known from dated sources, kept separate from what is anecdotal. As of ${now}, the ${rows.length} software-engineering company records in this corpus were each checked against live official postings or programme pages in October 2026, and entry-level SWE hiring is still running at every one of them — but it is posting-driven and competitive, not a single annual cohort season with guaranteed windows.`,
-    `What is known (each line is a company's own hiring-cadence fact from its CIR, with its date):\n${rows.map((r) => `- ${r.company}: ${r.cadence} (source: ${r.source_url}, as of ${r.as_of})`).join("\n")}`,
+    `What is known (each line is a company's own hiring-cadence fact from its company file, with its date):\n${rows.map((r) => `- ${r.company}: ${r.cadence} (source: ${r.source_url}, as of ${r.as_of})`).join("\n")}`,
     `What is anecdotal, and labeled as such: claims that "entry-level SWE is dead" or that any specific percentage of roles vanished circulate on forums and social posts; no source in this corpus supports a market-wide number, so none is claimed here. What the dated record does support: windows open and close per posting (one London SWE internship in the corpus is already marked closed), rolling and posting-driven hiring rewards early, referred, well-matched applications, and students without an internship rung face a harder funnel than a few cycles ago — a directional read from the cadence facts above, not a measured market statistic.`,
     `What to do differently: apply when postings open rather than on a fixed season calendar; build the internship rung and the referral list before the application, not after; and treat specialization (a real project in the team's stack) as the offset to a crowded general pool.`,
   ].join("\n\n");

@@ -30,10 +30,10 @@ const CareerSeason = (() => {
     // approved range => ASK, with the market range offered instead of a number.
     if (input.approvedFigure == null && !input.approvedRange) return { ok: false, status: "ASK", sends: false,
       reason: "no_user_approved_comp_figure_on_record", offered_instead: input.marketRange || null,
-      unblock: "User approves an exact figure or a range (T3 card) — then the draft carries exactly that." };
+      unblock: "You approve an exact figure or a range — this one needs your explicit yes — then the draft carries exactly that." };
     const figure = input.approvedFigure != null ? String(input.approvedFigure) : `${input.approvedRange[0]}–${input.approvedRange[1]}`;
-    return { ok: true, status: "DRAFT_T3", requires_approval: true, sends: false, t3: true, figure_used: figure,
-      card: { kind: "comp_expectation", tier: "T3", company: input.company || null, figure },
+    return { ok: true, status: "DRAFT_NEEDS_YOUR_YES", requires_approval: true, sends: false, needs_explicit_yes: true, figure_used: figure,
+      card: { type: "comp_expectation", title: "Comp expectation — needs your figure", kind: "comp_expectation", company: input.company || null, figure, action: "Approve the figure, then draft" },
       draft: { body: `Thanks for asking. Based on the role and market, my expectation is ${figure}. I'm flexible on the mix and more focused on the role fit — happy to discuss once we're further along.\n\nBest,\n${input.userName || ""}`,
         note: "Draft only. Nothing is sent silently; the figure is exactly the one the user approved." } };
   }

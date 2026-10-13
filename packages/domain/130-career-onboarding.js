@@ -138,25 +138,40 @@ const CareerOnboarding = (() => {
   // careerRows: rows from docs/capability-inventory.md career tables ({id, status, note}) PLUS build-state
   // rows the caller derives from the code itself ({id, status:"built", note}) — the caller owns sourcing;
   // this function only counts and words what it was given, so a status it states always traces to a row.
+  // FIN-E-004: a career status answer may only cite CAREER-domain rows. A registry
+  // row is career-domain only when it says so (domain/domain_code naming career,
+  // an ACCS-/CAREER- id, or a career implementation path) — every other registry
+  // row belongs to another product surface and never appears here, in any form.
+  function isCareerCap(c) {
+    if (!c) return false;
+    const domain = String(c.domain || "").toLowerCase(), code = String(c.domain_code || "").toLowerCase(), id = String(c.id || "");
+    if (/career|job search/.test(domain) || /^(accs|career)$/.test(code) || /^(ACCS|CAREER)-/.test(id)) return true;
+    return (c.implementation || []).some((p) => /career/i.test(String(p)));
+  }
   function capabilityStatus(input) {
     const o = input || {};
-    const reg = o.registryCaps || [], career = o.careerRows || [];
+    const reg = (o.registryCaps || []).filter(isCareerCap), career = o.careerRows || [];
     const bucket = (rows, pred) => rows.filter(pred);
     const builtReg = bucket(reg, (c) => ["TESTED", "BUILT"].includes(String(c.status || "").toUpperCase()));
     const provenReg = bucket(reg, (c) => String(c.status || "").toUpperCase() === "VERIFIED");
     const gatedReg = bucket(reg, (c) => String(c.status || "").toUpperCase() === "GATED");
     const builtCareer = bucket(career, (c) => /built|tested/i.test(String(c.status || "")));
-    const blockedCareer = bucket(career, (c) => /blocked/i.test(String(c.status || "")));
+    const blockedCareer = bucket(career, (c) => /^\s*blocked\b/i.test(String(c.status || "")));
     const proven = provenReg.length; // career rows carry no "proven live" status until a live record exists
-    const blocked = [
+    const blockedAll = [
       ...gatedReg.map((c) => ({ id: c.id, reason: c.gate_reason || c.note || "gated" })),
       ...blockedCareer.map((c) => ({ id: c.id, reason: c.note || c.gate_reason || "blocked — owner input named in the inventory" })),
     ];
+    // One row per id: inventory and build-state sources can both carry the same
+    // blocked row — keep the more specific reason, never list an id twice.
+    const blockedById = new Map();
+    for (const b of blockedAll) { const prev = blockedById.get(b.id); if (!prev || (/inventory row/i.test(prev.reason) && !/inventory row/i.test(b.reason))) blockedById.set(b.id, b); }
+    const blocked = [...blockedById.values()];
     const text = [
-      "Here is what I can actually do for your job search, counted from the capability registry and inventory — not a pitch:",
-      `Built and locally tested: the career access layer (connect Google, connected accounts, disconnect, access audit, portal records, CAPTCHA handoff), profile, job discovery, and resume tailoring modules — ${builtCareer.length} career build rows, on top of ${builtReg.length} tested finance capabilities in the registry.`,
-      `Proven live: ${proven}. Nothing carries a live provider record yet — the career Google grant goes live only after the owner deploys the gmail-oauth function and completes the T1 consent test (docs/career/deploy-checklist-access.md).`,
-      `Blocked (${blocked.length}): ${blocked.slice(0, 6).map((b) => `${b.id} — ${b.reason}`).join("; ") || "none"}${blocked.length > 6 ? `; and ${blocked.length - 6} more gated rows in the registry` : ""}.`,
+      "Here is what I can actually do for your job search, counted from the career capability rows — not a pitch:",
+      `Built and locally tested: the career access layer (connect Google, connected accounts, disconnect, access audit, portal records, a handoff when a site asks you to prove you are human), profile, job discovery, and resume tailoring modules — ${builtCareer.length} career build rows${builtReg.length ? `, plus ${builtReg.length} tested career capabilities in the registry` : ""}.`,
+      `Proven live: ${proven}. Nothing carries a live provider record yet — the career Google connection goes live only after the owner deploys it and completes the first consent test.`,
+      `Blocked (${blocked.length}): ${blocked.slice(0, 6).map((b) => `${b.id} — ${b.reason}`).join("; ") || "none"}${blocked.length > 6 ? `; and ${blocked.length - 6} more blocked career rows` : ""}.`,
       "I will not claim an ability that is not in those rows.",
     ].join("\n");
     return { built: { registry_tested: builtReg.length, career: builtCareer.map((c) => c.id) }, proven_live: proven, blocked, blocked_count: blocked.length, not_started_registry: bucket(reg, (c) => String(c.status || "").toUpperCase() === "CLAIMED").length, text };

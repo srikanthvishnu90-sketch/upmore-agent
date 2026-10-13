@@ -164,6 +164,28 @@
       return { text: lines.join("\n"), remaining: BUREAUS.filter(b => !done.has(b.key)).map(b => b.bureau), checked: CHECKED };
     }
 
+    // Doorsteps (owner addendum, 2026-10-12): for every flow that runs through a logged-in service,
+    // the guided session drives to the last screen before the executing tap — sign-in page opened,
+    // the person signed in by their own hand (any code is typed by them in their own window; a code
+    // never enters chat, a log or a screenshot), the action page loaded with the action ready — and
+    // STOPs. The final tap is the person's, at every bureau, every time. These descriptors are what
+    // the guided session follows and what the sandbox doorstep renderings are built from; the live
+    // session itself runs in the person's own browser lane.
+    const DOORSTEPS = {
+      C139: BUREAUS.map(b => ({ capability: "C139", service: b.bureau, login_url: b.freeze_url, screens: [
+        { name: "login", what: `${b.bureau}'s sign-in page (${b.account_name}). The person signs in themselves; an identity check or code is completed by them in their own window.` },
+        { name: "ready", what: `${b.bureau}'s freeze page loaded, signed in, with "Place a security freeze" (the free freeze, not a paid lock) selected and ready. Stop here: the place-freeze tap is the person's.` } ] })),
+      C140: [{ capability: "C140", service: "Experian (the bureau showing the error)", login_url: "https://www.experian.com/freeze/center.html", screens: [
+        { name: "login", what: "Experian's sign-in page. The person signs in themselves and completes any identity check in their own window." },
+        { name: "ready", what: "Experian's dispute center with the dispute filled in: the documented error (furnisher, $ amount, opened date), the reason, and the evidence attached — the packet from disputePacket. Stop here: the submit tap is the person's." } ] }],
+      C151: [{ capability: "C151", service: "FTC IdentityTheft.gov", login_url: "https://www.identitytheft.gov", screens: [
+        { name: "ready", what: "IdentityTheft.gov's report flow filled in with what happened (the fraudulent accounts, from the person's own words) and the affidavit ready. There is no account login at the FTC — and no login screen to photograph. Stop here: the submit tap, which swears to the facts, is the person's." } ],
+        note: "The fraud-alert step has no login either: it is the person's own phone call to one bureau (numbers in identityTheftPlan). The bureau freeze doorsteps are the C139 ones." }],
+      C205: [{ capability: "C205", service: "All three bureaus (minor freeze)", login_url: null, screens: [],
+        note: "No authenticated session exists in the minor-freeze process: it runs by mail at all three bureaus. The doorstep is the assembled mail packet — forms, document copies, addressed envelopes — ready to send; minorFreezePlan is that packet's checklist, and its surface photo is the ready-action evidence." }]
+    };
+    function doorstepPlan(capability) { return DOORSTEPS[capability] || []; }
+
     // ---- Chat entry: classify and answer. ctx = { today, freeze_state, minor_state, report, minor } ----
     const MINOR = /\b(child|kid|son|daughter|minor|teen)\b|child'?s|kid'?s/i;
     function classify(text) {
@@ -240,6 +262,6 @@
       return null;
     }
 
-    return { BUREAUS, CHECKED, classify, isBureauAsk, answer, freezePlan, thawPlan, freezeRecord, bureausMarkedDone, disputeLetter, disputePacket, disputeClock, identityTheftPlan, minorFreezePlan, secretIn, money };
+    return { BUREAUS, CHECKED, DOORSTEPS, doorstepPlan, classify, isBureauAsk, answer, freezePlan, thawPlan, freezeRecord, bureausMarkedDone, disputeLetter, disputePacket, disputeClock, identityTheftPlan, minorFreezePlan, secretIn, money };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentBureaus;

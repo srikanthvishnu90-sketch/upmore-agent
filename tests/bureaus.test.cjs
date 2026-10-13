@@ -166,3 +166,24 @@ test("C205 adversarial: a 16/17-year-old is routed to the direct freeze, under-1
   const young = B.minorFreezePlan({ first_name: "Sam", age: 9 }, { bureaus: [] });
   assert.match(young.text, /protected consumer freeze/);
 });
+
+test("doorsteps: every login flow is built to the last screen before the owner's tap", () => {
+  const f = B.doorstepPlan("C139");
+  assert.equal(f.length, 3);
+  for (const d of f) {
+    assert.deepEqual(d.screens.map(s => s.name), ["login", "ready"]);
+    assert.match(d.screens[0].what, /signs in themselves/);
+    assert.match(d.screens[1].what, /Stop here/);
+    assert.ok(d.login_url.startsWith("https://"));
+    // No doorstep text ever carries a code, a PIN or an identity number.
+    assert.ok(!/\b\d{3}[- ]\d{2}[- ]\d{4}\b/.test(JSON.stringify(d)));
+  }
+  const d140 = B.doorstepPlan("C140");
+  assert.match(d140[0].screens[1].what, /dispute filled in/);
+  const d151 = B.doorstepPlan("C151");
+  assert.match(d151[0].screens[0].what, /no account login at the FTC/);
+  assert.match(d151[0].note, /phone call/);
+  const d205 = B.doorstepPlan("C205");
+  assert.equal(d205[0].login_url, null);
+  assert.match(d205[0].note, /runs by mail/);
+});

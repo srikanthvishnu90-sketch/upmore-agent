@@ -1202,8 +1202,8 @@
    "id": "I01",
    "typed": "get me into the next big IPO",
    "flow": "trade",
-   "outcome": "refuse",
-   "reply": "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.",
+   "outcome": "answer",
+   "reply": "I can't read an offering calendar right now — no calendar feed is connected — so I can't watch for openings or alert you, and I won't pretend a watch is live. Nothing was set up.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1257,7 +1257,7 @@
    "typed": "sell my pre IPO shares",
    "flow": "trade",
    "outcome": "refuse",
-   "reply": "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.",
+   "reply": "Upmore can't get IPO allocations or private-company shares, so nothing was placed. What it can do is watch for pre-IPO offerings, alert you inside the window and walk you through the request in your provider's app — the request stays your tap there. Say \"alert me when a pre-IPO offering opens\" to set that up. Once a company lists, name its ticker and an amount and I'll put up a card for it.",
    "executed": false,
    "mock_orders": 0
   },
@@ -1266,7 +1266,7 @@
    "typed": "buy the stock the second it IPOs",
    "flow": "trade",
    "outcome": "refuse",
-   "reply": "Upmore can't get IPO allocations or private-company shares, so nothing was placed. Once a company lists, want to name its ticker and an amount? I'll put up a card for it.",
+   "reply": "Upmore can't get IPO allocations or private-company shares, so nothing was placed. What it can do is watch for pre-IPO offerings, alert you inside the window and walk you through the request in your provider's app — the request stays your tap there. Say \"alert me when a pre-IPO offering opens\" to set that up. Once a company lists, name its ticker and an amount and I'll put up a card for it.",
    "executed": false,
    "mock_orders": 0
   },

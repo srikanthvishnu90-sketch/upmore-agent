@@ -13,10 +13,15 @@
    null } — a tailored resume is never shipped with an audit warning.
    Unconfirmed (needs_confirmation) facts support nothing: resume-ingested
    drafts must be confirmed by the user first.
-   PDF: packages/domain/62-agent-documents.js provides a document VAULT
-   (metadata, receipts, policies) — it has no PDF/DOCX renderer. So render()
-   returns text + markdown only and says pdf:null honestly; no renderer is
-   rebuilt here.
+   DOCX/PDF: packages/domain/62-agent-documents.js provides a document
+   VAULT (metadata, receipts, policies) — it has no PDF/DOCX renderer.
+   DOCX now exists alongside this module: render(resume, { format: "docx" })
+   delegates to packages/domain/141-career-docx.js (a hand-built OOXML/ZIP
+   writer, no dependencies) and returns its { ok, buffer, contentType,
+   filename } result; it renders only line.text, so fact IDs and other
+   audit metadata never enter the document, and it refuses any resume the
+   truth audit refused. PDF still has no renderer anywhere in the repo, so
+   the default render() keeps saying pdf:null honestly.
    AI-USE RULES (Doc 2 S8, owner ruling 2026-10-12): when the CIR input says
    the company bans AI-written application text (cir.aiPolicy === "ban" or
    cir.bansAiWrittenText), tailorResume degrades to mode:"outline" —
@@ -28,6 +33,16 @@
    Pure: profile, JD text and CIR are passed in. UMD. */
 const CareerTailor = (() => {
   const Profile = typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js");
+  // DOCX renderer (141) is loaded lazily, only when render() is asked for
+  // format:"docx" — same global-or-require pattern as Profile above.
+  let _docxMod;
+  function docxRenderer() {
+    if (_docxMod !== undefined) return _docxMod;
+    _docxMod = null;
+    if (typeof CareerDocx !== "undefined") _docxMod = CareerDocx;
+    else if (typeof require !== "undefined") { try { _docxMod = require("./141-career-docx.js"); } catch { _docxMod = null; } }
+    return _docxMod;
+  }
 
   const BANNED_PHRASES = [
     "i hope this email finds you well",
@@ -246,7 +261,13 @@ const CareerTailor = (() => {
   }
 
   // ---- ATS-safe render (Doc 2 §3.1 step 6) ----
-  function render(resume) {
+  function render(resume, opts) {
+    const o = opts || {};
+    if (o.format === "docx") {
+      const dx = docxRenderer();
+      if (!dx) return { ok: false, refused: false, reason: "DOCX renderer (141-career-docx.js) is not available in this runtime", buffer: null, docx: null };
+      return dx.renderDocx(resume);
+    }
     const secs = resume.sections || [];
     const head = [resume.header && resume.header.name, resume.header && resume.header.email, resume.header && resume.header.location].filter(Boolean).join(" | ");
     const links = Object.values((resume.header && resume.header.links) || {}).filter(Boolean).join(" | ");

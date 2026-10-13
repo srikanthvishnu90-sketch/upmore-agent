@@ -23,6 +23,14 @@
      scoreFit(posting, profile, cir?)              DISC-005: hard filters first (a hard fail is EXCLUDED with
                                    the reason, never scored), then soft score 0-100 with reasons + gaps and a
                                    Reach/Match/Safety bucket (optional CIR bar; absent -> neutral bar 60)
+     detectRestrictions(posting) / evaluateRestrictions(posting, profile)
+                                   APD-2: structured restriction flags (state_residency, location_radius,
+                                   work_authorization, clearance) with dispositions; unknown deciding facts
+                                   become needs_user_input ask flags, never silent passes
+     detectAiAuthorshipBan(posting) / applicationPrepFor(posting)
+                                   APD-5: employer AI-authorship ban flag + the prep constraint it imposes
+     sourceHealth(feedResults)     SHD-1 (data half): per-source queried/failed + degraded/outcome marker,
+                                   also attached to fetchAll/poll results as `source_health`
      buildShortlist(scored, {limit, feedback})     DISC-006: top-N per day; yes/no feedback memory (injected
                                    store rows) nudges later scores by role_family / company / skills
      recordFeedback(store, entry)  append a yes/no row to the injected feedback store
@@ -94,12 +102,158 @@ const CareerJobs = (() => {
     return "onsite";
   }
 
+  // ---------- posting restrictions + employer rules (APD-2 / APD-5, gauntlet G5) ----------
+  // Restrictions are computed AT TARGETING, from the posting's own text, and carried as
+  // structured data on the posting record — never only as prose a composer might drop.
+  // Classes: state_residency, location_radius, work_authorization, clearance, plus the
+  // employer ai_authorship_ban rule (APD-5). Dispositions are decided against the
+  // profile's KNOWN facts in evaluateRestrictions(): a known mismatch excludes (the
+  // reason travels in data); an UNKNOWN fact for the new classes (residency / radius)
+  // is never silently passed — it becomes a needs_user_input ask flag + a shortlist
+  // demotion. Legacy classes (work-auth citizens-only, clearance) keep the exact
+  // dispositions hardFilters has always applied, now also expressed as flags.
+  const US_STATES = [["Alabama", "AL"], ["Alaska", "AK"], ["Arizona", "AZ"], ["Arkansas", "AR"], ["California", "CA"], ["Colorado", "CO"], ["Connecticut", "CT"], ["Delaware", "DE"], ["District of Columbia", "DC"], ["Florida", "FL"], ["Georgia", "GA"], ["Hawaii", "HI"], ["Idaho", "ID"], ["Illinois", "IL"], ["Indiana", "IN"], ["Iowa", "IA"], ["Kansas", "KS"], ["Kentucky", "KY"], ["Louisiana", "LA"], ["Maine", "ME"], ["Maryland", "MD"], ["Massachusetts", "MA"], ["Michigan", "MI"], ["Minnesota", "MN"], ["Mississippi", "MS"], ["Missouri", "MO"], ["Montana", "MT"], ["Nebraska", "NE"], ["Nevada", "NV"], ["New Hampshire", "NH"], ["New Jersey", "NJ"], ["New Mexico", "NM"], ["New York", "NY"], ["North Carolina", "NC"], ["North Dakota", "ND"], ["Ohio", "OH"], ["Oklahoma", "OK"], ["Oregon", "OR"], ["Pennsylvania", "PA"], ["Rhode Island", "RI"], ["South Carolina", "SC"], ["South Dakota", "SD"], ["Tennessee", "TN"], ["Texas", "TX"], ["Utah", "UT"], ["Vermont", "VT"], ["Virginia", "VA"], ["Washington", "WA"], ["West Virginia", "WV"], ["Wisconsin", "WI"], ["Wyoming", "WY"]];
+  const STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
+  const STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
+  function statesInText(text) {
+    const found = [], seen = new Set();
+    const t = ` ${s(text)} `;
+    for (const [name, abbr] of US_STATES) {
+      if (new RegExp(`\\b${name}\\b`, "i").test(t) || new RegExp(`,\\s*${abbr}\\b`).test(t)) {
+        if (!seen.has(abbr)) { seen.add(abbr); found.push({ name, abbr }); }
+      }
+    }
+    return found;
+  }
+  function postingText(posting) {
+    const reqs = Array.isArray(posting && posting.requirements) ? posting.requirements.join("; ") : "";
+    return [posting && posting.location, posting && posting.remote_terms, reqs, posting && posting.jd_text].filter(Boolean).join(" ");
+  }
+  function sentenceAround(text, re) {
+    for (const sent of s(text).split(/(?<=[.;])\s+/)) if (re.test(sent)) return sent.trim().slice(0, 300);
+    const m = s(text).match(re); return m ? m[0].slice(0, 300) : "";
+  }
+  function detectRestrictions(posting) {
+    const text = postingText(posting || {});
+    const out = [];
+    // state residency: "Colorado residents only", "must reside in Colorado", "authorized only from Colorado"
+    const resPhrases = [];
+    for (const m of text.matchAll(/\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)?) residents only\b/g)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bresidents of ([A-Za-z ,/and]+?)(?: only| may apply| are eligible|\.|;|$)/gi)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bmust (?:reside|live) in ([A-Za-z ,/and]+?)(?: for the entire| for | during|\.|;|,|$)/gi)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bremote work is authorized only from ([A-Za-z ]+?)(?:\.|;|$)/gi)) resPhrases.push(m[1]);
+    const resStates = [];
+    for (const phrase of resPhrases) for (const st of statesInText(phrase)) if (!resStates.some((x) => x.abbr === st.abbr)) resStates.push(st);
+    if (resStates.length) out.push({ type: "state_residency", states: resStates.map((x) => x.abbr), state_names: resStates.map((x) => x.name), requirement: `must reside in ${resStates.map((x) => x.name).join(" or ")}`, evidence: sentenceAround(text, /residents only|residents of|must (reside|live) in|authorized only from/i) });
+    // location radius: "within 25 miles of Denver, CO"
+    const rad = text.match(/\bwithin (?:a )?(\d+)[- ]miles?(?: radius)? of ([A-Za-z .,]+?)(?:\.|;|$)/i) || text.match(/\bwithin (?:a )?(\d+)[- ]mile radius of ([A-Za-z .,]+?)(?:\.|;|$)/i);
+    if (rad) {
+      const center = rad[2].trim();
+      const cStates = statesInText(center);
+      out.push({ type: "location_radius", miles: Number(rad[1]), center, center_states: cStates.map((x) => x.abbr), requirement: `must live within ${rad[1]} miles of ${center}`, evidence: sentenceAround(text, /within (?:a )?\d+[- ]miles?/i) });
+    }
+    // work authorization (peer class; same phrases hardFilters has always used)
+    if (/\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/i.test(text))
+      out.push({ type: "work_authorization", detail: "us_citizens_only", requirement: "US citizenship required", evidence: sentenceAround(text, /citizens? only|citizenship/i) });
+    else if (/\b(no sponsorship|will not sponsor|cannot sponsor|unable to sponsor|without sponsorship|does not offer sponsorship)\b/i.test(text))
+      out.push({ type: "work_authorization", detail: "no_sponsorship", requirement: "no sponsorship offered", evidence: sentenceAround(text, /sponsor/i) });
+    // clearance (peer class)
+    const clr = text.match(/\b(ts\/sci|top secret|secret clearance|security clearance)\b/i);
+    if (clr) out.push({ type: "clearance", detail: lc(clr[1]), requirement: `requires a security clearance (${clr[1]})`, evidence: sentenceAround(text, /clearance|ts\/sci|top secret/i) });
+    return out;
+  }
+  // APD-5: an employer's ban on AI-authored application responses. Detection requires an
+  // authorship/prohibition signal in an application context — a malicious instruction in
+  // a JD (AP15) or a generic "we use AI" line is NOT a ban and must not flag.
+  function detectAiAuthorshipBan(posting) {
+    const text = postingText(posting || {});
+    const sentences = s(text).split(/(?<=[.;])\s+/);
+    for (const sent of sentences) {
+      const aiAuthored = /ai[- ](authored|generated|written)/i.test(sent);
+      const mustOwnWords = /applicants must write|must write all application answers themselves|write .* in (their|your) own words/i.test(sent) && /application|answers/i.test(sent);
+      const aiToolBan = /\b(chatgpt|generative ai|large language models?|llms?)\b/i.test(sent) && /prohibit|banned|not (allowed|permitted)|forbidden/i.test(sent);
+      const prohibited = /prohibit|banned|not (allowed|permitted)|forbidden|grounds for rejection/i.test(sent);
+      if ((aiAuthored && prohibited) || mustOwnWords || aiToolBan) {
+        return { banned: true, type: "ai_authorship_ban", scope: "application_responses", evidence: sent.trim().slice(0, 300), consequence: /grounds for rejection/i.test(sent) ? "grounds for rejection" : null };
+      }
+    }
+    return null;
+  }
+  function profileResidence(profile) {
+    const p = profile || {};
+    const text = s(p.residence || (p.basics && p.basics.location) || p.current_location || (p.constraints && (p.constraints.residence || p.constraints.residence_location)) || "");
+    // The primary segment ("Chicago, IL" in "Chicago, IL — studying; preference Austin")
+    // is the residence; later segments name preferences, not where the candidate lives.
+    const primary = text.split(/[(—;]/)[0];
+    const primaryStates = statesInText(primary);
+    return { text, states: primaryStates.length ? primaryStates : statesInText(text) };
+  }
+  function evaluateRestrictions(posting, profile) {
+    const restrictions = detectRestrictions(posting);
+    const c = (profile && profile.constraints) || {};
+    const residence = profileResidence(profile);
+    const exclusion_reasons = [], needs_user_input = [];
+    for (const r of restrictions) {
+      if (r.type === "state_residency") {
+        const names = r.state_names.join(" or ");
+        if (residence.states.length) {
+          if (residence.states.some((st) => r.states.includes(st.abbr))) r.disposition = "satisfied";
+          else { r.disposition = "excluded"; exclusion_reasons.push(`state residency: posting is limited to ${names} residents; your profile residence is ${residence.text || residence.states.map((x) => x.name).join(", ")}`); }
+        } else {
+          r.disposition = "needs_user_input";
+          needs_user_input.push({ type: "state_residency", missing_fact: "residence_state", restriction: r, question: `Do you currently reside in ${names}? This posting is limited to ${names} residents, and your profile does not state where you reside.`, reason: `state residency restriction (${names} residents only) cannot be checked: no residence on your profile` });
+        }
+      } else if (r.type === "location_radius") {
+        if (residence.text) {
+          if (lc(residence.text).includes(lc(r.center.split(",")[0].trim()))) r.disposition = "satisfied";
+          else if (r.center_states.length && residence.states.length && !residence.states.some((st) => r.center_states.includes(st.abbr))) { r.disposition = "excluded"; exclusion_reasons.push(`location radius: posting requires living within ${r.miles} miles of ${r.center}; your profile residence is ${residence.text}`); }
+          else { r.disposition = "needs_user_input"; needs_user_input.push({ type: "location_radius", missing_fact: "distance_to_center", restriction: r, question: `Do you live within ${r.miles} miles of ${r.center}? This posting requires it, and your profile location is not precise enough to check.`, reason: `location radius (${r.miles} miles of ${r.center}) cannot be verified from your profile location` }); }
+        } else {
+          r.disposition = "needs_user_input";
+          needs_user_input.push({ type: "location_radius", missing_fact: "residence_location", restriction: r, question: `Do you live within ${r.miles} miles of ${r.center}? This posting requires it, and your profile does not state where you reside.`, reason: `location radius (${r.miles} miles of ${r.center}) cannot be checked: no residence on your profile` });
+        }
+      } else if (r.type === "work_authorization") {
+        const wa = s(c.work_authorization), needs = c.needs_sponsorship;
+        if (r.detail === "us_citizens_only") {
+          if (/citizen/i.test(wa) && !needs) r.disposition = "satisfied";
+          else r.disposition = "excluded"; // legacy hardFilters disposition: unknown is not a citizen on record
+        } else { // no_sponsorship
+          if (needs === true || /sponsor/i.test(wa)) r.disposition = "excluded";
+          else if (needs === false || wa) r.disposition = "satisfied";
+          else { r.disposition = "needs_user_input"; needs_user_input.push({ type: "work_authorization", missing_fact: "needs_sponsorship", restriction: r, question: "This posting offers no sponsorship. Do you need sponsorship to work for this employer?", reason: "no-sponsorship restriction cannot be checked: your profile does not state whether you need sponsorship" }); }
+        }
+      } else if (r.type === "clearance") {
+        r.disposition = (c.clearance && !/none|no\b/i.test(s(c.clearance))) ? "satisfied" : "excluded"; // legacy: none recorded = none held
+      }
+    }
+    return { restrictions, excluded: restrictions.some((r) => r.disposition === "excluded"), exclusion_reasons, needs_user_input, unresolved: needs_user_input.length > 0 };
+  }
+  // Application-prep constraint carried in data whenever the employer's ban flags:
+  // downstream prep can read this instead of proceeding as if the ban were absent.
+  function applicationPrepFor(posting) {
+    const ban = detectAiAuthorshipBan(posting);
+    if (!ban) return { ai_authorship_banned: false, ai_authored_responses_allowed: true, allowed_prep: ["ai_drafted_application_responses"], ban: null };
+    return { ai_authorship_banned: true, ai_authored_responses_allowed: false, allowed_prep: ["organize_candidate_facts", "bullet_points_for_candidate_to_write_from", "factual_qa_about_the_posting"], blocked_prep: ["ai_authored_application_responses", "ai_generated_cover_letter_text"], ban };
+  }
+  // ---------- source health (SHD-1, data half) ----------
+  // Health is part of the RESULT DATA: a healthy no-match and an outage both return
+  // zero postings, so callers distinguish them only through this object.
+  function sourceHealth(feedResults) {
+    const queried = (feedResults || []).map((r) => {
+      const ok = !r.error && r.status >= 200 && r.status < 300;
+      return { source: r.source || null, company_token: r.company_token || null, url: r.url || null, status: r.skipped ? "dead" : (r.status != null ? r.status : 0), ok, skipped: !!r.skipped, error: r.error || null, postings: (r.postings || []).length };
+    });
+    const succeeded = queried.filter((q) => q.ok), failed = queried.filter((q) => !q.ok);
+    const outcome = !queried.length ? "no_sources" : !succeeded.length ? "outage" : failed.length ? "degraded" : "ok";
+    return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
                        : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
     const jd_text = stripHtml(p.jd_text || "");
-    return {
+    const posting = {
       job_id, company: s(p.company), title: s(p.title),
       role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
       location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
@@ -107,6 +261,10 @@ const CareerJobs = (() => {
       source: p.source, sources: [p.source], source_urls: [s(p.url)],
       department: s(p.department || ""), req_id: req || null,
     };
+    // APD-2/APD-5: restrictions + employer AI-authorship ban ride on the posting record.
+    posting.restrictions = detectRestrictions(posting);
+    posting.ai_authorship_ban = detectAiAuthorshipBan(posting);
+    return posting;
   }
 
   // ---------- per-ATS normalization (recorded shapes; see tests) ----------
@@ -271,7 +429,7 @@ const CareerJobs = (() => {
     if (store) await store.set(key, snapshot);
     const skippedDead = (feedList || []).filter((fd) => fd && fd.status === "dead")
       .map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" }));
-    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead };
+    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead, source_health: sourceHealth(results) };
   }
 
   // ---------- ghost / quality flags (DISC-008) ----------
@@ -335,6 +493,10 @@ const CareerJobs = (() => {
     if (posting.seniority_band === "intern" && years != null && years >= 3 && level !== "student") fails.push(`seniority: posting is an internship; your profile shows ${years} yrs experience`);
     const reqYears = jd.match(/\b(\d+)\+?\s*(?:years|yrs)(?:\s*of)?\s*(?:experience|exp)\b/);
     if (reqYears && years != null && years + 1 < Number(reqYears[1])) fails.push(`seniority: posting asks ${reqYears[1]}+ years of experience; your profile shows ${years}`);
+    // posting restrictions (APD-2): state residency + location radius are hard filters
+    // when the profile's known facts decide them; when the deciding fact is unknown the
+    // restriction does NOT fail here — scoreFit surfaces it as a needs_user_input flag.
+    for (const reason of evaluateRestrictions(posting, profile).exclusion_reasons) fails.push(reason);
     // degree
     const deg = lc(profile.degree || c.degree || "");
     if (/\bph\.?d\.?\b/.test(jd.slice(0, 1200)) && /\brequired\b/.test(jd.slice(0, 1200)) && !/ph/.test(deg)) fails.push(`degree: posting requires a PhD; your profile degree is ${deg || "not listed"}`);
@@ -344,7 +506,11 @@ const CareerJobs = (() => {
 
   function scoreFit(posting, profile, cir) {
     const fails = hardFilters(posting, profile || {});
-    if (fails.length) return { job_id: posting.job_id, excluded: true, score: null, bucket: null, reasons: fails, gaps: fails, matched_skills: [], missing_skills: [], hard_fails: fails };
+    // APD-2/APD-5 data, computed for every scored posting, excluded or not.
+    const restrictionEval = evaluateRestrictions(posting, profile || {});
+    const aiBan = detectAiAuthorshipBan(posting);
+    const prep = applicationPrepFor(posting);
+    if (fails.length) return { job_id: posting.job_id, excluded: true, score: null, bucket: null, reasons: fails, gaps: fails, matched_skills: [], missing_skills: [], hard_fails: fails, restrictions: restrictionEval.restrictions, needs_user_input: restrictionEval.needs_user_input, restriction_unresolved: restrictionEval.unresolved, ai_authorship_ban: aiBan, application_prep: prep };
     const prefs = (profile && profile.preferences) || {};
     const jd = lc(posting.title + " " + posting.jd_text);
     const skills = profileSkills(profile);
@@ -384,7 +550,10 @@ const CareerJobs = (() => {
     const diff = score - bar;
     const bucket = diff >= 15 ? "Safety" : diff >= -10 ? "Match" : "Reach";
     reasons.push(`bucket ${bucket}: score ${score} vs bar ${bar}${cir ? " (company bar)" : " (neutral bar; no company record yet)"}`);
-    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), unproven_skills: unprovenMatched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [] };
+    // APD-2: an unresolved restriction is named as a gap and demotes the posting in
+    // shortlist ordering — it is never silently passed as a clean fit.
+    for (const q of restrictionEval.needs_user_input) gaps.push(`needs your input: ${q.reason}`);
+    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), unproven_skills: unprovenMatched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [], restrictions: restrictionEval.restrictions, needs_user_input: restrictionEval.needs_user_input, restriction_unresolved: restrictionEval.unresolved, demoted: restrictionEval.unresolved, ai_authorship_ban: aiBan, application_prep: prep };
   }
 
   // ---------- APPE-001 persona fixture -> scoring profile ----------
@@ -427,6 +596,9 @@ const CareerJobs = (() => {
         locations, starred_companies: starred ? starred.split(",").map((x) => x.trim()).filter(Boolean) : [],
       },
     };
+    // APD-2: residence is a targeting fact in its own right (where the candidate
+    // actually lives/studies), distinct from preferred locations.
+    if (persona && persona.basics && persona.basics.location) { prof0.residence = String(persona.basics.location); prof0.basics = { location: String(persona.basics.location) }; prof0.constraints.residence = String(persona.basics.location); }
     if (persona && persona.constraints) {
       if (canonGradYear) { prof0.constraints.graduation_year = canonGradYear; prof0.constraints.graduation_date = String(persona.constraints.graduationDate); }
       if (typeof persona.constraints.needsSponsorship === "boolean") prof0.constraints.needs_sponsorship = persona.constraints.needsSponsorship;
@@ -480,15 +652,18 @@ const CareerJobs = (() => {
       const posting = item.posting || item;
       const merged = Object.assign({}, posting, { matched_skills: item.matched_skills || [] });
       const fb = feedbackNudge(rows, merged);
-      enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge });
+      enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge, restrictions: item.restrictions || posting.restrictions || [], needs_user_input: item.needs_user_input || [], restriction_unresolved: !!item.restriction_unresolved, ai_authorship_ban: item.ai_authorship_ban || posting.ai_authorship_ban || null, application_prep: item.application_prep || null });
     }
-    enriched.sort((a, b) => b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
+    // APD-2 demotion: postings with an unresolved restriction rank below every
+    // resolved posting, whatever their skill score — never a silent top fit.
+    enriched.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
     return enriched.slice(0, limit);
   }
 
-  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
+  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), source_health: sourceHealth(r), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
+    detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     roleFamily, seniorityBand, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;

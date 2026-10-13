@@ -12,6 +12,19 @@
  * stage: received -> deduped -> current -> ready. Parse failures are
  * reported per line and never swallow the good rows. Pure: no I/O, no
  * network; callers hand text in and records come out.
+ *
+ * Real-input run (2026-10-13, the 56 real bankers in
+ * tests/fixtures/real-people-finance-v1.cjs) exposed two gaps, both fixed
+ * here and replay-tested in tests/career-intake-real-data.test.cjs:
+ *  - Currency is per-record data, not only a caller-supplied departed
+ *    list: a CSV may carry Currency + Currency Note columns. A record
+ *    whose currency is stale or uncertain is flagged (currency_stale /
+ *    currency_unverified) and leaves the current + ready counts — it is
+ *    NOT a departure, and the file's own note is preserved on the record.
+ *  - Email labels are data too: an Email Status column is carried
+ *    verbatim-normalized (published | verified | inferred_held |
+ *    not_found). An address with no stated status defaults to
+ *    "unverified" — the lane never upgrades, guesses, or enriches.
  */
 "use strict";
 const Profile122 = (() => { try { return typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js"); } catch { return null; } })();
@@ -23,8 +36,34 @@ const CareerIntake = (() => {
   function baseRecord(o) {
     return { full_name: clean(o.full_name || ""), current_firm: clean(o.current_firm || "") || null,
       title: clean(o.title || "") || null, office: clean(o.office || "") || null,
-      email: clean(o.email || "") || null, sources: [], flags: [],
+      email: clean(o.email || "") || null, email_status: o.email_status || null,
+      currency_status: o.currency_status || null, currency_note: o.currency_note || null,
+      sources: [], flags: [],
       former_employer_note: o.former_employer_note || null, last_verified_at: o.last_verified_at || null };
+  }
+
+  // Email status vocabulary (the research file's labels, normalized).
+  // Anything unrecognized with an address present resolves in intake() to
+  // "unverified" — never to a stronger claim than the input made.
+  function normEmailStatus(v) {
+    const s = norm(v);
+    if (!s) return null;
+    if (s.includes("infer")) return "inferred_held";
+    if (/not found|none|missing/.test(s)) return "not_found";
+    if (s.includes("publish")) return "published";
+    if (s.includes("verif")) return "verified";
+    return "unverified";
+  }
+
+  // Currency vocabulary: current | stale | uncertain. An unrecognized
+  // non-empty currency word resolves to "uncertain" — the safe direction:
+  // a record is only counted current when the input actually says so.
+  function normCurrencyStatus(v) {
+    const s = norm(v);
+    if (!s) return null;
+    if (/stale|not currently registered|departed|registration ended/.test(s)) return "stale";
+    if (s.includes("current")) return "current";
+    return "uncertain";
   }
 
   // Quote-aware splitter for ONE line. Returns null on an unbalanced quote
@@ -44,7 +83,8 @@ const CareerIntake = (() => {
   }
 
   const HEADER_ALIASES = { name: "full_name", "full name": "full_name", firm: "current_firm", company: "current_firm",
-    title: "title", position: "title", office: "office", city: "office", location: "office", email: "email", "email address": "email" };
+    title: "title", position: "title", office: "office", city: "office", location: "office", email: "email", "email address": "email",
+    "email status": "email_status", currency: "currency_status", "currency status": "currency_status", "currency note": "currency_note" };
 
   function parsePasted(text) {
     const records = [], errors = [];
@@ -63,6 +103,8 @@ const CareerIntake = (() => {
         if (cells.length !== headers.length) { errors.push({ where: `line ${i + 2}`, message: `expected ${headers.length} columns, got ${cells.length}` }); return; }
         const rec = baseRecord({});
         headers.forEach((h, j) => { if (h) rec[h] = cells[j] || null; });
+        if (rec.email_status) rec.email_status = normEmailStatus(rec.email_status);
+        if (rec.currency_status) rec.currency_status = normCurrencyStatus(rec.currency_status);
         if (rec.full_name) { rec.sources = ["pasted"]; records.push(rec); }
         else errors.push({ where: `line ${i + 2}`, message: "no name in row" });
       });
@@ -156,7 +198,7 @@ const CareerIntake = (() => {
       if (!byKey.has(k)) { byKey.set(k, r); continue; }
       const keep = byKey.get(k);
       for (const src of r.sources) if (!keep.sources.includes(src)) keep.sources.push(src);
-      for (const f of ["current_firm", "title", "office", "email", "last_verified_at", "former_employer_note"]) if (!keep[f] && r[f]) keep[f] = r[f];
+      for (const f of ["current_firm", "title", "office", "email", "email_status", "currency_status", "currency_note", "last_verified_at", "former_employer_note"]) if (!keep[f] && r[f]) keep[f] = r[f];
       for (const fl of r.flags) if (!keep.flags.includes(fl)) keep.flags.push(fl);
     }
     const records = [...byKey.values()];
@@ -172,13 +214,31 @@ const CareerIntake = (() => {
     }
     for (const r of records) if (!r.current_firm && !r.flags.includes("needs_firm")) r.flags.push("needs_firm");
 
+    // Per-record resolution. Email labels: an address whose status the
+    // input never stated is "unverified" (present, unproven); no address
+    // and no stated status is "not_found". Currency: stale / uncertain
+    // records are flagged and leave the current counts — flagged for
+    // re-verification, not declared departed.
+    for (const r of records) {
+      if (r.email && !r.email_status) r.email_status = "unverified";
+      if (!r.email && !r.email_status) r.email_status = "not_found";
+      if (r.currency_status === "stale" && !r.flags.includes("currency_stale")) r.flags.push("currency_stale");
+      if (r.currency_status === "uncertain" && !r.flags.includes("currency_unverified")) r.flags.push("currency_unverified");
+    }
+
+    const notCurrent = (r) => r.flags.includes("departed") || r.flags.includes("currency_stale") || r.flags.includes("currency_unverified");
     const flagged = records.filter((r) => r.flags.includes("departed"))
       .map((r) => ({ full_name: r.full_name, current_firm: r.current_firm, reason: "departed", note: r.former_employer_note || null }));
-    const current = records.filter((r) => !r.flags.includes("departed"));
+    for (const r of records) {
+      if (r.flags.includes("currency_stale")) flagged.push({ full_name: r.full_name, current_firm: r.current_firm, reason: "currency_stale", note: r.currency_note || null });
+      else if (r.flags.includes("currency_unverified")) flagged.push({ full_name: r.full_name, current_firm: r.current_firm, reason: "currency_unverified", note: r.currency_note || null });
+    }
+    const current = records.filter((r) => !notCurrent(r));
     const ready = current.filter((r) => r.current_firm);
     return { records, flagged, errors,
       counts: { received, deduped: records.length, duplicates_removed: raw.length - records.length,
-        current: current.length, ready: ready.length } };
+        current: current.length, ready: ready.length,
+        currency_flagged: records.filter((r) => r.flags.includes("currency_stale") || r.flags.includes("currency_unverified")).length } };
   }
 
   return { intake, parsePasted, parseLinkedIn, parseForwarded, dedupeKey };

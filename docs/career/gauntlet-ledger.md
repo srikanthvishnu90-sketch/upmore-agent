@@ -1380,3 +1380,76 @@ vs not found; nothing sent) is commissioned by the parent and lands in
 lands, it becomes module 146's first real-input test set (dedupe /
 freshness / counts against real data; still no sends, no enrichment
 purchases), and the run is recorded here.
+
+## INTAKE LANE — FIRST REAL-INPUT RUN (2026-10-13)
+
+The 56 real junior bankers from `~/workspace/your_files/upmore-real-people-finance-v1.md`
+(public sources only; evidence URLs in that file; DO NOT SEND) were fed
+through module 146 as pasted CSV — the lane's first run on real data
+instead of fixtures. Extraction was machine-verified against the file's
+own totals before the run (56 people / 0 published / 31 INFERRED-HELD /
+25 NOT FOUND). Fixture: `tests/fixtures/real-people-finance-v1.cjs`;
+replay suite: `tests/career-intake-real-data.test.cjs` (6 tests).
+
+**Stage counts (post-fix; the lane now agrees with the file on every record):**
+
+| Stage | Count |
+|---|---|
+| received | 56 |
+| deduped | 56 (0 duplicates removed, 0 parse errors, 0 records dropped) |
+| currency-flagged (held out of current) | 19 |
+| current | 37 |
+| ready | 37 |
+
+**Ground-truth discrepancy inside the research file itself:** its
+closing re-verification queue and headline say 17 flagged records, but
+19 records carry the flag in their own text — the queue omits Holden
+Emery ("mildly stale", ~18-month-old source) and Saran Diakite Kaba
+(source >12 months old). Per-record flags were treated as ground truth;
+the file's summary undercounts its own flags by 2.
+
+**Defect 1 — currency flags had no way in (FIXED in 146).** The lane's
+only currency input was a caller-supplied departed list; a pasted CSV's
+Currency / Currency Note columns were silently discarded (no error), so
+pre-fix the lane counted **current 56 / ready 56** — certifying as ready
+all 19 people the file flags for re-verification, including Annie
+Nyqvist (William Blair registration ended 03/2024) and Srijan Sharma
+(BDO registration ended 08/2026). Fix: Currency + Currency Note are now
+intake columns; stale → flag `currency_stale`, uncertain → flag
+`currency_unverified`, both leave current/ready and appear in `flagged`
+with the file's own note preserved. They are flagged, not declared
+departed. Fail-first: the replay suite failed 4/6 pre-fix, passes 6/6
+post-fix.
+
+**Defect 2 — email labels were silently dropped (FIXED in 146).** The
+Email Status column was discarded the same way, so all 31 INFERRED-HELD
+addresses were stored as bare emails, indistinguishable from published
+ones (labels preserved pre-fix: **0/31**). Fix: Email Status is carried
+and normalized (published | verified | inferred_held | not_found); an
+address with no stated status defaults to `unverified` — the lane never
+upgrades, guesses, or enriches. Post-fix: **31/31 labels preserved**,
+25/25 NOT FOUND still address-less, 0 records marked published (the
+file has none).
+
+**What real data did NOT break:** parsing (56/56, compound names —
+Saran Diakite Kaba, William A. Tyndall Jr., Dylan D'Agate, Rachel
+O'Brien — byte-for-byte intact) and dedupe (no false merges; the lane
+constructed no address for Kaba, whose compound surname is why the
+source research constructed none). Observed, NOT fixed (no defect in
+this data exposes it): firm-name variants — "Citigroup Global Markets"
+vs "Citi" — would defeat dedupe if one person arrived under both
+spellings; no such pair exists in the 56.
+
+**The honest ready number:** the lane certifies **37** people as
+current + ready from real data. Of those 37, **18** carry an
+INFERRED-HELD address (a pattern guess — still held, unverified),
+**19** have no email at all, and **0** have a published or verified
+email. Ready to contact with a confirmed email address: **zero**. No
+sends, no purchases, no external calls were made in this run.
+
+**Regression evidence:** intake suites 16/16 (10 existing + 6 new);
+career + router + capabilities surface: 725 tests, 715 pass, 3 fail —
+the same 3 (SC-286 / SC-287 / SC-277 quality-contract replays,
+career-quality-contracts.test.cjs) fail identically on the pristine
+tree without this change; they are pre-existing Codex-lane items, not
+regressions. Router bundle rebuilt (107 modules, --check clean).

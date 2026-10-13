@@ -1,0 +1,101 @@
+{
+ "about": "Dated official recall data (cluster K12, C94). Rows come from the U.S. Consumer Product Safety Commission's own recall notices (cpsc.gov), read on the checked date; each row carries the CPSC recall number, the recall date, the source URL and the checked date. Matching runs against the person's own purchases (packages/domain/118-found-money.js and the earn engine's E3 found money): the product, not only the store \u2014 a purchase confirms a recall only when its record names the product. A remedy is claimed with the manufacturer or agency exactly as the notice states; Upmore prepares the claim, the owner submits it. Re-check monthly; past fresh_days a row is said to may have changed.",
+ "fresh_days": 30,
+ "recalls": [
+  {
+   "agency": "U.S. Consumer Product Safety Commission (CPSC)",
+   "checked_how": "CPSC recall notice 26-780 (Fast Track Recall, announced September 17, 2026): about 84,000 units, sold exclusively at Target stores and Target.com from July 2025 through August 2026 for about $30; date codes OET 25100, OET 25150 or OET 26064 on the packaging identify recalled units.",
+   "checked_on": "2026-10-12",
+   "claim_url": "https://www.melissaanddoug.com/recall",
+   "deadline": null,
+   "hazard": "The fire hose port can come loose and detach, posing a risk of serious injury from a choking hazard. Stop using it and keep it away from children.",
+   "id": "cpsc-26-780-melissa-doug-fire-truck",
+   "merchant": "Target",
+   "models": [
+    "Date codes OET 25100, OET 25150, OET 26064"
+   ],
+   "product": "Melissa & Doug Lights & Sounds Fire Truck Activity Board",
+   "purchased_after": "2025-07-01",
+   "purchased_before": "2026-08-31",
+   "recall_date": "2026-09-17",
+   "recall_number": "26-780",
+   "refund_basis": "stated_amount",
+   "refund_cents": 3000,
+   "remedy": "Register on Melissa & Doug's recall page, then choose: a free replacement fire truck activity board, a refund of the $30 purchase price by check, or a $40 credit at melissaanddoug.com. Registration asks you to remove the batteries, write RECALL and a unique code on the front, cut off the black hose, and upload a photo before disposing of the toy.",
+   "remedy_type": "refund_or_replacement_or_credit",
+   "source_url": "https://www.cpsc.gov/Recalls/2026/Melissa-and-Doug-Recalls-Fire-Truck-Activity-Board-Toys-Due-to-Risk-of-Serious-Injury-from-Choking-Hazard-Sold-Exclusively-at-Target",
+   "match_words": [
+    "MELISSA",
+    "DOUG",
+    "FIRE",
+    "TRUCK",
+    "ACTIVITY",
+    "BOARD"
+   ]
+  },
+  {
+   "agency": "U.S. Consumer Product Safety Commission (CPSC)",
+   "checked_how": "CPSC recall notice 26-778 (announced September 17, 2026): about 195,000 heated blankets and heating pads, sold only on Amazon.com from September 2022 through July 2026, in one-packs and two-packs.",
+   "checked_on": "2026-10-12",
+   "claim_url": "https://www.jkmaxrecall.com",
+   "deadline": null,
+   "hazard": "The internal wire heating elements can overheat, creating fire and burn hazards (577 reports of smoking, melting or burning, including 53 burn injuries). Stop using it and unplug it.",
+   "id": "cpsc-26-778-jkmax-heated-blankets",
+   "merchant": "Amazon",
+   "models": [
+    "JKMAX-002",
+    "JKMAX-7284B",
+    "JKMAX-6284B",
+    "JKMAX-10090B",
+    "JKMAX-8490B"
+   ],
+   "product": "JKMAX Heated Blanket",
+   "purchased_after": "2022-09-01",
+   "purchased_before": "2026-07-31",
+   "recall_date": "2026-09-17",
+   "recall_number": "26-778",
+   "refund_basis": "purchase_price",
+   "refund_cents": null,
+   "remedy": "A full refund of the purchase price from JKMAX. Contact JKMAX through its recall site or by email at JkmaxRecall@outlook.com; Amazon also lists it under Recalls and Product Safety Alerts. The model number is on the back of the detachable remote or on the packaging label.",
+   "remedy_type": "refund",
+   "source_url": "https://www.cpsc.gov/Recalls/2026/JKMAX-Recalls-Heated-Blankets-and-Heating-Pads-Due-to-Fire-and-Burn-Hazards",
+   "match_words": [
+    "JKMAX",
+    "HEATED",
+    "BLANKET"
+   ]
+  },
+  {
+   "agency": "U.S. Consumer Product Safety Commission (CPSC)",
+   "checked_how": "CPSC recall notice 26-778 (announced September 17, 2026): about 195,000 heated blankets and heating pads, sold only on Amazon.com from September 2022 through July 2026, in one-packs and two-packs.",
+   "checked_on": "2026-10-12",
+   "claim_url": "https://www.jkmaxrecall.com",
+   "deadline": null,
+   "hazard": "The internal wire heating elements can overheat, creating fire and burn hazards (577 reports of smoking, melting or burning, including 53 burn injuries). Stop using it and unplug it.",
+   "id": "cpsc-26-778-jkmax-heating-pads",
+   "merchant": "Amazon",
+   "models": [
+    "JKMAX-002",
+    "JKMAX-7284B",
+    "JKMAX-6284B",
+    "JKMAX-10090B",
+    "JKMAX-8490B"
+   ],
+   "product": "JKMAX Heating Pad",
+   "purchased_after": "2022-09-01",
+   "purchased_before": "2026-07-31",
+   "recall_date": "2026-09-17",
+   "recall_number": "26-778",
+   "refund_basis": "purchase_price",
+   "refund_cents": null,
+   "remedy": "A full refund of the purchase price from JKMAX. Contact JKMAX through its recall site or by email at JkmaxRecall@outlook.com; Amazon also lists it under Recalls and Product Safety Alerts. The model number is on the back of the detachable remote or on the packaging label.",
+   "remedy_type": "refund",
+   "source_url": "https://www.cpsc.gov/Recalls/2026/JKMAX-Recalls-Heated-Blankets-and-Heating-Pads-Due-to-Fire-and-Burn-Hazards",
+   "match_words": [
+    "JKMAX",
+    "HEATING",
+    "PAD"
+   ]
+  }
+ ]
+}

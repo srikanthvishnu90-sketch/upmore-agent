@@ -72,6 +72,12 @@ const OWNER: [string, string | null][] = [
   ["is nano banc safe", "unclaimedReply"],
   ["I got a letter from the Illinois Treasurer Money Match saying they owe me $412, is it real?", "unclaimedReply"],
   ["the state treasurer sent me a letter about unclaimed money, legit?", "unclaimedReply"],
+  // Found money from official sources (cluster K12): settlements matched on the person's own purchases (C90), the
+  // unclaimed property search plan (C91), and recalls matched on the product (C94). After money owed in the handler.
+  ["find any class action settlements i qualify for and claim them", "foundMoneyReply"],
+  ["check if any state is holding money for me", "foundMoneyReply"],
+  ["anything i own been recalled?", "foundMoneyReply"],
+  ["prepare the mdlive claim", "foundMoneyReply"],
   ["is this ftc refund email real? From: refunds@ftc.gov You have a PayPal payment from the FTC Amazon refund.", "moneyOwedReply"],
   ["my payment failed at chase", null],
   ["my bank failed to send my transfer", null],

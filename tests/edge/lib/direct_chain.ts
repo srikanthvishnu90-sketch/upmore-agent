@@ -11,6 +11,7 @@ import { priceDropReply } from "../../../supabase/functions/agent-chat/_shared/p
 import { moneyOwedReply } from "../../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import { airlineReply } from "../../../supabase/functions/agent-chat/_shared/airline_answer.ts";
 import { unclaimedReply } from "../../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
+import { foundMoneyReply } from "../../../supabase/functions/agent-chat/_shared/found_money_answer.ts";
 import { whatsNewReply } from "../../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 import { winBackReply } from "../../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
@@ -59,6 +60,7 @@ export const ANSWERS: Record<string, (m: string) => Promise<string | null>> = {
   rewardsReply: (m) => rewardsReply(m, TODAY, accounts, oldest),
   priceDropReply: (m) => priceDropReply(m, TODAY, oldest),
   moneyOwedReply: (m) => moneyOwedReply(m, TODAY, oldest, accounts),
+  foundMoneyReply: (m) => foundMoneyReply(m, TODAY, oldest),
   airlineReply: (m) => airlineReply(m, TODAY, oldest),
   unclaimedReply: (m) => unclaimedReply(m, TODAY, oldest, accounts),
   whatsNewReply: (m) => whatsNewReply(m, TODAY, async () => TX as any[], async () => []),

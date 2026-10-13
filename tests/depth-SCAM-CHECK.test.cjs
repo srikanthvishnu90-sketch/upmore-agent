@@ -78,7 +78,7 @@ test("[S13] the strongest warning wins: a caller asking for a code and a safe ac
 });
 
 test("[S14] every reply names one safe next step through the company's own channel or the person's own hands", () => {
-  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/, payee_change: /Call them on a number you already have \(your lease or an old bill, not the message\)/, mistaken_payment: /ask them to cancel or dispute it in the app, or contact the app's support from inside the app/ };
+  const STEP = { safe_account: /call your bank on the number on the back of your card/, gift_cards: /on a number you already have, or in person/, locked_link: /Open the company's own app, or call the number on the back of your card/, pasted_transfer: /contact the company through its own app or website/, password: /use "Forgot password" on that company's own site or app/, code_ask: /contact the company through its own app or the number on its website/, unknown_request: /Decline it in the app it came from/, payee_change: /Call them on a number you already have \(your lease or an old bill, not the message\)/, mistaken_payment: /ask them to cancel or dispute it in the app, or contact the app's support from inside the app/, bank_text: /call the number on the back of your card/, money_moved: /Call your bank's fraud team right now on the number on the back of your card/ };
   for (const k of S.KINDS) assert.match(S.TEXT[k], STEP[k], k);
 });
 
@@ -89,7 +89,7 @@ test("[S15] where money or a code may already be gone, the report path is said: 
 
 test("[S12] the reply never asks for anything back: no code, password, card or account number", () => {
   for (const k of S.KINDS) assert.doesNotMatch(S.TEXT[k], /\b(?:send|tell|give|share) me\b|\bwhat(?:'s| is) your (?:code|password|card|account)\b/i, k);
-  assert.equal(S.KINDS.length, 9);
+  assert.equal(S.KINDS.length, 11);
 });
 
 test("[S16] a landlord or company that 'changed where to send' money, with no new details, is checked on a number the person already has before anything changes; details go to the rent card", () => {
@@ -98,6 +98,40 @@ test("[S16] a landlord or company that 'changed where to send' money, with no ne
     assert.match(S.answer(t), /^Check that before anything changes: .* Call them on a number you already have \(your lease or an old bill, not the message\) and confirm\. .* nothing changes without your yes\. Nothing was changed\.$/, t);
   }
   for (const t of ["my landlord changed to zelle jane@example.com, pay rent 1500 on the 1st", "landlord raised the rent to 1600", "my landlord changed the due date", "pay my rent", "is my landlord allowed to raise rent", "I changed banks"]) assert.notEqual(kind(t), "payee_change", t);
+});
+
+test("[S18] C146: 'is this text from my bank real?' gets a verdict with computed reasoning — a lookalike link address is fake, an official one is said as only the signs checking out, and nothing from the message is echoed", () => {
+  const fake = "is this text from my bank real? it says: CHASE ALERT your account is locked, verify within 24 hours at chase-verify-secure.com or it will be closed";
+  assert.equal(kind(fake), "bank_text");
+  const a = S.answer(fake);
+  assert.match(a, /^Treat that text as fake\. .*not your bank's real website\./);
+  assert.match(a, /call the number on the back of your card/);
+  assert.doesNotMatch(a, /chase-verify-secure|\$|24 hours/, "no link or detail echoed");
+  const short = "is this text from my bank real? 'wells fargo: unusual sign-in, check it here bit.ly/3xYz'";
+  assert.equal(kind(short), "bank_text");
+  assert.match(S.answer(short), /^Treat that text as fake\. The link is a shortened address/);
+  assert.doesNotMatch(S.answer(short), /bit\.ly/);
+  const ok = "is this text from my bank real? 'chase: card ending soon, see chase.com/alerts'";
+  assert.equal(kind(ok), "bank_text");
+  assert.match(S.answer(ok), /^The signs I can check look right/);
+  assert.match(S.answer("is this text from my bank real?"), /^I can't confirm that text is real/);
+  for (const t of ["is my bank open today", "text my bank about the fee", "my bank texted me a code and the site is asking for it"]) assert.notEqual(kind(t), "bank_text", t);
+});
+
+test("[S19] C146: money already moved to a scammer opens the recovery case at once — the fraud-team call first, timed steps, nothing echoed, no bank contacted by the agent", () => {
+  const t = "i think i got scammed, i already sent $500 by zelle to a guy who said he was from my bank's fraud team";
+  assert.equal(kind(t), "money_moved");
+  const a = S.answer(t);
+  assert.match(a, /^This is a recovery case now, and minutes matter/);
+  assert.match(a, /Call your bank's fraud team right now on the number on the back of your card/);
+  assert.match(a, /reportfraud\.ftc\.gov/);
+  assert.match(a, /I haven't contacted the bank/);
+  assert.doesNotMatch(a, /\$500|zelle to a guy/, "no amount or detail echoed");
+  const r = S.recovery(t, { today: "2026-10-12" });
+  assert.equal(r.kind, "scam_recovery"); assert.equal(r.status, "open"); assert.equal(r.opened_on, "2026-10-12");
+  assert.equal(r.steps.length, 5); assert.equal(r.steps[0].when, "now");
+  assert.equal(S.recovery("i sent sam $40 for dinner", { today: "2026-10-12" }), null, "an ordinary payment is not a recovery case");
+  assert.equal(kind("i sent money to my landlord"), null);
 });
 
 test("[S17] money sent \"by mistake\" and asked back: don't send it back yourself; the money in can be pulled back, what goes out can't; a person's own mistaken send is not this", () => {

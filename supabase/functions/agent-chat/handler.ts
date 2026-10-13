@@ -42,6 +42,7 @@ import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { airlineReply } from "./_shared/airline_answer.ts";
 import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
+import { foundMoneyReply } from "./_shared/found_money_answer.ts";
 import { whatsNewReply } from "./_shared/whats_new_answer.ts";
 import { budgetReply, readBudgets } from "./_shared/budget_answer.ts";
 import { goalReply } from "./_shared/goal_answer.ts";
@@ -367,6 +368,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // A state treasurer letter or a failed bank (_shared/unclaimed_answer.ts) before a general "am I owed".
         if (!direct) direct = await unclaimedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
         if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
+        // Found money from official sources (cluster K12, _shared/found_money_answer.ts): class action settlements
+        // matched on the person's own purchases and notices with claim packets prepared (C90), the unclaimed
+        // property search plan over official state portals (C91), and CPSC recalls matched on the product (C94).
+        if (!direct) direct = await foundMoneyReply(message, today, oldestFirst);
         // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
         // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.
         if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });

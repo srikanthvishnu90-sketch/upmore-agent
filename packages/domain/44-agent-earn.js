@@ -112,17 +112,22 @@
         const k = key(r.merchant || ""), atMerchant = txs.filter(t => k && (t.key === k || t.key.startsWith(k + " ")) && (!r.purchased_after || t.date >= ymd(r.purchased_after)) && (!r.amount_cents || Math.abs(cents(t.amount)) === r.amount_cents));
         if (!atMerchant.length) continue;
         // The product, not only the store: a purchase confirms the recall when its record names every word of the product beyond
-        // the merchant's own name ("PELOTON TREAD" for the Peloton Tread). A purchase there that does not name it may be anything
-        // the store sells: said as unconfirmed, worth $0 here, with no claim offered and no refund deadline alert.
-        const merchantWords = new Set(k.split(" ")), productWords = key(r.product || "").split(" ").filter(w => w && !merchantWords.has(w));
+        // the merchant's own name ("PELOTON TREAD" for the Peloton Tread). A recall row may instead declare its identifying
+        // words (match_words, cluster K12): the words a purchase record actually carries for that product — the CPSC's full
+        // product name has words ("Lights & Sounds") statement text never repeats. A purchase there that does not name it may
+        // be anything the store sells: said as unconfirmed, worth $0 here, with no claim offered and no refund deadline alert.
+        const merchantWords = new Set(k.split(" ")), productWords = (r.match_words && r.match_words.length ? r.match_words.map(w => key(w)).filter(Boolean) : key(r.product || "").split(" ").filter(w => w && !merchantWords.has(w)));
         const named = t => productWords.length > 0 && productWords.every(w => t.key.split(" ").includes(w)), rows = atMerchant.filter(named).map(proof);
         if (!rows.length) {
           out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: ${atMerchant.length} purchase${atMerchant.length === 1 ? "" : "s"} at ${r.merchant} may be the recalled product, but the record does not name it; check before claiming`, capability_id: "EARN-015", tier: "T0", expected_cents: 0, confidence: "low", time_minutes: 5, unconfirmed: true, check_by: r.deadline ? ymd(r.deadline) : null, action: null,
             evidence: { rule: "A purchase at the recall's merchant whose record does not name the product: unconfirmed, never offered as money.", rows: atMerchant.slice(0, 5).map(proof), computed: { product_words: productWords } }, verify: { how: "n/a: unconfirmed until the person confirms the product" } }));
           continue;
         }
-        out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: refund of ${money(r.refund_cents || 0)} available`, capability_id: "EARN-015", tier: "T3", expected_cents: r.refund_cents || 0, confidence: "medium", time_minutes: 20, deadlines: r.deadline ? [{ what: `${r.product} recall refund deadline`, on: ymd(r.deadline) }] : [],
-          action: { type: "file_refund", capability_id: "EARN-015" }, evidence: { rule: "A purchase at the recall's merchant whose record names the product, inside the recall's date window (and at its amount, when one is given).", rows, computed: {} }, verify: { how: "the refund posts" } }));
+        // The refund figure: the row's stated amount, or — when the notice's remedy is a full refund of the purchase price
+        // (refund_basis "purchase_price", cluster K12) — what the person actually paid, from their own first named purchase.
+        const refundCents = r.refund_cents > 0 ? r.refund_cents : (r.refund_basis === "purchase_price" && rows.length ? Math.abs(cents(rows[0].amount)) : 0);
+        out.push(opp("E3_found", `recall:${r.id}`, { title: `${r.product} recall: refund of ${money(refundCents)} available`, capability_id: "EARN-015", tier: "T3", expected_cents: refundCents, confidence: "medium", time_minutes: 20, deadlines: r.deadline ? [{ what: `${r.product} recall refund deadline`, on: ymd(r.deadline) }] : [],
+          action: { type: "file_refund", capability_id: "EARN-015" }, evidence: { rule: "A purchase at the recall's merchant whose record names the product, inside the recall's date window (and at its amount, when one is given).", rows, computed: { refund_basis: r.refund_basis || "stated_amount" } }, verify: { how: "the refund posts" } }));
       }
       return out;
     }

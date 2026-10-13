@@ -1,9 +1,9 @@
 {
  "capability": "SCAM-CHECK",
- "run_at": "2026-10-12T14:55:36.699Z",
+ "run_at": "2026-10-13T02:41:39.169Z",
  "baseline_all_green": true,
- "sub_capabilities": 17,
- "proven": 17,
+ "sub_capabilities": 19,
+ "proven": 19,
  "problems": [],
  "rows": [
   {
@@ -132,6 +132,7 @@
     "S07",
     "S09",
     "S16",
+    "S19",
     "S17"
    ],
    "status": "proven"
@@ -212,6 +213,28 @@
    "title": "Money sent by mistake",
    "defect": "the mistaken-payment rule is gone, so the scam goes to the model",
    "test": "someone sent me $50 by mistake and wants it back",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S18",
+   "id": "D18",
+   "title": "A 'bank' text judged",
+   "defect": "the bank-text ask is not caught, so the chat model judges the message",
+   "test": "'is this text from my bank real?' gets a verdict with computed reasoning",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S19",
+   "id": "D19",
+   "title": "Money already moved",
+   "defect": "the money-moved check is gone, so no recovery case opens",
+   "test": "money sent to a scammer opens the recovery case",
    "bites": true,
    "applied": true,
    "collateral": [],

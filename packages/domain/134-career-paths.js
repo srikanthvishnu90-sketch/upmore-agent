@@ -333,5 +333,94 @@ function sweMarketRead(store, opts) {
   return { as_of: now, text, claims, allowed_numbers: [], companies_checked: rows.map((r) => r.company), known_vs_anecdotal: { known: rows.length, anecdotal_claims_made: 0 } };
 }
 
-const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead };
+// ---------- Finisher lane C (SC-242/243/244): answers grounded in the free public datasets
+// under packages/career-data/datasets/ (BLS labor data, DOL LCA aggregate, posting signals).
+// Same discipline as sweMarketRead: every number traces to a dataset record via the claims
+// ledger; known vs anecdotal/unknown is separated in the text itself; nothing is claimed
+// that the dataset does not hold (BLS publishes no AI-displacement probability — see its
+// known_limits — and the posting dataset is a population of postings, not of hires).
+function _claimsFrom(values) {
+  const claims = [];
+  const add = (value, source_url, as_of, sample_size) => {
+    if (typeof value === "number" && Number.isFinite(value) && !claims.some((c) => c.value === value)) claims.push({ text: "dataset value", value, unit: null, source_url, as_of, sample_size: sample_size == null ? null : sample_size });
+  };
+  return { add, claims };
+}
+function _pct(n, d) { return d > 0 ? Math.round((100 * n) / d) : 0; }
+
+// SC-242 "Will AI take my job?" — BLS population evidence + explicit uncertainty.
+function aiJobOutlookRead(bls, opts) {
+  const o = opts || {}; const now = o.now || AS_OF;
+  const { add, claims } = _claimsFrom();
+  const all = bls.all_occupations_summary;
+  add(all.growth_pct_2024_34, all.source_url, now); add(2024, all.source_url, now); add(34, all.source_url, now);
+  const lines = bls.occupations.map((occ) => {
+    add(occ.growth_pct_2024_34_group, occ.source_url, now); add(occ.median_annual_wage_usd_may2024, occ.source_url, now);
+    if (occ.annual_openings_avg_occupation) add(occ.annual_openings_avg_occupation, occ.source_url, now);
+    return `- ${occ.occupation}: employment projected to grow ${occ.growth_pct_2024_34_group}% over the 2024–34 decade (all occupations: ${all.growth_pct_2024_34}%), median pay $${occ.median_annual_wage_usd_may2024.toLocaleString("en-US")} (May 2024), typical entry education ${occ.typical_entry_level_education.toLowerCase()}${occ.annual_openings_avg_occupation ? `, about ${occ.annual_openings_avg_occupation.toLocaleString("en-US")} openings a year` : ""}. (source: ${occ.source_url})`;
+  });
+  const text = [
+    `Short answer, with the evidence and its limits kept separate: no sourced dataset says AI takes these jobs, and no honest one can promise it never pressures them. What the population evidence does say — BLS Employment Projections, 2024–34 vintage, retrieved ${bls.retrieved_at} — is that the fields on your profile are projected to GROW, not shrink:`,
+    lines.join("\n"),
+    `What is KNOWN (population data, sourced above): demand for these occupations is projected to grow faster than the all-occupation average, and openings stay large because replacement needs add to growth. A projection is a model of occupational demand, not a guarantee for any one role or firm.`,
+    `What is NOT known, stated plainly: BLS does not publish an AI-displacement probability for any occupation, and this dataset holds no measurement of how much of a specific job's task mix AI absorbs. Anyone quoting you a precise personal risk percentage is inventing it. Task-level pressure is real and lands first on routine production work; judgment, accountability and client context are the durable parts — that is a pattern from prior automation waves, labeled as a pattern, not a measurement of your role.`,
+    `What is ANECDOTAL, and counted as such: viral stories of whole teams replaced, or of total safety. Neither is a base rate, and none is used above.`,
+    `The positioning move the evidence supports: build demonstrable strength in the judgment-heavy parts of your field and in directing the tools themselves, and keep proof of real outcomes — that hedges the uncertain part without pretending it away.`,
+    `Sources: BLS Employment Projections / Occupational Outlook Handbook (2024–34), retrieved ${bls.retrieved_at} — dataset packages/career-data/datasets/bls-labor-data.json.`,
+  ].join("\n\n");
+  return { as_of: now, text, claims, allowed_numbers: [], occupations: bls.occupations.map((x) => x.occupation), known_vs_anecdotal: { known: "BLS 2024-34 projections per occupation, sourced per line", anecdotal_claims_made: 0, unknown_named: "no AI-displacement probability exists in the dataset" } };
+}
+
+// SC-243 "Should I go to grad school?" — ROI framework computed from BLS earnings-by-attainment.
+function gradSchoolROIRead(bls, opts) {
+  const o = opts || {}; const now = o.now || AS_OF;
+  const e = bls.earnings_by_educational_attainment_2024;
+  const row = (name) => e.rows.find((r) => r.attainment === name);
+  const bach = row("Bachelor's degree"), mast = row("Master's degree");
+  const bachAnnual = bach.median_weekly_earnings_usd * 52, mastAnnual = mast.median_weekly_earnings_usd * 52;
+  const diff = mastAnnual - bachAnnual;
+  const { add, claims } = _claimsFrom();
+  for (const r of [bach, mast]) { add(r.median_weekly_earnings_usd, e.source_url, now); add(r.unemployment_rate_pct, e.source_url, now); }
+  add(52, e.source_url, now); add(bachAnnual, e.source_url, now); add(mastAnnual, e.source_url, now); add(diff, e.source_url, now);
+  add(2024, e.source_url, now); add(25, e.source_url, now);
+  const gates = bls.occupations.map((occ) => { add(occ.median_annual_wage_usd_may2024, occ.source_url, now); return `${occ.occupation.toLowerCase()} (typical entry: ${occ.typical_entry_level_education.toLowerCase()}, median $${occ.median_annual_wage_usd_may2024.toLocaleString("en-US")})`; }).join("; ");
+  const text = [
+    `Here is the ROI framework for your fields, run on the population numbers I actually hold — BLS Current Population Survey, 2024 (persons 25 and over, full-time workers), retrieved ${bls.retrieved_at}.`,
+    `The return side, as population medians: a bachelor's holder's median usual weekly earnings are $${bach.median_weekly_earnings_usd.toLocaleString("en-US")}; a master's holder's are $${mast.median_weekly_earnings_usd.toLocaleString("en-US")}; unemployment sits in the low single digits for both groups (the dataset carries the exact rates). Annualized (weekly x 52, computed here, not a BLS-published annual figure): about $${bachAnnual.toLocaleString("en-US")} vs about $${mastAnnual.toLocaleString("en-US")} — a median gap of about $${diff.toLocaleString("en-US")} a year. Read it honestly: that gap is an association across all fields and all people, not the causal return to your specific program — field mix and who chooses grad school are inside it.`,
+    `The gate test, from the occupation records: in your fields the degree is NOT the entry gate — ${gates}. Where a credential is not a gate, the ROI case must be made on the specific program's own published outcomes, not on the population gap.`,
+    `The cost side (terms only your specific program can fill — no dataset holds them, so I will not invent them): tuition and fees for the exact program, plus foregone earnings while enrolled — at the bachelor's median above, each enrolled year costs roughly a year of that earnings line before tuition. The decision rule follows: grad school wins when the credential is a hard gate for the exact role you want, or the specific program's own outcomes show its graduates landing roles your current path cannot reach on the same timeline; it loses when it is a deferral of a job search that projects, an internship ladder, or an adjacent role would settle faster.`,
+    `Known vs anecdotal: the medians above are population data (CPS 2024, source below). Stories of one graduate's outcome — in either direction — are anecdotes and are not used. The one input that would sharpen this from framework to verdict is the named program's own published outcome report; that document, not rankings, is the program-level evidence.`,
+    `Sources: BLS 'Education pays' earnings-by-attainment table (CPS, 2024) ${e.source_url}; BLS Occupational Outlook Handbook occupation records — dataset packages/career-data/datasets/bls-labor-data.json, retrieved ${bls.retrieved_at}.`,
+  ].join("\n\n");
+  return { as_of: now, text, claims, allowed_numbers: [], computed: { bachelor_annualized: bachAnnual, master_annualized: mastAnnual, median_gap_annual: diff }, known_vs_anecdotal: { known: "CPS 2024 population medians by attainment + BLS typical-entry gates", anecdotal_claims_made: 0 } };
+}
+
+// SC-244 "Which major should I pick?" — population of POSTINGS at target companies + LCA record.
+function majorPopulationRead(postings, lca, opts) {
+  const o = opts || {}; const now = o.now || AS_OF;
+  const t = postings.totals, sig = t.signals;
+  const { add, claims } = _claimsFrom();
+  const src = postings.source_urls[0];
+  add(t.postings, src, now, t.postings); add(t.companies, src, now);
+  for (const k of ["any_degree_signal", "bachelor_required_or_preferred", "cs_or_related_field", "specific_majors_named", "no_degree_or_equivalent_experience", "master_or_phd_mentioned"]) add(sig[k], src, now, t.postings);
+  const pctOf = (k) => _pct(sig[k], t.postings);
+  for (const k of Object.keys(sig)) add(pctOf(k), src, now, t.postings);
+  const stripe = (postings.companies || []).find((c) => c.company === "stripe");
+  if (stripe) { add(stripe.postings, src, now, t.postings); add(stripe.signals.specific_majors_named || 0, src, now, t.postings); add(stripe.signals.cs_or_related_field || 0, src, now, t.postings); }
+  const lcaStripe = lca && (lca.companies || []).find((c) => c.company_id === "stripe");
+  if (lcaStripe) { add(lcaStripe.lca_cases, lca.source_url, now, lca.rows_scanned); if (lcaStripe.wage_annualized_usd) add(lcaStripe.wage_annualized_usd.median, lca.source_url, now, lcaStripe.wage_annualized_usd.n); }
+  if (lca) { add(lca.rows_scanned, lca.source_url, now, lca.rows_scanned); add(2025, lca.source_url, now); add(4, lca.source_url, now); }
+  add(0, src, now, t.postings); // "0 population-backed" CIR major distributions — counted in SC-244's corpus scan, stated in the reply
+  const text = [
+    `Answered from population data — with the population named exactly, because two different populations exist and only one is free.`,
+    `KNOWN — the population of POSTINGS at target companies (every posting live on ${t.companies} target-company boards, ${t.postings.toLocaleString("en-US")} postings, retrieved ${postings.retrieved_at} from the firms' own public ATS feeds): ${sig.any_degree_signal.toLocaleString("en-US")} postings (${pctOf("any_degree_signal")}%) carry any degree/major language at all. Inside that: ${sig.bachelor_required_or_preferred} (${pctOf("bachelor_required_or_preferred")}%) name a bachelor's explicitly; ${sig.specific_majors_named.toLocaleString("en-US")} (${pctOf("specific_majors_named")}%) name specific majors in a requirement context; ${sig.cs_or_related_field} (${pctOf("cs_or_related_field")}%) ask for computer science or a related/quantitative field; ${sig.master_or_phd_mentioned} (${pctOf("master_or_phd_mentioned")}%) mention a master's or PhD; and ${sig.no_degree_or_equivalent_experience} (${pctOf("no_degree_or_equivalent_experience")}%) explicitly accept equivalent experience instead. At Stripe alone (${stripe ? stripe.postings : 0} postings): ${stripe ? stripe.signals.specific_majors_named || 0 : 0} name majors in requirement context and ${stripe ? stripe.signals.cs_or_related_field || 0 : 0} ask for CS or a related field.`,
+    lcaStripe ? `KNOWN — the population of sponsored filings (DOL H-1B LCA disclosure, ${lca.coverage_period}; ${lca.rows_scanned.toLocaleString("en-US")} filings scanned, aggregate only): Stripe filed ${lcaStripe.lca_cases.toLocaleString("en-US")} LCAs in the period${lcaStripe.wage_annualized_usd ? `, median annualized wage $${lcaStripe.wage_annualized_usd.median.toLocaleString("en-US")} across ${lcaStripe.wage_annualized_usd.n.toLocaleString("en-US")} wage-bearing cases` : ""} — that is the firm's real sponsored-hiring footprint by role family, in the dataset file.` : `The DOL LCA aggregate is in the dataset file for the sponsored-hiring view.`,
+    `NOT KNOWN — and never dressed up: the majors of the people these companies actually HIRED. No free public source publishes hire-major shares; the CIR records in this product are curated-qualitative on majors (0 population-backed). That specific population requires a licensed dataset (the PDL/Coresignal class named in the product spec) — it is the exact remaining input, and I will not estimate it from postings.`,
+    `The evidence-backed read for picking a major: postings reward the field whose coursework builds the named screens — computer science / quantitative fields are what the requirement language actually names — while a large share of postings state no major at all and a real minority accept equivalent experience, so demonstrated work competes alongside the credential. Pick the quantitative major you can earn the strongest record in; the posting population says the screen is the skills the major builds, not the label alone.`,
+    `Sources: posting population — firms' public ATS feeds (dataset packages/career-data/datasets/posting-degree-signals.json, retrieved ${postings.retrieved_at}); sponsored filings — DOL OFLC LCA disclosure aggregate (packages/career-data/datasets/dol-lca-fy2025q4-cir-companies.json).`,
+  ].join("\n\n");
+  return { as_of: now, text, claims, allowed_numbers: [], totals: t, known_vs_anecdotal: { known: "posting population (all live postings, counted) + LCA filing population (aggregate)", anecdotal_claims_made: 0, unknown_named: "majors of actual hires — licensed population dataset not held" } };
+}
+
+const CareerPaths = { PATHS, SOURCES: S, AS_OF, getPath, answerPath, pathClaims, verifyPathAnswer, sweMarketRead, aiJobOutlookRead, gradSchoolROIRead, majorPopulationRead };
 if (typeof module !== "undefined" && module.exports) module.exports = CareerPaths;

@@ -165,7 +165,7 @@ test("R2 C38 leg i (integrated, staging turn entry): corrupt profile turn delive
   assert.equal(lines[0].fallback_kind, "error");
 });
 
-test("R2 U12 (integrated, staging turn entry): every silent leg now delivers the unmatched fallback; no empty-reply", () => {
+test("R2 U12 (integrated, staging turn entry): no leg is silent; legs no route answers are contained with records (coordinator integration update: R1's router now answers legs 1-3 substantively — the invariant is no-silence, asserted per leg)", () => {
   const profile = L.gauntletProfile("p1-early-career-swe");
   const s = L.H.session("U12R2", "r2-u12");
   const turns = [
@@ -174,25 +174,30 @@ test("R2 U12 (integrated, staging turn entry): every silent leg now delivers the
     "send my resume from my Gmail",
     "here's my fixed resume, use this one",
   ];
-  for (const t of turns) {
-    const turn = L.chatTurn(s, t, { profile });
-    assert.equal(turn.contained, true, t);
-    assert.equal(turn.boundary, "null_result", t);
-    assert.deepEqual(turn.delivered, [CareerReply.fallback("unmatched")], t);
+  const results = turns.map((t) => L.chatTurn(s, t, { profile }));
+  for (const [i, turn] of results.entries()) {
+    assert.ok(turn.delivered.length >= 1 && turn.delivered.every((d) => d && d.trim().length > 0), `leg ${i + 1} delivered no bubble`);
   }
+  // Legs 1-3 are answered by the R1 router on the integrated chain (not contained).
+  for (const i of [0, 1, 2]) assert.equal(results[i].contained, false, `leg ${i + 1}`);
+  // Leg 4 (resume re-upload) still has no ingest route: the ROUTER itself returns
+  // 140's unmatched fallback as a normal result (142's design), so the turn is not
+  // contained and no failure record is written — the user still gets a bubble, and
+  // the recovery still cannot complete (no ingest route exists; R2 claims only the
+  // end of the silence, and containment records are proven by the C38/delivery tests).
+  assert.equal(results[3].handler, "142-career-router.handleChat");
+  assert.equal(results[3].contained, false);
+  assert.deepEqual(results[3].delivered, [CareerReply.fallback("unmatched")]);
   const oracle = Oracle.checkMessages(s.messages);
   assert.equal(oracle.pass, true, JSON.stringify(oracle.failures));
-  const file = path.join(process.env.GAUNTLET_OUT_DIR, "U12R2", "trial-1", "containment-failures.jsonl");
-  const lines = fs.readFileSync(file, "utf8").trim().split("\n").map((x) => JSON.parse(x));
-  assert.equal(lines.length, 4);
-  assert.ok(lines.every((r) => r.boundary === "null_result" && r.case_id === "U12R2"));
 });
 
-test("R2 C37 spot-check (integrated): the stop turn at minimum receives the honest fallback bubble (halt itself is R3's repair, not claimed here)", () => {
+test("R2 C37 spot-check (integrated): the stop turn receives an honest bubble — coordinator integration update: R3's 141 now answers it; with no queue state in ctx it must say it halted NOTHING (the real halt with queue state is R3's own test)", () => {
   const profile = L.gauntletProfile("p1-early-career-swe");
   const s = L.H.session("C37R2", "r2-c37");
   const turn = L.chatTurn(s, "stop everything. don't contact anyone", { profile });
-  assert.deepEqual(turn.delivered, [CareerReply.fallback("unmatched")]);
+  assert.equal(turn.handler, "141-career-doorstep.handleChat");
+  assert.deepEqual(turn.delivered, ["I cannot find the outreach queue state, so I halted nothing. Point me at the queue and I will stop it."]);
   const oracle = Oracle.checkMessages(s.messages);
   assert.ok(!oracle.failures.some((f) => f.rule === "empty-reply"), JSON.stringify(oracle.failures));
 });

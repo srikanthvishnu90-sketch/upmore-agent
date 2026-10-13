@@ -96,10 +96,7 @@ Status words (per doc): NOT_STARTED, IN_PROGRESS, BUILT (code + tests pass), VER
 - 2026-10-12 career/disc worker (branch career/disc ONLY): packages/domain/121-career-jobs.js, tests/career-jobs.test.cjs, scripts/career/proof-jobs.mjs, docs/career/evidence/jobs-feeds.json — DISC-003..008 (ATS feeds, dedupe, new-posting detection, ghost flags, fit scoring, shortlist+feedback). Persona fixture cherry-picked from pivot/career ca565c2.
 - 2026-10-12 (career/prof, PROF slice): packages/domain/122-career-profile.js, packages/domain/123-career-tailor.js, packages/career-data/fixtures/test-persona.json, packages/career-data/fixtures/test-resume.txt, tests/career-profile.test.cjs, tests/career-tailor.test.cjs — claimed by the PROF build worker on branch career/prof only.
 - 2026-10-12 (branch career/intl, INTL slice worker): packages/domain/125-career-intel.js, packages/career-data/**, tests/career-intel.test.cjs — Doc 3 CIR schema/validator, thesis composer, claim verifier, honest-advice lint, first 5 CIRs (INTL-001..008). Validator is the contract for all 30 CIRs: `node packages/domain/125-career-intel.js validate <file>`.
-<<<<<<< HEAD
 - 2026-10-12 career/outr (OUTR/OUTE, Doc 1 outreach engine): packages/domain/124-career-outreach.js, packages/career-data/firm-sets.json, tests/career-outreach.test.cjs — claimed in branch career/outr only.
-=======
->>>>>>> origin/career/sc-w03
 
 ## Rules that apply to both
 

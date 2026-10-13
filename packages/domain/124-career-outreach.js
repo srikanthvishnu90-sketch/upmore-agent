@@ -145,8 +145,6 @@ const CareerOutreach = (() => {
     if (/1st|first/.test(rel)) warmth = 1; else if (/same school.*club|club.*same school/.test(rel)) warmth = 0.9;
     else if (/2nd|second/.test(rel)) warmth = 0.6; else if (/same school|alumni/.test(rel)) warmth = 0.7; else if (/hometown/.test(rel)) warmth = 0.5;
     if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) warmth = Math.max(warmth, 0.7);
-<<<<<<< HEAD
-=======
     // SC-W01 extension (2026-10-13, career/sc-w01 — flagged for integration): a user-specified warmth
     // priority (e.g. SC-020 "same hometown first") overrides the default warmth weights for the
     // features it names, in the order it names them. Absent the option, behavior is unchanged.
@@ -157,7 +155,6 @@ const CareerOutreach = (() => {
       if (/same school|alumni/.test(rel) || (profile.school && (c.schools || []).map(norm).includes(norm(profile.school)))) feats.push("school");
       for (const f of feats) { const idx = q.warmth_priority.indexOf(f); if (idx >= 0) warmth = Math.max(warmth, 0.98 - 0.08 * idx); }
     }
->>>>>>> origin/career/sc-w01
     let recency = 0.2;
     if (c.last_verified_at) { const age = (nowMs - Date.parse(c.last_verified_at)) / 86400000; recency = age <= 30 ? 1 : age <= 90 ? 0.7 : age <= 183 ? 0.4 : 0.2; }
     const total = Math.round((0.4 * fit + 0.25 * reachability + 0.2 * warmth + 0.15 * recency) * 1000) / 1000;
@@ -168,10 +165,7 @@ const CareerOutreach = (() => {
     const suppression = opts.suppression || null;
     const already = new Set((opts.alreadyEmailed || []).map((e) => norm(e)));
     const ownEmployers = new Set([].concat(profile.current_employer || [], profile.past_employers || []).map(norm).filter(Boolean));
-<<<<<<< HEAD
-=======
     if (opts.warmthPriority && query) query = Object.assign({}, query, { warmth_priority: opts.warmthPriority });
->>>>>>> origin/career/sc-w01
     const { candidates, review } = resolveCandidates(records);
     const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0 };
     const kept = [];
@@ -213,14 +207,10 @@ const CareerOutreach = (() => {
     return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
-<<<<<<< HEAD
-      if (/hometown/.test(rel)) { rank += 15; why.push("same hometown"); }
-=======
       // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
       const wp = profile.warmth_priority || [];
       const hometownFirst = wp.indexOf("hometown") >= 0 && (wp.indexOf("school") === -1 || wp.indexOf("hometown") < wp.indexOf("school"));
       if (/hometown/.test(rel)) { rank += hometownFirst ? 60 : 15; why.push("same hometown"); }
->>>>>>> origin/career/sc-w01
       if (/1st|first/.test(rel)) { rank += 20; why.push("1st-degree"); }
       return { contact: c, rank, why }; }).sort((a, b) => b.rank - a.rank);
   }

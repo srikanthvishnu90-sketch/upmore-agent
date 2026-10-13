@@ -21457,6 +21457,10 @@ const CareerOutreach = (() => {
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
+    ["big_law", /\bbig law\b|\blaw firms?\b/], ["academic_medical", /\bmed[- ]school\b|\bmedical centers?\b|\bteaching hospitals?\b/],
+    ["cpg", /\bcpg\b|\bconsumer packaged\b/], ["infrastructure_eng", /\binfrastructure firms?\b|\bcivil engineers?\b/],
+    ["venture_midwest", /\bventure (analysts?|capital|funds?)\b|\bvc funds?\b/], ["logistics", /\blogistics\b|\bsupply chain\b/],
+    ["real_estate_pe", /\breal[- ]estate (pe|private equity)\b/],
   ];
   function parseTarget(text, profile) {
     profile = profile || {};
@@ -21466,17 +21470,30 @@ const CareerOutreach = (() => {
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
     if (q.firm_set && FIRM_SETS.sets[q.firm_set]) q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name);
     if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
+    if (/\bcivil engineers?\b/.test(w)) { q.industry = "engineering"; q.role_family = "civil_engineering"; }
+    else if (/\b(ai\/ml|ml engineers?|machine learning)\b/.test(w)) { q.industry = q.industry || "tech"; q.role_family = "ml_engineering"; }
+    if (/\blawyers?\b|\battorneys?\b/.test(w)) { q.industry = "law"; q.role_family = "law"; }
+    if (/\bresidents?\b/.test(w) && /\bmed|medical|hospital|pre-med/.test(w)) { q.industry = "healthcare"; q.role_family = "medical_resident"; }
+    if (/\bmarketing\b/.test(w)) { q.role_family = q.role_family || "marketing"; q.industry = q.industry || "consumer_goods"; }
+    if (/\b(ops|operations) managers?\b/.test(w)) { q.role_family = "operations"; q.industry = q.industry || "logistics"; }
+    if (/\bventure\b/.test(w)) { q.role_family = q.role_family || "venture"; q.industry = q.industry || "venture_capital"; }
+    if (/\breal[- ]estate\b/.test(w)) { q.role_family = q.role_family || "real_estate_pe"; q.industry = q.industry || "real_estate_pe"; }
+    if (/started as analysts?/.test(w)) q.background_filters.started_as_analyst = true;
+    if (/teachers?-turned|teachers? (who|now) .*product|former teachers?/.test(w)) { q.background_filters.prior_career = "teaching"; q.role_family = q.role_family || "product_management"; }
+    if (/publish\w* on github|active on github|github/.test(w)) q.background_filters.publishes_on_github = true;
+    if (/deal[- ]specific/.test(w)) q.background_filters.deal_specific = true;
     if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
     if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
     if (/\b(pms?|product managers?)\b/.test(w)) { q.role_family = "product_management"; q.industry = q.industry || "tech"; }
-    if (/\b(swes?|software engineers?|engineers?)\b/.test(w)) { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
+    if (/\b(swes?|software engineers?|engineers?)\b/.test(w) && q.role_family !== "civil_engineering" && q.role_family !== "ml_engineering") { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
     if (/\bfounders?\b/.test(w)) { q.role_family = "founder"; q.industry = q.industry || "startups"; }
     if (/\bprivate equity|\bpe (associates?|principals?)\b/.test(w)) { q.industry = "private_equity"; q.role_family = q.role_family || "private_equity"; }
     if (/\bassociates?\b/.test(w)) q.seniority_band = "associate";
-    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
     else if (/\b(vps?|vice presidents?)\b/.test(w)) q.seniority_band = "vp_plus";
     else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
-    const geo = raw.match(/\bin\s+(NYC|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote)\b/i);
+    else if (/\bmanagers?\b/.test(w)) q.seniority_band = "manager";
+    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
+    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
     if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
@@ -21542,6 +21559,16 @@ const CareerOutreach = (() => {
     if (/1st|first/.test(rel)) warmth = 1; else if (/same school.*club|club.*same school/.test(rel)) warmth = 0.9;
     else if (/2nd|second/.test(rel)) warmth = 0.6; else if (/same school|alumni/.test(rel)) warmth = 0.7; else if (/hometown/.test(rel)) warmth = 0.5;
     if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) warmth = Math.max(warmth, 0.7);
+    // SC-W01 extension (2026-10-13, career/sc-w01 — flagged for integration): a user-specified warmth
+    // priority (e.g. SC-020 "same hometown first") overrides the default warmth weights for the
+    // features it names, in the order it names them. Absent the option, behavior is unchanged.
+    if (q.warmth_priority && q.warmth_priority.length) {
+      const feats = [];
+      if (/1st|first/.test(rel)) feats.push("first_degree");
+      if (/hometown/.test(rel) || (profile.hometown && c.hometown && norm(c.hometown) === norm(profile.hometown))) feats.push("hometown");
+      if (/same school|alumni/.test(rel) || (profile.school && (c.schools || []).map(norm).includes(norm(profile.school)))) feats.push("school");
+      for (const f of feats) { const idx = q.warmth_priority.indexOf(f); if (idx >= 0) warmth = Math.max(warmth, 0.98 - 0.08 * idx); }
+    }
     let recency = 0.2;
     if (c.last_verified_at) { const age = (nowMs - Date.parse(c.last_verified_at)) / 86400000; recency = age <= 30 ? 1 : age <= 90 ? 0.7 : age <= 183 ? 0.4 : 0.2; }
     const total = Math.round((0.4 * fit + 0.25 * reachability + 0.2 * warmth + 0.15 * recency) * 1000) / 1000;
@@ -21552,6 +21579,7 @@ const CareerOutreach = (() => {
     const suppression = opts.suppression || null;
     const already = new Set((opts.alreadyEmailed || []).map((e) => norm(e)));
     const ownEmployers = new Set([].concat(profile.current_employer || [], profile.past_employers || []).map(norm).filter(Boolean));
+    if (opts.warmthPriority && query) query = Object.assign({}, query, { warmth_priority: opts.warmthPriority });
     const { candidates, review } = resolveCandidates(records);
     const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0 };
     const kept = [];
@@ -21593,7 +21621,10 @@ const CareerOutreach = (() => {
     return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
-      if (/hometown/.test(rel)) { rank += 15; why.push("same hometown"); }
+      // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
+      const wp = profile.warmth_priority || [];
+      const hometownFirst = wp.indexOf("hometown") >= 0 && (wp.indexOf("school") === -1 || wp.indexOf("hometown") < wp.indexOf("school"));
+      if (/hometown/.test(rel)) { rank += hometownFirst ? 60 : 15; why.push("same hometown"); }
       if (/1st|first/.test(rel)) { rank += 20; why.push("1st-degree"); }
       return { contact: c, rank, why }; }).sort((a, b) => b.rank - a.rank);
   }
@@ -21670,7 +21701,7 @@ const CareerOutreach = (() => {
       intro += ` ${clause}.`; why.push({ line: clause, fact: `role at ${c.current_firm}`, source_url: "candidate_record", strength: "record", kind: "record" });
     }
     lines.push(intro);
-    if (user.experience) lines.push(`I'm currently ${user.experience}.`);
+    if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
     const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
     lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
@@ -21945,6 +21976,7 @@ const CareerOutreach = (() => {
     else if (cls.classification === "referral-to-other" && cls.referral_name) out.new_candidate = { full_name: cls.referral_name, relationship_to_user: "referral", tier: "A", source: "reply_referral" };
     else if (cls.classification === "positive-ready") out.actions.push("propose_slots_t3_card");
     if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
+    if ((cls.classification === "positive-ready" || cls.classification === "positive-needs-info") && campaign) campaign.stats.positive = (campaign.stats.positive || 0) + 1; // BUG-005: handleReply never counted positives, so digests reported 0 positive replies
     return out;
   }
 
@@ -22024,7 +22056,90 @@ const CareerOutreach = (() => {
       per_tier_reply_rates: repliesByTier, suppression_honor_target_pct: 100 };
   }
 
+  // ---------- SC-W03 additions: live list/draft surgery, safety plan, honest yield, suppression report, digest/close-out ----------
+  function applyListOps(pool, instruction, opts) {
+    opts = opts || {}; const w = " " + norm(instruction) + " "; const ops = [];
+    const dropBands = []; if (/drop vps|no vps|exclude vps/.test(w)) dropBands.push("vp_plus");
+    if (/drop associates?/.test(w)) dropBands.push("associate"); if (/drop analysts?/.test(w)) dropBands.push("analyst");
+    let keepSchool = null; const sm = String(instruction || "").match(/only\s+([A-Z][A-Za-z& ]{2,30}?)\s+(and|people|folks|$)/); if (/michigan/.test(w)) keepSchool = "University of Michigan"; else if (sm && !/boutique/.test(sm[1].toLowerCase())) keepSchool = sm[1].trim();
+    if (opts.keepSchool) keepSchool = opts.keepSchool;
+    let keepFirms = null; if (/boutique/.test(w) && FIRM_SETS.sets.elite_boutique) keepFirms = FIRM_SETS.sets.elite_boutique.firms.map((f) => norm(f.name));
+    if (opts.keepFirms) keepFirms = opts.keepFirms.map(norm);
+    if (dropBands.length) ops.push("drop_seniority:" + dropBands.join(","));
+    if (keepSchool) ops.push("keep_school:" + keepSchool);
+    if (keepFirms) ops.push("keep_firm_set:elite_boutique");
+    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !(c.schools || []).map(norm).includes(norm(keepSchool))) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
+    const before = { selected: (pool.selected || []).length, reserve: (pool.reserve || []).length };
+    const removed = (pool.selected || []).filter((c) => !matches(c));
+    const keptSel = (pool.selected || []).filter(matches);
+    const promoted = (pool.reserve || []).filter(matches);
+    const newReserve = (pool.reserve || []).filter((c) => !matches(c));
+    const selected = keptSel.concat(promoted);
+    return { selected, reserve: newReserve, ops, removed: removed.map((c) => ({ name: c.full_name, firm: c.current_firm, seniority_band: c.seniority_band, schools: c.schools })),
+      promoted_from_reserve: promoted.map((c) => c.full_name), before, after: { selected: selected.length, reserve: newReserve.length },
+      text: `Re-cut: ${before.selected} selected -> ${selected.length} (${removed.length} removed by [${ops.join("; ") || "no ops"}], ${promoted.length} matching reserve promoted); reserve now ${newReserve.length}.` };
+  }
+  function safetyPlan(campaign, plan, opts) {
+    opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
+    const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
+    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
+      per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
+      scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
+      stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
+      approval: "one approval covers this whole plan; nothing outside it sends" };
+  }
+  function safetyPlanText(p) {
+    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. Daily cap starts at ${p.daily_cap_start}/day, ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
+  }
+  function honestYield(records, query, opts) {
+    opts = opts || {}; const pool = buildList(records, query, opts); const kept = (pool.selected || []).concat(pool.reserve || []);
+    const verified = kept.filter((c) => c.email_verification === "verified").length;
+    const patternedOut = kept.filter((c) => c.email_verification !== "verified" && (c.email_source === "pattern" || !c.email_verification)).length;
+    const out = { found: pool.yield.found, resolved: pool.yield.resolved, verified, patterned_out: patternedOut, trusted_emails: pool.yield.trusted_emails, risky_emails: pool.yield.risky_emails, sendable: pool.yield.sendable, selected: pool.yield.selected, reserve: pool.yield.reserve, exclusions: pool.yield.exclusions, pool };
+    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (they ride under the ${Math.round(CAPS.riskyMaxFraction * 100)}% risky cap, never padded into the trustworthy number).`;
+    return out;
+  }
+  function suppressionReport(pool, opts) {
+    opts = opts || {}; const sent = new Set((opts.sentHistory || []).map((e) => norm(e))); const supp = opts.suppression || null;
+    const sel = pool.selected || []; const overlap = sel.filter((c) => c.work_email && sent.has(norm(c.work_email)));
+    const suppHits = supp ? sel.filter((c) => supp.isSuppressed({ email: c.work_email, person_id: c.person_id }, opts.userId)) : [];
+    return { sent_history_count: sent.size, selected_checked: sel.length, overlap_with_sent_history: overlap.map((c) => c.work_email), overlap_count: overlap.length, suppressed_in_selected: suppHits.length, verdict: overlap.length === 0 && suppHits.length === 0 ? "CLEAN" : "FAIL" };
+  }
+  function dailyDigest(campaign, pool) {
+    const m = campaignMetrics({ pool: pool || {}, campaign }); const pending = Math.max(0, (m.meetings_booked || 0) - (m.meetings_held || 0));
+    const d = { status: campaign.status, sent: m.sent, bounced: m.bounces, bounce_pct: m.bounce_pct, replies: m.replies, positive: m.positive, meetings_booked: m.meetings_booked, meetings_held: m.meetings_held, meetings_pending: pending, referrals: m.referrals, breaker_tripped: !!(campaign.breaker && campaign.breaker.tripped) };
+    d.text = `Today: ${d.sent} sent, ${d.bounced} bounced (${d.bounce_pct}%), ${d.replies} replies, ${d.positive} positive, ${pending} meetings pending (${d.meetings_booked} booked, ${d.meetings_held} held). Campaign status: ${d.status}.`;
+    return d;
+  }
+  function closeOut(campaign, opts) {
+    opts = opts || {}; const items = (campaign.items || []).filter((i) => i.status === "sent" || i.status === "bounced");
+    const byAngle = {}; for (const i of items) { const a = (i.draft && i.draft.structure) || "unknown"; byAngle[a] = byAngle[a] || { angle: a, sent: 0, replies: 0, positive: 0 }; if (i.status === "sent") byAngle[a].sent++; }
+    for (const r of opts.replyLog || []) { const it = items.find((i) => i.person_id === r.person_id || i.id === r.item_id); const a = it ? ((it.draft && it.draft.structure) || "unknown") : (r.angle || "unknown"); byAngle[a] = byAngle[a] || { angle: a, sent: 0, replies: 0, positive: 0 }; byAngle[a].replies++; if (r.positive) byAngle[a].positive++; }
+    const angles = Object.values(byAngle).map((a) => Object.assign({}, a, { reply_pct: a.sent ? Math.round(1000 * a.replies / a.sent) / 10 : 0 })).sort((x, y) => y.reply_pct - x.reply_pct);
+    const drafts = []; for (const r of opts.replyLog || []) { if (!r.positive) continue; const note = (opts.notes || {})[r.person_id]; const contact = items.find((i) => i.person_id === r.person_id); const ty = thankYouDraft({ contact: contact ? contact.candidate : { full_name: r.name || "", work_email: r.email || null }, note, user: opts.user || {} }); drafts.push({ person_id: r.person_id, ok: ty.ok, reason: ty.ok ? null : ty.reason, draft: ty.draft || null }); }
+    const m = campaignMetrics({ campaign });
+    const next = []; const nonResponders = Math.max(0, m.sent - m.replies - m.bounces);
+    if (nonResponders > 0) next.push(`${nonResponders} non-responders are eligible for the day-6 follow-up wave — it needs your continue tap and stops forever after the day-15 close.`);
+    if (drafts.some((d) => d.ok)) next.push(`Send the ${drafts.filter((d) => d.ok).length} thank-you drafts above (each needs your yes).`);
+    if (angles.length) next.push(`Lead the next campaign with the "${angles[0].angle}" angle (${angles[0].reply_pct}% reply rate here) and retire the weakest angle.`);
+    next.push("Keep every opt-out and bounce suppressed; the reserve pool stays untouched until you approve a new list.");
+    return { metrics: m, angles, best_angle: angles.length ? angles[0].angle : null, thank_you_drafts: drafts, next_steps: next };
+  }
+  function backfillFromReserve(pool, campaign, opts) {
+    opts = opts || {}; const want = opts.count || 0; const supp = opts.suppression || null; const promoted = []; const remaining = [];
+    for (const c of pool.reserve || []) { if (promoted.length < want && !(supp && supp.isSuppressed({ email: c.work_email, person_id: c.person_id }, campaign && campaign.userId))) promoted.push(c); else remaining.push(c); }
+    pool.selected = (pool.selected || []).concat(promoted); pool.reserve = remaining;
+    let enqueued = [];
+    if (campaign && opts.user) { const entries = promoted.map((c) => { const d = draftAndGate(c, opts.user, {}); return { candidate: c, draft: d.draft }; }); enqueued = enqueue(campaign, entries, { suppression: supp }).filter((r) => r.status === "queued"); }
+    return { promoted: promoted.map((c) => ({ name: c.full_name, firm: c.current_firm, email: c.work_email })), enqueued: enqueued.length, selected_count: pool.selected.length, reserve_count: pool.reserve.length };
+  }
+  function tierMix(selected, user) {
+    const counts = { A: 0, B: 0, C: 0 }; for (const c of selected || []) counts[determineTier(c, user || {})]++;
+    return { A: counts.A, B: counts.B, C: counts.C, total: (selected || []).length, text: `Tier mix: ${counts.A} A / ${counts.B} B / ${counts.C} C of ${(selected || []).length}. Tier C has no sourced personalization fact — hold it back?` };
+  }
+
   return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+    applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
@@ -22618,6 +22733,1408 @@ if (typeof require !== "undefined" && typeof module !== "undefined" && require.m
   }
 }
 
+/* Career application tracking (Doc 2 section 7; F04 Track scenarios SC-061..SC-080).
+   Pure domain module, UMD like 121-career-jobs. Persistence is INJECTED: a store is either a plain
+   array of application rows, an object { rows: [...] }, or the array returned by createMemoryStore().
+   Tests and scenario runners use the array-backed store, exactly like 121's feedback store.
+   No sends, no calendar writes, no portal logins happen here: this module produces alert records,
+   drafts (approval-gated), calendar-event records and analytics computed ONLY from the log's rows.
+
+   Application row: { app_id, company, role, role_family, url, applied_at, resume_version, source
+     ('cold'|'referred'), referred_by, fit_bucket ('Reach'|'Match'|'Safety'|null), stage, events[],
+     offer_deadline, assessment_deadline, cooldown_until, label:'TEST' (seed data only) }
+   Event: { type, at, source ('inbox'|'user-reported'|'system'|'seed'), detail, evidence }
+   Stages (Doc 2 7.1): Saved, Tailoring, Ready, Submitted, Confirmed, Recruiter screen, OA/assessment,
+     Interview rounds, Final, Offer, Rejected, Ghosted, Withdrawn, Accepted.
+   Inbox classes (Doc 2 7.2): confirmation, rejection, oa_invite, interview_invite, offer,
+     recruiter_other are SIGNALS; marketing_noise / unknown are NO-SIGNAL (never move a stage). */
+const CareerTrack = (() => {
+  const DAY = 86400000;
+  const STAGES = ["Saved", "Tailoring", "Ready", "Submitted", "Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Rejected", "Ghosted", "Withdrawn", "Accepted"];
+  const TERMINAL = ["Rejected", "Withdrawn", "Accepted"];
+  const OPEN = STAGES.filter((x) => !TERMINAL.includes(x));
+  // Quiet-period rule (Doc 2 7.3/7.4 examples: nudge proposed at 10 days, "21 days quiet" ghosted):
+  const NUDGE_AFTER_DAYS = 10;
+  const GHOST_AFTER_DAYS = 21;
+  // Reapply cooldown default policy (no CIR in the repo carries a cooldown field — see SC-074):
+  const DEFAULT_COOLDOWN_DAYS = 180;
+  const QUIET_HOURS = { start: 22, end: 7 }; // 22:00-07:00 local; low-priority batches to morning
+
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  const normCo = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+  const daysBetween = (a, b) => Math.floor((b - a) / DAY);
+  const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
+
+  // ---------- store ----------
+  function rowsOf(store) {
+    if (Array.isArray(store)) return store;
+    if (store && Array.isArray(store.rows)) return store.rows;
+    throw new Error("track store must be an array or {rows: []} (array-backed, like 121's feedback store)");
+  }
+  function createMemoryStore(initial) { return { rows: (initial || []).map((r) => JSON.parse(JSON.stringify(r))) }; }
+
+  // ---------- log writes ----------
+  let seq = 0;
+  function addApplication(store, input, opts) {
+    opts = opts || {};
+    const rows = rowsOf(store);
+    const at = opts.now || Date.now();
+    const app = {
+      app_id: input.app_id || `app-${normCo(input.company).replace(/\s+/g, "-")}-${(++seq).toString(36)}${rows.length}`,
+      company: s(input.company), role: s(input.role || ""), role_family: s(input.role_family || ""),
+      url: s(input.url || ""), applied_at: input.applied_at || new Date(at).toISOString(),
+      resume_version: s(input.resume_version || ""), source: input.source === "referred" ? "referred" : "cold",
+      referred_by: input.referred_by || null, fit_bucket: input.fit_bucket || null,
+      stage: input.stage || "Submitted",
+      offer_deadline: input.offer_deadline || null, assessment_deadline: input.assessment_deadline || null,
+      cooldown_until: input.cooldown_until || null,
+      events: [{ type: "applied", at: input.applied_at || new Date(at).toISOString(), source: input.event_source || "system", detail: `applied (${input.source === "referred" ? "referred" : "cold"}, resume ${input.resume_version || "?"})`, evidence: input.url || null }],
+    };
+    rows.push(app); return app;
+  }
+  function findByCompany(store, company) {
+    const n = normCo(company); if (!n) return null;
+    return rowsOf(store).find((r) => normCo(r.company) === n || normCo(r.company).includes(n) || n.includes(normCo(r.company))) || null;
+  }
+  function moveStage(app, stage, event, now) {
+    if (!STAGES.includes(stage)) throw new Error("unknown stage: " + stage);
+    app.stage = stage;
+    app.events.push(Object.assign({ at: new Date(now || Date.now()).toISOString() }, event, { stage_after: stage }));
+    return app;
+  }
+  // SC-070: manual update via chat; source is ALWAYS marked 'user-reported'.
+  function manualUpdate(store, company, stage, opts) {
+    opts = opts || {};
+    const app = findByCompany(store, company);
+    if (!app) return { ok: false, reason: `no application in the log for ${company}` };
+    moveStage(app, stage, { type: "manual_update", source: "user-reported", detail: opts.detail || `user reported: ${stage}` }, opts.now);
+    return { ok: true, application: app };
+  }
+
+  // ---------- status (SC-061, SC-080, SC-076) ----------
+  function lastSignalAt(app) {
+    const evs = (app.events || []).filter((e) => e.type !== "applied");
+    return evs.length ? Date.parse(evs[evs.length - 1].at) : Date.parse(app.applied_at);
+  }
+  function statusSummary(store, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const rows = rowsOf(store);
+    const byStage = {}; for (const st of STAGES) byStage[st] = 0;
+    const apps = rows.map((r) => {
+      byStage[r.stage] = (byStage[r.stage] || 0) + 1;
+      return { app_id: r.app_id, company: r.company, role: r.role, stage: r.stage, applied_at: r.applied_at, days_since_applied: daysBetween(Date.parse(r.applied_at), now), days_quiet: daysBetween(lastSignalAt(r), now), resume_version: r.resume_version, source: r.source, last_event: (r.events || [])[r.events.length - 1] || null };
+    });
+    return { total: rows.length, by_stage: byStage, open: apps.filter((a) => !TERMINAL.includes(a.stage)).length, applications: apps };
+  }
+  function statusByCompany(store, company, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const app = findByCompany(store, company);
+    if (!app) return { found: false, company };
+    const last = (app.events || [])[app.events.length - 1] || null;
+    return { found: true, company: app.company, role: app.role, stage: app.stage, applied_at: app.applied_at, resume_version: app.resume_version, source: app.source, days_since_applied: daysBetween(Date.parse(app.applied_at), now), last_signal: last ? { type: last.type, at: last.at, source: last.source, detail: last.detail } : null, offer_deadline: app.offer_deadline, assessment_deadline: app.assessment_deadline };
+  }
+  function timeline(store, company) {
+    const app = findByCompany(store, company);
+    if (!app) return { found: false, company };
+    return { found: true, company: app.company, role: app.role, events: (app.events || []).map((e) => ({ type: e.type, at: e.at, source: e.source, detail: e.detail, evidence: e.evidence || null, stage_after: e.stage_after || null })) };
+  }
+
+  // ---------- inbox classification (Doc 2 7.2; SC-062/063/064/071/078) ----------
+  // A message: { id, from, subject, body, at }. Company matched from explicit company field, else
+  // from/subject/body mention of a known company name (log rows + caller-supplied list).
+  const SIGNAL_RULES = [
+    ["offer", /\b(offer letter|pleased to offer|offer of (employment|internship)|your offer|compensation package)\b/i],
+    ["rejection", /\b(unfortunately|regret to inform|not (be )?moving forward|decided to move forward with other|other candidates|position has been filled|not selected|will not be moving)\b/i],
+    ["oa_invite", /\b(online assessment|hacker ?rank|codility|codesignal|assessment (link|invitation)|complete (the|your) assessment|take-home)\b/i],
+    ["interview_invite", /\b(interview|phone screen|recruiter screen|schedule (a|your) (call|chat|interview)|speak with (our|the) (recruiter|team)|calendly\.com|greenhouse.*schedul|book a time)\b/i],
+    ["confirmation", /\b(application (received|submitted|confirmed)|thank you for applying|thanks for applying|we (have )?received your application|application confirmation)\b/i],
+    ["recruiter_other", /\b(recruiter|talent team|hiring team|careers team)\b/i],
+  ];
+  const NOISE_RULES = [/\b(newsletter|webinar|job alert|jobs you might like|unsubscribe|marketing|% off|sale ends|upcoming event|blog post|digest@|no-?reply@.*(alert|news))\b/i, /^(.*?(job alert|newsletter).*?)$/i];
+  function classifyMessage(msg, knownCompanies) {
+    const text = `${s(msg.subject)}\n${s(msg.body)}`;
+    const fromLc = lc(msg.from);
+    let company = msg.company || null;
+    if (!company && knownCompanies) {
+      company = (knownCompanies || []).find((c) => { const n = normCo(c); return n && (lc(text).includes(lc(c)) || fromLc.includes(n.split(" ")[0])); }) || null;
+    }
+    if (!company && msg.company_domain) company = msg.company_domain;
+    for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return { message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] };
+    for (const [cls, re] of SIGNAL_RULES) if (re.test(text)) {
+      const decision = ["rejection", "offer"].includes(cls);
+      return { message_id: msg.id || null, class: cls, is_signal: true, decision, company, reasons: [`matched ${cls} pattern`] };
+    }
+    return { message_id: msg.id || null, class: "unknown", is_signal: false, decision: false, company, reasons: ["no signal pattern matched — treated as no-signal"] };
+  }
+  const CLASS_TO_STAGE = { confirmation: "Confirmed", rejection: "Rejected", oa_invite: "OA/assessment", interview_invite: "Interview rounds", offer: "Offer" };
+  // Ingest one message: classify, link to the log row, move stage, attach evidence + side records.
+  function ingestMessage(store, msg, opts) {
+    opts = opts || {}; const now = opts.now || Date.parse(msg.at || Date.now()) || Date.now();
+    const rows = rowsOf(store);
+    const cls = classifyMessage(msg, rows.map((r) => r.company).concat(opts.knownCompanies || []));
+    if (!cls.is_signal) return { classification: cls, linked: false, moved: false, alert: null, reason: "no-signal: stage unchanged" };
+    const app = cls.company ? findByCompany(store, cls.company) : null;
+    if (!app) return { classification: cls, linked: false, moved: false, alert: null, reason: `signal for ${cls.company || "unknown company"} but no matching application in the log` };
+    const stage = CLASS_TO_STAGE[cls.class];
+    const out = { classification: cls, linked: true, application: app.company, moved: false, alert: null };
+    if (stage && app.stage !== stage && !TERMINAL.includes(app.stage)) {
+      moveStage(app, stage, { type: cls.class, source: "inbox", detail: `${cls.class} detected in inbox message ${msg.id || "(no id)"}: "${s(msg.subject).slice(0, 90)}"`, evidence: msg.id || msg.subject || null }, now);
+      out.moved = true; out.stage_after = stage;
+    } else { out.stage_after = app.stage; }
+    out.alert = { kind: cls.class, company: app.company, stage_after: out.stage_after, at: new Date(now).toISOString(), text: alertText(cls.class, app) };
+    if (cls.class === "interview_invite") { // SC-064: calendar record attached + F09 prep seam noted
+      out.calendar_event = { title: `Interview — ${app.company} (${app.role})`, company: app.company, app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
+      app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
+    }
+    if (cls.class === "oa_invite") { // SC-071: agent NEVER takes the assessment (Doc 2 5.3)
+      out.assessment = handleAssessment(app, msg, now);
+    }
+    if (cls.class === "rejection") out.pattern_note = rejectionAnalysis(store, opts).headline;
+    return out;
+  }
+  function alertText(cls, app) {
+    return { confirmation: `${app.company}: application confirmed.`, rejection: `${app.company} rejected this application — see the pattern note and plan.`, oa_invite: `${app.company} sent an online assessment. I can schedule, remind and prep — I do not take assessments.`, interview_invite: `${app.company} invited you to interview. Prep triggered.`, offer: `${app.company} sent an offer. Deadline tracking is on.`, recruiter_other: `${app.company} recruiter emailed.` }[cls] || `${app.company}: new signal.`;
+  }
+  function handleAssessment(app, msg, now) {
+    return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], company: app.company, deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
+  }
+
+  // ---------- quiet period / ghosted (SC-067/068) ----------
+  function quietReport(store, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const nudgeAfter = opts.nudgeAfterDays != null ? opts.nudgeAfterDays : NUDGE_AFTER_DAYS;
+    const ghostAfter = opts.ghostAfterDays != null ? opts.ghostAfterDays : GHOST_AFTER_DAYS;
+    return rowsOf(store).filter((r) => ["Submitted", "Confirmed", "Recruiter screen"].includes(r.stage)).map((r) => {
+      const days = daysBetween(lastSignalAt(r), now);
+      return { company: r.company, role: r.role, stage: r.stage, days_quiet: days, last_signal_at: new Date(lastSignalAt(r)).toISOString(), nudge_due: days >= nudgeAfter, ghosted: days >= ghostAfter, state: days >= ghostAfter ? "ghosted" : days >= nudgeAfter ? "nudge_due" : "within_window" };
+    }).sort((a, b) => b.days_quiet - a.days_quiet);
+  }
+  function markGhosted(store, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const out = [];
+    for (const q of quietReport(store, opts)) if (q.ghosted) { const app = findByCompany(store, q.company); if (app && app.stage !== "Ghosted") { moveStage(app, "Ghosted", { type: "ghosted", source: "system", detail: `${q.days_quiet} days quiet (rule: >= ${opts.ghostAfterDays != null ? opts.ghostAfterDays : GHOST_AFTER_DAYS} days with no signal)` }, now); out.push(q.company); } }
+    return out;
+  }
+  function draftNudge(app, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const days = daysBetween(lastSignalAt(app), now);
+    return { kind: "follow_up_nudge", company: app.company, role: app.role, days_quiet: days, requires_approval: true, sends: false,
+      subject: `Following up — ${app.role} application`,
+      body: `Hello ${app.company} team,\n\nI'm following up on my application for ${app.role}, submitted on ${isoDay(Date.parse(app.applied_at))} (resume version ${app.resume_version || "on file"}). I'm still very interested in the role and would welcome any update on the timeline.\n\nThank you for your time,\nAlex Testcase (TEST)`,
+      basis: { applied_at: app.applied_at, resume_version: app.resume_version, stage: app.stage, days_quiet: days } };
+  }
+  function draftThankYou(app, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const iv = (app.events || []).filter((e) => /interview/.test(e.type)).slice(-1)[0];
+    const hours = iv ? Math.max(0, Math.round((now - Date.parse(iv.at)) / 3600000)) : null;
+    return { kind: "thank_you", company: app.company, role: app.role, requires_approval: true, sends: false, within_24h: hours != null ? hours <= 24 : null, hours_since_interview: hours,
+      subject: `Thank you — ${app.role} interview`,
+      body: `Hello ${app.company} team,\n\nThank you for speaking with me about the ${app.role} role. I enjoyed the conversation and am even more interested in the team.\n\nBest regards,\nAlex Testcase (TEST)`,
+      basis: { interview_event_at: iv ? iv.at : null, stage: app.stage } };
+  }
+
+  // ---------- digest (SC-065/075) ----------
+  function weeklyDigest(store, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const since = now - 7 * DAY;
+    const rows = rowsOf(store);
+    let sent7 = 0, responses7 = 0, interviews = 0, rejections7 = 0; const next = [];
+    for (const r of rows) {
+      if (Date.parse(r.applied_at) >= since) sent7++;
+      const evs = (r.events || []).filter((e) => Date.parse(e.at) >= since);
+      if (evs.some((e) => ["confirmation", "rejection", "oa_invite", "interview_invite", "offer", "manual_update"].includes(e.type))) responses7++;
+      if (["Interview rounds", "Final"].includes(r.stage)) interviews++;
+      if (evs.some((e) => e.type === "rejection")) rejections7++;
+    }
+    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of deadlineRadar(store, [], { now, withinDays: 14 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
+    const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${counts.responses_last_7d} responses, ${counts.active_interviews} in interview stages, ${counts.rejections_last_7d} rejections this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
+    return { counts, next_actions: next, text, generated_at: new Date(now).toISOString() };
+  }
+  // Quiet hours: low-priority (digest, nudge reminders) batch to 07:00; critical fire immediately.
+  function planDelivery(item, at) {
+    const d = new Date(at); const h = d.getHours();
+    const critical = item && (item.critical === true || ["interview_invite", "offer", "rejection"].includes(item.kind) || (item.kind === "deadline" && item.days_away != null && item.days_away <= 2));
+    const inQuiet = h >= QUIET_HOURS.start || h < QUIET_HOURS.end;
+    if (critical) return { deliver_at: d.toISOString(), immediate: true, batched: false, reason: "critical/status item fires even in quiet hours" };
+    if (!inQuiet) return { deliver_at: d.toISOString(), immediate: true, batched: false, reason: "outside quiet hours" };
+    const morning = new Date(d); morning.setHours(QUIET_HOURS.end, 0, 0, 0); if (morning <= d) morning.setDate(morning.getDate() + 1);
+    return { deliver_at: morning.toISOString(), immediate: false, batched: true, reason: `quiet hours ${QUIET_HOURS.start}:00-${String(QUIET_HOURS.end).padStart(2, "0")}:00 — low-priority batches to morning` };
+  }
+
+  // ---------- funnel + rejection analytics (SC-066/077; Doc 2 7.5/7.6) ----------
+  // Claims are ONLY made from the log's own rows; a comparison claim needs >=3 rows on each side
+  // and a real difference, else supported:false with the reason.
+  function responded(r) { return (r.events || []).some((e) => ["confirmation", "oa_invite", "interview_invite", "offer", "recruiter_other"].includes(e.type)) || ["Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer"].includes(r.stage); }
+  function interviewed(r) { return ["Interview rounds", "Final", "Offer", "Accepted"].includes(r.stage) || (r.events || []).some((e) => e.type === "interview_invite"); }
+  function groupStats(rows, keyFn) {
+    const groups = {};
+    for (const r of rows) { const k = keyFn(r) || "(none)"; groups[k] = groups[k] || { n: 0, responses: 0, interviews: 0, rejections: 0, offers: 0 }; const g = groups[k]; g.n++; if (responded(r)) g.responses++; if (interviewed(r)) g.interviews++; if (r.stage === "Rejected") g.rejections++; if (["Offer", "Accepted"].includes(r.stage)) g.offers++; }
+    for (const g of Object.values(groups)) { g.response_rate = g.n ? +(g.responses / g.n).toFixed(3) : 0; g.interview_rate = g.n ? +(g.interviews / g.n).toFixed(3) : 0; }
+    return groups;
+  }
+  function funnelAnalytics(store) {
+    const rows = rowsOf(store);
+    const by_version = groupStats(rows, (r) => r.resume_version);
+    const by_family = groupStats(rows, (r) => r.role_family);
+    const by_source = groupStats(rows, (r) => r.source);
+    const claims = [];
+    const cold = by_source.cold, ref = by_source.referred;
+    if (cold && ref) {
+      const supported = cold.n >= 3 && ref.n >= 3 && ref.interview_rate !== cold.interview_rate;
+      claims.push({ claim: `referred interview rate ${ref.interview_rate} vs cold ${cold.interview_rate}`, supported, basis: { cold_n: cold.n, referred_n: ref.n }, note: supported ? "computed from your own log rows only" : "not claimed: needs >=3 rows per side and a real difference in your own log" });
+    }
+    const overall = groupStats(rows, () => "all").all;
+    return { total: rows.length, overall, by_version, by_family, by_source, claims };
+  }
+  function rejectionAnalysis(store) {
+    const rows = rowsOf(store);
+    const rejected = rows.filter((r) => r.stage === "Rejected");
+    const by_source = groupStats(rejected, (r) => r.source);
+    const allBySource = groupStats(rows, (r) => r.source);
+    const by_bucket = groupStats(rejected, (r) => r.fit_bucket);
+    const allByBucket = groupStats(rows, (r) => r.fit_bucket);
+    const coldRej = (allBySource.cold && allBySource.cold.n) ? rejected.filter((r) => r.source === "cold").length + "/" + allBySource.cold.n + " cold rejected" : "no cold rows";
+    const reachRej = (allByBucket.Reach && allByBucket.Reach.n) ? rejected.filter((r) => r.fit_bucket === "Reach").length + "/" + allByBucket.Reach.n + " Reach rejected" : "no Reach rows";
+    const headline = rejected.length ? `${rejected.length} rejections in the log. Pattern from your own rows: ${coldRej}; ${reachRej}.` : "No rejections in the log yet — nothing to pattern-match honestly.";
+    const plan = rejected.length ? ["Cut cold Reach applications to a small hand-picked set", "Put the same hours into referral asks before applying (Doc 2 section 6)", "Keep Match/Safety volume steady — that is where your responses come from"] : [];
+    return { rejected_count: rejected.length, total: rows.length, rejected_by_source: by_source, rejected_by_bucket: by_bucket, headline, honest_read: rejected.length ? "The rejections concentrate where the log says they concentrate (see rejected_by_source / rejected_by_bucket) — this is a targeting/source pattern in your own data, not a generic pep talk. No sugarcoating: cold Reach is the weakest channel in this log." : headline, plan };
+  }
+
+  // ---------- deadlines (SC-069/079) ----------
+  const MONTHS = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
+  function extractCirDeadlines(cirs, now) {
+    const out = [];
+    for (const cir of cirs || []) {
+      const txt = JSON.stringify(cir);
+      const re = /(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(20\d\d)/gi;
+      let m; const seen = new Set();
+      while ((m = re.exec(txt))) {
+        if (!/deadline/i.test(txt.slice(Math.max(0, m.index - 160), m.index + 60))) continue;
+        const d = new Date(Date.UTC(Number(m[3]), MONTHS[lc(m[1])], Number(m[2]), 12, 0, 0));
+        const key = cir.company_name + d.toISOString().slice(0, 10); if (seen.has(key)) continue; seen.add(key);
+        if (d.getTime() >= (now || Date.now()) - DAY) out.push({ kind: "cir_deadline", company: cir.company_name || cir.company_id || null, label: `${cir.company_name || cir.company_id} application deadline`, date: d.toISOString().slice(0, 10), days_away: daysBetween(now || Date.now(), d.getTime()), source: "CIR record" });
+      }
+    }
+    return out;
+  }
+  function deadlineRadar(store, cirs, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const within = opts.withinDays != null ? opts.withinDays : 14;
+    const items = [];
+    for (const r of rowsOf(store)) {
+      if (r.offer_deadline) { const t = Date.parse(r.offer_deadline); items.push({ kind: "offer_expiry", company: r.company, label: `${r.company} offer expiry`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
+      if (r.assessment_deadline) { const t = Date.parse(r.assessment_deadline); items.push({ kind: "assessment_deadline", company: r.company, label: `${r.company} assessment deadline`, date: isoDay(t), days_away: daysBetween(now, t), source: "application log" }); }
+    }
+    for (const q of quietReport(store, { now })) if (q.nudge_due) items.push({ kind: "follow_up_due", company: q.company, label: `${q.company} follow-up due (${q.days_quiet} days quiet)`, date: isoDay(now), days_away: 0, source: "application log" });
+    items.push(...extractCirDeadlines(cirs, now));
+    return items.filter((i) => i.days_away >= -1 && i.days_away <= within).sort((a, b) => a.days_away - b.days_away || a.date.localeCompare(b.date));
+  }
+  function offerCountdown(store, company, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const app = findByCompany(store, company);
+    if (!app || !app.offer_deadline) return { found: !!(app), company, offer_deadline: null, days_left: null };
+    const days = daysBetween(now, Date.parse(app.offer_deadline));
+    return { found: true, company: app.company, offer_deadline: app.offer_deadline, days_left: days, alerts: [7, 3, 1].filter((d) => days >= d).map((d) => `alert at ${d} days before expiry`).concat(days <= 3 ? ["alert now: inside 3 days"] : []) };
+  }
+
+  // ---------- duplicate channel (SC-078), cooldown (SC-074), withdraw (SC-073) ----------
+  function duplicateCheck(store, messages, company) {
+    const app = findByCompany(store, company);
+    const hits = (messages || []).map((m) => classifyMessage(m, [company])).map((c, i) => ({ c, m: messages[i] })).filter(({ c }) => c.is_signal && normCo(c.company || "") === normCo(company));
+    const confirmation = hits.find(({ c }) => c.class === "confirmation");
+    return { company, in_log: !!app, log_stage: app ? app.stage : null, inbox_evidence: hits.map(({ c, m }) => ({ message_id: m.id || null, class: c.class, subject: m.subject || null, at: m.at || null })), already_applied: !!app || !!confirmation, answer: confirmation ? `Yes — inbox confirmation found (${confirmation.m.id || "message"}: "${confirmation.m.subject || ""}").` : app ? `Yes — the log has a ${company} application at stage ${app.stage}; no inbox confirmation was found in the messages searched.` : "No log row and no inbox confirmation found in the messages searched." };
+  }
+  function reapplyCheck(store, company, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const cooldownDays = opts.cooldownDays != null ? opts.cooldownDays : DEFAULT_COOLDOWN_DAYS;
+    const app = findByCompany(store, company);
+    if (!app) return { company, allowed: true, reason: "no prior application in the log" };
+    if (app.cooldown_until) { const t = Date.parse(app.cooldown_until); return { company, allowed: now >= t, reopen_date: isoDay(t), reason: `cooldown_until stored on the log row`, source: "application log" }; }
+    const terminalEv = (app.events || []).filter((e) => ["rejection"].includes(e.type)).slice(-1)[0];
+    if (app.stage === "Rejected" || terminalEv) {
+      const base = terminalEv ? Date.parse(terminalEv.at) : Date.parse(app.applied_at);
+      const reopen = base + cooldownDays * DAY;
+      return { company, allowed: now >= reopen, reopen_date: isoDay(reopen), cooldown_days: cooldownDays, reason: `last rejection ${isoDay(base)} + ${cooldownDays}-day default cooldown policy (no CIR cooldown field exists in the repo — policy default, labeled as such)`, source: "application log + default policy" };
+    }
+    if (!TERMINAL.includes(app.stage)) return { company, allowed: false, reopen_date: null, reason: `an application to ${company} is already open at stage ${app.stage} — duplicate protection (Doc 2 5.4)`, source: "application log" };
+    return { company, allowed: true, reason: "prior application is closed with no rejection cooldown" };
+  }
+  function withdrawalDrafts(store, acceptedCompany) {
+    const open = rowsOf(store).filter((r) => !TERMINAL.includes(r.stage) && normCo(r.company) !== normCo(acceptedCompany));
+    return { accepted_company: acceptedCompany, count: open.length, requires_approval: true, sends: false,
+      drafts: open.map((r) => ({ app_id: r.app_id, company: r.company, role: r.role, stage: r.stage, subject: `Withdrawing my application — ${r.role}`, body: `Hello ${r.company} team,\n\nThank you for considering my application for ${r.role}. I have accepted another offer and would like to withdraw my application.\n\nBest regards,\nAlex Testcase (TEST)` })) };
+  }
+  // Log marks Withdrawn ONLY after sends confirm (SC-073).
+  function confirmWithdrawals(store, appIds, opts) {
+    opts = opts || {}; const done = [];
+    for (const id of appIds || []) { const app = rowsOf(store).find((r) => r.app_id === id); if (app && !TERMINAL.includes(app.stage)) { moveStage(app, "Withdrawn", { type: "withdrawn", source: "system", detail: `withdrawal send confirmed (accepted ${opts.acceptedCompany || "another offer"})` }, opts.now); done.push(app.company); } }
+    return done;
+  }
+
+  // ---------- TEST seed (labeled TEST; persona targets: Stripe/Goldman/Jane Street/Datadog/Ramp + ledger companies) ----------
+  const SEED_NOW = Date.parse("2026-10-12T12:00:00Z");
+  function seedRow(o) { return Object.assign({ events: [{ type: "applied", at: o.applied_at, source: "seed", detail: `applied (${o.source}, resume ${o.resume_version})`, evidence: o.url || null }].concat(o.extra_events || []) }, o, { extra_events: undefined, label: "TEST" }); }
+  function seedTestLog() {
+    const ev = (type, at, detail) => ({ type, at, source: type === "manual_update" ? "user-reported" : "inbox", detail, evidence: "TEST-fixture" });
+    const rows = [
+      seedRow({ app_id: "TEST-app-stripe", company: "Stripe", role: "Software Engineering Intern", role_family: "SWE", url: "https://stripe.com/jobs (TEST)", applied_at: "2026-09-20T12:00:00Z", resume_version: "swe-v2", source: "referred", referred_by: "TEST referral", fit_bucket: "Reach", stage: "Offer", offer_deadline: "2026-10-20T12:00:00Z", extra_events: [ev("confirmation", "2026-09-21T12:00:00Z", "confirmation (TEST)"), ev("interview_invite", "2026-10-03T12:00:00Z", "interview invite (TEST)"), ev("offer", "2026-10-10T12:00:00Z", "offer received (TEST)")] }),
+      seedRow({ app_id: "TEST-app-ramp", company: "Ramp", role: "Software Engineering Intern", role_family: "SWE", url: "https://ramp.com/careers (TEST)", applied_at: "2026-10-02T12:00:00Z", resume_version: "swe-v2", source: "cold", fit_bucket: "Match", stage: "Confirmed", extra_events: [ev("confirmation", "2026-10-02T13:00:00Z", "confirmation (TEST)")] }),
+      seedRow({ app_id: "TEST-app-palantir", company: "Palantir", role: "Software Engineering Intern", role_family: "SWE", url: "https://palantir.com/careers (TEST)", applied_at: "2026-09-21T12:00:00Z", resume_version: "swe-v1", source: "cold", fit_bucket: "Reach", stage: "Submitted", extra_events: [] }),
+      seedRow({ app_id: "TEST-app-goldman", company: "Goldman Sachs", role: "Summer Analyst", role_family: "Finance", url: "https://goldmansachs.com/careers (TEST)", applied_at: "2026-09-15T12:00:00Z", resume_version: "fin-v1", source: "cold", fit_bucket: "Reach", stage: "Rejected", extra_events: [ev("confirmation", "2026-09-15T13:00:00Z", "confirmation (TEST)"), ev("rejection", "2026-10-05T12:00:00Z", "rejection (TEST)")] }),
+      seedRow({ app_id: "TEST-app-janestreet", company: "Jane Street", role: "Quantitative Trading Intern", role_family: "Finance", url: "https://janestreet.com (TEST)", applied_at: "2026-09-10T12:00:00Z", resume_version: "fin-v1", source: "cold", fit_bucket: "Reach", stage: "Rejected", extra_events: [ev("rejection", "2026-09-28T12:00:00Z", "rejection before OA (TEST)")] }),
+      seedRow({ app_id: "TEST-app-datadog", company: "Datadog", role: "Software Engineering Intern", role_family: "SWE", url: "https://datadoghq.com (TEST)", applied_at: "2026-09-25T12:00:00Z", resume_version: "swe-v2", source: "referred", referred_by: "TEST referral", fit_bucket: "Match", stage: "Interview rounds", extra_events: [ev("confirmation", "2026-09-25T13:00:00Z", "confirmation (TEST)"), ev("interview_invite", "2026-10-08T12:00:00Z", "interview invite (TEST)"), ev("interview", "2026-10-11T12:00:00Z", "interview happened (TEST)")] }),
+      seedRow({ app_id: "TEST-app-hrt", company: "Hudson River Trading", role: "Software Engineering Intern", role_family: "SWE", url: "https://hudsonrivertrading.com (TEST)", applied_at: "2026-10-05T12:00:00Z", resume_version: "swe-v1", source: "cold", fit_bucket: "Reach", stage: "OA/assessment", assessment_deadline: "2026-10-18T12:00:00Z", extra_events: [ev("oa_invite", "2026-10-09T12:00:00Z", "OA invite (TEST)")] }),
+      seedRow({ app_id: "TEST-app-airbnb", company: "Airbnb", role: "Software Engineering Intern", role_family: "SWE", url: "https://airbnb.com/careers (TEST)", applied_at: "2026-09-18T12:00:00Z", resume_version: "swe-v1", source: "cold", fit_bucket: "Match", stage: "Rejected", extra_events: [ev("rejection", "2026-10-01T12:00:00Z", "rejection (TEST)")] }),
+      seedRow({ app_id: "TEST-app-twosigma", company: "Two Sigma", role: "Quantitative Research Intern", role_family: "Finance", url: "https://twosigma.com (TEST)", applied_at: "2026-09-08T12:00:00Z", resume_version: "fin-v1", source: "cold", fit_bucket: "Reach", stage: "Rejected", extra_events: [ev("rejection", "2026-09-25T12:00:00Z", "rejection (TEST)")] }),
+      seedRow({ app_id: "TEST-app-notion", company: "Notion", role: "Software Engineering Intern", role_family: "SWE", url: "https://notion.com/careers (TEST)", applied_at: "2026-10-08T12:00:00Z", resume_version: "swe-v2", source: "referred", referred_by: "TEST referral", fit_bucket: "Match", stage: "Confirmed", extra_events: [ev("confirmation", "2026-10-08T13:00:00Z", "confirmation (TEST)")] }),
+      seedRow({ app_id: "TEST-app-citadel", company: "Citadel Securities", role: "Quantitative Trading Intern", role_family: "Finance", url: "https://citadelsecurities.com (TEST)", applied_at: "2026-09-12T12:00:00Z", resume_version: "fin-v1", source: "cold", fit_bucket: "Reach", stage: "Rejected", extra_events: [ev("rejection", "2026-09-30T12:00:00Z", "rejection (TEST)")] }),
+      seedRow({ app_id: "TEST-app-examplecapital", company: "Example Capital (TEST)", role: "Finance Intern", role_family: "Finance", url: "https://example.test (TEST)", applied_at: "2026-10-06T12:00:00Z", resume_version: "fin-v2", source: "referred", referred_by: "TEST referral", fit_bucket: "Safety", stage: "Confirmed", extra_events: [ev("confirmation", "2026-10-06T13:00:00Z", "confirmation (TEST)")] }),
+    ];
+    return createMemoryStore(rows.map((r) => { const x = Object.assign({}, r); delete x.extra_events; return x; }));
+  }
+
+  return { STAGES, TERMINAL, OPEN, NUDGE_AFTER_DAYS, GHOST_AFTER_DAYS, DEFAULT_COOLDOWN_DAYS, QUIET_HOURS, SEED_NOW,
+    createMemoryStore, rowsOf, addApplication, findByCompany, moveStage, manualUpdate,
+    statusSummary, statusByCompany, timeline, lastSignalAt,
+    classifyMessage, ingestMessage, handleAssessment,
+    quietReport, markGhosted, draftNudge, draftThankYou,
+    weeklyDigest, planDelivery, funnelAnalytics, rejectionAnalysis,
+    deadlineRadar, extractCirDeadlines, offerCountdown,
+    duplicateCheck, reapplyCheck, withdrawalDrafts, confirmWithdrawals, seedTestLog };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerTrack;
+
+/* Career interview prep (PREP-001..008; starter pack section 3.5).
+   Pure domain module, UMD like the other domain modules. NO network, NO invented facts:
+   every company claim comes from a merged Company Intelligence Record (CIR) in
+   packages/career-data/cirs/ and keeps its source label (official / reported / anecdotal).
+   If no CIR is on file for a company, functions say so (status NO_CIR) and ground only in
+   JD text the caller supplies — they never fabricate stages, bars, comp or selectivity.
+
+   OWNER RULING (binding, 2026-10-12): live interview assist is OFF. liveAssistGuard()
+   refuses any request to feed answers during a real interview and offers prep instead.
+   Voice mocks are NOT wired for prep: voiceMockAvailability() reports that honestly and
+   the text mock is the fallback (SC-174).
+
+   Persistence is via injected stores: makePrepStore() -> { stories, mocks, debriefs,
+   packs, drills } (plain arrays the caller owns; a KV {get,set} adapter also works for
+   the story bank via storyStoreRows()).
+
+   Functions:
+     normalizeCir(cir)                 tolerant reader for the 15 merged CIR shapes
+     composeBrief({cir, jdText, role, round})   PREP-001 brief: bar, stages, emphasis
+     questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged
+     mineStories(facts)                PREP-004 STAR drafts mined from profile facts
+     captureStory(store, story) / findStories(store, query)
+     scoreAnswer(answer)               rubric: structure / evidence / specificity (0-5 each)
+     startMock(store, {bank, count}) / answerMock(store, id, answer) / mockSummary(store, id)  PREP-003
+     technicalDrills({cir, roleFamily})  PREP-005 coding + system-design sets from CIR round types
+     financeDrill() / quantDrill() / gradeDrillAnswer(set, id, answer)   graded drills (SC-169/170)
+     caseSession({cir}) / scoreCaseResponse(resp)   consulting case practice (SC-168)
+     interviewerBrief({name, role, company, publicFacts})  PREP-006 public-facts-only; unknown stays unknown
+     captureDebrief(store, d) / thankYouDraft({company, interviewer, debrief})  PREP-007
+     salaryPrep({cir})                 comp ranges ONLY from CIR comp notes, source-labeled; script
+     coffeeChatBrief({contact, cir})   lighter chat brief (OUTE-012 seam, SC-173)
+     twoInterviewPlan(items)           ordered briefs + gap plan for same-day interviews (SC-176)
+     rejectionPivot({funnel, cir, similar})  tightening plan; NO_CIR when the bar is unsourced (SC-177)
+     assemblePack(store, parts)        PREP-001..007 pack with per-section traceability (SC-180)
+     liveAssistGuard(text)             PREP-008: refusal + prep offer (owner OFF ruling)
+     voiceMockAvailability()           honest capability report for SC-174
+*/
+const CareerPrep = (() => {
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  function hash(str) { let h = 0x811c9dc5; const t = s(str); for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16).padStart(8, "0"); }
+
+  // ---------- CIR normalization (accepts BOTH the batch dialects and the canonical
+  // 125-validator schema the corpus was normalized to at integration, 2026-10-13) ----------
+  function factText(x) { if (!x) return ""; if (typeof x === "string") return x; return s(x.statement || x.claim || x.signal || x.summary || x.text || x.style || x.pattern || x.note || ""); }
+  function factSource(x) { if (!x || typeof x !== "object") return null; const f = x.fact || x.basis || x; return { source_type: s(f.source_type || x.source_type || "unspecified"), source_url: s(f.source_url || x.source_url || "") || null, as_of: s(f.as_of || x.as_of || "") || null }; }
+  function stageList(cir) {
+    const ps = cir && cir.process_stages; if (!ps) return [];
+    const raw = Array.isArray(ps) ? ps : (ps.stages || []);
+    return raw.map((st) => {
+      if (typeof st === "string") return { name: st, source: factSource(ps.basis) };
+      return { name: s(st.stage || st.claim || st.name), detail: s(st.description || ""), source: factSource(st) };
+    }).filter((x) => x.name);
+  }
+  function normalizeCir(cir) {
+    if (!cir || typeof cir !== "object") return null;
+    const barRaw = cir.hiring_bar_summary;
+    const bar = typeof barRaw === "string" ? barRaw : factText(barRaw);
+    const sigRaw = cir.screening_signals;
+    const sigList = Array.isArray(sigRaw) ? sigRaw : [].concat((sigRaw && sigRaw.stated) || [], (sigRaw && sigRaw.revealed) || []);
+    const compNotes = (cir.compensation_notes || []).map((c) => {
+      const f = c.fact || c;
+      return { text: factText(f) || factText(c), label: s(c.label || c.source_type || (f && f.source_type) || "CIR comp note"), source: factSource(c) };
+    }).filter((x) => x.text);
+    return {
+      company_id: s(cir.company_id), company_name: s(cir.company_name || cir.company_id),
+      as_of: s(cir.as_of || cir.last_verified_at || "") || null,
+      bar, stages: stageList(cir),
+      signals: sigList.map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
+      styles: (cir.interview_styles || []).map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
+      values: (cir.values_culture_signals || []).map((x) => ({ text: factText(x), source: factSource(x) })).filter((x) => x.text),
+      compNotes,
+      redFlags: (cir.red_flags || []).map((x) => factText(x) || s(x)).filter(Boolean),
+    };
+  }
+  function findCir(cirs, company) {
+    const want = lc(company).replace(/[^a-z0-9]/g, "");
+    for (const c of cirs || []) { const n = normalizeCir(c); if (n && (lc(n.company_id).replace(/[^a-z0-9]/g, "") === want || lc(n.company_name).replace(/[^a-z0-9]/g, "").includes(want) || want.includes(lc(n.company_id).replace(/[^a-z0-9]/g, "")))) return c; }
+    return null;
+  }
+
+  // ---------- JD emphasis (grounded only in text the caller supplies) ----------
+  const JD_KEYS = ["python", "java", "go", "rust", "javascript", "react", "sql", "postgres", "kubernetes", "aws", "distributed", "system design", "data structures", "algorithms", "machine learning", "probability", "statistics", "excel", "financial model", "dcf", "trading", "leadership", "teamwork", "communication", "product", "experimentation", "mentoring"];
+  function jdKeywords(jdText) { const t = lc(jdText); return JD_KEYS.filter((k) => t.includes(k)); }
+
+  // ---------- PREP-001 brief ----------
+  function composeBrief(opts) {
+    opts = opts || {};
+    const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
+    const n = normalizeCir(opts.cir);
+    const jdKw = jdKeywords(opts.jdText);
+    if (!n) {
+      return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
+        bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
+        gaps: [`No merged CIR on file for ${company || "this company"} — process stages, hiring bar and comp are NOT claimed.`, "Supply the JD text or merge a CIR for this company to ground a full brief."],
+        sources: [] };
+    }
+    const emphasis = [
+      ...n.signals.slice(0, 4).map((x) => ({ point: x.text, source: { type: "CIR screening_signals", source_type: x.source && x.source.source_type, source_url: x.source && x.source.source_url } })),
+      ...jdKw.slice(0, 4).map((k) => ({ point: `JD emphasis: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
+    ];
+    return { status: "OK", company: n.company_name, company_id: n.company_id, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
+      bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
+      compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
+      gaps: n.bar ? [] : ["CIR has no hiring-bar summary; bar not claimed."],
+      sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
+  }
+
+  // ---------- PREP-004 story bank ----------
+  function makePrepStore() { return { stories: [], mocks: [], debriefs: [], packs: [], drills: [] }; }
+  function mineStories(facts) {
+    return (facts || []).filter((f) => f && (f.action || f.result) && ["experience", "project", "leadership"].includes(f.kind))
+      .map((f) => ({
+        story_id: "story-" + hash(f.id || f.title), fact_id: f.id || null, title: s(f.title),
+        situation: s(f.text || ""), task: s(f.title), action: s(f.action || ""), result: s(f.result || ""),
+        method: s(f.method || ""), metrics: f.metrics || [], skills: f.skills || [],
+        tags: storyTags(f), source: "profile_fact:" + s(f.id || "unknown"),
+      }));
+  }
+  function storyTags(f) {
+    const t = lc([f.title, f.text, f.action, f.method].join(" "));
+    const tags = [];
+    if (/\b(led|lead|president|organis|organiz|mentor|team|club|participants|members|users)\b/.test(t)) tags.push("teamwork", "leadership");
+    if (/\b(cut|reduc|improv|automat|replac)/.test(t)) tags.push("impact", "initiative");
+    if (/\b(model|dcf|valuation|financial)/.test(t)) tags.push("finance", "analysis");
+    if (/\b(built|deploy|dashboard|kubernetes|go\b|react)/.test(t)) tags.push("technical", "building");
+    if (/\b(present|pitch|competition)/.test(t)) tags.push("communication");
+    return [...new Set(tags)];
+  }
+  function captureStory(store, story) {
+    const row = { story_id: story.story_id || "story-" + hash(s(story.title) + s(story.action)), title: s(story.title),
+      situation: s(story.situation), task: s(story.task), action: s(story.action), result: s(story.result),
+      metrics: story.metrics || [], skills: story.skills || [], tags: story.tags || storyTags(story), fact_id: story.fact_id || null,
+      source: story.source || "user_capture", captured_at: new Date().toISOString() };
+    store.stories.push(row); return row;
+  }
+  function findStories(store, query) {
+    const q = lc(query); const rows = (store && store.stories) || [];
+    return rows.map((r) => { const hay = lc([r.title, r.action, r.result, (r.tags || []).join(" ")].join(" "));
+      const score = q.split(/\W+/).filter(Boolean).reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0) + ((r.tags || []).some((t) => q.includes(t)) ? 2 : 0);
+      return { story: r, score }; }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).map((x) => x.story);
+  }
+
+  // ---------- PREP-002 question bank ----------
+  const GENERIC_BEHAVIORAL = [
+    "Tell me about yourself and why this role.",
+    "Tell me about a time you worked with a team under a deadline.",
+    "Tell me about a hard problem you solved and how you approached it.",
+    "Tell me about a failure and what you changed afterward.",
+    "Why this company, specifically?",
+  ];
+  function questionBank(opts) {
+    opts = opts || {};
+    const n = normalizeCir(opts.cir);
+    const stories = opts.stories || [];
+    const qs = [];
+    const push = (q, round, source) => { const match = findStories({ stories }, q)[0] || null;
+      qs.push({ q, round: round || "any", source, matched_story: match ? { story_id: match.story_id, title: match.title } : null }); };
+    if (n) {
+      for (const st of n.stages) push(`[${n.company_name} stage] Walk me through how you will handle: ${st.name}`, st.name, { type: "CIR process_stages", company_id: n.company_id, source_type: st.source && st.source.source_type, source_url: st.source && st.source.source_url });
+      for (const sg of n.signals.slice(0, 3)) push(`Evidence check (${n.company_name} screens for this): ${sg.text} — give a concrete example.`, opts.round || "screen", { type: "CIR screening_signals", company_id: n.company_id, source_type: sg.source && sg.source.source_type });
+      for (const st of n.styles.slice(0, 2)) push(`Style drill (${n.company_name}): ${st.text}`, opts.round || "loop", { type: "CIR interview_styles", company_id: n.company_id, source_type: st.source && st.source.source_type });
+    }
+    for (const g of GENERIC_BEHAVIORAL) push(g, "behavioral", { type: "generic_behavioral_bank", company_id: null });
+    if (/quant|trading|finance/i.test(s(opts.roleFamily) + " " + s(opts.role))) {
+      push("Walk me through a DCF.", "technical", { type: "finance_drill_bank", company_id: n && n.company_id || null });
+      push("A fair coin is flipped until two heads in a row appear. Expected number of flips?", "technical", { type: "quant_drill_bank", company_id: n && n.company_id || null });
+    }
+    return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, questions: qs };
+  }
+
+  // ---------- PREP-003 mock engine + rubric ----------
+  function scoreAnswer(answer) {
+    const a = s(answer); const low = lc(a);
+    const has = (re) => re.test(low);
+    let structure = 1;
+    if (has(/\b(first|started|began|situation|context)\b/)) structure += 1;
+    if (has(/\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
+    if (has(/\b(result|ended|outcome|in the end|led to)\b/)) structure += 1;
+    if (a.split(/\s+/).filter(Boolean).length >= 60) structure += 1;
+    let evidence = 0;
+    if (/\d/.test(a)) evidence += 2;
+    if (has(/\b(because|measured|compared|data|users|members|percent|%)\b/)) evidence += 1;
+    if (has(/\b(specifically|for example|for instance)\b/)) evidence += 1;
+    if (/\d+\s*(%|users|members|people|teams|pages|companies|participants)/.test(low)) evidence += 1;
+    let specificity = 0;
+    if (has(/\b(i|my|we)\b/)) specificity += 1;
+    if (has(/\b(python|react|go|excel|sql|postgres|kubernetes|docker|javascript)\b/)) specificity += 1;
+    if (has(/\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
+    if (a.split(/\s+/).filter(Boolean).length >= 40) specificity += 1;
+    if (has(/\b(something|stuff|things|various|etc)\b/)) specificity = Math.max(0, specificity - 1);
+    const clamp = (x) => Math.max(0, Math.min(5, x));
+    const sc = { structure: clamp(structure), evidence: clamp(evidence), specificity: clamp(specificity) };
+    sc.total = sc.structure + sc.evidence + sc.specificity;
+    const feedback = [];
+    if (sc.structure < 4) feedback.push("Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.");
+    if (sc.evidence < 4) feedback.push("Evidence: add a number (users, %, time saved) and how you know it.");
+    if (sc.specificity < 4) feedback.push("Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.");
+    if (!feedback.length) feedback.push("Landed: clear structure, quantified evidence, specific ownership. Keep this story as a primary.");
+    return { scores: sc, feedback };
+  }
+  function startMock(store, opts) {
+    opts = opts || {};
+    const bank = opts.bank || questionBank({});
+    const qs = (bank.questions || []).slice(0, opts.count || 5);
+    const m = { mock_id: "mock-" + hash(Date.now() + ":" + qs.length + ":" + (store.mocks.length + 1)), company: bank.company || null,
+      questions: qs, idx: 0, answers: [], status: "in_progress", started_at: new Date().toISOString() };
+    store.mocks.push(m); store.drills.push({ kind: "mock", mock_id: m.mock_id, at: m.started_at });
+    return m;
+  }
+  function answerMock(store, mockId, answer) {
+    const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) throw new Error("mock not found: " + mockId);
+    const q = m.questions[m.idx]; if (!q) throw new Error("mock already complete");
+    const graded = scoreAnswer(answer);
+    m.answers.push({ q: q.q, answer: s(answer), scores: graded.scores, feedback: graded.feedback });
+    m.idx += 1;
+    if (m.idx >= m.questions.length) { m.status = "complete"; m.finished_at = new Date().toISOString(); }
+    return { mock: m, graded, next_question: m.status === "complete" ? null : m.questions[m.idx].q, done: m.status === "complete" };
+  }
+  function mockSummary(store, mockId) {
+    const m = store.mocks.find((x) => x.mock_id === mockId); if (!m) return null;
+    const n = m.answers.length || 1;
+    const avg = { structure: 0, evidence: 0, specificity: 0, total: 0 };
+    for (const a of m.answers) for (const k of Object.keys(avg)) avg[k] += a.scores[k] / n;
+    for (const k of Object.keys(avg)) avg[k] = Math.round(avg[k] * 10) / 10;
+    const weakest = ["structure", "evidence", "specificity"].sort((a, b) => avg[a] - avg[b])[0];
+    return { mock_id: m.mock_id, company: m.company, status: m.status, answered: m.answers.length, average_scores: avg,
+      what_landed: m.answers.filter((a) => a.scores.total >= 12).map((a) => a.q),
+      what_didnt: m.answers.filter((a) => a.scores.total < 12).map((a) => ({ q: a.q, scores: a.scores, fix: a.feedback })),
+      fix_first: weakest };
+  }
+
+  // ---------- PREP-005 + drills ----------
+  function technicalDrills(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    const stageNames = n ? n.stages.map((x) => x.name).join(" | ") : "";
+    const sets = [];
+    if (/coding|technical screen|online coding/i.test(stageNames) || !n) sets.push({ type: "coding", source: n ? { type: "CIR process_stages", company_id: n.company_id } : { type: "generic_swe_bank" },
+      prompts: ["Reverse a linked list in place, then handle cycles.", "Given a stream of events, return the top-K most frequent in the last hour.", "Implement an LRU cache with O(1) get/put."] });
+    if (/design/i.test(stageNames)) sets.push({ type: "system_design", source: { type: "CIR process_stages", company_id: n.company_id },
+      prompts: ["Design a notification system for 10M users (a design prompt shape reported for this company's loops — labeled anecdotal in the CIR where applicable).", "Design a multi-tenant quota service.", "Design a URL shortener, then scale reads 100x."] });
+    if (/code.review|pair/i.test(JSON.stringify(n ? [...n.styles.map((x) => x.text), n.bar] : []))) sets.push({ type: "code_review_pairing", source: { type: "CIR interview_styles+hiring_bar_summary", company_id: n.company_id },
+      prompts: ["Review a provided diff: find the correctness bug before style issues, say why, propose the fix.", "Pair on a production-like codebase task; narrate trade-offs aloud."] });
+    if (!sets.length) sets.push({ type: "coding", source: { type: "generic_swe_bank" }, prompts: ["Two-sum variants with follow-ups toward performance/trade-off discussion."] });
+    return { company: n ? n.company_name : null, cir_grounded: !!n, sets };
+  }
+  const FINANCE_DRILL = [
+    { id: "fin-1", topic: "accounting", q: "Walk me through the three financial statements and how a $10 increase in depreciation flows through them (40% tax).", key: ["income", "depreciation", "net income", "cash flow", "balance sheet", "6", "4"], expect: "IS: NI down $6; CFS: +$4 net (add back $10, tax shield); BS balances." },
+    { id: "fin-2", topic: "dcf", q: "What drives a DCF's value most: WACC or terminal growth? How do you sanity-check it?", key: ["terminal", "wacc", "sensitivity", "multiple"], expect: "Terminal value usually dominates; sanity-check vs trading multiples and sensitivity tables." },
+    { id: "fin-3", topic: "comps", q: "Why might two similar companies trade at different EV/EBITDA multiples?", key: ["growth", "margin", "risk", "capital"], expect: "Growth, margins, risk, capital intensity / returns on capital." },
+    { id: "fin-4", topic: "lbo", q: "In an LBO, name the three main sources of returns.", key: ["debt paydown", "multiple expansion", "ebitda growth"], expect: "EBITDA growth, debt paydown (equity build), multiple expansion." },
+    { id: "fin-5", topic: "accounting", q: "If working capital increases, what happens to cash flow and why?", key: ["decrease", "cash", "inventory", "receivables"], expect: "Cash flow decreases — cash is tied up in inventory/receivables." },
+  ];
+  const QUANT_DRILL = [
+    { id: "q-1", topic: "probability", q: "Expected number of fair-coin flips to get two heads in a row?", answer: 6, tol: 0.01, expect: "6 (states: E0=1+E1/2+E0/2 etc.)." },
+    { id: "q-2", topic: "probability", q: "Roll two dice. Probability the sum is 8?", answer: 5 / 36, tol: 0.01, expect: "5/36 ≈ 0.139." },
+    { id: "q-3", topic: "mental_math", q: "What is 17 x 24?", answer: 408, tol: 0, expect: "408." },
+    { id: "q-4", topic: "expected_value", q: "A game pays $10 with probability 0.3 and $0 otherwise, and costs $2 to play. Expected value of playing?", answer: 1, tol: 0.01, expect: "0.3*10 - 2 = +$1." },
+    { id: "q-5", topic: "probability", q: "Three cards are drawn without replacement from a standard deck. Probability all three are aces? (decimal)", answer: (4 / 52) * (3 / 51) * (2 / 50), tol: 0.001, expect: "≈ 0.00018." },
+  ];
+  function financeDrill() { return { kind: "finance", questions: FINANCE_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect })) }; }
+  function quantDrill() { return { kind: "quant", questions: QUANT_DRILL.map(({ id, topic, q, expect }) => ({ id, topic, q, expect })) }; }
+  function gradeDrillAnswer(kind, id, answer) {
+    if (kind === "finance") { const d = FINANCE_DRILL.find((x) => x.id === id); if (!d) return null;
+      const low = lc(answer); const hits = d.key.filter((k) => low.includes(k)); const score = Math.round((hits.length / d.key.length) * 5);
+      return { id, topic: d.topic, score_0_5: score, hits, missed: d.key.filter((k) => !low.includes(k)), answer_key: d.expect, gap: score >= 4 ? null : `Missing: ${d.key.filter((k) => !low.includes(k)).join(", ")}` }; }
+    const d = QUANT_DRILL.find((x) => x.id === id); if (!d) return null;
+    const cleaned = s(answer).replace(/[^0-9.\-\/]/g, "");
+    let num = NaN;
+    if (/^-?\d+(\.\d+)?\/\d+(\.\d+)?$/.test(cleaned)) { const [a, b] = cleaned.split("/"); num = parseFloat(a) / parseFloat(b); }
+    else num = parseFloat(cleaned.replace(/\//g, ""));
+    const ok = !isNaN(num) && Math.abs(num - d.answer) <= Math.max(d.tol, Math.abs(d.answer) * 0.02);
+    return { id, topic: d.topic, correct: ok, your_answer: isNaN(num) ? s(answer) : num, answer_key: d.expect, score_0_5: ok ? 5 : 0 };
+  }
+  function runDrill(store, kind, answers) {
+    const set = kind === "finance" ? financeDrill() : quantDrill();
+    const graded = set.questions.map((q) => gradeDrillAnswer(kind, q.id, (answers || {})[q.id] || ""));
+    const row = { kind, graded, total: graded.reduce((n, g) => n + (g ? g.score_0_5 : 0), 0), max: graded.length * 5, at: new Date().toISOString(),
+      gaps: graded.filter((g) => g && g.score_0_5 < 4).map((g) => g.gap || `${g.topic}: expected ${g.answer_key}`) };
+    store.drills.push(row); return row;
+  }
+
+  // ---------- case prep ----------
+  function caseSession(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    const style = n && n.styles[0] ? n.styles[0] : null;
+    return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n,
+      practice_norms_label: n ? "Norms below are from the CIR on file and keep their source labels; community practice-count advice is folklore and is NOT quantified." : "No CIR on file for this company — generic case framework only; no company-specific norms claimed.",
+      style: style ? { text: style.text, source_type: style.source && style.source.source_type } : null,
+      case_prompt: "Your client is a regional grocery chain whose profits fell 15% last year while revenue grew 5%. Find out why and recommend what to do.",
+      framework: ["Clarify the objective and constraints", "Structure: revenue (price x volume x mix) vs costs (COGS, labour, logistics, shrink)", "Hypothesise, then ask for the data that discriminates", "Synthesise: recommendation, risks, next steps"] };
+  }
+  function scoreCaseResponse(resp) {
+    const low = lc(resp); const checks = {
+      clarified_objective: /\b(objective|goal|clarify|profit|question)\b/.test(low),
+      structured: /\b(first|second|branch|split|structure|revenue|cost)\b/.test(low),
+      hypothesis_led: /\b(hypothesis|hypothesise|hypothesize|because|driver)\b/.test(low),
+      asked_for_data: /\b(data|numbers|breakdown|segment|trend|compare)\b/.test(low),
+      recommendation: /\b(recommend|therefore|so the|next step)\b/.test(low),
+    };
+    const score = Object.values(checks).filter(Boolean).length;
+    return { score_0_5: score, checks, feedback: Object.entries(checks).filter(([, v]) => !v).map(([k]) => `Missing: ${k.replace(/_/g, " ")}`) };
+  }
+
+  // ---------- PREP-006 interviewer research (public facts only, supplied by caller) ----------
+  function interviewerBrief(person) {
+    person = person || {};
+    const facts = (person.publicFacts || []).filter((f) => f && s(f.text));
+    if (!facts.length) return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null,
+      status: "UNKNOWN", known: [s(person.role || ""), s(person.company || "")].filter(Boolean),
+      brief: [], unknown: ["background and prior roles", "team and focus areas", "public talks or posts"],
+      note: "No public professional facts were supplied for this person, so no bio is invented. Prep from the role and the company CIR instead." };
+    return { name: s(person.name), role: s(person.role || "") || null, company: s(person.company || "") || null, status: "OK",
+      brief: facts.map((f) => ({ text: s(f.text), source: s(f.source || "provided public fact") })), unknown: [],
+      note: "Built only from the public professional facts supplied; nothing inferred about private life." };
+  }
+
+  // ---------- PREP-007 debrief + thank-you ----------
+  function captureDebrief(store, d) {
+    const row = { debrief_id: "debrief-" + hash(s(d.company) + s(d.at || "") + store.debriefs.length), company: s(d.company), role: s(d.role || ""),
+      interviewer: s(d.interviewer || ""), went_well: d.wentWell || [], stumbled: d.stumbled || [], questions_asked: d.questionsAsked || [],
+      follow_up_by: s(d.followUpBy || "same day"), at: d.at || new Date().toISOString() };
+    store.debriefs.push(row); return row;
+  }
+  function thankYouDraft(opts) {
+    opts = opts || {}; const d = opts.debrief || {};
+    const specific = (d.went_well && d.went_well[0]) || (d.questions_asked && d.questions_asked[0]) || "our conversation";
+    return { to: s(opts.interviewer || d.interviewer || ""), subject: `Thank you — ${s(opts.company || d.company)} ${s(opts.role || d.role || "")} conversation`.trim(),
+      body: `Hi ${s((opts.interviewer || d.interviewer || "").split(" ")[0] || "there")},\n\nThank you for your time today. I especially enjoyed discussing ${specific} — it sharpened how I think about the work your team is doing at ${s(opts.company || d.company)}.\n\nI'd welcome the chance to continue the conversation. Thanks again for considering me.\n\nBest,\n${s(opts.senderName || "")}`,
+      status: "draft_only", note: "Draft on a card for the user's approval — never auto-sent." };
+  }
+
+  // ---------- salary-talk prep (NEGO-002 seam) ----------
+  function salaryPrep(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), ranges: [], script: null, note: "No CIR on file — no comp numbers are claimed or invented." };
+    const withFigures = n.compNotes.filter((c) => /\$\s?\d/.test(c.text));
+    return { status: withFigures.length ? "OK" : "NO_SOURCED_FIGURE", company: n.company_name,
+      ranges: withFigures.map((c) => ({ text: c.text, label: c.label, source_type: c.source && c.source.source_type, source_url: c.source && c.source.source_url })),
+      all_comp_notes: n.compNotes.map((c) => ({ text: c.text, label: c.label })),
+      script: "“I'm focused on finding the right role and team first. Based on the range published for this role [cite the sourced figure above], I'm comfortable discussing a package in that band once we get there — could you share the band budgeted for this level?”",
+      note: withFigures.length ? "Every figure above is copied from the CIR comp notes with its source label; nothing is estimated." : "The CIR explicitly records that no figure is published for this company — say so, anchor on the role's posted band if the employer shares one, and do not invent a number." };
+  }
+
+  // ---------- coffee chat + two-interview + pivot + pack ----------
+  function coffeeChatBrief(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const c = opts.contact || {};
+    return { kind: "coffee_chat", lighter_than_interview_prep: true, contact: { name: s(c.name), role: s(c.role || ""), company: s(c.company || (n && n.company_name) || "") },
+      company_context: n ? { bar: n.bar, values: n.values.slice(0, 2), source: { type: "CIR", company_id: n.company_id } } : null,
+      good_questions: ["What does your team actually spend its week on?", "What surprised you most after joining?", "What would you tell someone my year about the application process?", "Who else would you recommend I learn from?"],
+      do_not: ["Do not pitch for a referral in a first chat", "Do not ask anything you'd expect them to keep confidential"],
+      cir_grounded: !!n };
+  }
+  function twoInterviewPlan(items) {
+    const sorted = [...(items || [])].sort((a, b) => s(a.time).localeCompare(s(b.time)));
+    return { ordered: sorted.map((x, i) => ({ order: i + 1, time: x.time, company: x.brief.company || x.company, brief_status: x.brief.status || "OK" })),
+      gap_plan: sorted.length > 1 ? `Between ${sorted[0].time} and ${sorted[sorted.length - 1].time}: 20 min reset (no new material), re-read the second company's bar + your two matched stories, eat, and travel/buffer 30 min.` : "Single interview — standard prep.",
+      note: "Briefs are delivered in interview order; each brief keeps its own CIR grounding/gaps." };
+  }
+  function rejectionPivot(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const f = opts.funnel || {};
+    const plan = [`Stage reached: ${s(f.stage || "unknown")} at ${s(f.company || "")} — tighten the exact skill that stage tests (timed, scored drills, not re-reading).`,
+      "Re-run a scored mock focused on that stage within 48 hours while the experience is fresh.",
+      "Keep the story bank — stories transfer; only the stage skill changes."];
+    return { status: n ? "OK" : "NO_CIR", company: s(f.company || ""), stage: s(f.stage || "") || null,
+      cir_bar: n ? n.bar : null, plan,
+      gaps: n ? [] : [`No merged CIR on file for ${s(f.company || "this company")} — the company-specific bar cannot be cited; the plan above is stage-based only.`],
+      similar_roles: (opts.similar || []).map((x) => ({ company: x.company, cir_grounded: !!x.cir })) };
+  }
+  function assemblePack(store, parts) {
+    parts = parts || {};
+    const sections = [];
+    const add = (name, rail, present, payload) => sections.push({ section: name, rail, present: !!present, payload: present ? payload : null });
+    add("brief", "PREP-001", parts.brief && parts.brief.status === "OK", parts.brief);
+    add("questions", "PREP-002", parts.bank && parts.bank.questions && parts.bank.questions.length, parts.bank);
+    add("stories", "PREP-004", parts.stories && parts.stories.length, parts.stories);
+    add("interviewer_notes", "PREP-006", parts.interviewers && parts.interviewers.length, parts.interviewers);
+    add("logistics", "calendar", parts.logistics, parts.logistics || null);
+    const pack = { pack_id: "pack-" + hash(JSON.stringify(sections.map((x) => x.section + x.present))), company: s(parts.company || ""), when: s(parts.when || ""),
+      sections, complete: sections.every((x) => x.present), missing: sections.filter((x) => !x.present).map((x) => x.section),
+      traceability: sections.map((x) => `${x.section} <- ${x.rail}`) };
+    store.packs.push(pack); return pack;
+  }
+
+  // ---------- PREP-008 live assist OFF + voice honesty ----------
+  function liveAssistGuard(text) {
+    if (/\b(during|live|feed me|listen in|real interview|while i'?m in)\b/i.test(s(text)) && /\b(answer|assist|help|feed)\b/i.test(s(text))) {
+      return { refused: true, ruling: "Owner ruling 2026-10-12: live interview assist is OFF (PREP-008).",
+        message: "I can't feed you answers during a real interview — that's off, by decision, not by limitation. What I can do is get you ready: a brief, a scored mock, and drills on the exact round, today.",
+        prep_offer: ["composeBrief", "startMock", "technicalDrills / financeDrill / quantDrill"] };
+    }
+    return { refused: false };
+  }
+  function voiceMockAvailability() {
+    return { available: false, reason: "No voice rail is wired for interview prep in this build.", fallback: "text mock (PREP-003) — same questions, same rubric, scores stored the same way." };
+  }
+
+  return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank,
+    makePrepStore, mineStories, captureStory, findStories, storyTags,
+    scoreAnswer, startMock, answerMock, mockSummary,
+    technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,
+    caseSession, scoreCaseResponse, interviewerBrief, captureDebrief, thankYouDraft,
+    salaryPrep, coffeeChatBrief, twoInterviewPlan, rejectionPivot, assemblePack,
+    liveAssistGuard, voiceMockAvailability, GENERIC_BEHAVIORAL };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerPrep;
+
+/* Career negotiation rail (NEGO-001..006; starter pack §3.6).
+   Pure domain module, UMD like the other domain modules. NO SENDS: every outward text is a
+   draft behind an approval card ({ requires_approval: true, sent: false }) — the chat layer
+   sends only after the user taps yes, and only to the destination on the card.
+   COMP HONESTY LAW: benchmarks use ONLY figures that appear verbatim in CIR compensation_notes
+   (packages/career-data/cirs/*.json), each carried with its source_url, source_type and as_of.
+   A CIR that publishes no figure yields an explicit no-figure note — never an invented number.
+   Total-comp math shows every assumption; equity with no stated value/price is reported as
+   unvalued, never priced by guesswork. Advice, not guarantees; legal/tax disclaimer attached.
+   The offer log seam is a simple injected store: a plain object with an `offers` array
+   (createStore() below, shared shape with 129-career-os) — no dependency on the 126 tracker
+   branch; the tracker can adopt the same row shape later. */
+const CareerNegotiation = (() => {
+  const DISCLAIMER = "Negotiation support is advice, not a guarantee of outcome. It is not legal or tax advice — have an employment lawyer review any agreement before you sign.";
+  const s = (v) => (v == null ? "" : String(v));
+  const money = (n) => (n == null || !Number.isFinite(n) ? null : Math.round(n));
+
+  function createStore() { return { offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }; }
+
+  // ---------- offer parsing (NEGO-001) ----------
+  function parseMoney(str) {
+    const m = s(str).replace(/,/g, "").match(/\$?\s*(\d+(?:\.\d+)?)\s*(k)?\b/i);
+    if (!m) return null;
+    let n = Number(m[1]); if (m[2]) n *= 1000;
+    return n;
+  }
+  const MONTHS = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
+  function parseDate(str) {
+    const t = s(str);
+    let m = t.match(/(20\d\d)-(\d{2})-(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = t.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(20\d\d)/);
+    if (m && MONTHS[m[1].toLowerCase()] != null) { const d = new Date(Date.UTC(Number(m[3]), MONTHS[m[1].toLowerCase()], Number(m[2]))); return d.toISOString().slice(0, 10); }
+    return null;
+  }
+  function line(text, re) { const m = s(text).match(re); return m ? m : null; }
+
+  function parseOffer(text, opts) {
+    opts = opts || {};
+    const t = s(text);
+    const grab = (re) => { const m = t.match(re); return m ? m[1] : null; };
+    const baseM = line(t, /base salary[:\s]*\$([\d,]+)/i) || line(t, /base pay[^$\n]*\$([\d,]+)/i);
+    const signM = line(t, /signing bonus[:\s]*\$([\d,]+)/i) || line(t, /sign-on bonus[:\s]*\$([\d,]+)/i);
+    const bonusPct = grab(/target (?:annual )?bonus[:\s]*([\d.]+)%/i);
+    const bonusAmt = grab(/(?:^|\n)[-\s]*annual bonus[:\s]*\$([\d,]+)/im);
+    const grantVal = grab(/grant value of \$([\d,]+)/i) || grab(/equity[^$\n]*\$([\d,]+)/i);
+    const shares = grab(/([\d,]+)\s+(?:stock options|shares|RSUs?)/i);
+    const vest = grab(/vesting over (\d+(?:\.\d+)?) years/i) || grab(/vest\w* over (\d+(?:\.\d+)?) years/i);
+    const cliff = (() => { const m = t.match(/(\d+)-(year|month) cliff/i); return m ? { n: m[1], unit: m[2].toLowerCase() } : null; })();
+    const pto = grab(/(\d+) days of PTO/i);
+    const startLine = grab(/start date[:\s]*([^\n]+)/i);
+    const expiryLine = grab(/(?:respond by|expires(?: at[^.]*)? on|offer expires[^A-Za-z]*)([A-Za-z]+ \d{1,2}, 20\d\d|20\d\d-\d{2}-\d{2})/i)
+      || grab(/(?:respond by|expires on)[:\s]*([^\n.]+)/i);
+    const benefits = [];
+    if (/health/i.test(t)) benefits.push("health insurance (as stated in letter)");
+    if (/dental/i.test(t)) benefits.push("dental (as stated in letter)");
+    if (/vision/i.test(t)) benefits.push("vision (as stated in letter)");
+    if (/401\(k\)/i.test(t)) benefits.push("401(k) (as stated in letter)");
+    if (/unlimited PTO/i.test(t)) benefits.push("unlimited PTO (as stated in letter)");
+    const offer = {
+      company: opts.company || grab(/^([A-Z][\w .&'-]+?)(?:, Inc\.| \(TEST)/m) || null,
+      role: opts.role || grab(/role[:\s]*([^\n]+)/i) || null,
+      location: grab(/location[:\s]*([^\n]+)/i) || null,
+      base_salary: baseM ? parseMoney(baseM[1]) : null,
+      signing_bonus: signM ? parseMoney(signM[1]) : 0,
+      annual_bonus: bonusPct ? { kind: "target_pct", pct: Number(bonusPct) } : (bonusAmt ? { kind: "amount", amount: parseMoney(bonusAmt) } : null),
+      equity: {
+        type: /stock options/i.test(t) ? "options" : (/RSU/i.test(t) ? "RSU" : null),
+        shares: shares ? Number(shares.replace(/,/g, "")) : null,
+        grant_value: grantVal ? parseMoney(grantVal) : null,
+        share_price: opts.sharePrice != null ? opts.sharePrice : null,
+        vest_years: vest ? Number(vest) : null,
+        cliff: cliff ? `${cliff.n}-${cliff.unit}` : null,
+      },
+      benefits, pto_days: pto ? Number(pto) : (/unlimited PTO/i.test(t) ? "unlimited" : null),
+      start_date: startLine ? parseDate(startLine) : null,
+      expiry_date: expiryLine ? parseDate(expiryLine) : null,
+      parsed_at: opts.now || new Date().toISOString(),
+      source: "user-pasted offer text (TEST fixture)" ,
+    };
+    offer.missing = ["base_salary", "start_date", "expiry_date"].filter((k) => offer[k] == null);
+    if (offer.equity.grant_value == null && offer.equity.shares == null) offer.missing.push("equity value");
+    return offer;
+  }
+
+  function storeOffer(store, offer) {
+    if (!store || !Array.isArray(store.offers)) throw new Error("store with offers[] required (see createStore)");
+    const row = Object.assign({ offer_id: `offer-${store.offers.length + 1}` }, offer);
+    store.offers.push(row);
+    if (row.expiry_date) store.deadlines = store.deadlines || [], store.deadlines.push({ kind: "offer_expiry", offer_id: row.offer_id, company: row.company, date: row.expiry_date });
+    return row;
+  }
+
+  // ---------- comp benchmark from CIRs ONLY (NEGO-002) ----------
+  function extractFigures(cir) {
+    const out = [], noFigure = [], excludedPeriod = [];
+    for (const note of (cir && cir.compensation_notes) || []) {
+      const fact = note.fact || note;
+      const claim = s(fact.claim || fact.text || note.note || "");
+      const srcType = fact.source_type || note.source_type || "unknown";
+      const anecdotal = /anecdotal|reported|aggregator/i.test(srcType);
+      const ranges = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/g)];
+      const singles = [...claim.replace(/,/g, "").matchAll(/\$(\d{4,7})(?!\s*-)/g)];
+      if (/no .*figure|none is claimed|not (?:treated|used)|do not quote|no official/i.test(claim) && !ranges.length) {
+        noFigure.push({ company_id: cir.company_id, note: claim.slice(0, 300), source_url: fact.source_url || null, source_type: srcType, as_of: fact.as_of || cir.as_of });
+        continue;
+      }
+      // BUG-003 guard: a figure stated per week/month/hour (e.g. an intern's $5,800 WEEKLY rate) is
+      // not an annual figure — never let it into annual benchmarks/estimates. It is recorded as an
+      // excluded period figure so the omission is visible, not silent.
+      if (/weekly|per week|monthly|per month|hourly|\/hr|per hour/i.test(claim)) { excludedPeriod.push({ company_id: cir.company_id, note: claim.slice(0, 300), source_url: fact.source_url || null, source_type: srcType, as_of: fact.as_of || cir.as_of }); continue; }
+      for (const r of ranges) out.push({ company_id: cir.company_id, company: cir.company_name, low: Number(r[1]), high: Number(r[2]), figure_text: claim.slice(0, 300), source_url: fact.source_url || null, source_type: srcType, as_of: fact.as_of || cir.as_of, anecdotal, label: note.label || srcType });
+      if (!ranges.length) for (const r of singles) out.push({ company_id: cir.company_id, company: cir.company_name, low: Number(r[1]), high: Number(r[1]), figure_text: claim.slice(0, 300), source_url: fact.source_url || null, source_type: srcType, as_of: fact.as_of || cir.as_of, anecdotal, label: note.label || srcType });
+    }
+    return { figures: out, noFigure, excludedPeriod };
+  }
+  function benchmark(cir, opts) {
+    opts = opts || {};
+    const { figures, noFigure, excludedPeriod } = extractFigures(cir);
+    return {
+      company: cir ? cir.company_name : null, company_id: cir ? cir.company_id : null,
+      role: opts.role || null, as_of: cir ? cir.as_of : null,
+      figures, no_figure_notes: noFigure, excluded_period_figures: excludedPeriod || [],
+      has_sourced_figure: figures.length > 0,
+      statement: figures.length ? `${figures.length} sourced figure(s) from this company's CIR comp notes — each figure below carries its source and date.`
+        : "No sourced compensation figure exists in this company's CIR comp notes. No benchmark number is claimed — do not substitute third-party salary-site figures as facts.",
+      disclaimer: DISCLAIMER,
+    };
+  }
+
+  // ---------- total-comp math (NEGO-005 / NEGO honesty) ----------
+  function bonusAmount(offer) {
+    if (!offer.annual_bonus) return 0;
+    if (offer.annual_bonus.kind === "amount") return offer.annual_bonus.amount || 0;
+    if (offer.annual_bonus.kind === "target_pct") return money((offer.base_salary || 0) * offer.annual_bonus.pct / 100);
+    return 0;
+  }
+  function totalComp(offer, opts) {
+    opts = opts || {};
+    const assumptions = [];
+    const base = offer.base_salary || 0;
+    const bonus = bonusAmount(offer);
+    assumptions.push(offer.annual_bonus ? `Bonus counted at ${offer.annual_bonus.kind === "target_pct" ? `target ${offer.annual_bonus.pct}% of base` : "stated amount"} = $${bonus.toLocaleString()} — target is not guaranteed pay.` : "No annual bonus stated in the letter; counted as $0.");
+    assumptions.push(`Signing bonus $${(offer.signing_bonus || 0).toLocaleString()} counted in year 1 only, not in the annualized figure.`);
+    let equityAnnual = null, equityTotal = null;
+    const eq = offer.equity || {};
+    if (eq.grant_value != null && eq.vest_years) { equityTotal = eq.grant_value; equityAnnual = money(eq.grant_value / eq.vest_years); assumptions.push(`Equity: grant value $${eq.grant_value.toLocaleString()} spread evenly over the stated ${eq.vest_years}-year vest = $${equityAnnual.toLocaleString()}/yr. Even spread is a simplification — cliff and schedule change real timing.`); }
+    else if (eq.shares != null && eq.share_price != null && eq.vest_years) { equityTotal = eq.shares * eq.share_price; equityAnnual = money(equityTotal / eq.vest_years); assumptions.push(`Equity: ${eq.shares.toLocaleString()} shares × the price YOU supplied ($${eq.share_price}) = $${equityTotal.toLocaleString()} over ${eq.vest_years} years. Pre-IPO/private share prices are not cash value.`); }
+    else if (eq.shares != null || eq.type) { assumptions.push(`Equity: ${eq.type || "equity"} ${eq.shares ? `(${eq.shares.toLocaleString()} shares/options)` : ""} has NO stated grant value and NO share price in the letter — it is valued at $0 in this math and flagged unvalued. It may be worth something or nothing; no valuation is promised.`); }
+    else assumptions.push("No equity stated in the letter; counted as $0.");
+    assumptions.push("Benefits are listed, not monetized — the letter states no dollar value for them.");
+    const year1 = money(base + bonus + (offer.signing_bonus || 0) + (equityAnnual || 0));
+    const annualized = money(base + bonus + (equityAnnual || 0));
+    return { company: offer.company, role: offer.role, base_salary: base, bonus, signing_bonus: offer.signing_bonus || 0, equity_annual: equityAnnual, equity_total_stated: equityTotal, equity_unvalued: equityAnnual == null && !!(eq.shares || eq.type), year1_total: year1, annualized_total: annualized, assumptions, disclaimer: "Total-comp math only — not a valuation promise. Equity value depends on the company's future price and vesting; unvalued equity is shown as unvalued, not as zero-worth." };
+  }
+  function compareOffers(a, b, opts) {
+    const ta = totalComp(a, opts), tb = totalComp(b, opts);
+    const rows = ["base_salary", "bonus", "signing_bonus", "equity_annual", "year1_total", "annualized_total"].map((k) => ({ field: k, a: ta[k], b: tb[k], delta_b_minus_a: (ta[k] == null || tb[k] == null) ? null : money(tb[k] - ta[k]) }));
+    return { a: ta, b: tb, rows, note: "Deltas are null where either side is unvalued (e.g. options with no stated price) — an unvalued component is never treated as $0 in a delta.", disclaimer: DISCLAIMER };
+  }
+
+  // ---------- cards, strategy, scripts (NEGO-003) ----------
+  function approvalCard(kind, payload) {
+    return { type: "approval_card", kind, title: payload.title, body: payload.body, destination: payload.destination || null, requires_approval: true, sent: false, note: "Nothing sends without your yes on this card." };
+  }
+  function counterStrategy(offer, bench, opts) {
+    opts = opts || {};
+    const fig = bench && bench.figures && bench.figures[0];
+    const asks = [];
+    if (fig && offer.base_salary != null && offer.base_salary < fig.high) asks.push({ lever: "base_salary", ask: `Ask base toward $${fig.high.toLocaleString()} (top of the sourced range below)`, evidence: fig });
+    else if (!fig) asks.push({ lever: "base_salary", ask: "No sourced benchmark figure exists for this company — anchor the ask on your competing offer / floor instead of an invented market number", evidence: null });
+    asks.push({ lever: "signing_bonus", ask: "If base cannot move, ask for a signing-bonus increase to close the year-1 gap (one-time cost to them, real money to you)" });
+    asks.push({ lever: "start_date_or_review", ask: "Ask for a 6-month comp review in writing if neither cash lever moves" });
+    const target = fig ? `$${fig.high.toLocaleString()}` : "the top of your stated range";
+    const email = `Subject: ${offer.role || "Offer"} — ${offer.company || "your company"}\n\nHi [Recruiter name],\n\nThank you — I'm genuinely excited about the ${offer.role || "role"} and the team. I've reviewed the offer (base $${(offer.base_salary || 0).toLocaleString()}${offer.signing_bonus ? `, $${offer.signing_bonus.toLocaleString()} signing` : ""}).\n\nBased on the sourced range for this role${fig ? ` (${fig.figure_text}; source: ${fig.source_url}, as of ${fig.as_of})` : ""}, I was hoping we could get base closer to ${target}. If base is fixed, a signing-bonus adjustment or a written 6-month review would help close the gap.\n\nI'm ready to sign promptly once we land — this is my first choice.\n\nThanks for working with me on this,\n[Your name]`;
+    const call = `OPEN: "Thanks for the offer — I'm excited, and I want to find a version I can say yes to today."\nANCHOR: "Looking at the sourced range for this role${fig ? ` — ${fig.figure_text} (${fig.source_url})` : ""} — I was hoping base could land closer to ${target}."\nIF PUSHED BACK: "I understand bands are real. If base can't move, could we look at the signing bonus, or a written 6-month review?"\nCLOSE: "If we can get there, I'm ready to accept and stop my other processes."\n(Stay warm, don't bluff a competing offer you don't have, and let silences sit.)`;
+    return { asks, floor: opts.floor || null, scripts: { email, call }, card: approvalCard("counter_email", { title: `Counter for ${offer.company || "offer"} — review before anything sends`, body: email, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
+  }
+
+  // ---------- roleplay (NEGO-004) ----------
+  function roleplayTurn(state, userLine) {
+    state = state || { turn: 0, pushes: 0 };
+    const t = s(userLine).toLowerCase(); const next = { turn: state.turn + 1, pushes: state.pushes || 0, done: false, feedback: null, recruiter: null };
+    if (/ready to (sign|accept)|i accept|deal\b/.test(t) && state.turn >= 2) { next.done = true; next.recruiter = "That's great to hear — let me take that to the comp team and confirm in writing."; }
+    else if (/\$\s?\d|base|signing|bonus|review/.test(t)) { next.pushes = (state.pushes || 0) + 1; next.recruiter = next.pushes > 1 ? "I hear you. The band is the band, but I might have room on signing — what number gets you to a yes today?" : "Appreciate you laying that out. Our band for this level is pretty firm — is there anything besides base that matters most to you?"; }
+    else if (/thank|excited|first choice/.test(t)) next.recruiter = "Love to hear that. Walk me through how you're thinking about the numbers side.";
+    else next.recruiter = "Tell me more — what would make this an easy yes for you?";
+    if (next.done || next.turn >= 6) { next.done = true; next.feedback = `Roleplay feedback: you made ${next.pushes} concrete ask(s) with a number or lever — concrete asks are what move offers. ${next.pushes ? "Good: you named a lever when base was pushed back." : "Gap: you never named a specific number or lever — recruiters cannot route 'more' to a comp team."} Close every round by restating that you will sign if the ask lands — that readiness is your leverage. (Practice only — real outcomes vary.)`; }
+    return next;
+  }
+
+  // ---------- extension / decline drafts (NEGO-006, decline) ----------
+  function extensionDraft(offer, opts) {
+    opts = opts || {};
+    const days = opts.days || 7; const cur = offer.expiry_date ? Date.parse(offer.expiry_date + "T00:00:00Z") : null;
+    const newDate = cur ? new Date(cur + days * 86400000).toISOString().slice(0, 10) : null;
+    const body = `Subject: Request for a short extension — ${offer.role || "offer"}\n\nHi [Recruiter name],\n\nThank you for the offer — I'm very excited about ${offer.company || "the team"} and I'm taking it seriously. So I can give it the careful review it deserves${opts.reason ? ` (${opts.reason})` : ""}, would it be possible to extend my decision deadline by ${days} days, to ${newDate || "[new date]"}?\n\nI don't expect to need longer than that, and I'll keep you posted either way.\n\nThank you for understanding,\n[Your name]`;
+    return { draft: body, current_deadline: offer.expiry_date || null, requested_deadline: newDate, days, card: approvalCard("extension_email", { title: `Extension request for ${offer.company || "offer"} — review before anything sends`, body, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
+  }
+  function trackExtension(store, offer, ext) {
+    const row = { kind: "offer_deadline_extended", offer_id: offer.offer_id || null, company: offer.company, from: ext.current_deadline, to: ext.requested_deadline, status: "drafted_not_sent" };
+    (store.deadlines = store.deadlines || []).push(row); return row;
+  }
+  function declineDraft(offer, opts) {
+    opts = opts || {};
+    const body = `Subject: Thank you — ${offer.role || "role"} decision\n\nHi [Recruiter name],\n\nThank you so much for the offer and for everything the team shared with me through the process. After a lot of thought, I've decided to accept another opportunity that fits my goals right now, so I need to decline.\n\nThis was a genuinely hard decision — I have huge respect for ${offer.company || "the team"} and the people I met. I'd love to stay in touch, and I hope our paths cross again.\n\nWith gratitude,\n[Your name]`;
+    return { draft: body, relationship_kept_checks: { thanks_team: /thank you/i.test(body), names_reason_as_fit_not_money: /fits my goals/i.test(body), leaves_door_open: /stay in touch/i.test(body), no_bridge_burning_language: !/lowball|insult|waste/i.test(body) }, card: approvalCard("decline_email", { title: `Decline ${offer.company || "offer"} warmly — review before anything sends`, body, destination: "recruiter (address confirmed on the card before send)" }), disclaimer: DISCLAIMER };
+  }
+
+  // ---------- deadline sequencing (colliding deadlines) ----------
+  function deadlinePlan(offers, opts) {
+    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    const sorted = [...(offers || [])].filter((o) => o.expiry_date).sort((a, b) => a.expiry_date.localeCompare(b.expiry_date))
+      .map((o) => ({ offer_id: o.offer_id || null, company: o.company, expiry_date: o.expiry_date, days_left: Math.ceil((Date.parse(o.expiry_date + "T00:00:00Z") - now) / 86400000) }));
+    const collide = sorted.length > 1 && sorted[0].expiry_date === sorted[sorted.length - 1].expiry_date;
+    const steps = [];
+    if (collide) {
+      steps.push(`Both deadlines land on ${sorted[0].expiry_date} — nothing is implicit: (1) TODAY send the extension request to the offer you rank second (draft is card-gated); (2) use the extra days to finish the counter on your first choice; (3) decide by ${sorted[0].expiry_date} at the latest if no extension lands; (4) decline the other offer warmly the same day you accept — don't let it lapse silently.`);
+    } else if (sorted.length) {
+      steps.push(`Earliest deadline: ${sorted[0].company} on ${sorted[0].expiry_date} (${sorted[0].days_left} days left). Sequence every other step backwards from that date.`);
+    } else steps.push("No offer deadlines are stored — parse the offers first so dates exist in the log.");
+    return { deadlines: sorted, collision: collide, steps, as_of: new Date(now).toISOString() };
+  }
+
+  return { DISCLAIMER, createStore, parseOffer, parseDate, parseMoney, storeOffer, extractFigures, benchmark, totalComp, compareOffers, bonusAmount, approvalCard, counterStrategy, roleplayTurn, extensionDraft, trackExtension, declineDraft, deadlinePlan };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerNegotiation;
+
+/* Career OS rail (COS-001..008; starter pack §3.7) — the retention layer over the negotiation log.
+   Pure domain module, UMD. Shares the injected-store seam with 128-career-negotiation
+   (plain object: { offers, deadlines, drafts, wins, relationships, goals, applications, watches }).
+   No dependency on the sibling 126 tracker branch — it reads the same row shapes from the
+   injected store, so the tracker can adopt/back this store later without an API change.
+   HONESTY LAW: a market-value estimate exists ONLY when a sourced figure exists (a CIR comp
+   note figure via 128's extractor, or a salary range stated in a real posting's own text).
+   Otherwise the estimate is null and the output says exactly that. Every number carries its
+   evidence + as_of. Feed postings are the normalized 121-career-jobs shape. */
+const CareerOS = (() => {
+  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch (e) { return null; } })() : null;
+  const s = (v) => (v == null ? "" : String(v));
+  const lc = (v) => s(v).toLowerCase();
+  const DAY = 86400000;
+
+  function createStore(seed) { return Object.assign({ offers: [], deadlines: [], drafts: [], wins: [], relationships: [], goals: [], applications: [], watches: [] }, seed || {}); }
+
+  // salary range stated in a posting's own JD text (the posting IS the source)
+  function postingRange(posting) {
+    const t = s(posting && posting.jd_text).replace(/,/g, "");
+    let m = t.match(/\$(\d{4,7})\s*-\s*\$(\d{4,7})/); if (m) return { low: Number(m[1]), high: Number(m[2]), basis: "annual range stated in posting" };
+    m = t.match(/\$(\d{2,3}(?:\.\d+)?)\s*\/\s*hr/i) || t.match(/\$(\d{2,3}(?:\.\d+)?)\s+per hour/i);
+    if (m) return { low: Math.round(Number(m[1]) * 2080), high: Math.round(Number(m[1]) * 2080), basis: `hourly rate $${m[1]}/hr stated in posting, annualized at 2080h` };
+    m = t.match(/salary range \$(\d{4,7})/i); if (m) return { low: Number(m[1]), high: Number(m[1]), basis: "figure stated in posting" };
+    return null;
+  }
+
+  // ---------- COS-001 market value ----------
+  function marketValue(opts) {
+    opts = opts || {};
+    const evidence = [];
+    for (const cir of opts.cirs || []) {
+      if (!Neg) break;
+      for (const f of Neg.extractFigures(cir).figures) evidence.push({ kind: "cir_comp_note", company: f.company, low: f.low, high: f.high, source_url: f.source_url, source_type: f.source_type, as_of: f.as_of, anecdotal: f.anecdotal });
+    }
+    for (const p of opts.postings || []) {
+      const r = postingRange(p); if (!r) continue;
+      evidence.push({ kind: "live_posting", company: p.company, title: p.title, low: r.low, high: r.high, basis: r.basis, source_url: p.url || null, source_type: "official-posting (live feed)", as_of: p.posted_at || opts.as_of || null, anecdotal: false });
+    }
+    if (!evidence.length) return { estimate: null, evidence: [], as_of: opts.as_of || null, statement: "No sourced compensation figure is available for this estimate (no CIR comp-note figure and no posting with a stated range). No market value is claimed — this updates as soon as a sourced figure exists." };
+    const lows = evidence.map((e) => e.low), highs = evidence.map((e) => e.high);
+    const mid = evidence.map((e) => (e.low + e.high) / 2).sort((a, b) => a - b);
+    const median = mid.length % 2 ? mid[(mid.length - 1) / 2] : (mid[mid.length / 2 - 1] + mid[mid.length / 2]) / 2;
+    return { estimate: { low: Math.min(...lows), high: Math.max(...highs), median_midpoint: Math.round(median), currency: "USD/yr base (as stated in sources)" }, evidence, as_of: opts.as_of || (evidence.map((e) => e.as_of).filter(Boolean).sort().pop() || null), statement: `Estimate built from ${evidence.length} sourced figure(s) only — every one is listed with its source and date. Ranges mix levels/roles exactly as the sources state them; treat the median midpoint as orientation, not a promise.` };
+  }
+
+  // ---------- COS-002 skill gap vs higher-paying roles ----------
+  const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "React", "Go", "Rust", "Java", "SQL", "PostgreSQL", "Kubernetes", "Docker", "AWS", "System Design", "Machine Learning", "Excel", "Financial Modeling", "Valuation", "DCF", "Statistics", "Node.js", "GraphQL", "CI/CD", "Terraform", "Spark", "Kafka"];
+  function skillsIn(text) { const t = lc(text); return SKILL_LEXICON.filter((sk) => t.includes(lc(sk)) || (sk === "Go" && /\bgo\b|\bgolang\b/.test(t))); }
+  function skillGap(opts) {
+    opts = opts || {};
+    const have = new Set((opts.profileSkills || []).map(lc));
+    const paid = (opts.postings || []).map((p) => ({ p, r: postingRange(p) })).filter((x) => x.r);
+    paid.sort((a, b) => b.r.high - a.r.high);
+    const top = paid.slice(0, Math.max(3, Math.ceil(paid.length / 2)));
+    const counts = new Map();
+    for (const { p } of top) for (const sk of skillsIn(p.jd_text + " " + p.title)) { if (have.has(lc(sk))) continue; const c = counts.get(sk) || { skill: sk, postings: 0, examples: [] }; c.postings++; if (c.examples.length < 2) c.examples.push(`${p.company} — ${p.title} (${p.url || "no url"})`); counts.set(sk, c); }
+    const gaps = [...counts.values()].sort((a, b) => b.postings - a.postings || a.skill.localeCompare(b.skill));
+    // CIR skills_dist adds grounded demand evidence where present
+    const cirSkills = [];
+    for (const cir of opts.cirs || []) { const d = cir && cir.skills_dist; if (d && Array.isArray(d.reported_patterns)) for (const pat of d.reported_patterns) cirSkills.push({ company: cir.company_name, claim: s(pat.claim || pat.text || "").slice(0, 200), source_type: pat.source_type || "unknown" }); }
+    return { gaps, learn_next_order: gaps.map((g) => g.skill), basis: { higher_paying_postings_considered: top.length, postings_with_stated_ranges: paid.length, total_postings: (opts.postings || []).length }, cir_skill_evidence: cirSkills, statement: gaps.length ? "Gaps are skills named in the higher-paying postings (those with stated ranges) that your profile does not list — ordered by how many of those postings name them." : "No gap can be grounded: either no postings with stated pay ranges were supplied, or your profile already lists every skill they name." };
+  }
+
+  // ---------- COS-003 passive watch + comp-band shift (over 121 feed diffs) ----------
+  function createWatch(store, criteria, opts) {
+    opts = opts || {};
+    const w = { watch_id: `watch-${(store.watches || []).length + 1}`, criteria: { companies: criteria.companies || [], role_families: criteria.role_families || [], locations: criteria.locations || [], keywords: criteria.keywords || [], min_fit: criteria.min_fit != null ? criteria.min_fit : null }, created_at: opts.now || new Date().toISOString(), active: true };
+    (store.watches = store.watches || []).push(w); return w;
+  }
+  function watchMatches(watch, posting) {
+    const c = watch.criteria; const reasons = [];
+    if (c.companies.length && !c.companies.some((x) => lc(x) === lc(posting.company))) return null;
+    if (c.companies.length) reasons.push(`starred/watched company ${posting.company}`);
+    if (c.role_families.length && !c.role_families.some((x) => lc(x) === lc(posting.role_family))) return null;
+    if (c.role_families.length) reasons.push(`role family ${posting.role_family}`);
+    if (c.locations.length && !c.locations.some((x) => lc(posting.location).includes(lc(x)) || lc(x) === "remote")) return null;
+    if (c.keywords.length && !c.keywords.some((k) => lc(posting.jd_text + " " + posting.title).includes(lc(k)))) return null;
+    if (c.keywords.length) reasons.push("keyword match in posting text");
+    return { job_id: posting.job_id, company: posting.company, title: posting.title, url: posting.url, posted_at: posting.posted_at, reasons: reasons.length ? reasons : ["matches watch criteria"] };
+  }
+  // diff semantics mirror 121's diffNew: only job_ids absent from the prior snapshot are new
+  function watchDiff(watch, priorPostings, currentPostings) {
+    const priorIds = new Set((priorPostings || []).map((p) => p.job_id));
+    const hits = [];
+    for (const p of currentPostings || []) { if (priorIds.has(p.job_id)) continue; const m = watchMatches(watch, p); if (m) hits.push(m); }
+    return { watch_id: watch.watch_id, new_postings_seen: (currentPostings || []).filter((p) => !priorIds.has(p.job_id)).length, hits, ping: hits.length ? `Ping: ${hits.length} new posting(s) match your watch — ${hits.map((h) => `${h.company}: ${h.title}`).join("; ")}` : null };
+  }
+  function compBandShift(company, priorPostings, currentPostings) {
+    const rng = (ps) => (ps || []).filter((p) => lc(p.company) === lc(company)).map((p) => ({ p, r: postingRange(p) })).filter((x) => x.r);
+    const before = rng(priorPostings), after = rng(currentPostings);
+    if (!before.length || !after.length) return { company, shift: null, statement: `Cannot detect a comp-band move for ${company}: ${!before.length ? "no prior posting with a stated range" : "no current posting with a stated range"}. No market claim is made.` };
+    const bMax = Math.max(...before.map((x) => x.r.high)), aMax = Math.max(...after.map((x) => x.r.high));
+    const bMin = Math.min(...before.map((x) => x.r.low)), aMin = Math.min(...after.map((x) => x.r.low));
+    if (aMax === bMax && aMin === bMin) return { company, shift: null, statement: `No comp-band move detected for ${company} in the stated posting ranges.` };
+    return { company, shift: { prior: { low: bMin, high: bMax }, current: { low: aMin, high: aMax }, direction: aMax > bMax ? "up" : "changed" }, evidence: { prior: before.map((x) => ({ title: x.p.title, range: x.r, url: x.p.url })), current: after.map((x) => ({ title: x.p.title, range: x.r, url: x.p.url })) }, statement: `${company}'s company-wide stated-range envelope moved from $${bMin.toLocaleString()}–$${bMax.toLocaleString()} to $${aMin.toLocaleString()}–$${aMax.toLocaleString()} (ranges as stated in the postings themselves; envelope spans roles — the evidence lists the exact postings, this is not a same-role comparison).` };
+  }
+
+  // ---------- COS-004 network upkeep ----------
+  function networkUpkeep(store, opts) {
+    opts = opts || {}; const now = opts.now ? Date.parse(opts.now) : Date.now();
+    const rows = [...(store.relationships || [])].map((r) => ({ name: r.name, org: r.org || null, warmth: r.warmth || null, last_touch: r.last_touch || null, days_since: r.last_touch ? Math.floor((now - Date.parse(r.last_touch)) / DAY) : null, channel: r.channel || null }))
+      .sort((a, b) => (b.days_since == null ? 1e9 : b.days_since) - (a.days_since == null ? 1e9 : a.days_since));
+    const coldestWarm = rows.find((r) => r.warmth === "warm") || rows[0] || null;
+    const restartDraft = coldestWarm ? `Hi ${coldestWarm.name.split(" ")[0]} — it's been a while${coldestWarm.days_since != null ? ` (we last spoke ${coldestWarm.days_since} days ago)` : ""} and I realized I never followed up properly. I'd love to hear what you're working on at ${coldestWarm.org || "your end"} these days — and if a short catch-up call sometime in the next couple of weeks works, I'm in. No ask attached, just wanted to reconnect.` : null;
+    return { ranked: rows, coldest_warm: coldestWarm, restart_draft: restartDraft, card: restartDraft ? { type: "approval_card", kind: "network_restart", title: `Restart draft for ${coldestWarm.name} — review before anything sends`, body: restartDraft, requires_approval: true, sent: false } : null, as_of: new Date(now).toISOString() };
+  }
+
+  // ---------- COS-005/006 wins log + review packet ----------
+  function logWin(store, win, opts) {
+    opts = opts || {};
+    const row = { win_id: `win-${(store.wins || []).length + 1}`, text: s(win.text || win), outcome: win.outcome || null, date: win.date || (opts.now || new Date().toISOString()).slice(0, 10), source: "user-reported win (living log)" };
+    (store.wins = store.wins || []).push(row); return row;
+  }
+  function reviewPacket(store, opts) {
+    opts = opts || {};
+    const wins = [...(store.wins || [])].sort((a, b) => s(a.date).localeCompare(s(b.date)));
+    return { achievements: wins.map((w) => ({ date: w.date, achievement: w.text, outcome: w.outcome || "outcome not stated — add it before the review if you can quantify it" })), count: wins.length, packet_text: wins.length ? wins.map((w) => `• ${w.date} — ${w.text}${w.outcome ? ` (Outcome: ${w.outcome})` : ""}`).join("\n") : "No wins logged yet — text wins as they happen and this packet builds itself.", note: "Assembled only from the wins log — nothing is invented or back-filled." };
+  }
+
+  // ---------- COS-007 return-offer playbook + intern timeline ----------
+  function returnOfferPlaybook(opts) {
+    opts = opts || {}; const cir = opts.cir || null;
+    const steps = [
+      "This week: thank the team in writing, confirm the offer terms in the log (base/equity/bonus/start/expiry parsed from the letter), and note the decision deadline.",
+      "Before deciding: run the comp benchmark from the company's CIR comp notes — sourced figures only — and list your two strongest internship outcomes from the wins log as your counter evidence.",
+      "Have the growth conversation: ask your manager what the first-year expectations and promotion bar are for this level, in writing.",
+      "Negotiate from evidence (your shipped outcomes + the sourced range), accept or decline on a card-approved draft — never verbally on the spot.",
+    ];
+    const first90 = [
+      "Days 1–30: rebuild context — team roadmap, your manager's priorities, one small shipped win logged.",
+      "Days 31–60: own one scoped project end-to-end; log outcomes in the wins log as they land.",
+      "Days 61–90: present results, agree next-half goals with your manager, and start the promotion-evidence file from the wins log.",
+    ];
+    return { company: cir ? cir.company_name : (opts.offer && opts.offer.company) || null, steps, first_90_days: first90, cir_grounding: cir ? { hiring_bar_summary: s(cir.hiring_bar_summary && (cir.hiring_bar_summary.text || cir.hiring_bar_summary)).slice(0, 300) || null, as_of: cir.as_of } : null, disclaimer: "Playbook is guidance, not a guarantee of a return offer or outcome." };
+  }
+  function internTimeline(opts) {
+    opts = opts || {}; const end = Date.parse((opts.endDate || "2027-08-15") + "T00:00:00Z");
+    const at = (d) => new Date(end + d * DAY).toISOString().slice(0, 10);
+    return { internship_end: opts.endDate || "2027-08-15", milestones: [
+      { date: at(-42), action: "Midpoint check-in with your manager: ask explicitly what a return offer requires and whether you're tracking to it." },
+      { date: at(-28), action: "Ship/land your main project outcome; log it in the wins log with the metric." },
+      { date: at(-14), action: "Final presentation/demo; collect feedback in writing from manager and mentor." },
+      { date: at(-7), action: "The return-offer conversation: if no signal yet, ask directly about timeline for a decision." },
+      { date: at(0), action: "Last day: thank-you notes to manager/mentor/team (drafts on approval cards); confirm how the offer decision will reach you." },
+      { date: at(21), action: "If a return offer arrives: parse it into the log, benchmark it, and negotiate from evidence — don't accept on the spot." },
+    ] };
+  }
+
+  // ---------- COS-008 goals check-in + career timeline ----------
+  function goalsCheckin(store, opts) {
+    opts = opts || {}; const now = opts.now || new Date().toISOString();
+    const reality = { applications_logged: (store.applications || []).length, offers_logged: (store.offers || []).length, wins_logged: (store.wins || []).length, active_watches: (store.watches || []).filter((w) => w.active).length, deadlines: (store.offers || []).filter((o) => o.expiry_date).map((o) => ({ company: o.company, expiry_date: o.expiry_date })) };
+    const checks = (store.goals || []).map((g) => ({ goal: g.text, target: g.target != null ? g.target : null, progress: g.progress_from || null, measured: g.metric ? reality[g.metric] != null ? reality[g.metric] : null : null, status: g.target != null && g.metric && reality[g.metric] != null ? (reality[g.metric] >= g.target ? "on track / met" : "behind — adjust the plan with the user, don't quietly lower the target") : "no measurable target stored — confirm one at this check-in" }));
+    return { as_of: now, stated_goals: checks, reality, adjustment_prompt: "Compare each goal against the log's reality above. Adjustments are proposed here and only saved after you confirm them — the log never rewrites a goal silently." };
+  }
+  function careerTimeline(store, persona, opts) {
+    opts = opts || {}; const events = [];
+    for (const f of (persona && persona.facts) || []) {
+      if (!["education", "experience", "leadership", "project"].includes(f.kind)) continue;
+      events.push({ date: f.start || f.end || null, end: f.end || null, kind: f.kind, title: f.title || f.text, org: f.org || null, source: `profile fact ${f.id || ""} (stored record)` });
+    }
+    for (const a of store.applications || []) events.push({ date: a.date || a.applied_at || null, kind: "application", title: `Applied — ${a.company || ""} ${a.role || ""}`.trim(), org: a.company || null, source: "application log (stored record)" });
+    for (const o of store.offers || []) events.push({ date: o.parsed_at ? String(o.parsed_at).slice(0, 10) : null, kind: "offer", title: `Offer — ${o.company || ""} ${o.role || ""}`.trim(), org: o.company || null, source: "parsed offer in the negotiation log (stored record)" });
+    for (const w of store.wins || []) events.push({ date: w.date || null, kind: "win", title: w.text, org: null, source: "wins log (stored record)" });
+    events.sort((a, b) => s(a.date || "9999").localeCompare(s(b.date || "9999")));
+    return { events, count: events.length, statement: "Timeline rendered only from stored records (profile facts, application log, parsed offers, wins log) — nothing is inferred or back-filled." };
+  }
+
+  return { createStore, postingRange, marketValue, skillGap, skillsIn, SKILL_LEXICON, createWatch, watchMatches, watchDiff, compBandShift, networkUpkeep, logWin, reviewPacket, returnOfferPlaybook, internTimeline, goalsCheckin, careerTimeline };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerOS;
+
+/* Career application guardrails + submission seams (Doc 2 §5.3, §5.4, §5.5, §6;
+   capabilities APPE-005 sensitive-answer confirmation, APPE-007 referral
+   stacking, APPE-008 batch card / caps / duplicate / audit record).
+   Built 2026-10-12 in branch career/sc-f03 for scenario family F03
+   (SC-047, SC-051..SC-058, SC-060) because pivot/career shipped the tailor
+   (123) and discovery (121) rails but NO apply rail: the confirmation seams
+   the scenario ledger names ("APPE-005 seam", "APPE-008") did not exist.
+
+   Hard rules encoded (Doc 2, binding):
+   - T3 sensitive answers (work authorization / sponsorship, salary, EEO,
+     clearance, criminal history) are NEVER guessed and NEVER entered without
+     the user confirming the saved value verbatim in this session (§5.3, S6).
+     Salary is stricter still: no number is ever entered that the user did
+     not approve; the only default is "negotiable / open" where allowed.
+   - Knockout honesty (§5.3): if the user truly does not meet a stated
+     requirement, the application STOPS with the reason. It proceeds only on
+     an explicit user override ("apply anyway"), never silently.
+   - Daily cap (§5.4, owner suggestion adopted in Doc 2: 15/day). The cap
+     cannot be talked up in chat — attemptRaiseCap always refuses.
+   - Duplicate protection (§5.4): no second application to the same
+     company+role while a prior record exists in the application log.
+   - Current-employer guard (§5.4): no applying to a company that appears as
+     an employer on the master profile, unless the user explicitly confirms
+     the move is intentional (the stated exception path).
+   - Batch approval (§5.4/ledger SC-054): ONE card lists every role; nothing
+     is recorded as approved before the user's yes.
+   - Audit record (§5.5): job, company, URL, timestamp, resume version,
+     cover-letter id, every question + answer + its source, confirmation
+     state, referral attached (Y/N + who). Records live in an INJECTED log
+     ({records: []}) so tests/scenarios own the store; this module is pure.
+   - Referral stacking (§6): before submitting, check for a warm path. The
+     outreach engine (124-career-outreach.js, branch career/outr) is NOT
+     merged into this branch, so warm-path contacts are passed IN using
+     OUTR-shaped records ({full_name, current_firm, relationship_to_user} —
+     the field names 124's normalizeCandidate produces). When 124 lands, the
+     caller swaps its candidate pipeline output in unchanged.
+   Pure: no I/O, no network, no clock except values passed in. UMD. */
+const CareerApply = (() => {
+  const DAILY_CAP = 15;
+  const norm = (v) => String(v == null ? "" : v).toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  // ---------- application log + audit record (APPE-008, Doc 2 §5.5) ----------
+  function createLog() { return { records: [], _seq: 0 }; }
+  function buildAuditRecord(log, input) {
+    const inp = input || {};
+    log._seq = (log._seq || 0) + 1;
+    const rec = {
+      applicationId: inp.applicationId || `APP-${String(log._seq).padStart(3, "0")}`,
+      jobId: inp.jobId || null, company: inp.company || null, role: inp.role || null,
+      url: inp.url || null, timestamp: inp.timestamp || null,
+      resumeVersionId: inp.resumeVersionId || null, coverLetterId: inp.coverLetterId || null,
+      answers: (inp.answers || []).map((a) => ({ question: a.question, answer: a.answer, source: a.source || "profile", confirmationState: a.confirmationState || "not-required" })),
+      confirmationProof: inp.confirmationProof || null,
+      referral: { attached: !!(inp.referral && inp.referral.attached), who: (inp.referral && inp.referral.who) || null },
+      trackedAs: inp.referral && inp.referral.attached ? "referred" : "cold",
+      status: inp.status || "recorded",
+      channel: inp.channel || null,
+    };
+    log.records.push(rec);
+    return rec;
+  }
+  function findApplications(log, query) {
+    const q = query || {};
+    return (log.records || []).filter((r) =>
+      (!q.company || norm(r.company) === norm(q.company)) &&
+      (!q.role || norm(r.role) === norm(q.role)) &&
+      (!q.jobId || r.jobId === q.jobId));
+  }
+  function getAuditRecord(log, query) {
+    const hits = findApplications(log, query);
+    return hits.length ? hits[hits.length - 1] : null;
+  }
+
+  // ---------- duplicate protection (APPE-008) ----------
+  function checkDuplicate(log, posting) {
+    const hits = findApplications(log, { company: posting.company, role: posting.title || posting.role, jobId: posting.job_id || posting.jobId });
+    const prior = hits.find((r) => r.jobId === (posting.job_id || posting.jobId)) || hits[0] || null;
+    return prior ? { duplicate: true, prior, reason: `already applied to ${prior.company} — ${prior.role} on ${prior.timestamp ? String(prior.timestamp).slice(0, 10) : "an earlier date"} (${prior.applicationId})` } : { duplicate: false, prior: null };
+  }
+
+  // ---------- current-employer guard (APPE-008) ----------
+  function profileEmployers(profile) {
+    return ((profile && profile.facts) || []).filter((f) => f.kind === "experience" && f.org).map((f) => ({ org: f.org, title: f.title, factId: f.id }));
+  }
+  function checkCurrentEmployer(profile, company) {
+    const hit = profileEmployers(profile).find((e) => norm(e.org) === norm(company));
+    return hit ? { blocked: true, employer: hit, reason: `${company} is your employer on your master profile (${hit.title}, fact ${hit.factId}) — the agent does not apply to your own employer`, exceptionPath: "If this move is intentional (e.g. an internal transfer or returning full-time), say so explicitly and the guard lifts for this one application." } : { blocked: false };
+  }
+
+  // ---------- daily cap (APPE-008 guardrail) ----------
+  function applicationsOn(log, dateStr) { return (log.records || []).filter((r) => r.timestamp && String(r.timestamp).slice(0, 10) === dateStr).length; }
+  function enforceDailyCap(log, requestedCount, dateStr) {
+    const already = applicationsOn(log, dateStr);
+    const remaining = Math.max(0, DAILY_CAP - already);
+    const allowed = Math.min(requestedCount, remaining);
+    return { cap: DAILY_CAP, alreadyToday: already, requested: requestedCount, allowed, queuedForTomorrow: requestedCount - allowed, capped: requestedCount > allowed, message: requestedCount > allowed ? `Capped at ${DAILY_CAP} applications per day: ${allowed} can go today, ${requestedCount - allowed} queue for tomorrow.` : `${requestedCount} application(s) fit inside today's cap of ${DAILY_CAP} (${already} already recorded today).` };
+  }
+  function attemptRaiseCap() { return { ok: false, refused: true, cap: DAILY_CAP, reason: `the daily cap of ${DAILY_CAP} cannot be raised in chat — it is a guardrail, not a preference (Doc 2 §5.4)` }; }
+
+  // ---------- sensitive-answer seam (APPE-005, Doc 2 §5.3 + S6) ----------
+  function classifyQuestion(question) {
+    const q = String(question || "").toLowerCase();
+    if (/sponsor/.test(q)) return "sponsorship";
+    if (/authoriz|eligible to work|legally.*work/.test(q)) return "work_authorization";
+    if (/salary|compensation expect|pay expect/.test(q)) return "salary";
+    if (/race|ethnic|gender|veteran|disability|demographic|eeo/.test(q)) return "eeo";
+    if (/clearance/.test(q)) return "clearance";
+    if (/criminal|conviction|background check/.test(q)) return "background";
+    if (/years of experience|how many years/.test(q)) return "factual_years";
+    return "other";
+  }
+  // The saved sponsorship answer, derived ONLY from profile constraints/facts.
+  function savedSponsorshipAnswer(profile) {
+    const c = (profile && profile.constraints) || {};
+    const factText = ((profile && profile.facts) || []).map((f) => f.text || "").join(" ");
+    if (c.needsSponsorship) {
+      if (/F-1 OPT then H-1B/.test(factText) || /F-1/.test(String(c.workAuthorization || ""))) return "Yes — F-1 OPT then H-1B.";
+      return "Yes — I will require sponsorship.";
+    }
+    if (c.needsSponsorship === false) return "No — I do not require sponsorship.";
+    return null; // not saved: the agent must ask, never guess
+  }
+  function savedAnswerFor(profile, kind) {
+    const c = (profile && profile.constraints) || {};
+    const d = (profile && profile.defaults) || {};
+    if (kind === "sponsorship") return savedSponsorshipAnswer(profile);
+    if (kind === "work_authorization") return c.workAuthorization || null;
+    if (kind === "clearance") return c.securityClearance || "None";
+    if (kind === "eeo") return d.demographicPreference || "decline to answer";
+    return null;
+  }
+  // Returns a confirmation PROMPT, never an entered value. Only when the
+  // caller passes confirmed:true (the user's tap in this session) does the
+  // result carry entered:true with the answer.
+  function confirmSensitive(profile, question, opts) {
+    const o = opts || {};
+    const kind = classifyQuestion(question);
+    if (kind === "salary") return salaryQuestion(profile, question, o);
+    const saved = savedAnswerFor(profile, kind);
+    if (saved == null) return { kind, requiresConfirmation: true, savedAnswer: null, entered: false, prompt: `This is a sensitive question and I have no saved answer for it — I will not guess. What should I enter for: "${question}"?` };
+    if (o.confirmed === true) return { kind, requiresConfirmation: true, savedAnswer: saved, entered: true, answer: saved, confirmationState: "user-confirmed-in-session" };
+    return { kind, requiresConfirmation: true, savedAnswer: saved, entered: false, prompt: `This one matters — it is a sensitive (T3) answer and I never enter it without your confirmation. Your saved answer is '${saved}' Confirm to use it? [Yes / Edit]` };
+  }
+  // Salary: ask, offer a SOURCED range when one is passed in, default to
+  // negotiable/open. A number is entered only when the user approved that
+  // exact number (opts.userApprovedNumber).
+  function salaryQuestion(profile, question, opts) {
+    const o = opts || {};
+    if (typeof o.userApprovedNumber === "number" && o.userApprovedNumber > 0) {
+      return { kind: "salary", requiresConfirmation: true, entered: true, answer: String(o.userApprovedNumber), confirmationState: "user-approved-number" };
+    }
+    return { kind: "salary", requiresConfirmation: true, entered: false, savedAnswer: null, proposedDefault: "Negotiable / open to the posted range", marketRange: o.marketRange || null, prompt: `I never enter a salary number you have not approved.${o.marketRange ? ` Sourced market range: ${o.marketRange.range} (source: ${o.marketRange.source}).` : " I have no sourced market range for this role."} I can enter 'Negotiable / open' where the form allows it, or a number you approve — which?` };
+  }
+
+  // ---------- knockout honesty (Doc 2 §5.3) ----------
+  function yearsForSkill(profile, skill) {
+    const facts = (profile && profile.facts) || [];
+    const sk = facts.find((f) => f.kind === "skill" && norm(f.name || f.title) === norm(skill));
+    if (!sk) return 0;
+    const ev = require("./122-career-profile.js").skillEvidence(profile, skill);
+    if (!ev.proven) return 0;
+    // Conservative: one internship/project cycle counts as 1 year unless the
+    // supporting facts carry explicit start/end spans summing higher.
+    let months = 0;
+    for (const id of ev.supportingFactIds || []) {
+      const f = facts.find((x) => x.id === id);
+      if (f && f.start && f.end) { const a = Date.parse(`${f.start}-01T00:00:00Z`), b = Date.parse(`${f.end}-01T00:00:00Z`); if (Number.isFinite(a) && Number.isFinite(b) && b > a) months += (b - a) / 2629800000; }
+    }
+    return Math.max(1, Math.round(months / 12 * 10) / 10);
+  }
+  function checkKnockout(profile, requirement, opts) {
+    const o = opts || {};
+    const req = requirement || {};
+    const years = typeof req.userYears === "number" ? req.userYears : yearsForSkill(profile, req.skill);
+    if (years >= req.requiredYears) return { blocked: false, years, requiredYears: req.requiredYears, skill: req.skill };
+    if (o.userSaysApplyAnyway === true) return { blocked: false, override: true, years, requiredYears: req.requiredYears, skill: req.skill, reason: `requirement is ${req.requiredYears} years of ${req.skill}; profile shows ${years} — proceeding only because the user explicitly said apply anyway` };
+    return { blocked: true, years, requiredYears: req.requiredYears, skill: req.skill, reason: `This form requires ${req.requiredYears} years of ${req.skill}; your profile evidences ${years}. I stopped this application rather than misstate it.`, overridePath: "Say 'apply anyway' and I will proceed with your honest numbers — I will never inflate them." };
+  }
+
+  // ---------- referral stacking (APPE-007, Doc 2 §6) ----------
+  // warmPaths: OUTR-shaped records (124 normalizeCandidate field names).
+  function checkReferral(company, warmPaths) {
+    const hits = (warmPaths || []).filter((c) => norm(c.current_firm || c.company) === norm(company));
+    if (hits.length) {
+      const who = hits[0].full_name || hits[0].name;
+      return { warmPathFound: true, company, contacts: hits, who, proposals: [`Hold this application 48 hours and ask ${who} for a referral first`, `Apply now and have ${who} submit the referral in parallel`], trackedSeparately: true, note: "Referred applications are tracked separately from cold applications (Doc 2 §6/§7.5)." };
+    }
+    return { warmPathFound: false, company, contacts: [], proposals: ["Apply cold now", `Launch a targeted outreach mini-campaign (Doc 1) of 5–10 people at ${company} first`], trackedSeparately: true };
+  }
+
+  // ---------- batch triage (Doc 2 S3) + batch card (SC-054) ----------
+  function triageBatch(postings, ctx) {
+    const c = ctx || {};
+    const Jobs = require("./121-career-jobs.js");
+    const scoringProfile = c.scoringProfile || null;
+    return (postings || []).map((p) => {
+      const reasons = [];
+      if (c.expiredJobIds && c.expiredJobIds.includes(p.job_id)) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: ["posting expired / link dead at check time"] };
+      const dup = c.log ? checkDuplicate(c.log, p) : { duplicate: false };
+      if (dup.duplicate) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: [dup.reason] };
+      const emp = c.profile ? checkCurrentEmployer(c.profile, p.company) : { blocked: false };
+      if (emp.blocked) return { job_id: p.job_id, company: p.company, role: p.title, decision: "skip", reasons: [emp.reason] };
+      if (scoringProfile) {
+        const fit = Jobs.scoreFit(p, scoringProfile);
+        if (fit.excluded) {
+          const clearance = fit.hard_fails.some((r) => /clearance/i.test(r));
+          return { job_id: p.job_id, company: p.company, role: p.title, decision: clearance ? "ask" : "skip", fit: null, reasons: fit.hard_fails.map((r) => `hard filter: ${r}`) };
+        }
+        return { job_id: p.job_id, company: p.company, role: p.title, decision: "apply", fit: fit.score, bucket: fit.bucket, reasons: fit.reasons };
+      }
+      reasons.push("no scoring profile passed in — fit not computed");
+      return { job_id: p.job_id, company: p.company, role: p.title, decision: "ask", reasons };
+    });
+  }
+  function batchCard(items, opts) {
+    const o = opts || {};
+    return { type: "batch_approval", title: o.title || `Apply to ${items.length} roles?`, items: items.map((i) => ({ company: i.company, role: i.role, fit: i.fit != null ? i.fit : null, resumeVersion: i.resumeVersion || null })), count: items.length, note: "Nothing submits before your yes. Each approved application gets its own audit record." };
+  }
+
+  return { DAILY_CAP, createLog, buildAuditRecord, findApplications, getAuditRecord, checkDuplicate, profileEmployers, checkCurrentEmployer, applicationsOn, enforceDailyCap, attemptRaiseCap, classifyQuestion, savedSponsorshipAnswer, savedAnswerFor, confirmSensitive, salaryQuestion, yearsForSkill, checkKnockout, checkReferral, triageBatch, batchCard };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerApply;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -22705,4 +24222,4 @@ const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and 
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply };

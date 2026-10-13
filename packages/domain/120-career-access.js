@@ -236,9 +236,39 @@
     function handleConnectGoogle(_text, ctx) {
       const c = ctx || {};
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
+      // SC-286 (A5): the result must be TYPED with a doorstep payload — the
+      // consent card plus the self-test plan — not a bare reply with
+      // resultStatus null. The connection itself is the user's tap on
+      // Google's page; nothing here claims it happened.
+      const doorstepPayload = {
+        kind: "connect_google_doorstep", edge_action: "start_career", scopes: [...CAREER_SCOPES],
+        send_rail: "user_gmail_oauth", requires_user_tap: true, committed: false,
+        self_test: { test_email: "one test email to your own inbox", test_event: "one test calendar event", runs_after: "the consent tap lands" },
+      };
       return {
         intent: "connect_google", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
-        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
+        resultStatus: "awaiting_user", artifact: doorstepPayload, payload: doorstepPayload, sends: 0,
+        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy plus events). One consent click on Google's own page, and no password ever in chat.${link ? ` ${link}` : ""} Next step — approve on Google's page and I will run the self-test: one test email to your own inbox and one test event on your calendar.`,
+      };
+    }
+    // SC-287 (A4): a LinkedIn connection asked for the ZERO-RISK way — the
+    // user's own data export, uploaded and parsed — is NOT the cloud-browser
+    // sign-in source. It wins over connect_browser_source whenever the turn
+    // names the export path, and the reply may never carry a sign-in
+    // instruction (R-B11 is an S0 tripwire).
+    function handleLinkedInExport(_text, ctx) {
+      const c = ctx || {};
+      const records = Array.isArray(c.linkedinExportConnections) ? c.linkedinExportConnections
+        : Array.isArray(c.exportConnections) ? c.exportConnections : null;
+      const parsed = records ? { connections_parsed: records.length } : null;
+      const payload = { kind: "linkedin_export_ingest", source: "linkedin_data_export", requires_user_upload: true, sign_in_required: false, parsed };
+      return {
+        intent: "profile_export", family: "access", resultStatus: "awaiting_user",
+        ingest: { source: "linkedin_data_export", sign_in_required: false, password_seen: false, status: records ? "parsed" : "awaiting_file" },
+        artifact: payload, payload, sends: 0,
+        reply: records
+          ? `Your LinkedIn export is in: ${records.length} connections parsed into your graph, with names, firms, and roles kept exactly as the file states them. No sign-in through me was used, and I never see your password. Next step — ask me who you know at any firm and I will rank the warm paths.`
+          : "Your LinkedIn data export is the zero-risk path in: request the data download inside LinkedIn, then upload the file here and I will parse your connections and profile into your graph. No sign-in through me, and I never see your password. Next step — upload the export file (the download itself, or the Connections list inside it) and I will show you exactly what it adds.",
       };
     }
     function handleConnected(_text, ctx) {
@@ -280,18 +310,59 @@
       const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
       return { intent: "connect_browser_source", ...plan, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""}` : plan.text };
     }
-    const chatHandlers = { connect_google: handleConnectGoogle, connected_accounts: handleConnected, disconnect: handleDisconnect, access_log: handleAccessLog, portal_accounts: handlePortalList, connect_browser_source: handleConnectBrowser };
+    function handleSessionHealth(_text, ctx) {
+      const c = ctx || {};
+      const plan = healthPlan({ health: c.health || [], tasks: c.tasks || [] });
+      const msgs = (plan.messages || []).slice(0, 2).join(" ");
+      return {
+        intent: "session_health", family: "access", resultStatus: "completed", sends: 0, health: plan,
+        reply: msgs || "When a session dies mid-run, only the tasks that depend on that one source pause; everything else continues, and you get exactly one re-auth message for the paused source — never a flood. Next step — reconnect that one source and the paused tasks pick up where they stopped.",
+      };
+    }
+    function handleCaptchaHandoff(_text, _ctx) {
+      return {
+        intent: "captcha_handoff", family: "access", resultStatus: "awaiting_user", sends: 0,
+        reply: "A CAPTCHA is a step only you can do: I hand you the tap on the real page, you finish that one step, and the run resumes right where it stopped. No solver services are used, ever — that is a hard rule, not a preference. Next step — tap the handoff link when it appears and the application continues from the exact field it stopped on.",
+      };
+    }
+    // Routing robustness (wedge paraphrase battery): repair a token only
+    // when exactly one access-vocabulary word is one adjacent transposition
+    // away ("connetc" -> "connect", "gmali" -> "gmail"). Routing copy only.
+    const ACCESS_VOCAB = new Set(["connect", "disconnect", "gmail", "google", "calendar", "linkedin", "handshake", "export", "upload", "accounts", "account", "consent", "password", "portal", "access", "audit", "actions", "login", "browser", "source", "session", "event", "email"]);
+    function detypoAccess(text) {
+      return String(text || "").replace(/[A-Za-z]{5,}/g, (w) => {
+        const lw = w.toLowerCase();
+        if (ACCESS_VOCAB.has(lw)) return w;
+        let hit = null;
+        for (let i = 0; i < lw.length - 1; i++) {
+          const cand = lw.slice(0, i) + lw[i + 1] + lw[i] + lw.slice(i + 2);
+          if (ACCESS_VOCAB.has(cand)) { if (hit && hit !== cand) return w; hit = cand; }
+        }
+        if (!hit) return w;
+        return /^[A-Z]/.test(w) ? hit.charAt(0).toUpperCase() + hit.slice(1) : hit;
+      });
+    }
+    const chatHandlers = { connect_google: handleConnectGoogle, connected_accounts: handleConnected, disconnect: handleDisconnect, access_log: handleAccessLog, portal_accounts: handlePortalList, connect_browser_source: handleConnectBrowser, profile_export: handleLinkedInExport, session_health: handleSessionHealth, captcha_handoff: handleCaptchaHandoff };
     function handleChat(text, ctx) {
+      text = detypoAccess(text); // routing copy only
       const t = String(text || "").trim().toLowerCase();
-      if (/^disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
+      if (/^["“']?\s*disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
+      if (/\bcaptcha\b/.test(t)) return chatHandlers.captcha_handoff(text, ctx);
+      if (/\bsession (dies|died|expired|killed|death)\b|\breauth\b|\bre-auth\b/.test(t)) return chatHandlers.session_health(text, ctx);
+      // The data-EXPORT path must win over the browser-source path whenever
+      // the turn names it (SC-287): LinkedIn + export + a bring-it-in verb.
+      if (/\b(linkedin|handshake)\b/.test(t) && /\bexport\b/.test(t) && /\b(connect|link|upload|uploaded|import|parse|parsed|add|bring)\b/.test(t)) return chatHandlers.profile_export(text, ctx);
       if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
+      // "I sign in once to Handshake; the agent reuses that session" — the
+      // user's own signed-in session IS the browser-source plan (SC-288).
+      if (/\bcloud[ -]?browser\b|\bsign in once\b|\bi sign in\b[^.]*\b(handshake|linkedin)\b|\breuse (that|the|my) session\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
       // The ledger's own phrasings route too, not just the canonical ones: "what accounts do I have
       // connected?" and "show me everything you've accessed for me" both fell through to null in the
       // first build — BUG-002 (SC-002) and BUG-004 (SC-005), found by the F01 scenario runs.
       if (/\bwhat accounts\b[^.]*\bconnected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b|\bwhich accounts\b[^.]*\bconnected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
       if (/\bportal accounts\b|\bwhich companies.*accounts\b/.test(t)) return chatHandlers.portal_accounts(text, ctx);
-      if (/\baccess log\b|\blogin log\b|\bshow my access\b|\bshow me everything you(?:'ve| have) accessed\b|\bwhat have you accessed\b/.test(t)) return chatHandlers.access_log(text, ctx);
+      if (/\baccess log\b|\blogin log\b|\bshow my access\b|\bshow me everything you(?:'ve| have) accessed\b|\bwhat have you accessed\b|\bevery action\b[^.]*\blogin\b|\bactions? this week\b|\baudit view\b/.test(t)) return chatHandlers.access_log(text, ctx);
       return null; // not an access-layer message: the router falls through to its other handlers
     }
 

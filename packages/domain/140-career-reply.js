@@ -101,7 +101,9 @@ const CareerReply = (() => {
     for (const w of JARGON_WORDS) {
       if (low.includes(` ${w} `) || low.includes(` ${w}.`) || low.includes(` ${w},`)) { violations.push(`internal jargon: ${w}`); break; }
     }
-    if (SNAKE_RE.test(t)) violations.push("snake_case token");
+    // Bare URLs are opaque tokens, not prose — mask them before the
+    // snake_case scan (a connect link's path legitimately carries "_").
+    if (SNAKE_RE.test(t.replace(/https?:\/\/\S+/g, " "))) violations.push("snake_case token");
     if (/\bCIRs?\b/.test(t)) violations.push("internal jargon: CIR");
     if (/§/.test(t)) violations.push("spec-section reference");
     if (/\|/.test(t)) violations.push("markdown table pipe");
@@ -174,7 +176,11 @@ const CareerReply = (() => {
   // them. Returns "" when nothing human remains on the line.
   function cleanInline(line) {
     let s = String(line || "");
-    s = s.replace(/https?:\/\/\S+/g, " "); // links belong in docs, not bubbles
+    s = s.replace(/\(\s*source:[^)]*\)/gi, " "); // citation parentheticals belong in docs, not bubbles
+    // Bare https links SURVIVE: an action link (the connect tap, a step's
+    // destination) is the step itself, and the owner's standing rule is
+    // that every step carries its exact raw URL (SC-286 contract). Only
+    // citation-formatted links are removed above.
     s = s.replace(UUID_RE, " ");
     s = s.replace(FACT_ID_RE, " ");
     s = s.replace(FACT_ID_WORD_RE, " ");
@@ -199,7 +205,9 @@ const CareerReply = (() => {
     if (!/[a-zA-Z]/.test(cleaned)) return false;
     const low = cleaned.toLowerCase();
     for (const w of JARGON_WORDS) if (new RegExp(`\\b${w}\\b`).test(low)) return false;
-    if (SNAKE_RE.test(cleaned)) return false;
+    // A bare URL is an opaque token, not prose: its underscores/slashes
+    // must not trip the snake_case rule (SC-286's connect link carries one).
+    if (SNAKE_RE.test(cleaned.replace(/https?:\/\/\S+/g, " "))) return false;
     if (/\(source:/i.test(cleaned)) return false;
     if (cleaned.includes("|")) return false;
     return lint(cleaned).ok;

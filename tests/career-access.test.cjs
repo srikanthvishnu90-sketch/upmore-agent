@@ -172,7 +172,10 @@ test('ACCS-001/002/007 chat handlers: connect google / connected / disconnect X 
   assert.equal(log.intent, 'access_log');
   assert.match(log.reply, /Connected career Google grant/);
   assert.equal(A.handleChat('what is my checking balance?', ctx), null, 'non-access messages fall through');
-  assert.deepEqual(Object.keys(A.chatHandlers).sort(), ['access_log', 'connect_browser_source', 'connect_google', 'connected_accounts', 'disconnect', 'portal_accounts']);
+  // profile_export joined the inventory with the SC-287 fix (2026-10-13):
+  // the LinkedIn data-export path is its own handler, never the browser source.
+  // session_health + captcha_handoff joined the same day (SC-289/SC-290 shapes).
+  assert.deepEqual(Object.keys(A.chatHandlers).sort(), ['access_log', 'captcha_handoff', 'connect_browser_source', 'connect_google', 'connected_accounts', 'disconnect', 'portal_accounts', 'profile_export', 'session_health']);
 });
 
 test('scope lockstep: domain CAREER_SCOPES match the edge function career grant exactly (drift guard)', () => {

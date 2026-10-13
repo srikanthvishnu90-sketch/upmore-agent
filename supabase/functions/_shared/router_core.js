@@ -20391,6 +20391,14 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
      scoreFit(posting, profile, cir?)              DISC-005: hard filters first (a hard fail is EXCLUDED with
                                    the reason, never scored), then soft score 0-100 with reasons + gaps and a
                                    Reach/Match/Safety bucket (optional CIR bar; absent -> neutral bar 60)
+     detectRestrictions(posting) / evaluateRestrictions(posting, profile)
+                                   APD-2: structured restriction flags (state_residency, location_radius,
+                                   work_authorization, clearance) with dispositions; unknown deciding facts
+                                   become needs_user_input ask flags, never silent passes
+     detectAiAuthorshipBan(posting) / applicationPrepFor(posting)
+                                   APD-5: employer AI-authorship ban flag + the prep constraint it imposes
+     sourceHealth(feedResults)     SHD-1 (data half): per-source queried/failed + degraded/outcome marker,
+                                   also attached to fetchAll/poll results as `source_health`
      buildShortlist(scored, {limit, feedback})     DISC-006: top-N per day; yes/no feedback memory (injected
                                    store rows) nudges later scores by role_family / company / skills
      recordFeedback(store, entry)  append a yes/no row to the injected feedback store
@@ -20462,12 +20470,158 @@ const CareerJobs = (() => {
     return "onsite";
   }
 
+  // ---------- posting restrictions + employer rules (APD-2 / APD-5, gauntlet G5) ----------
+  // Restrictions are computed AT TARGETING, from the posting's own text, and carried as
+  // structured data on the posting record — never only as prose a composer might drop.
+  // Classes: state_residency, location_radius, work_authorization, clearance, plus the
+  // employer ai_authorship_ban rule (APD-5). Dispositions are decided against the
+  // profile's KNOWN facts in evaluateRestrictions(): a known mismatch excludes (the
+  // reason travels in data); an UNKNOWN fact for the new classes (residency / radius)
+  // is never silently passed — it becomes a needs_user_input ask flag + a shortlist
+  // demotion. Legacy classes (work-auth citizens-only, clearance) keep the exact
+  // dispositions hardFilters has always applied, now also expressed as flags.
+  const US_STATES = [["Alabama", "AL"], ["Alaska", "AK"], ["Arizona", "AZ"], ["Arkansas", "AR"], ["California", "CA"], ["Colorado", "CO"], ["Connecticut", "CT"], ["Delaware", "DE"], ["District of Columbia", "DC"], ["Florida", "FL"], ["Georgia", "GA"], ["Hawaii", "HI"], ["Idaho", "ID"], ["Illinois", "IL"], ["Indiana", "IN"], ["Iowa", "IA"], ["Kansas", "KS"], ["Kentucky", "KY"], ["Louisiana", "LA"], ["Maine", "ME"], ["Maryland", "MD"], ["Massachusetts", "MA"], ["Michigan", "MI"], ["Minnesota", "MN"], ["Mississippi", "MS"], ["Missouri", "MO"], ["Montana", "MT"], ["Nebraska", "NE"], ["Nevada", "NV"], ["New Hampshire", "NH"], ["New Jersey", "NJ"], ["New Mexico", "NM"], ["New York", "NY"], ["North Carolina", "NC"], ["North Dakota", "ND"], ["Ohio", "OH"], ["Oklahoma", "OK"], ["Oregon", "OR"], ["Pennsylvania", "PA"], ["Rhode Island", "RI"], ["South Carolina", "SC"], ["South Dakota", "SD"], ["Tennessee", "TN"], ["Texas", "TX"], ["Utah", "UT"], ["Vermont", "VT"], ["Virginia", "VA"], ["Washington", "WA"], ["West Virginia", "WV"], ["Wisconsin", "WI"], ["Wyoming", "WY"]];
+  const STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
+  const STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
+  function statesInText(text) {
+    const found = [], seen = new Set();
+    const t = ` ${s(text)} `;
+    for (const [name, abbr] of US_STATES) {
+      if (new RegExp(`\\b${name}\\b`, "i").test(t) || new RegExp(`,\\s*${abbr}\\b`).test(t)) {
+        if (!seen.has(abbr)) { seen.add(abbr); found.push({ name, abbr }); }
+      }
+    }
+    return found;
+  }
+  function postingText(posting) {
+    const reqs = Array.isArray(posting && posting.requirements) ? posting.requirements.join("; ") : "";
+    return [posting && posting.location, posting && posting.remote_terms, reqs, posting && posting.jd_text].filter(Boolean).join(" ");
+  }
+  function sentenceAround(text, re) {
+    for (const sent of s(text).split(/(?<=[.;])\s+/)) if (re.test(sent)) return sent.trim().slice(0, 300);
+    const m = s(text).match(re); return m ? m[0].slice(0, 300) : "";
+  }
+  function detectRestrictions(posting) {
+    const text = postingText(posting || {});
+    const out = [];
+    // state residency: "Colorado residents only", "must reside in Colorado", "authorized only from Colorado"
+    const resPhrases = [];
+    for (const m of text.matchAll(/\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)?) residents only\b/g)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bresidents of ([A-Za-z ,/and]+?)(?: only| may apply| are eligible|\.|;|$)/gi)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bmust (?:reside|live) in ([A-Za-z ,/and]+?)(?: for the entire| for | during|\.|;|,|$)/gi)) resPhrases.push(m[1]);
+    for (const m of text.matchAll(/\bremote work is authorized only from ([A-Za-z ]+?)(?:\.|;|$)/gi)) resPhrases.push(m[1]);
+    const resStates = [];
+    for (const phrase of resPhrases) for (const st of statesInText(phrase)) if (!resStates.some((x) => x.abbr === st.abbr)) resStates.push(st);
+    if (resStates.length) out.push({ type: "state_residency", states: resStates.map((x) => x.abbr), state_names: resStates.map((x) => x.name), requirement: `must reside in ${resStates.map((x) => x.name).join(" or ")}`, evidence: sentenceAround(text, /residents only|residents of|must (reside|live) in|authorized only from/i) });
+    // location radius: "within 25 miles of Denver, CO"
+    const rad = text.match(/\bwithin (?:a )?(\d+)[- ]miles?(?: radius)? of ([A-Za-z .,]+?)(?:\.|;|$)/i) || text.match(/\bwithin (?:a )?(\d+)[- ]mile radius of ([A-Za-z .,]+?)(?:\.|;|$)/i);
+    if (rad) {
+      const center = rad[2].trim();
+      const cStates = statesInText(center);
+      out.push({ type: "location_radius", miles: Number(rad[1]), center, center_states: cStates.map((x) => x.abbr), requirement: `must live within ${rad[1]} miles of ${center}`, evidence: sentenceAround(text, /within (?:a )?\d+[- ]miles?/i) });
+    }
+    // work authorization (peer class; same phrases hardFilters has always used)
+    if (/\b(u\.?s\.? citizens? only|must be a u\.?s\.? citizen|requires? u\.?s\.? citizenship|us citizenship required)\b/i.test(text))
+      out.push({ type: "work_authorization", detail: "us_citizens_only", requirement: "US citizenship required", evidence: sentenceAround(text, /citizens? only|citizenship/i) });
+    else if (/\b(no sponsorship|will not sponsor|cannot sponsor|unable to sponsor|without sponsorship|does not offer sponsorship)\b/i.test(text))
+      out.push({ type: "work_authorization", detail: "no_sponsorship", requirement: "no sponsorship offered", evidence: sentenceAround(text, /sponsor/i) });
+    // clearance (peer class)
+    const clr = text.match(/\b(ts\/sci|top secret|secret clearance|security clearance)\b/i);
+    if (clr) out.push({ type: "clearance", detail: lc(clr[1]), requirement: `requires a security clearance (${clr[1]})`, evidence: sentenceAround(text, /clearance|ts\/sci|top secret/i) });
+    return out;
+  }
+  // APD-5: an employer's ban on AI-authored application responses. Detection requires an
+  // authorship/prohibition signal in an application context — a malicious instruction in
+  // a JD (AP15) or a generic "we use AI" line is NOT a ban and must not flag.
+  function detectAiAuthorshipBan(posting) {
+    const text = postingText(posting || {});
+    const sentences = s(text).split(/(?<=[.;])\s+/);
+    for (const sent of sentences) {
+      const aiAuthored = /ai[- ](authored|generated|written)/i.test(sent);
+      const mustOwnWords = /applicants must write|must write all application answers themselves|write .* in (their|your) own words/i.test(sent) && /application|answers/i.test(sent);
+      const aiToolBan = /\b(chatgpt|generative ai|large language models?|llms?)\b/i.test(sent) && /prohibit|banned|not (allowed|permitted)|forbidden/i.test(sent);
+      const prohibited = /prohibit|banned|not (allowed|permitted)|forbidden|grounds for rejection/i.test(sent);
+      if ((aiAuthored && prohibited) || mustOwnWords || aiToolBan) {
+        return { banned: true, type: "ai_authorship_ban", scope: "application_responses", evidence: sent.trim().slice(0, 300), consequence: /grounds for rejection/i.test(sent) ? "grounds for rejection" : null };
+      }
+    }
+    return null;
+  }
+  function profileResidence(profile) {
+    const p = profile || {};
+    const text = s(p.residence || (p.basics && p.basics.location) || p.current_location || (p.constraints && (p.constraints.residence || p.constraints.residence_location)) || "");
+    // The primary segment ("Chicago, IL" in "Chicago, IL — studying; preference Austin")
+    // is the residence; later segments name preferences, not where the candidate lives.
+    const primary = text.split(/[(—;]/)[0];
+    const primaryStates = statesInText(primary);
+    return { text, states: primaryStates.length ? primaryStates : statesInText(text) };
+  }
+  function evaluateRestrictions(posting, profile) {
+    const restrictions = detectRestrictions(posting);
+    const c = (profile && profile.constraints) || {};
+    const residence = profileResidence(profile);
+    const exclusion_reasons = [], needs_user_input = [];
+    for (const r of restrictions) {
+      if (r.type === "state_residency") {
+        const names = r.state_names.join(" or ");
+        if (residence.states.length) {
+          if (residence.states.some((st) => r.states.includes(st.abbr))) r.disposition = "satisfied";
+          else { r.disposition = "excluded"; exclusion_reasons.push(`state residency: posting is limited to ${names} residents; your profile residence is ${residence.text || residence.states.map((x) => x.name).join(", ")}`); }
+        } else {
+          r.disposition = "needs_user_input";
+          needs_user_input.push({ type: "state_residency", missing_fact: "residence_state", restriction: r, question: `Do you currently reside in ${names}? This posting is limited to ${names} residents, and your profile does not state where you reside.`, reason: `state residency restriction (${names} residents only) cannot be checked: no residence on your profile` });
+        }
+      } else if (r.type === "location_radius") {
+        if (residence.text) {
+          if (lc(residence.text).includes(lc(r.center.split(",")[0].trim()))) r.disposition = "satisfied";
+          else if (r.center_states.length && residence.states.length && !residence.states.some((st) => r.center_states.includes(st.abbr))) { r.disposition = "excluded"; exclusion_reasons.push(`location radius: posting requires living within ${r.miles} miles of ${r.center}; your profile residence is ${residence.text}`); }
+          else { r.disposition = "needs_user_input"; needs_user_input.push({ type: "location_radius", missing_fact: "distance_to_center", restriction: r, question: `Do you live within ${r.miles} miles of ${r.center}? This posting requires it, and your profile location is not precise enough to check.`, reason: `location radius (${r.miles} miles of ${r.center}) cannot be verified from your profile location` }); }
+        } else {
+          r.disposition = "needs_user_input";
+          needs_user_input.push({ type: "location_radius", missing_fact: "residence_location", restriction: r, question: `Do you live within ${r.miles} miles of ${r.center}? This posting requires it, and your profile does not state where you reside.`, reason: `location radius (${r.miles} miles of ${r.center}) cannot be checked: no residence on your profile` });
+        }
+      } else if (r.type === "work_authorization") {
+        const wa = s(c.work_authorization), needs = c.needs_sponsorship;
+        if (r.detail === "us_citizens_only") {
+          if (/citizen/i.test(wa) && !needs) r.disposition = "satisfied";
+          else r.disposition = "excluded"; // legacy hardFilters disposition: unknown is not a citizen on record
+        } else { // no_sponsorship
+          if (needs === true || /sponsor/i.test(wa)) r.disposition = "excluded";
+          else if (needs === false || wa) r.disposition = "satisfied";
+          else { r.disposition = "needs_user_input"; needs_user_input.push({ type: "work_authorization", missing_fact: "needs_sponsorship", restriction: r, question: "This posting offers no sponsorship. Do you need sponsorship to work for this employer?", reason: "no-sponsorship restriction cannot be checked: your profile does not state whether you need sponsorship" }); }
+        }
+      } else if (r.type === "clearance") {
+        r.disposition = (c.clearance && !/none|no\b/i.test(s(c.clearance))) ? "satisfied" : "excluded"; // legacy: none recorded = none held
+      }
+    }
+    return { restrictions, excluded: restrictions.some((r) => r.disposition === "excluded"), exclusion_reasons, needs_user_input, unresolved: needs_user_input.length > 0 };
+  }
+  // Application-prep constraint carried in data whenever the employer's ban flags:
+  // downstream prep can read this instead of proceeding as if the ban were absent.
+  function applicationPrepFor(posting) {
+    const ban = detectAiAuthorshipBan(posting);
+    if (!ban) return { ai_authorship_banned: false, ai_authored_responses_allowed: true, allowed_prep: ["ai_drafted_application_responses"], ban: null };
+    return { ai_authorship_banned: true, ai_authored_responses_allowed: false, allowed_prep: ["organize_candidate_facts", "bullet_points_for_candidate_to_write_from", "factual_qa_about_the_posting"], blocked_prep: ["ai_authored_application_responses", "ai_generated_cover_letter_text"], ban };
+  }
+  // ---------- source health (SHD-1, data half) ----------
+  // Health is part of the RESULT DATA: a healthy no-match and an outage both return
+  // zero postings, so callers distinguish them only through this object.
+  function sourceHealth(feedResults) {
+    const queried = (feedResults || []).map((r) => {
+      const ok = !r.error && r.status >= 200 && r.status < 300;
+      return { source: r.source || null, company_token: r.company_token || null, url: r.url || null, status: r.skipped ? "dead" : (r.status != null ? r.status : 0), ok, skipped: !!r.skipped, error: r.error || null, postings: (r.postings || []).length };
+    });
+    const succeeded = queried.filter((q) => q.ok), failed = queried.filter((q) => !q.ok);
+    const outcome = !queried.length ? "no_sources" : !succeeded.length ? "outage" : failed.length ? "degraded" : "ok";
+    return { queried, succeeded, failed, total: queried.length, ok_count: succeeded.length, failed_count: failed.length, degraded: failed.length > 0, all_down: queried.length > 0 && succeeded.length === 0, outcome };
+  }
+
   function basePosting(p) {
     const req = p.req_id ? s(p.req_id) : "";
     const job_id = req ? `${p.source}:${normName(p.company)}:${req}`.replace(/\s+/g, "-")
                        : `${p.source}:${normName(p.company)}:${hash(p.url)}`.replace(/\s+/g, "-");
     const jd_text = stripHtml(p.jd_text || "");
-    return {
+    const posting = {
       job_id, company: s(p.company), title: s(p.title),
       role_family: roleFamily(p.title, jd_text), seniority_band: seniorityBand(p.title, jd_text),
       location: s(p.location || ""), remote: remoteOf(p.location, jd_text),
@@ -20475,6 +20629,10 @@ const CareerJobs = (() => {
       source: p.source, sources: [p.source], source_urls: [s(p.url)],
       department: s(p.department || ""), req_id: req || null,
     };
+    // APD-2/APD-5: restrictions + employer AI-authorship ban ride on the posting record.
+    posting.restrictions = detectRestrictions(posting);
+    posting.ai_authorship_ban = detectAiAuthorshipBan(posting);
+    return posting;
   }
 
   // ---------- per-ATS normalization (recorded shapes; see tests) ----------
@@ -20639,7 +20797,7 @@ const CareerJobs = (() => {
     if (store) await store.set(key, snapshot);
     const skippedDead = (feedList || []).filter((fd) => fd && fd.status === "dead")
       .map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" }));
-    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead };
+    return { postings, new_postings, feeds: results, snapshot, deadBoards: skippedDead, source_health: sourceHealth(results) };
   }
 
   // ---------- ghost / quality flags (DISC-008) ----------
@@ -20703,6 +20861,10 @@ const CareerJobs = (() => {
     if (posting.seniority_band === "intern" && years != null && years >= 3 && level !== "student") fails.push(`seniority: posting is an internship; your profile shows ${years} yrs experience`);
     const reqYears = jd.match(/\b(\d+)\+?\s*(?:years|yrs)(?:\s*of)?\s*(?:experience|exp)\b/);
     if (reqYears && years != null && years + 1 < Number(reqYears[1])) fails.push(`seniority: posting asks ${reqYears[1]}+ years of experience; your profile shows ${years}`);
+    // posting restrictions (APD-2): state residency + location radius are hard filters
+    // when the profile's known facts decide them; when the deciding fact is unknown the
+    // restriction does NOT fail here — scoreFit surfaces it as a needs_user_input flag.
+    for (const reason of evaluateRestrictions(posting, profile).exclusion_reasons) fails.push(reason);
     // degree
     const deg = lc(profile.degree || c.degree || "");
     if (/\bph\.?d\.?\b/.test(jd.slice(0, 1200)) && /\brequired\b/.test(jd.slice(0, 1200)) && !/ph/.test(deg)) fails.push(`degree: posting requires a PhD; your profile degree is ${deg || "not listed"}`);
@@ -20712,7 +20874,11 @@ const CareerJobs = (() => {
 
   function scoreFit(posting, profile, cir) {
     const fails = hardFilters(posting, profile || {});
-    if (fails.length) return { job_id: posting.job_id, excluded: true, score: null, bucket: null, reasons: fails, gaps: fails, matched_skills: [], missing_skills: [], hard_fails: fails };
+    // APD-2/APD-5 data, computed for every scored posting, excluded or not.
+    const restrictionEval = evaluateRestrictions(posting, profile || {});
+    const aiBan = detectAiAuthorshipBan(posting);
+    const prep = applicationPrepFor(posting);
+    if (fails.length) return { job_id: posting.job_id, excluded: true, score: null, bucket: null, reasons: fails, gaps: fails, matched_skills: [], missing_skills: [], hard_fails: fails, restrictions: restrictionEval.restrictions, needs_user_input: restrictionEval.needs_user_input, restriction_unresolved: restrictionEval.unresolved, ai_authorship_ban: aiBan, application_prep: prep };
     const prefs = (profile && profile.preferences) || {};
     const jd = lc(posting.title + " " + posting.jd_text);
     const skills = profileSkills(profile);
@@ -20752,7 +20918,10 @@ const CareerJobs = (() => {
     const diff = score - bar;
     const bucket = diff >= 15 ? "Safety" : diff >= -10 ? "Match" : "Reach";
     reasons.push(`bucket ${bucket}: score ${score} vs bar ${bar}${cir ? " (company bar)" : " (neutral bar; no company record yet)"}`);
-    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), unproven_skills: unprovenMatched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [] };
+    // APD-2: an unresolved restriction is named as a gap and demotes the posting in
+    // shortlist ordering — it is never silently passed as a clean fit.
+    for (const q of restrictionEval.needs_user_input) gaps.push(`needs your input: ${q.reason}`);
+    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), unproven_skills: unprovenMatched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [], restrictions: restrictionEval.restrictions, needs_user_input: restrictionEval.needs_user_input, restriction_unresolved: restrictionEval.unresolved, demoted: restrictionEval.unresolved, ai_authorship_ban: aiBan, application_prep: prep };
   }
 
   // ---------- APPE-001 persona fixture -> scoring profile ----------
@@ -20795,6 +20964,9 @@ const CareerJobs = (() => {
         locations, starred_companies: starred ? starred.split(",").map((x) => x.trim()).filter(Boolean) : [],
       },
     };
+    // APD-2: residence is a targeting fact in its own right (where the candidate
+    // actually lives/studies), distinct from preferred locations.
+    if (persona && persona.basics && persona.basics.location) { prof0.residence = String(persona.basics.location); prof0.basics = { location: String(persona.basics.location) }; prof0.constraints.residence = String(persona.basics.location); }
     if (persona && persona.constraints) {
       if (canonGradYear) { prof0.constraints.graduation_year = canonGradYear; prof0.constraints.graduation_date = String(persona.constraints.graduationDate); }
       if (typeof persona.constraints.needsSponsorship === "boolean") prof0.constraints.needs_sponsorship = persona.constraints.needsSponsorship;
@@ -20848,15 +21020,18 @@ const CareerJobs = (() => {
       const posting = item.posting || item;
       const merged = Object.assign({}, posting, { matched_skills: item.matched_skills || [] });
       const fb = feedbackNudge(rows, merged);
-      enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge });
+      enriched.push({ posting, score: item.score, adjusted_score: Math.max(0, Math.min(100, item.score + fb.nudge)), bucket: item.bucket, reasons: [...(item.reasons || []), ...fb.why], gaps: item.gaps || [], feedback_nudge: fb.nudge, restrictions: item.restrictions || posting.restrictions || [], needs_user_input: item.needs_user_input || [], restriction_unresolved: !!item.restriction_unresolved, ai_authorship_ban: item.ai_authorship_ban || posting.ai_authorship_ban || null, application_prep: item.application_prep || null });
     }
-    enriched.sort((a, b) => b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
+    // APD-2 demotion: postings with an unresolved restriction rank below every
+    // resolved posting, whatever their skill score — never a silent top fit.
+    enriched.sort((a, b) => (Number(a.restriction_unresolved) - Number(b.restriction_unresolved)) || b.adjusted_score - a.adjusted_score || s(b.posting.posted_at).localeCompare(s(a.posting.posted_at)));
     return enriched.slice(0, limit);
   }
 
-  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
+  return { POLL_MINUTES, NEUTRAL_BAR, STARTER_FEEDS, BOARD_REGISTRY, liveBoards, deadBoards, boardFeeds, feeds, fetchFeed, fetchAll: async (fl, o) => { const r = []; for (const f of fl) r.push(await fetchFeed(f, o)); return { feeds: r, postings: dedupe(r.flatMap((x) => x.postings)), source_health: sourceHealth(r), deadBoards: (fl || []).filter((fd) => fd && fd.status === "dead").map((fd) => ({ company: fd.company || fd.company_token, provider: fd.provider || fd.source, board: fd.board || fd.company_token, status: "dead", reason: fd.note || "board marked dead" })) }; },
     normalizeGreenhouse, normalizeLever, normalizeAshby, normalizeSmartRecruiters,
     dedupe, dedupeKey, diffNew, makeSnapshot, poll, qualityFlags, hardFilters, scoreFit, profileFromPersona, buildShortlist, recordFeedback, feedbackNudge,
+    detectRestrictions, evaluateRestrictions, detectAiAuthorshipBan, applicationPrepFor, sourceHealth, profileResidence,
     roleFamily, seniorityBand, stripHtml, hash };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs;
@@ -20880,7 +21055,15 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerJobs
      - Plain-text resume: parsed into DRAFT facts, every one with
        needs_confirmation:true and status:"draft". A draft fact does not
        support tailoring until confirmFact() is called — ingestion never
-       silently canonises.
+       silently canonises. Ingest failures are TYPED (APD-3):
+       classifyResumeIngest() returns reason classes unreadable / empty /
+       unsupported and ingestResume() adds nothing on failure. A valid file
+       merges under correction precedence: confirmed facts win, duplicates
+       are skipped with an audit trail.
+   Profile data lifecycle (SHD-3): retentionDeclaration() / RETENTION_DECLARATION
+   state what is kept, where, and how long; previewProfileDeletion() lists
+   exactly what a deletion would remove; deleteProfileData() performs it —
+   facts, connections, sections and derived records — and returns a receipt.
    Fact-mining interview: factMiningQuestions(entry) returns the digging
    questions for a thin entry (missing stack / scale / what-it-replaced /
    metric / outcome), modelled on Doc 2 §1 ("what stack, how many users,
@@ -21123,16 +21306,139 @@ const CareerProfile = (() => {
     flush();
     return drafts;
   }
-  function ingestResume(profile, text) {
-    const drafts = parseResumeText(text).map((d) => addFact(profile, d));
-    // addFact normalises needs_confirmation from the draft flag; re-assert it so
-    // a resume draft can never arrive confirmed by accident.
-    for (const f of drafts) { f.needs_confirmation = true; f.status = "draft"; }
+  // ---- typed ingest failures (APD-3, module half) ----
+  // A corrupt, empty, or unsupported upload is a TYPED failure the caller can speak
+  // honestly — never a silent fall-through to profile-only tailoring, and a failed
+  // ingest adds NOTHING to the profile. Reason classes are exactly:
+  //   "unreadable"  — bytes/text that cannot be read as text (binary, corrupt)
+  //   "empty"       — no text at all, or no resume content extractable from it
+  //   "unsupported" — a format this plain-text ingest cannot read (.pdf/.docx/images…)
+  // A valid file merges under the SAME precedence as corrections (130's rule: an
+  // explicit confirmed record wins): resume facts arrive as DRAFTS, a draft never
+  // displaces or duplicates a CONFIRMED fact, and every merge decision is audited.
+  const SUPPORTED_RESUME_FORMATS = { extensions: [".txt", ".md", ".text"], mimeTypes: ["text/plain", "text/markdown", "text/x-markdown"] };
+  const UNSUPPORTED_EXTS = [".pdf", ".docx", ".doc", ".rtf", ".odt", ".pages", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic", ".zip"];
+  const UNSUPPORTED_MIMES = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/rtf", "application/zip"];
+  function ingestInputInfo(input) {
+    if (input == null || typeof input === "string") return { text: input == null ? null : String(input), fileName: null, mimeType: null };
+    const fileName = input.fileName || input.filename || input.name || null;
+    return { text: input.text != null ? String(input.text) : (input.content != null ? String(input.content) : (input.resumeText != null ? String(input.resumeText) : null)), fileName, mimeType: input.mimeType || input.type || null };
+  }
+  function looksUnreadable(text) {
+    const t = String(text || "");
+    if (t.includes("\u0000")) return true;
+    if (/^%PDF-/.test(t) || t.startsWith("PK\u0003\u0004")) return true; // raw PDF / ZIP containers handed over as "text"
+    if (t.length >= 20) {
+      let bad = 0; for (const ch of t) { const cp = ch.codePointAt(0); if (ch === "\uFFFD" || (cp < 32 && !"\n\r\t".includes(ch))) bad++; }
+      if (bad / t.length > 0.02) return true;
+    }
+    return false;
+  }
+  function classifyResumeIngest(input) {
+    const info = ingestInputInfo(input);
+    const ext = info.fileName ? (String(info.fileName).toLowerCase().match(/\.[a-z0-9]+$/) || [null])[0] : null;
+    const mime = info.mimeType ? String(info.mimeType).toLowerCase() : null;
+    // Content readability is checked FIRST: a corrupt/binary blob is "unreadable"
+    // whatever its filename claims; a readable-but-wrong-format file is "unsupported".
+    if (info.text != null && String(info.text).trim() !== "" && looksUnreadable(info.text)) {
+      return { ok: false, reason_class: "unreadable", file_name: info.fileName, reason: "the file could not be read as text — it looks like binary or corrupt data, so nothing could be extracted from it", next_step: "Re-save or re-export the resume as plain text and upload it again.", supported_formats: SUPPORTED_RESUME_FORMATS };
+    }
+    if ((ext && UNSUPPORTED_EXTS.includes(ext)) || (mime && (UNSUPPORTED_MIMES.includes(mime) || mime.startsWith("image/")))) {
+      const fmt = ext || mime;
+      return { ok: false, reason_class: "unsupported", file_name: info.fileName, reason: `the file format (${fmt}) cannot be read by this resume ingest, which reads plain text only`, next_step: "Upload a plain-text version (.txt or .md), or paste the resume text instead.", supported_formats: SUPPORTED_RESUME_FORMATS };
+    }
+    if (info.text == null || String(info.text).trim() === "") {
+      return { ok: false, reason_class: "empty", file_name: info.fileName, reason: "the uploaded file contained no text", next_step: "Re-upload a non-empty resume file, or paste the resume text instead.", supported_formats: SUPPORTED_RESUME_FORMATS };
+    }
+    return { ok: true, file_name: info.fileName, text: info.text };
+  }
+  function ingestFailure(cls) {
+    return { ok: false, failure: { kind: "ingest_failure", reason_class: cls.reason_class, reason: cls.reason, file_name: cls.file_name || null, next_step: cls.next_step, supported_formats: cls.supported_formats }, drafts: [], factIds: [], added_fact_ids: [], skipped_duplicates: [], audit: [] };
+  }
+  const normKeyText = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  function draftKey(d) { return d.kind === "skill" ? `skill|${normKeyText(d.name || d.title)}` : `${d.kind}|${normKeyText(d.title || d.text)}`; }
+  function ingestResume(profile, input, opts) {
+    const cls = classifyResumeIngest(input);
+    if (!cls.ok) return ingestFailure(cls);
+    const parsed = parseResumeText(cls.text);
+    if (!parsed.length) return ingestFailure({ reason_class: "empty", file_name: cls.file_name, reason: "no resume content could be extracted from the file — no sections or entries were found in it", next_step: "Upload the resume as plain text with its sections (Experience, Skills, Education), or paste the text instead.", supported_formats: SUPPORTED_RESUME_FORMATS });
+    // Merge with correction precedence: CONFIRMED facts win. A parsed draft that
+    // duplicates a confirmed fact (or an earlier draft from this same file) is
+    // skipped and audited, never added as a shadow copy.
+    const confirmedByKey = new Map();
+    for (const f of profile.facts || []) if (!f.needs_confirmation) confirmedByKey.set(f.kind === "skill" ? `skill|${normKeyText(f.name || f.title)}` : `${f.kind}|${normKeyText(f.title || f.text)}`, f);
+    const seen = new Set(), drafts = [], skipped_duplicates = [], audit = [];
+    for (const d of parsed) {
+      const key = draftKey(d);
+      const confirmed = confirmedByKey.get(key);
+      if (confirmed) { const entry = { title: d.title || d.name || "", name: d.name || null, kind: d.kind, existing_fact_id: confirmed.id, reason: "a confirmed fact already covers this — a resume draft never overrides or duplicates a confirmed fact" }; skipped_duplicates.push(entry); audit.push({ action: "skipped_duplicate_of_confirmed", ...entry }); continue; }
+      if (seen.has(key)) { const entry = { title: d.title || d.name || "", name: d.name || null, kind: d.kind, existing_fact_id: null, reason: "duplicate within the uploaded file" }; skipped_duplicates.push(entry); audit.push({ action: "skipped_duplicate_in_file", ...entry }); continue; }
+      seen.add(key);
+      const f = addFact(profile, d);
+      f.needs_confirmation = true; f.status = "draft"; // a resume draft can never arrive confirmed by accident
+      drafts.push(f);
+      audit.push({ action: "added_draft", fact_id: f.id, kind: f.kind, source: "resume-ingest", precedence: "draft — needs confirmation; confirmed facts win" });
+    }
     refreshSkillFlags(profile);
-    return { drafts, factIds: drafts.map((f) => f.id) };
+    const record = { at: (opts && opts.now) || null, file_name: cls.file_name || null, added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, outcome: "ingested_as_drafts" };
+    profile.profile_ingest_audit = [...(profile.profile_ingest_audit || []), record];
+    return { ok: true, failure: null, drafts, factIds: drafts.map((f) => f.id), added_fact_ids: drafts.map((f) => f.id), skipped_duplicates, audit };
   }
 
-  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, refreshSkillFlags };
+  // ---- profile data lifecycle: retention declaration + real deletion (SHD-3) ----
+  // The export surface (130.profileExport) offers "delete my stored profile"; these
+  // functions make that offer true at module level: an exact preview, a deletion
+  // that removes everything this module owns, a receipt listing what was removed,
+  // and the retention declaration the export surface can quote verbatim.
+  const RETENTION_DECLARATION = {
+    module: "122-career-profile",
+    scope: "the career master profile held by the caller — this module is pure and writes nothing to disk, network, backups, or any processor itself",
+    keeps: [
+      { data: "profile facts (experience, projects, skills, education and the rest, drafts included)", where: "the in-memory profile object held by the caller/host store", retention: "kept until deleteProfileData(profile) is called or the caller discards the profile object; no time-based expiry is applied by this module" },
+      { data: "profile sections (basics, preferences, constraints, defaults)", where: "the same profile object", retention: "kept until deleteProfileData(profile) is called or the caller discards the profile object" },
+      { data: "imported connections (e.g. LinkedIn export rows)", where: "the same profile object (profile.connections)", retention: "kept until deleteProfileData(profile) is called or the caller discards the profile object" },
+      { data: "derived records stored on the profile (ingest audit, corrections, resume-source record, dependent state)", where: "the same profile object", retention: "kept with the profile and removed by deleteProfileData(profile) together with the facts they describe" },
+    ],
+    backups: "none — this module creates no backups and keeps no copy after deletion",
+    processors: "none — this module sends profile data to no outside processor",
+    deletion: { function: "deleteProfileData(profile)", preview_function: "previewProfileDeletion(profile)", receipt: "the deletion returns a receipt listing every removed fact ID, the connection count, the sections cleared, and the derived records removed; nothing is deleted by the preview" },
+    text: "Your career profile (facts, basics, preferences, constraints, imported connections, and the records derived from them) is kept in your profile record until you delete it — this module makes no backups and sends it to no outside processor. Deleting removes all of it and returns a receipt listing exactly what was removed; a preview first shows exactly what would be removed before anything is deleted.",
+  };
+  function retentionDeclaration() { return JSON.parse(JSON.stringify(RETENTION_DECLARATION)); }
+  const DERIVED_KEYS = ["profile_corrections", "resume_sources", "dependent_state", "profile_ingest_audit"];
+  function deletionReceipt(profile, deleted, opts) {
+    const p = profile || {};
+    return {
+      deleted: !!deleted,
+      profile_id: p.id || null,
+      at: (opts && opts.now) || null,
+      removed: {
+        fact_ids: (p.facts || []).map((f) => f.id),
+        fact_count: (p.facts || []).length,
+        facts: (p.facts || []).map((f) => ({ id: f.id, kind: f.kind, title: f.title || f.name || "" })),
+        connection_count: (p.connections || []).length,
+        connections: (p.connections || []).map((c) => c.name || null),
+        sections_cleared: ["basics", "preferences", "constraints", "defaults"],
+        derived_records: DERIVED_KEYS.filter((k) => p[k] !== undefined),
+      },
+      removed_counts: { facts: (p.facts || []).length, connections: (p.connections || []).length, derived_records: DERIVED_KEYS.filter((k) => p[k] !== undefined).length },
+      remaining: deleted ? { fact_count: 0, connection_count: 0 } : { fact_count: (p.facts || []).length, connection_count: (p.connections || []).length },
+    };
+  }
+  function previewProfileDeletion(profile) { return deletionReceipt(profile, false); }
+  function deleteProfileData(profile, opts) {
+    if (!profile) return { deleted: false, profile_id: null, at: (opts && opts.now) || null, removed: { fact_ids: [], fact_count: 0, facts: [], connection_count: 0, connections: [], sections_cleared: [], derived_records: [] }, removed_counts: { facts: 0, connections: 0, derived_records: 0 }, remaining: { fact_count: 0, connection_count: 0 } };
+    const receipt = deletionReceipt(profile, true, opts);
+    const fresh = createProfile({ id: profile.id });
+    profile.basics = fresh.basics; profile.preferences = fresh.preferences;
+    profile.constraints = fresh.constraints; profile.defaults = fresh.defaults;
+    profile.facts = []; profile.connections = [];
+    profile.label = null; profile.isTestFixture = false; profile._seq = 0;
+    for (const k of DERIVED_KEYS) delete profile[k];
+    return receipt;
+  }
+
+  return { KINDS, createProfile, profileFromData, addFact, updateFact, getFact, listFacts, confirmFact, confirmedFacts, unprovenSkills, skillEvidence, factMiningQuestions, isThin, parseCsv, parseLinkedInConnections, parseLinkedInProfile, ingestLinkedIn, parseResumeText, ingestResume, classifyResumeIngest, SUPPORTED_RESUME_FORMATS, refreshSkillFlags, RETENTION_DECLARATION, retentionDeclaration, previewProfileDeletion, deleteProfileData };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerProfile;
 
@@ -21748,6 +22054,117 @@ const CareerOutreach = (() => {
     return createLocalVerifier(opts);
   }
 
+  // ---------- Suppression-store contract (NWD-01, sharpened by NW21/NW22 evidence) ----------
+  // The store the handlers WRITE is a 124 createSuppressionStore() instance.
+  // NW21 proved where it lives: 142's handleOptOut attaches it to the turn
+  // RESULT (result.suppression) and to its ctx (ctx.suppression); a host that
+  // keeps only its own ctx sees nothing unless it carries result.suppression
+  // forward. So every read in this module resolves the store from, in order:
+  //   opts.suppression -> opts.ctx.suppression -> opts.result.suppression ->
+  //   opts.host.suppression -> a bare store passed as opts itself.
+  // A value may be the live store (isSuppressed/suppress functions) or its raw
+  // toJSON() data ({sharedEmails, sharedIds, perUserEmails, perUserIds}), which
+  // is rehydrated here. The interface read is exactly:
+  //   isSuppressed({email, person_id}, userId) -> boolean
+  // Persistence of the store across turns is the host/Codex item-8 layer; this
+  // module never invents a second store when one is handed to it. Opt-out
+  // suppression is absolute and cross-user shared (scope "shared"/"both").
+  function asSuppressionStore(v) {
+    if (!v || typeof v !== "object") return null;
+    if (typeof v.isSuppressed === "function") return v;
+    if (Array.isArray(v.sharedEmails) || Array.isArray(v.sharedIds) || v.perUserEmails || v.perUserIds) return createSuppressionStore(v);
+    return null;
+  }
+  function resolveSuppression(opts) {
+    opts = opts || {};
+    const candidates = [opts.suppression, opts.ctx && opts.ctx.suppression, opts.result && opts.result.suppression,
+      opts.host && opts.host.suppression, opts.store, opts];
+    for (const c of candidates) { const s = asSuppressionStore(c); if (s) return s; }
+    return null;
+  }
+  function resolveUserId(opts, user) {
+    opts = opts || {};
+    return opts.userId || (opts.ctx && opts.ctx.userId) || (user && (user.userId || user.id)) || (opts.profile && opts.profile.userId) || null;
+  }
+  // Returns {checked, suppressed, store} for a target — the pre-draft read.
+  function suppressionCheck(target, opts, user) {
+    const store = resolveSuppression(opts);
+    if (!store) return { checked: false, suppressed: false, store: null };
+    const t = target || {};
+    const email = t.email || t.work_email || null;
+    let hit = false;
+    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch (e) { hit = false; }
+    return { checked: true, suppressed: hit, store };
+  }
+  function suppressedRefusal(target, opts, user) {
+    const c = normalizeCandidate(target || {});
+    return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
+      message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
+      person_id: c.person_id || null, to: c.work_email || null,
+      suppression: { checked: true, suppressed: true } };
+  }
+
+  // ---------- NWD-02: draft store — post-gate lifecycle (prepare -> retrieve -> edit -> re-approve) ----------
+  // Drafts live in the store, not inside one turn's result object. An edit
+  // versions the draft and INVALIDATES every approval recorded for an earlier
+  // version: an approval binds exactly the version it was given on.
+  function createDraftStore(init) {
+    const data = { drafts: {}, order: [], seq: 0 };
+    if (init && init.drafts) { for (const id of Object.keys(init.drafts)) { data.drafts[id] = JSON.parse(JSON.stringify(init.drafts[id])); } data.order = (init.order || Object.keys(init.drafts)).slice(); data.seq = init.seq || data.order.length; }
+    const clone = (v) => v == null ? v : JSON.parse(JSON.stringify(v));
+    const store = {
+      data,
+      put(draft, meta) {
+        meta = meta || {};
+        if (!draft || draft.refused || !draft.body) return null;
+        const id = meta.id || draft.id || draft.draft_id || `draft-${++data.seq}`;
+        const rec = { id, draft: clone(draft), version: 1, status: "awaiting_approval",
+          person_id: draft.person_id || null, to: draft.to || null, kind: meta.kind || "outreach_draft",
+          approvals: [], approval: null, approval_valid: false,
+          history: [{ version: 1, draft: clone(draft), kind: "prepared", at: meta.at || null }],
+          created_at: meta.at || null };
+        data.drafts[id] = rec; if (!data.order.includes(id)) data.order.push(id);
+        return clone(rec);
+      },
+      // Back-compat alias in the module's create* idiom.
+      store(draft, meta) { return store.put(draft, meta); },
+      get(id) { const r = data.drafts[id]; return r ? clone(r) : null; },
+      getDraft(id) { const r = data.drafts[id]; return r ? clone(r.draft) : null; },
+      list() { return data.order.map((id) => clone(data.drafts[id])); },
+      approve(id, opts) {
+        opts = opts || {}; const r = data.drafts[id]; if (!r) return { ok: false, reason: "draft_not_found" };
+        const approval = { version: r.version, by: opts.by || "user", at: opts.at || null };
+        r.approvals.push(Object.assign({ valid: true }, approval));
+        r.approval = approval; r.approval_valid = true; r.status = "approved";
+        return { ok: true, id, version: r.version, approval: clone(approval), approval_valid: true };
+      },
+      isApprovalValid(id) { const r = data.drafts[id]; return !!(r && r.approval_valid && r.approval && r.approval.version === r.version && r.status === "approved"); },
+      edit(id, edits, opts) {
+        opts = opts || {}; edits = edits || {}; const r = data.drafts[id]; if (!r) return { ok: false, reason: "draft_not_found" };
+        const d = clone(r.draft);
+        if (typeof edits.body === "string") d.body = edits.body;
+        const opening = edits.opening_line || edits.openingLine;
+        if (typeof opening === "string") {
+          const lines = String(d.body || "").split("\n");
+          const idx = lines.findIndex((l) => l.trim().length > 0);
+          if (idx >= 0) lines[idx] = opening; else lines.unshift(opening);
+          d.body = lines.join("\n");
+        }
+        if (typeof edits.subject === "string") d.subject = edits.subject;
+        if (typeof edits.to === "string") d.to = edits.to;
+        if (edits.replace && edits.replace.from) d.body = String(d.body || "").split(edits.replace.from).join(edits.replace.to || "");
+        const invalidated = r.approvals.filter((a) => a.valid).length;
+        for (const a of r.approvals) a.valid = false;
+        r.approval = null; r.approval_valid = false;
+        r.version += 1; r.draft = d; r.status = "edited_awaiting_reapproval";
+        r.history.push({ version: r.version, draft: clone(d), kind: "edit", at: opts.at || null, invalidated_approvals: invalidated });
+        return { ok: true, id, version: r.version, draft: clone(d), invalidated_approvals: invalidated, approval_valid: false, status: r.status };
+      },
+      toJSON() { return clone(data); },
+    };
+    return store;
+  }
+
   // ---------- OUTE-005/006: draft engine + voice + quality gate ----------
   const VOICE_DEFAULT = Object.freeze({ formality: 0.3, warmth: 0.6, humor: 0.0, directness: 0.7, plain_student_voice: true });
   function determineTier(c, profile) {
@@ -21764,6 +22181,12 @@ const CareerOutreach = (() => {
   const STRUCTURES = ["path_question", "shared_context", "specific_question", "short_honest", "peer_learning"];
   function draftFor(candidate, user, opts) {
     opts = opts || {}; const c = normalizeCandidate(candidate); user = user || {};
+    // NWD-01 drafting half: suppression is read BEFORE any draft text exists.
+    // A suppressed recipient produces no draft at all, whichever layer handed
+    // the store in (opts / ctx / a prior turn's result — see contract above).
+    const sup = suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user);
+    if (sup.suppressed) return Object.assign(suppressedRefusal(c, opts, user),
+      { subject: null, body: null, tier: null, structure: null, facts_used: [], why_this_line: [], dropped_unsourced: [] });
     const voice = Object.assign({}, VOICE_DEFAULT, opts.voice || user.voice || {});
     const tier = opts.tier || determineTier(c, user);
     const structure = STRUCTURES[(opts.structureIndex != null ? opts.structureIndex : tier === "A" ? 0 : tier === "B" ? 1 : 3) % STRUCTURES.length];
@@ -21832,15 +22255,40 @@ const CareerOutreach = (() => {
     for (const other of opts.batchBodies || []) if (other && other.person_id !== draft.person_id && norm(other.body) && norm(other.body) === norm(body)) failures.push("duplicate_body");
     return { pass: failures.length === 0, failures: [...new Set(failures)], words };
   }
-  function draftAndGate(candidate, user, opts) { const draft = draftFor(candidate, user, opts); const gate = qualityGate(draft, candidate, opts); return { draft, gate, queued: gate.pass }; }
+  function draftAndGate(candidate, user, opts) {
+    opts = opts || {}; const c = normalizeCandidate(candidate);
+    const sup = suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user);
+    if (sup.suppressed) {
+      const refusal = suppressedRefusal(c, opts, user);
+      return Object.assign({}, refusal, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
+    }
+    const draft = draftFor(candidate, user, opts);
+    if (draft && draft.refused) return Object.assign({}, draft, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
+    const gate = qualityGate(draft, candidate, opts);
+    const out = { draft, gate, queued: gate.pass, sends: 0, status: gate.pass ? "awaiting_approval" : "gate_failed" };
+    // NWD-02: a prepared draft is stored so it stays retrievable/editable by
+    // id after the approval gate, not only inside this turn's result object.
+    const store = opts.draftStore || (opts.ctx && opts.ctx.draftStore) || null;
+    if (store && typeof store.put === "function" && draft) {
+      const rec = store.put(draft, { kind: opts.draftKind || "outreach_draft", at: opts.at || null });
+      if (rec) { out.draft_id = rec.id; out.draft_record = rec; }
+    }
+    return out;
+  }
+  // Explicit named entry for the drafting path (same contract as draftAndGate).
+  function prepareDraft(candidate, user, opts) { return draftAndGate(candidate, user, opts); }
   function draftReferralAsk(contact, user, opts) {
     opts = opts || {}; const c = normalizeCandidate(contact);
+    if (suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(c, opts, user), { draft: null });
     if (!opts.shared_context || !opts.shared_context.source_url) return { ok: false, reason: "no_sourced_shared_context", draft: null };
     const body = [`Hi ${(c.full_name || "").split(/\s+/)[0]},`, `I'm ${user.name || "a student"}${user.school ? ` at ${user.school}` : ""}. ${opts.shared_context.fact}.`, `Would you be open to a 15-minute coffee chat in the next two weeks? Totally understand if you're swamped.`, OPT_OUT_LINE, `Thanks,\n${user.name || ""}`].join("\n\n");
     return { ok: true, draft: { to: c.work_email || null, subject: `Coffee chat — ${user.school || "student"}`, body, why_this_line: [{ line: opts.shared_context.fact, fact: opts.shared_context.fact, source_url: opts.shared_context.source_url }] } };
   }
-  function draftIntroRequest(mutual, target, user, blurb) {
+  function draftIntroRequest(mutual, target, user, blurb, opts) {
     const m = normalizeCandidate(mutual), t = normalizeCandidate(target);
+    opts = opts || {};
+    if (suppressionCheck({ email: m.work_email, person_id: m.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(m, opts, user), { draft: null });
+    if (suppressionCheck({ email: t.work_email, person_id: t.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(t, opts, user), { draft: null });
     if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
     return { ok: true, draft: { to: m.work_email || null, subject: `Intro to ${t.full_name} at ${t.current_firm}?`, body: `Hi ${(m.full_name || "").split(/\s+/)[0]}, would you be willing to introduce me to ${t.full_name} at ${t.current_firm}? Forwardable blurb below — no worries at all if not.\n\n${blurb}\n\nThanks,\n${user.name || ""}` } };
   }
@@ -22042,6 +22490,14 @@ const CareerOutreach = (() => {
     // hostile / spam complaint — before generic stop wording so "spam" complaints land here
     if (/this is spam|report(ing)? (you|this) (for )?spam|spam complaint|harass|fuck|scam|leave me alone|never contact me again|i ll report you|ill report you/.test(t)) return done("hostile", { action: "suppress_notify_maybe_pause", hostile: true });
     if (/please stop|stop emailing|stop contacting|do not (email|contact|message) me|don t (email|contact) me|remove me|unsubscribe|opt out|no more emails|stop messaging/.test(t)) return done("hard-stop", { action: "suppress_notify", stop: true });
+    // NWD-06 suspicious (NW23): a reply asking for UNRELATED records — other
+    // people's resumes / private contact details / credentials. Quarantine
+    // class: it must produce no effect and no disclosure, whoever sent it.
+    if (/(send|share|give|forward|hand over|provide)[^.]{0,80}(resumes?|cvs?|private contact|contact details of|other (candidates|applicants|people|students)|private (records|data|details|information)|unrelated records|passwords?|credentials)/.test(t) || /private contact details of/.test(t) || /resumes? (and|of) (the )?other/.test(t)) return done("suspicious", { action: "quarantine_no_effect_warn_user", suspicious: true });
+    // NWD-06 not-now (NW15): "maybe later" is a soft not-now, never a
+    // commitment and never a scheduled date. Distinct from a polite decline
+    // ("maybe another time, I have to pass") which stays polite-decline.
+    if (/\bmaybe later\b|\bnot now\b|\bafter the holidays\b|\bcircle back\b|\btry (me|again) later\b|\bcheck back (with me )?(later|in|after)\b/.test(t)) { const tm = body.match(/maybe later[^\n.]*/i); return done("not-now", { action: "record_not_now_no_commitment", not_now: true, timing_text: tm ? tm[0].trim() : null, commitment: false }); }
     if (/out of office|on vacation|on pto|away from (the )?office|limited access to email|currently traveling|on leave|ooo\b|auto reply|automatic reply/.test(t)) { const rd = parseReturnDate(body, nowMs); const resched = rd ? new Date(Date.parse(rd + "T00:00:00Z") + 86400000).toISOString().slice(0, 10) : null; return done("auto-reply-ooo", { action: "reschedule_followup", return_date: rd, reschedule_followup_on: resched }); }
     if (/(talk to|speak with|reach out to|you should (talk|speak|contact)|connect you with|looping in|introduc\w+ you to|better person (for|to ask)|try (asking )?)[ ]+[A-Z]/.test(body) || /talk to \w+|speak with \w+|reach out to \w+|connect you with \w+|looping in \w+/.test(t)) {
       const nameM = body.match(/(?:talk to|speak with|reach out to|connect you with|looping in|introducing you to)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/);
@@ -22059,6 +22515,21 @@ const CareerOutreach = (() => {
     opts = opts || {}; const cls = classifyReply(reply, opts); const suppression = opts.suppression || null;
     const out = { classification: cls, actions: [], notify_user: null, campaign_paused: false, new_candidate: null, reschedule_followup_on: cls.reschedule_followup_on || null };
     const email = contact && (contact.work_email || contact.email), pid = contact && contact.person_id;
+    if (cls.classification === "suspicious") {
+      // Quarantine: NO suppression, NO stats, NO draft that complies, NO
+      // disclosure — the only output is a warning to the user.
+      out.actions.push("quarantined_no_effect");
+      out.quarantine = { quarantined: true, effect: "none", disclosed: false, reason: "reply_requests_unrelated_records" };
+      out.notify_user = "That reply looks suspicious: it asks for records that are not the sender's to receive. It cannot be complied with — I will not share other people's resumes or private contact details. Nothing was sent, disclosed, or changed.";
+      return out;
+    }
+    if (cls.classification === "not-now") {
+      const record = { state: "not_now", timing_text: cls.timing_text || null, commitment: false, scheduled_followup_on: null, email: email || null, person_id: pid || null };
+      out.actions.push("recorded_not_now_no_commitment"); out.record = record;
+      out.notify_user = `Recorded as not now${record.timing_text ? ` — "${record.timing_text}"` : ""}. They have not committed to any follow-up, and no follow-up date has been scheduled.`;
+      if (campaign) { campaign.not_now = campaign.not_now || []; if (!campaign.not_now.some((r) => r.email === record.email && r.timing_text === record.timing_text)) campaign.not_now.push(record); campaign.stats.replies = (campaign.stats.replies || 0) + 1; }
+      return out;
+    }
     if (cls.classification === "hard-stop" || cls.classification === "hostile") {
       if (suppression) suppression.suppress({ email, person_id: pid, userId: campaign && campaign.userId, scope: "both", reason: cls.classification }); // user list + shared cross-user opt-out
       out.actions.push("suppressed_user_and_shared");
@@ -22072,6 +22543,230 @@ const CareerOutreach = (() => {
     if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
     if ((cls.classification === "positive-ready" || cls.classification === "positive-needs-info") && campaign) campaign.stats.positive = (campaign.stats.positive || 0) + 1; // BUG-005: handleReply never counted positives, so digests reported 0 positive replies
     return out;
+  }
+
+  // ---------- NWD-05: delivery status truth (the 141 destination-truth pattern) ----------
+  // Status is spoken ONLY from the delivery record, re-read at answer time:
+  // provider acceptance is not delivery, and an item is reported stopped
+  // only when its record actually says stopped/suppressed. A status query
+  // never resends and never flips the item's recorded status.
+  function sinkReceivedFor(item, opts) {
+    opts = opts || {};
+    if (opts.sinkReceivedCount != null) return { checked: true, count: Number(opts.sinkReceivedCount) || 0 };
+    const rec = opts.deliveryRecord || opts.destination || null;
+    if (rec && typeof rec === "object" && !Array.isArray(rec)) {
+      if (rec.received_count != null) return { checked: true, count: Number(rec.received_count) || 0 };
+      if (rec.count != null) return { checked: true, count: Number(rec.count) || 0 };
+      if (rec.received === true || rec.delivered === true || rec.found === true) return { checked: true, count: 1 };
+      if (rec.received === false || rec.delivered === false || rec.found === false) return { checked: true, count: 0 };
+    }
+    const sink = opts.sink || (rec && Array.isArray(rec) ? rec : null);
+    if (Array.isArray(sink)) {
+      const to = String((item && (item.to || item.email)) || "").toLowerCase(); const ref = item && (item.provider_ref || item.message_id);
+      const hits = sink.filter((m) => { if (!m || typeof m !== "object") return false; if (ref && (m.provider_ref === ref || m.message_id === ref)) return true; const mt = String(m.to || m.email || "").toLowerCase(); return to && mt === to; });
+      return { checked: true, count: hits.length };
+    }
+    return { checked: false, count: 0 };
+  }
+  function deliveryStatus(item, opts) {
+    item = item || {}; opts = opts || {};
+    const raw = String(item.status || item.state || "unknown");
+    const sink = sinkReceivedFor(item, opts);
+    const base = { queue_id: item.queue_id || item.id || null, to: item.to || item.email || null, person_id: item.person_id || null,
+      provider_status: raw, provider_ref: item.provider_ref || null, sink_checked: sink.checked, sink_received_count: sink.checked ? sink.count : null,
+      source: sink.checked ? "delivery_record" : "item_record_only_no_delivery_record" };
+    if (sink.checked && sink.count > 0) return Object.assign({}, base, { status: "delivered", delivery_confirmed: true, is_stopped: false, is_pending: false });
+    if (raw === "provider_accepted") return Object.assign({}, base, { status: "delivery_unconfirmed", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "sent") return Object.assign({}, base, { status: sink.checked ? "delivery_unconfirmed" : "sent_delivery_unconfirmed", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "suppressed" || raw === "stopped" || raw === "cancelled" || raw === "canceled") return Object.assign({}, base, { status: raw === "suppressed" ? "suppressed" : "stopped", delivery_confirmed: false, is_stopped: true, is_pending: false });
+    if (raw === "bounced") return Object.assign({}, base, { status: "bounced", delivery_confirmed: false, is_stopped: false, is_pending: false });
+    if (raw === "queued" || raw === "pending" || raw === "held" || raw === "paused") return Object.assign({}, base, { status: raw === "queued" || raw === "pending" ? "pending" : raw, delivery_confirmed: false, is_stopped: false, is_pending: true });
+    return Object.assign({}, base, { status: raw, delivery_confirmed: false, is_stopped: false, is_pending: false });
+  }
+  function deliveryStatusText(st, item) {
+    const who = (item && (item.name || item.full_name)) || (st && st.to) || "that recipient";
+    if (!st) return "No delivery record is on file for that follow-up.";
+    if (st.status === "delivered") return `${who}: delivery is confirmed by the destination record (the destination holds a received message for it).`;
+    if (st.status === "delivery_unconfirmed" || st.status === "sent_delivery_unconfirmed") return `${who}: delivery is unconfirmed — the provider accepted it${st.provider_ref ? ` (${st.provider_ref})` : ""}, but the destination record holds no received message for it, so acceptance does not confirm delivery or receipt. Its recorded status is still ${st.provider_status}, and I have not resent it.`;
+    if (st.is_stopped) return `${who}: that follow-up is no longer going out — its recorded status is ${st.provider_status}.`;
+    if (st.status === "bounced") return `${who}: that message bounced as undeliverable and will not be retried.`;
+    if (st.is_pending) return `${who}: that follow-up is still ${st.provider_status} — it has not gone out yet.`;
+    return `${who}: recorded status is ${st.provider_status}; delivery is unconfirmed.`;
+  }
+  function reconcileOutreachDelivery(items, opts) {
+    const list = (items || []).map((i) => deliveryStatus(i, opts));
+    return { items: list, delivered: list.filter((s) => s.delivery_confirmed).length, unconfirmed: list.filter((s) => s.status === "delivery_unconfirmed" || s.status === "sent_delivery_unconfirmed").length,
+      stopped: list.filter((s) => s.is_stopped).length, pending: list.filter((s) => s.is_pending).length, resent: false, sends: 0 };
+  }
+  function followUpStatus(items, query, opts) {
+    opts = opts || {}; query = query || {};
+    const all = Array.isArray(items) ? items : ((items && items.items) || []);
+    const qEmail = String(query.email || query.to || "").toLowerCase(); const qPid = query.person_id || null; const qName = norm(query.name || query.full_name || "");
+    const matched = all.filter((i) => { if (qEmail && String(i.to || i.email || "").toLowerCase() === qEmail) return true; if (qPid && i.person_id === qPid) return true; if (qName && norm(i.name || i.full_name || "") === qName) return true; return !qEmail && !qPid && !qName; });
+    const statuses = matched.map((i) => deliveryStatus(i, opts));
+    const text = matched.length ? matched.map((i, k) => deliveryStatusText(statuses[k], i)).join(" ") : "No follow-up matching that person is on file, so nothing to it is going out.";
+    return { ok: true, items: statuses, statuses, text, reply: text, resent: false, sends: 0 };
+  }
+
+  // ---------- NWD-06: §7 reply workflow — one module-level entry for every reply class ----------
+  // processInboxEvent(campaign, replyOrEvent, contact, opts) classifies the
+  // relayed reply (124 classifyReply) and APPLIES the class's transition:
+  //   interested / question -> reply recorded, answer draft from profile
+  //     facts ONLY, stored at the approval gate (never sent);
+  //   positive-ready -> draft + propose-slots next step (never sent);
+  //   not-now -> recorded with its stated timing verbatim; no date, no
+  //     commitment, nothing scheduled on the counterpart's behalf;
+  //   auto-reply-ooo -> NOT a reply/engagement; return date kept, the
+  //     existing follow-up is rescheduled to return+1, no new chain;
+  //   bounce -> item bounced/never-retry, address suppressed for the user,
+  //     breaker evaluated; a bounce SPIKE event (type "bounce_spike" or
+  //     opts.bounceCount >= 3) also pauses the campaign and holds every
+  //     remaining queued/pending item, with a diagnose-first next step and
+  //     no guessed replacement address;
+  //   hard-stop / hostile -> suppression (user + shared), that person's
+  //     queued items suppressed;
+  //   polite-decline -> suppression for this user;
+  //   referral-to-other -> new Tier-A candidate surfaced, unsent;
+  //   suspicious -> QUARANTINED: no suppression, no stats, no draft that
+  //     complies, no disclosure; the user is warned.
+  // Classification never authorizes a send: every path returns sends: 0.
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function formatGraduation(v) {
+    if (!v) return null; const s = String(v);
+    const ym = s.match(/^(20\d{2})-(\d{2})/); if (ym) return `${MONTH_NAMES[Number(ym[2]) - 1]} ${ym[1]}`;
+    return s.replace(/\(TEST\)/g, "").trim();
+  }
+  function profileFactAnswers(replyText, profile, user) {
+    const merged = Object.assign({}, user || {}, profile || {});
+    const cons = merged.constraints || {}; const facts = merged.facts || merged.known_facts || [];
+    const factText = facts.map((f) => typeof f === "string" ? f : (f && f.text) || "").join(" ");
+    const t = " " + norm(replyText) + " ";
+    const answers = [], unknown = [];
+    if (/graduat/.test(t)) {
+      let v = formatGraduation(cons.graduationDate || cons.graduation_date || merged.graduationDate || merged.graduation_date || null);
+      if (!v) { const m = factText.match(/graduating ([A-Z][a-z]+ 20\d{2})/); if (m) v = m[1]; }
+      if (v) answers.push({ topic: "graduation", text: `My graduation date is ${v}.`, value: v }); else unknown.push("graduation");
+    }
+    if (/authorized|authorisation|work in the|sponsor/.test(t)) {
+      let v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
+      if (v) { const clean = String(v).replace(/\(TEST\)/g, "").trim(); const isCitizen = /citizen/i.test(clean); answers.push({ topic: "work_authorization", text: isCitizen ? `I am a ${clean} and authorized to work in the US.` : `On work authorization: ${clean}.`, value: clean }); }
+      else if (cons.needsSponsorship === false) answers.push({ topic: "work_authorization", text: "I am authorized to work in the US and do not need sponsorship.", value: "authorized, no sponsorship" });
+      else unknown.push("work_authorization");
+    }
+    if (/school|university|college/.test(t) && !/graduat/.test(t)) {
+      const v = merged.school || (merged.basics && merged.basics.school) || null;
+      if (v) answers.push({ topic: "school", text: `I am at ${v}.`, value: v }); else unknown.push("school");
+    }
+    return { answers, unknown };
+  }
+  function draftReplyAnswer(reply, contact, profile, user, cls, opts) {
+    const c = contact || {}; const first = String(c.full_name || c.name || "there").split(/\s+/)[0];
+    const name = (user && user.name) || (profile && profile.basics && profile.basics.name) || "";
+    const { answers, unknown } = profileFactAnswers(String((reply && reply.body) || ""), profile, user);
+    const lines = [`Hi ${first},`, "Thanks for getting back to me."];
+    for (const a of answers) lines.push(a.text);
+    if (cls && cls.classification === "positive-ready") lines.push("Happy to chat — the next step is a short call; I will send times for your approval.");
+    else if (!answers.length && !unknown.length) lines.push("Happy to talk — let me know what would help.");
+    if (unknown.length) lines.push(`I do not have ${unknown.join(" and ")} on file, so I have left that for you to confirm before this goes out.`);
+    lines.push(`Thanks,\n${name}`);
+    return { to: c.work_email || c.email || null, person_id: c.person_id || null,
+      subject: `Re: outreach`, body: lines.join("\n\n"), kind: "reply_draft",
+      facts_used: answers, facts_unknown: unknown, status: "awaiting_approval", auto_sent: false };
+  }
+  function addressHealth(campaign, queueItems) {
+    const items = [].concat((campaign && campaign.items) || [], queueItems || []);
+    const byDomain = {}; let bounced = 0, attempted = 0;
+    for (const i of items) { const d = emailDomain(i.email || i.to) || "unknown"; byDomain[d] = byDomain[d] || { attempted: 0, bounced: 0 }; if (i.status === "sent" || i.status === "bounced") { byDomain[d].attempted++; attempted++; } if (i.status === "bounced") { byDomain[d].bounced++; bounced++; } }
+    if (campaign && campaign.wave && campaign.wave.bounces > bounced) bounced = campaign.wave.bounces;
+    return { bounced, attempted, by_domain: byDomain, recommendation: "verify the bounced addresses and diagnose the list before any further send; do not guess replacement addresses" };
+  }
+  function processInboxEvent(campaign, event, contact, opts) {
+    opts = opts || {}; const reply = event || {};
+    const profile = opts.profile || {}; const user = opts.user || profile;
+    const suppression = resolveSuppression(opts);
+    const draftStore = opts.draftStore || (opts.ctx && opts.ctx.draftStore) || null;
+    const queueItems = opts.queueItems || opts.queue_items || null;
+    const email = contact && (contact.work_email || contact.email) || null;
+    const finish = (out) => Object.assign({ ok: true, kind: "inbox_reply_workflow", sends: 0, auto_sent: false }, out);
+    // --- bounce spike event (NW19): not a single reply, a queue event ---
+    const spikeCount = reply.bounced_count != null ? Number(reply.bounced_count) : (opts.bounceCount != null ? Number(opts.bounceCount) : null);
+    if (reply.type === "bounce_spike" || reply.type === "bounce_report" || (spikeCount != null && spikeCount >= 3)) {
+      const n = spikeCount || 3;
+      if (campaign) {
+        campaign.wave.bounces = Math.max(campaign.wave.bounces || 0, n);
+        campaign.wave.sent = Math.max(campaign.wave.sent || 0, n);
+        campaign.breaker = { tripped: true, cause: `bounce_spike: ${n} undeliverable`, user_message: `Paused your campaign: ${n} messages bounced as undeliverable.` };
+        campaign.status = "paused";
+        for (const i of campaign.items || []) if (i.status === "queued") { i.status = "held"; i.held_reason = "bounce_spike"; }
+      }
+      const held = [];
+      for (const q of queueItems || []) if (q.status === "pending" || q.status === "queued") { q.status = "held"; q.held_reason = "bounce_spike"; held.push(q.queue_id || q.id || q.to); }
+      const health = addressHealth(campaign, queueItems);
+      const msg = `Bounce spike: ${n} outreach emails bounced as undeliverable. I paused what remains of the queue (${held.length} item${held.length === 1 ? "" : "s"} held) and stopped further sends. Next step: check and verify the bounced addresses and diagnose why they failed before anything else goes out — no replacement address has been guessed.`;
+      return finish({ classification: "bounce", state_transition: "bounce_spike_queue_paused", actions: ["campaign_paused", "remaining_queue_held", "diagnose_before_any_send"],
+        user_message: msg, notify_user: msg, next_step: "Check and verify the bounced addresses; diagnose the bounce cause before resuming.",
+        campaign_paused: true, breaker: campaign ? campaign.breaker : { tripped: true, cause: "bounce_spike" }, address_health: health, held_items: held, queue_items: queueItems });
+    }
+    const base = handleReply(campaign, reply, contact, Object.assign({}, opts, { suppression }));
+    const cls = base.classification || {}; const kind = cls.classification;
+    const common = { classification: kind, classification_detail: cls, actions: base.actions || [], campaign_paused: !!base.campaign_paused };
+    const matchItems = (fn) => { const hit = []; for (const i of (campaign && campaign.items) || []) if (email && i.email === email) { fn(i); hit.push(i.id); } for (const q of queueItems || []) if (email && (q.to || q.email) === email) { fn(q); hit.push(q.queue_id || q.id); } return hit; };
+    if (kind === "suspicious") {
+      return finish(Object.assign({}, common, { state_transition: "quarantined_suspicious", record_state: "quarantined",
+        quarantine: base.quarantine || { quarantined: true, effect: "none", disclosed: false },
+        warning: base.notify_user, user_message: base.notify_user, notify_user: base.notify_user,
+        draft: null, next_step: "Do not comply with this reply. Review it yourself; a safe decline can be prepared for your approval, and nothing leaves without it." }));
+    }
+    if (kind === "not-now") {
+      return finish(Object.assign({}, common, { state_transition: "recorded_not_now", record_state: "not_now", record: base.record || null,
+        user_message: base.notify_user, notify_user: base.notify_user,
+        draft: null, next_step: "Recorded only. No follow-up is scheduled, and the sender has not committed to one — a later touch needs your say-so." }));
+    }
+    if (kind === "auto-reply-ooo") {
+      const rd = cls.return_date || null;
+      matchItems((i) => { i.reschedule_followup_on = base.reschedule_followup_on; i.followup_rescheduled_on = base.reschedule_followup_on; });
+      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (m, y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
+      return finish(Object.assign({}, common, { state_transition: "ooo_rescheduled", record_state: "out_of_office", counts_as_reply: false,
+        return_date: rd, reschedule_followup_on: base.reschedule_followup_on,
+        user_message: msg, notify_user: msg, draft: null, next_step: "Wait for a real reply after the return date." }));
+    }
+    if (kind === "bounce") {
+      const health = addressHealth(campaign, queueItems);
+      const msg = `That address bounced as undeliverable. The item is marked bounced and will never be retried, and the address is suppressed for you. ${campaign && campaign.breaker && campaign.breaker.tripped ? "The bounce breaker has paused the campaign. " : ""}Next step: check and verify the address before any further send — no replacement address has been guessed.`;
+      return finish(Object.assign({}, common, { state_transition: "bounced_never_retry", record_state: "bounced",
+        user_message: msg, notify_user: msg, campaign_paused: !!(campaign && campaign.breaker && campaign.breaker.tripped),
+        breaker: campaign ? campaign.breaker : null, address_health: health, draft: null, next_step: "Check and verify the bounced address; diagnose before resuming." }));
+    }
+    if (kind === "hard-stop" || kind === "hostile") {
+      const stopped = matchItems((i) => { if (i.status === "queued" || i.status === "pending") i.status = "suppressed"; });
+      return finish(Object.assign({}, common, { state_transition: "suppressed_opt_out", record_state: "suppressed",
+        user_message: base.notify_user, notify_user: base.notify_user, stopped_items: stopped, draft: null,
+        next_step: "They will not be contacted again; the suppression is shared across users." }));
+    }
+    if (kind === "polite-decline") {
+      return finish(Object.assign({}, common, { state_transition: "declined_suppressed_for_user", record_state: "declined",
+        user_message: "Recorded as a decline and suppressed on your list. No reply was sent.", notify_user: "Recorded as a decline and suppressed on your list.",
+        draft: null, next_step: "No further contact with this person from your campaigns." }));
+    }
+    if (kind === "referral-to-other") {
+      return finish(Object.assign({}, common, { state_transition: "referral_recorded", record_state: "referred",
+        new_candidate: base.new_candidate, user_message: base.notify_user || "Recorded the referral.", notify_user: base.notify_user || null,
+        draft: null, next_step: "The referred person can be added as a Tier-A candidate for your approval — nothing is sent to them automatically." }));
+    }
+    if (kind === "positive-ready" || kind === "positive-needs-info" || kind === "question-about-user") {
+      const draft = draftReplyAnswer(reply, contact, profile, user, cls, opts);
+      let draft_id = null, draft_record = null;
+      if (draftStore && typeof draftStore.put === "function") { draft_record = draftStore.put(draft, { kind: "reply_draft", at: opts.at || null }); if (draft_record) draft_id = draft_record.id; }
+      const slotsNext = kind === "positive-ready" ? "Next step: propose_slots_t3_card — pick slots from the draft for your approval; nothing sends without it." : "Next step: review the reply draft and approve, edit, or drop it — nothing sends without your approval.";
+      return finish(Object.assign({}, common, { state_transition: "replied_interested_draft_awaiting_approval", record_state: "interested",
+        counts_as_reply: true, draft, draft_id, draft_record,
+        facts_used: draft.facts_used, facts_unknown: draft.facts_unknown,
+        user_message: "Recorded the reply and prepared a reply draft for your approval. It answers only facts on your profile; nothing was sent.",
+        notify_user: null, next_step: slotsNext }));
+    }
+    return finish(Object.assign({}, common, { state_transition: "recorded", record_state: kind || "unknown",
+      user_message: base.notify_user || "Recorded the reply. Nothing was sent.", notify_user: base.notify_user || null, draft: null,
+      next_step: "Review the recorded reply; nothing sends without your approval." }));
   }
 
   // ---------- OUTE-011/012: booking + follow-through ----------
@@ -22352,8 +23047,8 @@ const CareerOutreach = (() => {
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
-    createSuppressionStore, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
-    classifyReply, handleReply, parseReturnDate,
+    createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
+    classifyReply, handleReply, processInboxEvent, deliveryStatus, deliveryStatusText, reconcileOutreachDelivery, followUpStatus, profileFactAnswers, addressHealth, parseReturnDate,
     tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,
     campaignMetrics };
 })();

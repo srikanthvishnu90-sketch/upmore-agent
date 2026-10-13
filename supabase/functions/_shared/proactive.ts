@@ -97,9 +97,16 @@ export function mapAccounts(rows: any[]) {
   }));
 }
 export function mapTransactions(rows: any[]) {
-  return (rows || []).filter(r => r && r.presence !== "superseded" && Number.isSafeInteger(r.amount_cents) && (r.currency || "USD") === "USD" && r.posted_on).map(r => ({
+  // A row's currency is part of the row, not a filter: a posted non-USD charge must reach the detectors
+  // (59-agent-alerts.js ALRT-003 reads currency, and the row's own USD figure in usd_amount_cents /
+  // amount_usd_cents / usd_cents when the stored row carries one — no rate is assumed here). The other
+  // filters stand: superseded rows, non-integer amounts and rows with no posted date stay out.
+  return (rows || []).filter(r => r && r.presence !== "superseded" && Number.isSafeInteger(r.amount_cents) && r.posted_on).map(r => ({
     id: `${r.account_id}:${r.provider_transaction_id}`, account_id: r.account_id, amount_cents: r.amount_cents, amount: r.amount_cents / 100,
     posted_at: String(r.posted_on).slice(0, 10), merchant_raw: r.merchant_raw, is_pending: !!r.is_pending, is_transfer: !!r.is_transfer, currency: r.currency || "USD",
+    ...(Number.isSafeInteger(r.usd_amount_cents) ? { usd_amount_cents: r.usd_amount_cents } : {}),
+    ...(Number.isSafeInteger(r.amount_usd_cents) ? { amount_usd_cents: r.amount_usd_cents } : {}),
+    ...(Number.isSafeInteger(r.usd_cents) ? { usd_cents: r.usd_cents } : {}),
   }));
 }
 
@@ -111,7 +118,10 @@ export function numbersRows(accounts: any[], transactions: any[]) {
     accounts: (accounts || []).map(a => ({ account_id: a.id, name: a.name, institution: a.institution, account_kind: KIND_BACK[a.kind] || "unknown", currency: a.currency || "USD",
       balance_cents: a.balance_cents, available_cents: a.available_cents ?? null, balance_as_of: a.as_of, fetched_at: a.as_of, sync_error: !!a.stale, status: "active" })),
     transactions: (transactions || []).map(t => ({ account_id: t.account_id, provider_transaction_id: String(t.id), amount_cents: t.amount_cents, posted_on: t.posted_at,
-      merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer, currency: "USD" })),
+      merchant_raw: t.merchant_raw, is_pending: !!t.is_pending, is_transfer: !!t.is_transfer, currency: t.currency || "USD",
+      ...(Number.isSafeInteger(t.usd_amount_cents) ? { usd_amount_cents: t.usd_amount_cents } : {}),
+      ...(Number.isSafeInteger(t.amount_usd_cents) ? { amount_usd_cents: t.amount_usd_cents } : {}),
+      ...(Number.isSafeInteger(t.usd_cents) ? { usd_cents: t.usd_cents } : {}) })),
   };
 }
 

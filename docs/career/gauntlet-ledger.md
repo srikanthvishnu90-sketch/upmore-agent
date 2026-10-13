@@ -454,8 +454,23 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
   record (NWD-05: provider_accepted + empty sink reads "delivery unconfirmed," never
   "stopped"). Suppression-store contract documented in 124's header; its persistence
   remains Codex's item-8 layer. 11/11 fail-first → pass; career suite 444/444.
-- G3 prep scoring (127): running. C-expansion (C-A canonical, C-B1/B2 variants, U
-  journeys) + item-10 dedupe survey: running on the frozen b7d9f83 build.
+- **G3 prep scoring (127) — BUILT, merged e3170ad + bundle rebuilt cbed4a5**:
+  domain-checked scoring (a confidently wrong drill answer is corrected in feedback
+  and capped, never form-scored), brevity penalty deleted, weakest-dimension
+  tie-break fixed (missing metric named as the top fix), framework-vs-judgment
+  diagnosis, answer-variant generation, confidentiality handling (a disclosure is
+  neither an answer nor a fabrication; shareable examples from confidential stories
+  are WITHHELD), accessibility mode + recording opt-out acknowledgements. Hard rules
+  held under test: demanded scores never awarded, PREP-008 live-assist stop intact,
+  MI16 parity deep-equal. 11/11 fail-first → pass; career suite 444/444. **MID-5
+  residual FOR-CODEX**: the false-flagging `detectContradiction` lives in 142; 127 now
+  exports the corrected route-ready version — the chat path changes only when 142
+  swaps to it (MI15/MI10 evidence). Observed once under heavy parallel load: 3
+  r2-integration doorstep tests flaked ("fill reaches REVIEW") — pass in isolation,
+  in family runs, and in both subsequent full runs; logged as load-sensitive, watch
+  at future gates.
+- C-expansion (C-A canonical, C-B1/B2 variants, U journeys) + item-10 dedupe build:
+  running.
 
 ## Item 10 — dedupe survey (COMPLETE, 021cebb) + build (IN PROGRESS)
 

@@ -57,7 +57,19 @@
         const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live || deposits(input.accounts) });
         out.sources.monitors = { findings: m.findings.length, errors: m.errors };
         for (const f of m.findings) {
-          if (f.kind === "low_balance" || f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.kind === "low_balance" ? "you asked me to watch your balance" : "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });
+          if (f.kind === "low_balance") {
+            // A5 cadence: the monitor's key follows its own projected low date, which moves daily. The feed
+            // re-keys it to the stable episode identity (the liquid accounts projected; AgentAlerts owns the
+            // rule) and carries the episode picture (the low, the first under-buffer day) the delivery
+            // layer's episode decision reads. The finding's words and amounts are untouched.
+            const lbAccounts = (input.accounts || []).filter(a => a && ["checking", "savings", "cash", "money_market"].includes(a.kind) && a.id != null).map(a => String(a.id)).sort();
+            const lbScope = lbAccounts.length ? lbAccounts.join("+") : "cash";
+            const lbBuffer = f.evidence && f.evidence.computed ? Number(f.evidence.computed.buffer) : NaN;
+            const lbRow = f.evidence && f.evidence.computed && Array.isArray(f.evidence.computed.upcoming) ? f.evidence.computed.upcoming.find(u => Number.isFinite(lbBuffer) && u.balance_after < lbBuffer) : null;
+            const episode = lbRow ? { scope: lbScope, low_cents: Math.round(lbRow.balance_after * 100), first_below_on: f.dueOn, buffer_cents: Number.isFinite(lbBuffer) ? Math.round(lbBuffer * 100) : null } : null;
+            out.watches.push({ key: `low_balance:ep:${lbScope}`, text: f.title + ". " + f.detail, reason: "you asked me to watch your balance", evidence: f.evidence, capability_id: f.capabilityId, episode });
+          }
+          else if (f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });
           else out.proactive.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.evidence && f.evidence.rule ? f.evidence.rule : f.kind, deadline: f.dueOn && DEADLINE_KINDS.has(f.kind) ? dayMs(f.dueOn) : null, next_on: f.dueOn || null, amount_cents: f.amount != null ? Math.round(f.amount * 100) : null, evidence: f.evidence, capability_id: f.capabilityId, priority: f.priority || 3 });
         }
       }

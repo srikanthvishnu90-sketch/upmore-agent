@@ -136,7 +136,7 @@ test("[S15] low balance ahead uses the person's own buffer and names the day it 
   const rows = [tx("2026-08-15", -60000, "OAK PROPERTY MGMT RENT"), tx("2026-09-15", -60000, "OAK PROPERTY MGMT RENT")];
   const accounts = [Object.assign({}, CHK[0], { balance_cents: 80000 })];
   const f = plain(A.detect({ today: T, transactions: rows, accounts, buffer_cents: 50000 })).filter(x => x.kind === "low_balance");
-  assert.deepEqual(f.map(x => [x.key, x.text]), [["low_balance:2026-10-15", "Your cash is $800.00 now; it goes under your $500.00 buffer on 2026-10-15 ($200.00) and bottoms at $200.00 on 2026-10-15."]]);
+  assert.deepEqual(f.map(x => [x.key, x.text]), [["low_balance:ep:mock-chk", "Your cash is $800.00 now; it goes under your $500.00 buffer on 2026-10-15 ($200.00) and bottoms at $200.00 on 2026-10-15."]]);
   assert.deepEqual(plain(A.detect({ today: T, transactions: rows, accounts })).filter(x => x.kind === "low_balance"), [], "$200 is above the default $100 buffer");
 });
 
@@ -225,6 +225,51 @@ test("[S23] the way people actually type it: no apostrophes, the payer as subjec
   assert.deepEqual(p("tell me if my refund from chase hasnt posted by oct 31st"), ["chase", null, "2026-10-31"]);
   assert.deepEqual(p("tell me if the refund from nike isnt back by the 5th"), ["nike", null, "2026-11-05"], "the 5th has passed this month: next month's");
   for (const t of ["notify me when my refund from the airline posts", "tell me if my tax refund doesnt arrive by april 30", "tell me when my refund posts"]) assert.equal(p(t), null, t);
+});
+
+// A5 cadence: the low-balance warning fires once per episode and re-fires only on a material worsening
+// (AgentAlerts.lowBalanceEpisode; materiality defined in 59-agent-alerts.js in one place).
+test("[S24] episode cadence: once per episode; jitter is silent; a material drop re-fires naming the new low and the drop; a closed episode fires fresh", () => {
+  const cur = (low_cents, first_below_on) => ({ scope: "mock-chk", low_cents, first_below_on });
+  const d1 = plain(A.lowBalanceEpisode(cur(-20000, "2026-10-15"), null, "2026-10-12"));
+  assert.equal(d1.action, "fire");
+  assert.equal(d1.key, "low_balance:ep:mock-chk:2026-10-12:-20000:2026-10-15");
+  assert.deepEqual([d1.state.status, d1.state.opened_on, d1.state.last_low_cents, d1.state.reports], ["open", "2026-10-12", -20000, 1]);
+  // Jitter: $3 lower (under $50 and under 10% of $200) and the first day 2 days closer (under 7): silent.
+  const d2 = plain(A.lowBalanceEpisode(cur(-20300, "2026-10-13"), d1.state, "2026-10-13"));
+  assert.equal(d2.action, "suppress");
+  assert.deepEqual(d2.state, d1.state, "a suppressed day changes nothing about what was last reported");
+  // Material: $200 lower re-fires once, names the new low and the drop, and becomes the new last-reported low.
+  const d3 = plain(A.lowBalanceEpisode(cur(-40000, "2026-10-13"), d1.state, "2026-10-14"));
+  assert.equal(d3.action, "refire");
+  assert.equal(d3.key, "low_balance:ep:mock-chk:2026-10-12:-40000:2026-10-13");
+  assert.equal(d3.worsening_text, "The low is now -$400.00, $200.00 lower than when I last warned you (it was -$200.00).");
+  assert.deepEqual([d3.state.last_low_cents, d3.state.reports], [-40000, 2]);
+  // Recovery closes the episode; the next dip fires fresh under a new opened day, however small its low.
+  const closed = plain(A.lowBalanceClose(d3.state, "2026-10-20"));
+  assert.deepEqual([closed.status, closed.closed_on], ["closed", "2026-10-20"]);
+  const d4 = plain(A.lowBalanceEpisode(cur(-5000, "2026-11-03"), closed, "2026-11-01"));
+  assert.equal(d4.action, "fire");
+  assert.equal(d4.key, "low_balance:ep:mock-chk:2026-11-01:-5000:2026-11-03");
+});
+
+test("[S25] materiality legs: a 10% drop under $50 re-fires; a first day 7+ days sooner re-fires naming the sooner day; 6 days sooner does not", () => {
+  const cur = (low_cents, first_below_on) => ({ scope: "mock-chk", low_cents, first_below_on });
+  const open = plain(A.lowBalanceEpisode(cur(-20000, "2026-10-20"), null, "2026-10-12")).state;
+  // $30 lower is under the $50 leg but 15% of the $200 low: the percent leg fires.
+  const pct = plain(A.lowBalanceEpisode(cur(-23000, "2026-10-20"), open, "2026-10-13"));
+  assert.equal(pct.action, "refire");
+  assert.deepEqual([pct.worsening.by_low, pct.worsening.by_date, pct.worsening.drop_cents], [true, false, 3000]);
+  // The low barely moves ($3) but the first under-buffer day pulls 8 days closer: the date leg fires, naming it.
+  const pulled = plain(A.lowBalanceEpisode(cur(-20300, "2026-10-12"), open, "2026-10-13"));
+  assert.equal(pulled.action, "refire");
+  assert.deepEqual([pulled.worsening.by_low, pulled.worsening.by_date, pulled.worsening.days_closer], [false, true, 8]);
+  assert.equal(pulled.worsening_text, "The first day under your buffer is now 2026-10-12, 8 days sooner than when I last warned you (it was 2026-10-20).");
+  // Six days sooner and a $3 drop: neither leg is met.
+  assert.equal(plain(A.lowBalanceEpisode(cur(-20300, "2026-10-14"), open, "2026-10-13")).action, "suppress");
+  // The scope is the episode: a different account's dip is a different episode and fires on its own.
+  assert.equal(plain(A.lowBalanceEpisode({ scope: "mock-sav", low_cents: -20000, first_below_on: "2026-10-20" }, null, "2026-10-12")).key, "low_balance:ep:mock-sav:2026-10-12:-20000:2026-10-20");
+  assert.equal(A.lowBalanceScope([{ id: "b", kind: "savings" }, { id: "a", kind: "checking" }, { id: "z", kind: "brokerage" }]), "a+b");
 });
 
 test("[ADV] planted descriptor text, paused watches and junk never reach an alert; every alert cites a source and an as-of", () => {

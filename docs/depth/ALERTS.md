@@ -59,4 +59,6 @@ Pending credits are never the refund. S17-S22, D17-D22.
 | S23 | The payer as subject | 'amazon hasnt refunded me' is a refund watch | `S23` in tests/depth-ALERTS.test.cjs | only 'my X refund' is read | proven |
 | S23 | By the 20th | 'by the 5th' after the 5th is next month's | `S23` in tests/depth-ALERTS.test.cjs | a passed day of the month is this month's | proven |
 | S23 | A generic payer is not a merchant | 'my refund from the airline' sets nothing | `S23` in tests/depth-ALERTS.test.cjs | "airline" is taken as the merchant | proven (also fails S17) |
+| S24 | A re-fire updates the last reported low | the second report is counted and becomes the comparison point | `S24` in tests/depth-ALERTS.test.cjs | a re-fire does not update the episode's report count, so the next comparison is against a stale low | proven |
+| S25 | Seven days sooner is material | a first day 8 days closer re-fires; 6 days does not | `S25` in tests/depth-ALERTS.test.cjs | the date leg needs a month, so a dip arriving a week sooner is never said | proven |
 <!-- results:end -->

@@ -33,6 +33,15 @@ Deno.test("plan: a message is planned once: what was sent is never planned again
   const tomorrow = plan(input({ extra: [BIG, FEE], sent }), NOW + DAY);
   assertEquals(tomorrow.messages.filter(m => m.kind === "finding").length, 1, "the next day one more finding fits the budget");
 });
+Deno.test("plan: A5 low-balance cadence: the warning fires once per episode, plan returns the episode state for the store, and the next day is silent", () => {
+  const first = plan(input({ extra: [BIG, FEE] }), NOW);
+  assertEquals(first.messages.filter(m => m.key.includes("low_balance")).length, 1, "day one fires once");
+  assert(first.watches_update && first.watches_update.some((w: any) => w.kind === "low_balance_episode" && w.status === "open"), "the opened episode is returned as watches_update, to be saved in the person's watches store");
+  const sent = first.messages.map(m => ({ key: m.key, sent_at: NOW, cadence: m.cadence }));
+  const second = plan(input({ extra: [BIG, FEE], sent, settings: { watches: first.watches_update } }), NOW + DAY);
+  assert(!second.messages.some(m => m.key.includes("low_balance")), "the same episode the next day is not re-fired: " + JSON.stringify(second.messages.map(m => m.key)));
+  assert(second.suppressed.some(s => s.reason === "low_balance_episode"), "and the suppression is on record as the episode's");
+});
 Deno.test("plan: quiet hours hold findings and schedules; a safety-level warning still comes through", () => {
   const late = Date.UTC(2026, 9, 12, 3, 0, 0); // Sat 11 p.m. New York
   const p = plan(input({ extra: [BIG] }), late);

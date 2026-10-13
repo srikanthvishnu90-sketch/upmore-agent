@@ -1,9 +1,9 @@
 {
  "capability": "ALERTS",
- "run_at": "2026-10-12T08:52:50.572Z",
+ "run_at": "2026-10-13T01:32:50.394Z",
  "baseline_all_green": true,
- "sub_capabilities": 23,
- "proven": 28,
+ "sub_capabilities": 25,
+ "proven": 30,
  "problems": [],
  "rows": [
   {
@@ -324,6 +324,28 @@
    "collateral": [
     "S17"
    ],
+   "status": "proven"
+  },
+  {
+   "sub": "S24",
+   "id": "D24",
+   "title": "A re-fire updates the last reported low",
+   "defect": "a re-fire does not update the episode's report count, so the next comparison is against a stale low",
+   "test": "the second report is counted and becomes the comparison point",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
+   "status": "proven"
+  },
+  {
+   "sub": "S25",
+   "id": "D25",
+   "title": "Seven days sooner is material",
+   "defect": "the date leg needs a month, so a dip arriving a week sooner is never said",
+   "test": "a first day 8 days closer re-fires; 6 days does not",
+   "bites": true,
+   "applied": true,
+   "collateral": [],
    "status": "proven"
   }
  ]

@@ -20,6 +20,16 @@
 // to hear, outside the daily budget, once only by its log key (budget:<id>:<month>:<threshold>). Tracking only: nothing
 // is blocked or moved.
 //
+// Low-balance episode cadence (A5; AgentAlerts.lowBalanceEpisode owns the materiality rule): the ALRT-001 warning
+// fires once per low-point episode, re-fires only when the picture materially worsens (and the re-fire names what
+// got worse), and closes silently when the projection recovers above the buffer. The episode's lifecycle state is
+// an entry of kind "low_balance_episode" in the person's existing watches store (agent_proactive_settings.watches,
+// no migration — the C24 precedent of lifecycle state in that store); plan() reads it from settings.watches, returns
+// the replacement list as watches_update when it changes, and the store saves it (runUser/saveWatches). When no
+// state entry exists, the last episode report is read back from the sent log itself: a report's key carries the
+// episode's opened day and the exact low and first under-buffer day it reported. An explicitly closed state wins
+// over the sent log, so a recovered episode never suppresses the next one.
+//
 // Deadlines (capability list item 39, packages/domain/99-deadlines.js over packages/offers/deadlines.json): a dated
 // federal tax date, Medicare or HealthCare.gov enrollment date, or an FSA or work open-enrollment date the person gave,
 // said 14 days and 2 days before (key deadline:<id>:<lead>), held in quiet hours. A public date for everyone is a finding
@@ -129,10 +139,32 @@ export function plan(input: ProactiveInput, now: number) {
   const s: ProactiveSettings = Object.assign({}, DEFAULT_SETTINGS, input.settings || {});
   const tz = validZone(s.time_zone) ? s.time_zone : DEFAULT_SETTINGS.time_zone;
   const clock = localClock(now, tz), today = clock.date;
-  const out = { messages: [] as ProactiveMessage[], suppressed: [] as { key: string; reason: string }[], held: 0, today, hour: clock.hour, fired_reports: [] as { instruction_id: string; period: string }[] };
+  const out = { messages: [] as ProactiveMessage[], suppressed: [] as { key: string; reason: string }[], held: 0, today, hour: clock.hour, fired_reports: [] as { instruction_id: string; period: string }[], watches_update: null as any[] | null };
   const accounts = input.accounts || [], transactions = input.transactions || [];
   const sentKeys = new Set((input.sent || []).map(x => x.key));
   const quietRule = s.quiet_start != null && s.quiet_end != null ? { start: s.quiet_start, end: s.quiet_end, utc_offset_hours: clock.offset_hours } : null;
+  // --- A5: low-balance episode state (see the header note). Prior state: the explicit watches entry wins; with
+  // none, the sent log's latest episode report for the scope is the prior (its key carries what was reported).
+  const AA: any = AgentAlerts as any;
+  const epExplicit = new Map<string, any>();
+  for (const w of s.watches || []) if (w && w.kind === "low_balance_episode" && w.scope) epExplicit.set(String(w.scope), w);
+  const epSent = new Map<string, { opened_on: string; low_cents: number; first_below_on: string; sent_at: number }>();
+  const EP_KEY = /low_balance:ep:([^:]+):(\d{4}-\d{2}-\d{2}):(-?\d+):(\d{4}-\d{2}-\d{2})/;
+  for (const row of input.sent || []) { const m = EP_KEY.exec(String((row as any).key || "")); if (m) { const prev = epSent.get(m[1]); if (!prev || row.sent_at >= prev.sent_at) epSent.set(m[1], { opened_on: m[2], low_cents: Number(m[3]), first_below_on: m[4], sent_at: row.sent_at }); } }
+  const epChanged = new Map<string, any>();
+  let epLowSeen = false; // a low-balance picture (any bucket, held, or the preventive computation) existed this run
+  const epPrior = (scope: string): any => {
+    if (epExplicit.has(scope)) return epExplicit.get(scope);
+    const se = epSent.get(scope);
+    return se ? { kind: "low_balance_episode", id: `lbep-${scope}`, scope, status: "open", opened_on: se.opened_on, last_low_cents: se.low_cents, last_first_below_on: se.first_below_on, last_reported_on: null, reports: 1 } : null;
+  };
+  const epCurrent = (item: any, fallback?: any): { scope: string; low_cents: number; first_below_on: string } | null => {
+    const e = (item && item.episode) || (item && item.evidence && item.evidence.computed && item.evidence.computed.episode) || fallback || null;
+    return e && Number.isInteger(e.low_cents) && e.first_below_on ? { scope: String(e.scope || AA.lowBalanceScope(accounts)), low_cents: e.low_cents, first_below_on: String(e.first_below_on) } : null;
+  };
+  const epDecide = (current: { scope: string; low_cents: number; first_below_on: string }): any => { epLowSeen = true; return AA.lowBalanceEpisode(current, epPrior(current.scope), today); };
+  const epCommit = (d: any) => { if (d && d.state) epChanged.set(String(d.state.scope), d.state); };
+  const epApply = () => { if (!epChanged.size) return; const kept = (s.watches || []).filter((w: any) => !(w && w.kind === "low_balance_episode" && epChanged.has(String(w.scope)))); out.watches_update = kept.concat([...epChanged.values()]); };
   const rentLater = () => rentOffers(input, today, tz, clock.hour < 8 || (!!quietRule && AgentAlerts.inQuiet(now, quietRule)), sentKeys, out);
   // The budget counts only unrequested messages; what the person asked for (a cadence, a watch) never uses it up.
   const budgetTimes = (input.sent || []).filter(x => !x.cadence).map(x => x.sent_at);
@@ -203,6 +235,21 @@ export function plan(input: ProactiveInput, now: number) {
     out.held = (f.held || []).length;
     for (const x of f.safety || []) push({ key: `safety:${x.key}`, kind: "safety", text: x.text, capability_id: x.capability_id || "SEC-001", urgent: true, cadence: true });
     for (const x of f.watches || []) {
+      // A5: a low-balance item goes through the episode gate first: suppressed inside an episode that has
+      // not materially worsened; a re-fire carries the sentence naming what got worse.
+      const curW = epCurrent(x);
+      if (curW) {
+        const d = epDecide(curW);
+        if (d.action === "suppress") { out.suppressed.push({ key: x.key, reason: "low_balance_episode" }); continue; }
+        const item = Object.assign({}, x, { key: d.key, text: d.action === "refire" ? `${x.text} ${d.worsening_text}` : x.text });
+        // C29: the warning carries the preventive move as its offer — one offer per run, as below.
+        if (!out.messages.some(m => m.offer)) {
+          const offer = preventiveOffer(item, { accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
+          if (offer) { if (push({ key: `watch:${item.key}`, kind: "watch", text: `${item.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.`, capability_id: item.capability_id || "ALRT-001", urgent: true, cadence: true, offer })) epCommit(d); continue; }
+        }
+        if (push({ key: `watch:${item.key}`, kind: "watch", text: item.text, capability_id: item.capability_id || "ALRT-001", urgent: true, cadence: true })) epCommit(d);
+        continue;
+      }
       // C29: a low-balance watch (the feed routes the ALRT-001 dip here) carries the preventive move as its
       // offer, exactly like the finding below — one offer per run, so a later finding's offer waits.
       if (typeof x.key === "string" && x.key.startsWith("low_balance:") && !out.messages.some(m => m.offer)) {
@@ -211,7 +258,26 @@ export function plan(input: ProactiveInput, now: number) {
       }
       push({ key: `watch:${x.key}`, kind: "watch", text: x.text, capability_id: x.capability_id || "ALRT-010", urgent: true, cadence: true });
     }
-    for (const p of f.proactive || []) {
+    for (const p0 of f.proactive || []) {
+      let p = p0, epD: any = null;
+      // A5: the episode gate, as in the watches loop. A low item folded into a bundle is gated on its own:
+      // suppressed, it leaves the bundle (the bundle's words are rebuilt from its remaining members);
+      // a re-fire's worsening sentence rides on the bundle's text.
+      const curP = epCurrent(p);
+      if (curP) {
+        epD = epDecide(curP);
+        if (epD.action === "suppress") { out.suppressed.push({ key: p.key, reason: "low_balance_episode" }); continue; }
+        p = Object.assign({}, p, { key: epD.key, text: epD.action === "refire" ? `${p.text} ${epD.worsening_text}` : p.text });
+      } else if (Array.isArray(p.members) && p.members.some((mm: any) => epCurrent(mm))) {
+        const mi = p.members.findIndex((mm: any) => epCurrent(mm));
+        const d = epDecide(epCurrent(p.members[mi])!);
+        if (d.action === "suppress") {
+          const members = p.members.filter((_: any, i: number) => i !== mi);
+          out.suppressed.push({ key: p.members[mi].key, reason: "low_balance_episode" });
+          if (!members.length) continue;
+          p = Object.assign({}, p, { members, key: `bundle:${members.map((mm: any) => mm.key).join("|").slice(0, 80)}`, text: `${members.length} things today: ${members.map((mm: any) => mm.title).join("; ")}. Say which one you want first.` });
+        } else { epD = d; if (d.action === "refire") p = Object.assign({}, p, { text: `${p.text} ${d.worsening_text}` }); }
+      }
       const key = `finding:${p.key}`;
       if (sentKeys.has(key)) continue;
       if (quietNow && !p.urgent) { out.suppressed.push({ key: p.key, reason: "quiet_hours" }); continue; }
@@ -225,24 +291,42 @@ export function plan(input: ProactiveInput, now: number) {
       // Owner, 2026-10-11: before a trial bills, ask "should I cancel this for you?"; nothing is cancelled without a yes.
       // A windfall finding already ends with its own question ("Sweep $X to savings? Reply yes…"), so no suffix.
       const text = offer && offer.kind === "cancel_trial" ? `${p.text} Should I cancel it for you? Reply YES or NO.` : offer && offer.kind === "preventive_transfer" ? `${p.text} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.` : offer && offer.kind === "anomaly_check" ? `${p.text} Was this you? Reply YES or NO — if it wasn't, I'll open the dispute case for this charge.` : p.text;
-      if (push({ key, kind: "finding", text, capability_id: offer && offer.kind === "cancel_trial" ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined }) && !exempt) budgetTimes.push(now);
+      if (push({ key, kind: "finding", text, capability_id: offer && offer.kind === "cancel_trial" ? "BILL-010" : p.capability_id || "ALRT-012", urgent: !!p.urgent, cadence: exempt, offer: offer || undefined })) { epCommit(epD); if (!exempt) budgetTimes.push(now); }
     }
     // C29: the checking-level dip the total-cash warning (ALRT-001) cannot see — checking goes under the
     // buffer on its own while savings covers it, so no alert fired above. The SAVE-006 computation names the
     // exact preventive transfer; warn with it, under the same log key the alert would have used, so the two
     // never both fire for the same day.
-    if (!out.messages.some(m => m.key.includes("low_balance:"))) {
+    if (!epLowSeen && !out.messages.some(m => m.key.includes("low_balance:"))) {
       const pv = computePreventive({ accounts, transactions, today, buffer_cents: s.buffer_cents ?? undefined });
       if (pv) {
-        const key = `finding:${pv.offer.key}`;
-        if (sentKeys.has(key)) { /* the same dip was already warned about in an earlier run */ }
-        else if (quietNow && !pv.urgent) out.suppressed.push({ key: pv.offer.key, reason: "quiet_hours" });
-        else if (out.messages.some(m => m.offer)) out.suppressed.push({ key: pv.offer.key, reason: "one_offer_at_a_time" });
+        // A5: the checking-level dip is its own episode (its scope is the checking account), gated the same way.
+        const d = epDecide(pv.episode);
+        if (d.action === "suppress") out.suppressed.push({ key: pv.offer.key, reason: "low_balance_episode" });
         else {
-          const b = AgentLoop.budgetAllows(budgetTimes, { key: pv.offer.key, kind: "low_balance", reason: "your checking is heading under your buffer", deadline: Date.parse(pv.offer.first_below_on + "T00:00:00Z"), urgent: pv.urgent } as any, now);
-          if (!b.allowed) out.suppressed.push({ key: pv.offer.key, reason: b.reason });
-          else if (push({ key, kind: "finding", text: `${pv.text} Moving ${money(pv.offer.amount_cents)} from ${pv.offer.from_name} to ${pv.offer.to_name} by ${fmtDay(pv.offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.`, capability_id: "ALRT-001", urgent: pv.urgent, cadence: b.reason !== "budget", offer: pv.offer }) && b.reason === "budget") budgetTimes.push(now);
+          const offer = Object.assign({}, pv.offer, { key: d.key });
+          const key = `finding:${d.key}`;
+          const text = `${pv.text}${d.action === "refire" ? ` ${d.worsening_text}` : ""} Moving ${money(offer.amount_cents)} from ${offer.from_name} to ${offer.to_name} by ${fmtDay(offer.land_by)} keeps it above the line. Reply YES and I'll put up that move.`;
+          if (sentKeys.has(key)) { /* the same dip was already warned about in an earlier run */ }
+          else if (quietNow && !pv.urgent) out.suppressed.push({ key: d.key, reason: "quiet_hours" });
+          else if (out.messages.some(m => m.offer)) out.suppressed.push({ key: d.key, reason: "one_offer_at_a_time" });
+          else {
+            const b = AgentLoop.budgetAllows(budgetTimes, { key: d.key, kind: "low_balance", reason: "your checking is heading under your buffer", deadline: Date.parse(offer.first_below_on + "T00:00:00Z"), urgent: pv.urgent } as any, now);
+            if (!b.allowed) out.suppressed.push({ key: d.key, reason: b.reason });
+            else if (push({ key, kind: "finding", text, capability_id: "ALRT-001", urgent: pv.urgent, cadence: b.reason !== "budget", offer })) { epCommit(d); if (b.reason === "budget") budgetTimes.push(now); }
+          }
         }
+      }
+    }
+    // A5 closure: the alerts ran over real rows and no low picture exists for the current scope in any bucket
+    // (a held one still counts as a picture), so an open episode for it has recovered above the buffer: close
+    // it, silently. No message, no state change anywhere else.
+    if (accounts.length && (input.transactions || []).length) {
+      const heldLow = ((f as any).held || []).some((h: any) => epCurrent(h) || (Array.isArray(h.members) && h.members.some((mm: any) => epCurrent(mm))));
+      if (!epLowSeen && !heldLow && !out.messages.some(m => m.key.includes("low_balance:"))) {
+        const scope = String(AA.lowBalanceScope(accounts));
+        const prior = epPrior(scope);
+        if (prior && prior.status === "open") epChanged.set(scope, AA.lowBalanceClose(prior, today));
       }
     }
   }
@@ -277,7 +361,7 @@ export function plan(input: ProactiveInput, now: number) {
   // The month's rent card offer (after the findings, so a trial offer in the same run goes first and rent waits an hour).
   rentLater();
   // What the person asked to hear on a schedule: delivered after quiet hours, from 8 a.m. their time.
-  if (quietNow || clock.hour < 8) return out;
+  if (quietNow || clock.hour < 8) { epApply(); return out; }
   const L: any = AgentLedger;
   if (s.morning_brief) {
     // Safe to spend from the same function as the chat answer (TheNumbers.safeToSpend): cash minus bills due by the
@@ -354,6 +438,7 @@ export function plan(input: ProactiveInput, now: number) {
         out.fired_reports.push({ instruction_id: d.instruction_id, period: d.period });
     }
   }
+  epApply();
   return out;
 }
 // AgentControl keeps a reference to the state it is given; a copy keeps the stored settings untouched until saved.
@@ -404,7 +489,7 @@ function windfallOffer(p: any, accounts: any[] = []): WindfallOffer | null {
 // person's rows: the smallest transfer from savings that keeps checking above the buffer, and the day it
 // must land. No move exists (no savings, nothing to move, no dip) or an account can't be named: null, and
 // any warning stands on its own.
-function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: string; buffer_cents?: number }): { offer: PreventiveOffer; text: string; urgent: boolean } | null {
+function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: string; buffer_cents?: number }): { offer: PreventiveOffer; text: string; urgent: boolean; episode: { scope: string; low_cents: number; first_below_on: string } } | null {
   let mv: any = null;
   try { mv = (AgentMoneyPlans as any).overdraftPrevention({ accounts: ctx.accounts, transactions: ctx.transactions, today: ctx.today, buffer_cents: ctx.buffer_cents }); } catch { return null; }
   if (!mv || !mv.needed || !mv.request || !(mv.amount_cents > 0)) return null;
@@ -412,8 +497,10 @@ function computePreventive(ctx: { accounts: any[]; transactions: any[]; today: s
   const nameOf = (id: string) => { const a = (ctx.accounts || []).find(x => x && String(x.id) === id); return a ? String(a.name || a.nickname || id) : null; };
   const from_name = nameOf(fromId), to_name = nameOf(toId);
   if (!from_name || !to_name) return null;
-  const offer: PreventiveOffer = { kind: "preventive_transfer", key: `low_balance:${String(mv.first_below.on)}`, amount_cents: mv.amount_cents, from_account_id: fromId, to_account_id: toId, from_name, to_name, first_below_on: String(mv.first_below.on), land_by: String(mv.land_by) };
-  return { offer, text: String(mv.text), urgent: !!(mv.low_point && mv.low_point.balance_cents < 0) };
+  // A5: the offer's base key is the checking episode's stable identity (its account), not the moving first-below
+  // day; plan()'s episode gate replaces it with the report key for the episode it fires in.
+  const offer: PreventiveOffer = { kind: "preventive_transfer", key: `low_balance:ep:${toId}`, amount_cents: mv.amount_cents, from_account_id: fromId, to_account_id: toId, from_name, to_name, first_below_on: String(mv.first_below.on), land_by: String(mv.land_by) };
+  return { offer, text: String(mv.text), urgent: !!(mv.low_point && mv.low_point.balance_cents < 0), episode: { scope: toId, low_cents: mv.low_point.balance_cents, first_below_on: String(mv.first_below.on) } };
 }
 
 // The offer on an ALRT-001 finding (key low_balance:<date>): the same computation, keyed to the finding.
@@ -661,7 +748,7 @@ const fmtHour = (h: number) => `${h % 12 || 12} ${h < 12 ? "a.m." : "p.m."}`;
 // The table holds at most 20 watches. Budgets (one per category, at most 8), deadline facts (one per kind, at most 6) and
 // reminders (at most 5) are never pushed out by a new watch: the oldest plain watches go first, and a new one always fits.
 export const MAX_WATCHES = 20;
-const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w) || (SavingsGoals as any).isGoal(w);
+const sticky = (w: any) => (Budgets as any).isBudget(w) || (Deadlines as any).isFact(w) || (Reminders as any).isReminder(w) || (ScheduledSend as any).isWatch(w) || (LateFeeWatch as any).isWatch(w) || (SavingsGoals as any).isGoal(w) || (!!w && w.kind === "low_balance_episode");
 export function capWatches(list: any[]): any[] {
   const all = list || [], keep = all.filter(sticky);
   const room = Math.max(0, MAX_WATCHES - keep.length), plain = all.filter((w: any) => !sticky(w));
@@ -695,11 +782,16 @@ export interface ProactiveStore {
   load(userId: string): Promise<ProactiveInput>;
   // Log first, then deliver: returns the keys actually delivered (a key already logged is skipped).
   deliver(userId: string, messages: ProactiveMessage[], firedReports: { instruction_id: string; period: string }[]): Promise<string[]>;
+  // A5: persist the low-balance episode lifecycle state (plan's watches_update) in the person's watches store.
+  saveWatches?(userId: string, watches: any[]): Promise<void>;
 }
 export async function runUser(store: ProactiveStore, userId: string, now: number) {
   const input = await store.load(userId);
   const p = plan(input, now);
   const delivered = p.messages.length ? await store.deliver(userId, p.messages, p.fired_reports) : [];
+  // An episode can open, worsen or close on a run that delivers nothing (a recovery closes silently), so the
+  // state is saved whenever plan() changed it, not only when a message went out.
+  if (p.watches_update && store.saveWatches) await store.saveWatches(userId, p.watches_update);
   return { delivered: delivered.length, planned: p.messages.length, suppressed: p.suppressed.length, held: p.held };
 }
 export async function runAll(store: ProactiveStore, now: number, limit = 200, deadline = Date.now() + 100000) {
@@ -745,6 +837,10 @@ export function supabaseProactiveStore(admin: any): ProactiveStore {
       // Same for the rent rule: unreadable means no rent card is offered this run, and the rest still runs (logged).
       if (rent.error) console.error("[proactive] standing payments unavailable");
       return { accounts: mapAccounts(acc.data), transactions: mapTransactions(tx.data), settings: st.data || null, sent: (log.data || []).map((x: any) => ({ key: x.key, sent_at: Date.parse(x.sent_at), cadence: !!x.cadence })), subscriptions: subs.error ? [] : (subs.data || []), standing: rent.error ? [] : (rent.data || []) };
+    },
+    async saveWatches(userId, watches) {
+      const r = await admin.from("agent_proactive_settings").upsert({ user_id: userId, watches, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+      if (r.error) throw new Error("proactive settings unavailable");
     },
     async deliver(userId, messages, firedReports) {
       const delivered: string[] = [];

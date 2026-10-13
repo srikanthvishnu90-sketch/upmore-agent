@@ -1045,3 +1045,23 @@ here converts to FAIL S1 — the lane's NI reading is documented with all record
 preserved for re-derivation; the owner/grader call is recorded, not buried. Two
 more harness seams named (S-BUBBLE: intended separate bubbles cannot survive
 delivery; S-PERSIST: no cross-session lifetime store).
+
+## M2 — Gate 1: OFFICIAL BASELINE PUBLISHED (merged df93672; report docs/stability/runs/2026-10-13-79bee2f.md)
+
+**Baseline (grader-v2 over the 300 records, judge NOT_RUN — the 1 PASS is
+deterministic-only): PASS 1 / FAIL 299 / NOT IMPLEMENTED 0 / BLOCKED 0 · S0
+instances 2 (SC-300 R-A4 kill-switch no-op; SC-287 R-B11 LinkedIn sign-in) · S1
+1,187 · S2 271 (all H-12).** Sole PASS: SC-111 (unchanged from hardened v2).
+Sanity gates held: SC-065 and SC-300 FAIL as 05 requires. Per-family: every
+family 0 PASS except Apply Engine 1/60 (full table in the report).
+**The NI-rule effect, stated plainly:** hardened v2's 269 NIs became FAIL because
+the pack allows NI only from the owner-approved capability-absent list — the list
+is an unapproved DRAFT, and the baseline lane additionally found grader-v2's CLI
+never wires the list in at all (a WE-BUILD tool gap; a micro-lane is wiring it now
+with the approval gate enforced in the loader, so even an approved list only
+enables NI for listed IDs with an honest R-C7 reply). Gate 1 status: grader-trust
+criterion MET (mutation 15/15 + 15/15, re-run at baseline), baseline published;
+**judge calibration UNMEASURED** (the owner's 40 labels are the missing input) —
+Gate 1 is therefore not fully met, and the report says so. The standing report
+generator (report-from-records.cjs) now produces every future run report from
+records.

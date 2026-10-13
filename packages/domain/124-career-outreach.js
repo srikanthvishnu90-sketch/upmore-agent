@@ -43,10 +43,13 @@ const CareerOutreach = (() => {
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
+<<<<<<< HEAD
     ["big_law", /\bbig law\b|\blaw firms?\b/], ["academic_medical", /\bmed[- ]school\b|\bmedical centers?\b|\bteaching hospitals?\b/],
     ["cpg", /\bcpg\b|\bconsumer packaged\b/], ["infrastructure_eng", /\binfrastructure firms?\b|\bcivil engineers?\b/],
     ["venture_midwest", /\bventure (analysts?|capital|funds?)\b|\bvc funds?\b/], ["logistics", /\blogistics\b|\bsupply chain\b/],
     ["real_estate_pe", /\breal[- ]estate (pe|private equity)\b/],
+=======
+>>>>>>> origin/career/sc-w02
   ];
   function parseTarget(text, profile) {
     profile = profile || {};
@@ -56,6 +59,7 @@ const CareerOutreach = (() => {
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
     if (q.firm_set && FIRM_SETS.sets[q.firm_set]) q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name);
     if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
+<<<<<<< HEAD
     if (/\bcivil engineers?\b/.test(w)) { q.industry = "engineering"; q.role_family = "civil_engineering"; }
     else if (/\b(ai\/ml|ml engineers?|machine learning)\b/.test(w)) { q.industry = q.industry || "tech"; q.role_family = "ml_engineering"; }
     if (/\blawyers?\b|\battorneys?\b/.test(w)) { q.industry = "law"; q.role_family = "law"; }
@@ -80,6 +84,19 @@ const CareerOutreach = (() => {
     else if (/\bmanagers?\b/.test(w)) q.seniority_band = "manager";
     else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
     const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
+=======
+    if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
+    if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
+    if (/\b(pms?|product managers?)\b/.test(w)) { q.role_family = "product_management"; q.industry = q.industry || "tech"; }
+    if (/\b(swes?|software engineers?|engineers?)\b/.test(w)) { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
+    if (/\bfounders?\b/.test(w)) { q.role_family = "founder"; q.industry = q.industry || "startups"; }
+    if (/\bprivate equity|\bpe (associates?|principals?)\b/.test(w)) { q.industry = "private_equity"; q.role_family = q.role_family || "private_equity"; }
+    if (/\bassociates?\b/.test(w)) q.seniority_band = "associate";
+    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
+    else if (/\b(vps?|vice presidents?)\b/.test(w)) q.seniority_band = "vp_plus";
+    else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
+    const geo = raw.match(/\bin\s+(NYC|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote)\b/i);
+>>>>>>> origin/career/sc-w02
     if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
@@ -145,6 +162,7 @@ const CareerOutreach = (() => {
     if (/1st|first/.test(rel)) warmth = 1; else if (/same school.*club|club.*same school/.test(rel)) warmth = 0.9;
     else if (/2nd|second/.test(rel)) warmth = 0.6; else if (/same school|alumni/.test(rel)) warmth = 0.7; else if (/hometown/.test(rel)) warmth = 0.5;
     if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) warmth = Math.max(warmth, 0.7);
+<<<<<<< HEAD
     // SC-W01 extension (2026-10-13, career/sc-w01 — flagged for integration): a user-specified warmth
     // priority (e.g. SC-020 "same hometown first") overrides the default warmth weights for the
     // features it names, in the order it names them. Absent the option, behavior is unchanged.
@@ -155,6 +173,8 @@ const CareerOutreach = (() => {
       if (/same school|alumni/.test(rel) || (profile.school && (c.schools || []).map(norm).includes(norm(profile.school)))) feats.push("school");
       for (const f of feats) { const idx = q.warmth_priority.indexOf(f); if (idx >= 0) warmth = Math.max(warmth, 0.98 - 0.08 * idx); }
     }
+=======
+>>>>>>> origin/career/sc-w02
     let recency = 0.2;
     if (c.last_verified_at) { const age = (nowMs - Date.parse(c.last_verified_at)) / 86400000; recency = age <= 30 ? 1 : age <= 90 ? 0.7 : age <= 183 ? 0.4 : 0.2; }
     const total = Math.round((0.4 * fit + 0.25 * reachability + 0.2 * warmth + 0.15 * recency) * 1000) / 1000;
@@ -165,7 +185,10 @@ const CareerOutreach = (() => {
     const suppression = opts.suppression || null;
     const already = new Set((opts.alreadyEmailed || []).map((e) => norm(e)));
     const ownEmployers = new Set([].concat(profile.current_employer || [], profile.past_employers || []).map(norm).filter(Boolean));
+<<<<<<< HEAD
     if (opts.warmthPriority && query) query = Object.assign({}, query, { warmth_priority: opts.warmthPriority });
+=======
+>>>>>>> origin/career/sc-w02
     const { candidates, review } = resolveCandidates(records);
     const exclusions = { already_emailed: 0, own_employer: 0, suppressed: 0, eu_uk: 0, opt_out: 0, no_email: 0, invalid_email: 0 };
     const kept = [];
@@ -207,10 +230,14 @@ const CareerOutreach = (() => {
     return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
+<<<<<<< HEAD
       // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
       const wp = profile.warmth_priority || [];
       const hometownFirst = wp.indexOf("hometown") >= 0 && (wp.indexOf("school") === -1 || wp.indexOf("hometown") < wp.indexOf("school"));
       if (/hometown/.test(rel)) { rank += hometownFirst ? 60 : 15; why.push("same hometown"); }
+=======
+      if (/hometown/.test(rel)) { rank += 15; why.push("same hometown"); }
+>>>>>>> origin/career/sc-w02
       if (/1st|first/.test(rel)) { rank += 20; why.push("1st-degree"); }
       return { contact: c, rank, why }; }).sort((a, b) => b.rank - a.rank);
   }
@@ -287,7 +314,11 @@ const CareerOutreach = (() => {
       intro += ` ${clause}.`; why.push({ line: clause, fact: `role at ${c.current_firm}`, source_url: "candidate_record", strength: "record", kind: "record" });
     }
     lines.push(intro);
+<<<<<<< HEAD
     if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
+=======
+    if (user.experience) lines.push(`I'm currently ${user.experience}.`);
+>>>>>>> origin/career/sc-w02
     const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
     lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
@@ -562,7 +593,10 @@ const CareerOutreach = (() => {
     else if (cls.classification === "referral-to-other" && cls.referral_name) out.new_candidate = { full_name: cls.referral_name, relationship_to_user: "referral", tier: "A", source: "reply_referral" };
     else if (cls.classification === "positive-ready") out.actions.push("propose_slots_t3_card");
     if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
+<<<<<<< HEAD
     if ((cls.classification === "positive-ready" || cls.classification === "positive-needs-info") && campaign) campaign.stats.positive = (campaign.stats.positive || 0) + 1; // BUG-005: handleReply never counted positives, so digests reported 0 positive replies
+=======
+>>>>>>> origin/career/sc-w02
     return out;
   }
 
@@ -642,6 +676,7 @@ const CareerOutreach = (() => {
       per_tier_reply_rates: repliesByTier, suppression_honor_target_pct: 100 };
   }
 
+<<<<<<< HEAD
   // ---------- SC-W03 additions: live list/draft surgery, safety plan, honest yield, suppression report, digest/close-out ----------
   function applyListOps(pool, instruction, opts) {
     opts = opts || {}; const w = " " + norm(instruction) + " "; const ops = [];
@@ -726,6 +761,131 @@ const CareerOutreach = (() => {
 
   return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
     applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
+=======
+  // ---------- W02 EXTENSIONS (flagged, built in-branch career/sc-w02 for SC-031..SC-040) ----------
+  // scheduleCampaign: named alias of planWave (campaign scheduling = wave planning under the caps).
+  function scheduleCampaign(campaign, opts) { return planWave(campaign, opts); }
+  // monitorHealth: breaker state + metrics snapshot from the campaign's own wave counters.
+  function monitorHealth(campaign) {
+    const m = campaignMetrics({ campaign });
+    const breaker = evaluateBreaker(campaign);
+    const attempted = campaign.wave.sent + campaign.wave.bounces; // wave.sent counts successes only; bounce % is over attempted sends
+    return { status: campaign.status, sent: campaign.wave.sent, bounces: campaign.wave.bounces, attempted,
+      bounce_pct: attempted ? Math.round(1000 * campaign.wave.bounces / attempted) / 10 : 0,
+      breaker_tripped: !!breaker.tripped, breaker_cause: breaker.cause || null, metrics: m };
+  }
+  // reconcileBounceDomains: per-domain + per-email-pattern bounce diagnosis from campaign items.
+  function reconcileBounceDomains(campaign) {
+    const items = campaign.items || [];
+    const attempted = items.filter((i) => i.status === "sent" || i.status === "bounced");
+    const bounced = items.filter((i) => i.status === "bounced");
+    const byDomain = {}, byPattern = {};
+    for (const i of attempted) { const d = i.domain || emailDomain(i.email) || "unknown"; byDomain[d] = byDomain[d] || { attempted: 0, bounced: 0 }; byDomain[d].attempted++; if (i.status === "bounced") byDomain[d].bounced++; }
+    for (const i of bounced) { const p = (i.candidate && i.candidate.email_pattern) || "unknown_pattern"; byPattern[p] = (byPattern[p] || 0) + 1; }
+    let dominantDomain = null, dominantPattern = null;
+    for (const d of Object.keys(byDomain)) if (!dominantDomain || byDomain[d].bounced > byDomain[dominantDomain].bounced) dominantDomain = d;
+    for (const p of Object.keys(byPattern)) if (!dominantPattern || byPattern[p] > byPattern[dominantPattern]) dominantPattern = p;
+    const domShare = bounced.length && dominantDomain ? Math.round(1000 * byDomain[dominantDomain].bounced / bounced.length) / 10 : 0;
+    const patShare = bounced.length && dominantPattern ? Math.round(1000 * byPattern[dominantPattern] / bounced.length) / 10 : 0;
+    const queuedAffected = items.filter((i) => i.status === "queued" && dominantPattern && ((i.candidate || {}).email_pattern === dominantPattern)).length;
+    const diagnosis = bounced.length === 0 ? "no_bounces" :
+      (patShare >= 50 ? `Dominant pattern error: ${patShare}% of bounces use email pattern '${dominantPattern}' (top domain ${dominantDomain}, ${domShare}% of bounces) — the pattern, not the list, is wrong.` :
+        `Bounces are spread across domains/patterns (top domain ${dominantDomain} ${domShare}%, top pattern '${dominantPattern}' ${patShare}%) — no single pattern error dominates.`);
+    return { attempted: attempted.length, bounced: bounced.length,
+      bounce_pct: attempted.length ? Math.round(1000 * bounced.length / attempted.length) / 10 : 0,
+      by_domain: byDomain, by_pattern: byPattern, dominant_domain: dominantDomain, dominant_pattern: dominantPattern,
+      dominant_domain_share_pct: domShare, dominant_pattern_share_pct: patShare, diagnosis,
+      fix: patShare >= 50 ? { action: "correct_email_pattern_for_unsent_and_reverify", pattern_from: dominantPattern, queued_affected: queuedAffected } : { action: "manual_review", queued_affected: queuedAffected } };
+  }
+  // runFollowUps: threaded follow-up wave to non-responders only (touch 1 = day-6 new angle; touch 2 = final gracious close, then closed forever).
+  function runFollowUps(campaign, opts) {
+    opts = opts || {};
+    if (campaign.followups_closed) return { ok: false, reason: "followups_closed_forever", followups: [] };
+    if (!opts.continueTap && !campaign.followups_continue_tap) return { ok: false, needs_continue_tap: true, followups: [] };
+    if (opts.continueTap) campaign.followups_continue_tap = true;
+    const responders = new Set(opts.responders || []);
+    const touch = opts.touch != null ? opts.touch : 1;
+    const final = !!opts.final || touch >= CAPS.perPersonMaxFollowUps;
+    const excluded = { responders: 0, bounced: 0, suppressed: 0, wrong_touch: 0 };
+    const entries = [];
+    for (const item of campaign.items.filter((i) => i.status === "sent" && i.touch === touch - 1)) {
+      const pid = item.person_id || item.email;
+      if (responders.has(pid) || responders.has(item.email)) { excluded.responders++; continue; }
+      if (opts.suppression && opts.suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { excluded.suppressed++; continue; }
+      const first = ((item.candidate || {}).full_name || "").split(/\s+/)[0] || "there";
+      const origSubject = item.draft ? item.draft.subject : "Coffee chat";
+      const body = final
+        ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. If a chat about ${(item.candidate || {}).current_firm || "your firm"} is ever useful, I'm around. Wishing you well.\n\n${OPT_OUT_LINE}\n\nThanks`
+        : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
+      entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
+    }
+    for (const item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
+    const queued = enqueue(campaign, entries, { suppression: opts.suppression, continueTap: true, isFollowUp: true });
+    const followups = queued.filter((q) => q.status === "queued");
+    if (final) { campaign.followups_closed = true; campaign.closed_persons = followups.map((f) => f.person_id || f.email); }
+    return { ok: true, final, touch, followups, excluded, stopped_forever: final ? followups.map((f) => f.person_id || f.email) : [] };
+  }
+  // bookFromReply: parse offered weekday/time options from a positive reply, pick the first slot free on the
+  // INJECTED calendar, and create the event on that calendar (its own records are the verification source).
+  function bookFromReply(reply, contact, opts) {
+    opts = opts || {}; const calendar = opts.calendar; if (!calendar || typeof calendar.createEvent !== "function") return { ok: false, reason: "NOT_WIRED: no injected calendar" };
+    const body = String((reply && reply.body) || "");
+    const DAYS = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 };
+    const found = []; const low = body.toLowerCase();
+    for (const k of Object.keys(DAYS)) { const re = new RegExp("\\b" + k + "\\b"); if (re.test(low) && !found.includes(DAYS[k])) found.push(DAYS[k]); }
+    const tm = body.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+    if (!found.length || !tm) return { ok: false, reason: "no_weekday_or_time_offered", found_days: found };
+    let hh = Number(tm[1]) % 12; if (/pm/i.test(tm[3])) hh += 12; const mm = Number(tm[2] || 0);
+    const tz = /(\bET\b|eastern)/i.test(body) ? "America/New_York" : (opts.tz || "America/New_York");
+    const nowMs = opts.nowMs || Date.now(); const duration = (opts.durationMin || 30) * 60000;
+    const busy = (calendar.freeBusy || []).map((b) => ({ s: Date.parse(b.start), e: Date.parse(b.end) }));
+    const proposed = [];
+    for (let d = 1; d <= 14 && proposed.length < found.length + 2; d++) {
+      const probe = new Date(nowMs + d * 86400000);
+      const [y, mo, da] = localDateInTz(probe.getTime(), tz).split("-").map(Number);
+      if (!found.includes(new Date(Date.UTC(y, mo - 1, da)).getUTCDay())) continue;
+      const startIso = zonedTimeToUtc(y, mo, da, hh, mm, tz); const s = Date.parse(startIso), e = s + duration;
+      const clash = busy.some((b) => s < b.e && e > b.s) || (calendar.events || []).some((ev) => s < Date.parse(ev.end) && e > Date.parse(ev.start));
+      proposed.push({ start: startIso, end: new Date(e).toISOString(), tz, free: !clash });
+    }
+    const slot = proposed.find((p) => p.free);
+    if (!slot) return { ok: false, reason: "all_offered_slots_busy", proposed };
+    const event = calendar.createEvent({ title: `Coffee chat — ${(contact && contact.full_name) || "contact"}`, start: slot.start, end: slot.end, attendees: [contact && (contact.work_email || contact.email)].filter(Boolean), timezone: tz, source: "bookFromReply" });
+    return { ok: true, proposed, booked: event, card: { type: "booking", title: "Book this coffee chat?", start: slot.start, end: slot.end, timezone: tz, contact: (contact && contact.full_name) || null } };
+  }
+  // Seed-inbox placement test state (SC-039): results recorded per provider; gate blocks wave 1 on any spam/missing result.
+  function createSeedTest() { return { results: {}, complete: false }; }
+  function setSeedResults(state, results) {
+    for (const r of results || []) state.results[String(r.provider).toLowerCase()] = { placement: r.placement, at: r.at || null };
+    state.complete = ["gmail", "outlook", "yahoo"].every((p) => state.results[p]);
+    return state;
+  }
+  function seedGate(state) {
+    const bad = Object.entries(state.results || {}).filter(([, v]) => v.placement !== "inbox");
+    const missing = ["gmail", "outlook", "yahoo"].filter((p) => !(state.results || {})[p]);
+    return { ok: missing.length === 0 && bad.length === 0, missing, non_inbox: bad.map(([p, v]) => ({ provider: p, placement: v.placement })),
+      reason: missing.length ? "seed_results_missing" : bad.length ? "seed_placement_not_inbox" : "all_providers_inbox" };
+  }
+  // learnVoice (SC-040): profile the user's voice from their own sent emails (TEST fixtures in scenarios).
+  function learnVoice(samples) {
+    const bodies = (samples || []).map((x) => typeof x === "string" ? x : (x && x.body) || "").filter(Boolean);
+    const words = bodies.join(" ").split(/\s+/).filter(Boolean);
+    const sentences = bodies.join(" ").split(/[.!?]+/).map((x) => x.trim()).filter(Boolean);
+    const greetings = bodies.map((b) => (b.trim().split("\n")[0] || "").replace(/,.*$/, "").trim());
+    const signoffs = bodies.map((b) => { const m = b.match(/\n\s*(best|thanks|thank you|cheers|—|-)\s*[,.]?\s*$/im); return m ? m[1].toLowerCase() : null; }).filter(Boolean);
+    const contractions = (bodies.join(" ").match(/\b\w+'\w+\b/g) || []).length;
+    const avgWords = bodies.length ? Math.round(words.length / bodies.length) : 0;
+    const avgSentence = sentences.length ? Math.round(10 * words.length / sentences.length) / 10 : 0;
+    const formality = contractions > bodies.length * 2 || /^(hi|hey)\b/i.test(greetings.join(" ")) ? 0.25 : 0.5;
+    return { sample_count: bodies.length, avg_words: avgWords, avg_sentence_words: avgSentence,
+      greeting_style: greetings[0] || null, greetings, sign_off_style: signoffs[0] || null,
+      contractions_per_email: bodies.length ? Math.round(10 * contractions / bodies.length) / 10 : 0,
+      voice: { formality, warmth: 0.6, humor: 0, directness: avgSentence && avgSentence <= 14 ? 0.85 : 0.6, plain_student_voice: true } };
+  }
+
+  return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+    scheduleCampaign, monitorHealth, reconcileBounceDomains, runFollowUps, bookFromReply, createSeedTest, setSeedResults, seedGate, learnVoice,
+>>>>>>> origin/career/sc-w02
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,

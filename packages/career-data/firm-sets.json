@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "note": "Editable data file, not a prompt. Domains are the firms' public corporate domains, used only for per-domain throttling and email pattern shape — never as a claim an address exists.",
   "sets": {
     "academic_medical": {
@@ -47,6 +48,10 @@
         }
       ]
     },
+=======
+  "note": "Editable data file, not a prompt. Domains are the firms' public corporate domains, used only for per-domain throttling and email pattern shape \u2014 never as a claim an address exists.",
+  "sets": {
+>>>>>>> origin/career/sc-w02
     "big4": {
       "firms": [
         {
@@ -69,6 +74,7 @@
       "industry": "accounting",
       "label": "Big 4"
     },
+<<<<<<< HEAD
     "big_law": {
       "label": "Big Law",
       "industry": "law",
@@ -123,6 +129,8 @@
         }
       ]
     },
+=======
+>>>>>>> origin/career/sc-w02
     "bulge_bracket": {
       "firms": [
         {
@@ -167,6 +175,7 @@
       "industry": "investment_banking",
       "label": "Bulge bracket"
     },
+<<<<<<< HEAD
     "cpg": {
       "label": "Consumer packaged goods",
       "industry": "consumer_goods",
@@ -213,6 +222,8 @@
         }
       ]
     },
+=======
+>>>>>>> origin/career/sc-w02
     "elite_boutique": {
       "firms": [
         {
@@ -254,7 +265,11 @@
         {
           "domain": "jefferies.com",
           "name": "Jefferies",
+<<<<<<< HEAD
           "note": "Judgment call per Doc 1 §2.1 (often classed full-service / middle-market-plus)."
+=======
+          "note": "Judgment call per Doc 1 \u00a72.1 (often classed full-service / middle-market-plus)."
+>>>>>>> origin/career/sc-w02
         }
       ],
       "industry": "investment_banking",
@@ -306,6 +321,7 @@
       "industry": "tech",
       "label": "FAANG+"
     },
+<<<<<<< HEAD
     "infrastructure_eng": {
       "label": "Infrastructure / civil engineering",
       "industry": "engineering",
@@ -398,6 +414,8 @@
         }
       ]
     },
+=======
+>>>>>>> origin/career/sc-w02
     "mbb": {
       "firms": [
         {
@@ -513,6 +531,7 @@
       ],
       "industry": "quant",
       "label": "Quant / trading"
+<<<<<<< HEAD
     },
     "real_estate_pe": {
       "label": "Real-estate private equity",
@@ -611,3 +630,11 @@
   "verify_cadence": "quarterly (Doc 1 §2.1: mergers and renames)",
   "version": 2
 }
+=======
+    }
+  },
+  "verified_at": "2026-10-12",
+  "verify_cadence": "quarterly (Doc 1 \u00a72.1: mergers and renames)",
+  "version": 1
+}
+>>>>>>> origin/career/sc-w02

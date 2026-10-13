@@ -1001,3 +1001,27 @@ fetch provenance (the known unsourced personalization), and the Stage-7
 claim→confirmed-fact-ID mapping absent (S0 class). What SC-042 genuinely
 satisfies (employment currency, dedupe, email checks) passes — the assertions
 discriminate, they don't blanket-fail.
+
+## M1 — Gate 0: CONDITIONALLY MET (merged 99deff1; run report docs/stability/runs/2026-10-13-2c81bd8.md)
+
+MET: bundle export completed (105 modules / 113 exports on the merged tree after
+the dedupe-aware union — 130/141/143 in; plus two extra base defects found and
+fixed: undefined PAYROLL/GOVERNMENT exports that broke ESM linking on the pristine
+base, and 134's unguarded require; replay test red-on-base → green) · the repo's CI
+TypeScript check 3 → 0 errors · career-surface lint 72 → 1 (the 1 left
+deliberately: removing `async` at 124:667 changes a promise contract — named) ·
+secret scan 0 findings in the working tree (4,029 files; history H-1..H-5 listed,
+the 2026-10-11 JWT stated exactly: EXPIRED / authenticated-role, rotation not
+required) · suites: Agent100 103/103, career 513/513 at lane tip, messaging 32/32
+(identified: the message-* edge suites), edge 713/713, deep dive 36/36 re-run.
+NOT MET under the pack's LITERAL text: repo-wide TS strict = 113 remaining errors,
+ALL in 7 pre-existing finance function files (zero in any career file); repo-wide
+lint remainders are finance-path style debt. **Owner decision D-3 (in the run
+report): adopt the CI check as Gate 0's definition, or fund the finance cleanup as
+its own lane.** ALSO UNVERIFIABLE: the pack's "browser 27/27" suite does not exist
+in the repo (search evidence in the report; no mapping invented) — a pack-vs-repo
+disagreement, reported. Merged-tree state after my conflict resolution (138
+deletion + G2/G6 141 content win; bundle regenerated + verified): suite 604/607 —
+the only 3 reds are the designed SC-286/287/277 replays. The Gate-1 OFFICIAL
+BASELINE re-score (grader-v2 over the 300 records + script-generated 05 Part 3
+report) is now RUNNING.

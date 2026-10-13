@@ -278,7 +278,7 @@
       if (!a && !csvText) {
         // A structured paste (several delimited lines) with a tax ask in the thread is a failed file, even when its
         // own rows kept the recognizer out; a plain trade ask has no such shape and stays the guard's.
-        const structured = text.split("\n").length >= 3 && /[,;]/.test(text) && (/\btax/.test(String(text).toLowerCase()) || /\btax/.test(String(o.context || "").toLowerCase()));
+        const structured = text.split("\n").length >= 2 && /[,;]/.test(text) && (/\btax/.test(String(text).toLowerCase()) || /\btax/.test(String(o.context || "").toLowerCase()));
         if (structured) { const bad = parseCsv(extractCsv(text) || text); return `I couldn't read any transactions from that paste. ${bad.skipped.map((s) => `Line ${s.line}: ${s.reason}.`).join(" ")} Nothing was computed.`; }
         return null;
       }

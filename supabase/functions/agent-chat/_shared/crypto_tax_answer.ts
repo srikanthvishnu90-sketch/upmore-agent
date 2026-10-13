@@ -15,7 +15,14 @@ export function cryptoTaxKind(message: string): unknown {
 
 export async function cryptoTaxReply(message: string, previous?: () => Promise<any[]> | any[]): Promise<string | null> {
   const CT = CryptoTax as any;
-  if (!CT.ask(message) && !CT.looksLikeCsv(message)) return null;
+  if (!CT.ask(message) && !CT.looksLikeCsv(message)) {
+    // A structured paste the importer cannot read, in a thread already holding the tax conversation, still gets
+    // its answer (the domain's "couldn't read any transactions" with the reason); anything else is not this.
+    if (!previous || !/[,;]/.test(message) || message.split("\n").length < 2) return null;
+    const msgs = await previous().catch(() => []);
+    const prior = (Array.isArray(msgs) ? msgs : []).some((m: any) => m && /crypto tax|nothing to sort yet|1099/i.test(String(m.content || "")));
+    if (!prior) return null;
+  }
   // A message that is only a CSV (no tax words of its own) is claimed only when this thread already holds the
   // tax conversation — the prompt, or the person's own earlier tax ask; a stray paste elsewhere is not this.
   const csvPart = CT.extractCsv(message);

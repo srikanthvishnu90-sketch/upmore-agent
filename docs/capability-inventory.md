@@ -329,7 +329,7 @@ Generated 2026-10-12 from the repo itself on branch `pivot/career` (base: `claud
 | DISC-008 | 3.1 Discover | is this listing real? | stale, reposted or ghost listings detected and skipped before they reach the shortlist | job feed history | job feed | T0 | not started | NEW |
 | APPL-001 | 3.2 Apply | tailor my resume for this role | per-role resume version produced: keyword and responsibility matched, ATS-safe format, versioned | profile + job description | — | T1 | not started | NEW (resume builder has no finance equivalent) |
 | APPL-002 | 3.2 Apply | write my cover letter / answers | tailored cover letter and application answers drafted, editable before anything submits | profile + job description | — | T1 | not started | NEW |
-| APPL-003 | 3.2 Apply | apply for me | ATS form filled and submitted via browser automation behind an approval card; confirmation captured | profile vault + resume | browser automation (ATS) | T2 | blocked — owner input owed: browser-automation ToS stance [VISHNU FILLS] | NEW (browser rail reuses manual-connect session mechanism) |
+| APPL-003 | 3.2 Apply | apply for me | ATS form filled and submitted via browser automation behind an approval card; confirmation captured | profile vault + resume | browser automation (ATS) | T2 | blocked — DECIDED 2026-10-12 (owner delegated, bullish): browser submit behind an approval card on public ATS forms (Greenhouse/Lever/Ashby first); prefill-handoff wherever a site's terms, a login wall, or a challenge blocks; NO CAPTCHA-solving services; max 15 applications/day, approval per batch, NO autopilot at launch. Row unblocks when APPE-006 lands | NEW (browser rail reuses manual-connect session mechanism) |
 | APPL-004 | 3.2 Apply | set my apply rules | approval mode set per user: approve-each, auto-under-rules, or fully auto for pre-approved role types; credit spent only on successful submits | user rules | chat core | T0 | not started | ADAPT: standing rules / auto-invest rules pattern → apply rules |
 | APPL-005 | 3.2 Apply | handle the application questions | custom questions, work authorization and EEO fields answered from the profile vault; assessments flagged to the user, never silently answered | profile vault | browser automation | T2 | not started | NEW (profile vault is NEW, Phase A) |
 | APPL-006 | 3.2 Apply | show me the receipt | every submission has a captured confirmation/receipt stored against the application record | ATS confirmation | browser automation | T0 | not started | ADAPT: receipt capture (save_receipts) → application receipts |
@@ -347,7 +347,7 @@ Generated 2026-10-12 from the repo itself on branch `pivot/career` (base: `claud
 | OUTR-005 | 3.4 Outreach/Referrals | nudge them if they don't reply | at most 1–2 polite follow-ups sequenced per contact, then it stops | relationship memory | scheduler | T2 | not started | ADAPT: follow-up timers |
 | OUTR-006 | 3.4 Outreach/Referrals | who have I talked to? | relationship memory answers: who was contacted, what was said, when to ping again | contact history | — | T0 | not started | ADAPT: recipient memory (Rail 1) → relationship memory |
 | OUTR-007 | 3.4 Outreach/Referrals | ask for an intro | a mutual is asked to introduce the user, with a forwardable blurb attached | connections data | Gmail OAuth send | T2 | not started | NEW |
-| OUTR-008 | 3.4 Outreach/Referrals | keep my outreach safe | daily volume caps and deliverability guards enforced; no scraping that violates terms | user settings | — | T0 | blocked — owner input owed: daily outreach cap [VISHNU FILLS] | ADAPT: compliance guardrails → outreach guardrails |
+| OUTR-008 | 3.4 Outreach/Referrals | keep my outreach safe | daily volume caps and deliverability guards enforced; no scraping that violates terms | user settings | — | T0 | not started — cap DECIDED 2026-10-12 (owner delegated): start 10–15 sends/day, ceiling 30/day, users cannot raise; shared cross-user suppression list YES; EU/UK recipients excluded in v1 | ADAPT: compliance guardrails → outreach guardrails |
 | PREP-001 | 3.5 Interview Prep | prep me for this interview | company + role brief delivered before every interview | job description + company data | web/company data | T0 | not started | NEW (interviewer/company research) |
 | PREP-002 | 3.5 Interview Prep | what will they ask me? | likely question bank for the role, company and round returned | job description | — | T0 | not started | NEW |
 | PREP-003 | 3.5 Interview Prep | run a mock interview | mock interview run (text first, voice later) with scored feedback stored | user answers | chat core (+ STT/TTS later) | T0 | not started | NEW (voice module 46-agent-voice is KEEP) |
@@ -355,7 +355,7 @@ Generated 2026-10-12 from the repo itself on branch `pivot/career` (base: `claud
 | PREP-005 | 3.5 Interview Prep | help me prep the technical round | SWE prep path returned: coding and system-design practice sets linked per role | job description | — | T0 | not started | NEW |
 | PREP-006 | 3.5 Interview Prep | who am I meeting? | interviewer research compiled from names in the calendar invite | calendar invite | Calendar + web | T0 | not started | NEW |
 | PREP-007 | 3.5 Interview Prep | debrief me | post-interview debrief captured; thank-you draft prepared | user debrief | Gmail draft | T1 | not started | NEW |
-| PREP-008 | 3.5 Interview Prep | (later) live interview assist | OFF by owner decision pending; listed so the scope question is never lost | — | — | T3 | blocked — owner input owed: live-interview-assist yes/no [VISHNU FILLS] | NEW |
+| PREP-008 | 3.5 Interview Prep | (later) live interview assist | OFF by owner decision pending; listed so the scope question is never lost | — | — | T3 | blocked — DECIDED OFF 2026-10-12 by owner: live interview assist is out of scope; interview PREP (PREP-001..007) is the build | NEW |
 | NEGO-001 | 3.6 Negotiation | here's my offer | offer letter parsed: base, equity, bonus, benefits, start date, expiry — stored on the application | offer letter (PDF/text) | document intake | T0 | not started | ADAPT: document intake (statements) → offer letter parsing |
 | NEGO-002 | 3.6 Negotiation | what's this role worth? | market comp benchmark for role, level and location returned with sources | comp dataset | public H-1B/LCA, BLS, licensed data | T0 | not started | NEW data rail (benchmark mechanism echoes market data) |
 | NEGO-003 | 3.6 Negotiation | write my counter | counter strategy plus word-for-word email/call scripts drafted for approval | offer + benchmark | — | T1 | not started | ADAPT: negotiate-a-bill flow → offer negotiation flow |
@@ -373,11 +373,25 @@ Generated 2026-10-12 from the repo itself on branch `pivot/career` (base: `claud
 
 Career totals: 51 — not started 48, blocked 3 (owner decisions named in-row), built 0, proven live 0.
 
-## Owner inputs owed (blocks the rows named above)
-- Browser-automation ToS stance for auto-apply → APPL-003.
-- Daily outreach cap → OUTR-008.
-- Live-interview-assist yes/no → PREP-008.
-- Also owed before Phase B/C build (not row-blocking yet): final product name (placeholder constant until filled), wedge confirmation (W1 suggested), messaging channel first, job-data source strategy + monthly budget cap, who pays first, launch community.
+## Owner decisions — LOCKED 2026-10-12 23:38 (owner delegated to Muse, "as bullish as possible")
+- Wedge: **W1 referral-first** (hero) on the full loop.
+- Channel first: **iMessage**.
+- Sending: **user's own Gmail via OAuth**; caps start 10–15/day, **ceiling 30/day, users cannot raise** (OUTR-008 decided).
+- Applications: **max 15/day, approval per batch, NO autopilot at launch**; browser submit behind the card on public ATS forms, prefill-handoff where terms/login/challenge block, no CAPTCHA solvers (APPL-003 decided).
+- **EU/UK recipients excluded in v1.** **Shared cross-user suppression list: YES.**
+- **Live interview assist: OFF** (PREP-008 closed by ruling; prep only).
+- Employers' AI-use rules followed truthfully (AI-ban → outline/bullets, user writes).
+- Role families first: **SWE + finance**.
+- Test profile: synthetic TEST persona fixture (`packages/career-data/fixtures/`) until the owner's real resume swaps in 2026-10-13. Doorstep rule: never submit a fake application to a real employer as if real.
+- Company intelligence: **30 CIRs tonight** from public sources only; LinkedIn = export + public, NO logged-in scraping (Doc 3 §1.1).
+
+## Still owed by the owner (nothing below blocks tonight's build)
+- Final product name (placeholder constant until filled).
+- Who pays first (students / universities / clubs) + pricing/free-tier size.
+- Job/people data vendor choice + monthly budget cap (population analysis beyond curated CIRs waits on this).
+- Per-application and per-campaign cost caps.
+- Launch community + pilot roster (10 students).
+- Outcome-sharing program consent design; age policy; legal review timing before public launch.
 
 ## Table 3 — Career rows added from Docs 1–3 + Appendices A/B (36, added 2026-10-12 overnight)
 

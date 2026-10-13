@@ -411,6 +411,24 @@ splits into this program's build wave (APD-1…6, MID-1…8, NWD-02/05/06, SHD-1
 DD-11's drafting half) and the FOR-CODEX register (SHX-1…3, CODEX-MI-1…6, FC-AP-1…3,
 NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family docs.
 
+## Build wave (from the 108 defect register — IN PROGRESS)
+
+- **G5 data/targeting/lifecycle (121+122) — BUILT, merged 44d6418** (module-level
+  proof; re-grade through chat awaits the Codex routes): APD-2 restriction flags with
+  excluded / satisfied / needs_user_input dispositions (unknown fact = named ask flag,
+  never a silent pass) · APD-5 AI-authorship-ban flags carried into application-prep
+  data · SHD-1 source-health in data (ok / degraded / outage distinguishable) · APD-3
+  typed ingest failures (unreadable / empty / unsupported; valid files merge under
+  correction precedence with audit) · SHD-3 real deletion + retention declaration in
+  122 (the export text's promise now has a function behind it; chat route = Codex's).
+  17/17 fail-first → pass; career suite 450/450. Caveat logged FOR-CODEX: 142's
+  `scoringProfile` strips residence, so through the current router an AP05-style role
+  surfaces as needs_user_input rather than a hard exclusion until 142 passes it
+  through.
+- G1 guidance (144) · G2 fill surfacing (141) · G3 prep scoring (127) · G4 outreach
+  workflow (124): running. C-expansion (C-A canonical, C-B1/B2 variants, U journeys)
+  + item-10 dedupe survey: running on the frozen b7d9f83 build.
+
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 
 Not simulated. Requires owner approvals that do not exist yet: competitor account creation /

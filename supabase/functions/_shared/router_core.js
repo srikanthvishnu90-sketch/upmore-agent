@@ -17969,7 +17969,7 @@ const Government = (() => {
       const left = validYmd(c.today) ? dayNum(deadline) - dayNum(c.today) : null;
       lines.push(`Deadline: the ${county.name} rule on file is ${county.appeal.window_text}. From your notice date (${nice(p.notice_date)}), the Assessor appeal is due ${niceW(deadline)}${left !== null ? (left >= 0 ? ` — ${left} day${left === 1 ? "" : "s"} from today` : ` — that date has passed; the Board of Review window for your township is the next route, on the dates it publishes`) : ""}. Channels: ${county.appeal.channels.join("; ")} (per ${county.appeal.source.title}, checked ${county.appeal.checked_on}).`);
     } else {
-      lines.push(`Deadline: the ${county.name} rule on file is ${county.appeal.window_text}. Give me the date on your notice and I'll compute the exact due date.`);
+      lines.push(`Deadline: the ${county.name} rule on file is ${county.appeal.window_text}. Give me the date on your notice and I'll compute the exact due date (per ${county.appeal.source.title}, checked ${county.appeal.checked_on}).`);
     }
     lines.push(BOUNDARY);
     const stale = staleNote(data, c.today); if (stale) lines.push(stale.trim());
@@ -18124,8 +18124,10 @@ const Government = (() => {
         lines.push(`Deadline: due ${niceW(due)}; ${F.due.extension_text}, so the last day is ${niceW(ext)}${left !== null ? (left >= 0 ? ` — ${left} day${left === 1 ? "" : "s"} from today` : " — that date has passed; file as soon as possible, late-filing relief exists for non-willful cases and a professional should review it") : ""}.`);
       }
       lines.push(`Filing packet (prepared for your filing): 1) each account's bank name, country, account type and maximum balance above; 2) file on ${F.channel} — ${F.how_url}; 3) keep the BSA confirmation the system returns and send it back here so the filing is tracked to its proof. ${F.penalty_text}`);
+      lines.push(`(Per ${F.source.title}, checked ${F.checked_on}.)`);
     } else {
       lines.push(`That does not exceed the ${dollars(F.threshold_cents)} threshold (the test is exceeds, not reaches — exactly ${dollars(F.threshold_cents)} does not trigger it), so no FBAR is required${year !== null ? ` for ${year}` : ""} on these accounts. If any account's maximum was higher than the figure used here, tell me and I'll rerun it. Keep the balances on record: next year's math starts from them.`);
+      lines.push(`(Per ${F.source.title}, checked ${F.checked_on}.)`);
     }
     lines.push(BOUNDARY);
     const stale = staleNote(data, c.today); if (stale) lines.push(stale.trim());

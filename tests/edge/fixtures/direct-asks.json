@@ -216,7 +216,7 @@
     ["did i get refunded", "moneyReply"],
     ["wheres my REI refund", "moneyReply"],
     ["any refunds coming to me?", "moneyOwedReply"],
-    ["did my tax refund arrive", null],
+    ["did my tax refund arrive", "governmentReply"],
     ["how long do refunds take", null],
     ["what's my cash", "moneyReply"],
     ["how much cash do i have", "moneyReply"],
@@ -348,6 +348,12 @@
     ["i paid the wrong person", "notYetReply"],
     ["get my money back from Amazon", "notYetReply"],
     ["remind sam about the 37", "notYetReply"],
-    ["what is an ipo", null]
+    ["what is an ipo", null],
+    ["appeal my property tax assessment", "governmentReply"],
+    ["file my homestead exemption", "governmentReply"],
+    ["i got a cp2000 notice dated october 2, 2026 saying i owe $1,240", "governmentReply"],
+    ["where's my tax refund", "governmentReply"],
+    ["do i need to file an fbar", "governmentReply"],
+    ["i have $7,250 in an account in india and $4,180.50 in canada, do i need an fbar", "governmentReply"]
   ]
 }

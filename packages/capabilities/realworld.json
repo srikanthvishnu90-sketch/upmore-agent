@@ -3709,8 +3709,14 @@
    "proof": "Comparable assessments from county records; the appeal filed before the deadline with a receipt; the outcome and yearly savings tracked.",
    "gate": "filing the appeal needs a yes",
    "failure": "County appeal filing is NOT_WIRED; here is the comps packet and the deadline.",
-   "implementation": [],
-   "tests": [],
+   "implementation": [
+    "packages/domain/118-agent-government.js",
+    "supabase/functions/agent-chat/_shared/government_answer.ts"
+   ],
+   "tests": [
+    "tests/government.test.cjs",
+    "tests/edge/government-answer.test.ts"
+   ],
    "writes": true,
    "execution_gap": {
     "tier_today": "T1",
@@ -3738,10 +3744,14 @@
    "gate": "filing needs a yes",
    "failure": "Assessor filing is NOT_WIRED.",
    "implementation": [
-    "packages/domain/62-agent-documents.js"
+    "packages/domain/62-agent-documents.js",
+    "packages/domain/118-agent-government.js",
+    "supabase/functions/agent-chat/_shared/government_answer.ts"
    ],
    "tests": [
-    "tests/documents.test.cjs"
+    "tests/documents.test.cjs",
+    "tests/government.test.cjs",
+    "tests/edge/government-answer.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -4937,11 +4947,15 @@
    "failure": "IRS response channel is NOT_WIRED; the drafted response and deadline are ready.",
    "implementation": [
     "packages/domain/61-agent-credit.js",
-    "packages/domain/62-agent-documents.js"
+    "packages/domain/62-agent-documents.js",
+    "packages/domain/118-agent-government.js",
+    "supabase/functions/agent-chat/_shared/government_answer.ts"
    ],
    "tests": [
     "tests/credit.test.cjs",
-    "tests/documents.test.cjs"
+    "tests/documents.test.cjs",
+    "tests/government.test.cjs",
+    "tests/edge/government-answer.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -5004,11 +5018,15 @@
    "failure": "Refund status systems are NOT_WIRED; I'll catch the deposit when it lands.",
    "implementation": [
     "packages/domain/59-agent-alerts.js",
-    "packages/domain/62-agent-documents.js"
+    "packages/domain/62-agent-documents.js",
+    "packages/domain/118-agent-government.js",
+    "supabase/functions/agent-chat/_shared/government_answer.ts"
    ],
    "tests": [
     "tests/alerts.test.cjs",
-    "tests/documents.test.cjs"
+    "tests/documents.test.cjs",
+    "tests/government.test.cjs",
+    "tests/edge/government-answer.test.ts"
    ],
    "writes": false
   },
@@ -5118,11 +5136,15 @@
    "failure": "BSA e-filing is NOT_WIRED; the form data is ready.",
    "implementation": [
     "packages/domain/57-agent-ledger.js",
-    "packages/domain/62-agent-documents.js"
+    "packages/domain/62-agent-documents.js",
+    "packages/domain/118-agent-government.js",
+    "supabase/functions/agent-chat/_shared/government_answer.ts"
    ],
    "tests": [
     "tests/documents.test.cjs",
-    "tests/ledger.test.cjs"
+    "tests/ledger.test.cjs",
+    "tests/government.test.cjs",
+    "tests/edge/government-answer.test.ts"
    ],
    "writes": true,
    "execution_gap": {

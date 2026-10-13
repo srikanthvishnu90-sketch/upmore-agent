@@ -24,6 +24,34 @@ Known fixture limits (recorded, not hidden): Lever coverage is Lever's demo boar
 the synthetic corpus is author-clean text with one signal per posting (a floor, not a ceiling);
 form replicas are data-level (no rendered HTML form UI); spring-forward DST not fixtured.
 
+## Doorstep proof — BINDING owner requirement (added 2026-10-13, applies to ALL stages)
+
+Every action scenario is driven by **Upmore itself through the product chat path** — never by a
+worker script performing steps off-path — to the very last step: **one button away** from the
+action, every prior step proven and recorded. If the product path cannot perform a step itself,
+that step is recorded as a **GAP** with the exact missing capability; a script quietly doing it
+instead is a program failure, not a workaround.
+
+- **Applications:** agent fills the complete application (controlled replica AND, where Tier C
+  allows, the real portal flow with the TEST persona) — every field, upload, conditional
+  question — and stops ON the final review screen, submit visible and unclicked. Record: agent
+  step log, screenshot per material step, final doorstep screenshot, exact would-submit payload
+  snapshot (fields + sha256 of the bound resume). On replicas, additionally verify the sink is
+  armed to accept that exact payload. (C19's approved in-sink test submission and C20's
+  in-sink submit-then-reconcile remain completed-in-sink by their own case design; the doorstep
+  chain covers everything before the click.)
+- **Outreach:** draft composed from sourced facts, exact recipient + account resolved, approval
+  card rendered, queue entry in awaiting-approval — one tap from send. Record card screenshot +
+  final message bytes + recipient evidence. The send is never taken.
+- **All other action families** (calendar, tracking writes, profile updates): same pattern —
+  agent executes every step to the commitment point; the commitment itself is not taken.
+- **Swap-in readiness:** every doorstep run is parameterized by profile/resume artifact. Each
+  stage report carries, per action family, a swap-in note proving that replacing the TEST
+  fixture with the owner's real resume/profile is a data swap only — no new code, no new steps.
+- **Reporting:** in the gauntlet results docs (including the 300 re-run results file) and this
+  ledger, each action scenario carries its doorstep proof references (step log + final
+  screenshot + payload snapshot) beside the reply text and verdict.
+
 ## Stage 2 — Pilot baseline (PENDING)
 
 Cases: C01, C03, C05, C11, C15, C17, C18, C20, C23, C31, C37, C38 + U02, U03, U04, U12.

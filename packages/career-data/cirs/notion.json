@@ -289,6 +289,6 @@
     "time_window": "2026-2027 hiring cycle (as of 2026-10-12)",
     "definition": "Software Engineering (SWE first per Doc 3) Early-career/new-grad SWE considered separately; no dedicated Notion new-grad SWE program was found in public sources as of this date - the sourced SWE posting below is an experienced hire (8+ years), so entry-level statements are qualitative only Experienced SWE postings (e.g. Software Engineer, Enterprise) Postings and pages fetched 2026-10-12; treat process facts as stale after 6 months per INTL-001"
   },
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered.",
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
   "thesis_regenerated": "2026-10-12 integration: hand-written draft failed number-tracing (section numerals); thesis composed by 125-career-intel from this record's own facts. Original draft in git history."
 }

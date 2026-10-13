@@ -260,5 +260,5 @@
       "statement": "The qualities the firm names \u2014 personal impact, entrepreneurial drive, inclusive leadership, courageous change \u2014 are its culture screen stated in its own words; recruiters are described as guiding candidates with practice cases and problem-solving tests."
     }
   ],
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered."
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered."
 }

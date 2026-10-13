@@ -7,119 +7,88 @@
       "intern / early-career cohort (official early-career page)",
       "experienced SWE hires"
     ],
-    "note": "Figma publishes a dedicated early-career process; it is recorded separately from the experienced loop per Doc 3 §2.1."
+    "note": "Figma publishes a dedicated early-career process; it is recorded separately from the experienced loop per Doc 3 \u00a72.1."
   },
-  "sample_size": {
-    "population_sample": null,
-    "note": "No licensed population sample in this pass (Doc 3 INTL-002 provisional path: curated CIRs + public sources only). Quantitative claims below are limited to numbers stated on the fetched public pages listed in data_sources; no cohort N is claimed."
-  },
+  "sample_size": null,
   "as_of_date": "2026-10-12",
   "data_sources": [
     {
-      "name": "Figma Early Career page (official)",
+      "label": "source",
       "url": "https://www.figma.com/careers/early-career/",
-      "accessed": "2026-10-12"
+      "as_of": "2026-10-12",
+      "source_type": "public"
     },
     {
-      "name": "Figma Software Engineer - C++ posting, Greenhouse (official board)",
+      "label": "source",
       "url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-      "accessed": "2026-10-12"
+      "as_of": "2026-10-12",
+      "source_type": "public"
     },
     {
-      "name": "Figma careers page (official) — openings/locations/benefits",
+      "label": "source",
       "url": "https://www.figma.com/careers/",
-      "accessed": "2026-10-12"
+      "as_of": "2026-10-12",
+      "source_type": "public"
     },
     {
-      "name": "interviewing.io Figma process guide — engineer-reported, anecdotal",
+      "label": "source",
       "url": "https://interviewing.io/figma-interview-questions",
-      "accessed": "2026-10-12"
+      "as_of": "2026-10-12",
+      "source_type": "public"
     }
   ],
   "school_dist": {
-    "confidence_level": "curated-qualitative",
-    "quantitative_shares_available": false,
-    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. School shares require a population sample.",
-    "reported_pattern_claims": [
-      {
-        "claim": "No school pattern is asserted. Figma's early-career page describes campus/conference recruiting presence (recruiting events, partnerships with student organizations, FigFest) but publishes no hire-by-school data.",
-        "source_url": "https://www.figma.com/careers/early-career/",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      }
-    ]
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Curated-qualitative."
   },
   "prior_employer_dist": {
-    "confidence_level": "curated-qualitative",
-    "quantitative_shares_available": false,
-    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Feeder shares require a population sample.",
-    "reported_pattern_claims": [
-      {
-        "claim": "No feeder distribution is asserted from public sources in this pass.",
-        "source_url": "https://www.figma.com/careers/",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      }
-    ]
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Curated-qualitative."
   },
   "major_dist": {
-    "confidence_level": "curated-qualitative",
-    "quantitative_shares_available": false,
-    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Major shares require a population sample.",
-    "reported_pattern_claims": [
-      {
-        "claim": "No major distribution is asserted; early-career engineering interviews are described as language-agnostic and focused on data structures and algorithms, not on a named major.",
-        "source_url": "https://www.figma.com/careers/early-career/",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      }
-    ]
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Curated-qualitative."
   },
   "skills_dist": {
-    "confidence_level": "sourced-qualitative-from-postings",
-    "claims": [
-      {
-        "claim": "The C++ SWE posting centers on high-performance client-side systems in C++/WebAssembly, multiplayer protocols, and the C++-to-JavaScript communication layer.",
-        "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      },
-      {
-        "claim": "The same posting lists strong programming in one or more of TypeScript, C++, React, Go, Rust or Python, plus web-application / browser-performance / real-time collaboration experience.",
-        "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      },
-      {
-        "claim": "Early-career engineering assessment is a language-agnostic coding interview focused on data structures and algorithms, per the official early-career page.",
-        "source_url": "https://www.figma.com/careers/early-career/",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      }
-    ]
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Curated-qualitative."
   },
   "path_patterns": [
     {
       "pattern": "Intern (12-16 weeks, mentored, embedded on a real team) -> early-career full-time SWE; the official page profiles interns who converted to full-time engineers",
-      "evidence": [
+      "evidence": "observed",
+      "as_of": "2026-10-12",
+      "evidence_facts": [
         {
           "claim": "Official early-career page: internships run 12-16 weeks on real projects with an assigned mentor; page quotes name Software Engineering Intern -> Software Engineer and Data Science Intern -> Data Scientist conversions.",
           "source_url": "https://www.figma.com/careers/early-career/",
           "as_of": "2026-10-12",
           "source_type": "official"
         }
-      ]
+      ],
+      "source_url": "https://www.figma.com/careers/early-career/"
     },
     {
       "pattern": "Experienced hire applies to a specific team/role from the start, but most interviewers are drawn from a pool rather than the hiring team",
-      "evidence": [
+      "evidence": "reported-norm",
+      "as_of": "2026-10-12",
+      "evidence_facts": [
         {
           "claim": "Engineer-reported guide describes applying for a specific team while interviewers are randomly selected from a pool, except the hiring-manager and any executive screen.",
           "source_url": "https://interviewing.io/figma-interview-questions",
           "as_of": "2026-10-12",
           "source_type": "anecdotal-engineer-reported"
         }
-      ]
+      ],
+      "source_url": "https://interviewing.io/figma-interview-questions"
     }
   ],
   "entry_routes": [
@@ -133,7 +102,11 @@
           "as_of": "2026-10-12",
           "source_type": "official"
         }
-      ]
+      ],
+      "accessibility_note": "See route details.",
+      "source_url": "https://www.figma.com/careers/early-career/",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
     },
     {
       "route": "Early-career full-time roles (Engineering listed among early-career fields)",
@@ -145,7 +118,11 @@
           "as_of": "2026-10-12",
           "source_type": "official"
         }
-      ]
+      ],
+      "accessibility_note": "See route details.",
+      "source_url": "https://www.figma.com/careers/early-career/",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
     },
     {
       "route": "Direct application to a specific experienced SWE posting on Greenhouse",
@@ -157,19 +134,27 @@
           "as_of": "2026-10-12",
           "source_type": "official"
         }
-      ]
+      ],
+      "accessibility_note": "See route details.",
+      "source_url": "https://www.figma.com/careers/early-career/",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
     },
     {
       "route": "Referral",
       "rank": 4,
       "evidence": [
         {
-          "claim": "Engineer-reported guide advises trying to get a referral, saying it is hard to enter the process otherwise — anecdotal, unquantified.",
+          "claim": "Engineer-reported guide advises trying to get a referral, saying it is hard to enter the process otherwise \u2014 anecdotal, unquantified.",
           "source_url": "https://interviewing.io/figma-interview-questions",
           "as_of": "2026-10-12",
           "source_type": "anecdotal-engineer-reported"
         }
-      ]
+      ],
+      "accessibility_note": "See route details.",
+      "source_url": "https://www.figma.com/careers/early-career/",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
     }
   ],
   "hiring_bar_summary": {
@@ -187,40 +172,54 @@
         "as_of": "2026-10-12",
         "source_type": "anecdotal-engineer-reported"
       }
-    ]
+    ],
+    "statement": "Craft + collaboration bar: postings emphasize product mindset, user experience and mentoring others, on top of deep systems skill (real-time multiplayer, performance). Engineer reports describe a thorough multi-round loop; no pass rate is published in fetched sources.",
+    "source_url": "https://www.figma.com/careers/early-career/",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12",
+    "kind": "qualitative"
   },
-  "screening_signals": [
-    {
-      "claim": "Application limits are a hard screen: up to 5 applications per rolling 30 days, and no reapplying to the same role while active or within 90 days of a rejection.",
-      "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-      "as_of": "2026-10-12",
-      "source_type": "official"
-    },
-    {
-      "claim": "Candidates must keep cameras on during video interviews, per the official posting.",
-      "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-      "as_of": "2026-10-12",
-      "source_type": "official"
-    },
-    {
-      "claim": "Early-career screen includes a skill assessment step (portfolio review, take-home or online assessment depending on role).",
-      "source_url": "https://www.figma.com/careers/early-career/",
-      "as_of": "2026-10-12",
-      "source_type": "official"
-    }
-  ],
+  "screening_signals": {
+    "stated": [
+      {
+        "claim": "Application limits are a hard screen: up to 5 applications per rolling 30 days, and no reapplying to the same role while active or within 90 days of a rejection.",
+        "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
+        "as_of": "2026-10-12",
+        "source_type": "official",
+        "statement": "Application limits are a hard screen: up to 5 applications per rolling 30 days, and no reapplying to the same role while active or within 90 days of a rejection.",
+        "kind": "norm"
+      },
+      {
+        "claim": "Candidates must keep cameras on during video interviews, per the official posting.",
+        "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
+        "as_of": "2026-10-12",
+        "source_type": "official",
+        "statement": "Candidates must keep cameras on during video interviews, per the official posting.",
+        "kind": "norm"
+      },
+      {
+        "claim": "Early-career screen includes a skill assessment step (portfolio review, take-home or online assessment depending on role).",
+        "source_url": "https://www.figma.com/careers/early-career/",
+        "as_of": "2026-10-12",
+        "source_type": "official",
+        "statement": "Early-career screen includes a skill assessment step (portfolio review, take-home or online assessment depending on role).",
+        "kind": "norm"
+      }
+    ],
+    "revealed": []
+  },
   "process_stages": [
     {
-      "claim": "Official early-career sequence: application, recruiter screen, skill assessment, virtual onsite with technical and non-technical interviews including a walkthrough with a potential mentor or manager.",
+      "stage": "Official early",
+      "description": "Official early-career sequence: application, recruiter screen, skill assessment, virtual onsite with technical and non-technical interviews including a walkthrough with a potential mentor or manager.",
       "source_url": "https://www.figma.com/careers/early-career/",
-      "as_of": "2026-10-12",
-      "source_type": "official"
+      "as_of": "2026-10-12"
     },
     {
-      "claim": "Engineer-reported experienced sequence: recruiter call (30 min), hiring-manager call (45 min), technical phone screen (1 hour), onsite (about 4 hours: coding, two system-design rounds, behavioral, project deep dive), plus a staff-level executive screen.",
+      "stage": "Engineer",
+      "description": "Engineer-reported experienced sequence: recruiter call (30 min), hiring-manager call (45 min), technical phone screen (1 hour), onsite (about 4 hours: coding, two system-design rounds, behavioral, project deep dive), plus a staff-level executive screen.",
       "source_url": "https://interviewing.io/figma-interview-questions",
-      "as_of": "2026-10-12",
-      "source_type": "anecdotal-engineer-reported"
+      "as_of": "2026-10-12"
     }
   ],
   "interview_styles": [
@@ -228,27 +227,35 @@
       "claim": "Figma-flavored practical coding (problems framed in Figma product terms, about medium difficulty in engineer reports), system design conducted in Figma itself, a project deep dive with prepared slides, and behavioral questions on feedback and conflict.",
       "source_url": "https://interviewing.io/figma-interview-questions",
       "as_of": "2026-10-12",
-      "source_type": "anecdotal-engineer-reported"
+      "source_type": "anecdotal-engineer-reported",
+      "statement": "Figma-flavored practical coding (problems framed in Figma product terms, about medium difficulty in engineer reports), system design conducted in Figma itself, a project deep dive with prepared slides, and behavioral questions on feedback and conflict.",
+      "kind": "norm"
     },
     {
       "claim": "Early-career: language-agnostic DS&A coding plus a behavioral interview with a team member (official).",
       "source_url": "https://www.figma.com/careers/early-career/",
       "as_of": "2026-10-12",
-      "source_type": "official"
+      "source_type": "official",
+      "statement": "Early-career: language-agnostic DS&A coding plus a behavioral interview with a team member (official).",
+      "kind": "norm"
     }
   ],
   "values_culture_signals": [
     {
-      "claim": "Stated value on postings: 'Grow as you go' — hiring smart, curious people and encouraging applications even when experience does not align perfectly with the description.",
+      "claim": "Stated value on postings: 'Grow as you go' \u2014 hiring smart, curious people and encouraging applications even when experience does not align perfectly with the description.",
       "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
       "as_of": "2026-10-12",
-      "source_type": "official"
+      "source_type": "official",
+      "statement": "Stated value on postings: 'Grow as you go' \u2014 hiring smart, curious people and encouraging applications even when experience does not align perfectly with the description.",
+      "kind": "qualitative"
     },
     {
       "claim": "Official early-career page emphasizes mentorship, community events and shipping real work early with mentor/team guidance.",
       "source_url": "https://www.figma.com/careers/early-career/",
       "as_of": "2026-10-12",
-      "source_type": "official"
+      "source_type": "official",
+      "statement": "Official early-career page emphasizes mentorship, community events and shipping real work early with mentor/team guidance.",
+      "kind": "qualitative"
     }
   ],
   "hiring_cadence": {
@@ -266,44 +273,59 @@
         "source_type": "anecdotal-engineer-reported"
       }
     ],
-    "note": "Cycle dates are date-stamped 2026-10-12 and must be re-verified next cycle (Doc 3 §3.3)."
+    "note": "Cycle dates are date-stamped 2026-10-12 and must be re-verified next cycle (Doc 3 \u00a73.3).",
+    "statement": "Cycle dates are date-stamped 2026-10-12 and must be re-verified next cycle (Doc 3 \u00a73.3).",
+    "source_url": "https://www.figma.com/careers/early-career/",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12",
+    "kind": "hiring_status"
   },
-  "compensation_notes": {
-    "source_type_label": "official-posting (Greenhouse, single role family band)",
-    "claims": [
-      {
-        "claim": "Software Engineer - C++ posting lists an annual base salary range of $153,000-$376,000 USD, plus equity and benefits; the posting states level and actual pay are decided from interview-assessed qualifications, impact, scope and location — the width signals a multi-level band, not an entry-level offer range.",
-        "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      },
-      {
-        "claim": "Internships are full-time (40 hours/week) paid opportunities, per the official early-career page; no intern dollar figure is published on the fetched official pages.",
-        "source_url": "https://www.figma.com/careers/early-career/",
-        "as_of": "2026-10-12",
-        "source_type": "official"
-      }
-    ]
-  },
+  "compensation_notes": [
+    {
+      "claim": "Software Engineer - C++ posting lists an annual base salary range of $153,000-$376,000 USD, plus equity and benefits; the posting states level and actual pay are decided from interview-assessed qualifications, impact, scope and location \u2014 the width signals a multi-level band, not an entry-level offer range.",
+      "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
+      "as_of": "2026-10-12",
+      "source_type": "official",
+      "statement": "Software Engineer - C++ posting lists an annual base salary range of $153,000-$376,000 USD, plus equity and benefits; the posting states level and actual pay are decided from interview-assessed qualifications, impact, scope and location \u2014 the width signals a multi-level band, not an entry-level offer range.",
+      "kind": "compensation",
+      "source_type_detail": "official-posting (Greenhouse, single role family band)"
+    },
+    {
+      "claim": "Internships are full-time (40 hours/week) paid opportunities, per the official early-career page; no intern dollar figure is published on the fetched official pages.",
+      "source_url": "https://www.figma.com/careers/early-career/",
+      "as_of": "2026-10-12",
+      "source_type": "official",
+      "statement": "Internships are full-time (40 hours/week) paid opportunities, per the official early-career page; no intern dollar figure is published on the fetched official pages.",
+      "kind": "compensation",
+      "source_type_detail": "official-posting (Greenhouse, single role family band)"
+    }
+  ],
   "referral_weight_notes": {
-    "confidence_level": "curated-qualitative",
-    "note": "Only anecdotal evidence exists (engineer-reported advice to seek a referral). No official source quantifies referral weight, and Figma's published application limits apply regardless of route."
+    "statement": "Only anecdotal evidence exists (engineer-reported advice to seek a referral). No official source quantifies referral weight, and Figma's published application limits apply regardless of route.",
+    "kind": "qualitative",
+    "source_url": "https://www.figma.com/careers/early-career/",
+    "as_of": "2026-10-12",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
   },
   "red_flags": [
     {
       "claim": "Applying to more than 5 roles in 30 days or reapplying inside the 90-day window violates Figma's published application limits and can work against a candidate.",
       "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
       "as_of": "2026-10-12",
-      "source_type": "official"
+      "source_type": "official",
+      "statement": "Applying to more than 5 roles in 30 days or reapplying inside the 90-day window violates Figma's published application limits and can work against a candidate.",
+      "kind": "qualitative"
     },
     {
       "claim": "Cameras-off video interviews conflict with the posting's stated requirement to keep cameras on during video interviews.",
       "source_url": "https://job-boards.greenhouse.io/figma/jobs/5552530004",
       "as_of": "2026-10-12",
-      "source_type": "official"
+      "source_type": "official",
+      "statement": "Cameras-off video interviews conflict with the posting's stated requirement to keep cameras on during video interviews.",
+      "kind": "qualitative"
     }
   ],
-  "thesis_text": "Bottom line: Figma is a strong target for builders who can show craft in real-time, collaborative product engineering — and for students it has the clearest official early-career on-ramp in this batch (mentored 12-16 week internships that convert). The constraint is focus: published application limits punish spray-and-pray. Who gets in (sourced numbers only): no hire-population numbers are claimed — school/feeder/major shares are omitted for lack of a public sample. Sourced numbers are official posting/page facts: internships of 12-16 weeks at 40 hours/week, a C++ SWE base range of $153,000-$376,000 (a multi-level band), and application limits of 5 per 30 days with a 90-day same-role reapply wait. Stated vs revealed screens: Figma states 'Grow as you go', language-agnostic DS&A for early career, and product mindset/UX attention for experienced roles. Engineer reports reveal the experienced loop's weight on Figma-flavored practical coding, two system-design rounds (run in Figma), and a slides-based project deep dive — and anecdotal advice that referrals help, which is unquantified. Ranked entry routes: (1) SWE intern via the early-career page for students, (2) early-career full-time engineering roles, (3) direct application to one specific experienced posting, (4) referral as an unquantified accelerant. Timeline/dates (as of 2026-10-12): Summer 2027 SWE intern roles were listed at fetch; intern cohorts start January (winter) and May/June (summer); engineer-reported experienced process is about 3-4 weeks. Re-verify next cycle. Risks/alternatives: the one-role-at-a-time focus that engineer reports describe, plus hard application caps, means a mistimed application costs a cycle; design-tool and real-time collaboration peers are the natural hedge. Gap analysis vs a specific user is not computed here (no population sample).",
+  "thesis_text": "Bottom line: Figma is a strong target for builders who can show craft in real-time, collaborative product engineering \u2014 and for students it has the clearest official early-career on-ramp in this batch (mentored 12-16 week internships that convert). The constraint is focus: published application limits punish spray-and-pray. Who gets in (sourced numbers only): no hire-population numbers are claimed \u2014 school/feeder/major shares are omitted for lack of a public sample. Sourced numbers are official posting/page facts: internships of 12-16 weeks at 40 hours/week, a C++ SWE base range of $153,000-$376,000 (a multi-level band), and application limits of 5 per 30 days with a 90-day same-role reapply wait. Stated vs revealed screens: Figma states 'Grow as you go', language-agnostic DS&A for early career, and product mindset/UX attention for experienced roles. Engineer reports reveal the experienced loop's weight on Figma-flavored practical coding, two system-design rounds (run in Figma), and a slides-based project deep dive \u2014 and anecdotal advice that referrals help, which is unquantified. Ranked entry routes: (1) SWE intern via the early-career page for students, (2) early-career full-time engineering roles, (3) direct application to one specific experienced posting, (4) referral as an unquantified accelerant. Timeline/dates (as of 2026-10-12): Summer 2027 SWE intern roles were listed at fetch; intern cohorts start January (winter) and May/June (summer); engineer-reported experienced process is about 3-4 weeks. Re-verify next cycle. Risks/alternatives: the one-role-at-a-time focus that engineer reports describe, plus hard application caps, means a mistimed application costs a cycle; design-tool and real-time collaboration peers are the natural hedge. Gap analysis vs a specific user is not computed here (no population sample).",
   "confidence_level": "curated-qualitative",
   "known_biases_of_data": [
     "Survivorship bias: the official early-career page showcases successful intern-to-full-time conversions only.",
@@ -311,5 +333,14 @@
     "Official postings describe the band and requirements for specific roles; the wide C++ salary band must not be read as typical or entry-level pay.",
     "No H-1B LCA, university-outcome or licensed population data was fetched in this pass; the early-career page notes immigration sponsorship may be available for eligible roles, which is not a sponsorship pattern."
   ],
-  "last_verified_at": "2026-10-12"
+  "last_verified_at": "2026-10-12",
+  "as_of": "2026-10-12",
+  "cohort": {
+    "role_family": "Software Engineering (SWE)",
+    "level": "entry",
+    "time_window": "current cycle (see as_of)",
+    "definition": "Software Engineering (SWE) Figma publishes a dedicated early-career process; it is recorded separately from the experienced loop per Doc 3 \u00a72.1."
+  },
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
+  "sample_size_note": "No licensed population sample in this pass (Doc 3 INTL-002 provisional path: curated CIRs + public sources only). Quantitative claims below are limited to numbers stated on the fetched public pages listed in data_sources; no cohort N is claimed."
 }

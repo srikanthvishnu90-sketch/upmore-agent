@@ -250,5 +250,5 @@
       "statement": "The intern listing itself asks for the ability to learn unfamiliar systems through independent research and work with mentors and subject-matter experts \u2014 a user-and-craft orientation stated in the requirements, not just the marketing pages."
     }
   ],
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered."
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered."
 }

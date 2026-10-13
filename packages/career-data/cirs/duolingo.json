@@ -347,6 +347,6 @@
     "time_window": "2026-2027 hiring cycle (as of 2026-10-12)",
     "definition": "Software Engineering (SWE first); Engineering is officially described as the company's largest function Two distinct entry cohorts: (a) Thrive internship - second-year undergraduates; (b) University/New-Grad SWE - online coding task and whiteboard rounds are university-only per the official guide Industry SWE loops use technical video, pair-programming, code-review and design rounds per the official guide Official engineering-interview guide and careers page fetched 2026-10-12; Thrive posting fetched is the Summer 2025 cycle (deadline 2024-10-10) - dates must be re-verified each cycle"
   },
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered.",
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
   "thesis_regenerated": "2026-10-12 integration: thesis composed by 125-career-intel from this record's own facts (hand-written draft failed number-tracing). Original draft in git history."
 }

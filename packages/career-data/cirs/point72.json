@@ -186,7 +186,7 @@
   ],
   "hiring_cadence": {
     "statement": "Rolling until capacity in sampled postings \u2014 early application is structurally advantaged. Program rhythm per the official page: 8-week summer internship in the final university summer; 10-month full-time program for recent graduates/early-career professionals (a Point72 office page describes applications open year-round for three 10-month cohorts per year in that location \u2014 verify by region). Re-verify windows each cycle; the firm does not promise fixed dates.",
-    "kind": "qualitative",
+    "kind": "hiring_status",
     "as_of": "2026-10-12",
     "source_url": "http://point72.com/point72-academy/",
     "source_note": "Normalized at integration: value points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
@@ -259,6 +259,6 @@
     "time_window": "2026-2027 hiring cycle (as of 2026-10-12)",
     "definition": "Point72 Academy cohort: undergraduate summer interns (final summer of university, 8 weeks) and full-time Academy Associates (recent graduates and early-career professionals) in the 10-month investment analyst training program feeding fundamental equities analyst roles; Cubist Quant Academy noted as the separate systematic track. Entry-level only."
   },
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered.",
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
   "thesis_regenerated": "2026-10-12 integration: hand-written draft failed number-tracing (section numerals); thesis composed by 125-career-intel from this record's own facts. Original draft in git history."
 }

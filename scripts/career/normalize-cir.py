@@ -60,7 +60,7 @@ def to_fact(x, asof, primary, kind):
         return x
     y = dict(x)
     if not (y.get("statement") or "").strip():
-        y["statement"] = y.get("claim") or y.get("text") or y.get("note") or y.get("style") or y.get("fact") or ""
+        y["statement"] = y.get("claim") or y.get("text") or y.get("note") or y.get("style") or y.get("fact") or y.get("signal") or y.get("summary") or ""
     if not y.get("source_url") and primary:
         y["source_url"] = primary
         y["source_note"] = NOTE
@@ -125,6 +125,13 @@ def normalize(path):
                             "as_of": asof, "source_note": NOTE})
                 continue
             if isinstance(s, dict):
+                if s.get("stage") and not s.get("description"):
+                    # B3 dialect: the stage field carries the full description sentence.
+                    s["description"] = s["stage"]
+                    if len(s["stage"]) > 60:
+                        s["stage"] = re.split(r"[(:—–-]", s["stage"])[0].strip()[:60] or "Stage"
+                if not s.get("description") and (s.get("signal") or s.get("summary")):
+                    s["description"] = s.get("signal") or s.get("summary")
                 if isinstance(s.get("basis"), dict):
                     b = s["basis"]
                     s.setdefault("description", b.get("claim") or s.get("stage") or "")
@@ -132,14 +139,27 @@ def normalize(path):
                         s.setdefault("source_url", b["source_url"])
                     if b.get("as_of"):
                         s.setdefault("as_of", b["as_of"])
-                if "claim" in s and "stage" not in s:
-                    claim = s["claim"]
+                if ("claim" in s or "signal" in s or "summary" in s) and "stage" not in s:
+                    claim = s.get("claim") or s.get("signal") or s.get("summary")
                     label = re.split(r"[:—–-]", claim)[0].strip()[:60]
                     out.append({"stage": label or "Stage", "description": claim,
                                 "source_url": s.get("source_url") or primary, "as_of": s.get("as_of") or asof})
                     continue
             out.append(s)
         d["process_stages"] = out
+        # Stages with NO fetched source cannot ship as validated stage facts either.
+        kept, moved = [], []
+        for s in d["process_stages"]:
+            if isinstance(s, dict) and not s.get("source_url"):
+                q = dict(s)
+                q["moved_at_integration"] = ("Stage carries no fetched source_url in the source record "
+                                             "(its own text labels it reported-norm); preserved rather than given an invented attribution.")
+                moved.append(q)
+            else:
+                kept.append(s)
+        if moved:
+            d["process_stages"] = kept
+            d["process_stages_unsourced"] = (d.get("process_stages_unsourced") or []) + moved
     for r in d.get("entry_routes") or []:
         if not isinstance(r, dict):
             continue
@@ -164,6 +184,19 @@ def normalize(path):
         if not isinstance(pp, dict):
             continue
         basis, facts = pp.get("basis"), pp.get("facts") or []
+        ev = pp.get("evidence")
+        if isinstance(ev, list) and ev:  # B1 dialect: evidence is a list of fact objects
+            pp["evidence_facts"] = ev
+            f0 = ev[0]
+            if f0.get("source_url"):
+                pp["source_url"] = f0["source_url"]
+            if f0.get("as_of"):
+                pp["as_of"] = f0["as_of"]
+            pp["evidence"] = "observed" if f0.get("source_type") == "official" else "reported-norm"
+            ev = pp["evidence"]
+        if isinstance(ev, str) and ev not in ("observed", "reported-norm"):  # downgrade-only mapping
+            pp["evidence_detail"] = ev
+            pp["evidence"] = "observed" if ev.startswith("official") else "reported-norm"
         if not pp.get("source_url"):
             if isinstance(basis, dict) and basis.get("source_url"):
                 pp["source_url"] = basis["source_url"]
@@ -178,11 +211,38 @@ def normalize(path):
                 pp["as_of"] = asof
         if not pp.get("evidence"):
             pp["evidence"] = "observed" if basis == "official" else "reported-norm"
+    # Patterns with NO source anywhere cannot ship as validated patterns (the validator
+    # requires a fetched https source). Preserve them, labeled, outside the patterns list.
+    pats = d.get("path_patterns")
+    if isinstance(pats, list):
+        kept, moved = [], []
+        for pp in pats:
+            if isinstance(pp, dict) and not pp.get("source_url"):
+                q = dict(pp)
+                q["moved_at_integration"] = ("No source_url exists anywhere in the source record for this pattern; "
+                                             "preserved here rather than given an invented attribution.")
+                moved.append(q)
+            else:
+                kept.append(pp)
+        if moved:
+            d["path_patterns"] = kept
+            d["path_patterns_unsourced"] = (d.get("path_patterns_unsourced") or []) + moved
     for k in ("interview_styles", "values_culture_signals", "compensation_notes", "red_flags"):
         v = d.get(k)
         if isinstance(v, list):
             d[k] = [to_fact(x, asof, primary, KIND[k]) for x in v]
     cn = d.get("compensation_notes")
+    if isinstance(cn, dict) and isinstance(cn.get("claims"), list):  # B1 dialect: {source_type_label, claims[]}
+        label = cn.get("source_type_label") or ""
+        mapped = []
+        for x in cn["claims"]:
+            f = to_fact(x, asof, primary, "compensation")
+            if isinstance(f, dict):
+                f["source_type_detail"] = label
+                f["source_type"] = "official" if "official" in label else "user-reported-anecdotal"
+            mapped.append(f)
+        d["compensation_notes"] = mapped
+        cn = d["compensation_notes"]
     if isinstance(cn, list):
         out = []
         for x in cn:
@@ -220,6 +280,11 @@ def normalize(path):
         d["known_biases_of_data"] = [kb]
     elif isinstance(kb, list):
         d["known_biases_of_data"] = [x if isinstance(x, str) else (x.get("claim") or x.get("text") or str(x)) for x in kb]
+    if isinstance(d.get("sample_size"), dict):  # B1 dialect: {population_sample, note}
+        ss = d["sample_size"]
+        if not d.get("sample_size_note") and ss.get("note"):
+            d["sample_size_note"] = ss["note"]
+        d["sample_size"] = ss.get("population_sample")
     d["schema_normalized"] = ("Envelope mapped to the 125-career-intel validator schema by "
                               "scripts/career/normalize-cir.py. No facts added, removed, or altered.")
     json.dump(d, open(path, "w"), indent=2)

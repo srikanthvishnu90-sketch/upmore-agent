@@ -178,7 +178,7 @@
   ],
   "hiring_cadence": {
     "statement": "Internships are an 11-week signature summer program, June-August, per official postings (occasionally flexible at other times of year). Postings for the next summer's class were live on the official careers site at verification (October 2026); exact application open/close dates are not published in the postings used and must be checked on the live board each cycle.",
-    "kind": "qualitative",
+    "kind": "hiring_status",
     "as_of": "2026-10-12",
     "source_url": "https://www.citadelsecurities.com/careers/details/quantitative-trading-intern-europe/",
     "source_note": "Normalized at integration: value points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
@@ -245,5 +245,5 @@
     "time_window": "2026-2027 hiring cycle (as of 2026-10-12)",
     "definition": "Citadel Securities (the market-making firm, distinct from the Citadel hedge fund) entry-level cohorts, kept separate: (a) Quantitative Trading interns, (b) Quantitative Research interns (BS/MS and PhD tracks), and (c) Software Engineering interns. All are 11-week summer internships, June-August, per official postings."
   },
-  "schema_normalized": "2026-10-12 integration: envelope mapped to the 125-career-intel validator schema (cohort object, data_sources label/url, dist basis). No facts added, removed, or altered."
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered."
 }

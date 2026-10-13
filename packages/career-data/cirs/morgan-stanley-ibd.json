@@ -1,1 +1,300 @@
-{"as_of_date":"2026-10-12","cohort_definition":"US undergraduate Summer Analysts in Morgan Stanley's Investment Banking Division (industry coverage and product groups), penultimate-year students, and the full-time Analyst class they convert into. Experienced hires, MBA Summer Associates, and non-IBD divisions are out of scope.","company_id":"morgan-stanley-ibd","company_name":"Morgan Stanley — Investment Banking Division (IBD)","compensation_notes":[{"as_of":"2026-10-12","note":"Official posting states an expected base pay rate of $52.89 per hour at commencement of employment for the 2027 US IBD Summer Analyst role, with total compensation potentially including incentive/discretionary components. Summer pay only; no full-time or bonus figure is published on the posting and none is stated here.","source_type":"official_job_posting","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"}],"confidence_level":"curated-qualitative","data_sources":[{"as_of":"2026-10-12","label":"Morgan Stanley official ATS posting: 2027 Investment Banking Summer Analyst Program (United States)","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793","type":"official_job_posting"},{"as_of":"2026-10-12","label":"Same official posting text syndicated on the AnitaB.org job board (used because the firm ATS serves a bot check to automated readers)","source_url":"https://jobs.anitab.org/companies/morgan-stanley/jobs/64372993-2027-investment-banking-summer-analyst-program-united-states","type":"official_job_posting_syndicated"},{"as_of":"2026-10-12","label":"Morgan Stanley students FAQ (states the firm runs programs for each stage of university, including Early Insight and Sophomore Programs)","source_url":"https://www.morganstanley.com/pub/people-opportunities/asia-pacific-early-insight-faq","type":"official_careers_page"},{"as_of":"2026-10-12","label":"University economics blog relaying Morgan Stanley's 2026 Early Insights Program notice (sophomores; virtual sessions Nov 2 and Nov 5, 2026)","source_url":"https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/","type":"university_relay_of_official_program_notice"}],"entry_routes":[{"as_of":"2026-10-12","details":"Offices: New York, Houston, Menlo Park, San Francisco. Industry coverage groups and product groups (including M&A, Financial Sponsors, Private Capital Advisory) listed on the posting. Applications for the Summer 2027 cohort were open January 1, 2026 – February 15, 2026 and reviewed on a rolling basis (official posting, verified 2026-10-12; that window is now closed — treat the dates as the cadence marker for the next cycle, not a live deadline).","route":"2027 Investment Banking Summer Analyst Program (United States) — the main route","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"},{"as_of":"2026-10-12","details":"Virtual exposure program for second-year students; the 2026 edition targeted graduation Dec 2028–Jun 2029 with live sessions Nov 2 and Nov 5, 2026. A feeder/awareness route, not an internship itself.","route":"Early Insights Program (sophomores)","source_url":"https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/"},{"as_of":"2026-10-12","details":"The firm runs sophomore summer programs outside IBD (an Investment Management sophomore posting for Summer 2027 carried a Sep 25, 2026 application deadline as listed on the firm's careers board). Adjacent-division sophomore experience is a credible stepping stone, not an IBD seat.","route":"Sophomore Summer Analyst programs in adjacent divisions (e.g., Investment Management)","source_url":"https://www.morganstanley.com/pub/people-opportunities/asia-pacific-early-insight-faq"},{"as_of":"2026-10-12","details":"Not described on the sources reviewed for this record; do not assume a large direct full-time intake. The summer program is the documented front door.","route":"Full-time Analyst hiring outside the summer conversion path","source_url":null}],"hiring_bar_summary":"Firm-published bar for the 2027 US IBD Summer Analyst cohort: undergraduate graduating December 2027–June 2028, minimum 3.4 GPA, basic knowledge of and keen interest in finance, plus analytical ability, teamwork, work ethic/leadership, and strong oral and written communication (official posting, verified 2026-10-12). The 3.4 figure is a stated minimum, not a description of who actually gets interviews; plan as if the effective bar is higher and compensate with experience and networking (agent judgment, labeled).","hiring_cadence":{"dated_windows":[{"as_of":"2026-10-12","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793","window":"2027 IBD Summer Analyst (US): applications Jan 1, 2026 – Feb 15, 2026, rolling review — CLOSED as of verification"},{"as_of":"2026-10-12","source_url":"https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/","window":"Early Insights Program (sophomores): virtual sessions Nov 2 and Nov 5, 2026"}],"summary":"Annual junior-summer cycle with an early calendar: for Summer 2027, US IBD applications ran January 1 – February 15, 2026 on a rolling basis (official posting). Sophomore/early-insight touchpoints run in the fall before (Early Insights sessions Nov 2 and 5, 2026 for the following cycle's sophomores). Dates shift yearly — re-verify each cycle; any date in this record older than 6 months should be treated as a cadence marker, not a deadline."},"interview_styles":[{"as_of":"2026-10-12","evidence":"reported_norm","source_url":null,"style":"Technical readiness is screened through the stated requirement of basic finance knowledge: expect accounting, three-statement, valuation (DCF/comps) and transaction-reasoning questions. Topic list is a reported recruiting norm for IB interviews generally, not a firm-published syllabus."},{"as_of":"2026-10-12","evidence":"official","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793","style":"Behavioral/fit emphasis on teamwork, leadership, and communication, matching the qualities named on the official posting"}],"known_biases_of_data":["Built only from firm-published program/posting material and one university relay of a firm program notice — this describes the stated process, not the revealed preferences of actual hiring, which require population data this record does not have.","No licensed population sample: school, major, and prior-employer distributions are omitted by design rather than estimated.","Syndicated copies of the official posting were used where the firm ATS blocks automated readers; wording was cross-checked between the ATS crawl and the syndicated copy.","Survivorship caveat (Doc 3 §1): even where patterns are described, they show who the process is built for, not the odds for any individual applicant."],"last_verified_at":"2026-10-12","major_dist":{"note":"The official US IBD posting does not restrict by major; it asks for basic knowledge of and a keen interest in finance. No major mix of actual hires is published.","sources":[{"as_of":"2026-10-12","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"}],"status":"qualitative_from_official_posting_only"},"path_patterns":[{"as_of":"2026-10-12","evidence":"official","pattern":"Penultimate-year summer internship in IBD is the firm's stated entry cohort: the 2027 US program is for undergraduates graduating December 2027 to June 2028.","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"},{"as_of":"2026-10-12","evidence":"official_and_university_relay","pattern":"Earlier-stage funnel exists before the junior summer: the firm publicly describes Early Insight and Sophomore Programs ahead of Analyst internships, and ran a virtual Early Insights Program for sophomores (graduating Dec 2028–Jun 2029) with sessions on Nov 2 and Nov 5, 2026.","source_url":"https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/"},{"as_of":"2026-10-12","evidence":"reported_norm","pattern":"Reported norm (not firm-published): successful candidates typically stack smaller finance internships (boutique, search fund, corporate finance) in freshman/sophomore summers before the junior-summer seat. This is the Doc 3 §4.1 experience-ladder pattern, labeled as a reported norm.","source_url":null}],"prior_employer_dist":{"note":"Not published by the firm; omitted rather than estimated.","sources":[],"status":"omitted_no_licensed_population_data"},"process_stages":[{"as_of":"2026-10-12","evidence":"official","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793","stage":"Online application via the firm's ATS during the published window; reviewed on a rolling basis"},{"as_of":"2026-10-12","evidence":"partly_official_partly_unconfirmed","source_url":null,"stage":"Interview rounds and a final-round (superday-style) stage — the specific stage sequence for US IBD was not stated on the posting text reviewed; video-interview then interview then superday is the sequence the firm publishes for other campus programs, so treat exact US IBD staging as to-be-confirmed each cycle"},{"as_of":"2026-10-12","evidence":"reported_norm","source_url":null,"stage":"Summer program performance, then full-time conversion decision — the summer-to-full-time conversion pattern is the industry structure described in Doc 3 §4.1; the firm does not publish a conversion rate and none is stated here"}],"red_flags":["Stale-date risk is the named failure mode here: the Summer 2027 window (Jan 1–Feb 15, 2026) is already closed as of 2026-10-12. Anyone quoting it as 'open' is working from stale data.","The stated 3.4 GPA minimum is a floor for applying, not the competitive bar; treating it as '3.4 is fine' would mislead.","The firm's ATS blocks automated reading (bot check), so posting details can change without this record seeing it — re-verify on the live posting each cycle.","No conversion rate, class size, or school mix is published; any source quoting precise figures for this cohort is not citing the firm."],"referral_weight_notes":"The firm does not publish referral policy for campus hiring. Reported norm (Doc 3 §4.1, labeled): networking and referrals carry heavy weight in IB recruiting, especially for non-target-school candidates, and the online application alone is a low-odds route. Treat as community-reported practice, not firm policy.","sample_size":null,"sample_size_note":"No licensed population dataset was used. This is a curated-qualitative CIR built from the firm's own published program/posting material; no population percentages are stated anywhere in this record.","school_dist":{"note":"No school distribution is published by the firm for this cohort and no licensed population sample was available, so no distribution is stated. Any school pattern would be folklore without that data.","sources":[],"status":"omitted_no_licensed_population_data"},"screening_signals":[{"as_of":"2026-10-12","evidence":"official","signal":"Minimum 3.4 GPA stated on the official US IBD summer posting","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"},{"as_of":"2026-10-12","evidence":"official","signal":"Graduation-date eligibility is a hard screen: Dec 2027–Jun 2028 for the Summer 2027 cohort","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"},{"as_of":"2026-10-12","evidence":"official","signal":"Rolling review — the posting itself encourages applying as early as the candidate feels prepared, so late applications compete for remaining seats","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"},{"as_of":"2026-10-12","evidence":"official_requirement_plus_agent_reading","signal":"Demonstrated finance interest and basic finance knowledge are named requirements, which is where prior internships, finance clubs, and technical preparation show up on a resume","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"}],"skills_dist":{"note":"Skills below are what the official posting says the work involves (financial modeling, comparative financial performance exhibits, M&A and financing execution support) — stated requirements, not measured frequencies among hires.","sources":[{"as_of":"2026-10-12","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"}],"status":"stated_requirements_not_population_frequencies"},"thesis_text":"Bottom line: Morgan Stanley IBD's documented front door is the junior-summer analyst program, and its calendar is early — for Summer 2027 the firm took US applications January 1 to February 15, 2026, reviewed on a rolling basis (official posting, verified 2026-10-12). Who gets in, per the firm's own stated screen: penultimate-year undergraduates (graduating Dec 2027–Jun 2028 for that cohort) with at least a 3.4 GPA, basic finance knowledge, and evidence of analytical ability, teamwork, and leadership. What the firm says vs. what to plan for: the 3.4 is a published minimum, and the honest read is that interviews go to candidates who also show the experience ladder — smaller finance internships and finance-club substance from freshman/sophomore years — plus technical readiness in accounting and valuation. Routes in, ranked: (1) the junior-summer IBD application, filed at the very start of the window because review is rolling; (2) sophomore-year positioning — the firm's Early Insights programming for sophomores and sophomore summer roles in adjacent divisions build the resume the junior application is judged on; (3) networking with analysts and associates ahead of the window, which reported IB norms weight heavily, particularly from non-target schools. Key dates to plan around: expect the next junior-summer window to open around the start of the calendar year based on the 2027 cycle's cadence — confirm on the live posting, because the firm moves these dates. Risks and alternatives: missing the short rolling window costs a full year, so the adjacent-division sophomore route and other banks' calendars are the hedge. Offer to execute: build the networking list and a technicals study plan dated against the next window opening.","values_culture_signals":[{"as_of":"2026-10-12","evidence":"official","signal":"The posting frames the desired hire around integrity and excellence standards and teamwork; summer work is described as functioning like a full-time analyst on live coverage/product teams","source_url":"https://morganstanley.tal.net/vx/candidate/apply/20793"}]}
+{
+  "as_of_date": "2026-10-12",
+  "cohort_definition": "US undergraduate Summer Analysts in Morgan Stanley's Investment Banking Division (industry coverage and product groups), penultimate-year students, and the full-time Analyst class they convert into. Experienced hires, MBA Summer Associates, and non-IBD divisions are out of scope.",
+  "company_id": "morgan-stanley-ibd",
+  "company_name": "Morgan Stanley \u2014 Investment Banking Division (IBD)",
+  "compensation_notes": [
+    {
+      "as_of": "2026-10-12",
+      "note": "Official posting states an expected base pay rate of $52.89 per hour at commencement of employment for the 2027 US IBD Summer Analyst role, with total compensation potentially including incentive/discretionary components. Summer pay only; no full-time or bonus figure is published on the posting and none is stated here.",
+      "source_type": "official",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "statement": "Official posting states an expected base pay rate of $52.89 per hour at commencement of employment for the 2027 US IBD Summer Analyst role, with total compensation potentially including incentive/discretionary components. Summer pay only; no full-time or bonus figure is published on the posting and none is stated here.",
+      "kind": "compensation",
+      "source_type_detail": " | original: official_job_posting"
+    }
+  ],
+  "confidence_level": "curated-qualitative",
+  "data_sources": [
+    {
+      "label": "Morgan Stanley official ATS posting: 2027 Investment Banking Summer Analyst Program (United States)",
+      "url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "as_of": "2026-10-12",
+      "source_type": "official_job_posting"
+    },
+    {
+      "label": "Same official posting text syndicated on the AnitaB.org job board (used because the firm ATS serves a bot check to automated readers)",
+      "url": "https://jobs.anitab.org/companies/morgan-stanley/jobs/64372993-2027-investment-banking-summer-analyst-program-united-states",
+      "as_of": "2026-10-12",
+      "source_type": "official_job_posting_syndicated"
+    },
+    {
+      "label": "Morgan Stanley students FAQ (states the firm runs programs for each stage of university, including Early Insight and Sophomore Programs)",
+      "url": "https://www.morganstanley.com/pub/people-opportunities/asia-pacific-early-insight-faq",
+      "as_of": "2026-10-12",
+      "source_type": "official_careers_page"
+    },
+    {
+      "label": "University economics blog relaying Morgan Stanley's 2026 Early Insights Program notice (sophomores; virtual sessions Nov 2 and Nov 5, 2026)",
+      "url": "https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/",
+      "as_of": "2026-10-12",
+      "source_type": "university_relay_of_official_program_notice"
+    }
+  ],
+  "entry_routes": [
+    {
+      "as_of": "2026-10-12",
+      "details": "Offices: New York, Houston, Menlo Park, San Francisco. Industry coverage groups and product groups (including M&A, Financial Sponsors, Private Capital Advisory) listed on the posting. Applications for the Summer 2027 cohort were open January 1, 2026 \u2013 February 15, 2026 and reviewed on a rolling basis (official posting, verified 2026-10-12; that window is now closed \u2014 treat the dates as the cadence marker for the next cycle, not a live deadline).",
+      "route": "2027 Investment Banking Summer Analyst Program (United States) \u2014 the main route",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "accessibility_note": "See route details."
+    },
+    {
+      "as_of": "2026-10-12",
+      "details": "Virtual exposure program for second-year students; the 2026 edition targeted graduation Dec 2028\u2013Jun 2029 with live sessions Nov 2 and Nov 5, 2026. A feeder/awareness route, not an internship itself.",
+      "route": "Early Insights Program (sophomores)",
+      "source_url": "https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/",
+      "accessibility_note": "See route details."
+    },
+    {
+      "as_of": "2026-10-12",
+      "details": "The firm runs sophomore summer programs outside IBD (an Investment Management sophomore posting for Summer 2027 carried a Sep 25, 2026 application deadline as listed on the firm's careers board). Adjacent-division sophomore experience is a credible stepping stone, not an IBD seat.",
+      "route": "Sophomore Summer Analyst programs in adjacent divisions (e.g., Investment Management)",
+      "source_url": "https://www.morganstanley.com/pub/people-opportunities/asia-pacific-early-insight-faq",
+      "accessibility_note": "See route details."
+    },
+    {
+      "as_of": "2026-10-12",
+      "details": "Not described on the sources reviewed for this record; do not assume a large direct full-time intake. The summer program is the documented front door.",
+      "route": "Full-time Analyst hiring outside the summer conversion path",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "accessibility_note": "See route details.",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered."
+    }
+  ],
+  "hiring_bar_summary": {
+    "statement": "Firm-published bar for the 2027 US IBD Summer Analyst cohort: undergraduate graduating December 2027\u2013June 2028, minimum 3.4 GPA, basic knowledge of and keen interest in finance, plus analytical ability, teamwork, work ethic/leadership, and strong oral and written communication (official posting, verified 2026-10-12). The 3.4 figure is a stated minimum, not a description of who actually gets interviews; plan as if the effective bar is higher and compensate with experience and networking (agent judgment, labeled).",
+    "kind": "qualitative",
+    "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12"
+  },
+  "hiring_cadence": {
+    "dated_windows": [
+      {
+        "as_of": "2026-10-12",
+        "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+        "window": "2027 IBD Summer Analyst (US): applications Jan 1, 2026 \u2013 Feb 15, 2026, rolling review \u2014 CLOSED as of verification"
+      },
+      {
+        "as_of": "2026-10-12",
+        "source_url": "https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/",
+        "window": "Early Insights Program (sophomores): virtual sessions Nov 2 and Nov 5, 2026"
+      }
+    ],
+    "summary": "Annual junior-summer cycle with an early calendar: for Summer 2027, US IBD applications ran January 1 \u2013 February 15, 2026 on a rolling basis (official posting). Sophomore/early-insight touchpoints run in the fall before (Early Insights sessions Nov 2 and 5, 2026 for the following cycle's sophomores). Dates shift yearly \u2014 re-verify each cycle; any date in this record older than 6 months should be treated as a cadence marker, not a deadline.",
+    "statement": "Annual junior-summer cycle with an early calendar: for Summer 2027, US IBD applications ran January 1 \u2013 February 15, 2026 on a rolling basis (official posting). Sophomore/early-insight touchpoints run in the fall before (Early Insights sessions Nov 2 and 5, 2026 for the following cycle's sophomores). Dates shift yearly \u2014 re-verify each cycle; any date in this record older than 6 months should be treated as a cadence marker, not a deadline.",
+    "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12",
+    "kind": "hiring_status"
+  },
+  "interview_styles": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported_norm",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "style": "Technical readiness is screened through the stated requirement of basic finance knowledge: expect accounting, three-statement, valuation (DCF/comps) and transaction-reasoning questions. Topic list is a reported recruiting norm for IB interviews generally, not a firm-published syllabus.",
+      "statement": "Technical readiness is screened through the stated requirement of basic finance knowledge: expect accounting, three-statement, valuation (DCF/comps) and transaction-reasoning questions. Topic list is a reported recruiting norm for IB interviews generally, not a firm-published syllabus.",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "kind": "norm"
+    },
+    {
+      "as_of": "2026-10-12",
+      "evidence": "official",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "style": "Behavioral/fit emphasis on teamwork, leadership, and communication, matching the qualities named on the official posting",
+      "statement": "Behavioral/fit emphasis on teamwork, leadership, and communication, matching the qualities named on the official posting",
+      "kind": "norm"
+    }
+  ],
+  "known_biases_of_data": [
+    "Built only from firm-published program/posting material and one university relay of a firm program notice \u2014 this describes the stated process, not the revealed preferences of actual hiring, which require population data this record does not have.",
+    "No licensed population sample: school, major, and prior-employer distributions are omitted by design rather than estimated.",
+    "Syndicated copies of the official posting were used where the firm ATS blocks automated readers; wording was cross-checked between the ATS crawl and the syndicated copy.",
+    "Survivorship caveat (Doc 3 \u00a71): even where patterns are described, they show who the process is built for, not the odds for any individual applicant."
+  ],
+  "last_verified_at": "2026-10-12",
+  "major_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "The official US IBD posting does not restrict by major; it asks for basic knowledge of and a keen interest in finance. No major mix of actual hires is published. qualitative_from_official_posting_only"
+  },
+  "path_patterns": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "observed",
+      "pattern": "Penultimate-year summer internship in IBD is the firm's stated entry cohort: the 2027 US program is for undergraduates graduating December 2027 to June 2028.",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "evidence_detail": "official"
+    },
+    {
+      "as_of": "2026-10-12",
+      "evidence": "observed",
+      "pattern": "Earlier-stage funnel exists before the junior summer: the firm publicly describes Early Insight and Sophomore Programs ahead of Analyst internships, and ran a virtual Early Insights Program for sophomores (graduating Dec 2028\u2013Jun 2029) with sessions on Nov 2 and Nov 5, 2026.",
+      "source_url": "https://econugblog.wordpress.com/2026/09/21/morgan-stanley-2026-early-insights-program/",
+      "evidence_detail": "official_and_university_relay"
+    }
+  ],
+  "prior_employer_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Not published by the firm; omitted rather than estimated. omitted_no_licensed_population_data"
+  },
+  "process_stages": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "official",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "stage": "Online application via the firm's ATS during the published w",
+      "description": "Online application via the firm's ATS during the published window; reviewed on a rolling basis"
+    }
+  ],
+  "red_flags": [
+    {
+      "statement": "Stale-date risk is the named failure mode here: the Summer 2027 window (Jan 1\u2013Feb 15, 2026) is already closed as of 2026-10-12. Anyone quoting it as 'open' is working from stale data.",
+      "kind": "qualitative",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    },
+    {
+      "statement": "The stated 3.4 GPA minimum is a floor for applying, not the competitive bar; treating it as '3.4 is fine' would mislead.",
+      "kind": "qualitative",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    },
+    {
+      "statement": "The firm's ATS blocks automated reading (bot check), so posting details can change without this record seeing it \u2014 re-verify on the live posting each cycle.",
+      "kind": "qualitative",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    },
+    {
+      "statement": "No conversion rate, class size, or school mix is published; any source quoting precise figures for this cohort is not citing the firm.",
+      "kind": "qualitative",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": {
+    "statement": "The firm does not publish referral policy for campus hiring. Reported norm (Doc 3 \u00a74.1, labeled): networking and referrals carry heavy weight in IB recruiting, especially for non-target-school candidates, and the online application alone is a low-odds route. Treat as community-reported practice, not firm policy.",
+    "kind": "qualitative",
+    "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+    "source_note": "Normalized at integration: source_url points at this record's primary source; see data_sources for the full sourced set. No claim text altered.",
+    "as_of": "2026-10-12"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population dataset was used. This is a curated-qualitative CIR built from the firm's own published program/posting material; no population percentages are stated anywhere in this record.",
+  "school_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "No school distribution is published by the firm for this cohort and no licensed population sample was available, so no distribution is stated. Any school pattern would be folklore without that data. omitted_no_licensed_population_data"
+  },
+  "screening_signals": {
+    "stated": [
+      {
+        "as_of": "2026-10-12",
+        "evidence": "official",
+        "signal": "Minimum 3.4 GPA stated on the official US IBD summer posting",
+        "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+        "statement": "Minimum 3.4 GPA stated on the official US IBD summer posting",
+        "kind": "norm"
+      },
+      {
+        "as_of": "2026-10-12",
+        "evidence": "official",
+        "signal": "Graduation-date eligibility is a hard screen: Dec 2027\u2013Jun 2028 for the Summer 2027 cohort",
+        "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+        "statement": "Graduation-date eligibility is a hard screen: Dec 2027\u2013Jun 2028 for the Summer 2027 cohort",
+        "kind": "norm"
+      },
+      {
+        "as_of": "2026-10-12",
+        "evidence": "official",
+        "signal": "Rolling review \u2014 the posting itself encourages applying as early as the candidate feels prepared, so late applications compete for remaining seats",
+        "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+        "statement": "Rolling review \u2014 the posting itself encourages applying as early as the candidate feels prepared, so late applications compete for remaining seats",
+        "kind": "norm"
+      },
+      {
+        "as_of": "2026-10-12",
+        "evidence": "official_requirement_plus_agent_reading",
+        "signal": "Demonstrated finance interest and basic finance knowledge are named requirements, which is where prior internships, finance clubs, and technical preparation show up on a resume",
+        "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+        "statement": "Demonstrated finance interest and basic finance knowledge are named requirements, which is where prior internships, finance clubs, and technical preparation show up on a resume",
+        "kind": "norm"
+      }
+    ],
+    "revealed": []
+  },
+  "skills_dist": {
+    "basis": "curated-qualitative",
+    "entries": [],
+    "sample_size": null,
+    "note": "Skills below are what the official posting says the work involves (financial modeling, comparative financial performance exhibits, M&A and financing execution support) \u2014 stated requirements, not measured frequencies among hires. stated_requirements_not_population_frequencies"
+  },
+  "thesis_text": "Bottom line: Morgan Stanley IBD's documented front door is the junior-summer analyst program, and its calendar is early \u2014 for Summer 2027 the firm took US applications January 1 to February 15, 2026, reviewed on a rolling basis (official posting, verified 2026-10-12). Who gets in, per the firm's own stated screen: penultimate-year undergraduates (graduating Dec 2027\u2013Jun 2028 for that cohort) with at least a 3.4 GPA, basic finance knowledge, and evidence of analytical ability, teamwork, and leadership. What the firm says vs. what to plan for: the 3.4 is a published minimum, and the honest read is that interviews go to candidates who also show the experience ladder \u2014 smaller finance internships and finance-club substance from freshman/sophomore years \u2014 plus technical readiness in accounting and valuation. Routes in, ranked: (1) the junior-summer IBD application, filed at the very start of the window because review is rolling; (2) sophomore-year positioning \u2014 the firm's Early Insights programming for sophomores and sophomore summer roles in adjacent divisions build the resume the junior application is judged on; (3) networking with analysts and associates ahead of the window, which reported IB norms weight heavily, particularly from non-target schools. Key dates to plan around: expect the next junior-summer window to open around the start of the calendar year based on the 2027 cycle's cadence \u2014 confirm on the live posting, because the firm moves these dates. Risks and alternatives: missing the short rolling window costs a full year, so the adjacent-division sophomore route and other banks' calendars are the hedge. Offer to execute: build the networking list and a technicals study plan dated against the next window opening.",
+  "values_culture_signals": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "official",
+      "signal": "The posting frames the desired hire around integrity and excellence standards and teamwork; summer work is described as functioning like a full-time analyst on live coverage/product teams",
+      "source_url": "https://morganstanley.tal.net/vx/candidate/apply/20793",
+      "statement": "The posting frames the desired hire around integrity and excellence standards and teamwork; summer work is described as functioning like a full-time analyst on live coverage/product teams",
+      "kind": "qualitative"
+    }
+  ],
+  "as_of": "2026-10-12",
+  "cohort": {
+    "role_family": "Multiple",
+    "level": "entry",
+    "time_window": "current cycle (see as_of)",
+    "definition": "US undergraduate Summer Analysts in Morgan Stanley's Investment Banking Division (industry coverage and product groups), penultimate-year students, and the full-time Analyst class they convert into. Experienced hires, MBA Summer Associates, and non-IBD divisions are out of scope."
+  },
+  "schema_normalized": "Envelope mapped to the 125-career-intel validator schema by scripts/career/normalize-cir.py. No facts added, removed, or altered.",
+  "path_patterns_unsourced": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported-norm",
+      "pattern": "Reported norm (not firm-published): successful candidates typically stack smaller finance internships (boutique, search fund, corporate finance) in freshman/sophomore summers before the junior-summer seat. This is the Doc 3 \u00a74.1 experience-ladder pattern, labeled as a reported norm.",
+      "source_url": null,
+      "evidence_detail": "reported_norm",
+      "moved_at_integration": "No source_url exists anywhere in the source record for this pattern; preserved here rather than given an invented attribution."
+    }
+  ],
+  "process_stages_unsourced": [
+    {
+      "as_of": "2026-10-12",
+      "evidence": "partly_official_partly_unconfirmed",
+      "source_url": null,
+      "stage": "Interview rounds and a final",
+      "description": "Interview rounds and a final-round (superday-style) stage \u2014 the specific stage sequence for US IBD was not stated on the posting text reviewed; video-interview then interview then superday is the sequence the firm publishes for other campus programs, so treat exact US IBD staging as to-be-confirmed each cycle",
+      "moved_at_integration": "Stage carries no fetched source_url in the source record (its own text labels it reported-norm); preserved rather than given an invented attribution."
+    },
+    {
+      "as_of": "2026-10-12",
+      "evidence": "reported_norm",
+      "source_url": null,
+      "stage": "Summer program performance, then full",
+      "description": "Summer program performance, then full-time conversion decision \u2014 the summer-to-full-time conversion pattern is the industry structure described in Doc 3 \u00a74.1; the firm does not publish a conversion rate and none is stated here",
+      "moved_at_integration": "Stage carries no fetched source_url in the source record (its own text labels it reported-norm); preserved rather than given an invented attribution."
+    }
+  ]
+}

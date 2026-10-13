@@ -1,0 +1,337 @@
+{
+  "label": "Upmore Career Gauntlet \u2014 live public listings (FIXTURE LANE F2). Public read-only GETs only; no auth, no forms, no submissions.",
+  "source_registry": "packages/domain/121-career-jobs.js BOARD_REGISTRY (commit a699051, merged in b8de356/f45be15) \u2014 live boards only; dead boards appear under blocked_coverage.",
+  "families_covered": [
+    "ashby",
+    "greenhouse",
+    "lever",
+    "smartrecruiters"
+  ],
+  "listings_count": 14,
+  "lever_note": "Lever IS represented, but only by leverdemo, the sole live Lever board in the registry (a demo board \u2014 flagged per-listing). No real-employer Lever board is in the registry; Netflix/Ramp Lever are dead (see blocked_coverage). The 3-family minimum is met without Lever via greenhouse + ashby + smartrecruiters.",
+  "listings": [
+    {
+      "ats_family": "greenhouse",
+      "company": "Stripe",
+      "board": "stripe",
+      "posting_id": "7584016",
+      "title": "Campaign Strategy & Operations Manager",
+      "location": "San Francisco, Seattle, New York, Chicago, Remote in the US",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/7584016?content=true",
+      "retrieved_at": "2026-10-13T09:47:41.654907-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-stripe-7584016.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Stripe",
+      "board": "stripe",
+      "posting_id": "8175653",
+      "title": "Commercial Operations Associate",
+      "location": "Mexico City",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/8175653?content=true",
+      "retrieved_at": "2026-10-13T09:47:42.731046-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-stripe-8175653.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Stripe",
+      "board": "stripe",
+      "posting_id": "8241857",
+      "title": "Comms Strategy & Operations Associate",
+      "location": "NYC, SF",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs/8241857?content=true",
+      "retrieved_at": "2026-10-13T09:47:43.919522-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-stripe-8241857.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Datadog",
+      "board": "datadog",
+      "posting_id": "8181440",
+      "title": "Applied Science Intern",
+      "location": "Paris, France",
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/8181440?content=true",
+      "retrieved_at": "2026-10-13T09:47:48.406177-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-datadog-8181440.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Datadog",
+      "board": "datadog",
+      "posting_id": "8137579",
+      "title": "Director, GTM Enablement Operations",
+      "location": "New York, New York, USA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs/8137579?content=true",
+      "retrieved_at": "2026-10-13T09:47:49.720357-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-datadog-8137579.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Jane Street",
+      "board": "janestreet",
+      "posting_id": "8786447002",
+      "title": "Data Center Operations Engineer",
+      "location": "Austin, Texas, United States",
+      "url": "https://boards-api.greenhouse.io/v1/boards/janestreet/jobs/8786447002?content=true",
+      "retrieved_at": "2026-10-13T09:47:52.752718-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-janestreet-8786447002.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "greenhouse",
+      "company": "Jane Street",
+      "board": "janestreet",
+      "posting_id": "8786398002",
+      "title": "Data Center Operations Engineer",
+      "location": "Chicago",
+      "url": "https://boards-api.greenhouse.io/v1/boards/janestreet/jobs/8786398002?content=true",
+      "retrieved_at": "2026-10-13T09:47:54.342059-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/greenhouse-janestreet-8786398002.json",
+      "snapshot_note": "Verbatim response body of the single-posting Greenhouse endpoint (GET, no auth)."
+    },
+    {
+      "ats_family": "ashby",
+      "company": "Ramp",
+      "board": "ramp",
+      "posting_id": "4e64ab86-4e30-403b-b1b9-41dc052570ce",
+      "title": "Software Engineer, Frontend",
+      "location": "New York, NY (HQ)",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+      "retrieved_at": "2026-10-13T09:47:56.268126-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/ashby-ramp-4e64ab86-4e30-403b-b1b9-41dc052570ce.json",
+      "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given)."
+    },
+    {
+      "ats_family": "ashby",
+      "company": "Ramp",
+      "board": "ramp",
+      "posting_id": "081dbe29-8a06-4cb2-bda5-4b0bfb35c2e8",
+      "title": "Product Operations Specialist | Generalist",
+      "location": "New York, NY (HQ)",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+      "retrieved_at": "2026-10-13T09:47:56.269225-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/ashby-ramp-081dbe29-8a06-4cb2-bda5-4b0bfb35c2e8.json",
+      "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given)."
+    },
+    {
+      "ats_family": "ashby",
+      "company": "Ramp",
+      "board": "ramp",
+      "posting_id": "bca0346c-b843-4795-96df-6091f51e421b",
+      "title": "Software Engineer, Data Platform ",
+      "location": "New York, NY (HQ)",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ramp",
+      "retrieved_at": "2026-10-13T09:47:56.269533-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/ashby-ramp-bca0346c-b843-4795-96df-6091f51e421b.json",
+      "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given)."
+    },
+    {
+      "ats_family": "ashby",
+      "company": "Linear",
+      "board": "linear",
+      "posting_id": "d3bc1ced-3ce4-4086-a050-555055dbb1ff",
+      "title": "Senior / Staff Fullstack Engineer",
+      "location": "Europe",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/linear",
+      "retrieved_at": "2026-10-13T09:47:57.517642-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/ashby-linear-d3bc1ced-3ce4-4086-a050-555055dbb1ff.json",
+      "snapshot_note": "Ashby has no single-posting endpoint in this public API; file is the verbatim job object extracted unchanged from the board response (board URL given)."
+    },
+    {
+      "ats_family": "lever",
+      "company": "Lever (demo board)",
+      "board": "leverdemo",
+      "posting_id": "ad208490-4052-4f91-a57e-433f2d1e484b",
+      "title": "Customer Success Manager",
+      "location": "Atlanta, Georgia",
+      "url": "https://api.lever.co/v0/postings/leverdemo/ad208490-4052-4f91-a57e-433f2d1e484b",
+      "retrieved_at": "2026-10-13T09:47:58.876720-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/lever-leverdemo-ad208490-4052-4f91-a57e-433f2d1e484b.json",
+      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board \u2014 it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
+    },
+    {
+      "ats_family": "lever",
+      "company": "Lever (demo board)",
+      "board": "leverdemo",
+      "posting_id": "120b5976-ee4e-4dc5-b31b-2b1ca124460c",
+      "title": "Dentist",
+      "location": "Houston, TX",
+      "url": "https://api.lever.co/v0/postings/leverdemo/120b5976-ee4e-4dc5-b31b-2b1ca124460c",
+      "retrieved_at": "2026-10-13T09:48:00.187545-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/lever-leverdemo-120b5976-ee4e-4dc5-b31b-2b1ca124460c.json",
+      "snapshot_note": "Verbatim response body of the single-posting Lever endpoint. NOTE: leverdemo is Lever's public demo board \u2014 it is the only live Lever board in the repo BOARD_REGISTRY; postings are demo postings, recorded honestly as such."
+    },
+    {
+      "ats_family": "smartrecruiters",
+      "company": "Bosch Group",
+      "board": "BoschGroup",
+      "posting_id": "744000155285018",
+      "title": "Senior Mechanical Design Engineer - Braking systems",
+      "location": "Bengaluru, in",
+      "url": "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings/744000155285018",
+      "retrieved_at": "2026-10-13T09:48:02.459963-05:00",
+      "timezone": "America/Chicago",
+      "availability_at_retrieval": "open (present on the live board at retrieval; HTTP 200)",
+      "snapshot_file": "public-snapshots/smartrecruiters-boschgroup-744000155285018.json",
+      "snapshot_note": "Verbatim response body of the single-posting SmartRecruiters endpoint."
+    }
+  ],
+  "blocked_coverage": [
+    {
+      "company": "Goldman Sachs",
+      "attempted_url": "https://boards-api.greenhouse.io/v1/boards/goldmansachs/jobs?content=true",
+      "retrieved_at": "2026-10-13T09:48:04.116501-05:00",
+      "timezone": "America/Chicago",
+      "http_status": 404,
+      "result": "unavailable \u2014 no postings retrieved",
+      "evidence": "{\"status\":404,\"error\":\"Job not found\"}",
+      "snapshot_file": "public-snapshots/BLOCKED-goldmansachs-404.json",
+      "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 404. Recorded as blocked coverage, NOT a listing."
+    },
+    {
+      "company": "Netflix",
+      "attempted_url": "https://api.lever.co/v0/postings/netflix?mode=json",
+      "retrieved_at": "2026-10-13T09:48:05.393539-05:00",
+      "timezone": "America/Chicago",
+      "http_status": 404,
+      "result": "unavailable \u2014 no postings retrieved",
+      "evidence": "{\"ok\":false,\"error\":\"Document not found\"}",
+      "snapshot_file": "public-snapshots/BLOCKED-netflix-404.json",
+      "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 404. Recorded as blocked coverage, NOT a listing."
+    },
+    {
+      "company": "Square",
+      "attempted_url": "https://api.smartrecruiters.com/v1/companies/Square/postings",
+      "retrieved_at": "2026-10-13T09:48:06.756186-05:00",
+      "timezone": "America/Chicago",
+      "http_status": 200,
+      "result": "unavailable \u2014 no postings retrieved",
+      "evidence": "{\"offset\":0,\"limit\":100,\"totalFound\":0,\"content\":[]}",
+      "snapshot_file": "public-snapshots/BLOCKED-square-200.json",
+      "note": "Matches the BOARD_REGISTRY dead-board record (checked 2026-10-13, commit a699051): expected 200 with totalFound 0. Recorded as blocked coverage, NOT a listing."
+    }
+  ],
+  "finish_time_recheck": {
+    "verified_at": "2026-10-13T09:48:53.993734-05:00",
+    "timezone": "America/Chicago",
+    "method": "Re-GET of each listing's exact URL; posting id searched in the response body (for Ashby board URLs, in the board's jobs array).",
+    "results": [
+      {
+        "id": "7584016",
+        "company": "Stripe",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8175653",
+        "company": "Stripe",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8241857",
+        "company": "Stripe",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8181440",
+        "company": "Datadog",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8137579",
+        "company": "Datadog",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8786447002",
+        "company": "Jane Street",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "8786398002",
+        "company": "Jane Street",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "4e64ab86-4e30-403b-b1b9-41dc052570ce",
+        "company": "Ramp",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "081dbe29-8a06-4cb2-bda5-4b0bfb35c2e8",
+        "company": "Ramp",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "bca0346c-b843-4795-96df-6091f51e421b",
+        "company": "Ramp",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "d3bc1ced-3ce4-4086-a050-555055dbb1ff",
+        "company": "Linear",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "ad208490-4052-4f91-a57e-433f2d1e484b",
+        "company": "Lever (demo board)",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "120b5976-ee4e-4dc5-b31b-2b1ca124460c",
+        "company": "Lever (demo board)",
+        "http": "200",
+        "same_id_present": true
+      },
+      {
+        "id": "744000155285018",
+        "company": "Bosch Group",
+        "http": "200",
+        "same_id_present": true
+      }
+    ],
+    "changed": []
+  }
+}

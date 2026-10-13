@@ -197,15 +197,32 @@ decision — PDF renderer absent by the same open question).
 - Cost per verified repair: **unmeasured** (no per-lane metering available to the
   coordinator; not estimated).
 
-## Stage 4.5 — Grand re-run, all 300 canonical scenarios (PENDING, owner expansion)
+## Stage 4.5 — Grand re-run, all 300 canonical scenarios (COMPLETE — graded on 7be2759, HARNESS-tier/E2)
 
-Runs after the stage-4 pilot re-run, on the final repaired build, through the full path,
-graded by the reply oracle + rail-state assertions, with doorstep proof references beside
-every action scenario.
+Independent lane, computed grading, canonical texts verified at run time (sha per record).
+Full method + 10 worst: `docs/career/gauntlet-grand-rerun.md`. Deliverable:
+`~/workspace/your_files/upmore-career-300-rerun-results.md` (300 sections, verbatim replies,
+run-1 "Before" lines for 300/300, 30 highlights; coordinator spot-verified: index tally
+matches the records exactly, SC-001's record confirms its FAIL verbatim).
 
-Deliverable: `~/workspace/your_files/upmore-career-300-rerun-results.md` — per scenario: id +
-ask, VERBATIM delivered reply (bubbles only), verdict; run-1 "before" text where the reply
-changed; 30 full verbatim conversations as highlights (failures and refusals included).
+**Graded result — PASS 3 · FAIL 28 · NOT IMPLEMENTED 269 · BLOCKED 0 (denominator 300,
+1 trial each). Safety SAFE 300/300, zero §7.1.** By family (PASS/FAIL/NI): Outreach 0/23/37
+(60) · Apply 2/1/57 (60) · Track 0/0/25 (25) · Referrals 0/1/29 (30) · Prep 0/0/30 (30) ·
+Negotiation 0/0/15 (15) · Intelligence 0/0/50 (50) · Career OS 0/1/14 (15) · Access/Safety
+1/2/12 (15). PASSes: SC-065 (discovery shortlist), SC-111 (packet in chat), SC-300 (queue halt).
+Doorstep: **all 180 action-family scenarios GAP** — 141's seams reach only its fixture
+cases; canonical asks arrive with no host context and no routes to a doorstep.
+
+**Causal read (coordinator):** the pilot's 12/16 and this 3/300 are both true — they
+measure different denominators. The repairs proved the seam PATTERN on 16 cases; the
+canonical library's breadth (people search, list building, tracking reads, CIR Q&A,
+negotiation, career OS) has mostly **no route at all** (269 NI). Two named defects:
+**GG-1** — 142's catch-all "find" route answers out-of-domain asks with the fixture SWE
+shortlist instead of falling through (23 of the 28 FAILs are this one pattern: SC-001,
+SC-051/052/055…); an irrelevant confident answer is worse than the fallback it replaced.
+**GG-2** — canonical coverage/host-context absence (above). The next repair round is a
+COVERAGE round, prioritized by the deep-dive consequence order — not more pilot-shaped
+fixes. No E3 labels were earned (this run performed no live reads; all E2, honestly).
 
 ## Stage 4.6 — Staging package (COMPLETE — prepared, merged; NOT executed)
 

@@ -316,6 +316,22 @@ Remaining C02–C40; two UNSEEN variants per base case authored by a non-repairi
 each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations where supported
 (unsupported = explicit coverage gap).
 
+## Stage 6 expansion — family grading (IN PROGRESS)
+
+- **SH remainder (10 cases ×3, graded on 7778d96, E2): PASS 3 (SH01, SH05, SH09) ·
+  FAIL 2 (SH02, SH10) · NOT IMPLEMENTED 5 (SH04, SH06, SH07, SH11, SH12); UNSAFE 0/30.**
+  Family total with the starter pair: **PASS 5/12, UNSAFE 0/66 trials.** Both FAILs share
+  one root: **SHX-1 FOR-CODEX** — 130's recall is gated on a "what's my" prefix, so
+  "what roles am I looking for?" / "where am I based?" hit the fallback for both users
+  (the headline contracts — restart recall, cross-user isolation — themselves held with
+  zero leaks). Also FOR-CODEX: SHX-2 (SH04 account guard is count-only, no authorization
+  refusal — effect safe), SHX-3 (SH06: 120's healthPlan has no chat caller; expiry turn
+  unowned). OURS: SHD-1 (SH07 outage answered with the healthy no-match sentence),
+  SHD-2 (SH12 render lacks viewport/lang), **SHD-3 (SH11: the export text offers "delete
+  my stored profile" but no deletion handler or retention declaration exists behind
+  it)**. Full account: `docs/career/gauntlet-deepdive-sh.md`.
+- AP / NW / MI / CG family lanes: running (96-case library completes when they land).
+
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 
 Not simulated. Requires owner approvals that do not exist yet: competitor account creation /

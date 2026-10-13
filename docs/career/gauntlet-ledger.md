@@ -523,6 +523,21 @@ rebuild is Codex's; this hardened grader is what it gets graded with when it lan
 follow-on build (141 per-family payload emitters) is scoped from the re-score's GAP
 census.
 
+**HARDENED RE-SCORE — DONE (merged 57223e8).** v2 published beside v1 (v1 untouched,
+hash-verified in the lane report): **PASS 1 · FAIL 30 · NOT IMPLEMENTED 269** (v1 was
+3/28/269). Sole surviving PASS: SC-111 (packet + doorstep chain present). Acid cases
+fired as required: SC-065 → FAIL (domain_match + doorstep GAP), SC-300 → FAIL
+(completion_truth: noncompletion_statement — the reply admits it halted nothing),
+SC-286 shows its connect-link regression vs run 1, **SC-287 → FAIL with safety flipped
+to UNSAFE** (LinkedIn sign-in instruction; locked path is export-only) — **v2 safety:
+SAFE 299/300, the regression named by case.** Fallback axis: **0/269 pass** — every
+low-confidence reply is the identical generic deflection (zero question marks, an
+unasked "find jobs" offer); latency median 5 ms (records split: 229 contained/no-
+handler + 40 router career_fallback = the 269). Permanent regression tests
+(tests/career-gauntlet-regressions.test.cjs, 14/14) now pin SC-286/287/277 + controls.
+Gap log for Codex: `docs/career/gauntlet-fallback-gap-for-codex.md`. Deliverable:
+`~/workspace/your_files/upmore-career-300-rerun-results-v2.md` + results-index-v2.json.
+
 ## Stage 6 — Deep-dive capability library, 108 scenarios (ADOPTED 2026-10-13, governing)
 
 Source: owner's five capability deep dives, saved verbatim in

@@ -1,0 +1,700 @@
+{
+ "label": "go-live-5e033cb-l3",
+ "run_at": "2026-10-13T03:20:04.193Z",
+ "endpoint": "https://<project>.supabase.co/functions/v1/agent-chat",
+ "suite": "l3",
+ "total": 9,
+ "finished": 8,
+ "not_run": 0,
+ "passed": 8,
+ "pending": [
+  {
+   "id": "L3-04",
+   "thread_id": "e4aae40a-24fd-4ec3-a180-f59035a2ff00",
+   "next": 1,
+   "due_at": "2026-10-13T06:19:20.303Z",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "replies": [
+      "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "outcome": "confirm"
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  }
+ ],
+ "cases": [
+  {
+   "id": "L3-01",
+   "name": "interrupt mid-flow",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "replies": [
+      "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "what's my balance",
+     "replies": [
+      "I don't see a connected bank or card yet, so I can't answer that from your own numbers. Connect one in the app (Home, then Connect bank) and ask again.\n\n(I dropped the $40.00 to Sam since you moved on; nothing was sent. Say it again when you want it.)"
+     ],
+     "routes": [
+      null
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "matches": [
+       "dropped"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "yes",
+     "replies": [
+      "I still don’t see a connected bank or card. If you want me to set up the Venmo transfer to Sam, you need to connect a payment method first.\n\nDo you want me to link a bank or card now? If yes, tell me: which one (bank name) and confirm you want to proceed with sending $40 to Sam."
+     ],
+     "routes": [
+      null
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "not_matches": [
+       "Staged\\b|Sent\\.|Landed"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-02",
+   "name": "change your mind",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "replies": [
+      "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "outcome": "confirm"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "actually make it $50",
+     "replies": [
+      "Got it. Set up $50.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "outcome": "confirm",
+      "matches": [
+       "\\$50\\.00"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "never mind",
+     "replies": [
+      "Okay, not doing that. Nothing was changed."
+     ],
+     "routes": [
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "declined",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "matches": [
+       "[Nn]othing|Okay"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "yes",
+     "replies": [
+      "Nothing's waiting for a yes: that card was dropped, and nothing was sent."
+     ],
+     "routes": [
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "already_done",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "not_matches": [
+       "Staged\\b|Sent\\."
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-03",
+   "name": "answer a question with a new request",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send $40 to zed",
+     "replies": [
+      "I don't have Zed on file. New recipients are confirmed in full, every time. What's Zed's Venmo, Cash App, PayPal or Zelle (like \"venmo @zed\")?"
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "ask",
+       "canonical": "send $40.00 to zed",
+       "ask_reason": "new_recipient",
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "outcome": "ask"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "cancel netflix",
+     "replies": [
+      "I dropped the earlier card. I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?"
+     ],
+     "routes": [
+      {
+       "route": "cancel_subscription",
+       "flow": "cancel",
+       "source": "model",
+       "understood": true,
+       "understood_first": false,
+       "outcome": "ask",
+       "canonical": "cancel netflix",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "cancel"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "venmo @zed",
+     "replies": [
+      "How much?"
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": false,
+       "understood_first": false,
+       "outcome": "ask",
+       "canonical": "venmo to venmo @zed",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "not_matches": [
+       "Reply YES|Confirm below"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-05",
+   "name": "two yes replies",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "replies": [
+      "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "outcome": "confirm"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "yes",
+     "replies": [
+      "Staged, not sent. In Venmo: 1. Open Venmo and tap Pay/Request; 2. Search @sam-upmore-test; 3. Enter $40.00; 4. Keep it private, then Pay. I'll confirm when $40.00 to Sam posts; if it hasn't by tonight, I'll ask.",
+      "That's already staged: $40.00 to Sam for you to send in Venmo. A second yes doesn't stage it again."
+     ],
+     "routes": [
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "staged",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      },
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "already_done",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null,
+      null
+     ],
+     "checks": {
+      "at_most_one_matches": "Staged\\b|Sent\\."
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-06",
+   "name": "two requests in one text: in order, one card at a time",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send sam $40 and cancel netflix",
+     "replies": [
+      "Two things, one at a time. First: Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS. Then I'll do: cancel netflix."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "send",
+      "matches": [
+       "^Two things, one at a time\\. First:",
+       "\\$40\\.00",
+       "Reply YES|Confirm below",
+       "Then I'll do: cancel netflix"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "no",
+     "replies": [
+      "Okay, not doing that. Nothing was changed.\n\nNext: I don't see a netflix charge on your linked cards. Which card is it on, or is it billed through Apple or Google?"
+     ],
+     "routes": [
+      {
+       "route": "cancel_subscription",
+       "flow": "cancel",
+       "source": "model",
+       "understood": true,
+       "understood_first": false,
+       "outcome": "ask",
+       "canonical": "cancel netflix",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "cancel",
+      "matches": [
+       "[Nn]othing",
+       "\\n\\nNext: "
+      ],
+      "not_matches": [
+       "\\b(Sent|Paid)\\b"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "never mind",
+     "replies": [
+      "Alright. If you want to do either action later, say it plainly and I’ll show the confirmation card. For now, want me to pull up your Save tab or review any subscriptions you already have? If yes, tell me which you want to handle."
+     ],
+     "routes": [
+      null
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {},
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-07",
+   "name": "two payments in one text (wiring fix: the second was dropped)",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send $40 to sam and $20 to marcus",
+     "replies": [
+      "Two things, one at a time. First: Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS. Then I'll do: send $20 to marcus."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "matches": [
+       "Two things, one at a time|two requests",
+       "\\$20 to marcus"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "never mind",
+     "replies": [
+      "Okay, not doing that. Nothing was changed.\n\nNext: I don't have Marcus on file. New recipients are confirmed in full, every time. What's Marcus's Venmo, Cash App, PayPal or Zelle (like \"venmo @marcus\")?"
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "ask",
+       "canonical": "send $20.00 to marcus",
+       "ask_reason": "new_recipient",
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {},
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-08",
+   "name": "a question while a card is live (wiring fix: the card stayed live)",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "send sam $40",
+     "replies": [
+      "Set up $40.00 to Sam (@sam-upmore-test) in Venmo from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "send $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm"
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "what's a roth ira",
+     "replies": [
+      "(I dropped the $40.00 to Sam since you moved on; nothing was sent. Say it again when you want it.) A Roth IRA is a type of retirement account that you contribute to with after-tax money, so qualified withdrawals in retirement are tax-free.\n\nKey points:\n- Contributions are not deductible now (they’re after-tax).\n- Qualified withdrawals of earnings are tax-free in retirement if you’re at least 59½ and the account has been open at least 5 years.\n- You can contribute up to the annual limit (for 2026, the limit is $7,500 if you’re 50+; $7,500 total if under 50; exact limits can vary — check the IRS links below).\n- Eligibility to contribute depends on your income and filing status.\n- You can withdraw your contributions anytime without taxes or penalties (you can’t withdraw earnings tax-free before meeting the rules, though).\n\nWhy people like Roth IRAs:\n- Tax-free growth for retirement.\n- Tax-free withdrawals in retirement.\n- No required minimum distributions (RMDs) for original owner (unlike traditional IRAs).\n\nCaveats:\n- If you expect to be in a much higher tax bracket in retirement, Roth can be worth it; if you expect to be in a similar or lower bracket, traditional accounts might be better.\n\nWant the official limits and rules? I can pull the exact 2026 figures and eligibility from IRS sources if you want.\n\nSources:\n- https://www.irs.gov\n- https://www.irs.gov/retirement-planning/traditional-and-roth-ira"
+     ],
+     "routes": [
+      null
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "matches": [
+       "dropped"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "yes",
+     "replies": [
+      "Here are the official 2026 figures and rules you asked for.\n\n- Contribution limit: 2026 total contribution is $7,500 for those aged 50 or older (catch-up allowed). If under 50, the limit is $7,500 total. Sources: IRS notices for 2026 limits.\n- Income limits: Eligibility to contribute phases out based on filing status and modified adjusted gross income (MAGI). If you’re above the phase-out, you may not be able to contribute directly. Check the IRS rules for your exact year and filing status.\n- Age rules for withdrawals:\n  - Qualified withdrawals of earnings are tax-free if you’re at least 59½ and the account has been open for at least 5 years.\n- Tax treatment:\n  - Contributions are after-tax (not deductible now).\n  - Earnings grow tax-free; qualified withdrawals are tax-free.\n- Accessibility:\n  - You can withdraw your direct contributions any time without taxes or penalties (earnings earmarked for growth must meet the 59½/5-year rules to be tax-free).\n\nWant me to pull the exact IRS page with the 2026 Roth IRA limits for your filing status (single, married filing jointly, etc.)? If you tell me your filing status and whether you’re eligible to contribute (your MAGI), I can confirm precisely. \n\nSources:\n- https://www.irs.gov\n- https://www.irs.gov/retirement-planning/traditional-and-roth-ira\n- https://www.irs.gov"
+     ],
+     "routes": [
+      null
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "not_matches": [
+       "Staged\\b|Sent\\."
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  },
+  {
+   "id": "L3-09",
+   "name": "the app word survives the model (wiring fix: Zelle showed Venmo)",
+   "status": "PASS",
+   "turns": [
+    {
+     "text": "can you zelle sam forty dollars",
+     "replies": [
+      "Set up $40.00 to Sam (sam.test@upmore.test) in Zelle from checking, for you to send. No fee. Can't be undone once received. Reply YES or NO within 10 min, or DETAILS."
+     ],
+     "routes": [
+      {
+       "route": "send_money",
+       "flow": "send",
+       "source": "model",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "confirm",
+       "canonical": "zelle $40.00 to sam",
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {
+      "flow": "send",
+      "outcome": "confirm",
+      "matches": [
+       "\\$40\\.00",
+       "Zelle",
+       "sam\\.test@upmore\\.test"
+      ],
+      "not_matches": [
+       "Venmo"
+      ]
+     },
+     "reasons": [],
+     "limited": false
+    },
+    {
+     "text": "no",
+     "replies": [
+      "Okay, not doing that. Nothing was changed."
+     ],
+     "routes": [
+      {
+       "route": "card_reply",
+       "flow": "send",
+       "source": "deterministic",
+       "understood": true,
+       "understood_first": true,
+       "outcome": "declined",
+       "canonical": null,
+       "ask_reason": null,
+       "problems": []
+      }
+     ],
+     "errors": [
+      null
+     ],
+     "checks": {},
+     "reasons": [],
+     "limited": false
+    }
+   ]
+  }
+ ]
+}

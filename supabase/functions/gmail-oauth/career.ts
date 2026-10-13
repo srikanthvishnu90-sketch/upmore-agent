@@ -48,7 +48,7 @@ function unb64url(s: string): Uint8Array<ArrayBuffer> {
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
 }
-async function hmacKey(secret: string): Promise<CryptoKey> {
+function hmacKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw", new TextEncoder().encode(secret || ""),
     { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"],

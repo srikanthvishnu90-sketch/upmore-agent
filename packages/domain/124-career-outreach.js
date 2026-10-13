@@ -11,7 +11,7 @@
 const CareerOutreach = (() => {
   "use strict";
   let FIRM_SETS = null;
-  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch (e) { FIRM_SETS = { sets: {} }; }
+  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch { FIRM_SETS = { sets: {} }; }
 
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
@@ -24,7 +24,7 @@ const CareerOutreach = (() => {
   const BANNED_PHRASES = ["i hope this email finds you well", "i came across your profile and was impressed",
     "pick your brain", "i'd love to connect", "i would love to connect", "admire your impressive career"];
   const EU_UK_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","GB","UK"]);
-  const EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
+  const _EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
   const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   const emailDomain = (e) => { const m = String(e || "").toLowerCase().match(/@([^>\s]+)$/); return m ? m[1] : null; };
   function isEuUk(c) {
@@ -204,7 +204,7 @@ const CareerOutreach = (() => {
   // OUTR-001/002: warm paths + ranking from user-owned connections only.
   function rankContacts(contacts, profile) {
     profile = profile || {};
-    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
+    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0; const why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
       // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
@@ -235,7 +235,7 @@ const CareerOutreach = (() => {
       if (!EMAIL_RE.test(e)) return { email: e, status: "invalid", confidence: 0, reason: "syntax", verifier: "local" };
       const domain = emailDomain(e);
       if (!dnsLookup) return { email: e, status: "risky", confidence: 0.3, reason: "no_dns_lookup_injected", verifier: "local" };
-      let r; try { r = await dnsLookup(domain); } catch (err) { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
+      let r; try { r = await dnsLookup(domain); } catch { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
       if (!r || !r.mx || !r.mx.length) return { email: e, status: "invalid", confidence: 0.1, reason: "no_mx", verifier: "local" };
       if (r.catchAll) return { email: e, status: "risky", confidence: 0.45, reason: "catch_all_domain", verifier: "local" };
       return { email: e, status: "verified", confidence: 0.9, reason: "mx_ok", verifier: "local" };
@@ -289,10 +289,10 @@ const CareerOutreach = (() => {
     const t = target || {};
     const email = t.email || t.work_email || null;
     let hit = false;
-    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch (e) { hit = false; }
+    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch { hit = false; }
     return { checked: true, suppressed: hit, store };
   }
-  function suppressedRefusal(target, opts, user) {
+  function suppressedRefusal(target, _opts, _user) {
     const c = normalizeCandidate(target || {});
     return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
       message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
@@ -618,7 +618,7 @@ const CareerOutreach = (() => {
   }
   function handleBounce(campaign, item, suppression) {
     const it = typeof item === "string" ? campaign.items.find((i) => i.id === item) : item;
-    if (it) { it.status = "bounced"; it.never_retry = true; const c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
+    if (it) { it.status = "bounced"; it.never_retry = true; const _c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
     else if (suppression && item && item.email) suppression.suppress({ email: item.email, person_id: item.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" });
     return it || null;
   }
@@ -844,7 +844,7 @@ const CareerOutreach = (() => {
       if (v) answers.push({ topic: "graduation", text: `My graduation date is ${v}.`, value: v }); else unknown.push("graduation");
     }
     if (/authorized|authorisation|work in the|sponsor/.test(t)) {
-      let v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
+      const v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
       if (v) { const clean = String(v).replace(/\(TEST\)/g, "").trim(); const isCitizen = /citizen/i.test(clean); answers.push({ topic: "work_authorization", text: isCitizen ? `I am a ${clean} and authorized to work in the US.` : `On work authorization: ${clean}.`, value: clean }); }
       else if (cons.needsSponsorship === false) answers.push({ topic: "work_authorization", text: "I am authorized to work in the US and do not need sponsorship.", value: "authorized, no sponsorship" });
       else unknown.push("work_authorization");
@@ -855,7 +855,7 @@ const CareerOutreach = (() => {
     }
     return { answers, unknown };
   }
-  function draftReplyAnswer(reply, contact, profile, user, cls, opts) {
+  function draftReplyAnswer(reply, contact, profile, user, cls, _opts) {
     const c = contact || {}; const first = String(c.full_name || c.name || "there").split(/\s+/)[0];
     const name = (user && user.name) || (profile && profile.basics && profile.basics.name) || "";
     const { answers, unknown } = profileFactAnswers(String((reply && reply.body) || ""), profile, user);
@@ -921,7 +921,7 @@ const CareerOutreach = (() => {
     if (kind === "auto-reply-ooo") {
       const rd = cls.return_date || null;
       matchItems((i) => { i.reschedule_followup_on = base.reschedule_followup_on; i.followup_rescheduled_on = base.reschedule_followup_on; });
-      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (m, y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
+      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_m, _y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
       return finish(Object.assign({}, common, { state_transition: "ooo_rescheduled", record_state: "out_of_office", counts_as_reply: false,
         return_date: rd, reschedule_followup_on: base.reschedule_followup_on,
         user_message: msg, notify_user: msg, draft: null, next_step: "Wait for a real reply after the return date." }));
@@ -973,7 +973,7 @@ const CareerOutreach = (() => {
     return asUTC - Math.floor(dateMs / 1000) * 1000;
   }
   function zonedTimeToUtc(y, m, d, hh, mm, timeZone) {
-    let guess = Date.UTC(y, m - 1, d, hh, mm);
+    const guess = Date.UTC(y, m - 1, d, hh, mm);
     const off1 = tzOffsetMs(guess, timeZone); let utc = guess - off1;
     const off2 = tzOffsetMs(utc, timeZone); utc = guess - off2;
     return new Date(utc).toISOString();
@@ -1064,7 +1064,7 @@ const CareerOutreach = (() => {
       promoted_from_reserve: promoted.map((c) => c.full_name), before, after: { selected: selected.length, reserve: newReserve.length },
       text: `Re-cut: ${before.selected} selected -> ${selected.length} (${removed.length} removed by [${ops.join("; ") || "no ops"}], ${promoted.length} matching reserve promoted); reserve now ${newReserve.length}.` };
   }
-  function safetyPlan(campaign, plan, opts) {
+  function safetyPlan(_campaign, plan, opts) {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
     return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
@@ -1202,7 +1202,7 @@ const CareerOutreach = (() => {
           : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
         entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
       }
-      for (const item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
+      for (const _item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
       const queued = enqueue(campaign, entries, { suppression: opts.suppression, continueTap: true, isFollowUp: true });
       const followups = queued.filter((q) => q.status === "queued");
       if (final) { campaign.followups_closed = true; campaign.closed_persons = followups.map((f) => f.person_id || f.email); }

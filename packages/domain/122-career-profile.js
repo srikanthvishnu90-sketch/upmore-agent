@@ -130,7 +130,7 @@ const CareerProfile = (() => {
     const skill = (profile.facts || []).find((f) => f.kind === "skill" && (f.name || "").toLowerCase() === name);
     const supporting = (profile.facts || []).filter((f) => !f.needs_confirmation && f.kind !== "skill" && ((f.skills || []).some((s) => String(s).toLowerCase() === name) || String(f.text || "").toLowerCase().includes(name)));
     const evidenceIds = new Set([].concat((skill && skill.evidence) || [], supporting.map((f) => f.id)));
-    return { skill: skill || null, proven: evidenceIds.size > 0 && (!!skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
+    return { skill: skill || null, proven: evidenceIds.size > 0 && (skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
   }
 
   // ---- fact-mining interview (Doc 2 §1) ----

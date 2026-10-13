@@ -29,7 +29,7 @@
    NOT done here. No sends, no submits: outreach stops at draft/clarification,
    packets stop at a review surface, approvals are untouched. */
 const CareerRouter = (() => {
-  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch (e) { return null; } };
+  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch { return null; } };
   const Jobs = typeof CareerJobs !== "undefined" ? CareerJobs : req("./121-career-jobs.js");
   const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : req("./123-career-tailor.js");
   const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : req("./124-career-outreach.js");
@@ -45,7 +45,7 @@ const CareerRouter = (() => {
   // (the same ctx objects 141/130 read and write).
   const Doorstep = typeof CareerDoorstep !== "undefined" ? CareerDoorstep : req("./141-career-doorstep.js");
   const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : req("./130-career-onboarding.js");
-  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch (e) { return null; } })();
+  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch { return null; } })();
 
   const s = (v) => String(v == null ? "" : v);
   const lc = (v) => s(v).toLowerCase();
@@ -56,9 +56,9 @@ const CareerRouter = (() => {
     const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
     const mathPow = Math.pow, maxWord = mathPow(2, 32);
     let result = "";
-    const words = [], asciiBitLength = ascii.length * 8;
-    let hash = (sha256.h = sha256.h || []), k = (sha256.k = sha256.k || []);
-    let primeCounter = k.length, isComposite = {};
+    const words = [], _asciiBitLength = ascii.length * 8;
+    let hash = (sha256.h = sha256.h || []); const k = (sha256.k = sha256.k || []);
+    let primeCounter = k.length; const isComposite = {};
     for (let candidate = 2; primeCounter < 64; candidate++) {
       if (!isComposite[candidate]) {
         for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
@@ -68,7 +68,7 @@ const CareerRouter = (() => {
     }
     // UTF-8 encode
     const utf8 = unescape(encodeURIComponent(ascii));
-    let bitLength = utf8.length * 8;
+    const bitLength = utf8.length * 8;
     let str = utf8 + "\x80";
     while ((str.length % 64) - 56) str += "\x00";
     for (let i = 0; i < str.length; i++) {
@@ -261,7 +261,7 @@ const CareerRouter = (() => {
     }
     // 131 ghost guard: lower-odds postings (stale / reposted) stay out
     let kept = scored;
-    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch (e) { kept = scored; } }
+    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
@@ -324,7 +324,7 @@ const CareerRouter = (() => {
   }
 
   // ---------- tailor (123) ----------
-  function handleTailor(text, ctx) {
+  function handleTailor(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || ctx.targetPosting || null;
     const jdText = ctx.jdText || (posting ? jdTextForPosting(posting) : "") || ctx.jd || "";
@@ -453,7 +453,7 @@ const CareerRouter = (() => {
     const tips = { structure: "Order the next one as situation, task, action, result.", evidence: "Add one number and how you know it.", specificity: "Name the tool, the constraint, and your exact part." };
     return [`Rubric on that answer: structure ${sc.structure || 0} of 5, evidence ${sc.evidence || 0} of 5, specificity ${sc.specificity || 0} of 5.`, tips[weakest] || ""].filter(Boolean);
   }
-  function handlePrepStart(text, ctx) {
+  function handlePrepStart(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || null;
     const bank = Prep.questionBank({ company: posting ? posting.company : null, role: posting ? posting.title : null });
@@ -515,9 +515,9 @@ const CareerRouter = (() => {
   }
 
   // ---------- dead-board discovery (121 registry via 131 plan) ----------
-  function handleDeadBoard(text, ctx) {
+  function handleDeadBoard(text, _ctx) {
     let dead = [];
-    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch (e) { dead = []; }
+    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch { dead = []; }
     const t = lc(text).replace(/[^a-z0-9 ]/g, " ");
     for (const b of dead) {
       const name = lc(b.company).replace(/[^a-z0-9 ]/g, " ").trim();
@@ -588,7 +588,7 @@ const CareerRouter = (() => {
       try {
         const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
         return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
-      } catch (e) { return { state: null, persist: () => {} }; }
+      } catch { return { state: null, persist: () => {} }; }
     }
     return { state: null, persist: () => {} };
   }
@@ -715,7 +715,7 @@ const CareerRouter = (() => {
       const had = Object.prototype.hasOwnProperty.call(profile, "_onboarding_pending");
       const prev = profile._onboarding_pending;
       profile._onboarding_pending = "visa";
-      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch (e) { /* the direct write below still lands */ }
+      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch { /* the direct write below still lands */ }
       if (had) profile._onboarding_pending = prev; else delete profile._onboarding_pending;
     }
     cons.workAuthorization = parsed.clause;
@@ -829,10 +829,10 @@ const CareerRouter = (() => {
     // 124's own reply classification confirms the relayed words are a stop.
     let classification = null;
     const quoted = s(text).match(/'([^']{3,})'/) || s(text).match(/"([^"]{3,})"/);
-    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch (e) { classification = null; } }
+    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch { classification = null; } }
     let suppression = (ctx && ctx.suppression) || null;
     if (!suppression && Outreach && typeof Outreach.createSuppressionStore === "function") suppression = Outreach.createSuppressionStore();
-    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch (e) { /* the result carries the store */ } }
+    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch { /* the result carries the store */ } }
     const stopped = [];
     for (const item of matched) {
       if (item.status !== "pending") continue;

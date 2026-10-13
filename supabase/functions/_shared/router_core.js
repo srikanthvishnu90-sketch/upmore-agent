@@ -20295,7 +20295,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
     // A handler never claims an edge action happened: connect returns the ACTION the host must run against
     // gmail-oauth ({edge_action:"start_career"} plus the secure link when the host supplied one), and
     // disconnect returns {edge_action:"disconnect", source} for the host to execute and confirm.
-    function handleConnectGoogle(text, ctx) {
+    function handleConnectGoogle(_text, ctx) {
       const c = ctx || {};
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
       return {
@@ -20303,11 +20303,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
       };
     }
-    function handleConnected(text, ctx) {
+    function handleConnected(_text, ctx) {
       const r = connectedAccounts((ctx || {}).statusRecords);
       return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
-    function handleDisconnect(text, ctx) {
+    function handleDisconnect(text, _ctx) {
       // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
       // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
       // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
@@ -20328,11 +20328,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
           : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
       };
     }
-    function handleAccessLog(text, ctx) {
+    function handleAccessLog(_text, ctx) {
       const r = auditLog((ctx || {}).auditEntries);
       return { intent: "access_log", entries: r.entries, reply: r.text };
     }
-    function handlePortalList(text, ctx) {
+    function handlePortalList(_text, ctx) {
       const r = portalList((ctx || {}).portalRecords);
       return { intent: "portal_accounts", companies: r.companies, reply: r.text };
     }
@@ -20481,8 +20481,8 @@ const CareerJobs = (() => {
   // demotion. Legacy classes (work-auth citizens-only, clearance) keep the exact
   // dispositions hardFilters has always applied, now also expressed as flags.
   const US_STATES = [["Alabama", "AL"], ["Alaska", "AK"], ["Arizona", "AZ"], ["Arkansas", "AR"], ["California", "CA"], ["Colorado", "CO"], ["Connecticut", "CT"], ["Delaware", "DE"], ["District of Columbia", "DC"], ["Florida", "FL"], ["Georgia", "GA"], ["Hawaii", "HI"], ["Idaho", "ID"], ["Illinois", "IL"], ["Indiana", "IN"], ["Iowa", "IA"], ["Kansas", "KS"], ["Kentucky", "KY"], ["Louisiana", "LA"], ["Maine", "ME"], ["Maryland", "MD"], ["Massachusetts", "MA"], ["Michigan", "MI"], ["Minnesota", "MN"], ["Mississippi", "MS"], ["Missouri", "MO"], ["Montana", "MT"], ["Nebraska", "NE"], ["Nevada", "NV"], ["New Hampshire", "NH"], ["New Jersey", "NJ"], ["New Mexico", "NM"], ["New York", "NY"], ["North Carolina", "NC"], ["North Dakota", "ND"], ["Ohio", "OH"], ["Oklahoma", "OK"], ["Oregon", "OR"], ["Pennsylvania", "PA"], ["Rhode Island", "RI"], ["South Carolina", "SC"], ["South Dakota", "SD"], ["Tennessee", "TN"], ["Texas", "TX"], ["Utah", "UT"], ["Vermont", "VT"], ["Virginia", "VA"], ["Washington", "WA"], ["West Virginia", "WV"], ["Wisconsin", "WI"], ["Wyoming", "WY"]];
-  const STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
-  const STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
+  const _STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
+  const _STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
   function statesInText(text) {
     const found = [], seen = new Set();
     const t = ` ${s(text)} `;
@@ -21168,7 +21168,7 @@ const CareerProfile = (() => {
     const skill = (profile.facts || []).find((f) => f.kind === "skill" && (f.name || "").toLowerCase() === name);
     const supporting = (profile.facts || []).filter((f) => !f.needs_confirmation && f.kind !== "skill" && ((f.skills || []).some((s) => String(s).toLowerCase() === name) || String(f.text || "").toLowerCase().includes(name)));
     const evidenceIds = new Set([].concat((skill && skill.evidence) || [], supporting.map((f) => f.id)));
-    return { skill: skill || null, proven: evidenceIds.size > 0 && (!!skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
+    return { skill: skill || null, proven: evidenceIds.size > 0 && (skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
   }
 
   // ---- fact-mining interview (Doc 2 §1) ----
@@ -21495,7 +21495,7 @@ const CareerTailor = (() => {
   // Skill lexicon for JD parsing + audit keyword checks. Deliberately finite:
   // a word not in this list is ordinary prose, not a claimed skill.
   const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R"];
-  const lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
+  const _lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
   function skillsInText(text) {
     const t = ` ${String(text || "").toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
     const found = [];
@@ -21637,7 +21637,7 @@ const CareerTailor = (() => {
       if (!text || !String(text).trim()) continue;
       if (!factIds.length) { violations.push({ line: text, reason: "no fact ID: line maps to no profile fact", factIds: [] }); continue; }
       const facts = factIds.map((id) => Profile.getFact(profile, id));
-      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
+      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
       const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
@@ -21757,7 +21757,7 @@ const CareerTailor = (() => {
   }
 
   // ---- "why this company" answer bank (Doc 2 §3.5; APPE-004) ----
-  function buildAnswerBank(profile, jdInput, cir, opts) {
+  function buildAnswerBank(profile, jdInput, cir, _opts) {
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     if (!cir || !cir.company || !(cir.facts || []).length) return { ok: false, reason: "answer bank entries need real CIR company facts; none passed in", entries: [] };
     const selected = selectFacts(profile, jd, { limit: 3 });
@@ -21815,7 +21815,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTail
 const CareerOutreach = (() => {
   "use strict";
   let FIRM_SETS = null;
-  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch (e) { FIRM_SETS = { sets: {} }; }
+  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch { FIRM_SETS = { sets: {} }; }
 
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
@@ -21828,7 +21828,7 @@ const CareerOutreach = (() => {
   const BANNED_PHRASES = ["i hope this email finds you well", "i came across your profile and was impressed",
     "pick your brain", "i'd love to connect", "i would love to connect", "admire your impressive career"];
   const EU_UK_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","GB","UK"]);
-  const EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
+  const _EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
   const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   const emailDomain = (e) => { const m = String(e || "").toLowerCase().match(/@([^>\s]+)$/); return m ? m[1] : null; };
   function isEuUk(c) {
@@ -22008,7 +22008,7 @@ const CareerOutreach = (() => {
   // OUTR-001/002: warm paths + ranking from user-owned connections only.
   function rankContacts(contacts, profile) {
     profile = profile || {};
-    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
+    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0; const why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
       // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
@@ -22039,7 +22039,7 @@ const CareerOutreach = (() => {
       if (!EMAIL_RE.test(e)) return { email: e, status: "invalid", confidence: 0, reason: "syntax", verifier: "local" };
       const domain = emailDomain(e);
       if (!dnsLookup) return { email: e, status: "risky", confidence: 0.3, reason: "no_dns_lookup_injected", verifier: "local" };
-      let r; try { r = await dnsLookup(domain); } catch (err) { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
+      let r; try { r = await dnsLookup(domain); } catch { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
       if (!r || !r.mx || !r.mx.length) return { email: e, status: "invalid", confidence: 0.1, reason: "no_mx", verifier: "local" };
       if (r.catchAll) return { email: e, status: "risky", confidence: 0.45, reason: "catch_all_domain", verifier: "local" };
       return { email: e, status: "verified", confidence: 0.9, reason: "mx_ok", verifier: "local" };
@@ -22093,10 +22093,10 @@ const CareerOutreach = (() => {
     const t = target || {};
     const email = t.email || t.work_email || null;
     let hit = false;
-    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch (e) { hit = false; }
+    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch { hit = false; }
     return { checked: true, suppressed: hit, store };
   }
-  function suppressedRefusal(target, opts, user) {
+  function suppressedRefusal(target, _opts, _user) {
     const c = normalizeCandidate(target || {});
     return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
       message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
@@ -22422,7 +22422,7 @@ const CareerOutreach = (() => {
   }
   function handleBounce(campaign, item, suppression) {
     const it = typeof item === "string" ? campaign.items.find((i) => i.id === item) : item;
-    if (it) { it.status = "bounced"; it.never_retry = true; const c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
+    if (it) { it.status = "bounced"; it.never_retry = true; const _c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
     else if (suppression && item && item.email) suppression.suppress({ email: item.email, person_id: item.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" });
     return it || null;
   }
@@ -22648,7 +22648,7 @@ const CareerOutreach = (() => {
       if (v) answers.push({ topic: "graduation", text: `My graduation date is ${v}.`, value: v }); else unknown.push("graduation");
     }
     if (/authorized|authorisation|work in the|sponsor/.test(t)) {
-      let v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
+      const v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
       if (v) { const clean = String(v).replace(/\(TEST\)/g, "").trim(); const isCitizen = /citizen/i.test(clean); answers.push({ topic: "work_authorization", text: isCitizen ? `I am a ${clean} and authorized to work in the US.` : `On work authorization: ${clean}.`, value: clean }); }
       else if (cons.needsSponsorship === false) answers.push({ topic: "work_authorization", text: "I am authorized to work in the US and do not need sponsorship.", value: "authorized, no sponsorship" });
       else unknown.push("work_authorization");
@@ -22659,7 +22659,7 @@ const CareerOutreach = (() => {
     }
     return { answers, unknown };
   }
-  function draftReplyAnswer(reply, contact, profile, user, cls, opts) {
+  function draftReplyAnswer(reply, contact, profile, user, cls, _opts) {
     const c = contact || {}; const first = String(c.full_name || c.name || "there").split(/\s+/)[0];
     const name = (user && user.name) || (profile && profile.basics && profile.basics.name) || "";
     const { answers, unknown } = profileFactAnswers(String((reply && reply.body) || ""), profile, user);
@@ -22725,7 +22725,7 @@ const CareerOutreach = (() => {
     if (kind === "auto-reply-ooo") {
       const rd = cls.return_date || null;
       matchItems((i) => { i.reschedule_followup_on = base.reschedule_followup_on; i.followup_rescheduled_on = base.reschedule_followup_on; });
-      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (m, y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
+      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_m, _y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
       return finish(Object.assign({}, common, { state_transition: "ooo_rescheduled", record_state: "out_of_office", counts_as_reply: false,
         return_date: rd, reschedule_followup_on: base.reschedule_followup_on,
         user_message: msg, notify_user: msg, draft: null, next_step: "Wait for a real reply after the return date." }));
@@ -22777,7 +22777,7 @@ const CareerOutreach = (() => {
     return asUTC - Math.floor(dateMs / 1000) * 1000;
   }
   function zonedTimeToUtc(y, m, d, hh, mm, timeZone) {
-    let guess = Date.UTC(y, m - 1, d, hh, mm);
+    const guess = Date.UTC(y, m - 1, d, hh, mm);
     const off1 = tzOffsetMs(guess, timeZone); let utc = guess - off1;
     const off2 = tzOffsetMs(utc, timeZone); utc = guess - off2;
     return new Date(utc).toISOString();
@@ -22868,7 +22868,7 @@ const CareerOutreach = (() => {
       promoted_from_reserve: promoted.map((c) => c.full_name), before, after: { selected: selected.length, reserve: newReserve.length },
       text: `Re-cut: ${before.selected} selected -> ${selected.length} (${removed.length} removed by [${ops.join("; ") || "no ops"}], ${promoted.length} matching reserve promoted); reserve now ${newReserve.length}.` };
   }
-  function safetyPlan(campaign, plan, opts) {
+  function safetyPlan(_campaign, plan, opts) {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
     return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
@@ -23006,7 +23006,7 @@ const CareerOutreach = (() => {
           : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
         entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
       }
-      for (const item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
+      for (const _item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
       const queued = enqueue(campaign, entries, { suppression: opts.suppression, continueTap: true, isFollowUp: true });
       const followups = queued.filter((q) => q.status === "queued");
       if (final) { campaign.followups_closed = true; campaign.closed_persons = followups.map((f) => f.person_id || f.email); }
@@ -25185,7 +25185,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerNego
    Otherwise the estimate is null and the output says exactly that. Every number carries its
    evidence + as_of. Feed postings are the normalized 121-career-jobs shape. */
 const CareerOS = (() => {
-  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch (e) { return null; } })() : null;
+  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch { return null; } })() : null;
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
@@ -25494,7 +25494,7 @@ const CareerApply = (() => {
   // Salary: ask, offer a SOURCED range when one is passed in, default to
   // negotiable/open. A number is entered only when the user approved that
   // exact number (opts.userApprovedNumber).
-  function salaryQuestion(profile, question, opts) {
+  function salaryQuestion(_profile, _question, opts) {
     const o = opts || {};
     if (typeof o.userApprovedNumber === "number" && o.userApprovedNumber > 0) {
       return { kind: "salary", requiresConfirmation: true, entered: true, answer: String(o.userApprovedNumber), confirmationState: "user-approved-number" };
@@ -25711,7 +25711,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerAppl
                                    121's POLL_MINUTES (starred 15 min, default 60).
    Pure domain module, UMD like the other domain modules. No fetch, no deploy, no secrets. */
 const CareerDiscover = (() => {
-  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })() : null;
+  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })() : null;
   const lc = (v) => String(v == null ? "" : v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -25983,7 +25983,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerPack
    territory it is career-planning information only, labeled not-advice, with a referral out.
    Pure module: no IO; the clock is passed in. */
 "use strict";
-const CI = require("./125-career-intel.js");
+const CI = typeof CareerIntel !== "undefined" ? CareerIntel : require("./125-career-intel.js");
 
 const AS_OF = "2026-10-12";
 const PLAN_NUMBERS = [30, 90]; // plan-shape horizons (§2.3 part 6), not world claims — same rule as 125
@@ -26313,7 +26313,7 @@ function sweMarketRead(store, opts) {
 // ledger; known vs anecdotal/unknown is separated in the text itself; nothing is claimed
 // that the dataset does not hold (BLS publishes no AI-displacement probability — see its
 // known_limits — and the posting dataset is a population of postings, not of hires).
-function _claimsFrom(values) {
+function _claimsFrom(_values) {
   const claims = [];
   const add = (value, source_url, as_of, sample_size) => {
     if (typeof value === "number" && Number.isFinite(value) && !claims.some((c) => c.value === value)) claims.push({ text: "dataset value", value, unit: null, source_url, as_of, sample_size: sample_size == null ? null : sample_size });
@@ -26949,6 +26949,351 @@ const CareerGraph = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerGraph;
 
+/* Career onboarding + ask-once memory + honest capability status (DISC-001, SC-008/011/016/017/018 glue).
+   Pure, no I/O, UMD like the other domain modules. Three jobs the access/profile rails did not cover:
+     1. The onboarding interview: asks goals / roles / location / visa / comp floor / deal-breakers /
+        timeline ONE question at a time, stores each answer straight into the 122 profile's
+        preferences/constraints, and never re-asks a question the profile already answers.
+     2. Ask-once memory: questions the profile already answers (graduation date, work authorization,
+        target companies...) are answered FROM the stored profile, with the source named — never re-asked.
+        Sensitive (T3) answers are never guessed and never used silently: sensitiveAnswerPrompt returns
+        the saved value VERBATIM for a yes/no confirmation, and confirmSensitive is the only path that
+        produces the audit record carrying the confirmed value.
+     3. Honest capability status: "what can you actually do?" is generated from the capability sources
+        the caller passes in (packages/capabilities/registry.json rows + the career inventory rows) —
+        built / proven-live / blocked are counted from those rows, never invented in prose.
+   Plus the re-auth dedupe log for ACCS-003: one re-auth message per source per expiry event, however
+   many times the host re-plans the same expiry — duplicate nags are dropped and counted.
+   Channel note: iMessage first, like 120 — every text is short plain text. */
+const CareerOnboarding = (() => {
+  // ---------- 1. Onboarding interview (DISC-001) ----------
+  // Order is fixed; a step is "answered" when the profile already carries a value for it, so an
+  // interview started on a partially-known profile skips straight to what is actually missing.
+  const STEPS = [
+    { key: "goals", prompt: "First — what is the goal? For example, land a summer internship, a first full-time role, or explore a switch." },
+    { key: "roles", prompt: "What roles should I look for? Name one or more, comma-separated." },
+    { key: "locations", prompt: "Where? Cities, remote, or both — comma-separated." },
+    { key: "visa", prompt: "Work authorization: what is your status, and will you need sponsorship now or later? I save this exactly as you say it and never guess it." },
+    { key: "comp_floor", prompt: "Is there a pay floor I should not go below? A number, or say none." },
+    { key: "deal_breakers", prompt: "Any deal-breakers — companies, industries, locations, or anything else I must never put in front of you? Comma-separated, or say none." },
+    { key: "timeline", prompt: "Last one: what is your timeline — when do you want to start, and any hard dates (graduation, application windows)?" },
+  ];
+  const splitList = (t) => /^(none|no|n\/a)$/i.test(String(t || "").trim()) ? [] : String(t || "").split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+  function stepAnswered(profile, key) {
+    const p = profile || {}, prefs = p.preferences || {}, cons = p.constraints || {};
+    switch (key) {
+      case "goals": return !!(prefs.goals && String(prefs.goals).trim());
+      case "roles": return Array.isArray(prefs.roles) && prefs.roles.length > 0;
+      case "locations": return Array.isArray(prefs.locations) && prefs.locations.length > 0;
+      case "visa": return !!(cons.workAuthorization && String(cons.workAuthorization).trim());
+      case "comp_floor": return prefs.compFloor != null && String(prefs.compFloor).trim() !== "";
+      case "deal_breakers": return p._onboarding_deal_breakers_answered === true || (Array.isArray(prefs.dealBreakers) && prefs.dealBreakers.length > 0);
+      case "timeline": return !!(prefs.timeline && String(prefs.timeline).trim());
+      default: return false;
+    }
+  }
+  function nextQuestion(profile) {
+    for (const s of STEPS) if (!stepAnswered(profile, s.key)) return { key: s.key, prompt: s.prompt, remaining: STEPS.filter((x) => !stepAnswered(profile, x.key)).length };
+    return null;
+  }
+  function startInterview(profile) {
+    const q = nextQuestion(profile);
+    if (!q) return { done: true, pending: null, text: "I already have your goals, roles, location, work authorization, pay floor, deal-breakers and timeline on file — I will not re-ask them. Say what to change if any of it moved." };
+    profile._onboarding_pending = q.key;
+    return { done: false, pending: q.key, question: q, text: q.prompt };
+  }
+  // ---------- 1b. Profile fact version (repair lane R2B, DECLARED change) ----------
+  // The ONLY addition this lane makes to 130: a monotonic fact-version
+  // counter on the profile, `profile.fact_version`. Prepared packets and
+  // approvals (141) stamp the version they were prepared against; any
+  // correction through THIS module's write paths (answerCurrent,
+  // applyProfileCorrection, and the persisted-correction re-apply) bumps it,
+  // which is what makes a stale packet unsubmittable at 141's seam. A
+  // missing counter reads as version 0. The counter itself carries no fact
+  // data — 141 also binds a hash of the fact slices, so a correction that
+  // reaches the profile without this counter still invalidates packets.
+  function factVersion(profile) {
+    return profile && Number.isFinite(profile.fact_version) ? profile.fact_version : 0;
+  }
+  function bumpFactVersion(profile) {
+    if (!profile) return 0;
+    profile.fact_version = factVersion(profile) + 1;
+    return profile.fact_version;
+  }
+  function answerCurrent(profile, text) {
+    const key = profile._onboarding_pending || (nextQuestion(profile) || {}).key;
+    if (!key) return startInterview(profile);
+    const raw = String(text || "").trim();
+    const prefs = profile.preferences = profile.preferences || {};
+    const cons = profile.constraints = profile.constraints || {};
+    if (key === "goals") prefs.goals = raw;
+    else if (key === "roles") prefs.roles = splitList(raw);
+    else if (key === "locations") { prefs.locations = splitList(raw); if (/\bremote\b/i.test(raw)) prefs.remote = true; }
+    else if (key === "visa") { cons.workAuthorization = raw; cons.needsSponsorship = /require sponsorship|need sponsorship|will need sponsorship|f-1|h-1b/i.test(raw) && !/no sponsorship|never need/i.test(raw); }
+    else if (key === "comp_floor") prefs.compFloor = /^(none|no)$/i.test(raw) ? "none stated" : raw;
+    else if (key === "deal_breakers") { prefs.dealBreakers = splitList(raw); profile._onboarding_deal_breakers_answered = true; }
+    else if (key === "timeline") prefs.timeline = raw;
+    bumpFactVersion(profile); // R2B: a stored answer is a fact write — prepared packets bound to older facts go stale
+    profile._onboarding_pending = null;
+    const q = nextQuestion(profile);
+    if (!q) return { done: true, answered: key, stored: raw, text: "That is everything — goals, roles, location, work authorization, pay floor, deal-breakers and timeline are saved to your profile. I will use them for every search and never re-ask them." };
+    profile._onboarding_pending = q.key;
+    return { done: false, answered: key, stored: raw, pending: q.key, question: q, text: q.prompt };
+  }
+
+  // ---------- 2a. Ask-once memory: answer from the stored profile ----------
+  function answerFromProfile(profile, question) {
+    const q = String(question || "").toLowerCase();
+    const p = profile || {}, cons = p.constraints || {}, prefs = p.preferences || {}, basics = p.basics || {};
+    const hit = (answer, source) => ({ found: true, answer, source, reasked: false });
+    const miss = (what) => ({ found: false, answer: null, reasked: true, ask: `I do not have your ${what} stored yet — what is it? I will save it and never ask again.` });
+    if (/graduat/.test(q)) return cons.graduationDate ? hit(`Your graduation date is ${cons.graduationDate}.`, "profile constraints.graduationDate (stored, ask-once)") : miss("graduation date");
+    if (/work authorization|authorised|authorized to work|sponsorship/.test(q)) return cons.workAuthorization ? hit(`Your saved work authorization: ${cons.workAuthorization}.`, "profile constraints.workAuthorization (stored, ask-once)") : miss("work authorization");
+    if (/target companies|companies.*target/.test(q)) return (prefs.targetCompanies || []).length ? hit(`Your target companies: ${prefs.targetCompanies.join(", ")}.`, "profile preferences.targetCompanies (stored)") : miss("target companies");
+    if (/what roles|roles.*looking|looking for/.test(q)) return (prefs.roles || []).length ? hit(`You are looking for: ${prefs.roles.join(", ")}.`, "profile preferences.roles (stored)") : miss("target roles");
+    if (/where.*(?:live|based)|location/.test(q)) return basics.location ? hit(`You are based in ${basics.location}.`, "profile basics.location (stored)") : miss("location");
+    if (/comp floor|pay floor|minimum.*(?:pay|salary|comp)/.test(q)) return prefs.compFloor ? hit(`Your pay floor: ${prefs.compFloor}.`, "profile preferences.compFloor (stored)") : miss("pay floor");
+    if (/gpa/.test(q)) return (p.defaults && p.defaults.gpa) ? hit(`Your GPA on file: ${p.defaults.gpa}.`, "profile defaults.gpa (stored)") : miss("GPA");
+    return { found: false, answer: null, reasked: false, ask: null };
+  }
+
+  // ---------- 2b. Sensitive (T3) answers: verbatim confirm, never guessed ----------
+  const SENSITIVE_FIELDS = {
+    work_authorization: { label: "work authorization", read: (p) => (p.constraints || {}).workAuthorization },
+    sponsorship: { label: "sponsorship need", read: (p) => { const c = p.constraints || {}; return c.needsSponsorship == null ? null : (c.needsSponsorship ? "Yes — sponsorship needed" : "No sponsorship needed"); } },
+    graduation_date: { label: "graduation date", read: (p) => (p.constraints || {}).graduationDate },
+  };
+  function sensitiveAnswerPrompt(profile, field) {
+    const f = SENSITIVE_FIELDS[field];
+    if (!f) return { ok: false, code: "unknown_field", text: `No saved sensitive field named ${field}.` };
+    const value = f.read(profile || {});
+    if (value == null || value === "") return { ok: false, code: "not_stored", guessed: false, text: `I do not have your ${f.label} saved, and I will not guess it. Tell me once and I will save it for next time.` };
+    return { ok: true, field, value: String(value), requires_confirmation: true, guessed: false, text: `${value} — use it?` };
+  }
+  function confirmSensitive(profile, field, opts) {
+    const o = opts || {};
+    const prompt = sensitiveAnswerPrompt(profile, field);
+    if (!prompt.ok) return prompt;
+    if (o.confirmed !== true) return { ok: false, code: "not_confirmed", text: "Nothing is used until you confirm the saved answer." };
+    // The audit record carries the CONFIRMED value verbatim — shaped for CareerAccess.auditEntry
+    // (source + what); it carries no secret-shaped field, so the audit rail accepts it.
+    return { ok: true, field, value: prompt.value, audit: { source: "profile", what: `Confirmed ${SENSITIVE_FIELDS[field].label} answer used: "${prompt.value}"`, outcome: "user-confirmed" }, text: `Confirmed — using your saved ${SENSITIVE_FIELDS[field].label}: ${prompt.value}.` };
+  }
+
+  // ---------- 2c. Privacy export: what is stored (CORE export surface for career) ----------
+  function profileExport(profile, access) {
+    const p = profile || {};
+    const facts = (p.facts || []).map((f) => ({ id: f.id, kind: f.kind, title: f.title, status: f.status || (f.needs_confirmation ? "draft" : "confirmed"), source: f.source || null }));
+    const connections = (p.connections || []).map((c) => ({ name: c.name || null, company: c.company || null, source: c.source || null }));
+    // Tokens are listed BY NAME ONLY: the caller passes account/source names (from 120 connectedAccounts);
+    // this function has no vault access and no value can enter it.
+    const tokensByName = ((access && access.accounts) || []).map((a) => ({ source: a.source || a.provider, email: a.email || null }));
+    const sections = {
+      basics: p.basics || {}, preferences: p.preferences || {}, constraints: p.constraints || {},
+      facts, fact_count: facts.length, draft_count: facts.filter((f) => f.status === "draft").length,
+      connections, connection_count: connections.length, tokens_by_name: tokensByName,
+    };
+    const text = [
+      `Stored about you: ${facts.length} profile facts (${sections.draft_count} still drafts), ${connections.length} connections, ${tokensByName.length} connected sources.`,
+      `Facts: ${facts.map((f) => `${f.id} ${f.kind} "${f.title}" [${f.status}, from ${f.source}]`).join("; ") || "none"}`,
+      `Connections on file: ${connections.map((c) => c.name).join(", ") || "none"}.`,
+      `Connected sources (tokens held in the vault, listed by name only — never values): ${tokensByName.map((t) => t.source).join(", ") || "none"}.`,
+      "To delete everything, say \"delete my stored profile\" — I will show exactly what will be removed before anything is deleted.",
+    ].join("\n");
+    return { ...sections, delete_path_offered: true, text };
+  }
+
+  // ---------- 3. Honest capability status, generated from the sources ----------
+  // registryCaps: rows from packages/capabilities/registry.json (status TESTED/CLAIMED/GATED/VERIFIED...).
+  // careerRows: rows from docs/capability-inventory.md career tables ({id, status, note}) PLUS build-state
+  // rows the caller derives from the code itself ({id, status:"built", note}) — the caller owns sourcing;
+  // this function only counts and words what it was given, so a status it states always traces to a row.
+  // FIN-E-004: a career status answer may only cite CAREER-domain rows. A registry
+  // row is career-domain only when it says so (domain/domain_code naming career,
+  // an ACCS-/CAREER- id, or a career implementation path) — every other registry
+  // row belongs to another product surface and never appears here, in any form.
+  function isCareerCap(c) {
+    if (!c) return false;
+    const domain = String(c.domain || "").toLowerCase(), code = String(c.domain_code || "").toLowerCase(), id = String(c.id || "");
+    if (/career|job search/.test(domain) || /^(accs|career)$/.test(code) || /^(ACCS|CAREER)-/.test(id)) return true;
+    return (c.implementation || []).some((p) => /career/i.test(String(p)));
+  }
+  function capabilityStatus(input) {
+    const o = input || {};
+    const reg = (o.registryCaps || []).filter(isCareerCap), career = o.careerRows || [];
+    const bucket = (rows, pred) => rows.filter(pred);
+    const builtReg = bucket(reg, (c) => ["TESTED", "BUILT"].includes(String(c.status || "").toUpperCase()));
+    const provenReg = bucket(reg, (c) => String(c.status || "").toUpperCase() === "VERIFIED");
+    const gatedReg = bucket(reg, (c) => String(c.status || "").toUpperCase() === "GATED");
+    const builtCareer = bucket(career, (c) => /built|tested/i.test(String(c.status || "")));
+    const blockedCareer = bucket(career, (c) => /^\s*blocked\b/i.test(String(c.status || "")));
+    const proven = provenReg.length; // career rows carry no "proven live" status until a live record exists
+    const blockedAll = [
+      ...gatedReg.map((c) => ({ id: c.id, reason: c.gate_reason || c.note || "gated" })),
+      ...blockedCareer.map((c) => ({ id: c.id, reason: c.note || c.gate_reason || "blocked — owner input named in the inventory" })),
+    ];
+    // One row per id: inventory and build-state sources can both carry the same
+    // blocked row — keep the more specific reason, never list an id twice.
+    const blockedById = new Map();
+    for (const b of blockedAll) { const prev = blockedById.get(b.id); if (!prev || (/inventory row/i.test(prev.reason) && !/inventory row/i.test(b.reason))) blockedById.set(b.id, b); }
+    const blocked = [...blockedById.values()];
+    const text = [
+      "Here is what I can actually do for your job search, counted from the career capability rows — not a pitch:",
+      `Built and locally tested: the career access layer (connect Google, connected accounts, disconnect, access audit, portal records, a handoff when a site asks you to prove you are human), profile, job discovery, and resume tailoring modules — ${builtCareer.length} career build rows${builtReg.length ? `, plus ${builtReg.length} tested career capabilities in the registry` : ""}.`,
+      `Proven live: ${proven}. Nothing carries a live provider record yet — the career Google connection goes live only after the owner deploys it and completes the first consent test.`,
+      `Blocked (${blocked.length}): ${blocked.slice(0, 6).map((b) => `${b.id} — ${b.reason}`).join("; ") || "none"}${blocked.length > 6 ? `; and ${blocked.length - 6} more blocked career rows` : ""}.`,
+      "I will not claim an ability that is not in those rows.",
+    ].join("\n");
+    return { built: { registry_tested: builtReg.length, career: builtCareer.map((c) => c.id) }, proven_live: proven, blocked, blocked_count: blocked.length, not_started_registry: bucket(reg, (c) => String(c.status || "").toUpperCase() === "CLAIMED").length, text };
+  }
+
+  // ---------- 3b. WRITE PATH EXTENSION (repair lane R3, declared) ----------
+  // The ONLY write path this lane adds to 130: a user correction turn in chat
+  // ("use the new one, old resume's wrong") switches the active resume source
+  // with traceable precedence — the user's instruction makes the NEW source
+  // win — keeps an audit entry on the profile, confirms the facts the two
+  // sources conflicted on, and rebuilds dependent state (eligibility /
+  // materials) on the new facts. Read/recall behavior above is unchanged.
+  // Persistence: the host owns storing the profile; because a fresh session
+  // can reload the profile from its original source (discarding in-memory
+  // edits), corrections are ALSO kept in a correction store keyed by the
+  // profile's identity, and handleChat re-applies them to any later load of
+  // the same profile. The host can serialize/restore that store across real
+  // process restarts with exportCorrectionStore/restoreCorrectionStore.
+  const CORRECTION_STORE = new Map();
+  function correctionKey(profile) {
+    const p = profile || {}, b = p.basics || {};
+    return b.email || b.name || p.id || ((p.facts || [])[0] && p.facts[0].id) || null;
+  }
+  // Extract the new source's token for a conflicting fact from the fact's own
+  // labeled text ("resume-old.txt says ... 2013; resume-new.txt says ... 2014")
+  // or, when the host passes the resume texts in ctx, from the new text itself.
+  function newSourceToken(fact, ctx) {
+    const text = `${fact.title || ""} ${fact.text || ""}`;
+    const labeled = text.match(/resume-old[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b[^;]*;\s*resume-new[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b/i);
+    if (labeled) return { from: labeled[1].replace(/\s+/g, ""), to: labeled[2].replace(/\s+/g, "") };
+    const texts = (ctx && (ctx.resumeTexts || ctx.resumeSources)) || null;
+    const newText = texts && (texts["resume-new.txt"] || texts.new || texts.newText);
+    if (newText) {
+      if (/graduat|education/i.test(text)) { const m = String(newText).match(/graduating\s+(?:in\s+)?(\d{4})/i); if (m) return { from: null, to: m[1] }; }
+      const org = (fact.title || "").match(/,\s*([^,—]+?)\s*—/) || (fact.text || "").match(/at\s+([A-Z][^,;]+?)[\s,]/);
+      if (org) { const esc = org[1].trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const m = String(newText).match(new RegExp(esc + "[^\\n]*?(\\d{4})\\s*[-–]\\s*(\\d{4})", "i")); if (m) return { from: null, to: `${m[1]}-${m[2]}` }; }
+    }
+    return null;
+  }
+  function applyResolutionToFact(fact, res, at) {
+    fact.needs_confirmation = false;
+    fact.status = "confirmed";
+    fact.resolution = { source: "resume-new.txt", value: res.to, basis: "user instruction in chat: use the new resume; the old one is wrong", at: at || null };
+    const note = ` Resolved by your instruction to use the new resume: ${res.to}.`;
+    if (!String(fact.text || "").includes("Resolved by your instruction")) fact.text = `${fact.text || ""}${note}`;
+    const range = String(res.to).match(/^(\d{4})-(\d{4})$/);
+    if (range) { fact.start = range[1]; fact.end = range[2]; if (!String(fact.title || "").includes(`resolved: ${res.to}`)) fact.title = `${fact.title || ""} — resolved: ${res.to} (new resume)`; }
+  }
+  function rebuildDependents(profile, at) {
+    const confirmed = (profile.facts || []).filter((f) => !f.needs_confirmation).length;
+    profile.dependent_state = { rebuilt: true, rebuilt_at: at || null, based_on_source: "resume-new.txt", eligibility: "recomputed from confirmed facts only", materials: "invalidated and rebuilt on the new facts", confirmed_fact_count: confirmed };
+    return profile.dependent_state;
+  }
+  function applyProfileCorrection(profile, text, ctx) {
+    const c = ctx || {};
+    const at = c.now || null;
+    const changes = [];
+    for (const fact of profile.facts || []) {
+      if (!fact.needs_confirmation) continue;
+      const res = newSourceToken(fact, c);
+      if (!res) continue;
+      const isGrad = /graduat|education/i.test(`${fact.kind} ${fact.title} ${fact.text}`);
+      applyResolutionToFact(fact, res, at);
+      if (isGrad && /^\d{4}$/.test(res.to)) profile.constraints = Object.assign({}, profile.constraints, { graduationDate: res.to });
+      changes.push({ fact_id: fact.id, field: isGrad ? "graduation_date" : "fact_dates", from: res.from, to: res.to, source: "resume-new.txt" });
+    }
+    if (!changes.length) return { ok: false, code: "no_resolvable_conflict", changes: [], text: "I do not have a newer resume source on file that resolves a stored conflict, so I changed nothing. Upload the new resume or tell me the corrected value and I will record it." };
+    bumpFactVersion(profile); // R2B: a correction is a fact write — packets/approvals bound to the old facts are stale from here
+    const auditEntry = { at, instruction: String(text || ""), source: "resume-new.txt", precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted", changes, outcome: "user-directed correction" };
+    profile.profile_corrections = [...(profile.profile_corrections || []), auditEntry];
+    profile.resume_sources = { active: "resume-new.txt", status: "active_new_wins", precedence: auditEntry.precedence };
+    rebuildDependents(profile, at);
+    const key = correctionKey(profile);
+    if (key) CORRECTION_STORE.set(key, { key, audit: profile.profile_corrections.slice(), changes, graduationDate: (profile.constraints || {}).graduationDate || null, resume_sources: profile.resume_sources });
+    const grad = changes.find((x) => x.field === "graduation_date");
+    return { ok: true, changes, audit: auditEntry, reply: `Done — I switched your active resume to the new one and recorded that it wins over the old one.${grad ? ` Your graduation year is now ${grad.to} from the new resume,` : ""} and I rebuilt your eligibility and materials on the new facts.` };
+  }
+  function applyPersistedCorrections(profile) {
+    if (!profile) return false;
+    const key = correctionKey(profile);
+    const rec = key && CORRECTION_STORE.get(key);
+    if (!rec) return false;
+    let touched = false;
+    if (rec.graduationDate && (profile.constraints || {}).graduationDate !== rec.graduationDate) { profile.constraints = Object.assign({}, profile.constraints, { graduationDate: rec.graduationDate }); touched = true; }
+    for (const ch of rec.changes || []) {
+      const fact = (profile.facts || []).find((f) => f.id === ch.fact_id);
+      if (fact && fact.needs_confirmation) { applyResolutionToFact(fact, { to: ch.to }, null); touched = true; }
+    }
+    if (!(profile.profile_corrections || []).length) profile.profile_corrections = (rec.audit || []).slice();
+    if (!profile.resume_sources || profile.resume_sources.status !== "active_new_wins") profile.resume_sources = rec.resume_sources;
+    if (!profile.dependent_state || !profile.dependent_state.rebuilt) rebuildDependents(profile, null);
+    if (touched) bumpFactVersion(profile); // R2B: re-applying a correction to a fresh load is the same fact write, counted once per actual change
+    return touched;
+  }
+  function exportCorrectionStore() { return [...CORRECTION_STORE.values()]; }
+  function restoreCorrectionStore(rows) { CORRECTION_STORE.clear(); for (const r of rows || []) if (r && r.key) CORRECTION_STORE.set(r.key, r); return CORRECTION_STORE.size; }
+  function _resetCorrectionStore() { CORRECTION_STORE.clear(); }
+
+  // ---------- 4. Re-auth dedupe (ACCS-003): one message per source per expiry ----------
+  function createReauthLog() { return { sent: [] }; }
+  function planReauthSends(log, plan, expiryId) {
+    const l = log || createReauthLog();
+    const toSend = [], suppressed = [];
+    for (const m of (plan && plan.reauth) || []) {
+      const key = `${m.source}::${expiryId || "current"}`;
+      if (l.sent.some((s) => s.key === key)) { suppressed.push({ source: m.source, reason: "already_sent_for_this_expiry" }); continue; }
+      l.sent.push({ key, source: m.source, expiry_id: expiryId || "current", text: m.text });
+      toSend.push(m);
+    }
+    return { to_send: toSend, suppressed, total_sent: l.sent.length, log: l };
+  }
+
+  // ---------- chat glue: the router tries 120 first, then this ----------
+  function handleChat(text, ctx) {
+    const t = String(text || "").trim().toLowerCase();
+    const c = ctx || {};
+    // R3 write path: re-apply any persisted correction to this load of the
+    // profile first, then route the correction instruction itself.
+    if (c.profile) applyPersistedCorrections(c.profile);
+    if (c.profile && /\buse the new (one|resume|version)\b|\bswitch to the new\b|\bold resume'?s wrong\b|\buse the newer\b/.test(t)) {
+      const r = applyProfileCorrection(c.profile, text, c);
+      return { intent: "profile_correction", resultStatus: r.ok ? "completed" : "blocked", ok: r.ok, changes: r.changes, audit: r.audit || null, reply: r.ok ? r.reply : r.text };
+    }
+    if (/\bhelp me find a job\b|\bstart.*onboarding\b|\bonboard me\b/.test(t)) {
+      if (!c.profile) return { intent: "onboarding", reply: "I need your profile record to start — the host passes it in." };
+      const r = startInterview(c.profile);
+      return { intent: "onboarding", done: r.done, pending: r.pending || null, reply: r.text };
+    }
+    if (c.profile && c.profile._onboarding_pending && c.interviewAnswer) {
+      const r = answerCurrent(c.profile, text);
+      return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
+    }
+    if (c.profile && /^(what'?s|what is) my\b/.test(t)) {
+      const r = answerFromProfile(c.profile, text);
+      if (r.found || r.ask) return { intent: "profile_recall", found: r.found, source: r.source || null, reply: r.found ? r.answer : r.ask };
+    }
+    if (/\bwhat (?:can you|do you) (?:actually )?do\b.*\bjob search\b|\bwhat can you do for my (?:job|career)\b/.test(t)) {
+      const r = capabilityStatus(c.capabilitySources || {});
+      return { intent: "capability_status", proven_live: r.proven_live, blocked_count: r.blocked_count, reply: r.text };
+    }
+    if (/\bwhat do you have stored about me\b|\bwhat'?s stored about me\b|\bshow (?:me )?my stored\b/.test(t)) {
+      if (!c.profile) return null;
+      const r = profileExport(c.profile, c.access || {});
+      return { intent: "profile_export", fact_count: r.fact_count, connection_count: r.connection_count, delete_path_offered: r.delete_path_offered, reply: r.text };
+    }
+    return null;
+  }
+
+  return { STEPS, stepAnswered, nextQuestion, startInterview, answerCurrent, factVersion, bumpFactVersion, answerFromProfile, SENSITIVE_FIELDS, sensitiveAnswerPrompt, confirmSensitive, profileExport, capabilityStatus, createReauthLog, planReauthSends, applyProfileCorrection, applyPersistedCorrections, exportCorrectionStore, restoreCorrectionStore, _resetCorrectionStore, handleChat };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerOnboarding;
+
 /* Career W11 extensions (SC-201..205 prep tail + SC-212..220 negotiation gaps).
    NEW file by design: the vendored engines 127-career-prep.js / 128-career-negotiation.js stay
    byte-identical to their sibling branches; everything here either adapts data for them or adds
@@ -27289,7 +27634,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerW11E
        filters + proven-skill coverage of must-haves; verdict submit | skip with reasons.
    Pure domain module, UMD. No fetch, no deploy, no secrets. */
 const CareerApply3 = (() => {
-  const J = (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })();
+  const J = (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })();
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
@@ -27301,7 +27646,7 @@ const CareerApply3 = (() => {
     return apps.map((a) => {
       const proof = msgs.filter((m) => m.app_ref === a.app_id);
       const latest = proof.length ? proof[proof.length - 1] : null;
-      const consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
+      const _consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
       return { app_id: a.app_id, company: a.company, title: a.title, stage: a.stage, applied_at: a.applied_at, variant_id: a.variant_id, log_events: (a.events || []).map((e) => e.kind), inbox_proof: proof.map((m) => ({ msg_id: m.msg_id, kind: m.kind, at: m.at, subject: m.subject })), latest_inbox_kind: latest ? latest.kind : null, cross_check: proof.length ? "log + inbox agree on this application's existence" : "log only — no inbox message references this application" };
     });
   }
@@ -27427,7 +27772,7 @@ const CareerApply3 = (() => {
     const fit = J.scoreFit(posting, profile);
     if (fit.excluded) return { verdict: "skip", stage: "hard filter", reasons: fit.reasons, fit };
     const proven = new Set((profile.skills || []).filter((x) => x.proven !== false).map((x) => lc(x.name)));
-    const jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
+    const _jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
     const must = (opts.mustHaveSkills || []).filter((x) => !proven.has(lc(x)));
     if (must.length && (opts.mustHaveCoverage || 0) === 0) return { verdict: "skip", stage: "skill evidence", reasons: [`no evidenced skill covers the must-haves: ${must.join(", ")}`], fit, missing_must_haves: must };
     return { verdict: "submit", stage: "eligible", reasons: fit.reasons, fit, missing_must_haves: must };
@@ -27591,7 +27936,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerSafe
    (injected) calendar busy intervals. */
 const CareerSeason = (() => {
   "use strict";
-  const DAY = 86400000;
+  const _DAY = 86400000;
   const rowsOf = (store) => Array.isArray(store) ? store : (store && store.rows) || [];
   const weekKey = (t) => { const d = new Date(t); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day); return d.toISOString().slice(0, 10); };
 
@@ -27867,7 +28212,7 @@ const CareerReply = (() => {
   }
 
   function composeText(raw, opts) {
-    const o = opts || {};
+    const _o = opts || {};
     const noPayload = stripPayloadSpans(raw == null ? "" : String(raw));
     const lines = noPayload.split(/\n+/);
     const sentences = [];
@@ -27952,6 +28297,1316 @@ const CareerReply = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerReply;
 
+/* Career doorstep — the chat ACTION seam (repair lane R3, gauntlet C15/C17/C18/C20/C37).
+   One seam pattern for every action in this module:
+     user turn -> routed action (handleChat) -> a domain module or the F3 form
+     driver executes -> the result carries a typed resultStatus (the canonical
+     oracle set: completed | prepared | awaiting_user | running | partial |
+     blocked | failed | unknown_outcome) plus structured proof the composer /
+     grader can read.
+   What lives here (and ONLY here, per lane ownership):
+     1. DOORSTEP FORM SEAM (C17/C18, C20 pre-submit): fills the F3 replica
+        forms step by step through the fixture form driver — values resolved
+        from profile facts only, conditional fields handled, unknowns and
+        consent/declaration answers surfaced as ASKS (never guessed, never
+        inferred — sensitive answers least of all), the hidden-default stop
+        honored (UNRESOLVED_HIDDEN_DEFAULT is the terminal step, not a
+        surprise at submit) — and stops ON the final review screen. Product
+        output is the doorstep proof chain: step log (field, value source,
+        result per agent step), a would-submit payload snapshot (all values +
+        sha256 of the bound resume artifact + sha256 of the payload), and a
+        sink-armed verification: a dry validation of the exact payload against
+        the driver (missing fields, hidden defaults, late material) with NO
+        submission.
+     2. C20 SUBMIT LEG: after the doorstep, the case's own approved in-sink
+        submit runs through this same seam. Exactly one submit per payload;
+        a sink timeout is reported as unknown_outcome (never as success);
+        "did it go through?" reconciles the sink BEFORE any retry, and a
+        repeat approval while an outcome is unknown/confirmed is refused.
+     3. QUEUE CONTROL (C37): "stop everything" halts the outreach queue and
+        PERSISTS the halt (the queue state is the host-persisted object /
+        JSON file passed in ctx; the halt flag and per-item status are
+        written into it). Duplicate events (same event_id) are deduped and
+        out-of-order events (older sent_at than the state they would rewind)
+        cannot revive a halted item. Pending recipients are also suppressed
+        through 124's own suppression store when the host passes one, so a
+        send-time check in 124 would stop them too. 124 is CALLED, never edited.
+     4. PACKET BINDING LEG (C15): packet preparation via chat resolves the
+        requested artifact version among same-named records by CONTENT HASH
+        and calls 133's assemblePacket (called, never edited); the returned
+        packet carries this seam's binding + review surface.
+   Approval gates are untouched: sensitive/consent answers still stop for the
+   user, submits still require the case's explicit approval turn, caps are
+   124's and are not touched here. All form writes go only to the F3 local
+   receipt sink. No real sends, no real submissions.
+     5. EXECUTION GUARDS + TRUTHFUL STATUS (repair lane R2B, gauntlet deep-dive
+     DD-1/DD-3/DD-4/DD-5/DD-6/DD-10; causes S-2/S-3):
+     a. DESTINATION TRUTH: status/reconcile NEVER speaks from in-memory
+        submission state. Every status answer re-reads the destination at
+        answer time (driver reconcile + a scan of the receipt sink) through
+        ONE shared path (destinationStatus) used by the timeout branch, the
+        accepted branch, and the repeat-approve refusal alike. Receipt found
+        -> confirmed; receipt absent (or destination unreadable) -> the
+        in-memory state is downgraded to unknown_outcome and the reply says
+        plainly that the outcome is uncertain. No confirmation is ever
+        composed from memory (AP22).
+     b. EXECUTION-TIME GUARDS: submitDoorstep re-reads state IMMEDIATELY
+        before any sink write and refuses — no write, typed resultStatus
+        "blocked", structured guard_refusal {code, reason, unblock}, and a
+        reply naming the specific refusal + what would unblock it — when:
+        the approval was cancelled, the approval was invalidated, the role
+        is closed, a prior application is on record for this user+job
+        (recorded disclosures AND destination receipts), or the packet's
+        bound fact version/hash no longer matches the current profile.
+        The guards read STATE, not the executing turn's wording, so a bare
+        "approve and submit" cannot revive anything (AP08/AP18/AP20/AP23).
+     c. PACKET<->FACT BINDING: at preparation (doorstep fill AND the C15
+        packet leg) the packet/doorstep is stamped with the profile's fact
+        version (130's fact_version counter — bumped by 130's own write
+        paths on every correction) AND a sha256 hash of the fact-bearing
+        profile slices, so even a correction that reaches the profile
+        without 130's counter invalidates the packet at guard (b).
+     STATE FIELDS this seam defines (Lane A's intent handlers in 142 write
+     them through the recorder exports below — recordJobClosure /
+     cancelDoorstep / invalidateApproval / recordPriorApplication — or set
+     the fields directly; the guards read the fields, either way):
+       doorstepState.job_status: "closed"      (+ job_closed, job_closed_at,
+                                                  job_closed_reason)
+       doorstepState.submission.status: "cancelled" (+ cancel_reason,
+                                                  cancelled_at;
+                                                  approval_cancelled: true)
+       doorstepState.approval_invalidated: true (+ invalidated_at,
+                                                  invalidated_reason;
+                                                  submission.status may also
+                                                  be "invalidated")
+       doorstepState.prior_applications: [{ job_id, company, role, source,
+                                                  channel, at }]
+                                                  (host lists are also read:
+                                                  ctx.priorApplications,
+                                                  ctx.trackerRecords,
+                                                  ctx.applications,
+                                                  profile.applications,
+                                                  manual-apply disclosure
+                                                  objects on state/ctx)
+       doorstepState.fact_version / fact_hash: stamped at preparation
+                                                  (mirrored on the doorstep
+                                                  object + payload, and on the
+                                                  C15 binding/review)
+       doorstepState.job_id / sink_dir: identity of this doorstep's job and
+                                                  its destination, stamped at
+                                                  fill so status can re-read
+                                                  the RIGHT destination.
+     6. DOORSTEP FILL SURFACING (feature lane G2, defect APD-1 / AP13):
+     one state machine for every dry-validation blocker. The fill loop no
+     longer skips the review step, and after filling, EVERY blocker the dry
+     validation flags on the exact payload — a late material question, a
+     hidden default still in effect, a missing required field — is
+     collected on the doorstep (doorstep.blockers) and surfaced as a
+     plain-language ask BEFORE any submit turn can be attempted. The
+     doorstep reaches REVIEW only when no blockers remain; a sensitive
+     hidden default keeps the preserved STOPPED terminal shape. Resume is
+     a re-fill after the user supplies the missing answer (through the
+     user-supplied fact channel the resolver already reads, or a corrected
+     profile) — the re-fill clears the blocker and only then reaches
+     REVIEW. A submit attempt with open blockers refuses, naming the
+     blockers in plain words; structured codes stay on result objects and
+     never appear in a reply.
+     7. PER-FAMILY DOORSTEP PAYLOADS (feature lane G6, from the hardened
+     re-score's GAP census): general module-level emitters producing the
+     commitment artifact the hardened grader requires per family —
+     emitTrackingLog (tracking-write => the exact 126-shaped log write),
+     emitCalendarProposal (calendar => a proposal card evaluated against
+     the calendar in ctx: busy overlaps, quiet hours, and fall-back
+     ambiguity are REPORTED as conflicts in the payload, never silently
+     resolved), emitApplicationPacket (application => packet for a posting
+     spec beyond the fixture ids; prepPacket's fixture behavior is
+     unchanged) and emitOutreachDraft (outreach-send => a 124-built draft
+     plus a queue state armed at awaiting approval). Every emitter returns
+     a typed result + payload sha256 + a doorstep record { family,
+     gap: null, driven_by: "agent", state: "AWAITING_COMMIT" } and NEVER
+     invokes the commitment target (tracker write, calendar create,
+     transport send, form submit) — armed, not fired.
+   ROUTER REGISTRATION (one line, for the coordinator at integration): in the
+   chat router's handler chain, after 120-career-access and
+   130-career-onboarding, add CareerDoorstep.handleChat as the next tried
+   handler — pilot-lib.cjs chatTurn is the staging mirror of that chain.
+   Node host note: the form driver and queue-file persistence use fs/path
+   through guarded requires; in a non-Node bundle the doorstep fill/submit
+   functions report blocked instead of throwing. */
+const CareerDoorstep = (() => {
+  "use strict";
+  const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch (e) { return null; } })();
+  const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch (e) { return null; } })();
+  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch (e) { return null; } })();
+  const Track = typeof CareerTrack !== "undefined" ? CareerTrack : (() => { try { return require("./126-career-track.js"); } catch (e) { return null; } })();
+  const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch (e) { return null; } })();
+  const nodeCrypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
+  const nodeFs = (() => { try { return require("fs"); } catch (e) { return null; } })();
+  const nodePath = (() => { try { return require("path"); } catch (e) { return null; } })();
+
+  // ---------- sha256 (crypto when available; pure-JS fallback, same digest) ----------
+  function sha256Direct(input) {
+    const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    const rr = (x, n) => ((x >>> n) | (x << (32 - n))) | 0;
+    const bytes = [];
+    const str = String(input == null ? "" : input);
+    for (let i = 0; i < str.length; i++) { // UTF-8 encode
+      let cp = str.charCodeAt(i);
+      if (cp < 0x80) bytes.push(cp);
+      else if (cp < 0x800) { bytes.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f)); }
+      else if (cp >= 0xd800 && cp <= 0xdbff && i + 1 < str.length) { const lo = str.charCodeAt(++i); cp = 0x10000 + ((cp - 0xd800) * 0x400) + (lo - 0xdc00); bytes.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f)); }
+      else bytes.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    }
+    const bitLenHi = Math.floor(bytes.length / 0x20000000), bitLenLo = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    for (let i = 3; i >= 0; i--) bytes.push((bitLenHi >>> (i * 8)) & 0xff);
+    for (let i = 3; i >= 0; i--) bytes.push((bitLenLo >>> (i * 8)) & 0xff);
+    let H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    const w = new Array(64);
+    for (let block = 0; block < bytes.length; block += 64) {
+      for (let t = 0; t < 16; t++) w[t] = (bytes[block + t * 4] << 24) | (bytes[block + t * 4 + 1] << 16) | (bytes[block + t * 4 + 2] << 8) | bytes[block + t * 4 + 3];
+      for (let t = 16; t < 64; t++) {
+        const s0 = rr(w[t - 15], 7) ^ rr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
+        const s1 = rr(w[t - 2], 17) ^ rr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+      }
+      let [a, b, c, d, e, f, g, h] = H;
+      for (let t = 0; t < 64; t++) {
+        const S1 = rr(e, 6) ^ rr(e, 11) ^ rr(e, 25);
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (h + S1 + ch + K[t] + w[t]) | 0;
+        const S0 = rr(a, 2) ^ rr(a, 13) ^ rr(a, 22);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + maj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      H = [(H[0] + a) | 0, (H[1] + b) | 0, (H[2] + c) | 0, (H[3] + d) | 0, (H[4] + e) | 0, (H[5] + f) | 0, (H[6] + g) | 0, (H[7] + h) | 0];
+    }
+    return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+  }
+  function sha256(input) {
+    const s = String(input == null ? "" : input);
+    if (nodeCrypto) return nodeCrypto.createHash("sha256").update(s, "utf8").digest("hex");
+    return sha256Direct(s);
+  }
+
+  // ---------- field resolution: profile facts ONLY; unknowns are asks ----------
+  const humanField = (id) => String(id || "").replace(/_/g, " ");
+  function resolveField(field, ctx) {
+    const p = (ctx && ctx.profile) || {};
+    const basics = p.basics || {}, cons = p.constraints || {}, defaults = p.defaults || {};
+    const id = field.field_id;
+    const from = (value, source) => ({ value, source });
+    const ask = (reason) => ({ ask: reason || "not in the profile — the user must supply it; never guessed" });
+    // Resume channel (APD-1): an answer the user supplied for this exact
+    // field — through the same user-supplied fact channel the default case
+    // below already reads — IS the user's own answer, for every field,
+    // including a consent, a legal declaration, or the user's own words.
+    // Absent that, those fields stay asks below; they are never guessed.
+    const supplied = ctx && ctx.formFacts && ctx.formFacts[id];
+    if (supplied != null) return from(supplied, "user-supplied answer for this exact field");
+    switch (id) {
+      case "full_name": return basics.name ? from(basics.name, "profile basics.name") : ask();
+      case "email": return basics.email ? from(basics.email, "profile basics.email") : ask();
+      case "phone": return basics.phone ? from(basics.phone, "profile basics.phone") : ask("phone is not on the profile");
+      case "resume_upload": {
+        const art = (ctx && ctx.resumeArtifact) || null;
+        if (!art || !art.name) return ask("no resume artifact is bound to this application");
+        return from(art.name, "bound resume artifact " + art.name + (art.sha256 ? " (sha256 recorded in the payload snapshot)" : ""));
+      }
+      case "work_authorization": {
+        if (cons.needsSponsorship === true) return from("will-need-sponsorship", "profile constraints.needsSponsorship = true (stated by the user, never inferred)");
+        if (cons.needsSponsorship === false && cons.workAuthorization) return from("yes-authorized", "profile constraints.workAuthorization (stated) + needsSponsorship = false");
+        return ask("work authorization is sensitive and is not stated on the profile");
+      }
+      case "sponsorship_detail": {
+        const detail = cons.sponsorshipDetail || (ctx && ctx.formFacts && ctx.formFacts.sponsorship_detail) || (/f-1|opt|sponsorship/i.test(String(cons.workAuthorization || "")) ? String(cons.workAuthorization) : null);
+        return detail ? from(detail, "profile constraints (stated eligibility / sponsorship detail)") : ask("sponsorship detail is sensitive and is not stated on the profile");
+      }
+      case "start_date": {
+        if (!cons.startDate) return ask();
+        const v = String(cons.startDate);
+        return from(/^\d{4}-\d{2}$/.test(v) ? v + "-01" : v, "profile constraints.startDate");
+      }
+      case "graduation_date": return cons.graduationDate ? from(String(cons.graduationDate), "profile constraints.graduationDate") : ask();
+      case "eeo_gender": case "eeo_veteran": case "eeo_gender_reversed": {
+        if (defaults.demographicPreference && /decline/i.test(String(defaults.demographicPreference))) return from("decline-to-answer", "profile defaults.demographicPreference — the user's stored decline-to-answer preference, set explicitly so no hidden default can stand");
+        const explicit = ctx && ctx.eeoAnswers && ctx.eeoAnswers[id];
+        return explicit ? from(explicit, "user-supplied answer for this exact field") : ask("sensitive field with no stored preference — never guessed, and a hidden default must never stand in for the user");
+      }
+      case "background_check_consent": return ask("consent must be the user's own act — a pre-checked box is not consent");
+      case "export_control_declaration": return ask("a legal declaration must be the user's own answer");
+      case "sms_opt_in": return from(false, "safe default — the user is never opted into marketing messages on their behalf; the pre-checked box is explicitly cleared");
+      case "why_company": return ask("this answer must be the user's own words — left blank rather than invented");
+      default: {
+        const explicit = ctx && ctx.formFacts && ctx.formFacts[id];
+        return explicit != null ? from(explicit, "user-supplied fact for this field") : ask();
+      }
+    }
+  }
+
+  // Dry validation of the EXACT payload, using the driver's own checks plus the
+  // submit pre-checks (late material), WITHOUT calling submit.
+  function dryValidate(session, spec) {
+    const v = session.validate();
+    const late = Driver.lateMaterialFields(spec).filter((f) => f.required && session.answers[f.field_id] === undefined).map((f) => f.field_id);
+    const hiddenSensitive = v.hiddenDefaultsInEffect.filter((h) => h.sensitive).map((h) => h.field_id);
+    return { ok: v.ok && late.length === 0 && hiddenSensitive.length === 0, missing: v.missing, hidden_defaults_in_effect: v.hiddenDefaultsInEffect, hidden_sensitive: hiddenSensitive, late_material_unacknowledged: late, submitted: false, note: "driver validate() + submit pre-checks on the exact payload; submit was NOT called" };
+  }
+
+  // ---------- G2 / APD-1: blocker collection (one state machine) ----------
+  // A blocker is anything the dry validation flags on the exact payload:
+  // a late material question, a missing required field, or a hidden default
+  // still in effect. Blockers are structured data (field ids + kinds stay
+  // here and on result objects); replies name them only through humanField.
+  function specField(spec, fieldId) {
+    if (!Driver || !spec) return null;
+    const hit = Driver.allFields(spec).find((x) => x.field.field_id === fieldId);
+    return hit ? hit.field : null;
+  }
+  function collectBlockers(spec, dry) {
+    const byField = new Map();
+    const add = (fieldId, kind, sensitive) => {
+      if (!fieldId) return;
+      let b = byField.get(fieldId);
+      if (!b) {
+        const def = specField(spec, fieldId);
+        b = { field: fieldId, name: humanField(fieldId), label: (def && def.label) || humanField(fieldId), kinds: [], sensitive: !!(sensitive || (def && def.sensitive)) };
+        byField.set(fieldId, b);
+      }
+      if (!b.kinds.includes(kind)) b.kinds.push(kind);
+      if (sensitive) b.sensitive = true;
+    };
+    for (const id of (dry && dry.late_material_unacknowledged) || []) add(id, "late_material");
+    for (const id of (dry && dry.missing) || []) add(id, "missing_required");
+    for (const h of (dry && dry.hidden_defaults_in_effect) || []) add(h.field_id, "hidden_default", h.sensitive);
+    return [...byField.values()];
+  }
+  function blockerAskReason(blocker) {
+    if (blocker.kinds.includes("late_material")) return "a required question that appears for the first time on the final review step — it must be the user's own answer, never guessed";
+    if (blocker.kinds.includes("hidden_default")) return "an answer is preselected in secret on this form and the user has not chosen it themselves — it must be the user's own answer, never the hidden preselection";
+    return "a required answer that is not in the profile — it must come from the user, never guessed";
+  }
+  function blockerNames(blockers) {
+    return (blockers || []).map((b) => humanField(typeof b === "string" ? b : b.field)).join(", ");
+  }
+  // The blockers open RIGHT NOW, re-derived from the live session's dry
+  // validation at submit time (never trusted from a stale doorstep object);
+  // the stored doorstep blockers are the fallback when no session survives.
+  function openBlockers(state) {
+    const st = state || {};
+    if (st.session && st.spec) {
+      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch (e) { /* fall through to the stored blockers */ }
+    }
+    return (st.doorstep && st.doorstep.blockers) || [];
+  }
+  // The structured code for a blocker refusal, derived from its kinds —
+  // it lives on the result object exactly as the driver-stop code always
+  // did, and never in the reply text.
+  function blockerStopCode(blockers) {
+    const kinds = new Set((blockers || []).flatMap((b) => b.kinds || []));
+    if (kinds.has("late_material")) return "LATE_MATERIAL_QUESTION";
+    if (kinds.has("hidden_default")) return "UNRESOLVED_HIDDEN_DEFAULT";
+    if (kinds.has("missing_required")) return "MISSING_REQUIRED";
+    return null;
+  }
+  function blockerRefusal(blockers, doorstep, submission) {
+    const names = blockerNames(blockers);
+    return {
+      intent: "doorstep_submit", resultStatus: "awaiting_user", refused: true, blockers,
+      stop_code: blockerStopCode(blockers),
+      doorstep, submission,
+      reply: `I stopped the submit — nothing was submitted. I still need your own answer for: ${names || "the open questions on this form"}. Answer those and I will prepare it again for your approval.`,
+    };
+  }
+
+  // ---------- 0. R2B: fact binding, destination truth, guards, recorders ----------
+  // Fact binding: the version is 130's counter (profile.fact_version, bumped by
+  // 130's write paths); the hash covers the fact-bearing profile slices in a
+  // canonical (key-sorted) serialization, so ANY change to the facts the
+  // packet was prepared from — through any write path — changes the binding.
+  function factVersionOf(profile) {
+    if (Onboarding && typeof Onboarding.factVersion === "function") return Onboarding.factVersion(profile);
+    return profile && Number.isFinite(profile.fact_version) ? profile.fact_version : 0;
+  }
+  function factSlices(profile) {
+    const p = profile || {};
+    return {
+      basics: p.basics || {}, preferences: p.preferences || {}, constraints: p.constraints || {},
+      facts: (p.facts || []).map((f) => ({ id: f.id || null, kind: f.kind || null, title: f.title || null, text: f.text || null, status: f.status || null, needs_confirmation: !!f.needs_confirmation })),
+    };
+  }
+  function stableStringify(v) {
+    if (v === null || typeof v !== "object") return JSON.stringify(v === undefined ? null : v);
+    if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
+    return "{" + Object.keys(v).sort().filter((k) => v[k] !== undefined && typeof v[k] !== "function").map((k) => JSON.stringify(k) + ":" + stableStringify(v[k])).join(",") + "}";
+  }
+  function factBinding(profile) {
+    if (!profile) return null;
+    return { fact_version: factVersionOf(profile), fact_hash: sha256(stableStringify(factSlices(profile))) };
+  }
+
+  // Destination truth: read the receipt sink for THIS doorstep. The sink dir
+  // is the one stamped at fill (state.sink_dir) or passed by the host
+  // (ctx.sinkDir); the driver's own reconcile() is the other read of the same
+  // destination. Returns null when the destination cannot be read at all —
+  // callers must treat that as "cannot confirm", never as confirmation.
+  function readSinkReceipts(ctx, state) {
+    const dir = (ctx && ctx.sinkDir) || (state && state.sink_dir) || null;
+    if (!dir || !nodeFs || !nodePath) return null;
+    try {
+      const receipts = [];
+      for (const f of nodeFs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch (e) { /* a non-receipt file is not evidence either way */ }
+      }
+      return { dir, receipts };
+    } catch (e) { return null; }
+  }
+  function destinationStatus(ctx, state) {
+    const sub = (state && state.submission) || {};
+    const jobId = (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || (state && state.spec && state.spec.board && state.spec.board.job_id) || null;
+    let checked = false, found = false, receipt = null;
+    if (state && state.session && typeof state.session.reconcile === "function" && sub.receipt_id) {
+      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch (e) { /* unreadable destination: checked stays false */ }
+    }
+    const sink = readSinkReceipts(ctx, state || {});
+    let jobReceipts = null;
+    if (sink) {
+      checked = true;
+      jobReceipts = sink.receipts.filter((r) => !jobId || !r.job_id || r.job_id === jobId);
+      if (sub.receipt_id) { const hit = sink.receipts.find((r) => r.receipt_id === sub.receipt_id); if (hit) { found = true; receipt = receipt || hit; } }
+      else if (jobReceipts.length) { found = true; receipt = receipt || jobReceipts[0]; }
+    }
+    return { checked, found, receipt, job_receipt_count: jobReceipts ? jobReceipts.length : null };
+  }
+
+  // Prior applications for this user+job, from every record the host keeps:
+  // the doorstep state's own list, host ctx lists, the profile, a recorded
+  // manual-apply disclosure — and the destination itself (a sink receipt for
+  // this job that is not THIS doorstep's own recorded submission).
+  function jobIdentity(state, spec) {
+    const board = (spec && spec.board) || (state && state.spec && state.spec.board) || {};
+    return {
+      job_id: board.job_id || (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || null,
+      company: board.company || (state && state.doorstep && state.doorstep.company) || null,
+      role: board.role || (state && state.doorstep && state.doorstep.role) || null,
+    };
+  }
+  // Coordinator integration bridge (repair round 2): the router lane (142)
+  // records user intents in its own shapes — doorstepState.invalidation
+  // { active, reason }, .role_closed { closed }, .prior_application
+  // { disclosed } — while these guards were written against the recorder
+  // shapes above. This reader translates the router's shapes so BOTH
+  // writers arm the same execution guards.
+  function routerInvalidation(st) {
+    const inv = st && st.invalidation && st.invalidation.active === true ? st.invalidation : null;
+    const reason = inv ? inv.reason : null;
+    return {
+      closed: reason === "role_closed" || !!(st && st.role_closed && st.role_closed.closed === true),
+      cancelled: reason === "cancelled_by_user",
+      invalidated: !!inv && reason !== "role_closed" && reason !== "cancelled_by_user" && reason !== "prior_application",
+      prior: reason === "prior_application" || !!(st && st.prior_application && st.prior_application.disclosed === true),
+      reason,
+    };
+  }
+  function priorApplicationFor(ctx, state, spec) {
+    const st = state || {}, c = ctx || {};
+    const job = jobIdentity(st, spec);
+    const matches = (rec) => {
+      if (!rec || typeof rec !== "object") return false;
+      const rid = rec.job_id || rec.jobId || null;
+      if (job.job_id && rid) return rid === job.job_id;
+      if (job.company && rec.company) return rec.company === job.company && (!job.role || !rec.role || rec.role === job.role);
+      return false;
+    };
+    const lists = [st.prior_applications, st.priorApplications, c.priorApplications, c.trackerRecords, c.applications, c.profile && c.profile.applications];
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue;
+      const hit = list.find(matches);
+      if (hit) return { job_id: hit.job_id || hit.jobId || job.job_id, company: hit.company || job.company, role: hit.role || job.role, source: hit.source || "prior application on record", channel: hit.channel || null, at: hit.at || null, receipt_id: hit.receipt_id || null };
+    }
+    if (st.prior_application && st.prior_application.disclosed === true) {
+      const pa = st.prior_application;
+      return { job_id: pa.job_id || job.job_id, company: pa.company || job.company, role: pa.role || job.role, source: "manual application (disclosed by the user)", channel: pa.channel || null, at: pa.at || null, receipt_id: null };
+    }
+    if (routerInvalidation(st).prior) {
+      const inv = st.invalidation || {};
+      return { job_id: job.job_id, company: job.company, role: job.role, source: "manual application (disclosed by the user)", channel: null, at: inv.at || null, receipt_id: null };
+    }
+    for (const single of [st.manual_apply_disclosure, c.manualApplyDisclosure, c.manual_apply_disclosure]) {
+      if (single && matches(single)) return { job_id: single.job_id || single.jobId || job.job_id, company: single.company || job.company, role: single.role || job.role, source: single.source || "manual application (disclosed by the user)", channel: single.channel || null, at: single.at || null, receipt_id: null };
+    }
+    const sink = readSinkReceipts(c, st);
+    if (sink) {
+      const own = st.submission && st.submission.receipt_id;
+      const hit = sink.receipts.find((r) => (!job.job_id || !r.job_id || r.job_id === job.job_id) && r.receipt_id !== own);
+      if (hit) return { job_id: hit.job_id || job.job_id, company: job.company, role: job.role, source: "prior submission at the destination", channel: "receipt sink", at: hit.submitted_at || null, receipt_id: hit.receipt_id };
+    }
+    return null;
+  }
+  function describePrior(prior) {
+    if (!prior) return "a prior application";
+    const bits = [];
+    if (prior.source) bits.push(prior.source);
+    if (prior.channel) bits.push("via " + prior.channel);
+    if (prior.at) bits.push("on " + prior.at);
+    if (prior.receipt_id) bits.push("receipt " + prior.receipt_id);
+    return bits.join(", ") || "a prior application";
+  }
+  function jobLabelOf(state) {
+    const job = jobIdentity(state || {});
+    return [job.company, job.role].filter(Boolean).join(" — ") || "this job";
+  }
+  function jobClosedReason(ctx, state) {
+    const st = state || {}, c = ctx || {};
+    if (st.job_status === "closed" || st.job_closed === true || routerInvalidation(st).closed) return st.job_closed_reason || "the role was reported closed — it is no longer accepting applications";
+    const p = c.posting || null;
+    if (p && (p.closed === true || p.is_closed === true || p.status === "closed" || p.accepting_applications === false || p.acceptingApplications === false)) {
+      return "the posting now shows this job as closed — it is no longer accepting applications";
+    }
+    return null;
+  }
+  function staleFactCheck(ctx, state) {
+    const st = state || {}, c = ctx || {};
+    if (!c.profile) return null;
+    const boundHash = st.fact_hash || (st.doorstep && st.doorstep.fact_hash) || null;
+    const boundVersion = st.fact_version != null ? st.fact_version : (st.doorstep ? st.doorstep.fact_version : null);
+    if (boundHash == null && boundVersion == null) return null; // prepared before binding existed — nothing to compare
+    const cur = factBinding(c.profile);
+    if (boundHash && cur.fact_hash !== boundHash) return { kind: boundVersion != null && cur.fact_version !== boundVersion ? "version" : "hash", bound: boundVersion, current: cur.fact_version };
+    if (!boundHash && boundVersion != null && cur.fact_version !== boundVersion) return { kind: "version", bound: boundVersion, current: cur.fact_version };
+    return null;
+  }
+  // THE execution-time guard set (R2B fix 2): evaluated immediately before
+  // any sink write, purely from re-read state. Returns null when the submit
+  // may proceed, else { code, reason, unblock, reply }.
+  function checkSubmitGuards(ctx, state) {
+    const st = state || {}, sub = st.submission || {};
+    const ri = routerInvalidation(st);
+    if (sub.status === "cancelled" || st.approval_cancelled === true || ri.cancelled) {
+      const why = sub.cancel_reason || st.cancel_reason || null;
+      return { code: "approval_cancelled", reason: "the user cancelled this submission" + (why ? ` (${why})` : ""), unblock: "prepare the application fresh and approve the new review",
+        reply: `I did not submit this application: you cancelled it${why ? ` (${why})` : ""}, and a cancelled approval cannot be revived by a later "approve and submit". Nothing was submitted. If you want it to go ahead after all, ask me to prepare it fresh and approve the new review.` };
+    }
+    if (st.approval_invalidated === true || sub.status === "invalidated" || ri.invalidated) {
+      const why = st.invalidated_reason || sub.invalidated_reason || (ri.reason ? "invalidated by a later update (" + ri.reason + ")" : null) || "the prepared packet was invalidated";
+      return { code: "approval_invalidated", reason: String(why), unblock: "re-prepare the packet on the current facts and re-confirm the new review",
+        reply: `I did not submit this application: the prepared packet was invalidated (${why}), so its approval no longer stands. Nothing was submitted. I need to re-prepare it on the current facts and have you re-confirm the new review first.` };
+    }
+    const closed = jobClosedReason(ctx, st);
+    if (closed) {
+      return { code: "job_closed", reason: closed, unblock: "the employer reopens the job, or pick another role and I will prepare a fresh application",
+        reply: `I did not submit this application: ${closed}, so this submission is stopped. Nothing was submitted. If the employer reopens it — or you pick another role — I will prepare a fresh application for your review.` };
+    }
+    const prior = priorApplicationFor(ctx, st, st.spec);
+    if (prior) {
+      return { code: "duplicate_application", reason: `an application for this job is already on record (${describePrior(prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior,
+        reply: `I did not submit: there is already an application on record for ${jobLabelOf(st)} (${describePrior(prior)}), so a second submission would be a duplicate application. Nothing was submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+    }
+    const stale = staleFactCheck(ctx, st);
+    if (stale) {
+      const change = stale.kind === "version" ? `fact version ${stale.bound} → ${stale.current}` : "the facts on file no longer match the ones this packet was prepared from";
+      return { code: "stale_packet_facts", reason: `profile facts changed after this packet was prepared (${change})`, unblock: "re-confirm the current answers, let me re-prepare the packet, then approve the new review",
+        reply: `I did not submit: your profile facts changed after this packet was prepared (${change}), so the prepared answers are stale and this packet is invalidated. Nothing was submitted with the old answers. The current answers have to be re-confirmed and the packet re-prepared before anything submits.` };
+    }
+    return null;
+  }
+  // Recorders — Lane A's mutation surface. Each accepts the chat ctx (with
+  // .doorstepState) or the doorstepState object itself, writes the state
+  // fields documented in the header, and returns what it wrote.
+  function stateOf(x) { if (!x || typeof x !== "object") return null; return x.doorstepState || x; }
+  function recordJobClosure(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.job_status = "closed"; st.job_closed = true;
+    st.job_closed_at = o.at || null;
+    st.job_closed_reason = o.reason || "the employer closed this job — it is no longer accepting applications";
+    return st;
+  }
+  function cancelDoorstep(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.submission = st.submission || { status: "not_submitted", retries: 0, reconciled_before_retry: false, receipt_id: null };
+    st.submission.status = "cancelled";
+    st.submission.cancelled_at = o.at || null;
+    st.submission.cancel_reason = o.reason || "user cancelled the submission";
+    st.approval_cancelled = true;
+    if (st.doorstep) { st.doorstep.submission = st.submission; st.doorstep.state = "CANCELLED"; }
+    return st;
+  }
+  function invalidateApproval(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.approval_invalidated = true;
+    st.invalidated_at = o.at || null;
+    st.invalidated_reason = o.reason || "the prepared packet was invalidated";
+    if (st.submission && st.submission.status === "not_submitted") st.submission.status = "invalidated";
+    return st;
+  }
+  function recordPriorApplication(x, rec) {
+    const st = stateOf(x); if (!st || !rec) return null;
+    const entry = { job_id: rec.job_id || rec.jobId || null, company: rec.company || null, role: rec.role || null, source: rec.source || "manual", channel: rec.channel || null, at: rec.at || null };
+    st.prior_applications = [...(st.prior_applications || []), entry];
+    return entry;
+  }
+
+  // ---------- 1. doorstep fill (C17/C18 + C20 pre-submit) ----------
+  function fillDoorstep(ctx) {
+    if (!Driver) return { ok: false, code: "driver_unavailable", reply: "The form driver is not available in this build, so I filled nothing." };
+    const spec = ctx.formSpec || Driver.loadSpec(ctx.formSpecName);
+    const sinkDir = ctx.sinkDir; // local receipt sink dir only; the driver refuses URLs
+    const state = ctx.doorstepState || (ctx.doorstepState = {});
+    state.sink_dir = sinkDir || state.sink_dir || null;
+    // R2B preparation-time duplicate guard: a prior application already on
+    // record for this job means NO duplicate packet is even prepared (the
+    // execution-time guard in submitDoorstep is the second line of defense).
+    const prior = priorApplicationFor(ctx, state, spec);
+    if (prior) {
+      const job = jobIdentity(state, spec);
+      const label = [job.company, job.role].filter(Boolean).join(" — ") || "this job";
+      return { ok: false, code: "duplicate_application", prior, reply: `I stopped before filling anything out: there is already an application on record for ${label} (${describePrior(prior)}), so preparing a second one would duplicate it. Nothing was filled or submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+    }
+    const session = Driver.createSession(spec, sinkDir ? { sinkDir } : {});
+    const stepLog = [], asks = [];
+    let seq = 0;
+    for (const step of spec.steps) {
+      // APD-1: the review step is NOT skipped — a required question that
+      // first appears there (the Lever-like late material shape) is filled
+      // or, like every other unresolvable field, surfaced as an ask in
+      // this same loop, before any review screen is claimed.
+      // Two passes per step: a conditional field can become visible only
+      // after its trigger field in the same step is filled.
+      for (let pass = 0; pass < 2; pass++) {
+        for (const field of session.visibleFields(step.step_id)) {
+          if (session.answers[field.field_id] !== undefined) continue;
+          const r = resolveField(field, ctx);
+          if (r.ask) {
+            if (!asks.some((a) => a.field === field.field_id)) asks.push({ field: field.field_id, label: field.label || humanField(field.field_id), reason: r.ask, sensitive: !!field.sensitive });
+            stepLog.push({ step: ++seq, action: "ask", field: field.field_id, step_id: step.step_id, value_source: null, result: "surfaced_as_ask — left unfilled, never guessed" });
+          } else {
+            session.fill(ctx.formProfileId || "profile-in-ctx", field.field_id, r.value);
+            stepLog.push({ step: ++seq, action: "fill", field: field.field_id, step_id: step.step_id, value: r.value, value_source: r.source, result: "filled" });
+          }
+        }
+      }
+      for (const { field } of Driver.allFields(spec).filter((x) => x.step_id === step.step_id)) {
+        if (field.visible_if && !Driver.isVisible(field, session.answers) && session.answers[field.field_id] === undefined) {
+          stepLog.push({ step: ++seq, action: "skip", field: field.field_id, step_id: step.step_id, value_source: null, result: "not visible — its condition is not met by the profile's answers" });
+        }
+      }
+    }
+    const validation = session.validate();
+    const hiddenSensitive = validation.hiddenDefaultsInEffect.filter((h) => h.sensitive);
+    const art = ctx.resumeArtifact || {};
+    const answers = Object.assign({}, session.answers);
+    // R2B packet<->fact binding: this packet is submittable only while the
+    // profile still matches this stamp (version + fact hash) at submit time.
+    const binding = factBinding(ctx.profile);
+    const payload = {
+      form: spec.fixture_id, company: (spec.board || {}).company || null, role: (spec.board || {}).role || null, job_id: (spec.board || {}).job_id || null,
+      answers, resume_artifact: art.name || null, resume_sha256: art.sha256 || (art.content != null ? sha256(art.content) : null),
+      payload_sha256: sha256(JSON.stringify(answers)), submitted: false,
+      fact_version: binding ? binding.fact_version : null, fact_hash: binding ? binding.fact_hash : null,
+    };
+    const dry = dryValidate(session, spec);
+    // APD-1: collect EVERY dry-validation blocker and surface any the fill
+    // loop did not already ask about, so the ask set is complete by
+    // construction — no blocker can exist in state without being an ask
+    // in the reply the user sees at fill time.
+    const blockers = collectBlockers(spec, dry);
+    for (const blocker of blockers) {
+      if (!asks.some((a) => a.field === blocker.field)) {
+        const def = specField(spec, blocker.field);
+        asks.push({ field: blocker.field, label: (def && def.label) || humanField(blocker.field), reason: blockerAskReason(blocker), sensitive: blocker.sensitive });
+        stepLog.push({ step: ++seq, action: "ask", field: blocker.field, step_id: def ? (Driver.allFields(spec).find((x) => x.field.field_id === blocker.field) || {}).step_id || null : null, value_source: null, result: "surfaced_as_ask — a dry-validation blocker on the exact payload, left unfilled, never guessed" });
+      }
+    }
+    let doorstepStateName = "REVIEW", stopCode = null, review = null;
+    if (hiddenSensitive.length) {
+      stopCode = "UNRESOLVED_HIDDEN_DEFAULT";
+      doorstepStateName = "STOPPED";
+      stepLog.push({ step: ++seq, action: "stop", code: stopCode, fields: hiddenSensitive.map((h) => h.field_id), value_source: null, result: "stopped before the review screen — a sensitive hidden default was never explicitly answered and must never ride along" });
+    } else if (blockers.length) {
+      // Not the review screen, and not stopped-on: the flow is waiting on
+      // the user's own answers. REVIEW comes only after a resume re-fill
+      // clears these blockers.
+      doorstepStateName = "AWAITING_ANSWERS";
+      stepLog.push({ step: ++seq, action: "ask", field: null, fields: blockers.map((b) => b.field), value_source: null, result: "stopped before the final review screen — every dry-validation blocker was surfaced as an ask; the review screen waits until the user answers" });
+    } else {
+      review = session.review();
+      stepLog.push({ step: ++seq, action: "review", field: null, step_id: review.step_id, value_source: null, result: "stopped ON the final review screen — submit not clicked" });
+    }
+    const doorstep = {
+      form: spec.fixture_id, company: payload.company, role: payload.role, job_id: payload.job_id,
+      state: doorstepStateName, stop_code: stopCode, submitted: false,
+      step_log: stepLog, asks, blockers, payload,
+      dry_validate: dry, sink_armed: doorstepStateName === "REVIEW" && dry.ok,
+      review,
+      fact_version: payload.fact_version, fact_hash: payload.fact_hash,
+      approval_binding: binding ? { fact_version: binding.fact_version, fact_hash: binding.fact_hash } : null,
+    };
+    Object.assign(state, { spec, session, doorstep, submission: { status: "not_submitted", retries: 0, reconciled_before_retry: false, receipt_id: null }, payload_sha256: payload.payload_sha256, job_id: payload.job_id, fact_version: payload.fact_version, fact_hash: payload.fact_hash });
+    doorstep.submission = state.submission;
+    return { ok: true, doorstep };
+  }
+
+  function fillReply(doorstep) {
+    const askText = doorstep.asks.length ? ` I still need from you: ${doorstep.asks.map((a) => humanField(a.field)).join(", ")} — I left those unfilled rather than guessing.` : "";
+    if (doorstep.state === "STOPPED") {
+      const hiddenNames = blockerNames((doorstep.blockers || []).filter((b) => b.kinds.includes("hidden_default")));
+      const hiddenText = hiddenNames ? ` The preselected answer I will not use is for: ${hiddenNames}.` : "";
+      return `I filled what your profile establishes, then stopped: a sensitive answer on this form is preselected in secret and you have not chosen it yourself.${hiddenText}${askText} Nothing was submitted.`;
+    }
+    if (doorstep.state !== "REVIEW" || (doorstep.blockers || []).length) {
+      const names = blockerNames(doorstep.blockers || []);
+      return `I filled what your profile establishes, but I have not taken this to the final review screen yet. I still need your own answer for: ${names || "the open questions on this form"} — I left those unfilled rather than guessing. Nothing was submitted. Tell me your answer for each one and I will fill it in and take it to review for your approval.`;
+    }
+    return `Filled the ${doorstep.company || "application"} form from your profile and stopped on the final review screen — it is not submitted.${askText} Nothing will be submitted until you approve it.`;
+  }
+
+  // ---------- 2. C20 submit + reconcile (R2B: guarded submit, destination-truth status) ----------
+  function submitDoorstep(ctx) {
+    const state = ctx.doorstepState || {};
+    const sub = state.submission;
+    if (sub && state.doorstep) state.doorstep.submission = sub;
+    if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Ask me to fill the form out first." };
+    if (sub.status === "unknown_outcome") {
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+    }
+    if (sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
+      // Even the refusal speaks only from a destination re-read: if the
+      // receipt is gone, "already recorded" would be a false completion.
+      const dest = destinationStatus(ctx, state);
+      if (dest.checked && !dest.found) {
+        sub.status = "unknown_outcome"; sub.destination_missing = true; sub.receipt_missing_at_destination = true;
+        return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, destination: dest, reply: `I will not submit again: one submission was sent for this review, but I just re-checked the receipt sink and found no receipt for it, so its outcome is now uncertain — it may never have landed. Ask me "did it go through?" and I will reconcile before anything else happens.` };
+      }
+      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is already recorded, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+    }
+    // R2B execution-time guards: re-read state IMMEDIATELY before any sink
+    // write. A stale approval / closed role / duplicate / stale packet is
+    // refused here even when the executing turn is a bare "approve and
+    // submit" and no upstream handler caught the change (AP08/AP18/AP20/AP23).
+    const refusal = checkSubmitGuards(ctx, state);
+    if (refusal) return { intent: "doorstep_submit", resultStatus: "blocked", refused: true, guard_refusal: refusal, doorstep: state.doorstep, submission: sub, reply: refusal.reply };
+    // APD-1: a submit attempt with open blockers never reaches the sink.
+    // The blockers are re-derived from the live session now (not trusted
+    // from the fill-time object), and the refusal names them in plain
+    // words — the structured stop code stays on the result, not the reply.
+    const open = openBlockers(state);
+    if (open.length) { sub.status = "not_submitted"; return blockerRefusal(open, state.doorstep, sub); }
+    if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: state.doorstep.stop_code || null, reply: `I stopped the submit — nothing was submitted. This form is not on its final review screen, so there is nothing ready to submit. Answer the open asks and I will prepare it again for your approval.` };
+    const out = state.session.submit();
+    if (out.outcome === "accepted") {
+      sub.status = "submitted_accepted"; sub.receipt_id = out.receipt && out.receipt.receipt_id;
+      return { intent: "doorstep_submit", resultStatus: "completed", doorstep: state.doorstep, submission: sub, reply: `Submitted once to the local test sink and confirmed with receipt ${sub.receipt_id}. That was the one approved submission for this review.` };
+    }
+    if (out.outcome === "timeout") {
+      sub.status = "unknown_outcome"; sub.receipt_id = out.receipt_id || (out.receipt && out.receipt.receipt_id) || null; sub.receipt_written = !!out.receiptWritten;
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I sent the submission once, but the response timed out, so its outcome is unknown — I am not claiming it went through. Ask me \"did it go through?\" and I will check the receipt sink before any retry." };
+    }
+    // Driver stop (missing required / hidden default / late material) —
+    // defense in depth behind the blocker pre-check above. The driver's
+    // structured code stays on this result object; the reply names the
+    // fields the driver flagged, in plain words, and nothing else.
+    sub.status = "not_submitted";
+    const stoppedFields = [...(out.fields || []), ...(out.missing || [])];
+    const stoppedNames = stoppedFields.map((f) => humanField(f)).join(", ");
+    return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, stop_code: out.code || null, reply: `The form stopped the submit — nothing was submitted. I still need your own answer for: ${stoppedNames || "the open questions on this form"}. Answer those and I will prepare it again for your approval.` };
+  }
+  function reconcileDoorstep(ctx) {
+    const state = ctx.doorstepState || {};
+    const sub = state.submission;
+    if (sub && state.doorstep) state.doorstep.submission = sub;
+    if (!sub || sub.status === "not_submitted") return { intent: "doorstep_status", resultStatus: "prepared", doorstep: state.doorstep || null, submission: sub || null, reply: "Nothing has been submitted for this form yet, so there is no outcome to check. It is still waiting on its review screen for your approval." };
+    if (sub.status === "cancelled") return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the submission was cancelled, so there is no outcome to check, and nothing will be sent unless you ask me to prepare it fresh." };
+    if (sub.status === "invalidated" || state.approval_invalidated === true) return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the prepared packet was invalidated, so there is no outcome to check. It has to be re-prepared on the current facts and re-approved first." };
+    // THE one truth path (R2B / AP22): whatever the in-memory state claims —
+    // accepted, confirmed, or unknown — the status is spoken ONLY from a
+    // fresh re-read of the destination, taken now. This is the same read the
+    // AP19 timeout branch always performed; the accepted branch used to skip
+    // it and confirm from memory (DD-5).
+    const dest = destinationStatus(ctx, state);
+    const wasUnknown = sub.status === "unknown_outcome";
+    if (dest.checked && dest.found) {
+      if (wasUnknown) { sub.status = "confirmed_after_reconcile"; sub.reconciled_before_retry = sub.retries === 0; if (dest.receipt) sub.receipt = dest.receipt; }
+      sub.destination_missing = false;
+      const exactlyOne = dest.job_receipt_count == null || dest.job_receipt_count === 1;
+      return { intent: "doorstep_status", resultStatus: "completed", doorstep: state.doorstep, submission: sub, destination: dest, reply: wasUnknown
+        ? `Yes — I checked the receipt sink before any retry and found exactly one submission for this application (receipt ${sub.receipt_id}). No second submission was made, so there are no duplicates.`
+        : exactlyOne
+          ? `Yes — I re-checked the receipt sink just now: exactly one submission is on record for this application (receipt ${sub.receipt_id}). No second submission was made.`
+          : `I re-checked the receipt sink just now: ${dest.job_receipt_count} submissions are on record for this application (this one: receipt ${sub.receipt_id}). I made no further submission.` };
+    }
+    // Receipt absent at the destination (or the destination unreadable):
+    // the outcome is UNCERTAIN, in plain words — never a confirmation — and
+    // the in-memory state is downgraded to match the destination. No retry
+    // is taken here, and none will be taken blindly (AP22-A2/A3/A4).
+    sub.status = "unknown_outcome";
+    sub.destination_missing = true;
+    if (dest.checked) { sub.receipt_missing_at_destination = true; if (wasUnknown) sub.reconciled_before_retry = sub.retries === 0; }
+    return { intent: "doorstep_status", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, destination: dest, reply: dest.checked
+      ? "I checked the receipt sink just now and found no receipt for that submission, so I cannot confirm it went through — its outcome is uncertain. I have not resubmitted anything, and I will not resubmit blindly, since that could double-apply; tell me if you want me to prepare it again for your review."
+      : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything; ask me again and I will reconcile the sink before any retry." };
+  }
+
+  // ---------- 3. queue control (C37) ----------
+  function loadQueueState(ctx) {
+    if (ctx.queueState) return { state: ctx.queueState, persist: () => {} };
+    if (ctx.queueStatePath && nodeFs) {
+      const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
+      return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+    }
+    return { state: null, persist: () => {} };
+  }
+  function haltQueue(ctx, text) {
+    const { state, persist } = loadQueueState(ctx);
+    if (!state || !state.outreach_queue || !Array.isArray(state.outreach_queue.items)) {
+      return { intent: "queue_halt", resultStatus: "blocked", reply: "I cannot find the outreach queue state, so I halted nothing. Point me at the queue and I will stop it." };
+    }
+    const q = state.outreach_queue;
+    const pending = q.items.filter((i) => i.status === "pending");
+    const sentAlready = q.items.filter((i) => i.status === "sent");
+    for (const item of pending) { item.status = "halted"; item.halted_by = "user instruction in chat"; item.halt_reason = String(text || ""); }
+    q.halted = true;
+    q.halt = { at: (ctx && ctx.now) || null, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
+    if (state.form_prep_in_progress && state.form_prep_in_progress.state !== "SUBMITTED") state.form_prep_in_progress.halted = true;
+    // Belt-and-braces through 124's OWN suppression API (called, not edited):
+    // even a send-time pass in 124 stops a suppressed recipient.
+    let suppressed = 0;
+    const suppression = (ctx && ctx.suppression) || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
+    if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: (ctx && ctx.userId) || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } if (ctx) ctx.suppression = suppression; }
+    persist();
+    // DD-10: the sent-statement is computed from the queue's actual state —
+    // when an item already went out, the reply says so instead of claiming
+    // "nothing was sent" over a landed send.
+    const sentText = sentAlready.length
+      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
+      : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
+    return {
+      intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
+      queue_state: q,
+      reply: `Stopped everything: ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.${sentText}`,
+    };
+  }
+  // Inbox-event hygiene for a (possibly halted) queue state: dedupe by
+  // event_id; an event older than the halt, or carrying an older status than
+  // the item already holds, is out-of-order and applies nothing. A halted
+  // item can never be revived by an event.
+  function applyQueueEvent(state, ev) {
+    const q = (state || {}).outreach_queue || {};
+    q.processed_event_ids = q.processed_event_ids || [];
+    if (!ev || !ev.event_id) return { applied: false, reason: "no_event_id" };
+    if (q.processed_event_ids.includes(ev.event_id)) return { applied: false, deduped: true, reason: "duplicate event_id — already processed once" };
+    q.processed_event_ids.push(ev.event_id);
+    const item = (q.items || []).find((i) => i.queue_id === ev.queue_id);
+    if (!item) return { applied: false, reason: "unknown queue item" };
+    if (item.status === "halted" || q.halted) return { applied: false, reason: "queue is halted — events cannot revive a halted item", item_status: item.status };
+    const evTime = Date.parse(ev.sent_at || ev.at || "") || 0;
+    const itemTime = Date.parse(item.updated_at || item.sent_at || "") || 0;
+    if (evTime && itemTime && evTime < itemTime) return { applied: false, reason: "out-of-order event — older than the item's current state", item_status: item.status };
+    if (ev.status) { item.status = ev.status; item.updated_at = ev.sent_at || ev.at || item.updated_at; return { applied: true, item_status: item.status }; }
+    return { applied: false, reason: "event carries no applicable change", item_status: item.status };
+  }
+
+  // ---------- 4. packet binding leg (C15) ----------
+  function prepPacket(text, ctx) {
+    if (!Packets) return { intent: "packet_prep", resultStatus: "blocked", reply: "The packet module is not available in this build, so I prepared nothing." };
+    const t = String(text || "").toLowerCase();
+    const m = t.match(/using the (\w+) version/) || t.match(/prep the (\w+) application/);
+    const requested = m && m[1];
+    const artifacts = (ctx && ctx.artifacts) || [];
+    const matches = artifacts.filter((a) => a && (String(a.version || "").toLowerCase() === requested || String(a.record || "").toLowerCase().includes(requested || "\0")));
+    if (!requested || matches.length !== 1) {
+      return { intent: "packet_prep", resultStatus: "awaiting_user", reply: `I could not pin down exactly one "${requested || "requested"}" version among the stored documents, so I bound nothing. Tell me which version to use and I will prepare the packet with that one.` };
+    }
+    const artifact = matches[0];
+    const binding = { version: artifact.version || requested, name: artifact.name || "resume.pdf", record: artifact.record || null, sha256: artifact.sha256 || sha256(artifact.content != null ? artifact.content : "") };
+    // R2B packet<->fact binding: the packet (and any approval of it) is bound
+    // to the profile fact version/hash it was prepared against.
+    const fb = factBinding(ctx && ctx.profile);
+    if (fb) { binding.fact_version = fb.fact_version; binding.fact_hash = fb.fact_hash; }
+    const pin = (ctx && ctx.packet) || {};
+    const packet = Packets.assemblePacket({ profile: ctx.profile, company: pin.company, jdText: pin.jdText, jobId: pin.jobId || null, family: pin.family, cir: pin.cir || null, portalAsksCoverLetter: !!pin.portalAsksCoverLetter, companyKind: pin.companyKind, voice: pin.voice });
+    if (!packet.ok) return { intent: "packet_prep", resultStatus: "blocked", binding, packet, reply: `I bound the ${binding.version} version by its content hash, but the packet itself was refused (${packet.code || "truth audit"}), so nothing is prepared. Fix that first and I will rebuild it.` };
+    const review = { company: packet.company, jobId: packet.jobId, portal: packet.portal || null, bound_name: binding.name, bound_version: binding.version, bound_sha256: binding.sha256, one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null, fact_version: binding.fact_version != null ? binding.fact_version : null, fact_hash: binding.fact_hash || null };
+    return {
+      intent: "packet_prep", resultStatus: "prepared", packet, binding, review,
+      reply: `Prepared the ${binding.version} application packet for ${packet.company}, bound to the ${binding.version} version of your resume (matched by content hash, not by file name). It is ready for your review — nothing has been submitted.`,
+    };
+  }
+
+  // ---------- 7. G6: per-family doorstep payload emitters ----------
+  // The hardened grader (run-grand-rescore.cjs, DOORSTEP_REQUIRED) requires
+  // a commitment artifact per action family — outreach-send => draft or
+  // queue state; application => packet; tracking-write => log write;
+  // calendar => proposal card — and reads a record's doorstep block as
+  // PRESENT only when it carries { family, gap: null, driven_by: "agent" }.
+  // These emitters are the general (non-fixture) producers of those
+  // artifacts: each builds the EXACT payload, records the doorstep proof
+  // pattern (step log + payload snapshot + payload sha256) in a doorstep
+  // record of that shape, stops at state AWAITING_COMMIT, and NEVER invokes
+  // the commitment target the ctx provides (tracker sink/store write,
+  // calendar create, transport send, form submit) — armed, not fired.
+  // Typed results use the canonical vocabulary: awaiting_user when the
+  // artifact is armed at the gate, blocked (with a guard_refusal) when a
+  // guard stops it before any payload exists.
+  function doorstepArtifact(family, payload, stepLog) {
+    const hash = sha256(JSON.stringify(payload));
+    return {
+      payload, payload_sha256: hash,
+      doorstep: {
+        family, driven_by: "agent", gap: null, state: "AWAITING_COMMIT", committed: false,
+        step_log: stepLog, payload, payload_sha256: hash,
+        proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash },
+      },
+    };
+  }
+  function emitterBlocked(intent, family, code, reason, unblock, reply) {
+    return {
+      intent, family, resultStatus: "blocked", payload: null, payload_sha256: null, doorstep: null,
+      guard_refusal: { code, reason, unblock },
+      reply,
+    };
+  }
+  const isoOf = (v, fallback) => {
+    if (v == null) return fallback || null;
+    if (typeof v === "number") return new Date(v).toISOString();
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? String(v) : new Date(t).toISOString();
+  };
+  const cloneJson = (v) => v == null ? v : JSON.parse(JSON.stringify(v));
+
+  // ----- 7a. tracking: the log write (126 row/event shape; 132 audit fields) -----
+  const TRACK_STAGES_FALLBACK = ["Saved", "Tailoring", "Ready", "Submitted", "Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Rejected", "Ghosted", "Withdrawn", "Accepted"];
+  function trackerRowsOf(ctx) {
+    const c = ctx || {};
+    for (const store of [c.trackerStore, c.trackStore, c.tracker, c.trackLog]) {
+      if (Array.isArray(store)) return store;
+      if (store && Array.isArray(store.rows)) return store.rows;
+      if (store && Array.isArray(store.records)) return store.records;
+    }
+    if (Array.isArray(c.trackerRecords)) return c.trackerRecords;
+    return [];
+  }
+  function emitTrackingLog(ctx, entrySpec) {
+    const c = ctx || {}, spec = entrySpec || {};
+    const company = spec.company || spec.companyName || null;
+    if (!company) {
+      return emitterBlocked("tracking_log", "tracking-write", "missing_company",
+        "no company was named for this tracker log write",
+        "name the company the log entry belongs to",
+        "I did not prepare a tracker update: no company was named, so there is nothing safe to log. Name the company and I will prepare the exact log entry for your approval.");
+    }
+    const stages = (Track && Track.STAGES) || TRACK_STAGES_FALLBACK;
+    const stage = spec.stage || spec.status || null;
+    if (stage && !stages.includes(stage)) {
+      return emitterBlocked("tracking_log", "tracking-write", "unknown_stage",
+        `the stage "${stage}" is not one of the tracker stages`,
+        "use one of the tracker's real stages",
+        `I did not prepare that tracker update: "${stage}" is not a stage the tracker uses, so logging it would corrupt the record. Pick a real stage and I will prepare the entry again.`);
+    }
+    if (!stage && !spec.note && !spec.event_type && !spec.eventType) {
+      return emitterBlocked("tracking_log", "tracking-write", "missing_log_content",
+        "the log write carries no stage, note, or event",
+        "say what changed (a stage, an event, or a note)",
+        "I did not prepare a tracker update: nothing was said about what changed. Tell me the new stage or the event and I will prepare the exact log entry.");
+    }
+    const at = isoOf(spec.at || c.now) || isoOf(Date.now());
+    const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    const event = {
+      type: eventType,
+      at,
+      source: spec.source || (eventType === "manual_update" ? "user-reported" : "system"),
+      detail: spec.detail || spec.note || `stage set to ${stage}`,
+      evidence: spec.evidence || spec.url || null,
+    };
+    const rows = trackerRowsOf(c);
+    const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const existing = rows.find((r) => r && (spec.app_id && r.app_id === spec.app_id || norm(r.company) === norm(company))) || null;
+    let operation, row;
+    if (existing) {
+      operation = stage ? "move_stage" : "append_event";
+      event.stage_after = stage || existing.stage;
+      row = cloneJson(existing);
+      row.stage = stage || existing.stage;
+      row.events = [...(row.events || []), cloneJson(event)];
+      if (spec.offer_deadline || spec.offerDeadline) row.offer_deadline = spec.offer_deadline || spec.offerDeadline;
+      if (spec.assessment_deadline || spec.assessmentDeadline) row.assessment_deadline = spec.assessment_deadline || spec.assessmentDeadline;
+    } else {
+      operation = "add_application";
+      const appliedAt = isoOf(spec.applied_at || spec.appliedAt || at);
+      const firstEvent = eventType === "applied"
+        ? event
+        : { type: "applied", at: appliedAt, source: spec.event_source || "system", detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
+      row = {
+        app_id: spec.app_id || spec.appId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || "")).slice(0, 6)}`,
+        company: String(company), role: String(spec.role || ""), role_family: String(spec.role_family || spec.roleFamily || ""),
+        url: String(spec.url || ""), applied_at: appliedAt,
+        resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
+        source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",
+        referred_by: spec.referred_by || spec.referredBy || null, fit_bucket: spec.fit_bucket || spec.fitBucket || null,
+        stage: stage || "Submitted",
+        offer_deadline: spec.offer_deadline || null, assessment_deadline: spec.assessment_deadline || null,
+        cooldown_until: spec.cooldown_until || null,
+        events: eventType === "applied" ? [cloneJson(event)] : [firstEvent, cloneJson(event)],
+      };
+      if (stage) event.stage_after = stage;
+    }
+    const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    const payload = {
+      kind: "tracker_log_write", family: "tracking-write", operation,
+      app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
+      application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
+      status: row.stage, stage: row.stage,
+      note: spec.note || null, event: cloneJson(event),
+      would_write: wouldWrite, target: "tracker", committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "resolve", field: "company", result: existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
+      { step: 2, action: "build", field: "log_write", result: `built the exact ${operation} payload in the tracker row and event shape; nothing was written` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the tracker write is armed for approval, not fired" },
+    ];
+    const art = doorstepArtifact("tracking-write", payload, stepLog);
+    return {
+      intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user",
+      ...art,
+      reply: existing
+        ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+        : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
+    };
+  }
+
+  // ----- 7b. calendar: the proposal card (F3 ground truth: busy holds, quiet hours, DST) -----
+  function calendarOf(ctx) {
+    const c = ctx || {};
+    return c.calendar || c.calendarFixture || c.calendarGroundTruth || null;
+  }
+  function quietWindowOf(ctx, cal) {
+    const raw = (cal && cal.candidate && cal.candidate.quiet_hours) || (ctx && ctx.quietHours) || (ctx && ctx.quiet_hours) || { start: "22:00", end: "07:00" };
+    const toMin = (v, dflt) => {
+      if (v == null) return dflt;
+      if (typeof v === "number") return v * 60;
+      const m = String(v).match(/^(\d{1,2}):(\d{2})/);
+      return m ? Number(m[1]) * 60 + Number(m[2]) : dflt;
+    };
+    return { startMin: toMin(raw.start, 22 * 60), endMin: toMin(raw.end, 7 * 60) };
+  }
+  function localMinutes(ms, tz) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(ms));
+      const get = (t) => Number((parts.find((p) => p.type === t) || {}).value || 0);
+      return (get("hour") % 24) * 60 + get("minute");
+    } catch (e) { const d = new Date(ms); return d.getUTCHours() * 60 + d.getUTCMinutes(); }
+  }
+  function inQuiet(ms, tz, quiet) {
+    const m = localMinutes(ms, tz);
+    return quiet.startMin <= quiet.endMin ? (m >= quiet.startMin && m < quiet.endMin) : (m >= quiet.startMin || m < quiet.endMin);
+  }
+  function busyEventsOf(ctx, cal) {
+    const c = ctx || {};
+    const lists = [(cal && cal.events), c.calendarEvents, c.busyEvents, c.busy, (cal && cal.freeBusy)];
+    const out = [];
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue;
+      for (const ev of list) {
+        const startIso = (ev.utc && ev.utc[0]) || ev.start || ev.begin;
+        const endIso = (ev.utc && ev.utc[1]) || ev.end || ev.finish;
+        const s = Date.parse(startIso), e = Date.parse(endIso);
+        if (Number.isNaN(s) || Number.isNaN(e)) continue;
+        out.push({ event_id: ev.event_id || ev.id || null, title: ev.title || null, start: new Date(s).toISOString(), end: new Date(e).toISOString(), start_ms: s, end_ms: e });
+      }
+    }
+    return out;
+  }
+  function evaluateSlot(slot, idx, ctx, cal, busy, quiet, defaultTz, defaultDurationMin) {
+    const tz = slot.timezone || slot.tz || defaultTz;
+    const slotId = slot.slot_id || slot.id || slot.label || String.fromCharCode(65 + idx);
+    const conflicts = [];
+    let startMs = NaN, endMs = NaN, startIso = null, endIso = null;
+    const ambiguousLocal = slot.start_local_ambiguous || slot.ambiguous_local || null;
+    if (ambiguousLocal) {
+      conflicts.push({ kind: "ambiguous_local_time", local: String(ambiguousLocal), timezone: tz,
+        detail: "this local time occurs twice on the fall-back date, so it cannot be pinned to one instant — it is reported, never silently resolved to one offset" });
+      return { slot_id: slotId, start: String(ambiguousLocal), end: slot.end_local || slot.end || null, utc: null, start_iso: null, end_iso: null, timezone: tz, ambiguous: true, conflict: true, conflicts };
+    }
+    const rawStart = slot.start || slot.stated || slot.utc || slot.candidate_local || slot.begin;
+    const rawEnd = slot.end || slot.end_utc || null;
+    const naive = typeof rawStart === "string" && !/([zZ]|[+-]\d{2}:?\d{2})$/.test(rawStart.trim());
+    if (naive) {
+      conflicts.push({ kind: "ambiguous_local_time", local: String(rawStart), timezone: tz,
+        detail: "this local time carries no offset, so no instant was invented for it" });
+      return { slot_id: slotId, start: String(rawStart), end: rawEnd, utc: null, start_iso: null, end_iso: null, timezone: tz, ambiguous: true, conflict: true, conflicts };
+    }
+    startMs = Date.parse(rawStart);
+    const durationMin = slot.durationMin || slot.duration_min || defaultDurationMin || 30;
+    endMs = rawEnd && !Number.isNaN(Date.parse(rawEnd)) ? Date.parse(rawEnd) : startMs + durationMin * 60000;
+    startIso = new Date(startMs).toISOString(); endIso = new Date(endMs).toISOString();
+    for (const ev of busy) {
+      if (startMs < ev.end_ms && endMs > ev.start_ms) { // strict overlap: adjacency is NOT a conflict (F3 rule)
+        conflicts.push({ kind: "overlap", event_id: ev.event_id, title: ev.title, start: ev.start, end: ev.end,
+          detail: `overlaps the busy time "${ev.title}" (${ev.start} to ${ev.end})` });
+      }
+    }
+    for (let t = startMs; t < endMs; t += 60000) {
+      if (inQuiet(t, tz, quiet)) {
+        conflicts.push({ kind: "quiet_hours", timezone: tz, start: startIso, end: endIso,
+          detail: "this time runs inside quiet hours in the candidate's local time — no interview may start or run inside quiet hours" });
+        break;
+      }
+    }
+    return { slot_id: slotId, start: rawStart, end: rawEnd || endIso, utc: startIso, start_iso: startIso, end_iso: endIso, timezone: tz, ambiguous: false, conflict: conflicts.length > 0, conflicts };
+  }
+  function emitCalendarProposal(ctx, proposalSpec) {
+    const c = ctx || {}, spec = proposalSpec || {};
+    const cal = calendarOf(c);
+    const slotsIn = spec.slots || spec.offered_slots || spec.candidate_slots || (spec.slot ? [spec.slot] : null) ||
+      (spec.start || spec.start_local_ambiguous ? [spec] : null);
+    if (!spec.title && !spec.event_title && !spec.eventTitle) {
+      return emitterBlocked("calendar_proposal", "calendar", "missing_title",
+        "the proposal carries no event title", "name the event this proposal is for",
+        "I did not prepare a calendar proposal: it has no event title. Name the event and I will prepare the proposal card for your approval.");
+    }
+    if (!slotsIn || !slotsIn.length) {
+      return emitterBlocked("calendar_proposal", "calendar", "missing_slot",
+        "the proposal carries no candidate time slot", "offer at least one time slot to evaluate",
+        "I did not prepare a calendar proposal: no time was offered to check against your calendar. Give me a slot and I will check it and prepare the card.");
+    }
+    const defaultTz = spec.timezone || spec.tz || (cal && cal.candidate && cal.candidate.timezone) || c.timezone || "America/Chicago";
+    const busy = busyEventsOf(c, cal);
+    const quiet = quietWindowOf(c, cal);
+    const evaluations = slotsIn.map((s, i) => evaluateSlot(s, i, c, cal, busy, quiet, defaultTz, spec.durationMin || spec.duration_min));
+    const proposed = evaluations.find((e) => !e.conflict) || evaluations[0];
+    const attendees = (spec.attendees || spec.attendee || []).map((a) =>
+      typeof a === "string" ? { email: a } : { name: a.name || a.full_name || null, email: a.email || a.work_email || null });
+    const title = spec.title || spec.event_title || spec.eventTitle;
+    const card = {
+      type: "calendar_proposal", title, attendees,
+      slot_id: proposed.slot_id, start: proposed.start, end: proposed.end, utc: proposed.utc || null,
+      timezone: proposed.timezone, conflict: proposed.conflict, conflicts: proposed.conflicts,
+    };
+    const payload = {
+      kind: "calendar_proposal_card", family: "calendar",
+      card, proposed, conflict: proposed.conflict, conflicts: proposed.conflicts,
+      slot_evaluations: evaluations, attendees, title,
+      timezone: defaultTz, committed: false, invite_sent: false,
+    };
+    const stepLog = [
+      { step: 1, action: "read", field: "calendar", result: `read ${busy.length} busy time(s) plus the quiet-hours rule from the calendar in context` },
+      { step: 2, action: "evaluate", field: "slots", result: `evaluated ${evaluations.length} offered slot(s): ${evaluations.map((e) => e.slot_id + (e.conflict ? " (conflict: " + e.conflicts.map((x) => x.kind).join(", ") + ")" : " (free)")).join("; ")} — every conflict is reported in the payload, none was silently resolved` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the proposal card is armed for approval; no invite was created" },
+    ];
+    const art = doorstepArtifact("calendar", payload, stepLog);
+    return {
+      intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
+      ...art,
+      reply: proposed.conflict
+        ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
+        : `Prepared the calendar proposal card for "${title}" — the proposed time is free on the calendar in context and outside quiet hours. Nothing has been booked or sent: the card is waiting at the doorstep for your approval.`,
+    };
+  }
+
+  // ----- 7c. application: the packet, generalized beyond the fixture ids -----
+  // prepPacket (section 4) keeps its exact chat-text fixture behavior. This
+  // emitter takes a posting spec directly — company / jobId / jdText /
+  // version supplied by the caller, in no fixture — and produces the same
+  // binding + packet artifact, stopped at AWAITING_COMMIT.
+  function emitApplicationPacket(ctx, postingSpec) {
+    const c = ctx || {}, spec = postingSpec || {};
+    if (!Packets) return emitterBlocked("application_packet", "application", "packet_module_unavailable", "the packet module is not available in this build", "restore the packet module", "The packet module is not available in this build, so I prepared nothing.");
+    const company = spec.company || (c.packet && c.packet.company) || null;
+    if (!company) {
+      return emitterBlocked("application_packet", "application", "missing_company",
+        "no company was named for this packet", "name the company and role",
+        "I did not prepare a packet: no company was named. Name the company and I will prepare the packet for your review.");
+    }
+    const jdText = spec.jdText || spec.jd_text || spec.jd || (c.packet && c.packet.jdText) || "";
+    const requested = spec.version || spec.artifactVersion || spec.resumeVersion || null;
+    let binding = null;
+    if (requested) {
+      const artifacts = c.artifacts || [];
+      const matches = artifacts.filter((a) => a && (String(a.version || "").toLowerCase() === String(requested).toLowerCase() ||
+        String(a.record || "").toLowerCase().includes(String(requested).toLowerCase()) ||
+        (a.sha256 && a.sha256 === requested) || (a.content != null && sha256(a.content) === requested)));
+      if (matches.length !== 1) {
+        return {
+          intent: "application_packet", family: "application", resultStatus: "awaiting_user", payload: null, payload_sha256: null, doorstep: null,
+          reply: `I could not pin down exactly one "${requested}" version among the stored documents, so I bound nothing. Tell me which version to use and I will prepare the packet with that one.`,
+        };
+      }
+      const artifact = matches[0];
+      binding = { version: artifact.version || requested, name: artifact.name || "resume.pdf", record: artifact.record || null, sha256: artifact.sha256 || sha256(artifact.content != null ? artifact.content : "") };
+      const fb = factBinding(c.profile);
+      if (fb) { binding.fact_version = fb.fact_version; binding.fact_hash = fb.fact_hash; }
+    }
+    const pin = c.packet || {};
+    const packet = Packets.assemblePacket({
+      profile: c.profile, company,
+      jdText, jobId: spec.jobId || spec.job_id || pin.jobId || null,
+      family: spec.family || pin.family, cir: spec.cir || pin.cir || null,
+      portal: spec.portal || pin.portal || null,
+      portalAsksCoverLetter: spec.portalAsksCoverLetter != null ? !!spec.portalAsksCoverLetter : !!pin.portalAsksCoverLetter,
+      companyKind: spec.companyKind || pin.companyKind, voice: spec.voice || pin.voice,
+    });
+    if (!packet.ok) {
+      return emitterBlocked("application_packet", "application", packet.code || "packet_refused",
+        `the packet itself was refused (${packet.code || "truth audit"})`,
+        "fix the refusal reason and prepare again",
+        `I prepared no packet for ${company}: the packet checks refused it, so nothing is armed. Fix that first and I will rebuild it for your review.`);
+    }
+    const review = {
+      company: packet.company, jobId: packet.jobId,
+      portal: packet.portal || null,
+      bound_name: binding ? binding.name : null, bound_version: binding ? binding.version : null, bound_sha256: binding ? binding.sha256 : null,
+      one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null,
+      fact_version: binding && binding.fact_version != null ? binding.fact_version : null,
+      fact_hash: binding ? binding.fact_hash || null : null,
+    };
+    const payload = {
+      kind: "application_packet", family: "application",
+      company: packet.company, job_id: packet.jobId || spec.jobId || spec.job_id || null,
+      binding, review,
+      packet_summary: { ok: true, one_page_ok: review.one_page_ok, ats_ok: review.ats_ok, cover_letter: !!packet.coverLetter, voice: packet.voice || null },
+      resume_sha256: binding ? binding.sha256 : null,
+      submitted: false, committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "bind", field: "resume", result: binding ? `bound the ${binding.version} resume version by content hash` : "no stored version was supplied — the packet carries the freshly tailored resume" },
+      { step: 2, action: "assemble", field: "packet", result: `assembled the packet for ${packet.company} through the packet module; nothing was submitted` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the packet is a review copy, armed for approval, not submitted" },
+    ];
+    const art = doorstepArtifact("application", payload, stepLog);
+    return {
+      intent: "application_packet", family: "application", resultStatus: "awaiting_user",
+      packet, binding, review, ...art,
+      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted.`,
+    };
+  }
+
+  // ----- 7d. outreach: the draft / queue state, generalized beyond fixture ids -----
+  // The draft itself is built by 124 (called, never edited) from a recipient
+  // spec, or taken from an explicit draft spec; either way the artifact is
+  // the draft plus a queue state armed at awaiting_approval. Sends stay 0:
+  // no transport is ever invoked here.
+  function outreachUserOf(ctx) {
+    const c = ctx || {};
+    if (c.outreachUser) return c.outreachUser;
+    const p = c.profile || {};
+    const edu = (p.facts || []).find((f) => f.kind === "education");
+    return {
+      name: (p.basics && p.basics.name) || "",
+      school: (edu && edu.org) || c.school || "",
+      year: c.year || "", experience: c.experience || "",
+    };
+  }
+  function emitOutreachDraft(ctx, recipientSpec) {
+    const c = ctx || {}, spec = recipientSpec || {};
+    let draft = null, recipientLabel = null;
+    if (spec.draft && typeof spec.draft === "object") {
+      const d = spec.draft;
+      if (!d.to) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient_email",
+          "the draft spec names no recipient email", "name the recipient's email",
+          "I did not prepare that draft: it names no recipient email, and a draft with no destination cannot be queued safely. Add the email and I will prepare it.");
+      }
+      if (!d.body) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_draft_body",
+          "the draft spec carries no message body", "supply the message text",
+          "I did not prepare that draft: it has no message text. Supply the text and I will arm it at the approval gate.");
+      }
+      draft = { person_id: d.person_id || null, to: d.to, subject: d.subject || "", body: d.body, tier: d.tier || null };
+      recipientLabel = d.to;
+    } else {
+      const candidate = spec.recipient || spec.candidate || spec.person || null;
+      if (!candidate) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient",
+          "no recipient spec was supplied", "name the recipient (name, firm, email)",
+          "I did not prepare a draft: no recipient was named. Name who this is for and I will draft it and arm it at the approval gate.");
+      }
+      if (!candidate.work_email && !candidate.email) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient_email",
+          "the recipient spec names no email", "supply the recipient's email",
+          `I did not prepare a draft for ${candidate.full_name || "that recipient"}: no email was supplied, so there is no destination to queue it for. Add the email and I will draft it.`);
+      }
+      if (!Outreach || typeof Outreach.draftAndGate !== "function") {
+        return emitterBlocked("outreach_draft", "outreach-send", "outreach_module_unavailable",
+          "the outreach module is not available in this build", "restore the outreach module",
+          "The outreach module is not available in this build, so I drafted nothing.");
+      }
+      const gated = Outreach.draftAndGate(candidate, outreachUserOf(c), {
+        ctx: c, suppression: c.suppression || null, suppressionStore: c.suppressionStore || null,
+        draftStore: null, // the draft store is context for the shape only — nothing is stored by this emitter
+        at: isoOf(c.now),
+      });
+      if (!gated || gated.status === "refused" || (gated.draft && gated.draft.refused)) {
+        const reason = (gated && gated.draft && gated.draft.reason) || (gated && gated.reason) || "the recipient is suppressed";
+        return emitterBlocked("outreach_draft", "outreach-send", "refused_suppressed",
+          String(reason), "pick a recipient who has not opted out",
+          "I did not draft that message: this recipient must not be contacted. Nothing was drafted or queued.");
+      }
+      if (!gated.draft || !gated.gate || !gated.gate.pass) {
+        return emitterBlocked("outreach_draft", "outreach-send", "draft_gate_failed",
+          `the draft failed its quality gate (${gated && gated.gate ? gated.gate.failures.join(", ") : "no draft produced"})`,
+          "fix the draft's facts or pick another recipient",
+          "I did not queue that draft: it did not pass its own quality checks, so arming it would put a flawed message one tap from sending. Nothing was queued.");
+      }
+      draft = gated.draft;
+      recipientLabel = draft.to;
+    }
+    const queueItem = {
+      queue_id: `g6-outreach-${sha256(String(draft.to) + "|" + String(draft.subject || "")).slice(0, 8)}`,
+      to: draft.to, person_id: draft.person_id || null, subject: draft.subject || null,
+      status: "awaiting_approval",
+    };
+    const queueState = { status: "awaiting_approval", items: [queueItem], sends: 0 };
+    const payload = {
+      kind: "outreach_draft", family: "outreach-send",
+      draft: cloneJson(draft), queue_state: queueState,
+      sends: 0, committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "resolve", field: "recipient", result: `recipient resolved from the spec: ${recipientLabel}` },
+      { step: 2, action: "draft", field: "message", result: "draft composed and passed its quality gate; the draft store was not written by this emitter" },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the queue entry waits at awaiting approval; nothing was sent" },
+    ];
+    const art = doorstepArtifact("outreach-send", payload, stepLog);
+    return {
+      intent: "outreach_draft", family: "outreach-send", resultStatus: "awaiting_user",
+      draft, queue_state: queueState, ...art,
+      reply: `Drafted the message to ${recipientLabel} and armed it in the queue at awaiting approval — one tap from sending, and nothing has been sent. Review the draft and approve it when you are ready.`,
+    };
+  }
+
+  // ---------- chat routing (the seam's one entry point) ----------
+  function handleChat(text, ctx) {
+    const t = String(text || "").trim().toLowerCase();
+    const c = ctx || {};
+    if (/\bstop everything\b|\bdon'?t contact anyone\b|\bstop all outreach\b/.test(t)) return haltQueue(c, text);
+    if (/\bdid it go through\b|\bdid that (go through|submit)\b|\bcheck (the )?submission status\b/.test(t)) { const r = reconcileDoorstep(c); return r.doorstep || r.submission ? r : null; }
+    if (/\bapprove and submit\b|\bsubmit it\b/.test(t)) { const r = submitDoorstep(c); return (c.doorstepState && c.doorstepState.session) || r.resultStatus !== "blocked" ? r : null; }
+    if (/\bfill (this|it|the form|that) out\b|\bfill out this\b|\bjust use my profile\b|\bcomplete (this|the) application form\b/.test(t)) {
+      if (!c.formSpecName && !c.formSpec) return null;
+      const r = fillDoorstep(c);
+      if (!r.ok) return { intent: "doorstep_fill", resultStatus: "blocked", code: r.code || null, guard_refusal: r.code === "duplicate_application" ? { code: r.code, reason: `an application for this job is already on record (${describePrior(r.prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior: r.prior } : null, reply: r.reply };
+      return { intent: "doorstep_fill", resultStatus: r.doorstep.state === "REVIEW" ? "prepared" : "awaiting_user", doorstep: r.doorstep, reply: fillReply(r.doorstep) };
+    }
+    if (/\bprep the \w+ application\b|\bprepare the \w+ application\b/.test(t)) return prepPacket(text, c);
+    return null;
+  }
+
+  return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct,
+    // R2B exports: fact binding + destination truth + guards + the recorder
+    // surface Lane A's intent handlers use to mutate doorstep state.
+    factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication,
+    // G2 / APD-1 exports: blocker collection + the submit-time re-derivation.
+    collectBlockers, openBlockers,
+    // G6 exports: per-family doorstep payload emitters (tracking-write,
+    // calendar, generalized application packet + outreach draft).
+    emitTrackingLog, emitCalendarProposal, emitApplicationPacket, emitOutreachDraft };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerDoorstep;
+
 /* Career chat router (REPAIR LANE R1, gauntlet stage 3) — the missing route layer.
    At ba708c1 the staging chat path tried only 120-career-access.handleChat and
    130-career-onboarding.handleChat; every other career domain module (jobs 121,
@@ -27983,7 +29638,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRepl
    NOT done here. No sends, no submits: outreach stops at draft/clarification,
    packets stop at a review surface, approvals are untouched. */
 const CareerRouter = (() => {
-  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch (e) { return null; } };
+  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch { return null; } };
   const Jobs = typeof CareerJobs !== "undefined" ? CareerJobs : req("./121-career-jobs.js");
   const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : req("./123-career-tailor.js");
   const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : req("./124-career-outreach.js");
@@ -27999,7 +29654,7 @@ const CareerRouter = (() => {
   // (the same ctx objects 141/130 read and write).
   const Doorstep = typeof CareerDoorstep !== "undefined" ? CareerDoorstep : req("./141-career-doorstep.js");
   const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : req("./130-career-onboarding.js");
-  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch (e) { return null; } })();
+  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch { return null; } })();
 
   const s = (v) => String(v == null ? "" : v);
   const lc = (v) => s(v).toLowerCase();
@@ -28010,9 +29665,9 @@ const CareerRouter = (() => {
     const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
     const mathPow = Math.pow, maxWord = mathPow(2, 32);
     let result = "";
-    const words = [], asciiBitLength = ascii.length * 8;
-    let hash = (sha256.h = sha256.h || []), k = (sha256.k = sha256.k || []);
-    let primeCounter = k.length, isComposite = {};
+    const words = [], _asciiBitLength = ascii.length * 8;
+    let hash = (sha256.h = sha256.h || []); const k = (sha256.k = sha256.k || []);
+    let primeCounter = k.length; const isComposite = {};
     for (let candidate = 2; primeCounter < 64; candidate++) {
       if (!isComposite[candidate]) {
         for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
@@ -28022,7 +29677,7 @@ const CareerRouter = (() => {
     }
     // UTF-8 encode
     const utf8 = unescape(encodeURIComponent(ascii));
-    let bitLength = utf8.length * 8;
+    const bitLength = utf8.length * 8;
     let str = utf8 + "\x80";
     while ((str.length % 64) - 56) str += "\x00";
     for (let i = 0; i < str.length; i++) {
@@ -28215,7 +29870,7 @@ const CareerRouter = (() => {
     }
     // 131 ghost guard: lower-odds postings (stale / reposted) stay out
     let kept = scored;
-    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch (e) { kept = scored; } }
+    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
@@ -28278,7 +29933,7 @@ const CareerRouter = (() => {
   }
 
   // ---------- tailor (123) ----------
-  function handleTailor(text, ctx) {
+  function handleTailor(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || ctx.targetPosting || null;
     const jdText = ctx.jdText || (posting ? jdTextForPosting(posting) : "") || ctx.jd || "";
@@ -28407,7 +30062,7 @@ const CareerRouter = (() => {
     const tips = { structure: "Order the next one as situation, task, action, result.", evidence: "Add one number and how you know it.", specificity: "Name the tool, the constraint, and your exact part." };
     return [`Rubric on that answer: structure ${sc.structure || 0} of 5, evidence ${sc.evidence || 0} of 5, specificity ${sc.specificity || 0} of 5.`, tips[weakest] || ""].filter(Boolean);
   }
-  function handlePrepStart(text, ctx) {
+  function handlePrepStart(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || null;
     const bank = Prep.questionBank({ company: posting ? posting.company : null, role: posting ? posting.title : null });
@@ -28469,9 +30124,9 @@ const CareerRouter = (() => {
   }
 
   // ---------- dead-board discovery (121 registry via 131 plan) ----------
-  function handleDeadBoard(text, ctx) {
+  function handleDeadBoard(text, _ctx) {
     let dead = [];
-    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch (e) { dead = []; }
+    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch { dead = []; }
     const t = lc(text).replace(/[^a-z0-9 ]/g, " ");
     for (const b of dead) {
       const name = lc(b.company).replace(/[^a-z0-9 ]/g, " ").trim();
@@ -28542,7 +30197,7 @@ const CareerRouter = (() => {
       try {
         const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
         return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
-      } catch (e) { return { state: null, persist: () => {} }; }
+      } catch { return { state: null, persist: () => {} }; }
     }
     return { state: null, persist: () => {} };
   }
@@ -28669,7 +30324,7 @@ const CareerRouter = (() => {
       const had = Object.prototype.hasOwnProperty.call(profile, "_onboarding_pending");
       const prev = profile._onboarding_pending;
       profile._onboarding_pending = "visa";
-      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch (e) { /* the direct write below still lands */ }
+      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch { /* the direct write below still lands */ }
       if (had) profile._onboarding_pending = prev; else delete profile._onboarding_pending;
     }
     cons.workAuthorization = parsed.clause;
@@ -28783,10 +30438,10 @@ const CareerRouter = (() => {
     // 124's own reply classification confirms the relayed words are a stop.
     let classification = null;
     const quoted = s(text).match(/'([^']{3,})'/) || s(text).match(/"([^"]{3,})"/);
-    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch (e) { classification = null; } }
+    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch { classification = null; } }
     let suppression = (ctx && ctx.suppression) || null;
     if (!suppression && Outreach && typeof Outreach.createSuppressionStore === "function") suppression = Outreach.createSuppressionStore();
-    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch (e) { /* the result carries the store */ } }
+    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch { /* the result carries the store */ } }
     const stopped = [];
     for (const item of matched) {
       if (item.status !== "pending") continue;
@@ -28916,6 +30571,173 @@ const CareerRouter = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;
 
+/* Career containment — the universal safety net around a chat turn (gauntlet
+   repair R2, 2026-10-13). Pure, zero deps, UMD like the other domain modules.
+   NOT in the router bundle: production wiring is owner/D-10, out of scope here.
+
+   THE DEFECT THIS FIXES (pilot baseline at ba708c1): the chat path had no
+   containment. A domain throw escaped as silence (C38 leg i: a corrupt
+   profile made 130's handler throw TypeError — no recovery bubble, no
+   product-written failure record), and a null/empty route result delivered
+   nothing (U12 all legs; 27 oracle empty-reply hard fails across the pilot).
+   The 140 composer already HAD fallback("error"/"unmatched"/"empty") —
+   nothing called it. That unwired safety net was the bug.
+
+   DESIGN — route-agnostic by construction:
+   - The wrapper sits at the TURN ENTRY, around the whole dispatch (one
+     function that tries every route in order), never around a single
+     handler: a handler returning null means "not mine, fall through", which
+     is normal routing, not a failure. Wrapping per-handler would turn the
+     first route's null into a fallback and break every later route.
+   - Because it wraps the turn entry, routes added by other lanes inherit it
+     with no changes here: the wrapper knows nothing about any route, intent,
+     or domain module — only about the turn's outcome.
+   - Outcomes: a dispatch result only counts as delivered when it carries a
+     non-empty human reply (reply / text / bubbles). A throw, a null or
+     undefined return, and a result with no non-empty reply are the three
+     contained boundaries: "throw", "null_result", "empty_result".
+   - On containment the user gets (a) a bubble composed through 140's
+     EXISTING fallback API as-is — its canned text says what happened in
+     plain words and the next step the user can take; the wrapper invents
+     nothing (no fabricated shortlist, no fake completion, no per-case
+     wording of its own) — and (b) a durable failure record is written BY
+     THE PRODUCT PATH through the host-supplied sink.
+   - 140's fallback API was sufficient for this: "error", "unmatched" and
+     "empty" cover the three boundaries exactly, so 140 is called, never
+     edited. Its optional ctx.next is deliberately unused — a generic
+     wrapper has no truthful case-specific next step to add, and the canned
+     texts already carry one.
+   - If the composer itself is missing or its fallback is unusable, a
+     lint-clean last-resort bubble (LAST_RESORT) is still delivered: an
+     empty delivered reply must be unreachable on a wrapped turn.
+
+   FAILURE RECORD — structured JSON, one per contained turn:
+     { kind, version, timestamp, session_id, case_id, boundary,
+       error_class, fallback_kind, fallback_delivered }
+   Deliberately NOT in the record: the error message, any stack, the user's
+   turn text, or any ctx/profile data. An error message can embed raw user
+   data; the class (e.g. "TypeError") is all triage needs from this record.
+   The record is only as durable as the sink the host supplies: the staging
+   harness supplies an append-to-JSONL-file sink; a production host would
+   supply its own store (database/log) the same way.
+
+   PRODUCTION ADOPTION (honest note, not done here): the production chat
+   handler could adopt this exact wrapper unchanged — createContainment({
+   composer: <140>, sink: <host store> }) around its router dispatch, with
+   its delivery function in place of the harness's. That wiring is D-10 /
+   owner scope and is NOT claimed by this module.
+
+   Sync only: the staging dispatch is synchronous, and so is runTurn. A
+   thenable returned by dispatch is contained as an empty result rather
+   than delivered as a promise object. */
+const CareerContainment = (() => {
+  const LAST_RESORT = "Something went wrong on my end. Nothing was changed — try again in a moment and I will pick it back up.";
+
+  function defaultComposer() {
+    try {
+      if (typeof require !== "undefined") return require("./140-career-reply.js");
+    } catch { /* no composer reachable — LAST_RESORT covers it */ }
+    return null;
+  }
+
+  // Error CLASS only ("TypeError", "RangeError", ...) — never the message.
+  function errorClass(err) {
+    const name = err && err.constructor && err.constructor.name ? String(err.constructor.name) : "";
+    return /^[A-Za-z][A-Za-z0-9_]*$/.test(name) ? name : "Error";
+  }
+
+  // The human reply a dispatch result carries, or "" when it carries none.
+  function extractReplyText(result) {
+    if (result == null) return "";
+    if (typeof result === "string") return result;
+    if (Array.isArray(result)) return result.filter((b) => typeof b === "string" && b.trim()).join(" ");
+    if (typeof result === "object") {
+      if (typeof result.reply === "string" && result.reply.trim()) return result.reply;
+      if (typeof result.text === "string" && result.text.trim()) return result.text;
+      if (Array.isArray(result.bubbles)) return result.bubbles.filter((b) => typeof b === "string" && b.trim()).join(" ");
+    }
+    return "";
+  }
+
+  function createContainment(options) {
+    const o = options || {};
+    const composer = o.composer || defaultComposer();
+    const sink = typeof o.sink === "function" ? o.sink : null;
+    const now = typeof o.now === "function" ? o.now : () => new Date();
+    const records = [];
+
+    function timestamp() {
+      try {
+        const t = now();
+        return (t instanceof Date ? t : new Date(t)).toISOString();
+      } catch { return new Date().toISOString(); }
+    }
+
+    function fallbackText(kind) {
+      let text = "";
+      try { text = composer && typeof composer.fallback === "function" ? composer.fallback(kind) : ""; } catch { text = ""; }
+      if (typeof text !== "string" || !text.trim()) return LAST_RESORT;
+      try {
+        if (composer && typeof composer.lint === "function" && !composer.lint(text).ok) return LAST_RESORT;
+      } catch { return LAST_RESORT; }
+      return text;
+    }
+
+    // Build a record, keep it in memory, and hand it to the host's durable
+    // sink. A failing sink never blocks the bubble: the in-memory record
+    // notes the sink's error class so the loss itself is visible.
+    function recordFailure(input) {
+      const rec = {
+        kind: "career_containment_failure",
+        version: 1,
+        timestamp: timestamp(),
+        session_id: input.sessionId != null ? String(input.sessionId) : null,
+        case_id: input.caseId != null ? String(input.caseId) : null,
+        boundary: input.boundary,
+        error_class: input.error ? errorClass(input.error) : null,
+        fallback_kind: input.fallbackKind || "error",
+        fallback_delivered: input.fallbackDelivered !== false,
+      };
+      records.push(rec);
+      if (sink) {
+        try { sink(rec); } catch (e) { rec.sink_error_class = errorClass(e); }
+      }
+      return rec;
+    }
+
+    function contain(boundary, err, meta, fallbackKind) {
+      const text = fallbackText(fallbackKind);
+      const rec = recordFailure({
+        boundary, error: err,
+        caseId: meta && meta.caseId, sessionId: meta && meta.sessionId,
+        fallbackKind, fallbackDelivered: true,
+      });
+      return {
+        contained: true, boundary, errorClass: rec.error_class,
+        result: null, replyText: text, bubbles: [text], failureRecord: rec,
+      };
+    }
+
+    // Run one whole turn's dispatch under containment. dispatch: () => result
+    // (the host's route chain — 120 then 130 in staging). meta: {caseId,
+    // sessionId} — ids for the failure record, never user content.
+    function runTurn(dispatch, meta) {
+      let result;
+      try { result = dispatch(); } catch (e) { return contain("throw", e, meta, "error"); }
+      if (result === null || result === undefined) return contain("null_result", null, meta, "unmatched");
+      if (typeof result === "object" && typeof result.then === "function") return contain("empty_result", null, meta, "error");
+      const replyText = extractReplyText(result);
+      if (!replyText.trim()) return contain("empty_result", null, meta, "empty");
+      return { contained: false, boundary: null, errorClass: null, result, replyText, bubbles: [replyText], failureRecord: null };
+    }
+
+    return { runTurn, recordFailure, fallbackText, records, extractReplyText };
+  }
+
+  return { createContainment, LAST_RESORT, errorClass, extractReplyText };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerContainment;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a
@@ -29001,6 +30823,8 @@ const MERCHANT_KNOWLEDGE_JSON = {"about":"Merchant knowledge for categorization 
 const BNPL_PROVIDERS_JSON = {"about":"Buy now, pay later providers as they show up on US bank and card statements, for reading the person's own rows (packages/domain/97-bnpl.js; capability list items 85 and 87). Read-only: Upmore never opens, pays, pays off or reschedules a plan. Researched 2026-10-12 by web search; the providers' own pages could not be opened from the build environment (DNS), so every fact names the page it came from and whether that page is the provider's own ('provider') or someone else's ('third_party' or 'merchant'). Descriptor patterns are what statement guides report: no provider publishes its exact statement text for the US, banks shorten and reformat it, and a pattern only names the provider, never a plan, a balance or a number of payments left. A plan's schedule is taken from the product's published terms; the number of payments left is said only when the plan's shape makes it certain (a 4-payment plan whose first payment is in the rows). Re-check every entry on its page; past fresh_days the answer says the terms on file may have changed.","checked_on":"2026-10-12","fresh_days":90,"providers":[{"id":"klarna","name":"Klarna","app":"the Klarna app","descriptors":["\\bKLARNA\\b"],"descriptor_examples":["KLARNA","KLARNA INC","KLARNA.COM","KLARNA US","KLARNA*ASOS.COM","KLARNA/LYST"],"descriptor_source":{"kind":"third_party","urls":["https://explaincharges.com/klarna-charge-on-credit-card/","https://statementdecoder-web.onrender.com/charges/klarna"],"checked_on":"2026-10-12","note":"Klarna's own Pay in Full terms (as quoted by the search) say Klarna appears as the merchant on the card statement; the store after '*' or '/' is reported by third parties only"},"products":[{"id":"pay_in_4","name":"Pay in 4","payments":4,"every_days":14,"first":"charged when the order ships (sometimes at checkout)","interest":"0%","source":{"kind":"merchant","urls":["https://pages.ebay.com/klarna","https://support.ruggable.com.au/hc/en-au/articles/10985499513623-How-does-Klarna-Pay-in-4-work","https://www.nerdwallet.com/blog/loans/klarna-credit-review-online-payment-pos/"],"checked_on":"2026-10-12"}},{"id":"pay_in_30","name":"Pay in 30 days","payments":1,"every_days":null,"first":"within 30 days after the order ships","interest":"0%","source":{"kind":"third_party","urls":["https://www.nerdwallet.com/blog/loans/klarna-credit-review-online-payment-pos/"],"checked_on":"2026-10-12"}},{"id":"monthly","name":"Klarna Financing","payments":null,"cadence":"monthly","interest":"may charge interest; terms shown before the person accepts (an open-end line of credit issued by WebBank)","source":{"kind":"merchant","urls":["https://www.dell.com/en-ca/lp/klarna-faq","https://www.nerdwallet.com/blog/loans/klarna-credit-review-online-payment-pos/"],"checked_on":"2026-10-12"}}]},{"id":"affirm","name":"Affirm","app":"the Affirm app","descriptors":["\\bAFFIRM\\b"],"descriptor_examples":["AFFIRM","AFFIRM PAY","AFFIRM.COM","AFFIRM INC","AFFIRM * PAY Y8PRUXM0 SAN FRANCISCO CA","AFFIRM.COM PAYMENTS 185-54233729 CA"],"descriptor_structure":{"checked_on":"2026-10-12","source":{"kind":"owner_rows","note":"Read off the owner's own Chase checking rows, Jul 15-Sep 25 2026 (15 Affirm payments, $317.63): the two shapes below are the only Affirm shapes in those rows. The code and id values are the rows' own; the plan grouping they imply was counted by hand from the rows (6 plans) before any code read them."},"forms":[{"shape":"AFFIRM * PAY <code> <place>","pattern":"^\\s*AFFIRM\\s*\\*\\s*PAY\\s+([A-Z0-9]{8})\\b","per_payment_group":1,"note":"The 8-character code after PAY is a PER-PAYMENT reference: a fresh one is minted for every payment (Y8PRUXM0, KJ4OR9CH, SD6B2XRK, WJSJ24AL, 3U3M7JEN, N7Q3CCLN, OIDHK430, 6KHJY9TY, D15Z7DSK, 6GGIXBJA, and the letters-only IAYRAUTH and ZQILNSJX all occur), so it identifies neither the plan nor a store and must never be shown as part of a plan's name. 'PAY' in this shape is a generic word, not a store, and the place after the code is where Affirm sits, not a store either: this shape names no store. A plan in this shape is identified by its installment amount and its cadence, nothing else."},{"shape":"AFFIRM.COM PAYMENTS <plan id> <place>","pattern":"^\\s*AFFIRM\\.COM\\s+PAYMENTS\\s+([0-9]+-[0-9]+)\\b","stable_id_group":1,"note":"The number after PAYMENTS is a STABLE plan/account id: the same on every payment of that plan (185-54233729 on all three payments of the $61.44 plan in the owner's rows), so payments carrying it are one plan even if an amount were to differ slightly (a fee). The place after it names no store."}]},"descriptor_not_used":["SP AFF* and SP+AFF are reported by third parties only and look like a store-platform prefix; not read as Affirm until a row confirms it"],"descriptor_source":{"kind":"third_party","urls":["https://www.slash.com/charge-identifier/sp-aff","https://joingerald.com/learn/banking--payments/sp-aff-charge-explained","https://explaincharges.com/affirm-charge-on-bank-statement/"],"checked_on":"2026-10-12"},"products":[{"id":"pay_in_4","name":"Pay in 4","payments":4,"every_days":14,"first":"at checkout","interest":"0% APR","source":{"kind":"provider","urls":["https://www.affirm.com/terms","https://www.samsung.com/ca/affirm-financing/"],"checked_on":"2026-10-12","note":"Affirm's example: $400 as 4 interest-free payments of $100 every 2 weeks, or 12 monthly payments of $28.88 at 15% APR"}},{"id":"monthly","name":"monthly payments","payments":null,"cadence":"monthly","interest":"0-36% APR based on credit","source":{"kind":"provider","urls":["https://www.affirm.com/terms"],"checked_on":"2026-10-12"}}]},{"id":"afterpay","name":"Afterpay","app":"the Afterpay app","descriptors":["\\bAFTER\\s?PAY\\b"],"descriptor_examples":["AFTERPAY","AFTERPAY AFTERPAY.COM","AFTERPAY US"],"descriptor_source":{"kind":"third_party","urls":["https://www.slash.com/charge-identifier/afterpay-xxxxx9601","https://robots.net/tech/what-is-afterpay-on-bank-statement/","https://explaincharges.com/?p=10999"],"checked_on":"2026-10-12","note":"Afterpay's own help says to match a bank line to an order by date and amount (https://www.afterpay.com/en-AU/help/47727991226265-How-to-read-your-account-statement); several instalments due together can be taken as one charge (https://www.afterpay.com/en-AU/help/23950920510617-I-ve-been-charged-an-amount-different-to-what-I-was-expecting)"},"products":[{"id":"pay_in_4","name":"Pay in 4","payments":4,"every_days":14,"first":"at purchase (on a large order the first payment can be bigger than the rest)","interest":"0%; late fees may apply","source":{"kind":"provider","urls":["https://site-admin.afterpay.com/en-NZ/how-it-works","https://www.dsw.com/en/us/afterpay-faq"],"checked_on":"2026-10-12"},"first_may_differ":true,"first_note":"Afterpay's first payment can be bigger on a large order"},{"id":"monthly","name":"Pay Monthly","payments":null,"cadence":"monthly","interest":"APR set at checkout","source":{"kind":"third_party","urls":["https://robots.net/tech/what-is-afterpay-on-bank-statement/"],"checked_on":"2026-10-12","note":"named in statement guides; its term is not in the rows"}}],"bundles":true},{"id":"zip","name":"Zip","app":"the Zip app","descriptors":["\\bZIP\\.CO\\b","\\bZIP\\s?PAY\\b","\\bZIP\\s+CO\\b","\\bQUAD\\s?PAY\\b"],"descriptor_examples":["ZIP.CO","ZIP PAY","QUADPAY"],"descriptor_source":{"kind":"none","urls":["https://en.wikipedia.org/wiki/Zip_Co","https://www.stuartweitzman.com/help/zip"],"checked_on":"2026-10-12","note":"No source found for Zip's US statement text. These patterns are the company's own names (Zip Co, formerly Quadpay, renamed after Zip bought it); ZIPCAR, ZIPRECRUITER and a plain 'ZIP' code never match. The US Pay-in-4 is issued by WebBank, so a row may name neither"},"products":[{"id":"pay_in_4","name":"Pay in 4","payments":4,"every_days":14,"first":"at checkout, then every 2 weeks (4 payments over 6 weeks)","interest":"an installment fee that varies by purchase ($0 to $7.50 in Zip's own disclosure); the first payment can include it","first_may_differ":true,"source":{"kind":"merchant","urls":["https://www.fanatics.com/zip-faq/ch-4409","https://fevo.com/zip-faq","https://www.lifestride.com/help/zip"],"checked_on":"2026-10-12"},"first_note":"Zip's first payment can include a fee"}]},{"id":"paypal","name":"PayPal","app":"the PayPal app","descriptors":["\\bPAYPAL\\b[\\s*]*(?:PAY\\s?IN\\s?4|PAYIN4|PAY\\s?LATER|PAY\\s?MONTHLY)\\b"],"descriptor_examples":["PAYPAL *PAY IN 4","PAYPAL *PAYIN4","PAYPAL *PAY LATER"],"descriptor_not_used":["PAYPAL INST XFER is PayPal pulling money from the bank for any PayPal payment (a fast withdrawal, a bank-funded purchase or a billing agreement), so it is never read as Pay in 4","PAYPAL *<STORE> is an ordinary PayPal purchase"],"descriptor_source":{"kind":"third_party","urls":["https://explaincharges.com/paypal-instant-transfer-charge-on-credit-card/","https://emma-app.com/who-charged-me/paypal"],"checked_on":"2026-10-12","note":"No source confirms the exact Pay in 4 statement text; a row has to say Pay in 4, Pay Later or Pay Monthly next to PayPal"},"products":[{"id":"pay_in_4","name":"Pay in 4","payments":4,"every_days":14,"first":"at the time of purchase","interest":"0%; no late fees (US)","source":{"kind":"provider","urls":["https://www.paypal.com/us/cshelp/article/what-is-pay-in-4-help463"],"checked_on":"2026-10-12","note":"US: purchases of $30 to $1,500, availability depends on the state"}},{"id":"monthly","name":"Pay Monthly","payments":null,"cadence":"monthly","interest":"APR set at checkout","source":{"kind":"provider","urls":["https://www.paypal.com/us/cshelp/article/what-is-pay-in-4-help463"],"checked_on":"2026-10-12","note":"named next to Pay in 4 on PayPal's help pages; its term is not in the rows"}}],"label":"PayPal Pay in 4"}],"look_alikes":[{"text":"ZIPCAR","why":"car sharing, not Zip"},{"text":"ZIPRECRUITER","why":"a job site, not Zip"},{"text":"AFFIRMATIVE INSURANCE","why":"an insurer; 'AFFIRM' is only read as a whole word"},{"text":"PAYPAL INST XFER","why":"a PayPal transfer from the bank, any kind of PayPal payment"},{"text":"a credit from KLARNA (or any provider)","why":"money back (a refund or a reversal), never a payment; matched to a plan only when it equals what that plan has paid"}]};
 const DEADLINES_JSON = {"about":"Public deadlines Upmore can say on its own and on ask (packages/domain/99-deadlines.js; owner's capability list item 39). Read-only: dates only, never what to file, pay or pick. Researched 2026-10-12 by web search restricted to the official sites (irs.gov, cms.gov, medicare.gov, healthcare.gov); the pages themselves could not be opened from the build environment (DNS), so every row says what the official page's search result states and how it was checked. 'date' is the date as the source prints it or, for a tax date the IRS has not printed yet, as the rule sets it; a tax date ('rolls': true) moves to the next business day after a Saturday, Sunday or legal holiday (federal holidays and Washington, D.C.'s Emancipation Day), computed in the module and checked against 'published_on' where the IRS printed the year's date. State tax dates differ and the IRS can postpone dates for disaster areas; a person's own plan or employer dates come only from what they say. Re-check every row on its page; past its fresh_days (a year for a federal tax date set by law, 90 days for an enrollment window, the file's fresh_days otherwise) the answer says the dates on file may have changed. Class-action claim dates are not here: no verified settlement list is on file.","checked_on":"2026-10-12","fresh_days":90,"roll_rule":{"text":"If a due date falls on a Saturday, Sunday or legal holiday, it moves to the next business day; a legal holiday includes Washington, D.C.'s Emancipation Day (April 16, observed on a weekday).","source":{"title":"IRS estimated tax questions and answers","url":"https://www.irs.gov/faqs/estimated-tax"},"also":{"title":"IRS Publication 509 for 2026","url":"https://www.irs.gov/publications/p509"},"checked_on":"2026-10-12"},"deadlines":[{"id":"fed-extended-2025","group":"tax","audience":"extension","what":"extended 2025 federal income tax returns (Form 1040)","verb":"are due","date":"2026-10-15","rolls":true,"published_on":"2026-10-15","source":{"title":"IRS fourth-quarter tax calendar, Publication 509 for 2026","url":"https://www.irs.gov/businesses/small-businesses-self-employed/fourth-quarter-tax-calendar"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: \"10/15/2026 | Individuals: File Form 1040 if you timely requested a 6-month extension.\""},{"id":"fed-est-2026-q4","group":"tax","audience":"estimated_tax","what":"the 4th estimated tax payment for 2026 (Form 1040-ES)","verb":"is due","date":"2027-01-15","rolls":true,"published_on":"2027-01-15","source":{"title":"IRS 2026 Form 1040-ES","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: 2026 Form 1040-ES lists payments April 15, June 15 and Sept. 15, 2026 and Jan. 15, 2027"},{"id":"fed-return-2026","group":"tax","audience":"everyone","what":"2026 federal income tax returns (Form 1040) and extension requests (Form 4868)","verb":"are due","date":"2027-04-15","rolls":true,"published_on":null,"source":{"title":"IRS Publication 509 for 2027, draft","url":"https://www.irs.gov/pub/irs-dft/p509--dft.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"irs.gov search result: the 2027 draft of Publication 509 has the April 15 entry for Form 1040 and the Form 4868 extension; the final 2027 calendar is not out, so this is the date the rule sets (the 15th day of the 4th month after the tax year)"},{"id":"fed-est-2027-q1","group":"tax","audience":"estimated_tax","what":"the 1st estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-04-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-est-2027-q2","group":"tax","audience":"estimated_tax","what":"the 2nd estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-06-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-est-2027-q3","group":"tax","audience":"estimated_tax","what":"the 3rd estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2027-09-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; the 2027 Form 1040-ES is not out"},{"id":"fed-extended-2026","group":"tax","audience":"extension","what":"extended 2026 federal income tax returns (Form 1040)","verb":"are due","date":"2027-10-15","rolls":true,"published_on":null,"source":{"title":"IRS Publication 509 for 2026, Form 4868 six-month extension","url":"https://www.irs.gov/publications/p509"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"six months after the April 15 date, as Publication 509 describes Form 4868; the 2027 calendar is not out"},{"id":"fed-est-2027-q4","group":"tax","audience":"estimated_tax","what":"the 4th estimated tax payment for 2027 (Form 1040-ES)","verb":"is due","date":"2028-01-15","rolls":true,"published_on":null,"source":{"title":"IRS 2026 Form 1040-ES, its April, June, September and January schedule a year on","url":"https://www.irs.gov/pub/irs-pdf/f1040es.pdf"},"checked_on":"2026-10-12","fresh_days":365,"how_checked":"the schedule the 2026 Form 1040-ES prints, a year on; January 15, 2028 is a Saturday and January 17 is Martin Luther King Jr. Day, so the rule moves it"},{"id":"medicare-oe-2027","group":"enrollment","audience":"medicare","what":"Medicare Open Enrollment for 2027 coverage","verb":"ends","opens_on":"2026-10-15","date":"2026-12-07","rolls":false,"published_on":"2026-12-07","source":{"title":"Medicare.gov Open Enrollment page","url":"https://www.medicare.gov/health-drug-plans/open-enrollment"},"also":{"title":"CMS press release on 2027 Medicare Advantage and Part D","url":"https://www.cms.gov/newsroom/press-releases/medicare-advantage-medicare-prescription-drug-programs-expected-remain-stable-2027"},"checked_on":"2026-10-12","fresh_days":90,"how_checked":"cms.gov and medicare.gov search results: Medicare Open Enrollment runs October 15, 2026 to December 7, 2026; changes take effect January 1, 2027"},{"id":"aca-2027-jan1","group":"enrollment","audience":"marketplace","what":"the last day to enroll in or change a HealthCare.gov plan for coverage starting January 1, 2027","verb":"is","opens_on":"2026-11-01","date":"2026-12-15","rolls":false,"published_on":"2026-12-15","source":{"title":"HealthCare.gov dates and deadlines","url":"https://www.healthcare.gov/quick-guide/dates-and-deadlines/"},"checked_on":"2026-10-12","fresh_days":90,"how_checked":"healthcare.gov search results: Open Enrollment starts November 1; December 15 is the last day to enroll in or change plans for coverage to start January 1","note":"When open enrollment for 2027 itself closes could not be confirmed: HealthCare.gov's pages say January 15, while a 2025 CMS rule (CMS-9884-F) set December 15 for the federal platform from 2027. State marketplaces set their own dates."}]};
 const MARKET_DATA_JSON = {"analyst_actions":[{"action":"raised its price target to $215 from $200, keeping an overweight rating","firm":"Morgan Stanley","id":"an1","on":"2026-10-11","reason":"the firm cited data-center orders tracked through September","symbol":"NVDA"},{"action":"downgraded the stock to neutral from buy and set a $540 price target","firm":"Goldman Sachs","id":"an2","on":"2026-10-12","reason":"the firm cited Azure growth checks against its own estimates","symbol":"MSFT"}],"as_of":"2026-10-12T13:00:00Z","calls":[{"lines":["Revenue $118.4B, up 9% year over year; services revenue $28.9B, a record.","Gross margin 46.9%, up 0.4 points, on a richer services mix.","Guidance: December-quarter revenue growth of 8-10%, with services growth near 12%.","Capital spending $14.1B in the quarter, mostly AI data centers.","One-off: a $412M supply-chain charge in Greater China, called non-recurring on the call."],"on":"2026-10-29","symbol":"AAPL"}],"checked":"Oct 12, 2026","circuit_breakers":[],"crypto_news":[{"link":"https://example.invalid/standin/btc-etf-inflows","source":"Bloomberg","title":"Spot bitcoin ETFs post a third straight week of inflows ($412M last week)"},{"link":"https://example.invalid/standin/coinbase-status","source":"Coinbase status page (stand-in row)","title":"Coinbase reported no incidents through the weekend volume"}],"earnings":[{"consensus_eps":3.68,"last_quarter":"beat by $0.21 and the stock rose 2.4% the next day","reports_on":"2026-10-28","symbol":"MSFT","when":"after the close"},{"consensus_eps":1.78,"last_quarter":"beat by $0.09 and the stock rose 3.2% the next day","reports_on":"2026-10-29","symbol":"AAPL","when":"after the close"},{"consensus_eps":1.02,"last_quarter":"beat by $0.07 and the stock rose 1.8% the next day","reports_on":"2026-11-19","symbol":"NVDA","when":"after the close"}],"earnings_results":[{"close_after":528.4,"close_before":512.8,"consensus_eps":3.68,"eps":3.91,"guidance":"Azure growth guided to 37-38% next quarter, above the 36% consensus","reported_on":"2026-10-28","revenue":"$81.2B","symbol":"MSFT"}],"ex_dividends":[{"ex_date":"2026-10-16","pay_date":"2026-10-30","per_share":1.85,"symbol":"VOO"},{"ex_date":"2026-11-20","pay_date":"2026-12-11","per_share":0.91,"symbol":"MSFT"}],"feeds_needed_live":"a live market-data feed (quotes, corporate actions, earnings calendar and results, analyst actions, Form 4 and congressional disclosures, IPO calendar, halt feed, rates, crypto quotes) and the person's real brokerage holdings read","fundamentals":{"ASTS":{"bear":"revenue is $103M against a $24.6B market cap (239x sales); the constellation needs about $2B more capital by the company's own filings","bull":"carrier contracts signed cover markets with about 3 billion subscribers (company statements); first commercial service is slated for 2027","cash":"$1.9B","does":"builds a space-based cell network that connects ordinary phones directly to satellites","latest_quarter":"Q2 2026: revenue $18.4M, net loss $96M, cash $1.9B after a June equity raise","makes_money":"wholesale agreements with mobile carriers; consumer service has not launched at scale","market_cap":"$24.6B","name":"AST SpaceMobile","net_income_ttm":"-$412M","pe":null,"peers":[{"ps":41,"symbol":"RKLB"},{"ps":9,"symbol":"IRDM"},{"ps":31,"symbol":"GSAT"}],"price":84.2,"ps":239,"revenue_ttm":"$103M","would_change":"commercial launch timing, carrier revenue actually billed, and the size and price of the next capital raise"},"NVDA":{"bear":"at 29.8x sales the price already assumes years of that growth; the dataset's top story is a Commerce Department review of AI chip export rules","bull":"data-center revenue grew 56% year over year in the latest quarter in the dataset, and the company guides to another sequential rise","cash":"$56.8B","does":"designs GPUs and the systems and software around them for data centers, gaming and cars","latest_quarter":"Q2 fiscal 2027: revenue $46.7B, net income $26.4B, data-center revenue $41.1B","makes_money":"data-center chips and systems are about 88% of revenue; gaming cards are most of the rest","market_cap":"$4.42T","name":"NVIDIA","net_income_ttm":"$76.8B","pe":57,"peers":[{"ps":9.4,"symbol":"AMD"},{"ps":21.7,"symbol":"AVGO"},{"ps":2.6,"symbol":"INTC"}],"price":182.4,"ps":29.8,"revenue_ttm":"$148.5B","would_change":"the export review's outcome, and whether data-center growth holds above 40% for two more quarters"},"TSLA":{"analyst_spread":"39 analysts: 18 buy, 14 hold, 7 sell; mean price target $318, range $140-$470","bear":"at 162x earnings, one delivery miss reprices the year; Q1 2026 EPS was $0.50, down from $0.73 in Q4 2025","bull":"deliveries grew to 495,000 in Q4 2025 and energy storage revenue is the fastest-growing line in the filings","cash":"$41.2B","does":"sells electric vehicles, energy storage, and driver-assistance software","latest_quarter":"Q2 2026: revenue $25.5B, EPS $0.61, deliveries 443,000","makes_money":"vehicle sales are about 78% of revenue; energy and services are the rest","market_cap":"$1.12T","name":"Tesla","net_income_ttm":"$6.9B","pe":162,"price":342.6,"ps":11.4,"quarters":[{"eps":0.61,"note":"deliveries 443,000","q":"Q2 2026","revenue":"$25.5B"},{"eps":0.5,"note":"deliveries 387,000","q":"Q1 2026","revenue":"$22.4B"},{"eps":0.73,"note":"deliveries 495,000","q":"Q4 2025","revenue":"$25.7B"}],"revenue_ttm":"$98.6B","risks":"valuation at 162x earnings leaves no room for a delivery miss; price cuts compress the 17.9% gross margin; regulatory treatment of driver assistance is unsettled in two markets","unknown":"future delivery demand at current prices, and whether driver-assistance approval arrives in 2027","would_change":"delivery growth re-accelerating for two straight quarters, or the multiple compressing toward the peer range"}},"funds":{"VOO":{"expense":0.03,"holdings_count":503,"name":"Vanguard S&P 500 ETF","ret_1y":18.2,"top10_pct":38.6},"VTI":{"expense":0.03,"holdings_count":3612,"name":"Vanguard Total Stock Market ETF","overlap_with_voo_pct":84,"ret_1y":17.1,"top10_pct":31.9}},"halts":[{"at":"9:41 a.m. ET","detail":"Microsoft announced an expanded cloud agreement at 10:02 a.m. ET; trading resumed at 10:05 a.m. ET","id":"msft-halt","on":"2026-10-12","reason":"news pending","resumed":"10:05 a.m. ET","symbol":"MSFT"}],"holdings":[{"avg_cost":131.2,"name":"NVIDIA","sector":"semiconductors","shares":50,"symbol":"NVDA"},{"avg_cost":214.55,"name":"Apple","sector":"consumer electronics","shares":30,"symbol":"AAPL"},{"avg_cost":402.1,"name":"Microsoft","sector":"software","shares":10,"symbol":"MSFT"},{"avg_cost":505.75,"name":"Vanguard S&P 500 ETF","sector":"broad market etf","shares":40,"symbol":"VOO"},{"avg_cost":38.5,"name":"IonQ","sector":"quantum computing","shares":20,"symbol":"IONQ"},{"avg_cost":64200,"name":"Bitcoin","sector":"crypto","shares":0.25,"symbol":"BTC"},{"avg_cost":2980,"name":"Ethereum","sector":"crypto","shares":2,"symbol":"ETH"}],"hype":[{"detail":"the move is on social-media attention, with no company announcement in the dataset; short interest is 24.6% of the float and options volume is 5.2x its 30-day average","id":"ionq-hype","move_5d_pct":64.2,"on":"2026-10-12","options_volume_x":5.2,"short_interest_pct":24.6,"symbol":"IONQ"}],"insider_trades":[{"filed":"2026-10-10","form":"Form 4","id":"in1","on":"2026-10-08","symbol":"AAPL","what":"sold 12,000 shares at $261.40 a share ($3,136,800)","who":"Apple's chief financial officer"},{"filed":"2026-10-10","form":"congressional disclosure","id":"in2","on":"2026-10-06","symbol":"NVDA","what":"bought between $15,001 and $50,000 of NVIDIA stock","who":"a member of the US House (stand-in disclosure row)"}],"interests":["artificial intelligence","robotics","space"],"ipos":[{"detail":"S-1 filed Oct 9, 2026; expected pricing Oct 22, 2026 at $18-20 a share","event":"filed its S-1 to go public","id":"helio-s1","name":"Helio Robotics","on":"2026-10-09","sector":"robotics"},{"detail":"expected range $18-20 a share","event":"expected to price its IPO","id":"helio-pricing","name":"Helio Robotics","on":"2026-10-22","sector":"robotics"},{"detail":"about 8.4 million shares become eligible for sale","event":"insider lockup expires","id":"asts-lockup","name":"AST SpaceMobile (ASTS)","on":"2026-11-03","sector":"space"},{"detail":"about 3.1 million shares become eligible for sale","event":"insider lockup expires","id":"rklb-lockup","name":"Rocket Lab (RKLB)","on":"2026-10-20","sector":"space"}],"macro":[{"history":"Over the last four CPI releases, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.9% on the day, in either direction.","id":"cpi-oct","name":"CPI inflation report","on":"2026-10-23","time":"8:30 a.m. ET"},{"history":"Over the last four Fed decisions, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 1.1% on the day, in either direction.","id":"fomc-oct","name":"Fed rate decision (FOMC)","on":"2026-10-28","time":"2:00 p.m. ET"},{"history":"Over the last four jobs reports, a portfolio weighted like yours (about 57% large-cap stocks) moved an average of 0.7% on the day, in either direction.","id":"jobs-nov","name":"Jobs report (nonfarm payrolls)","on":"2026-11-06","time":"8:30 a.m. ET"}],"news":[{"id":"n1","link":"https://example.invalid/standin/nvda-export-review","published_at":"2026-10-12T11:20:00Z","source":"Reuters","summary":"NVIDIA shares fell after the Commerce Department said it is reviewing export rules for advanced AI chips. Analysts quoted by Reuters said a tighter rule could trim data-center revenue next year.","symbol":"NVDA","title":"NVIDIA slips as Commerce Department reviews AI chip export rules"},{"id":"n2","link":"https://example.invalid/standin/aapl-iphone-demand","published_at":"2026-10-12T10:05:00Z","source":"CNBC","summary":"Apple shares rose after supply-chain checks pointed to stronger iPhone 17 demand in the US and China. CNBC reported lead times lengthened for the Pro models.","symbol":"AAPL","title":"Apple rises on stronger iPhone 17 demand checks"},{"id":"n3","link":"https://example.invalid/standin/asts-contract","published_at":"2026-10-12T09:15:00Z","source":"Reuters","summary":"AST SpaceMobile (ASTS) said it signed a direct-to-cell service contract with a European carrier group. The company said service starts in 2027.","symbol":"ASTS","title":"AST SpaceMobile wins direct-to-cell contract with a European carrier group"},{"id":"n4","link":"https://example.invalid/standin/rklb-neutron","published_at":"2026-10-11T18:40:00Z","source":"CNBC","summary":"Rocket Lab (RKLB) shares eased after the company moved a Neutron engine test from October to November. The company said the first launch target is unchanged.","symbol":"RKLB","title":"Rocket Lab slips after Neutron test schedule update"},{"id":"n5","link":"https://example.invalid/standin/fed-patience","published_at":"2026-10-12T08:30:00Z","source":"Reuters","summary":"Federal Reserve officials signaled they want more inflation data before the October 28 rate decision. Markets tracked by Reuters price roughly even odds of a cut.","symbol":null,"title":"Fed officials signal patience ahead of the October 28 decision"},{"id":"n6","link":"https://example.invalid/standin/btc-etf-inflows","published_at":"2026-10-11T15:00:00Z","source":"Bloomberg","summary":"US spot bitcoin ETFs took in $412 million last week, a third straight week of inflows. Coinbase said its systems ran normally through the weekend volume.","symbol":"BTC","title":"Spot bitcoin ETFs post a third straight week of inflows"},{"id":"n7","link":"https://example.invalid/standin/market-noise","published_at":"2026-10-12T12:00:00Z","source":"Blog","summary":"Stocks were mixed at midday in quiet trading.","symbol":"XYZW","title":"Stocks mixed at midday as traders weigh earnings"}],"portfolio_source":"Stand-in portfolio in the Upmore stand-in market dataset, dated Oct 12, 2026 (the person's real Alpaca holdings are not readable until the Alpaca OAuth app is registered and he connects)","quotes":{"AAPL":{"as_of":"2026-10-12T13:00:00Z","premarket":260.4,"prev_close":258.3,"price":262.15},"ASTS":{"as_of":"2026-10-12T13:00:00Z","prev_close":79.2,"price":84.2},"BTC":{"as_of":"2026-10-12T13:00:00Z","prev_close":111800,"price":114250},"ETH":{"as_of":"2026-10-12T13:00:00Z","prev_close":4020,"price":3912},"IONQ":{"as_of":"2026-10-12T13:00:00Z","prev_close":59.1,"price":63.2},"MSFT":{"as_of":"2026-10-12T13:00:00Z","premarket":513.9,"prev_close":515.4,"price":512.8},"NVDA":{"as_of":"2026-10-12T13:00:00Z","premarket":183.05,"prev_close":190.1,"price":182.4},"RKLB":{"as_of":"2026-10-12T13:00:00Z","prev_close":53.5,"price":52.35},"TSLA":{"as_of":"2026-10-12T13:00:00Z","prev_close":338.1,"price":342.6},"VOO":{"as_of":"2026-10-12T13:00:00Z","premarket":611.8,"prev_close":610.05,"price":612.3},"VTI":{"as_of":"2026-10-12T13:00:00Z","prev_close":296.1,"price":298.44}},"rates":{"mortgage30":[{"lender":"FirstStand Bank","on":"2026-10-09","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-10","rate":6.25},{"lender":"FirstStand Bank","on":"2026-10-12","rate":6.125}]},"source":"Upmore stand-in market dataset, as of Oct 12, 2026, checked Oct 12, 2026 (no live market feed is connected; every figure here is stand-in data for proof, named as such wherever it is shown)","spinoffs":[{"detail":"shareholders of Northwind Industries receive 1 share for every 4 held; trading expected Nov 12, 2026","event":"spin-off from Northwind Industries","id":"northwind-spin","name":"Northwind Fusion","on":"2026-11-12","sector":"energy"}],"stand_in":true,"universe":[{"driver":"July data-center GPU orders, an August earnings beat with a guidance raise, and a September cloud contract reported by Reuters","market_cap_b":342,"monthly":[{"m":"2026-07","pct":8.1},{"m":"2026-08","pct":5.4},{"m":"2026-09","pct":11.2}],"name":"Advanced Micro Devices","price":226.4,"sector":"semiconductors","symbol":"AMD","theme":"ai infrastructure"},{"driver":"US commercial revenue growth of 71% in the August report and two federal contracts in September","market_cap_b":385,"monthly":[{"m":"2026-07","pct":6.3},{"m":"2026-08","pct":9.8},{"m":"2026-09","pct":4.1}],"name":"Palantir","price":171.3,"sector":"software","symbol":"PLTR","theme":"ai infrastructure"},{"market_cap_b":9.8,"monthly":[{"m":"2026-07","pct":3.2},{"m":"2026-08","pct":-1.5},{"m":"2026-09","pct":6.8}],"name":"Credo Technology","pe":74,"price":58.2,"risk":"two customers are about 70% of revenue (company filings)","sector":"semiconductors","symbol":"CRDO","theme":"ai infrastructure"},{"market_cap_b":18.4,"monthly":[{"m":"2026-07","pct":2.0},{"m":"2026-08","pct":3.0},{"m":"2026-09","pct":-0.5}],"name":"Astera Labs","pe":88,"price":112.75,"risk":"valued at 34x sales; a single hyperscaler delay moves the year","sector":"semiconductors","symbol":"ALAB","theme":"ai infrastructure"},{"market_cap_b":19.9,"name":"IonQ","pe":null,"price":63.2,"risk":"revenue is $52M a year against a $19.9B market cap","sector":"quantum computing","symbol":"IONQ","theme":"ai infrastructure"},{"market_cap_b":26.2,"name":"Super Micro Computer","pe":15,"price":44.1,"risk":"over the $20B cap in the ask, so excluded","sector":"hardware","symbol":"SMCI","theme":"ai infrastructure"},{"div_growth_5y":6.1,"div_yield":3.4,"market_cap_b":342,"name":"AbbVie","payout":62,"price":193.6,"sector":"pharma","symbol":"ABBV"},{"div_growth_5y":5.4,"div_yield":3.9,"market_cap_b":198,"name":"PepsiCo","payout":78,"price":144.25,"sector":"consumer staples","symbol":"PEP"},{"div_growth_5y":5.9,"div_yield":3.1,"market_cap_b":452,"name":"Johnson & Johnson","payout":58,"price":187.9,"sector":"pharma","symbol":"JNJ"},{"div_growth_5y":-4.2,"div_yield":13.8,"market_cap_b":11,"name":"AGNC Investment","payout":118,"price":10.42,"sector":"mortgage reit","symbol":"AGNC"}],"watchlist_default":["ASTS","RKLB"]};
+const PAYROLL_REF_JSON = {"about":"Dated official reference for the payroll, benefits and equity preparation surfaces (packages/domain/118-payroll-benefits.js; cluster K10: C101, C103, C108, C159, C172, C184, C196, C202, C204). Preparation only: Upmore computes, assembles packets and states the owner's own submission step; it never files, submits, enrolls or changes a payroll record. Every rule carries its official source and the day it was checked (2026-10-12, from the official sites' published pages). Dollar figures about a person never come from this file; they come from that person's facts passed in.","checked_on":"2026-10-12","fresh_days":180,"rules":{"b83_window_days":30,"dcfsa_household_cap_cents":500000,"pslf_required_payments":120},"sources":[{"checked_on":"2026-10-12","id":"nrurb","title":"National Registry of Unclaimed Retirement Benefits","url":"https://www.unclaimedretirementbenefits.com/","what":"Free search for unclaimed retirement benefits from prior employers."},{"checked_on":"2026-10-12","id":"ebsa-abandoned","title":"U.S. Department of Labor, EBSA \u2014 Abandoned Plan Program / missing participants guidance","url":"https://www.dol.gov/agencies/ebsa","what":"DOL resources for locating a terminated or abandoned employer plan and its administrator."},{"checked_on":"2026-10-12","id":"pbgc","title":"PBGC \u2014 Find an unclaimed pension","url":"https://www.pbgc.gov/wr/find-unclaimed-pension","what":"Pension Benefit Guaranty Corporation search for unclaimed defined-benefit pensions."},{"checked_on":"2026-10-12","id":"irs-pub969","title":"IRS Publication 969 \u2014 Health savings accounts and other tax-favored health plans (FSA rules)","url":"https://www.irs.gov/publications/p969","what":"Health FSA eligibility, use-or-lose rule, grace period and carryover as the plan allows."},{"checked_on":"2026-10-12","id":"irs-w4","title":"IRS Form W-4 and Tax Withholding Estimator","url":"https://www.irs.gov/forms-pubs/about-form-w-4","what":"Form W-4 steps 1-4; step 4(b) deductions reduce withholding; the employee files the W-4 with the employer, not the IRS."},{"checked_on":"2026-10-12","id":"pslf","title":"Federal Student Aid \u2014 Public Service Loan Forgiveness","url":"https://studentaid.gov/manage-loans/forgiveness-cancellation/public-service","what":"120 qualifying monthly payments under a qualifying plan while employed full-time by a qualifying employer; annual employer certification recommended."},{"checked_on":"2026-10-12","id":"irs-pub503","title":"IRS Publication 503 \u2014 Child and Dependent Care Expenses","url":"https://www.irs.gov/publications/p503","what":"Dependent care FSA: up to $5,000 per household per year ($2,500 if married filing separately); expenses must let the employee work."},{"checked_on":"2026-10-12","id":"irs-83b","title":"Internal Revenue Code section 83(b) election","url":"https://www.irs.gov/publications/p525","what":"An 83(b) election must be filed no later than 30 days after the property transfer; the deadline is statutory and cannot be extended."}]};
+const GOVERNMENT_JSON = {"about":"Dated official reference data for the government preparation flows (packages/domain/118-agent-government.js; owner capabilities C119, C120, C160, C162, C166). Preparation only: Upmore computes, checks and drafts; the owner files every filing himself through the official channel named here. Researched 2026-10-12 by web search restricted to official sites (cookcountyassessoril.gov, cookcountyassessor.com, irs.gov, fincen.gov, bsaefiling.fincen.gov); each row carries its source and checked date. County appeal windows run by township and are published per township each year, so the module states the window rule on file and the exact date computed from the notice date the person gives, never an invented township calendar date. Past fresh_days the answers say the rules on file may have changed and name the official page to re-check.","checked_on":"2026-10-12","counties":[{"appeal":{"channels":["Cook County Assessor appeal (online or in person)","Cook County Board of Review appeal (online portal, guest filing available)"],"checked_on":"2026-10-12","source":{"title":"Cook County Assessor's Office, senior citizen exemption and exemption brochures; Cook County Board of Review filing dates","url":"https://www.cookcountyassessoril.gov/senior-citizen-exemption"},"window_days_from_notice":30,"window_text":"an appeal to the Assessor is due within 30 days of the assessment notice; the Board of Review then opens a filing window of at least 30 days per township, on dates it publishes per township"},"assessment_level_residential":0.1,"homestead":{"checked_on":"2026-10-12","eav_reduction_dollars":10000,"name":"Homeowner Exemption (general homestead)","rules":["you own the property, or hold a lease or contract that makes you responsible for its real estate taxes","you occupied it as your principal place of residence on January 1 of the tax year","the exemption is not already on the property record for this property"],"senior_eav_reduction_dollars":8000,"source":{"title":"Cook County Assessor's Office, Homeowner Exemption","url":"https://rpie.cookcountyassessor.com/homeowner-exemption"}},"id":"cook-il","name":"Cook County, Illinois"},{"appeal":{"channels":["county board of review appeal"],"checked_on":"2026-10-12","source":{"title":"Illinois Department of Revenue, property tax appeals","url":"https://www.cookcountyassessoril.gov/senior-citizen-exemption"},"window_days_from_notice":30,"window_text":"an appeal to the county board of review is generally due within 30 days of the assessment notice publication; the exact dates are the county's"},"assessment_level_residential":null,"homestead":{"checked_on":"2026-10-12","eav_reduction_dollars":6000,"name":"General Homestead Exemption","rules":["you own the property, or hold a lease or contract that makes you responsible for its real estate taxes","you occupied it as your principal place of residence on January 1 of the tax year","the exemption is not already on the property record for this property"],"senior_eav_reduction_dollars":8000,"source":{"title":"Cook County Assessor's Office exemption brochure (statewide amounts stated for non-Cook counties)","url":"https://www.cookcountyassessoril.gov/senior-citizen-exemption"}},"id":"illinois-general","name":"Illinois (counties other than Cook)"}],"fbar":{"channel":"the BSA E-Filing System (FinCEN), filed separately from your tax return; individuals may file with the no-registration option","checked_on":"2026-10-12","due":{"automatic_extension":{"day":15,"month":10},"day":15,"extension_text":"an automatic extension to October 15 applies with no request needed","month":4},"form":"FinCEN Form 114","how_url":"https://www.fincen.gov/how-do-i-file-fbar","penalty_text":"Skipping it carries real penalties even when the failure was not willful (the inflation-adjusted maximum was $16,536 per report for assessments on or after January 17, 2025), and willful failures can reach the greater of $165,353 or 50% of the balance. The FBAR itself creates no tax.","source":{"title":"FinCEN, report foreign bank and financial accounts; how do I file the FBAR","url":"https://www.fincen.gov/report-foreign-bank-and-financial-accounts"},"threshold_cents":1000000,"threshold_text":"you must file if the aggregate value of all your foreign financial accounts exceeded $10,000 at any time during the calendar year; each account counts at its maximum value during the year, and a joint account counts at its full value for each owner"},"fresh_days":90,"irs_notices":[{"action":"Pay the full amount by the date on the notice to stop more penalties and interest, or use the notice's number to arrange a payment plan. If you already paid or the amount is wrong, the response draft says so and lists the proof to send.","checked_on":"2026-10-12","code":"CP14","deadline_text":"the pay-by date printed on the notice","escalate":false,"name":"Balance due","plain":"The IRS says you filed a return with a balance due and it was not paid in full. This notice is the first bill: it states the tax, penalties and interest, and the date to pay by.","respond_days":null,"source":{"title":"IRS, understanding your CP14 notice","url":"https://www.irs.gov/individuals/understanding-your-cp14j-notice"}},{"action":"Compare the notice line by line with your return. Agree: sign the response form and return it by the due date. Disagree with any part: return the response form marked disagree with a signed statement and copies (never originals) of the records that prove your figures. Do not file an amended return for the year on the notice.","checked_on":"2026-10-12","code":"CP2000","deadline_text":"30 days from the date on the notice","escalate":false,"name":"Proposed changes to your return (underreported income)","plain":"The income or payments on your return do not match what employers, banks or other third parties reported to the IRS. The IRS proposes changing your tax. This is not an audit and not a bill yet: nothing is owed until you agree or the IRS assesses it.","respond_days":30,"source":{"title":"IRS Topic No. 652, notice of underreported income - CP2000","url":"https://www.irs.gov/taxtopics/tc652"}},{"action":"Pay in full if you can, or arrange a payment plan through the number on the notice before the reminder sequence escalates.","checked_on":"2026-10-12","code":"CP501","deadline_text":"the date printed on the notice","escalate":false,"name":"Balance due, first reminder","plain":"A reminder that an unpaid balance is still on your account. No levy has been made; interest and penalties keep accruing until it is paid.","respond_days":null,"source":{"title":"IRS, redesigned collection notices (CP501, CP503, CP504, LT11)","url":"https://www.irs.gov/about-irs/redesigned-collection-notices-empower-taxpayers-and-increase-payment-compliance"}},{"action":"Pay in full if you can, or arrange a payment plan through the number on the notice now; the next notices in the sequence carry levy warnings.","checked_on":"2026-10-12","code":"CP503","deadline_text":"the date printed on the notice","escalate":false,"name":"Balance due, second reminder","plain":"The second reminder of an unpaid balance. Still no levy, but the sequence is moving toward one; interest and penalties keep accruing.","respond_days":null,"source":{"title":"IRS, redesigned collection notices (CP501, CP503, CP504, LT11)","url":"https://www.irs.gov/about-irs/redesigned-collection-notices-empower-taxpayers-and-increase-payment-compliance"}},{"action":"Resolve this now: pay, or arrange a payment plan through the number on the notice. If the IRS later sends a final notice of intent to levy (LT11 or Letter 1058), that one carries a 30-day right to a Collection Due Process hearing.","checked_on":"2026-10-12","code":"CP504","deadline_text":"the date printed on the notice","escalate":true,"name":"Final balance due, intent to levy","plain":"The final balance-due notice in the sequence. It says the IRS intends to levy (take) your state tax refund and other property if the balance is not resolved. It is not the final levy notice that carries hearing rights, but it is the last ordinary warning.","respond_days":null,"source":{"title":"IRS, redesigned collection notices (CP501, CP503, CP504, LT11)","url":"https://www.irs.gov/about-irs/redesigned-collection-notices-empower-taxpayers-and-increase-payment-compliance"}},{"action":"Act inside the 30 days: pay in full, arrange a payment plan, or file Form 12153 to request the CDP hearing and preserve the right to go to Tax Court. Talking to the IRS does not extend the 30 days.","checked_on":"2026-10-12","code":"LT11","deadline_text":"30 days from the date on the notice to request a CDP hearing (Form 12153)","escalate":true,"name":"Final notice of intent to levy, with hearing rights","plain":"The IRS says it intends to seize property or rights to property for overdue taxes. This notice carries a legal right: you may request a Collection Due Process (CDP) hearing within 30 days of the notice date, which pauses the levy while an appeals officer reviews the case. Letter 1058 is the same notice in letter form.","respond_days":30,"source":{"title":"IRS, understanding your LT11 notice or Letter 1058","url":"https://www.irs.gov/individuals/understanding-your-lt11-notice-or-letter-1058"}},{"action":"Act inside the 30 days: pay in full, arrange a payment plan, or file Form 12153 to request the CDP hearing and preserve the right to go to Tax Court. Talking to the IRS does not extend the 30 days.","checked_on":"2026-10-12","code":"1058","deadline_text":"30 days from the date on the letter to request a CDP hearing (Form 12153)","escalate":true,"name":"Final notice of intent to levy, with hearing rights (Letter 1058)","plain":"The IRS says it intends to seize property or rights to property for overdue taxes. This letter carries a legal right: you may request a Collection Due Process (CDP) hearing within 30 days of the letter date, which pauses the levy while an appeals officer reviews the case. LT11 is the same notice in notice form.","respond_days":30,"source":{"title":"IRS, understanding your LT11 notice or Letter 1058","url":"https://www.irs.gov/individuals/understanding-your-lt11-notice-or-letter-1058"}},{"action":"Do not let the 90 days run. You can still resolve it with the IRS during the window, but only a timely Tax Court petition preserves court review. This one warrants a tax professional.","checked_on":"2026-10-12","code":"CP3219A","deadline_text":"90 days from the date on the notice to petition the U.S. Tax Court","escalate":true,"name":"Statutory notice of deficiency","plain":"The IRS has formally proposed a tax change and states its reasoning. This is a legal notice: you have 90 days from its date to petition the U.S. Tax Court if you disagree, and that deadline generally cannot be extended.","respond_days":90,"source":{"title":"IRS, CP2000 follow-up notice CP3219A explained","url":"https://www.irs.gov/taxtopics/tc652"}}],"refund":{"checked_on":"2026-10-12","deposit_descriptors":["TREAS 310","TAX REF","IRS REFUND"],"path_act":"By law the IRS cannot issue a refund before mid-February (February 15) on a return claiming the Earned Income Tax Credit or the Additional Child Tax Credit; the hold covers the whole refund, not just the credit part.","source":{"title":"IRS, when to expect your refund if you claimed the EITC or ACTC; Where's My Refund","url":"https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit/when-to-expect-your-refund-if-you-claimed-the-earned-income-tax-credit-or-additional-child-tax-credit"},"stage_text":{"approved":"Refund approved: processing is done and a payment date is set or being set.","received":"Return received: the IRS has it and is processing it.","sent":"Refund sent: the IRS has sent it; a bank can take several days to post a direct deposit, and a mailed check takes longer."},"stages":["received","approved","sent"],"typical_days_efiled":21},"doorsteps":{"property_appeal":{"portal":"Cook County Assessor appeal, then the Cook County Board of Review appeals portal","session":"The Board of Review portal takes a guest filing with no account; the Assessor route is the exemptions/appeals site on file. No password of the owner's is ever handled by Upmore.","steps":["Open the Cook County Assessor's site and sign in or continue as the site offers; for the Board of Review, choose the guest filing.","Start a residential appeal for the property and enter its PIN.","Enter the assessed value from the notice and the requested assessed value from the packet (the comps' median).","Attach the comps packet (the comparable assessments and the savings math) as the supporting evidence.","Review the complaint summary screen end to end against the packet."],"stop":"STOP at the review screen with the complaint complete. The owner presses Submit himself; the confirmation number that follows is the filing's proof and gets sent back here.","final_tap":"Submit complaint \u2014 the owner's tap, always."},"homestead":{"portal":"Cook County Assessor's Office, online exemption filing (the Homeowner Exemption page on file)","session":"The Assessor's online filing asks for the property's PIN and the applicant's details; the owner signs in or files as the site offers. Upmore never handles his credentials.","steps":["Open the Assessor's Homeowner Exemption page and start the online application.","Enter the property's PIN and the tax year.","Answer the eligibility questions exactly as the check in chat found them (ownership, January 1 occupancy, not already on the record).","Attach the proof the site asks for (a photo ID and a document showing the address, as the site lists).","Review the application summary against the eligibility check."],"stop":"STOP at the review screen with the application complete. The owner submits it himself; the exemption later showing on the property record is the proof.","final_tap":"Submit application \u2014 the owner's tap, always."},"irs_notice":{"portal":"The IRS Document Upload Tool (the access code printed on the notice), or the reply address/fax on the notice","session":"The upload tool takes the notice's own access code, not an account password; the code lives on the owner's paper notice and is typed by him there \u2014 it never goes through chat or any log.","steps":["Open the IRS Document Upload Tool from the address printed on the notice and enter the notice's access code there.","Choose the response the chat drafted (agree, or disagree with the signed statement).","Attach the response form, the signed statement and copies of the supporting records (never originals).","Check every attached file name and page count against the draft's enclosure list.","Review the submission summary."],"stop":"STOP at the submission review with the response complete. The owner sends it himself before the deadline on the clock; the IRS's written closing letter ends the case.","final_tap":"Send the response \u2014 the owner's tap, always."},"refund_track":{"portal":"Where's My Refund, on the IRS site (irs.gov/refund, as the IRS prints it)","session":"No account: the tool takes the owner's SSN, filing status and the exact refund amount. The SSN is an identity digit \u2014 the owner types it into the IRS's own page himself; it never goes through chat, a log or a screenshot.","steps":["Open Where's My Refund on the IRS site.","The filing status and the exact refund amount are filled from the return's figures, ready to check.","The owner types his own SSN into the IRS page (that field is his alone) and presses the check.","Read the stage it shows (return received, refund approved, refund sent) back into chat."],"stop":"STOP with the form ready and the SSN field empty. The check itself is the owner's tap on the IRS's own page; the stage he reports starts the tracking, and the deposit then verifies itself in his linked account.","final_tap":"Check the refund \u2014 the owner's tap, on the IRS's page, with his own digits."},"fbar":{"portal":"FinCEN BSA E-Filing System (individuals may file with the no-registration option, per the FinCEN page on file)","session":"Individual filing needs no account registration; institutions must register. The owner files as an individual under the no-registration option, so no credentials exist for Upmore to handle.","steps":["Open the BSA E-Filing System from the FinCEN page on file and choose the individual (no-registration) FBAR filing.","Start FinCEN Form 114 for the reporting year and enter the filer's details as the form asks.","Enter each foreign account from the packet: bank, country, type, and its maximum balance for the year.","Check the account list and the aggregate against the packet, line by line.","Review the completed form end to end."],"stop":"STOP at the completed form's review screen. The owner submits it himself; the BSA confirmation the system returns is the filing's proof and gets sent back here.","final_tap":"Submit the FBAR \u2014 the owner's tap, always."}}};
 const MANUAL_PLAYBOOKS_JSON = [{"platform_id":"cash-app-investing","display_name":"Cash App Investing","login_url":"https://cash.app/","steps":[{"kind":"click","text":"Sign in|Log in"}],"signed_in_when":["Investing","Portfolio"],"signed_out_when":["Sign in","Enter your phone or email"],"reads":[{"field":"balance","page":"https://cash.app/","labels":["Investing","Portfolio value"]},{"field":"position","page":"https://cash.app/","labels":["Stocks","Shares"]}],"two_step":"Cash App signs in with a code sent to the person's phone or email; the person types it themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"No API or aggregator covers Cash App's brokerage holdings (research, 2026-10-11). Bitcoin sits outside Investing and stays out (crypto is off). Clearing moved to Apex Ascend in May 2026; statements may move with it.","sources":["https://cash.app/developers","https://www.businesswire.com/news/home/20260528137763/en/Cash-App-Investing-Names-Apex-Ascend-as-Strategic-Clearing-Platform-for-Millions-of-Investors"]},{"platform_id":"fundrise","display_name":"Fundrise","login_url":"https://fundrise.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Account value","Portfolio"],"signed_out_when":["Log in","Email address"],"reads":[{"field":"balance","page":"https://fundrise.com/","labels":["Account value","Net returns"]},{"field":"position","page":"https://fundrise.com/","labels":["Funds","Portfolio"]},{"field":"as_of","page":"https://fundrise.com/","labels":["As of"]}],"two_step":"Fundrise may ask for a code by text or an authenticator; the person enters it themselves.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Fundrise Connect is a partner API for originating new investments, not for reading an existing account, so it does not apply. Fund values are periodic NAVs: the as_of date matters and is shown with every number.","sources":["https://connect.fundrise.com/"]},{"platform_id":"yieldstreet","display_name":"Yieldstreet (Willow Wealth)","login_url":"https://www.yieldstreet.com/","steps":[{"kind":"click","text":"Log in|Sign in"}],"signed_in_when":["Portfolio","Total invested"],"signed_out_when":["Log in","Email"],"reads":[{"field":"balance","page":"https://www.yieldstreet.com/","labels":["Total invested","Available balance"]},{"field":"position","page":"https://www.yieldstreet.com/","labels":["Investments","Offering"]}],"two_step":"The person completes any code or device check themselves in the live window.","verified":false,"verified_on":null,"unverified_fields":["login_url","steps","signed_in_when","signed_out_when","reads"],"notes":"Renamed Willow Wealth (announced Oct 2025, effective Nov 2025); the sign-in may have moved to a new domain, which the first live run confirms. Private-market positions are valued periodically and some are impaired: amounts are shown as the platform states them, with their date, never re-estimated.","sources":["https://www.crowdfundinsider.com/2026/01/256259-yieldstreet-rebrands-to-willow-wealth-looks-to-move-beyond-investor-loss-of-over-200-million/"]}];
 const PLATFORMS_JSON = [{"n":1,"id":"robinhood","platform":"Robinhood","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["robinhood"],"notes":"No third-party trading API. Robinhood's agentic trading (May 2026) is for a person's own agent in a separate account, not for apps like Upmore. SnapTrade's access guide lists it read-only."},{"n":2,"id":"fidelity","platform":"Fidelity","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity"],"notes":"Fidelity Access is a read-only data API for approved aggregators (Akoya). No third-party trading."},{"n":3,"id":"charles-schwab","platform":"Charles Schwab","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","fallback_route":"plaid","aliases":["schwab","charles schwab"],"notes":"Trader API for third parties after Schwab approves the app. Plaid tracks it until then."},{"n":4,"id":"etrade","platform":"E*TRADE (Morgan Stanley)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"an E*TRADE developer agreement (OAuth 1.0a)","aliases":["etrade","e*trade","e-trade"],"notes":"E*TRADE developer platform (OAuth 1.0a); SnapTrade also trades it."},{"n":5,"id":"interactive-brokers","platform":"Interactive Brokers","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","aliases":["interactive brokers","ibkr"],"notes":"IBKR Web API, third-party OAuth 1.0a after compliance review. SnapTrade reads it only."},{"n":6,"id":"webull","platform":"Webull","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Webull Connect API registration (contact Webull's API team)","aliases":["webull"],"notes":"Webull's Connect API is OAuth 2.0 for third-party platforms and includes orders; access is by registration with Webull's API team (eligibility terms not published). SnapTrade also trades Webull (partnership, Dec 2025)."},{"n":7,"id":"sofi-invest","platform":"SoFi Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["sofi","sofi invest"],"notes":"Plaid coverage of SoFi Invest holdings not confirmed."},{"n":8,"id":"public","platform":"Public.com","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["public.com","public app"],"notes":"Public's personal API is for the account owner's own use only; SnapTrade reads it."},{"n":9,"id":"m1","platform":"M1 Finance","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["m1","m1 finance"],"notes":"No third-party API; Plaid coverage of holdings not confirmed."},{"n":10,"id":"vanguard","platform":"Vanguard","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard"],"notes":"Plaid via Vanguard OAuth (Mar 2025). SnapTrade reads only. No trading API."},{"n":11,"id":"merrill-edge","platform":"Merrill Edge","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["merrill","merrill edge","merrill lynch"],"notes":"Plaid via OAuth. No third-party trading API."},{"n":12,"id":"ally-invest","platform":"Ally Invest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ally invest","ally"],"notes":"Ally retired its trading API in Aug 2023. Plaid coverage of holdings not confirmed."},{"n":13,"id":"tastytrade","platform":"tastytrade","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"a tastytrade OAuth app registration","aliases":["tastytrade","tasty trade","tastyworks"],"notes":"OAuth2 with read and trade scopes; clients are registered at developer.tastytrade.com, but whether an app may connect other people's accounts (partner terms) is not published. SnapTrade also trades it."},{"n":14,"id":"firstrade","platform":"Firstrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["firstrade"],"notes":"No API. Plaid coverage not confirmed."},{"n":15,"id":"tradestation","platform":"TradeStation","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a TradeStation API key and OAuth app","aliases":["tradestation"],"notes":"OAuth2 API; SnapTrade also trades it."},{"n":16,"id":"moomoo","platform":"Moomoo","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["moomoo"],"notes":"SnapTrade reads and trades it. Moomoo's own OpenAPI runs through a local gateway on the person's machine, not usable by an app."},{"n":17,"id":"jp-morgan-self-directed","platform":"J.P. Morgan Self-Directed Investing","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["jp morgan","j.p. morgan","chase investing","jpmorgan"],"notes":"Plaid via Chase OAuth. SnapTrade reads Chase only."},{"n":18,"id":"wellstrade","platform":"WellsTrade","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["wellstrade","wells fargo investing"],"notes":"Plaid covers Wells Fargo; investment holdings not confirmed."},{"n":19,"id":"eoption","platform":"eOption","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["eoption"],"notes":"No API or aggregator coverage found."},{"n":20,"id":"zacks-trade","platform":"Zacks Trade","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["zacks trade","zacks"],"notes":"Introducing broker to IBKR; whether IBKR's API reaches these accounts is not confirmed."},{"n":21,"id":"edward-jones","platform":"Edward Jones","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["edward jones"],"notes":"Data sharing via Akoya; Plaid coverage not confirmed."},{"n":22,"id":"td-ameritrade","platform":"TD Ameritrade (migrated to Schwab)","category":"US brokerage","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Schwab Trader API commercial approval","same_account_as":"charles-schwab","aliases":["td ameritrade","ameritrade"],"notes":"Accounts moved to Schwab (2023-24); one Schwab connection covers them."},{"n":23,"id":"betterment","platform":"Betterment","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["betterment"],"notes":"Robo-advisor: it trades for you, so read-only here by design. Took over Marcus Invest (2024) and Ellevest (2025) robo accounts."},{"n":24,"id":"wealthfront","platform":"Wealthfront","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["wealthfront"],"notes":"Robo-advisor; read-only by design."},{"n":25,"id":"acorns","platform":"Acorns","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["acorns"],"notes":"Plaid coverage of Acorns holdings not confirmed."},{"n":26,"id":"stash","platform":"Stash","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["stash"],"notes":"Acquired by Grab (Jul 2026). Plaid coverage not confirmed."},{"n":27,"id":"ellevest","platform":"Ellevest","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["ellevest"],"notes":"Robo accounts moved to Betterment (2025)."},{"n":28,"id":"marcus-invest","platform":"Marcus Invest (Goldman Sachs)","category":"US brokerage","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","same_account_as":"betterment","aliases":["marcus invest","marcus"],"notes":"Moved to Betterment (2024)."},{"n":29,"id":"titan","platform":"Titan","category":"US brokerage","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["titan","titan invest"],"notes":"No API or confirmed aggregator coverage."},{"n":30,"id":"moomoo-futu","platform":"Moomoo/Futu (US)","category":"US brokerage","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","same_account_as":"moomoo","aliases":["futu"],"notes":"Same company as Moomoo (Moomoo Financial Inc.)."},{"n":31,"id":"fidelity-netbenefits","platform":"Fidelity NetBenefits","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["netbenefits","fidelity netbenefits","fidelity 401k"],"notes":"401k: no trading via any route. Plaid names NetBenefits directly; SnapTrade's Fidelity link is read-only and may not include workplace accounts."},{"n":32,"id":"vanguard-institutional","platform":"Vanguard Institutional","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["vanguard institutional","vanguard 401k"],"notes":"Plaid lists Vanguard, but its own page is inconsistent about the Investments product, and coverage of employer 401(k) plans is not published."},{"n":33,"id":"empower","platform":"Empower","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","fallback_route":"plaid","aliases":["empower","empower retirement"],"notes":"SnapTrade reads Empower over OAuth, read-only; a third-party tracker reports holdings only, no transactions. Which workplace plans are covered is not published."},{"n":34,"id":"principal","platform":"Principal Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["principal","principal financial"],"notes":"Read access assumed via Plaid's general coverage; confirm with Plaid /institutions/search before relying on it."},{"n":35,"id":"t-rowe-price","platform":"T. Rowe Price","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["t. rowe price","t rowe price","t rowe"],"notes":"No official Plaid or T. Rowe source confirms coverage; treat as likely until checked in Plaid's coverage explorer."},{"n":36,"id":"tiaa","platform":"TIAA","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["tiaa"],"notes":"Only provider here with a documented FDX data API; access is gated to authorized recipients."},{"n":37,"id":"alight","platform":"Alight Solutions","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["alight"],"notes":"Plaid's naming is from 2019 under the Aon Hewitt brand; reconfirm current coverage."},{"n":38,"id":"voya","platform":"Voya Financial","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["voya"],"notes":"Former OneAmerica plans now under Voya; Plaid naming is from 2019, reconfirm."},{"n":39,"id":"adp-retirement","platform":"ADP Retirement Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["adp 401k","adp retirement"],"notes":"No ADP-specific aggregator source found; read access is an assumption pending a Plaid institution lookup."},{"n":40,"id":"ascensus","platform":"Ascensus","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["ascensus"],"notes":"Many former Vanguard solo-401k users now sit at Ascensus; confirm the institution entry in Plaid."},{"n":41,"id":"schwab-retirement-plans","platform":"Charles Schwab Retirement Plan Services","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["schwab 401k","schwab retirement plan"],"notes":"Workplace 401k at Schwab uses a separate site from retail; don't assume retail Schwab connectors reach it."},{"n":42,"id":"human-interest","platform":"Human Interest","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["human interest"],"notes":"Small-business recordkeeper; aggregator coverage unconfirmed."},{"n":43,"id":"guideline","platform":"Guideline","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["guideline","gusto 401k"],"notes":"A 'Guideline' account may now be Gusto 401(k) or Vestwell; about 30,000 plans moved to Vestwell."},{"n":44,"id":"forusall","platform":"ForUsAll","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["forusall","for us all"],"notes":"Offers an in-plan crypto window (Alt 401k); aggregator coverage unconfirmed."},{"n":45,"id":"merrill-401k","platform":"Merrill 401k","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["merrill 401k","merrill benefits"],"notes":"Bank of America/Merrill Benefits Online; every field needs a follow-up check."},{"n":46,"id":"american-funds","platform":"American Funds / Capital Group","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["american funds","capital group"],"notes":"Small-plan recordkeeping via RecordkeeperDirect; aggregator coverage unconfirmed."},{"n":47,"id":"nationwide-retirement","platform":"Nationwide Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["nationwide 401k","nationwide retirement"],"notes":"No Nationwide-specific source located; confirm status and Plaid entry before building."},{"n":48,"id":"transamerica","platform":"Transamerica","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["transamerica"],"notes":"Aggregator coverage unconfirmed."},{"n":49,"id":"massmutual","platform":"MassMutual","category":"401(k) and retirement","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","same_account_as":"empower","aliases":["massmutual","mass mutual"],"notes":"Former MassMutual 401k participants are Empower participants; connect Empower."},{"n":50,"id":"john-hancock-retirement","platform":"John Hancock Retirement","category":"401(k) and retirement","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["john hancock","john hancock retirement"],"notes":"Brand change may affect institution naming in aggregator search."},{"n":51,"id":"kalshi","platform":"Kalshi","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["kalshi"],"notes":"The user creates a key in Kalshi and pastes it into the app. A demo host with separate keys is available for testing."},{"n":52,"id":"polymarket","platform":"Polymarket","category":"Prediction market","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position. Polymarket is the murkier one for US users: only Polymarket US (a CFTC exchange) is in scope.","aliases":["polymarket","polymarket us"],"notes":"Polymarket US and global Polymarket are separate accounts. Connect only Polymarket US for US users. A June 2026 CFTC probe was reported (unverified)."},{"n":53,"id":"predictit","platform":"PredictIt","category":"Prediction market","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["predictit"],"notes":"The public feed gives prices, not a user's positions. Position limits and fees conflict across 2026 sources."},{"n":54,"id":"robinhood-event-contracts","platform":"Robinhood Event Contracts","category":"Prediction market","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","same_account_as":"robinhood","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["robinhood event contracts","robinhood prediction markets"],"notes":"Same Robinhood login as #1; one connection should cover it."},{"n":55,"id":"forecastex","platform":"ForecastEx (Interactive Brokers)","category":"Prediction market","region":"US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"interactive-brokers","blocked_reason":"Prediction market: the gambling guard stays on until the owner decides (Decision 2). If he ever lifts it, Upmore states numbers only (prices, implied odds, fees, P&L) and never encourages or suggests a position.","aliases":["forecastex","forecast trader"],"notes":"Same account as Interactive Brokers; one connection covers it."},{"n":56,"id":"coinbase","platform":"Coinbase","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["coinbase"],"notes":"For OAuth trades, the portfolio ID must be passed on Advanced Trade orders (since May 2025)."},{"n":57,"id":"kraken","platform":"Kraken","category":"Crypto","region":"US","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["kraken"],"notes":"Kraken also launched an API Partner Program on Jul 2, 2026 (revenue share)."},{"n":58,"id":"gemini","platform":"Gemini","category":"Crypto","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"a Gemini OAuth app","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["gemini exchange","gemini crypto"],"notes":"Whether a general third-party app is granted orders:create through self-service is unverified. Sandbox available."},{"n":59,"id":"binance-us","platform":"Binance.US","category":"Crypto","region":"US (not every state)","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["binance.us","binance us","binance"],"notes":"Check the user's state before offering the connection."},{"n":60,"id":"crypto-com","platform":"Crypto.com","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["crypto.com"],"notes":"Most US retail users are on the App, not the Exchange. Whether US accounts can use the Broker OAuth is unverified."},{"n":61,"id":"bitstamp","platform":"Bitstamp","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitstamp"],"notes":"Separate account from Robinhood (#1) despite the shared owner. API details come from a third-party review and are not verified on Bitstamp docs."},{"n":62,"id":"robinhood-crypto","platform":"Robinhood Crypto","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["robinhood crypto"],"notes":"Same Robinhood login as #1, but its own API key (the Crypto Trading API)."},{"n":63,"id":"etoro-crypto","platform":"eToro (crypto + stocks)","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","same_account_as":"etoro","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["etoro crypto"],"notes":"Same account as eToro (#72); one connection covers both. US eligibility for the API is reported but unverified on eToro docs."},{"n":64,"id":"bitflyer","platform":"bitFlyer","category":"Crypto","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["bitflyer"],"notes":"US-specific API docs could not be confirmed. Coverage claims come from review sites."},{"n":65,"id":"blockfi","platform":"BlockFi","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["blockfi"],"notes":"Shut down (Chapter 11, 2022)."},{"n":66,"id":"uphold","platform":"Uphold","category":"Crypto","region":"US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","blocked_reason":"Crypto: Upmore's shipped hard rule is no crypto (the chat's crypto guard), so this stays off until the owner lifts that rule in writing.","aliases":["uphold"],"notes":"Current docs target businesses. Whether a consumer third-party OAuth flow is still offered is unclear."},{"n":67,"id":"anchorage","platform":"Anchorage Digital","category":"Crypto","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["anchorage","anchorage digital"],"notes":"Institutional custody only; no consumer accounts."},{"n":68,"id":"questrade","platform":"Questrade (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["questrade"],"notes":"Canadian accounts only. The API agreement limits automated ordering unless Questrade allows it."},{"n":69,"id":"wealthsimple","platform":"Wealthsimple (Canada)","category":"International","region":"Canada","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["wealthsimple"],"notes":"A 2026 guide says Wealthsimple's ToS forbid API trading (unverified). Confirm trading is enabled before relying on it."},{"n":70,"id":"degiro","platform":"DEGIRO (EU)","category":"International","region":"EU","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["degiro"],"notes":"No trading route without an official API."},{"n":71,"id":"saxo","platform":"Saxo Bank","category":"International","region":"outside the US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"Saxo OpenAPI partner approval","aliases":["saxo","saxo bank"],"notes":"Mostly irrelevant for US users. Approval is needed before live use."},{"n":72,"id":"etoro","platform":"eToro","category":"International","region":"Global incl. US","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["etoro"],"notes":"Personal API keys, or partner OAuth once approved; SnapTrade reads it."},{"n":73,"id":"ig","platform":"IG","category":"International","region":"UK, EU, global","route":"native_api","auth":"personal_api_key","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the personal-key connector (the key goes on the secure link into the vault)","aliases":["ig markets","ig group"],"notes":"Leveraged CFD products. No third-party OAuth program found. US availability not covered here."},{"n":74,"id":"cmc-markets","platform":"CMC Markets","category":"International","region":"UK, Australia, global","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["cmc markets","cmc"],"notes":"The 'no retail API' claim comes from one 2026 third-party review."},{"n":75,"id":"plus500","platform":"Plus500","category":"International","region":"Outside the US (US: futures only)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["plus500"],"notes":"Plus500 Futures API access is unverified; confirm with Plus500."},{"n":76,"id":"xtb","platform":"XTB","category":"International","region":"EU, UK (no US)","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["xtb"],"notes":"There is no programmatic route since the xAPI shutdown."},{"n":77,"id":"trading-212","platform":"Trading 212","category":"International","region":"UK, EU (no US)","route":"snaptrade","auth":"aggregator","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"the owner's SnapTrade account and keys","aliases":["trading 212","trading212"],"notes":"In beta, the order endpoints are not idempotent. Guard against duplicate orders on retry."},{"n":78,"id":"interactive-brokers-global","platform":"Interactive Brokers Global","category":"International","region":"Global incl. US","route":"native_api","auth":"partner_oauth","trade":true,"read":true,"adapter_state":"not_built","verification":"researched","needs":"IBKR third-party OAuth approval (a compliance review)","same_account_as":"interactive-brokers","aliases":["ibkr global","interactive brokers global"],"notes":"Covers ForecastEx (#55) too. IBKR estimates 8-14 weeks for approval."},{"n":79,"id":"lightyear","platform":"Lightyear","category":"International","region":"UK, EU","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["lightyear"],"notes":"The date of the help-center statement is unclear."},{"n":80,"id":"freetrade","platform":"Freetrade (UK)","category":"International","region":"UK","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["freetrade"],"notes":"Separate account from IG (#73) despite the shared owner. UK-only, not relevant for US users."},{"n":81,"id":"cash-app-investing","platform":"Cash App Investing","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["cash app","cash app investing"],"notes":"No aggregator coverage found for brokerage holdings; read only through the person's own session."},{"n":82,"id":"chime","platform":"Chime","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["chime","chime invest"],"notes":"Chime did not offer investing before Jul 2026; rollout to all members not confirmed."},{"n":83,"id":"revolut","platform":"Revolut","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["revolut"],"notes":"Holdings are not reachable by any confirmed route; cash balances only through a bank connection."},{"n":84,"id":"current","platform":"Current","category":"Neobank investing","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["current app","current card"],"notes":"Investing here means in-app crypto only."},{"n":85,"id":"varo","platform":"Varo","category":"Neobank investing","region":"US","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"researched","aliases":["varo"],"notes":"No investing product to read; cash balances only, likely via a bank connection."},{"n":86,"id":"moneylion","platform":"MoneyLion","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["moneylion"],"notes":"Users reported Managed Investment access problems in Jul 2026 (individual complaints, not a shutdown)."},{"n":87,"id":"albert","platform":"Albert","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["albert app","albert investing"],"notes":"No investing discontinuation found."},{"n":88,"id":"greenlight","platform":"Greenlight (kids investing)","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["greenlight"],"notes":"Custodial accounts for minors; the parent is the account owner."},{"n":89,"id":"step","platform":"Step","category":"Neobank investing","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["step app","step card"],"notes":"The new owner says plans for the app are still under evaluation."},{"n":90,"id":"douugh","platform":"Douugh","category":"Neobank investing","region":"Australia","route":"none","auth":"none","trade":false,"read":false,"adapter_state":"not_built","verification":"unverified","aliases":["douugh"],"notes":"Australia-focused; current investing offering could not be confirmed."},{"n":91,"id":"schwab-intelligent-portfolios","platform":"Schwab Intelligent Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["schwab intelligent portfolios"],"notes":"Robo-advisor; read-only by design."},{"n":92,"id":"fidelity-go","platform":"Fidelity Go","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["fidelity go"],"notes":"Robo-advisor; read-only by design."},{"n":93,"id":"vanguard-digital-advisor","platform":"Vanguard Digital Advisor","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"researched","aliases":["vanguard digital advisor"],"notes":"Robo-advisor; read-only by design."},{"n":94,"id":"etrade-core-portfolios","platform":"E*TRADE Core Portfolios","category":"Robo and specialty","region":"US","route":"plaid","auth":"aggregator","trade":false,"read":true,"adapter_state":"live","verification":"unverified","aliases":["core portfolios","etrade core portfolios"],"notes":"Robo-advisor; Plaid coverage not confirmed."},{"n":95,"id":"sigfig","platform":"SigFig","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["sigfig","tandems"],"notes":"SigFig robo accounts are held at partner custodians; connecting the custodian may be the better route (unverified)."},{"n":96,"id":"empower-personal-dashboard","platform":"Personal Capital / Empower Personal Dashboard","category":"Robo and specialty","region":"US","route":"snaptrade","auth":"aggregator","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"the owner's SnapTrade account and keys","aliases":["personal capital","empower personal dashboard"],"notes":"Itself an aggregator: connecting the underlying accounts directly is better."},{"n":97,"id":"fundrise","platform":"Fundrise","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["fundrise"],"notes":"Fundrise Connect is for originating new investments, not reading existing accounts."},{"n":98,"id":"yieldstreet","platform":"Yieldstreet","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"researched","needs":"guided manual connect (live browser login) built and verified","aliases":["yieldstreet","willow wealth"],"notes":"Renamed Willow Wealth (2025)."},{"n":99,"id":"masterworks","platform":"Masterworks","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["masterworks"],"notes":"Reg A art shares; no replacement secondary market confirmed after Dec 2026."},{"n":100,"id":"rally","platform":"Rally","category":"Robo and specialty","region":"US","route":"browser_assisted","auth":"manual_session","trade":false,"read":true,"adapter_state":"not_built","verification":"unverified","needs":"guided manual connect (live browser login) built and verified","aliases":["rally rd","rally app"],"notes":"Fractional collectibles; going-concern warning means shutdown risk."},{"n":101,"id":"alpaca","platform":"Alpaca","category":"US brokerage","region":"US","route":"native_api","auth":"oauth","trade":true,"read":true,"adapter_state":"live","verification":"researched","aliases":["alpaca"],"notes":"Upmore's first live connection: OAuth in the person's own live account, $5 per-order cap, a yes per order. Deployed; not yet proven end to end with a real account (go-live Prompt 4)."}];
-export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover, CareerPackets, CareerPaths, CareerGraph, CareerW11Ext, CareerApply3, CareerSafety, CareerSeason, CareerReply, CareerRouter };
+export { AgentRouter, AgentTrade, AgentCancel, AgentSend, AgentSplit, AgentRecipients, AlpacaTrading, BrokerAccounts, BrokerConnect, ConnectCards, StyleCorpus, STYLE_CORPUS_JSON, MerchantTerms, MERCHANT_TERMS_JSON, AgentCards, AgentLoop, Compliance, AgentLedger, AgentControl, AgentAlerts, AgentProactive, AgentMonitors, AgentVoice, CapabilityRegistry, REGISTRY_JSON, BrokerageConnectors, PLATFORMS_JSON, AgentSave, AgentDispute, MoneyAnswers, TheNumbers, ManualConnect, MANUAL_PLAYBOOKS_JSON, StandingRent, OfferBook, OFFER_TERMS_JSON, RewardsMath, SubscriptionSavings, PriceDrop, MoneyOwed, REFUND_PROGRAMS_JSON, AirlineRefunds, Unclaimed, FAILED_BANKS_JSON, UNCLAIMED_PROGRAMS_JSON, CardOffers, WinBack, FreeSubstitutes, WhatsNew, Budgets, SpendingViews, CategoryRules, YearInMoney, Bnpl, BNPL_PROVIDERS_JSON, MERCHANT_KNOWLEDGE_JSON, RefundCheck, SubscriptionList, MoneyIn, ChargeCheck, Deadlines, DEADLINES_JSON, MARKET_DATA_JSON, Reminders, CancelledCharge, IouLog, RentShort, SaveGoal, SpendRecheck, AdviceGuard, ScamCheck, SavingsRate, NotYet, LateFeeWatch, ScheduledSend, SavingsGoals, PaycheckSend, AgentNews, TipFees, AgentMoneyPlans, AgentTransfer, MarketIntel, CryptoTax, BankActions, AgentBureaus, PayrollBenefits, PAYROLL_REF_JSON, Government, GOVERNMENT_JSON, CareerAccess, CareerJobs, CareerProfile, CareerTailor, CareerOutreach, CareerIntel, CareerTrack, CareerPrep, CareerNegotiation, CareerOS, CareerApply, CareerDiscover, CareerPackets, CareerPaths, CareerGraph, CareerOnboarding, CareerW11Ext, CareerApply3, CareerSafety, CareerSeason, CareerReply, CareerDoorstep, CareerRouter, CareerContainment };

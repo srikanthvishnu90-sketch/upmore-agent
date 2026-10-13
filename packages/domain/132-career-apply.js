@@ -144,7 +144,7 @@ const CareerApply = (() => {
   // Salary: ask, offer a SOURCED range when one is passed in, default to
   // negotiable/open. A number is entered only when the user approved that
   // exact number (opts.userApprovedNumber).
-  function salaryQuestion(profile, question, opts) {
+  function salaryQuestion(_profile, _question, opts) {
     const o = opts || {};
     if (typeof o.userApprovedNumber === "number" && o.userApprovedNumber > 0) {
       return { kind: "salary", requiresConfirmation: true, entered: true, answer: String(o.userApprovedNumber), confirmationState: "user-approved-number" };

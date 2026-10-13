@@ -6,7 +6,7 @@
    (injected) calendar busy intervals. */
 const CareerSeason = (() => {
   "use strict";
-  const DAY = 86400000;
+  const _DAY = 86400000;
   const rowsOf = (store) => Array.isArray(store) ? store : (store && store.rows) || [];
   const weekKey = (t) => { const d = new Date(t); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day); return d.toISOString().slice(0, 10); };
 

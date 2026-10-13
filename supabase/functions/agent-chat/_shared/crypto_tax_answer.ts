@@ -19,7 +19,7 @@ export async function cryptoTaxReply(message: string, previous?: () => Promise<a
     // A structured paste the importer cannot read, in a thread already holding the tax conversation, still gets
     // its answer (the domain's "couldn't read any transactions" with the reason); anything else is not this.
     if (!previous || !/[,;]/.test(message) || message.split("\n").length < 2) return null;
-    const msgs = await previous().catch(() => []);
+    const msgs = await Promise.resolve(previous()).catch(() => []);
     const prior = (Array.isArray(msgs) ? msgs : []).some((m: any) => m && /crypto tax|nothing to sort yet|1099/i.test(String(m.content || "")));
     if (!prior) return null;
   }
@@ -29,13 +29,13 @@ export async function cryptoTaxReply(message: string, previous?: () => Promise<a
   const ownWords = csvPart ? message.replace(csvPart, "") : message;
   if (csvPart && !/\btax/i.test(ownWords)) {
     if (!previous) return null;
-    const msgs = await previous().catch(() => []);
+    const msgs = await Promise.resolve(previous()).catch(() => []);
     const prior = (Array.isArray(msgs) ? msgs : []).some((m: any) => m && /crypto tax|nothing to sort yet|1099/i.test(String(m.content || "")));
     if (!prior) return null;
   }
   let context = "";
   if (previous) {
-    const msgs = await previous().catch(() => []);
+    const msgs = await Promise.resolve(previous()).catch(() => []);
     if (Array.isArray(msgs)) context = msgs.slice().reverse().map((m: any) => `${m && m.role === "user" ? "user" : "agent"}: ${String((m && m.content) || "")}`).join("\n");
   }
   return CT.handle(message, { context });

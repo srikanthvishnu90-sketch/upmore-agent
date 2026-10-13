@@ -8,7 +8,7 @@
    Otherwise the estimate is null and the output says exactly that. Every number carries its
    evidence + as_of. Feed postings are the normalized 121-career-jobs shape. */
 const CareerOS = (() => {
-  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch (e) { return null; } })() : null;
+  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch { return null; } })() : null;
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;

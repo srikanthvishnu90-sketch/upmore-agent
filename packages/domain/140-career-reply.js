@@ -206,7 +206,7 @@ const CareerReply = (() => {
   }
 
   function composeText(raw, opts) {
-    const o = opts || {};
+    const _o = opts || {};
     const noPayload = stripPayloadSpans(raw == null ? "" : String(raw));
     const lines = noPayload.split(/\n+/);
     const sentences = [];

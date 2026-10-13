@@ -233,7 +233,7 @@
     // A handler never claims an edge action happened: connect returns the ACTION the host must run against
     // gmail-oauth ({edge_action:"start_career"} plus the secure link when the host supplied one), and
     // disconnect returns {edge_action:"disconnect", source} for the host to execute and confirm.
-    function handleConnectGoogle(text, ctx) {
+    function handleConnectGoogle(_text, ctx) {
       const c = ctx || {};
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
       return {
@@ -241,11 +241,11 @@
         reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
       };
     }
-    function handleConnected(text, ctx) {
+    function handleConnected(_text, ctx) {
       const r = connectedAccounts((ctx || {}).statusRecords);
       return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
-    function handleDisconnect(text, ctx) {
+    function handleDisconnect(text, _ctx) {
       // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
       // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
       // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
@@ -266,11 +266,11 @@
           : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
       };
     }
-    function handleAccessLog(text, ctx) {
+    function handleAccessLog(_text, ctx) {
       const r = auditLog((ctx || {}).auditEntries);
       return { intent: "access_log", entries: r.entries, reply: r.text };
     }
-    function handlePortalList(text, ctx) {
+    function handlePortalList(_text, ctx) {
       const r = portalList((ctx || {}).portalRecords);
       return { intent: "portal_accounts", companies: r.companies, reply: r.text };
     }

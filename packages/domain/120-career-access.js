@@ -126,7 +126,18 @@
       }
       const badSources = [...new Set(paused.flatMap(p => p.blocked_by))];
       const linkFor = typeof o.secureLinkFor === "function" ? o.secureLinkFor : () => o.secureLink || null;
-      const messages = badSources.map(source => ({ source, text: reauthMessage(source, linkFor(source)) }));
+      // One message per dead GRANT, not per need-name: Gmail and Calendar are two needs satisfied by
+      // the SAME career Google grant, so a dead grant produced two near-identical nags ("access to
+      // Gmail…", "access to Google Calendar…") in the first build — BUG-005, found by SC-004/SC-020.
+      // Group blocked needs by their dead provider set; the message names that provider.
+      const groups = new Map();
+      for (const need of badSources) {
+        const dead = providersFor(need).filter(p => byProvider[p] && byProvider[p].status !== "ok");
+        const key = dead.length ? dead.slice().sort().join("+") : need;
+        if (!groups.has(key)) groups.set(key, { source: dead.length === 1 ? dead[0] : need, needs: [] });
+        groups.get(key).needs.push(need);
+      }
+      const messages = [...groups.values()].map(g => ({ source: g.source, needs: g.needs, text: reauthMessage(g.source, linkFor(g.source)) }));
       return { per_source: perSource, paused, running, reauth: messages, messages: messages.map(m => m.text), one_message_per_source: true };
     }
 

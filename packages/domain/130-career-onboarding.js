@@ -187,7 +187,7 @@ const CareerOnboarding = (() => {
     }
     if (c.profile && c.profile._onboarding_pending && c.interviewAnswer) {
       const r = answerCurrent(c.profile, text);
-      return { intent: "onboarding_answer", done: r.done, answered: r.answered, reply: r.text };
+      return { intent: "onboarding_answer", done: r.done, answered: r.answered, pending: r.pending || null, reply: r.text };
     }
     if (c.profile && /^(what'?s|what is) my\b/.test(t)) {
       const r = answerFromProfile(c.profile, text);

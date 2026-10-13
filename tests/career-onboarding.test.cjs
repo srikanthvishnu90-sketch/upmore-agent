@@ -114,6 +114,22 @@ test("BUG-002/003/004 regressions: ledger phrasings route in 120 handleChat", ()
   assert.equal(A.handleChat("what accounts are connected?", ctx).intent, "connected_accounts");
 });
 
+test("BUG-005 regression: gmail + calendar blocked by the SAME dead career grant produce ONE re-auth message", () => {
+  const plan = A.healthPlan({
+    health: [{ source: "google_career", status: "expired" }, { source: "linkedin", status: "ok" }],
+    tasks: [{ id: "send", needs: ["gmail"] }, { id: "book", needs: ["calendar"] }, { id: "view", needs: ["linkedin"] }],
+    secureLinkFor: (s) => `https://secure.example/${s}`,
+  });
+  assert.equal(plan.paused.length, 2);
+  assert.equal(plan.running.length, 1);
+  assert.equal(plan.messages.length, 1, "one message per dead grant, not per need-name");
+  assert.equal(plan.reauth[0].source, "google_career");
+  assert.deepEqual(plan.reauth[0].needs.sort(), ["calendar", "gmail"]);
+  // The original T8 shape still holds: a single dead source = a single message naming that source.
+  const li = A.healthPlan({ health: [{ source: "linkedin", status: "expired" }], tasks: [{ id: "v", needs: ["linkedin"] }] });
+  assert.equal(li.messages.length, 1); assert.equal(li.reauth[0].source, "linkedin");
+});
+
 test("130 chat glue: onboarding start, capability status, stored-about-me all answer", () => {
   const p = Profile.createProfile({});
   const ctx = { profile: p, capabilitySources: { registryCaps: [], careerRows: [] }, access: { accounts: [] } };

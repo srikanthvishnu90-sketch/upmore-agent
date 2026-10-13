@@ -1,0 +1,292 @@
+/* Career reply composer — the single module that turns module results and
+   raw text into clean user-visible chat bubbles.
+   Rule of the house: a chat bubble is short, plain, and human. At most
+   MAX_SENTENCES_PER_BUBBLE sentences. No JSON, no code fences, no fact IDs,
+   no UUIDs, no tool names, no internal jargon (router/edge/rail words),
+   no markdown tables, no source citations — sources and long detail belong
+   in a document (composeResult's doc), never in a bubble.
+   composeText NEVER returns [] and NEVER returns a bubble that fails
+   lint(); when the input carries no human sentence at all it returns
+   [fallback("empty")].
+   Pure, zero deps. UMD, same shape as 123-career-tailor.js. */
+const CareerReply = (() => {
+  const MAX_SENTENCES_PER_BUBBLE = 3;
+
+  // Internal words that must never reach a user (lint flags them; the
+  // composer strips sentences containing them). Mirrors the spirit of
+  // scripts/career/prose-lint.cjs (CIR, tier codes, snake_case) and extends
+  // it with the router/edge/rail vocabulary the brief names.
+  const JARGON_WORDS = [
+    "router_core", "edge function", "rail state",
+    "router core", "rail", "rails", "cir", "cirs",
+  ];
+  const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+  const FACT_ID_RE = /\bF-\d{3,}\b/;
+  const FACT_ID_WORD_RE = /fact_?ids?/i;
+  const TOOL_MARKER_RE = /\b\d{3}\.[a-z][a-zA-Z]+\s*\(/;
+  const TOOL_BRACKET_RE = /\[tool /;
+  const JSON_BRACE_RE = /\{["\[]/;
+  const SNAKE_RE = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/;
+
+  // Abbreviations whose trailing period is not a sentence end.
+  const ABBREVIATIONS = new Set([
+    "u.s", "u.k", "e.g", "i.e", "etc", "vs", "mr", "mrs", "ms", "dr", "st",
+    "jr", "sr", "inc", "ltd", "co", "corp", "dept", "approx", "jan", "feb",
+    "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+    "a.m", "p.m", "ph.d", "m.d", "b.a", "m.a", "no",
+  ]);
+
+  function sentenceCount(text) {
+    return splitSentences(text).length;
+  }
+
+  // Sentence-aware splitter: honors common abbreviations (U.S., e.g.),
+  // decimals ($120.5k), initials, and ellipses.
+  function splitSentences(text) {
+    const t = String(text || "").replace(/\s+/g, " ").trim();
+    if (!t) return [];
+    const out = [];
+    let start = 0;
+    for (let i = 0; i < t.length; i++) {
+      const ch = t[i];
+      if (ch !== "." && ch !== "!" && ch !== "?") continue;
+      const rest = t.slice(i + 1);
+      // Ellipsis: a run of dots is one terminator, judged at its last dot.
+      if (ch === "." && t[i + 1] === ".") continue;
+      // Decimal point between digits is not a terminator.
+      if (ch === "." && /\d/.test(t[i - 1] || "") && /^\d/.test(rest)) continue;
+      // Text after the terminator must start a new sentence (or end input);
+      // otherwise this is an abbreviation glued to what follows (U.S. roles).
+      const m = rest.match(/^\s+(\S)/);
+      if (rest.trim() && !m) continue;
+      if (rest.trim() && m && !/[A-Z0-9"“'(]/.test(m[1])) continue;
+      if (ch === ".") {
+        const before = t.slice(start, i).split(/\s+/).pop() || "";
+        const word = before.replace(/["'”’)\]]+$/, "").toLowerCase();
+        if (ABBREVIATIONS.has(word)) continue;
+        if (/^[a-z]$/.test(word)) continue; // single-letter initial
+        if (/^(?:[a-z]\.)*[a-z]$/i.test(word) && word.includes(".")) continue;
+      }
+      const s = t.slice(start, i + 1).trim();
+      if (s) out.push(s);
+      start = i + 1;
+    }
+    const tail = t.slice(start).trim();
+    if (tail) out.push(tail);
+    return out;
+  }
+
+  // Group sentences into bubbles of at most MAX_SENTENCES_PER_BUBBLE.
+  function splitBubbles(text) {
+    const sentences = splitSentences(text);
+    const bubbles = [];
+    for (let i = 0; i < sentences.length; i += MAX_SENTENCES_PER_BUBBLE) {
+      bubbles.push(sentences.slice(i, i + MAX_SENTENCES_PER_BUBBLE).join(" "));
+    }
+    return bubbles;
+  }
+
+  function lint(text) {
+    const t = String(text == null ? "" : text);
+    const violations = [];
+    if (!t.trim()) violations.push("empty text");
+    if (sentenceCount(t) > MAX_SENTENCES_PER_BUBBLE) violations.push(`more than ${MAX_SENTENCES_PER_BUBBLE} sentences`);
+    if (t.includes("```")) violations.push("code fence");
+    if (JSON_BRACE_RE.test(t) || /(^|\s)\{/.test(t) || t.includes("}")) violations.push("JSON braces");
+    if (UUID_RE.test(t)) violations.push("raw UUID");
+    if (FACT_ID_RE.test(t)) violations.push("fact ID");
+    if (FACT_ID_WORD_RE.test(t)) violations.push("fact-id wording");
+    if (TOOL_MARKER_RE.test(t) || TOOL_BRACKET_RE.test(t)) violations.push("tool marker");
+    const low = ` ${t.toLowerCase()} `;
+    for (const w of JARGON_WORDS) {
+      if (low.includes(` ${w} `) || low.includes(` ${w}.`) || low.includes(` ${w},`)) { violations.push(`internal jargon: ${w}`); break; }
+    }
+    if (SNAKE_RE.test(t)) violations.push("snake_case token");
+    if (/\bCIRs?\b/.test(t)) violations.push("internal jargon: CIR");
+    if (/§/.test(t)) violations.push("spec-section reference");
+    if (/\|/.test(t)) violations.push("markdown table pipe");
+    if (/`/.test(t)) violations.push("backtick");
+    if (/\]\(https?:/.test(t) || /\(source:/i.test(t)) violations.push("source citation in bubble");
+    return { ok: violations.length === 0, violations };
+  }
+
+  const FALLBACKS = {
+    error: "Something went wrong on my end. Nothing was changed — try again in a moment and I will pick it back up.",
+    empty: "I do not have anything solid to show you on that yet. Give me a job, company, or person to work on and I will dig in.",
+    unmatched: "I didn't catch that. Try naming the job, company, or person — or say 'find jobs' and I'll start there.",
+    timeout: "That took too long, so I stopped it. Try again, or narrow it down to one job or company and I will move faster.",
+  };
+  function fallback(kind, ctx) {
+    const base = FALLBACKS[kind] || FALLBACKS.error;
+    const extra = ctx && typeof ctx === "object" && typeof ctx.next === "string" ? cleanInline(ctx.next) : "";
+    // Append a caller-supplied next step only when the result still lints.
+    if (extra) {
+      const joined = `${base} ${extra}`;
+      if (lint(joined).ok) return joined;
+    }
+    return base;
+  }
+
+  // ---- stripping machine payload out of raw text ----
+
+  // Drop fenced code blocks and spans that parse as pure JSON. Prose that
+  // merely mentions a brace survives here and is handled per-sentence.
+  function stripPayloadSpans(text) {
+    let t = String(text == null ? "" : text);
+    t = t.replace(/```[\s\S]*?(```|$)/g, " ");
+    // Whole-input JSON: nothing human to keep.
+    const trimmed = t.trim();
+    if ((trimmed.startsWith("{") || trimmed.startsWith("["))) {
+      try { JSON.parse(trimmed); return ""; } catch { /* prose that starts with a bracket */ }
+    }
+    // Balanced {...} / [...] spans embedded in prose: drop the ones that
+    // parse as JSON or carry JSON's key-colon shape.
+    const dropSpans = (s) => {
+      let out = "", i = 0;
+      while (i < s.length) {
+        const open = s[i];
+        if (open !== "{" && open !== "[") { out += s[i]; i++; continue; }
+        const close = open === "{" ? "}" : "]";
+        let depth = 0, j = i, inStr = false, esc = false;
+        for (; j < s.length; j++) {
+          const c = s[j];
+          if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+          if (c === '"') inStr = true;
+          else if (c === open) depth++;
+          else if (c === close) { depth--; if (!depth) break; }
+        }
+        if (j >= s.length) { out += s[i]; i++; continue; }
+        const span = s.slice(i, j + 1);
+        let isJson = false;
+        try { JSON.parse(span); isJson = true; } catch { isJson = /"\s*:/.test(span) || span.length > 120; }
+        if (!isJson) out += span;
+        i = j + 1;
+      }
+      return out;
+    };
+    // Long bracketed spans first (nested payload), then any leftovers.
+    t = dropSpans(t);
+    t = dropSpans(t);
+    return t;
+  }
+
+  // Remove machine tokens from one line of prose, keeping the words around
+  // them. Returns "" when nothing human remains on the line.
+  function cleanInline(line) {
+    let s = String(line || "");
+    s = s.replace(/https?:\/\/\S+/g, " "); // links belong in docs, not bubbles
+    s = s.replace(UUID_RE, " ");
+    s = s.replace(FACT_ID_RE, " ");
+    s = s.replace(FACT_ID_WORD_RE, " ");
+    s = s.replace(/\b\d{3}\.[a-z][a-zA-Z]+\s*\([^)]*\)/g, " ");
+    s = s.replace(/\b\d{3}\.[a-z][a-zA-Z]+\b/g, " ");
+    s = s.replace(/\[tool [^\]]*\]/gi, " ");
+    s = s.replace(/`+/g, " ");
+    s = s.replace(/["][^"]*"\s*:/g, " "); // orphaned JSON keys
+    s = s.replace(/[{}\[\]]/g, " ");
+    s = s.replace(/\*\*|__|^#+\s*/g, " ");
+    s = s.replace(/\s+([,.;!?])/g, "$1");
+    s = s.replace(/\(\s*\)/g, " ");
+    s = s.replace(/\s{2,}/g, " ").trim();
+    s = s.replace(/^[\s\-•·]+/, "").trim();
+    return s;
+  }
+
+  // A sentence is fit for a bubble only when, after cleaning, it is plain
+  // prose: no jargon, no snake_case, no citations, no table pipes.
+  function sentenceIsClean(cleaned) {
+    if (!cleaned || cleaned.length < 3) return false;
+    if (!/[a-zA-Z]/.test(cleaned)) return false;
+    const low = cleaned.toLowerCase();
+    for (const w of JARGON_WORDS) if (new RegExp(`\\b${w}\\b`).test(low)) return false;
+    if (SNAKE_RE.test(cleaned)) return false;
+    if (/\(source:/i.test(cleaned)) return false;
+    if (cleaned.includes("|")) return false;
+    return lint(cleaned).ok;
+  }
+
+  function composeText(raw, opts) {
+    const o = opts || {};
+    const noPayload = stripPayloadSpans(raw == null ? "" : String(raw));
+    const lines = noPayload.split(/\n+/);
+    const sentences = [];
+    for (const line of lines) {
+      const isTableRow = (line.match(/\|/g) || []).length >= 2;
+      const isRule = /^[\s|:-]+$/.test(line);
+      if (isTableRow || isRule) continue; // markdown tables never reach a bubble
+      for (const s of splitSentences(line)) {
+        const cleaned = cleanInline(s);
+        if (sentenceIsClean(cleaned)) sentences.push(cleaned);
+      }
+    }
+    if (!sentences.length) return [fallback("empty")];
+    const bubbles = [];
+    for (let i = 0; i < sentences.length; i += MAX_SENTENCES_PER_BUBBLE) {
+      bubbles.push(sentences.slice(i, i + MAX_SENTENCES_PER_BUBBLE).join(" "));
+    }
+    const safe = bubbles.filter((b) => lint(b).ok);
+    return safe.length ? safe : [fallback("empty")];
+  }
+
+  // One short human string from an arbitrary field: first clean sentence,
+  // truncated to at most maxSentences sentences.
+  function shortText(value, maxSentences) {
+    if (value == null) return "";
+    const bubbles = composeText(String(value));
+    if (bubbles.length === 1 && bubbles[0] === FALLBACKS.empty) return "";
+    const sentences = splitSentences(bubbles.join(" "));
+    return sentences.slice(0, maxSentences || 1).join(" ");
+  }
+
+  function composeResult(result, opts) {
+    const r = result || {};
+    const o = opts || {};
+    const bubbles = [];
+    let doc = null;
+
+    const headline = shortText(r.headline, 1);
+    const recommendation = shortText(r.recommendation, 2);
+    if (recommendation) {
+      const lead = /^my take\b/i.test(recommendation) ? recommendation : `My take: ${recommendation.charAt(0).toLowerCase()}${recommendation.slice(1)}`;
+      bubbles.push(...splitBubbles([headline, lead].filter(Boolean).join(" ")));
+    } else if (headline) {
+      bubbles.push(...splitBubbles(headline));
+    }
+
+    // Facts: compressed into at most 2 bubbles, however many arrive.
+    const factSentences = [];
+    for (const f of Array.isArray(r.facts) ? r.facts : []) {
+      const s = shortText(f, 1);
+      if (s) factSentences.push(s);
+    }
+    if (factSentences.length) {
+      const cap = MAX_SENTENCES_PER_BUBBLE * 2;
+      bubbles.push(...splitBubbles(factSentences.slice(0, cap).join(" ")));
+    }
+
+    // Long detail goes to a document; the bubble only points at it.
+    const longBody = typeof r.longBody === "string" ? r.longBody.trim() : "";
+    const longSentences = splitSentences(longBody.replace(/\s+/g, " "));
+    if (longBody && (longSentences.length > MAX_SENTENCES_PER_BUBBLE || r.docTitle)) {
+      const title = cleanInline(String(r.docTitle || o.docTitle || "Details")) || "Details";
+      doc = { title, body: longBody };
+      bubbles.push(`Full details in the doc: ${title}.`);
+    } else if (longBody) {
+      bubbles.push(...composeText(longBody));
+    }
+
+    // The next step always closes the reply.
+    const nextStep = shortText(r.nextStep, 1);
+    if (nextStep) {
+      const last = bubbles[bubbles.length - 1];
+      if (last && sentenceCount(last) < MAX_SENTENCES_PER_BUBBLE) bubbles[bubbles.length - 1] = `${last} ${nextStep}`;
+      else bubbles.push(nextStep);
+    }
+
+    const safe = bubbles.filter((b) => b && lint(b).ok);
+    return { bubbles: safe.length ? safe : [fallback("empty")], doc };
+  }
+
+  return { MAX_SENTENCES_PER_BUBBLE, composeText, composeResult, fallback, lint, splitBubbles };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerReply;

@@ -35,6 +35,9 @@ const ASKS: RegExp[] = [
   // itself as the anchor.
   /\bhow much\b[^?.!]*\b(?:bank|account)\b[^?.!]*\b(?:take|took|taken|charge|charged|charging)\b/i,
   /\bhow much\b[^?.!]*\b(?:take|took|taken)\b[^?.!]*\bfrom me\b/i,
+  // C193's own headline ask ("Am I getting fleeced abroad?") names no fee word either — fleeced, abroad.
+  /\bfleeced\b[^?.!]*\b(?:abroad|overseas|foreign)\b/i,
+  /\bforeign (?:transaction )?fees?\b/i,
 ];
 export function isFeeAuditAsk(message: string): boolean {
   const m = String(message || "");
@@ -88,7 +91,30 @@ export async function feeAuditReply(message: string, now: Date | number | string
   try { candidates = ((AgentRecovery as any).scan(scanRows, { today }).candidates || []).filter((c: any) => c.kind === "bank_fee"); }
   catch { return FEE_AUDIT_UNAVAILABLE; }
 
-  if (!candidates.length) return [`No bank fees in the last 12 months (${period}) across your linked accounts.`, src].join("\n");
+  // Foreign transaction audit (capability C193): international charges in the window, the foreign fees among
+  // the candidates, and the conversion each descriptor itself states. A charge converted at the rate printed
+  // in its own descriptor ("EURO 2.50 X 1.156000 (EXCHG RTE)") was converted by the bank at that rate; a
+  // merchant-side dollar conversion (dynamic currency conversion) would show as a USD amount with no rate in
+  // the descriptor, so DCC is flagged as "not visible in the feed" rather than guessed at.
+  const foreignAsk = /\bforeign\b|\binternational\b|\babroad\b|\boverseas\b|\bdcc\b|dynamic currency|\bconversion\b/i.test(message);
+  const intlRows = windowRows.filter((t: any) => !t.is_transfer && (/exchg\s*rte|foreign|intl\b/i.test(String(t.merchant_raw || "")) || ((t as any).currency && String((t as any).currency).toUpperCase() !== "USD")));
+  const fxFees = candidates.filter((c: any) => c.fee_kind === "foreign_transaction");
+  const fxTotal = fxFees.reduce((s: number, c: any) => s + c.amount_cents, 0);
+  const foreignSection: string[] = [];
+  if (foreignAsk || intlRows.length || fxFees.length) {
+    foreignSection.push("Foreign transaction check:");
+    foreignSection.push(fxFees.length
+      ? `- Foreign transaction fees charged: ${MA.money(fxTotal)} across ${charges(fxFees.length)} (listed under Fightable above). If one was charged on a purchase that was refunded or in a currency your card prices at 0%, say "dispute this charge" and I'll draft the dispute for your approval.`
+      : "- Foreign transaction fees charged: $0.00 — no foreign transaction fee appears in the last 12 months.");
+    for (const t of intlRows.slice(0, 5)) {
+      const conv = String(t.merchant_raw || "").match(/([A-Za-z]{3,})\.?\s+([\d,]+\.\d{2})\s*[xX]\s*([\d.]+)/);
+      const convText = conv ? ` — the descriptor states ${conv[1]} ${conv[2]} × ${conv[3]} = ${MA.money(Math.round(parseFloat(conv[2].replace(/,/g, "")) * parseFloat(conv[3]) * 100))}, converted at the bank's rate, with no separate conversion fee line` : "";
+      foreignSection.push(`- International charge: ${MA.display(String(t.merchant_raw || ""))}: ${MA.money(Math.abs(t.amount_cents))} on ${label(t.posted_at)} (${acctLabel(t.account_id)})${convText}.`);
+    }
+    if (intlRows.length) foreignSection.push("- Dynamic currency conversion: no charge in the feed shows a merchant-side dollar conversion; when a terminal abroad offers to charge you in dollars, choose the local currency instead — merchant conversion typically adds 3–8% over the bank rate.");
+  }
+
+  if (!candidates.length) return [`No bank fees in the last 12 months (${period}) across your linked accounts.`, ...foreignSection, src].join("\n");
 
   const total = candidates.reduce((s: number, c: any) => s + c.amount_cents, 0);
   const byKind = new Map<string, { total: number; count: number }>();
@@ -105,6 +131,7 @@ export async function feeAuditReply(message: string, now: Date | number | string
     ...kindLines,
     "Fightable: Upmore can draft a reversal request for each of these through SAVE-005 (the fee-reversal path); nothing is drafted or sent until you approve it:",
     ...fightable,
+    ...foreignSection,
     src,
   ].join("\n");
 }

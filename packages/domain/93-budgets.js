@@ -97,6 +97,14 @@
     function parse(words) {
       const t = clean(words);
       if (BARE.test(t)) return { kind: "status", category: null, all: true, over: false, unknown: null, bare: true };
+      // C16's own words name no budget: "cap restaurants at $400 a month", "limit dining to $300 a month"
+      // (found 2026-10-12: the capability's headline set command parsed to null and nothing was set). A
+      // cap/limit verb + a known category + an amount + a period is a set; nothing else reads that way.
+      const capM = /^(?:please\s+)?(?:cap|limit)\s+(.+?)\s+(?:at|to)\s+(\$?\d[\d,]*(?:\.\d{2})?)\s*(?:a|per|\/)?\s*(month|mo|monthly|week|wk|weekly|year|yr|yearly)\b/.exec(t);
+      if (capM) {
+        const cat = categoryIn(capM[1]), amt = amountIn(capM[2]);
+        if (cat && amt) return { kind: "set", category: cat.key, amount_cents: amt.cents, amount_text: amt.text, not_monthly: !/^(?:month|mo|monthly)$/.test(capM[3]), unknown: null };
+      }
       if (!/\bbudget(?:s|ing)?\b/.test(t) || t.length > 200) return null;
       let m;
       if ((m = STOP.exec(t))) {

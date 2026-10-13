@@ -23679,7 +23679,102 @@ const CareerPrep = (() => {
     return { available: false, reason: "No voice rail is wired for interview prep in this build.", fallback: "text mock (PREP-003) — same questions, same rubric, scores stored the same way." };
   }
 
-  return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank,
+  // ---------- finisher A2 additions (SC-191..200, BUG-A2-01..10) ----------
+  function videoInterviewPractice(store, opts) {
+    opts = opts || {}; const qs = opts.questions || []; const answers = opts.answers || [];
+    const feedback = qs.map((q, i) => { const g = scoreAnswer(answers[i] || ""); return { q, scores: g.scores, feedback: g.feedback }; });
+    const avg = feedback.length ? Math.round(feedback.reduce((n, f) => n + f.scores.total, 0) / feedback.length * 10) / 10 : 0;
+    const row = { kind: "video_practice", company: s(opts.company || ""), count: feedback.length, average_total: avg, at: new Date().toISOString() };
+    if (store && store.drills) store.drills.push(row);
+    return { kind: "video_interview_practice", label: "TEST recorded-answer practice (transcript supplied in chat; no real camera or employer portal)", company: row.company, feedback, average_total: avg, submitted: false, submission_attempted: false, note: "Practice only — answers are scored on content here and are NEVER submitted to any employer by the agent. Submission, if any, is the user's own act in the employer's portal." };
+  }
+  function takeHomePlan(opts) {
+    opts = opts || {}; const deliverables = opts.deliverables || []; const available = opts.available || [];
+    const total_est_min = deliverables.reduce((n, d) => n + (d.est_min || 0), 0);
+    const total_available_min = available.reduce((n, b) => n + (b.minutes || 0), 0);
+    const schedule = []; let bi = 0, left = available.length ? available[0].minutes : 0;
+    for (const d of deliverables) { let need = d.est_min || 0; const parts = [];
+      while (need > 0 && bi < available.length) { const use = Math.min(need, left); parts.push(`${available[bi].label}: ${use} min`); need -= use; left -= use; if (left === 0) { bi += 1; left = bi < available.length ? available[bi].minutes : 0; } }
+      schedule.push({ deliverable: d.name, est_min: d.est_min || 0, blocks: parts, unscheduled_min: need }); }
+    const fits = total_est_min <= total_available_min;
+    return { title: s(opts.title || "Take-home"), total_est_min, total_available_min, fits, warning: fits ? null : `Scope is ${total_est_min - total_available_min} min over the time you said you have — cut scope or add a block before starting; do not plan an all-nighter by default.`, schedule, checkpoints: ["After the first deliverable: re-estimate the rest against actual pace", "30 min before the deadline: stop building, write up and check the submission format yourself"], work_stays_mine: true, agent_does_work: false, note: "Plan only. The agent scopes and schedules; it does not do, draft or submit the take-home — the work stays yours." };
+  }
+  function finalRoundDelta(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, earlier_stages: [], changes: [], gaps: ["No merged CIR on file — what changes in the final round cannot be claimed."] };
+    let fi = n.stages.length - 1; for (let i = n.stages.length - 1; i >= 0; i--) { if (/final|superday|onsite|interview|loop/i.test(n.stages[i].name)) { fi = i; break; } }
+    const final = n.stages[fi] || null; const earlier = n.stages.slice(0, fi);
+    const changes = [];
+    if (final) changes.push(`The final stage on record is "${final.name}"${final.detail ? `: ${final.detail}` : ""} — earlier stages (${earlier.map((x) => x.name).join("; ") || "none recorded"}) are screens; this one is the decision round.`);
+    for (const st of n.styles.slice(0, 2)) changes.push(`Format signal for the final round (CIR interview_styles): ${st.text}`);
+    changes.push("What changes in practice: breadth screens give way to depth — expect follow-ups on your own resume/stories and the technical core of the role, with several interviewers rather than one screener (grounded only in the stage/style records above).");
+    return { status: "OK", company: n.company_name, final_stage: final, earlier_stages: earlier, changes, bar: n.bar, sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
+  }
+  function salaryDeflectionScripts(opts) {
+    const prep = salaryPrep(opts || {});
+    const scripts = [
+      { when: "early screen", text: "I'm focused on the role and the team first, and I'd rather not anchor on a number before I understand the full scope. Could you share the band budgeted for this level?" },
+      { when: "pressed for a number", text: "I don't have a fixed number at this stage — my priority is fit, and I'm confident we can land somewhere fair inside the band for this level once we're both sure it's right." },
+      { when: "they share a band", text: "Thanks for sharing that — that's helpful context. I'd like to keep the conversation on the role for now and revisit comp once we're further along." }];
+    return { status: prep.status, company: prep.company, ranges: prep.ranges || [], scripts, anchor_rule: "Do not anchor early: never name the first number inside an interview; ask for the employer's band, and cite only a CIR-sourced figure if one exists.", note: prep.note };
+  }
+  function questionsToAsk(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const iv = opts.interviewer || {};
+    const brief = interviewerBrief(iv); const team = s(iv.team || "");
+    const teamFact = (iv.publicFacts || []).find((f) => /team/i.test(s(f.text)));
+    const questions = [];
+    if (team) questions.push({ text: `What does the ${team} team actually spend its week on, and what does a strong first project look like on it?`, source: { type: "interviewer_team_supplied", team } });
+    else if (teamFact) questions.push({ text: `Your background notes mention: ${teamFact.text} — what is that team focused on this year?`, source: { type: "interviewer_public_fact", source: teamFact.source || "supplied" } });
+    if (n) { const fin = n.stages[n.stages.length - 1];
+      if (fin) questions.push({ text: `For someone coming through the ${fin.name} stage, what separates the people who thrive here in the first six months?`, source: { type: "CIR process_stages", company_id: n.company_id } });
+      for (const v of n.values.slice(0, 2)) questions.push({ text: `The record for this company stresses: ${v.text} — how does that show up in your team's day-to-day decisions?`, source: { type: "CIR values_culture_signals", company_id: n.company_id } });
+      for (const sg of n.signals.slice(0, 1)) questions.push({ text: `You screen for ${sg.text} — what does great look like on that in this team specifically?`, source: { type: "CIR screening_signals", company_id: n.company_id } }); }
+    questions.push({ text: "What would you want someone in this seat to have accomplished by the end of the first term?", source: { type: "generic_good_question" } });
+    return { company: n ? n.company_name : s(opts.company || ""), interviewer: { name: s(iv.name), role: s(iv.role || "") || null, team: team || null }, team_unknown: !team && !teamFact, interviewer_status: brief.status, questions, note: !team && !teamFact ? "No team fact was supplied for this interviewer, so no team is invented — questions are CIR-grounded; ask the team question once you learn the team." : "Team-tailored question is first; the rest are grounded in the company CIR." };
+  }
+  function failureStoryFromFacts(opts) {
+    opts = opts || {}; const facts = opts.facts || [];
+    const hit = facts.find((f) => /\b(fail|failure|setback|missed|broke|broken|rejected|rejection|lost|delay|delayed|dropped|mistake|wrong)\b/i.test([f.title, f.text, f.action, f.result].join(" ")));
+    if (!hit) return { status: "NO_SETBACK_FACT", story: null, ask: ["Tell me about a real setback in your own words: what went wrong, on what (course, project, team)?", "What did you change afterward, and what is different now because of it?", "Is there a number or a before/after I can cite, so the story carries evidence?"], note: "No confirmed fact in the profile describes a setback or failure, so no failure story is built and nothing is invented. The story gets built from your answer, captured with its fact source." };
+    return { status: "OK", story: { fact_id: hit.id || null, title: s(hit.title), situation: s(hit.text), task: s(hit.title), action: s(hit.action || ""), result: s(hit.result || ""), source: "profile_fact:" + s(hit.id || "unknown") }, ask: [] };
+  }
+  function structureDrill(opts) {
+    opts = opts || {}; const g = scoreAnswer(opts.answer || "");
+    return { fix_first: "structure", before_scores: g.scores, scaffold: ["First, the situation: <one line — where, what was at stake>", "My task was: <your specific job, not the team's>", "So I: <2-3 actions, named tools, specifically …>", "In the end, the result was: <a number, measured how, over what period>"], drill: "Re-answer the same question using exactly those four signposts, in order, with no new facts — structure only. Then re-mock and compare the structure score.", note: "The drill changes ordering and signposting only; it never adds facts to a story." };
+  }
+  function dayOfChecklist(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir); const missing = [];
+    if (!opts.when) missing.push("when"); if (!opts.link) missing.push("link"); if (!opts.company && !n) missing.push("company");
+    const groups = {
+      logistics: [`When: ${s(opts.when || "NOT SUPPLIED")}`, `Company: ${n ? n.company_name : s(opts.company || "NOT SUPPLIED")}${n && n.stages.length ? " — stage on record: " + n.stages[n.stages.length - 1].name : ""}`, `Location/joining: ${s(opts.location || opts.link || "NOT SUPPLIED")}`, "Arrive / join 10 minutes early; ID and a quiet room if in person (TEST plan)"],
+      links: opts.link ? [`Interview link (supplied, TEST-labeled where marked): ${opts.link}`, "Open the link once now to confirm it loads; keep it pinned, not buried in email"] : ["NO LINK SUPPLIED — flagged, not invented"],
+      tech_check: ["Camera, mic and speaker test in the actual app", "Charger plugged in; notifications off; backup: phone hotspot ready", "Close heavy tabs; water within reach"],
+      materials: [...(opts.materials || ["Resume (one page)", "Your two primary STAR stories, one line each", "Your questions-to-ask list", "Pen + paper for names and follow-ups"])] };
+    return { company: n ? n.company_name : s(opts.company || ""), when: s(opts.when || "") || null, groups, missing, note: "Checklist built from the supplied logistics/link/materials and the CIR stage on record; nothing about the employer's systems is claimed beyond that." };
+  }
+  function debriefRetro(storeOrOpts) {
+    const debriefs = (storeOrOpts && storeOrOpts.debriefs) || (storeOrOpts && storeOrOpts.debriefs === undefined && storeOrOpts.all) || [];
+    const rows = Array.isArray(storeOrOpts) ? storeOrOpts : debriefs;
+    const buckets = [
+      { theme: "technical / valuation depth", re: /technical|valuation|dcf|model|accounting|math|accretion/i },
+      { theme: "answer structure", re: /structure|ramble|rambling|organ|order/i },
+      { theme: "specificity / evidence", re: /vague|specific|number|evidence|detail/i },
+      { theme: "company / role knowledge", re: /company|why here|role knowledge|research/i },
+      { theme: "timing / pace", re: /time|slow|rushed|pace/i }];
+    const patterns = buckets.map((b) => { const hits = rows.filter((d) => (d.stumbled || []).some((x) => b.re.test(s(x)))); return { theme: b.theme, count: hits.length, companies: hits.map((d) => d.company) }; }).filter((p) => p.count > 0).sort((a, b) => b.count - a.count);
+    return { total_debriefs: rows.length, patterns, recurring: patterns.filter((p) => p.count >= 2), top_miss: patterns.length ? patterns[0].theme : null, note: rows.length ? "Mined only from the debriefs stored in the prep store (labeled TEST fixtures in this run); a theme counts once per debrief." : "No debriefs stored — nothing to mine." };
+  }
+  function superdayPlan(opts) {
+    opts = opts || {}; const n = normalizeCir(opts.cir);
+    if (!n) return { status: "NO_CIR", company: s(opts.company || ""), final_stage: null, schedule: [], drill_topics: [], gaps: ["No merged CIR on file — no superday plan is claimed."] };
+    const fin = financeDrill(); const delta = finalRoundDelta({ cir: opts.cir });
+    return { status: "OK", company: n.company_name, when: s(opts.when || "") || null, final_stage: delta.final_stage, earlier_stages: delta.earlier_stages,
+      drill_topics: fin.questions.map((q) => q.topic + ": " + q.q),
+      schedule: [{ at: "T-60 min", block: "Arrive area early; no new material — re-read the bar and your two finance stories (F-004/F-006 pattern)" }, { at: "T-15 min", block: "Tech/room check if virtual, water, pen + paper; phone on silent" }, { at: "Between interviews", block: "2-minute reset: write down each interviewer's name + one specific from the conversation (feeds your thank-yous); do not replay mistakes" }, { at: "Midday", block: "Eat something real; the afternoon technicals (accounting / DCF / LBO topics in the drill set) are the known pressure point" }, { at: "After the last interview", block: "Capture a debrief per interviewer while fresh (went well / stumbled / questions asked) — that is what the retro mines later" }],
+      survival_rules: ["Depth over breadth in the final round: follow-ups on your own resume are the test, per the CIR stage record", "If a technical stalls, state your structure out loud and work it — silent freezing is the failure mode, not a wrong first step", "Names + one specific per interviewer, written down immediately"], sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
+  }
+
+  return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,

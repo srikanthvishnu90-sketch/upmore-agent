@@ -1,0 +1,10 @@
+"use strict"; const { H, P, persona, cirForPrep } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-196", "failure-story-canonical");
+  await s.user("No failure story in my bank — build one from a real setback");
+  const bank = P.mineStories(persona.facts);
+  const r = P.failureStoryFromFacts({ facts: persona.facts });
+  await s.tool("127-career-prep.failureStoryFromFacts(TEST persona facts)", { mined_stories: bank.length, result: r });
+  await s.agent(`Straight answer: I checked every confirmed fact in your profile (the ${bank.length} mined stories are all wins — dashboard, DeployBoard, models, club) and none of them records a setback or failure. I will not invent one, dress up a win as a failure, or borrow someone else's story — a fabricated failure story is exactly what a follow-up question exposes.\n\nSo the honest next step is yours, and it's short:\n${r.ask.map((q,i)=>`${i+1}. ${q}`).join("\n")}\n\nThe moment you give me a real setback in your own words, I'll shape it into STAR, tag it to that fact, and add it to the bank — built from the real thing, nothing added.`);
+  s.verify("no setback fact exists; nothing invented", { status: r.status, story: r.story, ask: r.ask.length, facts_checked: persona.facts.length });
+  await s.finish({ status: "LEARN", outcome: "No failure story built: the TEST persona's confirmed facts contain no setback, so the agent flagged it and asked for the real setback instead of inventing one.", reason: "Missing input: a real setback in the user's own words — no confirmed profile fact describes a failure/setback.", unblock: "User supplies one real setback (what went wrong, what changed afterward, any number/before-after); agent then builds and banks the STAR story from that fact only." });
+})();

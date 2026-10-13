@@ -37,6 +37,15 @@ const CareerRouter = (() => {
   const Discover = typeof CareerDiscover !== "undefined" ? CareerDiscover : req("./131-career-discover.js");
   const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : req("./133-career-packets.js");
   const Reply = typeof CareerReply !== "undefined" ? CareerReply : req("./140-career-reply.js");
+  // Lane A (gauntlet round 2): the intent-ownership layer below CALLS the
+  // doorstep seam (141) and the onboarding/profile write path (130) through
+  // their existing exports — it never edits them. Both are guarded: in the
+  // router bundle neither file is bundled, so the requires resolve to null
+  // there and the handlers fall back to the stores' shared write surfaces
+  // (the same ctx objects 141/130 read and write).
+  const Doorstep = typeof CareerDoorstep !== "undefined" ? CareerDoorstep : req("./141-career-doorstep.js");
+  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : req("./130-career-onboarding.js");
+  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch (e) { return null; } })();
 
   const s = (v) => String(v == null ? "" : v);
   const lc = (v) => s(v).toLowerCase();
@@ -520,12 +529,392 @@ const CareerRouter = (() => {
     return null;
   }
 
+  // ======================================================================
+  // INTENT OWNERSHIP (REPAIR LANE A, gauntlet round 2 — defect class S-1;
+  // deep-dive DD-1..DD-4, DD-6..DD-9). User turns that CHANGE STATE — a role
+  // closing, cancel/stop in ordinary wording, a prior-application disclosure,
+  // a sensitive-fact correction, a recipient change, a relayed opt-out — were
+  // owned by NO handler: they hit the unmatched fallback, mutated nothing,
+  // and a later "approve and submit" executed on stale state (AP08/AP18/
+  // AP20/AP23 all submitted; AP17/NW18 queue cancels never landed because
+  // 141's halt answers only C37's three exact phrases). This layer owns
+  // those intents deterministically and runs BEFORE every existing route.
+  // It never approves, never submits, never sends: it records the change in
+  // the shared stores (through 141's + 130's existing exports / write
+  // surfaces) and replies, through 140's composer, with what changed.
+  //
+  // THE INVALIDATION MECHANISM (the flag Lane B's execution guards read):
+  //   ctx.doorstepState.invalidation  = { active: true, reason, at,
+  //     instruction, detail } — the LATEST state-changing event; reasons:
+  //     "role_closed" | "cancelled_by_user" | "prior_application" |
+  //     "sensitive_fact_corrected".
+  //   ctx.doorstepState.invalidations = the same records, appended in order.
+  //   Per-reason records alongside it: ctx.doorstepState.role_closed =
+  //   { closed: true, at, instruction }; ctx.doorstepState.prior_application
+  //   = { disclosed: true, channel, at, instruction }. For a user cancel the
+  //   submission record itself is set: ctx.doorstepState.submission.status
+  //   = "cancelled" (141's own submission shape — the deep-dive AP18-A2
+  //   check). doorstep.state is deliberately NOT rewritten (it stays
+  //   "REVIEW": the form WAS prepared; what changed is that it may no
+  //   longer be submitted). While an invalidation is active this layer also
+  //   refuses fill/submit turns itself, naming the reason — defense in
+  //   depth behind Lane B's guards, never a replacement for them.
+  // ======================================================================
+  const INVALIDATION_REASON_TEXT = {
+    role_closed: "the role was reported closed",
+    cancelled_by_user: "you cancelled it",
+    prior_application: "you already applied to it manually",
+    sensitive_fact_corrected: "a fact the packet was built on was corrected",
+  };
+  function doorstepStore(ctx) {
+    if (!ctx || typeof ctx !== "object") return null;
+    if (!ctx.doorstepState || typeof ctx.doorstepState !== "object") ctx.doorstepState = {};
+    return ctx.doorstepState;
+  }
+  function recordInvalidation(ctx, reason, instruction, detail) {
+    const store = doorstepStore(ctx);
+    if (!store) return null;
+    const rec = { active: true, reason, at: nowOf(ctx), instruction: s(instruction), detail: detail || null };
+    store.invalidation = rec;
+    store.invalidations = [...(store.invalidations || []), rec];
+    return rec;
+  }
+  // Queue state access mirroring 141's loadQueueState surface (host object
+  // or host-persisted JSON file), so queue reads/writes land where 141 and
+  // the host already keep them.
+  function readQueue(ctx) {
+    if (ctx && ctx.queueState && ctx.queueState.outreach_queue) return { state: ctx.queueState, persist: () => {} };
+    if (ctx && ctx.queueStatePath && nodeFs) {
+      try {
+        const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
+        return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
+      } catch (e) { return { state: null, persist: () => {} }; }
+    }
+    return { state: null, persist: () => {} };
+  }
+  function queueItemsOf(state) { return state && state.outreach_queue && Array.isArray(state.outreach_queue.items) ? state.outreach_queue.items : null; }
+  // Match queue items to the person a turn names: by contact email when
+  // contacts are on hand, else by the recipient address's own name tokens
+  // ("alex.rivera@example.test" -> "alex"). Returns the matched items.
+  function personQueueItems(text, items, ctx) {
+    const t = lc(text);
+    const contacts = ((ctx && (ctx.contacts || ctx.outreachContacts)) || []).map((c) => ({ name: c.name || c.full_name || "", email: lc(c.email || c.work_email || "") }));
+    return (items || []).filter((item) => {
+      const to = lc(item.to || item.email || "");
+      if (!to) return false;
+      const contact = contacts.find((c) => c.email && c.email === to);
+      if (contact && contact.name && t.includes(lc(contact.name.split(/\s+/)[0]))) return true;
+      const local = to.split("@")[0];
+      const first = local.split(/[._-]/)[0];
+      return !!first && new RegExp(`\\b${first}\\b`).test(t);
+    });
+  }
+  function displayNameFor(item, text, ctx) {
+    const to = lc((item && (item.to || item.email)) || "");
+    const contacts = ((ctx && (ctx.contacts || ctx.outreachContacts)) || []);
+    const contact = contacts.find((c) => lc(c.email || c.work_email || "") === to);
+    if (contact && (contact.name || contact.full_name)) return contact.name || contact.full_name;
+    const named = s(text).match(/\b([A-Z][a-z]+)\s+([A-Z][a-z]+)\b/);
+    if (named && to.includes(lc(named[1]))) return `${named[1]} ${named[2]}`;
+    const local = to.split("@")[0];
+    if (local) return local.split(/[._-]/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    return "that recipient";
+  }
+
+  // ---- 0. invalidation gate: fill/submit turns on invalidated state ----
+  const FILL_TURN = /\bfill (this|it|the form|that) out\b|\bfill out this\b|\bcomplete (this|the) application form\b/;
+  const SUBMIT_TURN = /\bapprove and submit\b|\bsubmit it\b/;
+  function invalidationGate(text, ctx) {
+    const t = lc(text);
+    const isFill = FILL_TURN.test(t), isSubmit = SUBMIT_TURN.test(t);
+    if (!isFill && !isSubmit) return null;
+    const store = ctx && ctx.doorstepState;
+    if (!store || typeof store !== "object") return null;
+    const inv = store.invalidation && store.invalidation.active ? store.invalidation : null;
+    const cancelled = !!(store.submission && store.submission.status === "cancelled");
+    if (!inv && !(isSubmit && cancelled)) return null;
+    const reason = inv ? inv.reason : "cancelled_by_user";
+    let headline, facts, nextStep;
+    if (reason === "role_closed") {
+      headline = `I will not ${isFill ? "prepare" : "submit"} that application — the role is closed.`;
+      facts = ["You told me the employer closed this job and it is no longer accepting applications, so the prepared application stays unsubmitted."];
+      nextStep = "Name another role and I will prepare that one instead.";
+    } else if (reason === "prior_application") {
+      headline = `I will not ${isFill ? "prepare" : "submit"} a duplicate for that role.`;
+      facts = ["You already applied to it manually, and a second application from here is exactly the duplicate you told me about."];
+      nextStep = "I can track the existing application and check its status instead.";
+    } else if (reason === "sensitive_fact_corrected") {
+      headline = "That packet is invalid, so I will not submit it.";
+      facts = ["It was prepared with your old answer, and your correction changed that answer, so it cannot go out as it stands."];
+      nextStep = "I can re-prepare it with the corrected answer and bring it back for your re-confirmation.";
+    } else {
+      headline = "That application is cancelled, so there is nothing to submit.";
+      facts = ["You cancelled it earlier in this conversation, and a later approval does not revive a cancelled application."];
+      nextStep = "Tell me if you want to start a different application instead.";
+    }
+    const reply = compose({ headline, facts, nextStep });
+    return { intent: "intent_refusal", resultStatus: "blocked", refused: true, refusal_reason: reason, invalidation: inv || store.invalidation || null, doorstep: store.doorstep || null, submission: store.submission || null, reply };
+  }
+
+  // ---- (a) role-closure reports (DD-1 / AP08) ----
+  const CLOSURE_RE = /\b(closed|closes|closing)\b[^.]*\b(job|role|position|posting)\b|\b(job|role|position|posting|employer)\b[^.]*\b(closed|closes)\b|\bno longer accepting\b|\bnot accepting applications\b|\bapplications? (are |have )?(now )?closed\b|\bposting (was |has been )?(removed|taken down)\b|\bposition (was |has been )?filled\b|\bthat role closed\b|\bthe role is closed\b/;
+  function handleRoleClosure(text, ctx) {
+    if (!CLOSURE_RE.test(lc(text))) return null;
+    const store = doorstepStore(ctx);
+    const rec = { closed: true, at: nowOf(ctx || {}), instruction: s(text) };
+    if (store) { store.role_closed = rec; if (store.doorstep) store.doorstep.role_closed = true; }
+    if (ctx && ctx.posting && typeof ctx.posting === "object") ctx.posting.closed = true;
+    const inv = recordInvalidation(ctx, "role_closed", text, "the user reported the employer closed the job; it is no longer accepting applications");
+    const reply = compose({ headline: "Got it — that job is closed and no longer accepting applications.", facts: ["I marked the role closed, and I will not submit the prepared application for it."], nextStep: "Name another role and I will prepare that one instead." });
+    return { intent: "intent_role_closed", resultStatus: "blocked", reply, role_closed: rec, invalidation: inv, doorstep: store ? store.doorstep || null : null };
+  }
+
+  // ---- (c) prior-application disclosures (DD-4 / AP20) ----
+  const DISCLOSURE_RE = /\balready\b[^.]*\b(applied|submitted)\b|\b(applied|submitted)\b[^.]*\b(manually|myself)\b|\bapplied (manually|myself)\b|\bi applied to\b[^.]*\b(manually|yesterday|on their site)\b/;
+  function handlePriorApplication(text, ctx) {
+    if (!DISCLOSURE_RE.test(lc(text))) return null;
+    const store = doorstepStore(ctx);
+    const rec = { disclosed: true, channel: "manual — applied by the user outside this chat", at: nowOf(ctx || {}), instruction: s(text) };
+    if (store) store.prior_application = rec;
+    const profile = ctx && ctx.profile;
+    if (profile && typeof profile === "object") profile._careerRouterPriorApplications = [...(profile._careerRouterPriorApplications || []), rec];
+    const inv = recordInvalidation(ctx, "prior_application", text, "the user disclosed a prior manual application for this role; no duplicate may be prepared or submitted");
+    const reply = compose({ headline: "Noted — you already applied to that role manually, so I will not prepare or submit a duplicate application for it.", facts: ["I recorded the manual application against this role, so nothing here can double-apply you."], nextStep: "I can track the existing application and check its status instead — just say the word." });
+    return { intent: "intent_prior_application", resultStatus: "completed", reply, prior_application: rec, invalidation: inv };
+  }
+
+  // ---- (d) sensitive-fact corrections (DD-6 / AP23; SH03's sibling) ----
+  // The correction is written through 130's write path: answerCurrent with
+  // the interview's visa step is 130's ONLY exported write for the work-
+  // authorization fact, so the stored statement takes exactly 130's shape.
+  // The needs-sponsorship boolean is then set from the user's stated
+  // direction — 130's own derivation cannot express "no longer need" (its
+  // regex reads the embedded "need sponsorship" as a need), so the parsed
+  // direction is authoritative for the flag and the audit entry says so.
+  function sensitiveCorrectionOf(text) {
+    const t = lc(text);
+    if (!/sponsorship|work authorization|work authorisation/.test(t)) return null;
+    const clauseM = s(text).match(/\b(i will need sponsorship[^,;.]*|i need sponsorship[^,;.]*|need sponsorship in the future[^,;.]*|i no longer need sponsorship[^,;.]*|no longer need sponsorship[^,;.]*|i (?:don'?t|do not) need sponsorship[^,;.]*)/i);
+    const clause = clauseM ? clauseM[1].trim() : null;
+    const noNeed = /no longer need|don'?t need sponsorship|do not need sponsorship|never need sponsorship|no sponsorship (needed|required)|without sponsorship/.test(t);
+    if (noNeed) return { kind: "no_longer_needed", needsSponsorship: false, clause: clause || "No longer needs sponsorship" };
+    const futureNeed = /will need sponsorship|need sponsorship|require sponsorship|needs sponsorship/.test(t);
+    if (futureNeed) return { kind: "future_need", needsSponsorship: true, clause: clause || "Will need sponsorship in the future" };
+    if (/update|correct|change/.test(t)) return { kind: "unspecified", needsSponsorship: null, clause: null };
+    return null;
+  }
+  function writeSensitiveCorrection(profile, parsed, instruction, ctx) {
+    const cons = profile.constraints = profile.constraints || {};
+    const from = { workAuthorization: cons.workAuthorization || null, needsSponsorship: cons.needsSponsorship == null ? null : cons.needsSponsorship };
+    let via = "direct field write (130 not loaded in this bundle)";
+    if (Onboarding && typeof Onboarding.answerCurrent === "function") {
+      const had = Object.prototype.hasOwnProperty.call(profile, "_onboarding_pending");
+      const prev = profile._onboarding_pending;
+      profile._onboarding_pending = "visa";
+      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch (e) { /* the direct write below still lands */ }
+      if (had) profile._onboarding_pending = prev; else delete profile._onboarding_pending;
+    }
+    cons.workAuthorization = parsed.clause;
+    cons.needsSponsorship = parsed.needsSponsorship;
+    const audit = { at: nowOf(ctx || {}), instruction: s(instruction), source: "chat correction", precedence: "the user's newer statement wins; the earlier statement is superseded, not deleted", changes: [{ field: "work_authorization", from: from.workAuthorization, to: parsed.clause }, { field: "needs_sponsorship", from: from.needsSponsorship, to: parsed.needsSponsorship }], outcome: "user-directed correction", via };
+    profile.profile_corrections = [...(profile.profile_corrections || []), audit];
+    profile.dependent_state = Object.assign({}, profile.dependent_state || {}, { invalidated: true, invalidated_by: "sensitive fact correction in chat (sponsorship / work authorization)", materials: "invalidated by the sponsorship correction — prepared packets must be re-prepared on the corrected facts" });
+    return audit;
+  }
+  function handleSensitiveCorrection(text, ctx) {
+    const parsed = sensitiveCorrectionOf(text);
+    if (!parsed) return null;
+    const profile = ctx && ctx.profile;
+    let audit = null;
+    if (parsed.kind !== "unspecified" && profile && typeof profile === "object") audit = writeSensitiveCorrection(profile, parsed, text, ctx);
+    const inv = recordInvalidation(ctx, "sensitive_fact_corrected", text, "the user corrected a sensitive fact (sponsorship / work authorization); prepared packets and approvals built on the old answer are invalid");
+    if (parsed.kind === "unspecified") {
+      const reply = compose({ headline: "I will hold that packet while you confirm the new answer.", facts: ["Tell me the new work authorization answer in your own words and I will save it exactly as you say it.", "Until then the prepared packet counts as stale, because the fact it was built on is changing."], nextStep: "State the new answer and I will record it and re-prepare." });
+      return { intent: "intent_sensitive_correction", resultStatus: "awaiting_user", reply, correction: parsed, invalidation: inv };
+    }
+    const factSentence = parsed.kind === "future_need" ? "You will need sponsorship in the future — that is what your profile now says." : "You no longer need sponsorship — that is what your profile now says.";
+    const reply = compose({ headline: "Updated — I saved your corrected sponsorship answer to your profile.", facts: [factSentence, "The prepared packet still carries the old answer, so it is invalid now and will not be submitted."], nextStep: "I can re-prepare it with the corrected answer and bring it back for your re-confirmation." });
+    return { intent: "intent_sensitive_correction", resultStatus: "completed", reply, correction: { kind: parsed.kind, needsSponsorship: parsed.needsSponsorship, clause: parsed.clause }, audit, invalidation: inv };
+  }
+
+  // ---- (b) cancel / stop intents (DD-2 + DD-3; AP17, NW18, AP18) ----
+  // A maintained pattern set, not C37's one exact sentence. The three exact
+  // phrases 141 already owns are deliberately left to 141 (its halt and
+  // reply are the proven C37/SH08 contract); every other ordinary wording
+  // is owned here — queue wordings through 141's own haltQueue export,
+  // application wordings by recording the cancellation in 141's submission
+  // record.
+  const CANCEL_RE = /\bcancel\b|\bcancelled\b|\bcall (it|them|this|that) off\b|\bhold off\b|\bnever mind\b|\bscrap\b|\bstop\b|\bhalt\b|\bdo not submit\b|\bdon'?t submit\b|\bchanged my mind\b/;
+  const QUEUE_CONTEXT_RE = /\bqueue\b|\bqueued\b|\bbatch\b|\boutreach\b|\bfollow[- ]?ups?\b|\brest of\b|\bunstarted\b|\banyone else\b/;
+  const LEGACY_HALT_RE = /\bstop everything\b|\bdon'?t contact anyone\b|\bstop all outreach\b/;
+  function haltQueueFallback(ctx, text) {
+    const { state, persist } = readQueue(ctx);
+    const items = queueItemsOf(state);
+    if (!items) return null;
+    const q = state.outreach_queue;
+    const pending = items.filter((i) => i.status === "pending");
+    for (const item of pending) { item.status = "halted"; item.halted_by = "user instruction in chat"; item.halt_reason = s(text || ""); }
+    q.halted = true;
+    q.halt = { at: nowOf(ctx || {}), instruction: s(text || ""), items_halted: pending.map((i) => i.queue_id), form_prep_state: null };
+    persist();
+    return { intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, queue_state: q };
+  }
+  function handleQueueCancel(text, ctx) {
+    const t = lc(text);
+    if (!CANCEL_RE.test(t) || !QUEUE_CONTEXT_RE.test(t) || LEGACY_HALT_RE.test(t)) return null;
+    if (!ctx || (!ctx.queueState && !ctx.queueStatePath)) return null;
+    const res = Doorstep && typeof Doorstep.haltQueue === "function" ? Doorstep.haltQueue(ctx, text) : haltQueueFallback(ctx, text);
+    if (!res) return null;
+    if (res.resultStatus === "blocked") return res; // 141 could not find the queue — its honest blocked reply stands
+    const items = (res.queue_state && res.queue_state.items) || [];
+    const landed = items.filter((i) => i.status === "sent").length;
+    const halted = res.halted_count || 0;
+    let reply;
+    if (landed > 0) {
+      // DD-10: never claim "nothing was sent" when a send already landed.
+      reply = compose({ headline: "Cancelled the rest of the queue.", facts: [`${landed === 1 ? "One message" : `${landed} messages`} already went out before this, and ${landed === 1 ? "it stays" : "they stay"} on record as sent.`, `The remaining ${halted} pending item${halted === 1 ? " is" : "s are"} halted, and the halt is saved.`], nextStep: "Nothing else will go out from this queue." });
+    } else {
+      reply = compose({ headline: "Cancelled — the queued outreach is stopped.", facts: [`${halted} pending item${halted === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.`, "Nothing was sent, and no contact will be made from this queue."], nextStep: "Start a new queue whenever you are ready." });
+    }
+    return Object.assign({}, res, { intent: "queue_halt", reply, landed_count: landed, intent_owner: "142-intent-ownership" });
+  }
+  function handleDoorstepCancel(text, ctx) {
+    const t = lc(text);
+    if (!CANCEL_RE.test(t) || QUEUE_CONTEXT_RE.test(t)) return null;
+    const store = ctx && ctx.doorstepState;
+    if (!store || typeof store !== "object" || (!store.doorstep && !store.submission)) return null;
+    recordInvalidation(ctx, "cancelled_by_user", text, "the user cancelled the prepared submission in chat");
+    if (store.submission) store.submission.status = "cancelled";
+    if (store.doorstep) store.doorstep.cancelled = true;
+    const reply = compose({ headline: "Cancelled — I stopped this application, and I will not submit it.", facts: ["The prepared form stays on record as prepared but cancelled, so a later approval cannot send it."], nextStep: "Tell me if you want to start a different application instead." });
+    return { intent: "intent_cancelled", resultStatus: "completed", reply, invalidation: store.invalidation, doorstep: store.doorstep || null, submission: store.submission || null };
+  }
+
+  // ---- recipient change after the gate (DD-7 / NW13) ----
+  function handleRecipientChange(text, ctx) {
+    const t = lc(text);
+    if (!/instead|change|switch|recipient/.test(t)) return null;
+    const m = s(text).match(/\bto\s+([A-Z][a-z]+)\s+instead\b/) || s(text).match(/\brecipient to\s+([A-Z][a-z]+)\b/i) || s(text).match(/\bsend it to\s+([A-Z][a-z]+)\b/);
+    if (!m) return null;
+    const contacts = ((ctx && (ctx.contacts || ctx.outreachContacts)) || []).map((c) => ({ name: c.name || c.full_name || "" }));
+    const byFirst = (first) => contacts.find((c) => lc(c.name).split(/\s+/)[0] === lc(first || ""));
+    const newContact = byFirst(m[1]);
+    const newName = newContact ? newContact.name : m[1];
+    const oldM = s(text).match(/\binstead of\s+([A-Z][a-z]+)\b/);
+    const oldContact = oldM ? byFirst(oldM[1]) : null;
+    const oldName = oldContact ? oldContact.name : (oldM ? oldM[1] : "the earlier recipient");
+    const change = { from: oldName, to: newName, at: nowOf(ctx || {}), instruction: s(text) };
+    const profile = ctx && ctx.profile;
+    if (profile && typeof profile === "object") profile._careerRouterOutreach = { recipient_change: change, draft_superseded: true };
+    const reply = compose({ headline: `Switched — this now needs a draft for ${newName}, not the one for ${oldName}.`, facts: ["The earlier draft is superseded and carries no approval over to the new recipient.", "Nothing has been sent."], nextStep: `I will draft the ${newName.split(/\s+/)[0]} version for your review, and it needs your fresh approval before anything goes out.` });
+    return { intent: "intent_recipient_change", resultStatus: "awaiting_user", reply, sends: 0, draft: null, recipient_change: change };
+  }
+
+  // ---- relayed opt-out (DD-8 / NW17): 124's suppression, called not edited ----
+  const OPTOUT_RE = /opted out|opt[- ]out|stop emailing|stop contacting|never contact|unsubscribe|do not (email|contact|message)|don'?t (email|contact) (me|him|her|them) again/;
+  function handleOptOut(text, ctx) {
+    if (!OPTOUT_RE.test(lc(text))) return null;
+    const { state, persist } = readQueue(ctx || {});
+    const items = queueItemsOf(state);
+    if (!items) return null;
+    const matched = personQueueItems(text, items, ctx);
+    if (!matched.length) return null;
+    const email = lc(matched[0].to || matched[0].email || "");
+    const name = displayNameFor(matched[0], text, ctx);
+    const first = name.split(/\s+/)[0];
+    // 124's own reply classification confirms the relayed words are a stop.
+    let classification = null;
+    const quoted = s(text).match(/'([^']{3,})'/) || s(text).match(/"([^"]{3,})"/);
+    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch (e) { classification = null; } }
+    let suppression = (ctx && ctx.suppression) || null;
+    if (!suppression && Outreach && typeof Outreach.createSuppressionStore === "function") suppression = Outreach.createSuppressionStore();
+    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch (e) { /* the result carries the store */ } }
+    const stopped = [];
+    for (const item of matched) {
+      if (item.status !== "pending") continue;
+      item.status = "suppressed";
+      item.suppressed_by = "recipient opt-out relayed in chat";
+      stopped.push(item.queue_id);
+    }
+    persist();
+    const reply = compose({ headline: `Recorded — ${name} has opted out and will not be contacted again.`, facts: [`I stopped ${stopped.length} queued follow-up${stopped.length === 1 ? "" : "s"} to ${first} and added ${first} to the suppression list, so a send-time check stops them too.`], nextStep: "The rest of the queue is untouched." });
+    return { intent: "intent_opt_out", resultStatus: "completed", reply, suppressed_items: stopped, suppression, classification, recipient: { name, email: email || null } };
+  }
+
+  // ---- (e) validity / status questions (DD-9 / SH03; NW17 follow-up) ----
+  const VALIDITY_RE = /\bstill\b[^.?!]*\b(valid|approved)\b|\b(valid|approved)\b[^.?!]*\bstill\b|\bis (my|the|it)\b[^.?!]*\b(valid|approved)\b/;
+  function handlePacketValidity(text, ctx) {
+    const t = lc(text);
+    if (!/(packet|approval|application)/.test(t) || !VALIDITY_RE.test(t)) return null;
+    const store = ctx && ctx.doorstepState;
+    const inv = store && store.invalidation && store.invalidation.active ? store.invalidation : null;
+    const profile = ctx && ctx.profile;
+    const corrections = profile && (profile.profile_corrections || []).length;
+    const dependents = profile && profile.dependent_state;
+    const dependentsChanged = !!(dependents && (dependents.rebuilt || dependents.invalidated));
+    if (inv) {
+      const reply = compose({ headline: "No — it is not still valid.", facts: [`${INVALIDATION_REASON_TEXT[inv.reason] || "The state changed"} after it was prepared, and that invalidated it.`, "It needs re-preparation and a fresh approval before anything could go out."] });
+      return { intent: "intent_packet_validity", resultStatus: "completed", reply, packet: null, validity: "invalidated", invalidation: inv };
+    }
+    if (corrections || dependentsChanged) {
+      const reply = compose({ headline: "No — that earlier packet is not still approved and valid.", facts: ["Your correction changed the facts it was built on, so the old packet was invalidated and its materials were rebuilt on the new facts.", "It would need a fresh preparation and a new approval before anything could go out."] });
+      return { intent: "intent_packet_validity", resultStatus: "completed", reply, packet: null, validity: "invalidated", invalidated_by: "profile correction" };
+    }
+    if (store && store.doorstep) {
+      const reply = compose({ headline: "Nothing in the record here has invalidated it since it was prepared.", facts: ["It is still the prepared review copy from earlier, and nothing was submitted.", "If any fact it was built on has changed, tell me and I will mark it invalid."] });
+      return { intent: "intent_packet_validity", resultStatus: "completed", reply, packet: null, validity: "on_record" };
+    }
+    const reply = compose({ headline: "I have no earlier packet or approval on record in this conversation, so I cannot confirm one is valid.", facts: ["I have not prepared a new one — you asked about the earlier one, and there is nothing here to judge it from."] });
+    return { intent: "intent_packet_validity", resultStatus: "completed", reply, packet: null, validity: "unknown" };
+  }
+  function handleFollowUpStatus(text, ctx) {
+    const t = lc(text);
+    if (!/follow[- ]?up/.test(t) || !/still|going out|queued|scheduled|pending/.test(t)) return null;
+    const { state } = readQueue(ctx || {});
+    const items = queueItemsOf(state);
+    if (!items) return null;
+    const matched = personQueueItems(text, items, ctx);
+    const scope = matched.length ? matched : items;
+    const pending = scope.filter((i) => i.status === "pending");
+    const name = matched.length ? displayNameFor(matched[0], text, ctx) : null;
+    if (name && !pending.length) {
+      const reply = compose({ headline: `No — no follow-up to ${name} is still going out.`, facts: [`${name}'s queued follow-ups were stopped, and nothing to ${name.split(/\s+/)[0]} is pending.`] });
+      return { intent: "intent_followup_status", resultStatus: "completed", reply, pending_count: 0, recipient: name };
+    }
+    if (name) {
+      const reply = compose({ headline: `Yes — ${pending.length} follow-up${pending.length === 1 ? "" : "s"} to ${name} ${pending.length === 1 ? "is" : "are"} still queued.`, facts: ["They have not gone out yet."], nextStep: "Say cancel and I will stop them." });
+      return { intent: "intent_followup_status", resultStatus: "completed", reply, pending_count: pending.length, recipient: name };
+    }
+    const reply = compose({ headline: pending.length ? `${pending.length} follow-up${pending.length === 1 ? "" : "s"} ${pending.length === 1 ? "is" : "are"} still queued.` : "No follow-ups are still queued.", facts: pending.length ? ["They have not gone out yet."] : ["Nothing in the queue is pending."] });
+    return { intent: "intent_followup_status", resultStatus: "completed", reply, pending_count: pending.length, recipient: null };
+  }
+
+  // The ownership layer: checked BEFORE every existing route in handleChat.
+  function handleStateChangeIntents(text, ctx) {
+    const c = ctx || {};
+    return invalidationGate(text, c)
+      || handleRecipientChange(text, c)
+      || handleOptOut(text, c)
+      || handleRoleClosure(text, c)
+      || handlePriorApplication(text, c)
+      || handleSensitiveCorrection(text, c)
+      || handleQueueCancel(text, c)
+      || handleDoorstepCancel(text, c)
+      || handlePacketValidity(text, c)
+      || handleFollowUpStatus(text, c);
+  }
+
   // ---------- main entry: consulted after 120, then 130 ----------
   function handleChat(text, ctx) {
     const c = ctx || {};
     const t = lc(text);
     if (!t) return null;
     const profile = c.profile || null;
+    // INTENT OWNERSHIP (lane A, round 2): state-changing turns are owned
+    // before every existing route — including an active mock session, whose
+    // plain answers never carry these instruction shapes.
+    const owned = handleStateChangeIntents(text, c);
+    if (owned) return owned;
     // An active mock session captures plain answers before any other intent,
     // unless the turn plainly starts a different career task.
     if (profile && profile._careerRouterPrep && !/\b(find|tailor|send|email|prep(are)? the|packet|mock interview|stop|start over)\b/.test(t)) {
@@ -565,6 +954,6 @@ const CareerRouter = (() => {
     return null; // not a career turn this router owns: silence stays for other lanes' surfaces
   }
 
-  return { handleChat, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
+  return { handleChat, handleStateChangeIntents, recordInvalidation, sha256, rankedShortlist, scoringProfile, adaptPosting, jdTextForPosting, preCheck, detectContradiction };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerRouter;

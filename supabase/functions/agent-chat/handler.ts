@@ -42,6 +42,7 @@ import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { airlineReply } from "./_shared/airline_answer.ts";
 import { unclaimedReply } from "./_shared/unclaimed_answer.ts";
+import { governmentReply } from "./_shared/government_answer.ts";
 import { whatsNewReply } from "./_shared/whats_new_answer.ts";
 import { budgetReply, readBudgets } from "./_shared/budget_answer.ts";
 import { goalReply } from "./_shared/goal_answer.ts";
@@ -366,6 +367,13 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         if (!direct) direct = await airlineReply(message, today, oldestFirst);
         // A state treasurer letter or a failed bank (_shared/unclaimed_answer.ts) before a general "am I owed".
         if (!direct) direct = await unclaimedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
+        // Government preparation (cluster K11, C119/C120/C160/C162/C166; _shared/government_answer.ts): comps
+        // packet and county deadline, homestead eligibility, an IRS notice decoded with its deadline clock and
+        // a drafted response, tax-refund tracking with the deposit detected in the person's own rows, and the
+        // FBAR aggregate math with the guided packet. Preparation only — the person files every filing himself.
+        // No government profile store exists yet, so the profile reader returns null and the answers work from
+        // the figures in the message or ask for them; nothing is invented.
+        if (!direct) direct = await governmentReply(message, today, { profile: async () => null, transactions: oldestFirst });
         if (!direct) direct = await moneyOwedReply(message, today, oldestFirst, () => readOwedAccounts(supabase, user.id));
         // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
         // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.

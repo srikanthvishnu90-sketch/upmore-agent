@@ -42,10 +42,25 @@ own two addresses, both already on the program record:
 - `vishnusrikanth8@gmail.com`
 
 The "5-person campaign" is a **self-test campaign**: five sends, each addressed
-to one of these two inboxes, each wearing one of the five test-persona hats
+to one of these two inboxes through its own **plus-alias** (see the alias
+reading below), each wearing one of the five test-persona hats
 defined in the campaign drafts (`~/workspace/your_files/review/gate5-drafts-staging.md`,
 appended to the master email doc by the coordinator at integration). There are
 no other recipients. There is no "just this once" fifth-party address.
+
+**Alias reading (added 2026-10-13, owner correction W2):** a plus-alias of a
+listed inbox — `srikanthvishnu90+g5d1@gmail.com` through `+g5d5`, and
+`vishnusrikanth8+g5d2@gmail.com` / `+g5d4` — IS that inbox: Gmail delivers
+`name+tag@gmail.com` into `name@gmail.com`, so alias mail can only land in
+the founder's own two inboxes. Aliases of the two base addresses are inside
+this allowlist; anything else — any other local part, any other domain, any
+address that is not one of the two base inboxes or an alias of one — is
+outside it. The runner must normalize a recipient by stripping its `+tag`
+before comparing against the two base addresses, and must still abort on
+anything that does not normalize to one of them. The five aliases exist so
+each send is its own recipient record under module 124's per-person rule
+(1 initial per recipient per 183 days); they widen the recipient set by
+zero — the mail still reaches only the founder.
 
 Enforcement is not a promise in this document — it is code:
 `run-gate5.cjs` hard-codes this allowlist, checks **every** recipient before
@@ -167,14 +182,27 @@ evidence log preserved and reported):
 ### Step 4 — The 5-recipient self-test campaign (F1)
 
 - **Does:** build the campaign from the five staged drafts
-  (`gate5-drafts-staging.md`): five persona-hat sends, recipients drawn only
-  from §1.2. The full F1 doorstep must exist **before** any send: list record
+  (`gate5-drafts-staging.md`): five persona-hat sends, recipients = the five
+  §1.2 plus-aliases (one per hat). The full F1 doorstep must exist **before** any send: list record
   (selected 5 / reserve 0 / excluded 0, honestly reconciled), the drafts, and
   the **safety-plan card** rendered and approved by the owner for this exact
   batch (R-A1/R-A2 — editing any draft after approval voids that item's
   approval and it does not send). Caps per the standing defaults:
   - Daily cap: **12/day ramp start** (conflict C-1 default — the lower value;
-    this campaign's 5 sends sit under it, and the card must show the math).
+    day 1 uses 4 of 12, day 2 uses 1 — the card must show the math).
+  - **Send schedule: 4 on day 1, 1 on day 2** (revised 2026-10-13, owner
+    correction W2). The per-domain cap below binds on day 1; module 124's
+    wave scheduler (`planWave`) defers the fifth send to day 2 itself. A
+    card or a run showing 5 sends on day 1 is wrong cap math — abort.
+  - Per-domain cap: **4/day** (module 124 `perDomainPerDay`). All five
+    recipient records are @gmail.com, so this is the cap that shapes the
+    schedule.
+  - Per-person cap: **1 initial + max 2 follow-ups per 183 days** per
+    recipient record (module 124). Each plus-alias is a distinct recipient
+    record receiving exactly one initial. (Under the pre-revision shape —
+    three sends to one base address — the repeat sends could not have gone
+    as initials at all: module 124 treats a repeat touch as a follow-up,
+    and follow-ups need a continue tap.)
   - Per-firm cap: **15 per firm per rolling 30 days** (R-B2). All five
     persona hats are the founder himself at five fictional-for-the-test
     firms, so no firm count exceeds 1 — the card states this plainly rather

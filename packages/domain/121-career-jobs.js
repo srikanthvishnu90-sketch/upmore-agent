@@ -113,9 +113,12 @@ const CareerJobs = (() => {
   function normalizeGreenhouse(json, token) {
     const company = (json && json.name) || token;
     return ((json && json.jobs) || []).map((j) => basePosting({
-      source: "greenhouse", company, title: j.title, req_id: j.requisition_id || j.id,
+      // BUG-005 (SC-032): Stripe's board returns requisition_id "See Opening ID" for ALL 721 jobs —
+      // using it as the req id collapsed every Stripe posting onto ONE job_id. A requisition id
+      // that is a placeholder (or shared text, not an identifier) must fall back to the numeric id.
+      source: "greenhouse", company, title: j.title, req_id: (j.requisition_id && !/see opening/i.test(String(j.requisition_id))) ? j.requisition_id : j.id,
       location: (j.location && j.location.name) || (j.offices && j.offices[0] && j.offices[0].name) || "",
-      url: j.absolute_url, posted_at: j.updated_at || j.created_at,
+      url: j.absolute_url, posted_at: j.first_published || j.updated_at || j.created_at,
       jd_text: j.content || "", department: (j.departments && j.departments[0] && j.departments[0].name) || "",
     }));
   }
@@ -304,20 +307,24 @@ const CareerJobs = (() => {
     const prefs = (profile && profile.preferences) || {};
     const jd = lc(posting.title + " " + posting.jd_text);
     const skills = profileSkills(profile);
-    const matched = skills.filter((x) => jd.includes(lc(x.name)));
+    // Proven-only matching (SC-037, BUG-002): a skill with no evidence link on the profile must NOT
+    // earn score or appear as a match — it is named as a gap instead. Before this fix an unproven
+    // skill (e.g. Rust on the TEST persona) counted toward skillScore exactly like an evidenced one.
+    const matchedAll = skills.filter((x) => jd.includes(lc(x.name)));
+    const matched = matchedAll.filter((x) => x.proven);
+    const unprovenMatched = matchedAll.filter((x) => !x.proven);
     const missing = skills.filter((x) => !jd.includes(lc(x.name)));
     const reasons = [], gaps = [];
     // skills overlap: 0-50
     let skillScore = 0;
     if (skills.length) { skillScore = Math.round(50 * matched.length / Math.max(3, Math.min(skills.length, 10))); }
     if (matched.length) reasons.push(`skills match: ${matched.slice(0, 6).map((x) => x.name).join(", ")}`);
-    const unproven = matched.filter((x) => !x.proven);
-    if (unproven.length) gaps.push(`matched skills with no evidence link on your profile: ${unproven.map((x) => x.name).join(", ")}`);
+    if (unprovenMatched.length) gaps.push(`not counted — no evidence on your profile for: ${unprovenMatched.map((x) => x.name).join(", ")} (the posting mentions it, but only evidenced skills match)`);
     // experience relevance: 0-25 (role-family preference + keyword overlap with the profile's own words)
     let expScore = 0;
     const wantFamilies = (prefs.role_families || prefs.roles || []).map(lc);
     if (wantFamilies.includes(lc(posting.role_family))) { expScore += 12; reasons.push(`role family ${posting.role_family} is one you asked for`); }
-    const profileWords = new Set(lc([profile.experience_text || "", profile.summary || "", skills.map((x) => x.name).join(" ")].join(" ")).split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
+    const profileWords = new Set(lc([profile.experience_text || "", profile.summary || "", skills.filter((x) => x.proven).map((x) => x.name).join(" ")].join(" ")).split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
     const jdWords = new Set(jd.split(/[^a-z0-9+#.]+/).filter((w) => w.length > 3));
     const overlap = [...profileWords].filter((w) => jdWords.has(w)).length;
     expScore += Math.min(13, overlap);
@@ -336,7 +343,7 @@ const CareerJobs = (() => {
     const diff = score - bar;
     const bucket = diff >= 15 ? "Safety" : diff >= -10 ? "Match" : "Reach";
     reasons.push(`bucket ${bucket}: score ${score} vs bar ${bar}${cir ? " (company bar)" : " (neutral bar; no company record yet)"}`);
-    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [] };
+    return { job_id: posting.job_id, excluded: false, score, bucket, bar, reasons, gaps, matched_skills: matched.map((x) => x.name), unproven_skills: unprovenMatched.map((x) => x.name), missing_skills: missing.map((x) => x.name), hard_fails: [] };
   }
 
   // ---------- APPE-001 persona fixture -> scoring profile ----------
@@ -386,6 +393,14 @@ const CareerJobs = (() => {
     }
     if (canonStarred) prof0.preferences.starred_companies = canonStarred;
     if (canonLocations) { prof0.preferences.locations = canonLocations; prof0.constraints.locations = canonLocations; }
+    // Canonical preferences.roles (SC-034, BUG-003): variant personas state roles only in the
+    // structured preferences block ("Data Analyst", "Software Engineer"); the prose parser above
+    // never saw them, so their role-family preference silently never fired. Derive families with
+    // the same classifier the postings use.
+    if (persona && persona.preferences && Array.isArray(persona.preferences.roles) && persona.preferences.roles.length) {
+      const fams = [...new Set(persona.preferences.roles.map((r) => roleFamily(r, "")).filter((f) => f && f !== "Other"))];
+      if (fams.length) prof0.preferences.role_families = fams;
+    }
     return prof0;
   }
 

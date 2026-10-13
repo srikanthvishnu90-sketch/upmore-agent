@@ -30,8 +30,12 @@ const L = require("./_w01-lib.cjs"); const { M, H } = L;
   const { drafts, tiers, gatePass } = L.draftAll(pool.selected, user);
   s.tool("124.draftAndGate x300", { drafted: drafts.length, gate_pass: gatePass, tiers, sample_why_this_line: drafts[0].why_this_line });
   L.sampleDrafts(s, drafts, 2, "SC-001");
-  const allOptOut = drafts.every(d => d.body.includes(M.OPT_OUT_LINE));
-  s.verify("Pool state: selected count, drafts == selected, every draft gated + carries the opt-out footer", { selected: pool.selected.length, drafts: drafts.length, gate_pass: gatePass, all_opt_out: allOptOut, tier_mix: tiers, per_firm_max: Math.max(...Object.values(card.breakdown.by_firm)) });
-  const ok = pool.selected.length === 300 && drafts.length === 300 && gatePass === 300 && allOptOut;
+  // Owner order W3(i), 2026-10-13: the opt-out line was REMOVED from student
+  // networking drafts by default (it read as marketing; suppression on reply
+  // is unchanged). This assertion previously required the footer in every
+  // draft — updated to the new rule, per the 05 Part 4 test-correction rule.
+  const noOptOutLine = drafts.every(d => !d.body.includes(M.OPT_OUT_LINE));
+  s.verify("Pool state: selected count, drafts == selected, every draft gated + no opt-out line (owner order W3(i))", { selected: pool.selected.length, drafts: drafts.length, gate_pass: gatePass, no_opt_out_line: noOptOutLine, tier_mix: tiers, per_firm_max: Math.max(...Object.values(card.breakdown.by_firm)) });
+  const ok = pool.selected.length === 300 && drafts.length === 300 && gatePass === 300 && noOptOutLine;
   await s.finish({ status: ok ? "COMPLETE" : "LEARN", outcome: `300 NY bankers selected from real firm sets (26 firms, per-firm cap respected) and 300 personalized, quality-gated coffee-chat drafts produced — one per banker, each with why-this-line sources. People were labeled TEST fixtures; the licensed people-data vendor key is the remaining real-world input for real names at this scale.`, reason: ok ? undefined : "counts did not reach 300/300/300", unblock: ok ? undefined : "inspect pool yield" });
 })();

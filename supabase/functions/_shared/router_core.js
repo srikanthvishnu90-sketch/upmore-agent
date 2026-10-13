@@ -31162,6 +31162,260 @@ const CareerContainment = (() => {
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerContainment;
 
+/* 146-career-intake.js — Wedge intake lane (owner strategy narrowing, 2026-10-13).
+ *
+ * ONE intake engine for candidate names, from the three compliant sources:
+ *   (a) pasted names — one per line, or CSV (with or without a header row);
+ *   (b) the user's own LinkedIn export — Connections.csv, parsed by 122
+ *       (the export-only path, R-B11; never a sign-in, never a scrape);
+ *   (c) a forwarded email — the named person/firm parsed from its signature.
+ *
+ * Pipeline: parse -> dedupe by name+firm+office -> employment-currency
+ * check (a person known to have departed is flagged at intake, never
+ * silently carried as current) -> honest running counts surfaced at every
+ * stage: received -> deduped -> current -> ready. Parse failures are
+ * reported per line and never swallow the good rows. Pure: no I/O, no
+ * network; callers hand text in and records come out.
+ */
+"use strict";
+const Profile122 = (() => { try { return typeof CareerProfile !== "undefined" ? CareerProfile : require("./122-career-profile.js"); } catch { return null; } })();
+
+const CareerIntake = (() => {
+  const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const clean = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim();
+
+  function baseRecord(o) {
+    return { full_name: clean(o.full_name || ""), current_firm: clean(o.current_firm || "") || null,
+      title: clean(o.title || "") || null, office: clean(o.office || "") || null,
+      email: clean(o.email || "") || null, sources: [], flags: [],
+      former_employer_note: o.former_employer_note || null, last_verified_at: o.last_verified_at || null };
+  }
+
+  // Quote-aware splitter for ONE line. Returns null on an unbalanced quote
+  // (the caller reports that line as malformed; other lines still parse).
+  function splitCsvLine(line) {
+    const cells = []; let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQ) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += c; }
+      else if (c === '"') inQ = true;
+      else if (c === ",") { cells.push(cur); cur = ""; }
+      else cur += c;
+    }
+    if (inQ) return null;
+    cells.push(cur);
+    return cells.map((x) => x.trim());
+  }
+
+  const HEADER_ALIASES = { name: "full_name", "full name": "full_name", firm: "current_firm", company: "current_firm",
+    title: "title", position: "title", office: "office", city: "office", location: "office", email: "email", "email address": "email" };
+
+  function parsePasted(text) {
+    const records = [], errors = [];
+    const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) return { records, errors, received: 0 };
+    const firstCells = splitCsvLine(lines[0]);
+    const isHeader = firstCells && firstCells.some((c) => HEADER_ALIASES[norm(c)] === "full_name")
+      && firstCells.some((c) => HEADER_ALIASES[norm(c)] === "current_firm");
+    if (isHeader) {
+      const headers = firstCells.map((c) => HEADER_ALIASES[norm(c)] || null);
+      let received = 0;
+      lines.slice(1).forEach((line, i) => {
+        received++;
+        const cells = splitCsvLine(line);
+        if (!cells) { errors.push({ where: `line ${i + 2}`, message: "unbalanced quote — row not parsed" }); return; }
+        if (cells.length !== headers.length) { errors.push({ where: `line ${i + 2}`, message: `expected ${headers.length} columns, got ${cells.length}` }); return; }
+        const rec = baseRecord({});
+        headers.forEach((h, j) => { if (h) rec[h] = cells[j] || null; });
+        if (rec.full_name) { rec.sources = ["pasted"]; records.push(rec); }
+        else errors.push({ where: `line ${i + 2}`, message: "no name in row" });
+      });
+      return { records, errors, received };
+    }
+    let received = 0;
+    lines.forEach((line, i) => {
+      received++;
+      if (line.includes(",")) {
+        const cells = splitCsvLine(line);
+        if (!cells) { errors.push({ where: `line ${i + 1}`, message: "unbalanced quote — line not parsed" }); return; }
+        const rec = baseRecord({ full_name: cells[0], current_firm: cells[1], title: cells[2], office: cells[3] });
+        if (rec.full_name) { rec.sources = ["pasted"]; records.push(rec); }
+        return;
+      }
+      const dash = line.split(/\s+[—–]\s+|\s+-\s+/);
+      if (dash.length >= 2) {
+        const rec = baseRecord({ full_name: dash[0], current_firm: dash.slice(1).join(" — ") });
+        if (rec.full_name) { rec.sources = ["pasted"]; records.push(rec); }
+        return;
+      }
+      const rec = baseRecord({ full_name: line });
+      rec.sources = ["pasted"]; records.push(rec);
+    });
+    return { records, errors, received };
+  }
+
+  function parseLinkedIn(csv) {
+    const records = [], errors = [];
+    if (!Profile122 || typeof Profile122.parseLinkedInConnections !== "function") {
+      return { records, errors: [{ where: "linkedin-export", message: "122 connection parser unavailable" }], received: 0 };
+    }
+    const { connections, errors: parseErrors } = Profile122.parseLinkedInConnections(csv);
+    for (const e of parseErrors || []) errors.push({ where: `Connections.csv row ${e.row}`, message: e.reason });
+    for (const c of connections) {
+      const rec = baseRecord({ full_name: c.name, current_firm: c.company, title: c.position, email: c.email });
+      rec.sources = ["linkedin-export"];
+      records.push(rec);
+    }
+    return { records, errors, received: connections.length + (parseErrors || []).length };
+  }
+
+  const MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december";
+  function parseForwarded(text) {
+    const records = [], errors = [];
+    const s = String(text || "");
+    const lines = s.split(/\r?\n/);
+    // Signature block: a sign-off line in the last 10 lines, then the name,
+    // then a title/firm line ("Analyst | Evercore" / "Analyst, Evercore").
+    let sigIdx = -1;
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 10); i--) {
+      if (/^\s*(best( regards)?|regards|thanks( again)?|thank you|cheers|sincerely|warmly)\s*,?\s*$/i.test(lines[i])) { sigIdx = i; break; }
+    }
+    if (sigIdx < 0) return { records, errors, received: 0 };
+    const tail = lines.slice(sigIdx + 1).map((l) => l.trim()).filter(Boolean);
+    if (!tail.length) return { records, errors, received: 0 };
+    const rec = baseRecord({ full_name: tail[0] });
+    if (!/^[A-Z][a-z]+(?: [A-Z][a-z'.-]+){1,3}$/.test(rec.full_name)) return { records, errors, received: 0 };
+    const tf = tail[1] || "";
+    const tfParts = tf.split(/\s*\|\s*|\s*,\s*|\s+at\s+/).map((x) => x.trim()).filter(Boolean);
+    if (tfParts.length >= 2) { rec.title = tfParts[0]; rec.current_firm = tfParts.slice(1).join(", "); }
+    else if (tfParts.length === 1 && !/^(new york|chicago|boston|remote|usa?)$/i.test(tfParts[0])) rec.title = tfParts[0];
+    if (tail[2] && /^[A-Z][a-z]+(?: [A-Z][a-z]+)?$/.test(tail[2]) && !rec.office) rec.office = tail[2];
+    // Self-reported departure: "I left <Firm> in <month>" naming the
+    // signature firm — the signature is stale; flag, do not carry as current.
+    const dep = s.match(new RegExp(`\\bI (?:left|departed|moved on from)\\s+([A-Z][A-Za-z&' ]+?)(?:\\s+in\\s+(?:${MONTHS})|\\s+last|\\.|,)`, "i"));
+    if (dep && rec.current_firm && norm(dep[1]) === norm(rec.current_firm)) {
+      rec.flags.push("departed");
+      rec.former_employer_note = dep[0].replace(/\s+/g, " ").trim();
+    }
+    rec.sources = ["forwarded-email"];
+    records.push(rec);
+    return { records, errors, received: 1 };
+  }
+
+  function dedupeKey(r) { return `${norm(r.full_name)}|${norm(r.current_firm || "")}|${norm(r.office || "")}`; }
+
+  function intake(input, opts) {
+    input = input || {}; opts = opts || {};
+    const raw = [], errors = [];
+    let received = 0;
+    if (input.pastedText) { const p = parsePasted(input.pastedText); raw.push(...p.records); errors.push(...p.errors); received += p.received; }
+    if (input.linkedinConnectionsCsv) { const l = parseLinkedIn(input.linkedinConnectionsCsv); raw.push(...l.records); errors.push(...l.errors); received += l.received; }
+    if (input.forwardedEmail) { const f = parseForwarded(input.forwardedEmail); raw.push(...f.records); errors.push(...f.errors); received += f.received; }
+
+    // Dedupe by name+firm+office; merges keep every source and fill gaps
+    // from later copies (an export email completes a pasted name).
+    const byKey = new Map();
+    for (const r of raw) {
+      const k = dedupeKey(r);
+      if (!byKey.has(k)) { byKey.set(k, r); continue; }
+      const keep = byKey.get(k);
+      for (const src of r.sources) if (!keep.sources.includes(src)) keep.sources.push(src);
+      for (const f of ["current_firm", "title", "office", "email", "last_verified_at", "former_employer_note"]) if (!keep[f] && r[f]) keep[f] = r[f];
+      for (const fl of r.flags) if (!keep.flags.includes(fl)) keep.flags.push(fl);
+    }
+    const records = [...byKey.values()];
+
+    // Employment-currency check: known departures flag at intake.
+    for (const d of opts.knownDepartures || []) {
+      for (const r of records) {
+        if (norm(r.full_name) !== norm(d.full_name)) continue;
+        if (d.current_firm && r.current_firm && norm(d.current_firm) !== norm(r.current_firm)) continue;
+        if (!r.flags.includes("departed")) r.flags.push("departed");
+        if (!r.former_employer_note) r.former_employer_note = d.note || "recorded as departed";
+      }
+    }
+    for (const r of records) if (!r.current_firm && !r.flags.includes("needs_firm")) r.flags.push("needs_firm");
+
+    const flagged = records.filter((r) => r.flags.includes("departed"))
+      .map((r) => ({ full_name: r.full_name, current_firm: r.current_firm, reason: "departed", note: r.former_employer_note || null }));
+    const current = records.filter((r) => !r.flags.includes("departed"));
+    const ready = current.filter((r) => r.current_firm);
+    return { records, flagged, errors,
+      counts: { received, deduped: records.length, duplicates_removed: raw.length - records.length,
+        current: current.length, ready: ready.length } };
+  }
+
+  return { intake, parsePasted, parseLinkedIn, parseForwarded, dedupeKey };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerIntake;
+
+/* 147-career-platform-drafts.js — DePaulConnect lane (owner strategy
+ * narrowing, 2026-10-13). DRAFTING HELP ONLY.
+ *
+ * Given an alumni profile the USER supplies (they pasted it / viewed it
+ * themselves) plus an optional personalization fact the USER provides,
+ * produce an in-platform message draft under the F1 draft rules. This
+ * module has NO transport of any kind: it cannot read a directory, open a
+ * profile, or deliver a message — the draft is returned to the user, who
+ * sends it themselves in the platform. If the user provides no fact, the
+ * draft says so (notes) and stays Tier C: it claims no personalization
+ * that was never supplied. Facts about the profile come only from what
+ * the user pasted; nothing is invented (a firm is named only when the
+ * supplied profile carries one).
+ */
+"use strict";
+
+const CareerPlatformDrafts = (() => {
+  const MAX_WORDS = 120; // F1 platform-message cap (short in-platform note)
+
+  function wordCount(text) { return String(text || "").trim().split(/\s+/).filter(Boolean).length; }
+
+  function draftMessage(input) {
+    input = input || {};
+    const profile = input.profile || {};
+    const user = input.user || {};
+    const platform = input.platform || "the alumni platform";
+    const notes = [];
+    const fact = input.userFact && input.userFact.fact ? input.userFact : null;
+
+    const fullName = String(profile.full_name || "").trim();
+    const first = fullName.split(/\s+/)[0] || "there";
+    const firm = String(profile.current_firm || "").trim();
+    const title = String(profile.title || "").trim();
+    if (!firm) notes.push("No firm on the supplied profile — the draft names no firm (nothing invented).");
+    const userFirst = String(user.name || "").trim().split(/\s+/)[0] || "I";
+    const school = String(profile.school || "").trim();
+    const sameSchool = school && user.school && String(user.school).trim().toLowerCase() === school.toLowerCase();
+    const userBlurb = user.blurb ? String(user.blurb).trim() : "I'm exploring investment banking and learning how people broke in.";
+
+    let tier, factUsed = null;
+    const lines = [`Hi ${first} —`];
+    if (fact) {
+      tier = "A";
+      factUsed = { fact: String(fact.fact), source_note: fact.source_note || "provided by the user" };
+      lines.push(`I saw that you ${String(fact.fact).replace(/\.$/, "")} — it stuck with me${sameSchool ? ` as a fellow ${school} student` : ""}.`);
+    } else {
+      tier = "C";
+      notes.push("No personalization fact provided by the user — Tier C draft: no personalization is claimed.");
+      lines.push(`I'm reaching out through ${platform}${sameSchool ? ` as a fellow ${school} student` : ""} who is learning the ropes.`);
+    }
+    lines.push(`I'm ${userFirst}${user.year ? `, a ${user.year}` : ""}${user.school ? ` at ${user.school}` : ""}. ${userBlurb}`);
+    if (firm) lines.push(`Your path${title ? ` to ${title}` : ""} at ${firm} is close to what I hope to do, and I'd value your perspective.`);
+    else lines.push("Your path is close to what I hope to do, and I'd value your perspective.");
+    lines.push("Would you be open to a 15-minute call sometime Tuesday afternoon or Thursday morning? Totally fine if the timing is bad — even a pointer or two by message helps.");
+    lines.push(`Thanks for your time,\n${user.name || userFirst}`);
+    const body = lines.join("\n\n");
+    const count = wordCount(body);
+    if (count > MAX_WORDS) notes.push(`Draft is ${count} words, over the ${MAX_WORDS}-word platform cap — trim before sending.`);
+    return { ok: true, platform,
+      draft: { body, word_count: count, tier, fact_used: factUsed, to_name: fullName || null, sendable_by: "user_only", sent: false },
+      notes };
+  }
+
+  return { draftMessage, MAX_WORDS };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = CareerPlatformDrafts;
+
   /* Capability registry: the single source of truth for what Upmore can do
      (Instinct spec doc 02). Pure: validates the generated registry.json and
      answers status questions. A capability absent here is not claimed; a

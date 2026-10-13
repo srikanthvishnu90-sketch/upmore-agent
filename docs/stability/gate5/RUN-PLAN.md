@@ -62,6 +62,20 @@ each send is its own recipient record under module 124's per-person rule
 (1 initial per recipient per 183 days); they widen the recipient set by
 zero — the mail still reaches only the founder.
 
+**G5-D6 amendment (owner order, 2026-10-13):** the Hunter vendor
+terms-clarification draft (exact text in the staging file,
+`review/gate5-drafts-staging.md`, §G5-D6) is a Gate-5 send item, sent by
+Upmore itself — never by Muse through a connector (the owner declined
+that route; sender-identity rule in the ledger). Its recipients are
+`srikanthvishnu90@gmail.com` (a base address above — inside this allowlist
+as written) and `sporve123@gmail.com` (the founder's second inbox, named
+by the owner for this item). `sporve123@gmail.com` is NOT covered by the
+alias reading: admitting it requires the runner's hard-coded allowlist to
+gain that one address by code edit at run preparation, a new commit, and
+the owner's Gate-5 go-ahead citing this amendment — exactly the change
+process §1.2 already requires. The later real send to Hunter remains the
+owner's own forward/send.
+
 Enforcement is not a promise in this document — it is code:
 `run-gate5.cjs` hard-codes this allowlist, checks **every** recipient before
 **every** send step, and aborts the whole run (exit code 4, no send attempted)

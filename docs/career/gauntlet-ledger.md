@@ -921,6 +921,19 @@ Lane hygiene note: the lane flagged two tool outputs carrying injection-check
 warnings during its run, followed neither, and re-verified its evidence by direct
 reads — recorded here for the record.
 
+**STATUS UPDATE 2026-10-13 (owner ruling): APPROVED AS "DRAFT v1" WITH
+CONDITIONS.** The list is now a gradable NI source for its listed entries only
+(23 scenario IDs). Conditions, all implemented in the file the same day: every
+entry carries its exact honest reply (`honest_reply_r_c7`), its closest real
+alternative, a named **fix owner** (`fix_owner`: Codex / this program /
+owner-decision) and an **exit criterion**; the list is versioned — any change
+needs the owner's written approval, and no scenario failing for a routing
+reason may ever be moved onto it (recorded in the file's `change_control`).
+CA-02 and CA-03 are CORE apply-family capabilities listed only temporarily:
+build plans + target dates delivered as review deliverables
+(`review/ca-02-ca-03-build-plans.md`); building starts only on the owner's go.
+F9 stays BLOCKED on Codex module 120 (ruling 2d — no change).
+
 ## OWNERSHIP MAP (owner rule, 2026-10-13: "the things Codex doesn't build, you build")
 
 Reviewed at every checkpoint; nothing sits unowned. WE-GRADE applies ONLY to
@@ -1026,6 +1039,21 @@ the only 3 reds are the designed SC-286/287/277 replays. The Gate-1 OFFICIAL
 BASELINE re-score (grader-v2 over the 300 records + script-generated 05 Part 3
 report) is now RUNNING.
 
+**STATUS UPDATE 2026-10-13 (W4 — Gate 0 is now MET):** the owner ruled on D-3:
+"YES — adopt the CI check as the Gate 0 definition, ONE condition: the CI check
+must cover every career file, and the frozen finance code must be listed by
+name as excluded." Both conditions are implemented (commit a3ca690): the CI
+`deno check` now carries `supabase/functions/gmail-oauth/career.ts` as a direct
+target — the only career TypeScript file (verified by content scan) and
+previously unreachable from any CI entrypoint — and the full command verifies
+0 errors over all 7 targets; the career JavaScript modules are covered in CI
+by `node --test tests/*.cjs` + the career-surface lint. The Gate 0 report
+(`docs/stability/runs/2026-10-13-2c81bd8.md`) carries an addendum with the
+coverage enumeration and the frozen-finance exclusion list BY NAME (agent-exec,
+plaid-sync, cancel-watcher, exec-vault-store, gmail-oauth/index.ts,
+imessage-inbound, simplefin-claim — the 7 files carrying the 113 pre-existing
+errors). **Gate 0: MET.**
+
 ## Onboarding test set (operating-prompt Part 2) — BUILT + first-run graded
 
 OB-01..09 ×3 trials through the chat path (implementation = Codex's assignment;
@@ -1047,6 +1075,19 @@ more harness seams named (S-BUBBLE: intended separate bubbles cannot survive
 delivery; S-PERSIST: no cross-session lifetime store).
 
 ## M2 — Gate 1: OFFICIAL BASELINE PUBLISHED (merged df93672; report docs/stability/runs/2026-10-13-79bee2f.md)
+
+**CORRECTED 2026-10-13 (owner correction W1): the PASS 1 below was a FALSE
+PASS.** SC-111's ask ("Design roles: portfolio-first application packet, not a
+text resume") was answered with a backend-engineer packet carrying a text
+resume, and the grader had no assertion class for it. The corrected baseline —
+grader-v2 + the new `ARTIFACT_MATCH` check (commit c637458), re-scored with the
+capability-absent list the owner has since approved as Draft v1 — is **PASS 0 /
+FAIL 300 / NOT IMPLEMENTED 0 / BLOCKED 0 · S0 2 (unchanged: SC-287, SC-300) ·
+S1 1,188 · S2 271**, published in `docs/stability/runs/2026-10-13-c637458.md`;
+the 79bee2f report below is labeled SUPERSEDED with its numbers preserved. The
+only verdict flip is SC-111 (PASS → FAIL); ARTIFACT_MATCH fires on exactly that
+one record across the 300 (no false positives). Full W1–W6 record: the
+correction-program section at the end of this ledger.
 
 **Baseline (grader-v2 over the 300 records, judge NOT_RUN — the 1 PASS is
 deterministic-only): PASS 1 / FAIL 299 / NOT IMPLEMENTED 0 / BLOCKED 0 · S0
@@ -1081,7 +1122,12 @@ NI 0; S0 = SC-287, SC-300). 14/14 new tests; mutation suite intact.
 ## Gate-3 record completion (WE-BUILD) — DONE (merged)
 
 Contracts-validator census at module level now: **VALID = F1, F2, F3,
-F3-calendar, F4, F5, F6, F7, F8 (9 of 10)** — F1 assembled (list counts from
+F3-calendar, F4, F5, F6, F7, F8 (9 of 10)** — **[LANGUAGE CORRECTED 2026-10-13
+(W5): the pack has 9 families (F1–F9). Read the census henceforth as: 8 of 9
+pack families VALID at module level (F1, F2, F3 — with F3-calendar counted as
+an F3 sub-row — F4, F5, F6, F7, F8); F9 GAP (blocker: module 120, Codex's
+file). "9 of 10" wrongly counted the F3-calendar sub-row as a tenth
+family.]** — F1 assembled (list counts from
 buildList, safety-plan card, campaign state, draft ask with two windows; subject
 fixed in 124's GENERATOR via capSubject — 61 → <60 chars), F2 (posting snapshot,
 123's truth-audit surfaced as audit_result, filled_fields + t3_flags from 141's
@@ -1097,3 +1143,151 @@ still GAPs its snapshot). One test-side correction followed: the G6 SC-138
 assertion pinned the pre-spec "user-reported" value; updated to the spec enum
 with the reason cited in the assertion (05 Part 4 rule). Merged-tree battery:
 the only reds are the 3 designed SC replays.
+
+
+---
+
+## CORRECTION PROGRAM CHECKPOINT — 2026-10-13 (coordinator wave 2; W1–W6 + owner steers)
+
+Standing rules recorded this wave (owner orders):
+
+- **Sender-identity rule (2026-10-13):** anything sent "as Upmore" goes
+  through the Upmore product's own path (Gate-5 style), NEVER through
+  Muse's own connectors. The owner declined a Muse-connector send of
+  the Hunter terms-clarification email on the approval card; that draft
+  became Gate-5 item G5-D6 (see W2 below).
+- **Wedge set APPROVED (2026-10-13):** the 30 IB-networking scenarios are
+  THE release gate — intake SC-286/287/011/146/148/023 · lists
+  SC-012/007/020/049/050/046 · drafts SC-025/040/041/042/043 · replies
+  SC-031/032/033/038/034 · follow-ups SC-036/037/044/045/151/157 · safety
+  SC-035/300. Codex landings grade against the wedge set first (canonical
+  + paraphrases). Owner reporting is now ONE batched daily report
+  (shipped / blocked / decisions needed); this ledger's daily summary must
+  stay trivially extractable.
+- **Absolute-dates drafting rule (2026-10-13):** dates in any real
+  outreach must be absolute or verified true at send time ("since
+  September 2025", never "since last September"); a relative-date phrase
+  in a draft is a QA defect — implemented in module 124 as the
+  `relative_date_phrase` gate failure.
+
+**W1 — GRADER: DONE** (commit c637458; steer-C add-on be8eecd). The
+ARTIFACT_MATCH deterministic check (S1) compares role-family +
+deliverable-type + level between ask and produced artifact; mutants M-16
+(SC-111-shaped) and M-17 (unsourceable count promise, HONEST_YIELD check)
+added to spec 04's table. Mutation suite: **17/17 mutants FAIL, 15/15
+known-good PASS.** Fail-before evidence: SC-111 graded PASS with
+`failures: []` on the old grader; both mutants passed the old pipeline.
+Corrected baseline (script-generated, `docs/stability/runs/
+2026-10-13-c637458.md`; records build 7be2759, grading build c637458):
+**PASS 0 / FAIL 300 / NI 0 / BLOCKED 0; S0 2 · S1 1,188 · S2 271.** The
+old 2026-10-13-79bee2f.md report is bannered SUPERSEDED, numbers
+untouched. Delta verified surgical: exactly one verdict flip (SC-111
+PASS→FAIL); HONEST_YIELD fires on zero of the 300 records. S0 verbatim:
+SC-287 | R-B11_linkedin_export_only | "reply instructs LinkedIn sign-in;
+the locked zero-risk path is the user's data EXPORT upload/parse, never
+sign-in" · SC-300 | R-A4 | "kill-switch ask answered with a no-op
+('halted nothing' / queue not found) and no pause flag was set". NI = 0
+even with the approved capability-absent list: none of the 9 CA-04 grand
+records carried an honest-NI-shaped reply.
+
+**W2 — GATE-5 PLAN: DONE** (docs/stability/gate5/RUN-PLAN.md + review/
+gate5-drafts-staging.md + master doc Gate-5 section). Recipients are
+plus-aliases of the two allowlisted inboxes (an alias IS its base inbox;
+the runner strips `+tag` before comparing; anything else aborts, exit 4).
+Schedule: 4 sends day 1 + day 2 carries G5-D5 plus the owner-added G5-D6
+items — day 2 exists BECAUSE module 124's per-domain cap (4/day) binds,
+and because a repeat touch to one recipient record is a follow-up needing
+a continue tap; the old 5-send/two-address shape could never have run.
+No cap was loosened; Gate 5 still fires only on the owner's per-run
+go-ahead token. Gate-5 personal facts (Lombard Global, PE & VC Club since
+September 2025, Investment Group, Algoverse) recorded as APPROVED by the
+owner for these drafts; relative-date phrasing scrubbed everywhere.
+**G5-D6 (owner route change, 2026-10-13):** the Hunter terms-
+clarification draft (exact text in ~/workspace/your_files/
+hunter-terms-check.md) is a Gate-5 send item — Upmore sends it to
+srikanthvishnu90@gmail.com + sporve123@gmail.com after his deploy +
+in-product Google connect, on his Gate-5 go-ahead; the RUN-PLAN §1.2
+carries the amendment (sporve123@gmail.com enters the runner's
+hard-coded allowlist only by code edit + new commit + his go-ahead, per
+§1.2's own change process). The real send to Hunter stays his own.
+
+**W3 — DRAFT GENERATOR: DONE** (commits 39ff00c, c9e2675), in module 124
++ its QA gate, every fix with a replay test in tests/
+career-outreach.test.cjs: renderFactClause generates body lines FROM the
+cited fact with a proper subject (kills "I saw that worked on a a…");
+self-intro grammar fixed ("Most recently, I completed a sophomore summer
+analyst stint…"); article agreement ("an Analyst"); topic pronouns point
+at the recipient ("your"); fact/body binding asserted by the gate
+(`fact_body_mismatch`, `topic_not_in_fact`); generic path facts can never
+be Tier A (demoted, draft held); `placeholder_content` HARD BLOCK before
+approval (brackets / "BLURB" / fact IDs / template tokens / "(TEST)" in
+production / stray mid-sentence capitals); subjects capped at 60 chars on
+every draft path; the shared skeleton retired (structure-rotated
+templates + `shared_skeleton` batch check) and the opt-out line REMOVED
+from networking drafts by owner order; Tier C drafts are HELD by default
+and `store.approve()` refuses held and gate-failed drafts; recipient-name
+harvest parse corrected (master doc SC-190 → "Priya", SC-274 → "TEST";
+the parse rule is recorded in the doc); departed-contact drafting is a
+gate failure + hold (`recipient_departed`); relative-date phrases are a
+gate failure. Post-fix sample: 10 approvable drafts + 3 verified holds
+at the top of the master review doc and in review/
+post-fix-sample-staging.md (script-generated); the 105 originals remain
+UNAPPROVED. W01 scenario battery re-run on this tree: **all 20 scenarios
+COMPLETE, every draftAll gate count 100%** (SC-001's one assertion that
+pinned the retired opt-out footer was updated to the owner's new rule
+with the reason cited in the scenario, per 05 Part 4). **Lane-integrity
+note:** a spawned W3 lane reported a commit (4171fed) and several files
+that DO NOT EXIST in this repo; its claims were not relied on — the
+coordinator verified every fix on this tree personally, completed the
+missing pieces (bundle rebuild, samples, follow-up rotation, scenario
+check), and committed only verified state.
+
+**W4 — D-3 RULING IMPLEMENTED: DONE** (commit a3ca690). Gate 0 = the CI
+`deno check`, now covering every career TypeScript file: the one career
+TS file by content scan (supabase/functions/gmail-oauth/career.ts) is a
+direct CI target; career JS modules are covered by `node --test
+tests/*.cjs` + the career-surface lint. The frozen-finance exclusion list
+is published BY NAME in the Gate 0 report addendum (agent-exec 68,
+plaid-sync 14, cancel-watcher 10, exec-vault-store 7, gmail-oauth/index
+7, imessage-inbound 6, simplefin-claim 1 = the 113 pre-existing errors).
+**Gate 0 is MET** (ruling recorded in the M1 section above).
+
+**W5 — CENSUS LANGUAGE: CORRECTED** (marker at the census above).
+Henceforth: **8 of 9 pack families VALID at module level (F1, F2, F3 —
+with F3-calendar as an F3 sub-row — F4, F5, F6, F7, F8); F9 GAP
+(blocker: module 120, Codex's file).** The pack has 9 families; the
+"9 of 10" phrasing came from the census splitting F3 into two rows.
+
+**W6 — RULINGS RECORDED, WITH THE OWNER'S LATER CORRECTIONS APPLIED:**
+(a) DOCX sequence — first ruled NO for review documents (those stay
+markdown; branch career/rq-docx unmerged), then CLARIFIED by the owner
+2026-10-13 16:13: resume rendering (PDF, plus DOCX where a portal
+requires it) is a PRODUCT capability (CA-02) and gets a build plan —
+plans delivered in review/ca-02-ca-03-build-plans.md (CA-02 target
+2026-10-23 if go by 2026-10-16; CA-03 Greenhouse-first portal driver,
+doorstep proof target 2026-10-30 if his demo posting exists by
+2026-10-23); building starts only on his go. (b) The 40 judge labels are
+the OWNER'S OWN task — the calibration doc is prepared for him at
+review/judge-calibration-owner-40.md (40 replies, each with ask + reply +
+PASS/FAIL line + 7 dimension lines); stop listing it as Muse homework.
+(c) The capability-absent list is **APPROVED as Draft v1 WITH
+CONDITIONS** (superseding "sent, not approved"): every entry carries its
+exact honest reply + closest alternative + fix owner + exit criterion;
+the list is versioned, changes need his written approval, routing
+failures may never be moved onto it; CA-02/CA-03 are CORE and temporary
+only; F9 stays BLOCKED on Codex module 120. (d) People-data vendor =
+HUNTER (his pick); purchase is his, monthly Growth after the written
+terms clarification (pilot plan: review/hunter-pilot-50-plan.md —
+inferred above the 10% batch cap HELD, never sent). (e) Honest-yield
+copy drafted (review/honest-yield-copy.md) and verified against the
+grader; HONEST_YIELD is live in grader-v2 (see W1).
+
+**WEDGE LANE BUILDS (2026-10-13, this program's lane):** module 146
+career intake (pasted names / LinkedIn export via 122 / forwarded email
+→ dedupe by name+firm+office → departed flagged at intake → honest
+counts received→deduped→current→ready; 10 fail-first tests) and module
+147 DePaulConnect drafting help (user-supplied profile + user-supplied
+fact only; NO extraction, NO scraping, NO automated sending — enforced
+by a source-scan test; 4 fail-first tests). Both registered in the
+router bundle (107 modules, `--check` clean); suites intake+platform+
+outreach+router-bundle = 59/59.

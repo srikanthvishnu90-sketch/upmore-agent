@@ -25,5 +25,5 @@ Deno.test("other uses of paper, and real orders, are not taken", () => {
 });
 
 Deno.test("the handler asks it with the other code answers, before any read of the person's rows", () => {
-  assert(/connectReply\(message\) \?\? creditScoreReply\(message\) \?\? paperTradingReply\(message\)/.test(handler));
+  assert(/connectReply\(message\) \?\? creditScoreReply\(message\) \?\? bureauReply\(message, localClock\(Date\.now\(\), tz\)\.date\) \?\? paperTradingReply\(message\)/.test(handler));
 });

@@ -1,11 +1,11 @@
 "use strict";
-// W11 ext (130-career-w11-ext): BUG-141 adapter + SC-201..205/212..220 gap functions.
+// W11 ext (145-career-w11-ext): BUG-141 adapter + SC-201..205/212..220 gap functions.
 // Check: node --test tests/career-w11-ext.test.cjs
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs"); const path = require("node:path");
 const ROOT = path.join(__dirname, "..");
-const X = require(path.join(ROOT, "packages/domain/130-career-w11-ext.js"));
+const X = require(path.join(ROOT, "packages/domain/145-career-w11-ext.js"));
 const P = require(path.join(ROOT, "packages/domain/127-career-prep.js"));
 const N = require(path.join(ROOT, "packages/domain/128-career-negotiation.js"));
 const cir = (id) => JSON.parse(fs.readFileSync(path.join(ROOT, `packages/career-data/cirs/${id}.json`), "utf8"));

@@ -1679,7 +1679,7 @@ Their own unit tests still run in `node --test tests/*.cjs`; what is missing is 
 - 128-career-negotiation.js
 - 129-career-os.js
 - 130-career-onboarding.js
-- 130-career-w11-ext.js
+- 145-career-w11-ext.js
 - 131-career-discover.js
 - 132-career-apply.js
 - 132-career-apply3.js

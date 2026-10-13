@@ -1,0 +1,240 @@
+{
+  "company_id": "deloitte-consulting",
+  "company_name": "Deloitte Consulting",
+  "slug": "deloitte-consulting",
+  "cohort_definition": {
+    "role_family": "Consulting analyst / entry roles across Deloitte US service lines (including Strategy, Technology and Government & Public Services delivery)",
+    "level": "Entry-level analyst roles and student internships, hired against individual postings rather than one national associate class",
+    "time_window": "Official US careers and recruiting-tips pages and a live-format official posting checked 2026-10-12",
+    "geography": "United States"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample and no public cohort dataset was used. Curated qualitative record only; no school, major or feeder percentages are claimed.",
+  "as_of_date": "2026-10-12",
+  "data_sources": [
+    {
+      "type": "official_recruiting_tips_page",
+      "url": "https://www.deloitte.com/us/en/careers/join-deloitte/recruiting-tips/behavioral-interview-tips.html",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "official_us_careers_page",
+      "url": "https://deloitte.com/us/en/careers/careers.html",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "official_job_posting_example",
+      "url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "secondary_prep_guide_for_process_shape",
+      "url": "https://www.hackingthecaseinterview.com/pages/deloitte-case-interview-prep",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "school_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "No public sourced distribution of hires by school was found. Structurally, entry roles are posted individually by service line and location on the official portal rather than recruited as one campus class - see path_patterns. No percentages are claimed."
+  },
+  "prior_employer_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "Entry cohort. No public sourced distribution was found; none is claimed."
+  },
+  "major_dist": {
+    "status": "qualitative_from_official_posting_example",
+    "entries": [],
+    "note": "One official entry posting example lists internship, project or coursework experience in fields such as accounting, business, economics, operations management, project management or public administration as preferred - an example for one delivery-analyst role, not a firm-wide major distribution.",
+    "facts": [
+      {
+        "claim": "A US Delivery Center Government & Public Services Delivery Analyst posting lists a 3.2 cumulative GPA as preferred and relevant internship, project or coursework experience as preferred, and describes itself as an entry-level opportunity welcoming a range of educational backgrounds.",
+        "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+        "as_of": "2026-10-12",
+        "source_type": "official_posting"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "qualitative_from_official_material",
+    "entries": [],
+    "note": "Signals from official guidance, not measured frequencies.",
+    "facts": [
+      {
+        "claim": "Deloitte's official behavioral interview guidance says interviewers evaluate track record of achievement, communication, leadership and teaming abilities, and aptitude for the role.",
+        "source_url": "https://www.deloitte.com/us/en/careers/join-deloitte/recruiting-tips/behavioral-interview-tips.html",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Individual, role-specific postings on the official careers portal (by service line, offering and location) as the entry route, instead of a single national associate application with one deadline.",
+      "basis": "official",
+      "facts": [
+        {
+          "claim": "Deloitte's official US careers site routes candidates to explore opportunities and apply to specific roles; the Delivery Analyst example is a single requisition with its own qualifications and disclosed wage range.",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+          "as_of": "2026-10-12",
+          "source_type": "official_posting"
+        }
+      ]
+    },
+    {
+      "pattern": "Internship and early-student programs (including the Discovery internship for early college students) feeding analyst roles.",
+      "basis": "reported_secondary",
+      "facts": [
+        {
+          "claim": "Secondary guides describe a Discovery internship aimed at early college students and a junior-year internship feeding full-time roles; current eligibility varies by vacancy, so the exact official posting for the cycle controls. Labeled reported, not verified from an official program page in this check.",
+          "source_url": "https://www.hackingthecaseinterview.com/pages/deloitte-case-interview-prep",
+          "as_of": "2026-10-12",
+          "source_type": "secondary_guide"
+        }
+      ]
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Analyst / delivery analyst postings on the official portal (apply.deloitte.com), by service line and location",
+      "status": "rolling_individual_postings_no_single_national_deadline_found",
+      "facts": [
+        {
+          "claim": "Example live-format posting: Consultative Offerings, US Delivery Center, Government & Public Services - Delivery Analyst, with its own qualifications and wage range disclosed in the posting.",
+          "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+          "as_of": "2026-10-12",
+          "source_type": "official_posting"
+        }
+      ]
+    },
+    {
+      "route": "Student internships, including early-student Discovery (reported)",
+      "status": "check_official_vacancies_for_current_cycle",
+      "facts": [
+        {
+          "claim": "No single national Consulting Analyst application deadline was found on official US pages checked 2026-10-12; students should search current vacancies on the official portal for their service line and location.",
+          "source_url": "https://deloitte.com/us/en/careers/careers.html",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    }
+  ],
+  "hiring_bar_summary": {
+    "text": "How Deloitte differs from MBB, stated as a reported norm and grounded in the structural evidence in this record: hiring is decentralized by service line and location into individual postings with role-specific qualifications (one official entry posting lists a 3.2 GPA as preferred, not a hard published cutoff), rather than one national associate class screened on a single summer deadline. That makes the funnel wider in the specific sense that there are more distinct entry doors, more start contexts (commercial consulting, technology implementation, and government delivery work that MBB does not hire undergraduates into in the same way), and more chances across the year - not in the sense that any individual posting is easy. Interviewing still includes both behavioral and case components for consulting roles (case component labeled reported where it rests on secondary guides).",
+    "facts": [
+      {
+        "claim": "Official posting example: 3.2 GPA preferred, entry-level, range of backgrounds welcomed, wage range $67,500-$70,500 disclosed for that specific role.",
+        "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+        "as_of": "2026-10-12",
+        "source_type": "official_posting"
+      },
+      {
+        "claim": "Official US careers page presents opportunities across many business areas with an explore-your-fit route, rather than a single associate program page.",
+        "source_url": "https://deloitte.com/us/en/careers/careers.html",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "screening_signals": [
+    {
+      "claim": "Behavioral evidence of achievement, communication, leadership/teaming and aptitude, structured with the STAR method, per Deloitte's official guidance.",
+      "source_url": "https://www.deloitte.com/us/en/careers/join-deloitte/recruiting-tips/behavioral-interview-tips.html",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Role-specific qualifications stated in each posting (degree, GPA preference, relevant coursework or internship experience in the example posting).",
+      "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+      "as_of": "2026-10-12",
+      "source_type": "official_posting"
+    }
+  ],
+  "process_stages": [
+    {
+      "stage": "Online application to a specific posting",
+      "description": "Through the official careers portal, against that requisition's stated qualifications.",
+      "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+      "as_of": "2026-10-12"
+    },
+    {
+      "stage": "Screening / assessment or simulation (varies by role and office)",
+      "description": "Reported by secondary prep guides as varying by office and candidate type, with job simulations most common for early-career candidates. Labeled reported - Deloitte's official pages checked do not publish one universal stage list.",
+      "source_url": "https://www.hackingthecaseinterview.com/pages/deloitte-case-interview-prep",
+      "as_of": "2026-10-12",
+      "source_type": "secondary_guide"
+    },
+    {
+      "stage": "Behavioral interview",
+      "description": "Officially documented: past-behavior questions evaluating achievement, communication, leadership/teaming and handling of priorities, initiative, conflict and ambiguity; STAR structure recommended by the firm.",
+      "source_url": "https://www.deloitte.com/us/en/careers/join-deloitte/recruiting-tips/behavioral-interview-tips.html",
+      "as_of": "2026-10-12"
+    },
+    {
+      "stage": "Case interview (consulting roles)",
+      "description": "Reported by secondary guides as a component of consulting interview rounds, with Deloitte publishing practice cases through its own preparation tool. Labeled reported for the round structure; the behavioral component above is the officially documented one.",
+      "source_url": "https://www.hackingthecaseinterview.com/pages/deloitte-case-interview-prep",
+      "as_of": "2026-10-12",
+      "source_type": "secondary_guide"
+    }
+  ],
+  "interview_styles": [
+    {
+      "style": "Behavioral (STAR) interviews alongside case-style problem solving for consulting roles; cases reported to skew toward the firm's actual work, including technology, government and implementation-flavoured problems, more than pure strategy cases",
+      "basis": "official_behavioral_plus_reported_case",
+      "note": "Behavioral style is from Deloitte's official guidance. Case-topic characterisation is from secondary prep guides and is labeled reported."
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Deloitte's official US careers material frames its purpose as making an impact that matters for people, clients and communities, and presents an inclusive, collaborative culture - the firm's own framing.",
+      "source_url": "https://deloitte.com/us/en/careers/careers.html",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "text": "No single national deadline was found: entry hiring runs through individual postings across the year, with campus internship cycles concentrated in the fall for the following summer (fall timing labeled reported from secondary guides; the official pages checked publish per-role details rather than a national calendar).",
+    "facts": [
+      {
+        "claim": "Official portal structure: individual requisitions with their own qualifications and terms.",
+        "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+        "as_of": "2026-10-12",
+        "source_type": "official_posting"
+      }
+    ]
+  },
+  "compensation_notes": [
+    {
+      "text": "One specific official posting - US Delivery Center, Government & Public Services Delivery Analyst (Business Solutions) - discloses a wage range estimate of $67,500 to $70,500 and notes hires are not typically brought in at or near the top of the range. This is that role only; it is NOT a Deloitte Consulting Analyst national figure and must not be quoted as one.",
+      "source_type": "official_job_posting_disclosed_range",
+      "source_url": "https://apply.deloitte.com/en_US/careers/JobDetail/Consultative-Offerings-US-Delivery-Center-Government-Public-Services-Delivery-Analyst-Business-Solutions/357995",
+      "as_of": "2026-10-12"
+    },
+    {
+      "text": "No national Consulting Analyst salary is published on the official US careers pages checked; none is claimed.",
+      "source_type": "official_pages_checked_no_figure",
+      "source_url": "https://deloitte.com/us/en/careers/careers.html",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": {
+    "text": "No reliable public source quantifying referral weight was found. The evidenced route is a direct application to a specific posting; networking value is unquantified here.",
+    "basis": "no_source_found"
+  },
+  "red_flags": [
+    "Do not quote the $67,500-$70,500 delivery-analyst range as 'Deloitte Consulting pay' - it is one government-delivery role's disclosed range, and strategy/technology consulting postings carry their own terms.",
+    "There is no single deadline to diarise: missing a specific posting's close date is the failure mode, so the portal must be checked per service line and location.",
+    "Process stage lists circulating online vary by office and service line; only the behavioral interview is documented on the official pages checked here."
+  ],
+  "thesis_text": "1. Bottom line: Deloitte Consulting is the wider, more forgiving-shaped door into consulting - not because the work or interviews are soft, but because there is no single door: entry hiring is split across service lines, offerings and locations, each with its own posting, qualifications and timing. For a student outside the MBB campus funnel, or one who missed the June/July MBB deadlines, Deloitte offers real consulting entry routes across the year, including technology and government delivery work, with behavioral and case interviews still to clear.\n2. Who gets in (sourced, qualitative): Entry analysts hired against individual postings; one official entry posting example prefers a 3.2 GPA and relevant internship, project or coursework experience, and explicitly welcomes a range of educational backgrounds. All of that is per-role, not a firm-wide published bar.\n3. Stated vs revealed screen: Stated: role-specific qualifications in each posting, plus behavioral evidence of achievement, communication, leadership and teaming. Revealed: unknown from public data - no sourced cohort distribution exists in this record. The honest contrast with MBB is structural (many postings, no single national deadline), not a measured claim about who gets hired.\n4. Routes in, ranked: (1) Apply to specific analyst postings in your service line and location on the official portal, early in each posting's life; (2) the junior-year internship, and the early-student Discovery internship if you qualify (verify the current vacancy); (3) US Delivery Center and Government & Public Services analyst roles if implementation and public-sector work interest you - a route MBB does not offer in the same form.\n5. Your gap: user-specific - compare school, experience, projects, skills and timing against the sourced signals in this record; no cohort percentages are claimed because no public population sample was available.\n6. Plan: next 30 days - verify the live posting and deadline on the official page and build the role-specific skill evidence named in the posting; this semester - complete one internship, project or program that matches the entry route; this year - apply in the earliest window the firm offers for your graduation date.\n7. Coffee-chat strategy: talk to recent entry-level hires and interns in the exact role family, and ask what the assessments and interviews actually tested and what surprised them.\n8. Timeline and key dates: No national Consulting Analyst deadline was found on official pages checked 2026-10-12 - check the official portal for the specific postings you target, and re-check frequently, because postings open and close individually.\n9. Risks and alternatives: The risk is vagueness: 'Deloitte Consulting' is many different jobs, and preparing for a strategy case while applying to a technology delivery role wastes the cycle. Pin the exact requisition first, then prepare to its stated qualifications.\n10. Offer to execute: I can build the target list, tailor the resume to this record, and draft outreach - say the word.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": [
+    "Qualification and pay evidence rests heavily on one official posting example, which is a government delivery role and may not represent strategy or technology consulting postings.",
+    "Case-interview round structure is labeled reported from secondary prep guides because Deloitte's official pages checked document the behavioral interview in detail but do not publish a universal stage list.",
+    "No population data - the wider-funnel claim is structural (posting architecture and per-role bars), not a measured acceptance-rate comparison with MBB."
+  ],
+  "last_verified_at": "2026-10-12"
+}

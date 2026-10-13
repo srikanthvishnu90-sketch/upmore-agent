@@ -136,12 +136,14 @@ const CareerApply3 = (() => {
   function triageLinks(links, opts) {
     opts = opts || {};
     const postings = opts.postings || [];
-    const byUrl = new Map(); for (const p of postings) byUrl.set(s(p.url).split("?")[0], p);
+    // BUG-006 (SC-114): URL identity is the FULL url — Stripe (and others) put the job id in the
+    // query string (?gh_jid=...), so stripping the query collapsed distinct roles into "duplicates".
+    const byUrl = new Map(); for (const p of postings) byUrl.set(s(p.url).trim(), p);
     const seen = new Map();
     return (links || []).map((url) => {
-      const clean = s(url).split("?")[0];
+      const clean = s(url).trim();
       if (seen.has(clean)) return { url, verdict: "duplicate", reason: `same posting as ${seen.get(clean)} — already in the list`, posting: null };
-      const hit = byUrl.get(clean) || postings.find((p) => p.url && clean && (clean.includes(p.req_id || "§") || (p.source_urls || []).some((u) => s(u).split("?")[0] === clean)));
+      const hit = byUrl.get(clean) || postings.find((p) => p.url && clean && (clean.includes(p.req_id || "§") || (p.source_urls || []).some((u) => s(u).trim() === clean)));
       if (hit) {
         seen.set(clean, url);
         const clearance = /\b(ts\/sci|top secret|security clearance)\b/i.test(hit.jd_text);

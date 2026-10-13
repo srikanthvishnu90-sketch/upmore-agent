@@ -11,7 +11,7 @@ const fs = require("fs"); const path = require("path");
   s.tool("121.poll (live) — the feed state the links are triaged against", { totals: L.feedTotals(r) });
   const live = r.postings.filter((p) => p.url);
   const clearance = live.filter((p) => /\b(ts\/sci|top secret|security clearance)\b/i.test(p.jd_text));
-  const plain = live.filter((p) => !/\b(ts\/sci|top secret|security clearance)\b/i.test(p.jd_text));
+  const plain = live.filter((p) => !/\b(ts\/sci|top secret|security clearance)\b/i.test(p.jd_text) && J.hardFilters(p, prof).length === 0);
   const links = [];
   for (const p of plain.slice(0, 8)) links.push(p.url);
   for (const p of plain.slice(0, 6)) links.push(p.url); // duplicates

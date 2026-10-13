@@ -66,3 +66,13 @@ test("SC-113 judge: hard-excluded posting is a skip before any effort", () => {
   const senior = { job_id: "s1", company: "Acme", title: "Senior Software Engineer", role_family: "SWE", seniority_band: "senior", location: "Remote", remote: "remote", jd_text: "7+ years of experience." };
   assert.equal(A.eligibilityJudge(senior, prof).verdict, "skip");
 });
+<<<<<<< HEAD
+=======
+
+test("BUG-006 replay (SC-114): query-string job ids are distinct links, not duplicates", () => {
+  const mk = (id) => ({ job_id: "j" + id, company: "Stripe", title: "Eng " + id, url: "https://stripe.com/jobs/search?gh_jid=" + id, req_id: String(id), source_urls: ["https://stripe.com/jobs/search?gh_jid=" + id], jd_text: "Build things in Python." });
+  const rows = A.triageLinks(["https://stripe.com/jobs/search?gh_jid=1", "https://stripe.com/jobs/search?gh_jid=2", "https://stripe.com/jobs/search?gh_jid=1"], { postings: [mk(1), mk(2)], profile: {} });
+  assert.notEqual(rows[0].verdict, "duplicate"); assert.notEqual(rows[1].verdict, "duplicate");
+  assert.equal(rows[2].verdict, "duplicate");
+});
+>>>>>>> origin/career/sc-f02

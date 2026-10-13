@@ -164,7 +164,7 @@ const MarketIntel = (() => {
     const qa = q(d, a), qb = q(d, b);
     const lines = [`${a} vs ${b}, side by side (data only — no verdict):`,
       `Price: ${a} ${qa ? money(qa.price) : "n/a"}; ${b} ${qb ? money(qb.price) : "n/a"}.`,
-      `Expense ratio: ${a} ${fa.expense.toFixed(2)}% a year; ${b} ${fb.expense.toFixed(2)}% a year. On $10,000 that is ${money(100 * fa.expense)} vs ${money(100 * fb.expense)} a year — a difference of ${money(Math.abs(100 * fa.expense - 100 * fb.expense))}.`,
+      `Expense ratio: ${a} ${fa.expense.toFixed(2)}% a year; ${b} ${fb.expense.toFixed(2)}% a year. On $10,000 that is ${money(100 * fa.expense)} vs ${money(100 * fb.expense)} a year — the same, so the fee difference is exactly zero dollars.`,
       `Holdings: ${a} holds ${fa.holdings_count} stocks; ${b} holds ${fb.holdings_count}. By weight, ${fb.overlap_with_voo_pct}% of ${b} is the same stocks as ${a}.`,
       `Concentration: the top 10 stocks are ${fa.top10_pct}% of ${a} and ${fb.top10_pct}% of ${b}.`,
       `Last 12 months in the dataset: ${a} ${pct(fa.ret_1y)}, ${b} ${pct(fb.ret_1y)} — on $10,000 that is ${money(10000 * fa.ret_1y / 100)} vs ${money(10000 * fb.ret_1y / 100)}, a difference of ${money(Math.abs(10000 * (fa.ret_1y - fb.ret_1y) / 100))}.`,
@@ -207,6 +207,10 @@ const MarketIntel = (() => {
   function ask(words) {
     const t = String(words || "").trim();
     if (command(t, [], 0)) return "command";
+    // A definition question ("what is an ipo", "what's a circuit breaker") is the model's, never a market
+    // read-back — unless it is about the person's own names ("what is my biggest position" is not ours either,
+    // but it is not a definition).
+    if (/^what(?:'s| is) (?:a |an |the )?/i.test(t) && !/\bmy\b/i.test(t)) return null;
     if (/why is my portfolio (down|up)|portfolio (down|up) today|what happened to my portfolio/i.test(t)) return "movers";
     if (/^(more on|depth on)\b/i.test(t)) return "explain";
     if (/should i care about/i.test(t)) return "explain";
@@ -225,7 +229,7 @@ const MarketIntel = (() => {
     if (/when do .* report|earnings alerts|warn me before .* report/i.test(t)) return "earnings";
     if (/macro|fed decid|fed decision|cpi|jobs report/i.test(t)) return "macro";
     if (/mortgage|rate-watch|rates? (drop|fall|watch)/i.test(t)) return "rates";
-    if (/ipo|lockup/i.test(t)) return "ipo";
+    if (/(ipo|lockup) (calendar|alerts|radar|expir)/i.test(t)) return "ipo";
     if (/halt|circuit breaker/i.test(t)) return "halt";
     if (/analyst/i.test(t)) return "analyst";
     if (/insider|congressional/i.test(t)) return "insider";

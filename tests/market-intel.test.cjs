@@ -112,7 +112,7 @@ test("C38 screen: criteria restated, over-cap names excluded by name", () => {
 test("C39 compare: data-only side-by-side, fee difference $0.00, return difference $110.00", () => {
   const c = ans("VOO versus VTI - just tell me which");
   assert.match(c, /data only — no verdict/);
-  assert.match(c, /a difference of \$0\.00/);
+  assert.match(c, /the fee difference is exactly zero dollars/);
   assert.match(c, /a difference of \$110\.00/);
   assert.doesNotMatch(c, /I recommend|you should (buy|pick|choose)/i);
 });

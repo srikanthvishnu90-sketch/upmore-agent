@@ -17,6 +17,7 @@ import { cardOffersReply } from "../../supabase/functions/agent-chat/_shared/car
 import { winBackReply } from "../../supabase/functions/agent-chat/_shared/win_back_answer.ts";
 import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/substitutes_answer.ts";
 import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
+import { marketReply } from "../../supabase/functions/agent-chat/_shared/market_answer.ts";
 import { feeAuditReply } from "../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
 import { paycheckReply } from "../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
 import { tipFeesReply } from "../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
@@ -40,6 +41,9 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],
   // Deadlines read no account: dated public dates and the person's own facts (none here).
   ["deadlines", (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: none })],
+  // Market intelligence reads no account either: its numbers come from the dated stand-in dataset, named on
+  // every reply's source line — never from the person's rows, and never a $0.00 from no data.
+  ["market", (m) => marketReply(m, NOW, {})],
 ];
 const corpus = JSON.parse(SRC_DIRECT_ASKS);
 const LOOKED = /\b(?:in|through|from|among|or|and) your linked (?:accounts|cards|history|transactions)\b|\byour linked (?:cards|accounts), whose history\b/i;

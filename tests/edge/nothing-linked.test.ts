@@ -11,6 +11,7 @@ import { priceDropReply } from "../../supabase/functions/agent-chat/_shared/pric
 import { moneyOwedReply } from "../../supabase/functions/agent-chat/_shared/money_owed_answer.ts";
 import { airlineReply } from "../../supabase/functions/agent-chat/_shared/airline_answer.ts";
 import { unclaimedReply } from "../../supabase/functions/agent-chat/_shared/unclaimed_answer.ts";
+import { governmentReply } from "../../supabase/functions/agent-chat/_shared/government_answer.ts";
 import { whatsNewReply } from "../../supabase/functions/agent-chat/_shared/whats_new_answer.ts";
 import { budgetReply } from "../../supabase/functions/agent-chat/_shared/budget_answer.ts";
 import { cardOffersReply } from "../../supabase/functions/agent-chat/_shared/card_offers_answer.ts";
@@ -46,6 +47,9 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["win-back", (m) => winBackReply(m, T, none, none)], ["subscription", (m) => subscriptionReply(m, T, none)], ["substitutes", (m) => substitutesReply(m, T, none)], ["find money", (m) => findMoneyReply(m, T, none)], ["card offers", (m) => cardOffersReply(m, T, none, none)], ["rewards", (m) => rewardsReply(m, T, none, none)],
   ["price drop", (m) => priceDropReply(m, T, none)], ["airline", (m) => airlineReply(m, T, none)], ["unclaimed", (m) => unclaimedReply(m, T, none, none)],
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],
+  // Government preparation (cluster K11): with no profile store the answers ask for the figures or work from
+  // the message; they claim no look through any account.
+  ["government", (m) => governmentReply(m, T, { profile: async () => null, transactions: none })],
   // Deadlines read no account: dated public dates and the person's own facts (none here).
   ["deadlines", (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: none })],
   // Market intelligence reads no account either: its numbers come from the dated stand-in dataset, named on

@@ -190,6 +190,17 @@ const OWNER: [string, string | null][] = [
   ["crypto tax export please", "cryptoTaxReply"],
   ["buy some bitcoin", null],
   ["sell my bitcoin and do my taxes", null],
+  // Government preparation (cluster K11, C119/C120/C160/C162/C166): after unclaimed, before money owed and the
+  // deadlines; with no profile store the answers work from the message's own figures or ask for them. A merchant
+  // refund stays the refund check's (the government kind needs a tax word), and "when are property taxes due"
+  // above stays null (a date question, the deadlines' territory — no appeal words, no government claim).
+  ["my assessment jumped 20%. appeal it", "governmentReply"],
+  ["am i getting the homestead exemption? file it if not", "governmentReply"],
+  ["the irs sent me a letter. what do i do?", "governmentReply"],
+  ["i got a cp2000 notice dated october 2, 2026 saying i owe $1,240", "governmentReply"],
+  ["where's my tax refund", "governmentReply"],
+  ["i have a foreign account - handle the reporting", "governmentReply"],
+  ["do i need to file an fbar", "governmentReply"],
 ];
 
 Deno.test("the handler's direct answers are exactly the ones this table covers", () => {

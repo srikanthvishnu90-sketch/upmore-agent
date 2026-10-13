@@ -38,6 +38,7 @@ import { chatInput } from "./_shared/chat_input.ts";
 import { StyleCorpus, STYLE_CORPUS_JSON, ScamCheck } from "../_shared/router_core.js";
 import { connectReply, creditScoreReply, paperTradingReply, accountPrivacyReply, sleepReply, adviceReply, travelReply, optionsReply, notYetReply, copyReply, momentReply, termsReply, accreditedReply, phoneCallReply, noDataReply, findMoneyReply, NO_ACCOUNTS } from "./_shared/direct_answers.ts";
 import { disputeReply } from "./_shared/dispute_answer.ts";
+import { bureauReply } from "./_shared/bureau_answer.ts";
 import { subscriptionReply } from "./_shared/subscription_answer.ts";
 import { moneyOwedReply, readOwedAccounts } from "./_shared/money_owed_answer.ts";
 import { airlineReply } from "./_shared/airline_answer.ts";
@@ -279,7 +280,7 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
       // Savings goals the person set (_shared/goal_answer.ts): "how's my vacation fund" gets its progress from the goal's
       // account, before the not-built answers; with no goal, the not-yet answer says how to set one.
       const goalAccounts = async () => { const a = await supabase.from("agent_financial_accounts").select("account_id,name,institution,balance_cents,balance_as_of").eq("user_id", user.id).eq("status", "active"); if (a.error) throw new Error("Accounts unavailable."); return a.data || []; };
-      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? paperTradingReply(message) ?? adviceReply(message) ?? optionsReply(message) ?? notYetReply(message) ?? copyReply(message) ?? momentReply(message) ?? termsReply(message) ?? accreditedReply(message, localClock(Date.now(), tz).date) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end }) ?? travelReply(message, tz);
+      let direct: string | null = connectReply(message) ?? creditScoreReply(message) ?? bureauReply(message, localClock(Date.now(), tz).date) ?? paperTradingReply(message) ?? adviceReply(message) ?? optionsReply(message) ?? notYetReply(message) ?? copyReply(message) ?? momentReply(message) ?? termsReply(message) ?? accreditedReply(message, localClock(Date.now(), tz).date) ?? accountPrivacyReply(message, modelConfig(Deno.env, "chat").provider) ?? sleepReply(message, !tzRead.error && tzRead.data ? { start: tzRead.data.quiet_start ?? null, end: tzRead.data.quiet_end ?? null } : { start: DEFAULT_SETTINGS.quiet_start, end: DEFAULT_SETTINGS.quiet_end }) ?? travelReply(message, tz);
       // A person with a savings goal asking about it gets its progress, ahead of the not-yet answer for people with none.
       { const goal = await goalReply(message, !tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : [], goalAccounts, { tz }); if (goal) direct = goal; }
       let linkedCount = 0;

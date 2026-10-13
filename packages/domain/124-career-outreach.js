@@ -43,6 +43,10 @@ const CareerOutreach = (() => {
     ["faang_plus", /\bfaang\b|\bmeta\b|\bgoogle\b|\bapple\b|\bamazon\b|\bnetflix\b|\bmicrosoft\b/],
     ["quant", /\bquant\b|\bprop trading\b|\bjane street\b|\bcitadel\b|\bhudson river\b/],
     ["big4", /\bbig ?4\b|\bdeloitte\b|\bpwc\b|\bkpmg\b|\bey\b/], ["mega_fund_pe", /\bmega[- ]fund\b|\bblackstone\b|\bkkr\b/],
+    ["big_law", /\bbig law\b|\blaw firms?\b/], ["academic_medical", /\bmed[- ]school\b|\bmedical centers?\b|\bteaching hospitals?\b/],
+    ["cpg", /\bcpg\b|\bconsumer packaged\b/], ["infrastructure_eng", /\binfrastructure firms?\b|\bcivil engineers?\b/],
+    ["venture_midwest", /\bventure (analysts?|capital|funds?)\b|\bvc funds?\b/], ["logistics", /\blogistics\b|\bsupply chain\b/],
+    ["real_estate_pe", /\breal[- ]estate (pe|private equity)\b/],
   ];
   function parseTarget(text, profile) {
     profile = profile || {};
@@ -52,17 +56,30 @@ const CareerOutreach = (() => {
     for (const [set, re] of SET_ALIASES) if (re.test(w)) { q.firm_set = set; break; }
     if (q.firm_set && FIRM_SETS.sets[q.firm_set]) q.firms = FIRM_SETS.sets[q.firm_set].firms.map((f) => f.name);
     if (q.firm_set === "mbb") { q.industry = "consulting"; q.role_family = "consulting"; }
+    if (/\bcivil engineers?\b/.test(w)) { q.industry = "engineering"; q.role_family = "civil_engineering"; }
+    else if (/\b(ai\/ml|ml engineers?|machine learning)\b/.test(w)) { q.industry = q.industry || "tech"; q.role_family = "ml_engineering"; }
+    if (/\blawyers?\b|\battorneys?\b/.test(w)) { q.industry = "law"; q.role_family = "law"; }
+    if (/\bresidents?\b/.test(w) && /\bmed|medical|hospital|pre-med/.test(w)) { q.industry = "healthcare"; q.role_family = "medical_resident"; }
+    if (/\bmarketing\b/.test(w)) { q.role_family = q.role_family || "marketing"; q.industry = q.industry || "consumer_goods"; }
+    if (/\b(ops|operations) managers?\b/.test(w)) { q.role_family = "operations"; q.industry = q.industry || "logistics"; }
+    if (/\bventure\b/.test(w)) { q.role_family = q.role_family || "venture"; q.industry = q.industry || "venture_capital"; }
+    if (/\breal[- ]estate\b/.test(w)) { q.role_family = q.role_family || "real_estate_pe"; q.industry = q.industry || "real_estate_pe"; }
+    if (/started as analysts?/.test(w)) q.background_filters.started_as_analyst = true;
+    if (/teachers?-turned|teachers? (who|now) .*product|former teachers?/.test(w)) { q.background_filters.prior_career = "teaching"; q.role_family = q.role_family || "product_management"; }
+    if (/publish\w* on github|active on github|github/.test(w)) q.background_filters.publishes_on_github = true;
+    if (/deal[- ]specific/.test(w)) q.background_filters.deal_specific = true;
     if (/\binvestment bank|bankers?\b|ib analyst|\bm&a\b|levfin/.test(w)) { q.industry = "investment_banking"; q.role_family = q.role_family || "investment_banking"; }
     if (/\bconsult/.test(w)) { q.industry = "consulting"; q.role_family = q.role_family || "consulting"; }
     if (/\b(pms?|product managers?)\b/.test(w)) { q.role_family = "product_management"; q.industry = q.industry || "tech"; }
-    if (/\b(swes?|software engineers?|engineers?)\b/.test(w)) { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
+    if (/\b(swes?|software engineers?|engineers?)\b/.test(w) && q.role_family !== "civil_engineering" && q.role_family !== "ml_engineering") { q.role_family = "software_engineering"; q.industry = q.industry || "tech"; }
     if (/\bfounders?\b/.test(w)) { q.role_family = "founder"; q.industry = q.industry || "startups"; }
     if (/\bprivate equity|\bpe (associates?|principals?)\b/.test(w)) { q.industry = "private_equity"; q.role_family = q.role_family || "private_equity"; }
     if (/\bassociates?\b/.test(w)) q.seniority_band = "associate";
-    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
     else if (/\b(vps?|vice presidents?)\b/.test(w)) q.seniority_band = "vp_plus";
     else if (/\bprincipals?\b/.test(w)) q.seniority_band = "principal";
-    const geo = raw.match(/\bin\s+(NYC|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote)\b/i);
+    else if (/\bmanagers?\b/.test(w)) q.seniority_band = "manager";
+    else if (/\banalysts?\b/.test(w)) q.seniority_band = "analyst";
+    const geo = raw.match(/\bin\s+(?:the\s+)?(NYC|NY|New York(?: City)?|Chicago|Boston|San Francisco|SF|Los Angeles|Houston|Dallas|London|Remote|Midwest|Texas)\b/i);
     if (geo) q.geography = geo[1].toUpperCase() === "NYC" ? "NYC" : geo[1];
     if (/went to my school|from my school|my school|same school/.test(w)) q.school_filter = profile.school || "USER_SCHOOL_UNSPECIFIED";
     else { const sm = raw.match(/\bwent to\s+([A-Z][A-Za-z& ]{2,30})/); if (sm) q.school_filter = sm[1].trim(); }
@@ -256,7 +273,7 @@ const CareerOutreach = (() => {
       intro += ` ${clause}.`; why.push({ line: clause, fact: `role at ${c.current_firm}`, source_url: "candidate_record", strength: "record", kind: "record" });
     }
     lines.push(intro);
-    if (user.experience) lines.push(`I'm currently ${user.experience}.`);
+    if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
     const askTopic = strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`;
     lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
@@ -610,7 +627,90 @@ const CareerOutreach = (() => {
       per_tier_reply_rates: repliesByTier, suppression_honor_target_pct: 100 };
   }
 
+  // ---------- SC-W03 additions: live list/draft surgery, safety plan, honest yield, suppression report, digest/close-out ----------
+  function applyListOps(pool, instruction, opts) {
+    opts = opts || {}; const w = " " + norm(instruction) + " "; const ops = [];
+    const dropBands = []; if (/drop vps|no vps|exclude vps/.test(w)) dropBands.push("vp_plus");
+    if (/drop associates?/.test(w)) dropBands.push("associate"); if (/drop analysts?/.test(w)) dropBands.push("analyst");
+    let keepSchool = null; const sm = String(instruction || "").match(/only\s+([A-Z][A-Za-z& ]{2,30}?)\s+(and|people|folks|$)/); if (/michigan/.test(w)) keepSchool = "University of Michigan"; else if (sm && !/boutique/.test(sm[1].toLowerCase())) keepSchool = sm[1].trim();
+    if (opts.keepSchool) keepSchool = opts.keepSchool;
+    let keepFirms = null; if (/boutique/.test(w) && FIRM_SETS.sets.elite_boutique) keepFirms = FIRM_SETS.sets.elite_boutique.firms.map((f) => norm(f.name));
+    if (opts.keepFirms) keepFirms = opts.keepFirms.map(norm);
+    if (dropBands.length) ops.push("drop_seniority:" + dropBands.join(","));
+    if (keepSchool) ops.push("keep_school:" + keepSchool);
+    if (keepFirms) ops.push("keep_firm_set:elite_boutique");
+    const matches = (c) => { if (dropBands.includes(String(c.seniority_band || "").toLowerCase())) return false; if (keepSchool && !(c.schools || []).map(norm).includes(norm(keepSchool))) return false; if (keepFirms && !keepFirms.includes(norm(c.current_firm))) return false; return true; };
+    const before = { selected: (pool.selected || []).length, reserve: (pool.reserve || []).length };
+    const removed = (pool.selected || []).filter((c) => !matches(c));
+    const keptSel = (pool.selected || []).filter(matches);
+    const promoted = (pool.reserve || []).filter(matches);
+    const newReserve = (pool.reserve || []).filter((c) => !matches(c));
+    const selected = keptSel.concat(promoted);
+    return { selected, reserve: newReserve, ops, removed: removed.map((c) => ({ name: c.full_name, firm: c.current_firm, seniority_band: c.seniority_band, schools: c.schools })),
+      promoted_from_reserve: promoted.map((c) => c.full_name), before, after: { selected: selected.length, reserve: newReserve.length },
+      text: `Re-cut: ${before.selected} selected -> ${selected.length} (${removed.length} removed by [${ops.join("; ") || "no ops"}], ${promoted.length} matching reserve promoted); reserve now ${newReserve.length}.` };
+  }
+  function safetyPlan(campaign, plan, opts) {
+    opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
+    const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
+    return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
+      per_domain_per_day: CAPS.perDomainPerDay, per_firm_per_30_days: CAPS.perFirmPer30Days, per_person: `${CAPS.perPersonInitial} initial + max ${CAPS.perPersonMaxFollowUps} follow-ups per ${CAPS.perPersonWindowDays} days`,
+      scheduled: plan ? plan.scheduled : 0, deferred: plan ? plan.deferred.length : 0, days, start_date: new Date(start).toISOString().slice(0, 10), finish_date: finish,
+      stop_rules: [`Bounce rate over ${CAPS.bounceBreakerRate * 100}% pauses the campaign`, `${CAPS.hostileBreakerCount} hostile/spam signals pause the campaign`, "Any provider warning pauses the campaign", "Any opt-out suppresses that person instantly, everywhere, forever", "Follow-up waves send only after your continue tap"],
+      approval: "one approval covers this whole plan; nothing outside it sends" };
+  }
+  function safetyPlanText(p) {
+    return [`Safety plan — approve once, then it runs alone:`, `Channel: Gmail (your own account) only. Daily cap starts at ${p.daily_cap_start}/day, ramps ${p.ramp}.`, `Scheduled: ${p.scheduled} sends over ${p.days} days, ${p.start_date} -> ${p.finish_date}. Per-domain cap ${p.per_domain_per_day}/day; per-firm cap ${p.per_firm_per_30_days} per 30 days; per person: ${p.per_person}.`, `Stop rules: ${p.stop_rules.join("; ")}.`].join("\n");
+  }
+  function honestYield(records, query, opts) {
+    opts = opts || {}; const pool = buildList(records, query, opts); const kept = (pool.selected || []).concat(pool.reserve || []);
+    const verified = kept.filter((c) => c.email_verification === "verified").length;
+    const patternedOut = kept.filter((c) => c.email_verification !== "verified" && (c.email_source === "pattern" || !c.email_verification)).length;
+    const out = { found: pool.yield.found, resolved: pool.yield.resolved, verified, patterned_out: patternedOut, trusted_emails: pool.yield.trusted_emails, risky_emails: pool.yield.risky_emails, sendable: pool.yield.sendable, selected: pool.yield.selected, reserve: pool.yield.reserve, exclusions: pool.yield.exclusions, pool };
+    out.text = `${out.found} found, ${out.trusted_emails} trustworthy emails, ${out.sendable} sendable — of the sendable, ${verified} are verified and ${patternedOut} are pattern-inferred and unverified (they ride under the ${Math.round(CAPS.riskyMaxFraction * 100)}% risky cap, never padded into the trustworthy number).`;
+    return out;
+  }
+  function suppressionReport(pool, opts) {
+    opts = opts || {}; const sent = new Set((opts.sentHistory || []).map((e) => norm(e))); const supp = opts.suppression || null;
+    const sel = pool.selected || []; const overlap = sel.filter((c) => c.work_email && sent.has(norm(c.work_email)));
+    const suppHits = supp ? sel.filter((c) => supp.isSuppressed({ email: c.work_email, person_id: c.person_id }, opts.userId)) : [];
+    return { sent_history_count: sent.size, selected_checked: sel.length, overlap_with_sent_history: overlap.map((c) => c.work_email), overlap_count: overlap.length, suppressed_in_selected: suppHits.length, verdict: overlap.length === 0 && suppHits.length === 0 ? "CLEAN" : "FAIL" };
+  }
+  function dailyDigest(campaign, pool) {
+    const m = campaignMetrics({ pool: pool || {}, campaign }); const pending = Math.max(0, (m.meetings_booked || 0) - (m.meetings_held || 0));
+    const d = { status: campaign.status, sent: m.sent, bounced: m.bounces, bounce_pct: m.bounce_pct, replies: m.replies, positive: m.positive, meetings_booked: m.meetings_booked, meetings_held: m.meetings_held, meetings_pending: pending, referrals: m.referrals, breaker_tripped: !!(campaign.breaker && campaign.breaker.tripped) };
+    d.text = `Today: ${d.sent} sent, ${d.bounced} bounced (${d.bounce_pct}%), ${d.replies} replies, ${d.positive} positive, ${pending} meetings pending (${d.meetings_booked} booked, ${d.meetings_held} held). Campaign status: ${d.status}.`;
+    return d;
+  }
+  function closeOut(campaign, opts) {
+    opts = opts || {}; const items = (campaign.items || []).filter((i) => i.status === "sent" || i.status === "bounced");
+    const byAngle = {}; for (const i of items) { const a = (i.draft && i.draft.structure) || "unknown"; byAngle[a] = byAngle[a] || { angle: a, sent: 0, replies: 0, positive: 0 }; if (i.status === "sent") byAngle[a].sent++; }
+    for (const r of opts.replyLog || []) { const it = items.find((i) => i.person_id === r.person_id || i.id === r.item_id); const a = it ? ((it.draft && it.draft.structure) || "unknown") : (r.angle || "unknown"); byAngle[a] = byAngle[a] || { angle: a, sent: 0, replies: 0, positive: 0 }; byAngle[a].replies++; if (r.positive) byAngle[a].positive++; }
+    const angles = Object.values(byAngle).map((a) => Object.assign({}, a, { reply_pct: a.sent ? Math.round(1000 * a.replies / a.sent) / 10 : 0 })).sort((x, y) => y.reply_pct - x.reply_pct);
+    const drafts = []; for (const r of opts.replyLog || []) { if (!r.positive) continue; const note = (opts.notes || {})[r.person_id]; const contact = items.find((i) => i.person_id === r.person_id); const ty = thankYouDraft({ contact: contact ? contact.candidate : { full_name: r.name || "", work_email: r.email || null }, note, user: opts.user || {} }); drafts.push({ person_id: r.person_id, ok: ty.ok, reason: ty.ok ? null : ty.reason, draft: ty.draft || null }); }
+    const m = campaignMetrics({ campaign });
+    const next = []; const nonResponders = Math.max(0, m.sent - m.replies - m.bounces);
+    if (nonResponders > 0) next.push(`${nonResponders} non-responders are eligible for the day-6 follow-up wave — it needs your continue tap and stops forever after the day-15 close.`);
+    if (drafts.some((d) => d.ok)) next.push(`Send the ${drafts.filter((d) => d.ok).length} thank-you drafts above (each needs your yes).`);
+    if (angles.length) next.push(`Lead the next campaign with the "${angles[0].angle}" angle (${angles[0].reply_pct}% reply rate here) and retire the weakest angle.`);
+    next.push("Keep every opt-out and bounce suppressed; the reserve pool stays untouched until you approve a new list.");
+    return { metrics: m, angles, best_angle: angles.length ? angles[0].angle : null, thank_you_drafts: drafts, next_steps: next };
+  }
+  function backfillFromReserve(pool, campaign, opts) {
+    opts = opts || {}; const want = opts.count || 0; const supp = opts.suppression || null; const promoted = []; const remaining = [];
+    for (const c of pool.reserve || []) { if (promoted.length < want && !(supp && supp.isSuppressed({ email: c.work_email, person_id: c.person_id }, campaign && campaign.userId))) promoted.push(c); else remaining.push(c); }
+    pool.selected = (pool.selected || []).concat(promoted); pool.reserve = remaining;
+    let enqueued = [];
+    if (campaign && opts.user) { const entries = promoted.map((c) => { const d = draftAndGate(c, opts.user, {}); return { candidate: c, draft: d.draft }; }); enqueued = enqueue(campaign, entries, { suppression: supp }).filter((r) => r.status === "queued"); }
+    return { promoted: promoted.map((c) => ({ name: c.full_name, firm: c.current_firm, email: c.work_email })), enqueued: enqueued.length, selected_count: pool.selected.length, reserve_count: pool.reserve.length };
+  }
+  function tierMix(selected, user) {
+    const counts = { A: 0, B: 0, C: 0 }; for (const c of selected || []) counts[determineTier(c, user || {})]++;
+    return { A: counts.A, B: counts.B, C: counts.C, total: (selected || []).length, text: `Tier mix: ${counts.A} A / ${counts.B} B / ${counts.C} C of ${(selected || []).length}. Tier C has no sourced personalization fact — hold it back?` };
+  }
+
   return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+    applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
     VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,

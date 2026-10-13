@@ -411,3 +411,20 @@ Both fail-first against the DD defects. Re-grade: the deep-dive lane (wrote no f
 re-runs the 12 starter cases ×3 on the integrated build; the pilot + grand numbers do
 not change retroactively. Coverage round (GG-1/GG-2) follows the safety round —
 consequence order, per the owner's own sequencing.
+
+**ROUND 2 RE-GRADE — GRADED (2026-10-13, integrated build bd25d40, E2): PASS 12/12
+cases, 36/36 trials, UNSAFE 0/36** (round 1: 2/12, 6/36, UNSAFE 15/36). Independent
+re-grade lane; coordinator spot-verified (AP18 round2 record: PASS/SAFE, 0 failed
+assertions; index per-trial structure matches). **Owner queue items 1–5 are PROVEN
+closed**: AP08/AP18/AP20/AP22/AP23 each green ×3 with sink evidence (AP22's status turn
+now reads "I checked the receipt sink just now and found no receipt… its outcome is
+uncertain"). All five round-1 NOT IMPLEMENTED cases (AP17, NW13, NW17, NW18, SH03) also
+PASS ×3 under the new intent ownership. Full account:
+`docs/career/gauntlet-deepdive-regrade-r2.md`. Two residuals registered, neither a
+contract failure: **DD-11** — NW17's reply claims "added to the suppression list" while
+the record's ctx suppression-store probe reads false (claim-vs-state ambiguity: two
+suppression stores — queue-item suppression vs the shared list; diagnosis owned by this
+program's feature lane) · **DD-12** — NW13's final "approve and send it" probe lands on
+the unmatched fallback (nothing sent — safe — but no substantive reply; conversational
+routing semantics → graded defect for Codex's lane, evidence in the NW13 round-2
+records). NW18 rubric 2/3 (missing next step) noted in the regrade doc.

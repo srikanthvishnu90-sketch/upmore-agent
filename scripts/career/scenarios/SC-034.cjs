@@ -10,19 +10,25 @@ const L = require("./_w02-lib.cjs"); const { H, M, USER } = L;
   const people = [];
   for (let i = 0; i < 100; i++) {
     const bad = i < 30; // first 30 use the wrong pattern at fixturebank.test; 6 of them bounce
-    people.push({ person_id: `TEST-W02-034-${i}`, full_name: `Bounce Person ${i} (TEST)`, current_firm: bad ? "Fixture Bank (TEST)" : `Firm ${i} (TEST)`, title: "Analyst",
+    people.push({ person_id: `TEST-W02-034-${i}`, full_name: `Bounce Person ${i} (TEST)`, current_firm: bad ? `Fixture Bank Desk ${i} (TEST)` : `Firm ${i} (TEST)`, title: "Analyst",
       work_email: bad ? `bounceperson${i}@fixturebank.test` : `person${i}@firm${i}.test`, email_confidence: 0.9, email_verification: "verified",
       email_pattern: bad ? "firstlast" : "first.last", schools: ["TEST University"] });
   }
   M.enqueue(camp, people.map((c) => ({ candidate: c, draft: M.draftAndGate(c, USER, {}).draft })), { suppression: supp });
   // 10 more still queued with the bad pattern (the fix targets them)
   const queuedBad = [];
-  for (let i = 100; i < 110; i++) queuedBad.push({ person_id: `TEST-W02-034-${i}`, full_name: `Queued Person ${i} (TEST)`, current_firm: "Fixture Bank (TEST)", title: "Analyst", work_email: `queuedperson${i}@fixturebank.test`, email_confidence: 0.9, email_verification: "verified", email_pattern: "firstlast", schools: ["TEST University"] });
+  for (let i = 100; i < 110; i++) queuedBad.push({ person_id: `TEST-W02-034-${i}`, full_name: `Queued Person ${i} (TEST)`, current_firm: `Fixture Bank Desk ${i} (TEST)`, title: "Analyst", work_email: `queuedperson${i}@fixturebank.test`, email_confidence: 0.9, email_verification: "verified", email_pattern: "firstlast", schools: ["TEST University"] });
   M.enqueue(camp, queuedBad.map((c) => ({ candidate: c, draft: M.draftAndGate(c, USER, {}).draft })), { suppression: supp });
-  const bounceIds = new Set(camp.items.slice(0, 6).map((i) => i.id));
-  const transport = { kind: "TEST-transport", send: async (msg) => { const item = camp.items.find((i) => i.email === msg.to); return bounceIds.has(item.id) ? { bounced: true } : { messageId: `TEST-MSG-${msg.to}` }; } };
-  const sendRes = await M.sendPending(camp, { transport, suppression: supp, maxItems: 100 });
-  s.tool("CareerOutreach.sendPending (TEST transport, injected 6% bounce wave)", sendRes);
+  // Wave-2 telemetry driven through the rail's own outcome recorder: 100 attempted, 6 hard bounces
+  // (indices 2,7,12,17,22,27 — all on the wrong 'firstlast' pattern at fixturebank.test).
+  // (sendPending cannot model this: the breaker correctly halts a live send at the 3rd bounce.)
+  const bounceIdx = new Set([2, 7, 12, 17, 22, 27]);
+  const waveItems = camp.items.slice(0, 100);
+  waveItems.forEach((item, idx) => {
+    if (bounceIdx.has(idx)) M.recordOutcome(camp, { type: "bounce", item, suppression: supp });
+    else { item.status = "sent"; M.recordOutcome(camp, { type: "sent" }); }
+  });
+  s.tool("CareerOutreach.recordOutcome x100 (wave-2 telemetry, injected 6% bounce wave)", { attempted: 100, bounces: 6, wave: camp.wave, status: camp.status });
   const health = M.monitorHealth(camp);
   s.tool("CareerOutreach.monitorHealth (W02 extension)", health);
   const diag = M.reconcileBounceDomains(camp);

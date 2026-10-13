@@ -14,7 +14,7 @@ const L = require("./_w02-lib.cjs"); const { H, M } = L;
   const res = M.bookFromReply(reply, contact, { calendar: cal, nowMs: Date.parse("2026-10-13T12:00:00Z"), durationMin: 30 });
   s.tool("CareerOutreach.bookFromReply (W02 extension, injected fixture calendar)", res);
   if (res.ok) s.card(res.card);
-  s.agent(res.ok ? `Booked: coffee chat with Banker Fixture (TEST) on ${res.booked.start} (${res.booked.timezone}, 30 min). Wednesday 5pm ET was busy on your calendar, so I took the free Tuesday slot they offered.` : `Could not book: ${res.reason}`);
+  s.agent(res.ok ? `Proposed from your calendar: ${res.proposed.map((p) => `${p.start} (${p.free ? "free" : "busy"})`).join("; ")}. Booked the first free offered slot: coffee chat with Banker Fixture (TEST) on ${res.booked.start} (${res.booked.timezone}, 30 min) — event ${res.booked.id} is on your calendar.` : `Could not book: ${res.reason}`);
   const ev = cal.events.find((e) => e.source === "bookFromReply");
   const ok = cls.classification === "positive-ready" && !!res.ok && !!ev && ev.start === res.booked.start && ev.attendees.includes(contact.work_email);
   s.verify("booked event read back from the INJECTED FIXTURE CALENDAR's own events[] records (not from the return value alone)", { calendar_events: cal.events, booked_event: ev || null, classification: cls.classification });

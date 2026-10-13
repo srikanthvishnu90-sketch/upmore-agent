@@ -617,8 +617,9 @@ const CareerOutreach = (() => {
   function monitorHealth(campaign) {
     const m = campaignMetrics({ campaign });
     const breaker = evaluateBreaker(campaign);
-    return { status: campaign.status, sent: campaign.wave.sent, bounces: campaign.wave.bounces,
-      bounce_pct: campaign.wave.sent ? Math.round(1000 * campaign.wave.bounces / campaign.wave.sent) / 10 : 0,
+    const attempted = campaign.wave.sent + campaign.wave.bounces; // wave.sent counts successes only; bounce % is over attempted sends
+    return { status: campaign.status, sent: campaign.wave.sent, bounces: campaign.wave.bounces, attempted,
+      bounce_pct: attempted ? Math.round(1000 * campaign.wave.bounces / attempted) / 10 : 0,
       breaker_tripped: !!breaker.tripped, breaker_cause: breaker.cause || null, metrics: m };
   }
   // reconcileBounceDomains: per-domain + per-email-pattern bounce diagnosis from campaign items.

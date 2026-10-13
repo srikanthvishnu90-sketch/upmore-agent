@@ -4312,11 +4312,14 @@
    "failure": "Bureau flows are GATED; here are the three links and what each asks.",
    "implementation": [
     "packages/domain/58-agent-control.js",
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-agent-bureaus.js"
    ],
    "tests": [
     "tests/control.test.cjs",
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bureaus.test.cjs",
+    "tests/edge/bureau-answer.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -4346,10 +4349,13 @@
    "gate": "filing needs a yes",
    "failure": "Bureau disputes are GATED; the packet is ready.",
    "implementation": [
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-agent-bureaus.js"
    ],
    "tests": [
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bureaus.test.cjs",
+    "tests/edge/bureau-answer.test.ts"
    ],
    "writes": true
   },
@@ -4688,11 +4694,14 @@
    "failure": "FTC filing is NOT_WIRED.",
    "implementation": [
     "packages/domain/58-agent-control.js",
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-agent-bureaus.js"
    ],
    "tests": [
     "tests/control.test.cjs",
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bureaus.test.cjs",
+    "tests/edge/bureau-answer.test.ts"
    ],
    "writes": true
   },
@@ -6321,11 +6330,14 @@
    "failure": "Minor freezes are GATED; here are the three processes.",
    "implementation": [
     "packages/domain/58-agent-control.js",
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-agent-bureaus.js"
    ],
    "tests": [
     "tests/control.test.cjs",
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bureaus.test.cjs",
+    "tests/edge/bureau-answer.test.ts"
    ],
    "writes": true,
    "execution_gap": {

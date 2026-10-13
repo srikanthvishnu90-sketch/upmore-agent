@@ -134,11 +134,56 @@ will show whether they still bite once routing exists.
 
 ## Stage 4 — Pilot re-run (IN PROGRESS — integrated build 9af41fd + this ledger commit; trial-2 evidence, graded live; trial-1 baseline preserved untouched)
 
+## Operating method (owner's Engineering Speed Method — adopted 2026-10-13, binding)
+
+- **The graded check is the gate.** A result counts only when the graded suite (deterministic
+  assertions first, judge second) passes it on the INTEGRATED build through the message path.
+  Branch-local passes are intermediate states, never reported as results. Whoever wrote a fix
+  does not grade it (coordinator verification + the independent re-run lane + the held-out
+  variant lane formalize this). All stage results below that predate an integrated graded
+  re-run are labeled INTERMEDIATE for that reason.
+- **Tiers:** HARNESS-tier (staging harness path) vs STAGING-tier (live staging deployment).
+  Staging does not exist yet — a staging package is being prepared (below) for the owner to
+  fire with one command; deploying remains the owner's hand. Once staging exists, the graded
+  runner re-points at it, pilot + worst cases re-run there, and only STAGING-tier results
+  count toward release claims. Everything in this ledger so far is HARNESS-tier.
+- **Recurring output shape:** a NUMBER (graded pass rate per capability/family) + the 5 worst
+  transcripts. The one-time ordered deliverables (300-rerun verbatim doc, final gauntlet
+  report) stand as specified.
+
+## Metrics (kept current at each coordinator commit)
+
+- Fixes with fail-before/pass-after regression proof: **3/3 gauntlet repair lanes (100%)** —
+  R1 9 tests 0→9, R2 9→10 of 10 (the 10th was a baseline probe that already passed), R3 7→0→7.
+  (Fixture-stage F3 also fixed 3 driver bugs against its own verifier before landing.)
+- Change failures: **1** — the R1×R2 integration conflict in pilot-lib.cjs (hand-resolved;
+  two R2 tests then failed on stale branch-local expectations and were updated by the
+  coordinator to the observed integrated behavior, invariant preserved). No broken merge
+  was ever left standing.
+- Regressions reopened: **0** to date.
+- Lead time (commit → graded result): baseline ba708c1 committed 2026-10-13 ~14:52 UTC →
+  graded baseline result 15:02 UTC. Repair commits 15:11–15:18 UTC → graded result = the
+  stage-4 integrated re-run (in progress at adoption time; recorded when it lands).
+- Cost per verified repair: **unmeasured** (no per-lane metering available to the
+  coordinator; not estimated).
+
 ## Stage 4.5 — Grand re-run, all 300 canonical scenarios (PENDING, owner expansion)
+
+Runs after the stage-4 pilot re-run, on the final repaired build, through the full path,
+graded by the reply oracle + rail-state assertions, with doorstep proof references beside
+every action scenario.
 
 Deliverable: `~/workspace/your_files/upmore-career-300-rerun-results.md` — per scenario: id +
 ask, VERBATIM delivered reply (bubbles only), verdict; run-1 "before" text where the reply
 changed; 30 full verbatim conversations as highlights (failures and refusals included).
+
+## Stage 4.6 — Staging package (IN PROGRESS — prepare only, NEVER execute)
+
+One-command staging deploy package for the owner to fire: separate staging environment
+(own Supabase project, test accounts only, never production data), migrations scripted in
+order, deploy configuration, seed + smoke scripts, the exact single command + checklist,
+and the graded-runner re-point spec (HARNESS vs STAGING tier labeling). This program does
+not create the project, does not deploy, and does not touch production.
 
 ## Stage 5 — Expansion (PENDING)
 

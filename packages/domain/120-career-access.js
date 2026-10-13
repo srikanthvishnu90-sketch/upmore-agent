@@ -1,0 +1,281 @@
+  /* Career access layer (Career Appendix A in all 3 docs; capability inventory ACCS-001..007): the pure half of
+     how the career agent logs in to everything. No I/O, no provider calls, no secrets: OAuth tokens, browser
+     session profiles and generated portal passwords live in the vault, held by the host (supabase/functions/
+     gmail-oauth for Google; the manual-connect rail for browser sources). This module works only over RECORDS
+     about access — connection rows, health-check results, vault REFERENCES (names, never values) — and turns
+     them into the connected-accounts list (ACCS-002), the session health plan (ACCS-003, Appendix A.3 step 3 /
+     Appendix B test T8), portal-account records (ACCS-005), handoff tickets (ACCS-006) and the login audit
+     view (ACCS-007), plus the chat intent handlers the router calls (see CHAT HANDLERS at the bottom).
+     Rules zero, from Appendix A: the agent never asks for a password, card or code in chat and never stores
+     secrets in prompts, logs or memory; CAPTCHA/MFA/SSO blocks are a user handoff, never a solving service;
+     LinkedIn is user-assisted, low-volume only, no scraping. Statuses here are records, not proof: a source is
+     "connected" when a connection record says so, and the host verifies it with a real health check.
+     Channel note (owner, 2026-10-12): surfaces are consumed iMessage FIRST, so every text this module builds is
+     a short plain-text message that also reads fine in the app chat; nothing here is channel-specific.
+     Sending identity (owner, 2026-10-12): the user's own Gmail via the career OAuth grant is THE send rail —
+     CAREER_SCOPES below must stay in lockstep with supabase/functions/gmail-oauth/career.ts (a test pins both). */
+  const CareerAccess = (() => {
+    const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+    const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+    const CALENDAR_FREEBUSY_SCOPE = "https://www.googleapis.com/auth/calendar.freebusy";
+    const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+    const CAREER_SCOPES = Object.freeze([GMAIL_SCOPE, GMAIL_SEND_SCOPE, CALENDAR_FREEBUSY_SCOPE, CALENDAR_EVENTS_SCOPE]);
+    const HANDOFF_TTL_MS = 30 * 60 * 1000; // a handoff link is a step the user does now, not a standing door
+
+    const LABELS = { gmail: "Gmail", google_career: "Google (career)", google: "Google", calendar: "Google Calendar", linkedin: "LinkedIn", handshake: "Handshake", outlook: "Outlook", portal: "company portal" };
+    const label = s => LABELS[String(s || "").toLowerCase()] || (String(s || "that source").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+    const iso = t => (t == null ? null : new Date(t).toISOString());
+    const parseScopes = input => Array.isArray(input) ? input.map(String).filter(Boolean) : typeof input === "string" ? input.split(/[\s,]+/).filter(Boolean) : [];
+    function scopeSet(scopes) {
+      if (!scopes.length) return "none";
+      const has = s => scopes.includes(s);
+      if (has(GMAIL_SEND_SCOPE) && has(CALENDAR_FREEBUSY_SCOPE) && has(CALENDAR_EVENTS_SCOPE)) return "career";
+      if (scopes.length === 1 && has(GMAIL_SCOPE)) return "readonly";
+      return "partial";
+    }
+    // A task's named need maps to the record that satisfies it: "calendar" is satisfied by the career Google
+    // grant, and "gmail" by either grant (career preferred — it is the one that can send).
+    const PROVIDES = { gmail: ["gmail", "google_career"], calendar: ["google_career", "calendar"], google_career: ["google_career"], google: ["google_career"], linkedin: ["linkedin"], handshake: ["handshake"], outlook: ["outlook"] };
+    const providersFor = need => PROVIDES[String(need || "").toLowerCase()] || [String(need || "").toLowerCase()];
+
+    // ---------- ACCS-002: connected-accounts list, from status records ----------
+    // Accepts connection rows ([{provider, email, scopes, connected_at}]), the gmail-oauth status object
+    // (buildStatus output), or a mix flattened by the caller. Output is records only: no vault values exist here.
+    function normalizeRows(input) {
+      if (!input) return [];
+      if (Array.isArray(input)) return input.slice();
+      const rows = [];
+      if (input.legacy || input.career) { // gmail-oauth status object
+        if (input.legacy && input.legacy.connected) rows.push({ provider: "gmail", email: input.legacy.email, scopes: input.legacy.scopes, connected_at: input.legacy.connected_at });
+        if (input.career && input.career.connected) rows.push({ provider: "google_career", email: input.career.email, scopes: input.career.scopes, connected_at: input.career.connected_at });
+        return rows;
+      }
+      if (input.provider) return [input];
+      return [];
+    }
+    function connectedAccounts(input) {
+      const rows = normalizeRows(input);
+      const accounts = [], seen = new Set();
+      for (const r of rows) {
+        const provider = String(r.provider || "").toLowerCase(); if (!provider || seen.has(provider)) continue; seen.add(provider);
+        const scopes = parseScopes(r.scopes);
+        accounts.push({ source: provider, provider, label: label(provider), email: r.email || null, scopes, scope_set: scopeSet(scopes), connected_at: r.connected_at || null });
+      }
+      // Gmail is ONE source to the user, held by up to two grants: the career grant upgrades the legacy
+      // read-only one (read + send), it is not a second account. Merge them into a single Gmail entry —
+      // regression: the first build listed "Gmail (read-only)" and a separate "Google (career)" line while
+      // the career grant was connected, telling the user send was unavailable when it was the send rail.
+      const legacy = accounts.find(a => a.provider === "gmail"), careerRow = accounts.find(a => a.provider === "google_career");
+      if (legacy && careerRow) {
+        const mergedScopes = [...new Set([...legacy.scopes, ...careerRow.scopes])];
+        Object.assign(legacy, { scopes: mergedScopes, scope_set: scopeSet(careerRow.scopes), email: careerRow.email || legacy.email, via: "google_career" });
+        accounts.splice(accounts.indexOf(careerRow), 1);
+      } else if (careerRow) {
+        Object.assign(careerRow, { source: "gmail", label: label("gmail") });
+      }
+      // Calendar is a source the user asks about, even though its grant is the career Google row.
+      const career = accounts.find(a => a.provider === "google_career" || a.via === "google_career");
+      if (career && career.scopes.some(s => s.includes("/calendar"))) {
+        accounts.push({ source: "calendar", provider: "google_career", label: label("calendar"), email: career.email, scopes: career.scopes.filter(s => s.includes("/calendar")), scope_set: "career", connected_at: career.connected_at, via: "google_career" });
+      }
+      const gmail = accounts.find(a => a.source === "gmail");
+      return {
+        accounts, count: accounts.length,
+        gmail: gmail ? { connected: true, scope_set: gmail.scope_set, can_send: gmail.scopes.includes(GMAIL_SEND_SCOPE), email: gmail.email } : { connected: false, scope_set: "none", can_send: false, email: null },
+        calendar_connected: !!accounts.find(a => a.source === "calendar"),
+        connected_email: (gmail && gmail.email) || (accounts[0] && accounts[0].email) || null,
+        granted_scopes: [...new Set(accounts.flatMap(a => a.scopes))],
+        text: accounts.length
+          ? accounts.map(a => `${a.label}: connected${a.email ? ` as ${a.email}` : ""}${a.source === "gmail" || a.provider === "gmail" ? (a.scope_set === "readonly" ? " (read-only)" : a.scope_set === "career" ? " (read + send)" : "") : a.source === "calendar" ? " (free/busy + events, via your Google grant)" : ""}`).join("\n")
+          : "Nothing is connected yet. Say \"connect my Google\" to start.",
+      };
+    }
+
+    // ---------- ACCS-003: session health planner (Appendix A.3 step 3; replay of Appendix B test T8) ----------
+    // health: [{source|provider, status: "ok"|"expired"|"missing"|"unknown", checked_at}] — one record per source
+    // the host health-checked. tasks: [{id, title?, needs: [source, ...]}]. A task pauses only when a source it
+    // needs is expired/missing (or has no ok record at all); every other task keeps running. Exactly ONE re-auth
+    // message per affected source, however many tasks need it, in Appendix A.3 step 2's words.
+    function reauthMessage(source, secureLink) {
+      const base = `I need access to ${label(source)} to do this. Open this, sign in, done in 30 seconds. I never see your password.`;
+      return secureLink ? `${base} ${secureLink}` : base;
+    }
+    function healthPlan(input) {
+      const o = input || {}, health = o.health || o.records || [], tasks = o.tasks || [];
+      const byProvider = {};
+      for (const h of health) {
+        const p = String(h.provider || h.source || "").toLowerCase(); if (!p) continue;
+        byProvider[p] = { status: String(h.status || "unknown").toLowerCase(), checked_at: h.checked_at || h.at || null };
+      }
+      const perSource = {}, needOf = {}; // source-as-asked -> {status, providers}
+      const needs = [...new Set(tasks.flatMap(t => (t.needs || []).map(n => String(n).toLowerCase())))];
+      for (const need of needs) {
+        const providers = providersFor(need);
+        // ok if ANY providing grant is ok; expired/missing only when every providing grant is bad (or none checked ok).
+        let status = "missing";
+        if (providers.some(p => byProvider[p] && byProvider[p].status === "ok")) status = "ok";
+        else if (providers.some(p => byProvider[p] && byProvider[p].status === "expired")) status = "expired";
+        else if (providers.some(p => byProvider[p])) status = String(byProvider[providers.find(p => byProvider[p])].status);
+        perSource[need] = { status, providers, checked_at: (providers.map(p => byProvider[p]).find(Boolean) || {}).checked_at || null };
+        needOf[need] = perSource[need].status;
+      }
+      const paused = [], running = [];
+      for (const t of tasks) {
+        const blockedBy = (t.needs || []).map(n => String(n).toLowerCase()).filter(n => needOf[n] !== "ok");
+        if (blockedBy.length) paused.push({ id: t.id, title: t.title || null, blocked_by: blockedBy }); else running.push({ id: t.id, title: t.title || null });
+      }
+      const badSources = [...new Set(paused.flatMap(p => p.blocked_by))];
+      const linkFor = typeof o.secureLinkFor === "function" ? o.secureLinkFor : () => o.secureLink || null;
+      const messages = badSources.map(source => ({ source, text: reauthMessage(source, linkFor(source)) }));
+      return { per_source: perSource, paused, running, reauth: messages, messages: messages.map(m => m.text), one_message_per_source: true };
+    }
+
+    // ---------- ACCS-005: portal-account records (Appendix A.1 method 4) ----------
+    // Records only. The generated password itself NEVER enters this module: the caller stores it in the vault
+    // and passes only the vault reference (a name). A record handed a secret-shaped field is refused outright,
+    // so no code path can serialize a portal password into a list, a log or a chat answer.
+    const SECRET_FIELDS = ["password", "generated_password", "secret", "token", "credential", "credentials", "value"];
+    function portalRecord(input) {
+      const o = input || {};
+      for (const f of SECRET_FIELDS) if (o[f] != null && o[f] !== "") return { ok: false, code: "secret_in_record", text: "Portal records hold the vault reference only, never the password itself. Store the generated password in the vault and pass its reference." };
+      const company = String(o.company || "").trim();
+      const alias = String(o.alias_email || o.aliasEmail || "").trim();
+      const ref = String(o.password_vault_ref || o.vault_ref || o.passwordVaultRef || "").trim();
+      if (!company) return { ok: false, code: "company_required", text: "A portal record names its company." };
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(alias)) return { ok: false, code: "alias_required", text: `A portal record for ${company} needs its unique alias email.` };
+      if (!ref || /\s/.test(ref) || ref === alias) return { ok: false, code: "vault_ref_required", text: `A portal record for ${company} needs the vault reference its generated password is stored under (a name, not the password).` };
+      return { ok: true, record: { company, company_key: company.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), alias_email: alias, password_vault_ref: ref, username: o.username ? String(o.username) : alias, created_at: iso(o.created_at || o.now) || null, source: "portal" } };
+    }
+    function portalList(records) {
+      const rows = (records || []).map(r => r && r.record ? r.record : r).filter(r => r && r.company);
+      return {
+        companies: rows.map(r => ({ company: r.company, alias_email: r.alias_email, password_vault_ref: r.password_vault_ref, created_at: r.created_at || null })),
+        count: rows.length,
+        text: rows.length ? rows.map(r => `${r.company}: portal account as ${r.alias_email} (password in your vault)`).join("\n") : "No company portal accounts yet. One is created, with your OK, the first time an application needs it.",
+      };
+    }
+
+    // ---------- ACCS-006: user-assisted handoff tickets (Appendix A.1 method 5, A.3 step 4) ----------
+    // A challenge (CAPTCHA / MFA / SSO / device check) stops the run. The ticket carries the screenshot
+    // REFERENCE and a single-use resume token; resume validates the ticket, never the user's credentials.
+    // There is deliberately no "solve" path and no field for a code or a password.
+    const CHALLENGES = Object.freeze(["captcha", "mfa", "sso", "device_verification", "sign_in"]);
+    let ticketSeq = 0;
+    function createHandoff(input) {
+      const o = input || {};
+      const source = String(o.source || "").toLowerCase();
+      const challenge = String(o.challenge || "").toLowerCase();
+      if (!source) return { ok: false, code: "source_required", text: "A handoff names the source that blocked the run." };
+      if (!CHALLENGES.includes(challenge)) return { ok: false, code: "bad_challenge", text: `A handoff is only for a step the user must do themselves (${CHALLENGES.join(", ")}).` };
+      if (!o.screenshot_ref && !o.screenshotRef) return { ok: false, code: "screenshot_required", text: "A handoff carries a screenshot reference so the user can see exactly which step is theirs." };
+      const now = o.now != null ? Number(o.now) : Date.now();
+      const token = o.resumeToken || o.resume_token || `hrt_${(++ticketSeq).toString(36)}_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 6)}`;
+      const ticket = { id: o.id || `handoff_${now.toString(36)}_${++ticketSeq}`, source, challenge, screenshot_ref: o.screenshot_ref || o.screenshotRef, run_id: o.run_id || o.runId || null, resume_token: token, status: "awaiting_user", created_at: iso(now), expires_at: iso(now + (o.ttl_ms || HANDOFF_TTL_MS)) };
+      return { ok: true, ticket, text: `${label(source)} needs a step only you can do (${challenge.replace(/_/g, " ")}). Open this link, finish that one step, and the run picks up where it left off. I never see your password or code.` };
+    }
+    function resumeHandoff(ticket, input) {
+      const o = input || {}, now = o.now != null ? Number(o.now) : Date.now();
+      if (!ticket || !ticket.resume_token) return { ok: false, code: "no_ticket", text: "There is no handoff to resume." };
+      if (ticket.status === "resumed") return { ok: false, code: "already_used", text: "That handoff was already used. A fresh one is created if the run blocks again." };
+      if (ticket.status !== "awaiting_user") return { ok: false, code: "not_waiting", text: "That handoff is no longer waiting on you." };
+      if (ticket.expires_at && now > Date.parse(ticket.expires_at)) return { ok: false, code: "expired", ticket: { ...ticket, status: "expired" }, text: "That handoff link expired. The run creates a fresh one when it reaches that step again." };
+      if (String(o.resume_token || o.resumeToken || "") !== String(ticket.resume_token)) return { ok: false, code: "bad_token", text: "That resume link does not match this handoff. Nothing was resumed." };
+      return { ok: true, ticket: { ...ticket, status: "resumed", resumed_at: iso(now), resume_token: null }, run_id: ticket.run_id, source: ticket.source, text: `Done — resuming the ${label(ticket.source)} run where it stopped.` };
+    }
+
+    // ---------- ACCS-007: login audit log (Appendix A.3 step 7) ----------
+    // Every login-requiring action: {source, at, what}. Entries are records the host writes as it acts; this
+    // module only shapes and renders them, and refuses secret-shaped fields for the same reason as portals.
+    function auditEntry(input) {
+      const o = input || {};
+      for (const f of SECRET_FIELDS) if (o[f] != null && o[f] !== "") return { ok: false, code: "secret_in_record", text: "Audit entries record what was done, never a secret value." };
+      const source = String(o.source || "").toLowerCase(), what = String(o.what || o.action || "").trim();
+      if (!source || !what) return { ok: false, code: "entry_incomplete", text: "An audit entry names its source and what was done." };
+      return { ok: true, entry: { source, at: iso(o.at || o.now) || iso(Date.now()), what, outcome: o.outcome ? String(o.outcome) : null } };
+    }
+    function auditLog(entries) {
+      const rows = (entries || []).map(e => e && e.entry ? e.entry : e).filter(e => e && e.source && e.what)
+        .map(e => ({ source: String(e.source).toLowerCase(), at: e.at || null, what: String(e.what), outcome: e.outcome || null }))
+        .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      return { entries: rows, count: rows.length, text: rows.length ? rows.map(e => `${e.at} — ${label(e.source)}: ${e.what}${e.outcome ? ` (${e.outcome})` : ""}`).join("\n") : "No login-requiring actions yet." };
+    }
+
+    // ---------- ACCS-004: browser-source connect plan (records/plans only — the live window is the host's) --
+    // LinkedIn / Handshake connect by the user signing in ONCE inside a shown cloud-browser session; the agent
+    // never sees the password. This returns the plan + exact user text; it does not open anything itself.
+    function browserConnectPlan(source) {
+      const s = String(source || "").toLowerCase();
+      if (!["linkedin", "handshake"].includes(s)) return { ok: false, code: "not_a_browser_source", text: `${label(s)} does not connect this way.` };
+      return {
+        ok: true, source: s, method: "cloud_browser_user_sign_in", agent_sees_password: false, session_stored_as: "vault_reference_only",
+        risk_note: s === "linkedin" ? "LinkedIn's terms prohibit automation and scraping, and a restriction would land on your account. Default here is user-assisted and low-volume only: no bulk scraping, no mass connection requests." : "Handshake sign-in goes through your school SSO; you do that step yourself in the shown session.",
+        text: reauthMessage(s, null).replace("to do this", `to connect ${label(s)}`),
+      };
+    }
+
+    // ---------- CHAT HANDLERS (ACCS-001/002/007 surfaces; iMessage first, channel-agnostic) ----------
+    // The router calls CareerAccess.handleChat(text, ctx) — or a single handler from chatHandlers — with:
+    //   ctx.statusRecords  connection rows or the gmail-oauth status object (for connected / disconnect views)
+    //   ctx.portalRecords  portal keeper records        ctx.auditEntries  audit log entries
+    //   ctx.secureLinkFor(source) -> the host's secure connect link (vault link flow; never built here)
+    //   ctx.health, ctx.tasks    for the health-plan answer
+    // A handler never claims an edge action happened: connect returns the ACTION the host must run against
+    // gmail-oauth ({edge_action:"start_career"} plus the secure link when the host supplied one), and
+    // disconnect returns {edge_action:"disconnect", source} for the host to execute and confirm.
+    function handleConnectGoogle(text, ctx) {
+      const c = ctx || {};
+      const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
+      return {
+        intent: "connect_google", edge_action: "start_career", scopes: [...CAREER_SCOPES], send_rail: "user_gmail_oauth",
+        reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
+      };
+    }
+    function handleConnected(text, ctx) {
+      const r = connectedAccounts((ctx || {}).statusRecords);
+      return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
+    }
+    function handleDisconnect(text, ctx) {
+      const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
+      const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
+      const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
+      return {
+        intent: "disconnect", edge_action: "disconnect", source,
+        reply: source === "calendar"
+          ? "Calendar lives in your career Google grant, so disconnecting it removes that grant (Gmail send goes with it; a separate read-only Gmail connection stays). The host confirms once it is deleted."
+          : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
+      };
+    }
+    function handleAccessLog(text, ctx) {
+      const r = auditLog((ctx || {}).auditEntries);
+      return { intent: "access_log", entries: r.entries, reply: r.text };
+    }
+    function handlePortalList(text, ctx) {
+      const r = portalList((ctx || {}).portalRecords);
+      return { intent: "portal_accounts", companies: r.companies, reply: r.text };
+    }
+    function handleConnectBrowser(text, ctx) {
+      const source = /handshake/i.test(text || "") ? "handshake" : "linkedin";
+      const plan = browserConnectPlan(source);
+      const link = plan.ok && ctx && typeof ctx.secureLinkFor === "function" ? ctx.secureLinkFor(source) : null;
+      return { intent: "connect_browser_source", ...plan, reply: plan.ok ? `${plan.text}${link ? ` ${link}` : ""}${plan.risk_note ? ` ${plan.risk_note}` : ""}` : plan.text };
+    }
+    const chatHandlers = { connect_google: handleConnectGoogle, connected_accounts: handleConnected, disconnect: handleDisconnect, access_log: handleAccessLog, portal_accounts: handlePortalList, connect_browser_source: handleConnectBrowser };
+    function handleChat(text, ctx) {
+      const t = String(text || "").trim().toLowerCase();
+      if (/^disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
+      if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
+      if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
+      if (/\bwhat accounts are connected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
+      if (/\bportal accounts\b|\bwhich companies.*accounts\b/.test(t)) return chatHandlers.portal_accounts(text, ctx);
+      if (/\baccess log\b|\blogin log\b|\bshow my access\b/.test(t)) return chatHandlers.access_log(text, ctx);
+      return null; // not an access-layer message: the router falls through to its other handlers
+    }
+
+    return {
+      GMAIL_SCOPE, GMAIL_SEND_SCOPE, CALENDAR_FREEBUSY_SCOPE, CALENDAR_EVENTS_SCOPE, CAREER_SCOPES, HANDOFF_TTL_MS, CHALLENGES,
+      label, parseScopes, scopeSet, connectedAccounts, reauthMessage, healthPlan,
+      portalRecord, portalList, createHandoff, resumeHandoff, auditEntry, auditLog, browserConnectPlan,
+      chatHandlers, handleChat,
+    };
+  })();
+  if (typeof module !== "undefined" && module.exports) module.exports = CareerAccess;

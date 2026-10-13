@@ -1,24 +1,46 @@
-// Upmore gmail-oauth edge function (2026-09-28).
-// Connects the user's Gmail (read-only) so the execution agent can fetch
-// merchant sign-in codes itself instead of asking the user to retype them.
-// Reuses the founder's existing Google OAuth client (same one Ring uses).
+// Upmore gmail-oauth edge function (2026-09-28; career grant added 2026-10-12, ACCS-001/002).
+// Connects the user's Gmail so the execution agent can fetch merchant sign-in
+// codes itself instead of asking the user to retype them, and (career grant)
+// so the career agent can send outreach from the user's OWN Gmail and read /
+// create Google Calendar entries. Reuses the founder's existing Google OAuth
+// client (same one Ring uses).
 //
 // Routes:
-//   POST {action:"start"}      (JWT) -> {url}  Google consent URL; state is
-//       HMAC-signed, bound to the user, 10-min expiry. Google's auth code is
-//       single-use, which defeats replay.
-//   GET ?code=..&state=..              Google callback -> exchange, store
-//       tokens in Supabase Vault (oauth_gmail_<uid>), upsert the connection
-//       row, redirect to the app. Tokens NEVER touch the client.
-//   POST {action:"status"}     (JWT) -> {connected, email}
-//   POST {action:"disconnect"} (JWT) -> deletes vault secret + row.
+//   POST {action:"start"}        (JWT) -> {url}  legacy consent, gmail.readonly
+//       ONLY (minimal), stored as provider "gmail" / oauth_gmail_<uid>.
+//   POST {action:"start_career"} (JWT) -> {url}  career consent: gmail.readonly
+//       + gmail.send + calendar.freebusy + calendar.events, stored separately
+//       as provider "google_career" / oauth_google_career_<uid>. The signed
+//       state's purpose routes the callback; the two grants never overwrite
+//       each other. The user's own Gmail via this grant is THE send rail.
+//   GET ?code=..&state=..                Google callback -> exchange, store
+//       tokens in Supabase Vault under the purpose's name, upsert that
+//       purpose's connection row, redirect to the app. Tokens NEVER touch
+//       the client.
+//   POST {action:"status"}       (JWT) -> legacy {connected, email} plus
+//       per-source detail (gmail scope set, calendar connected, granted
+//       scope list, connected email) — see career.ts buildStatus.
+//   POST {action:"disconnect"}   (JWT) -> legacy behaviour (gmail row only).
+//   POST {action:"disconnect", source}   per source: "gmail" | "calendar" |
+//       "google_career"/"career" | "all" — see career.ts disconnectPlan for
+//       the atomic-grant notes returned to the caller.
 //
-// Scope requested: gmail.readonly ONLY (minimal). Search is further
-// restricted server-side to the merchant's otp_senders while a run is
-// actively awaiting a code (see agent-exec fetch_otp).
+// Pure helpers (scopes, state, status, disconnect plans) live in ./career.ts
+// so they are unit-tested without starting the server (tests/edge/gmail-oauth-career.test.ts).
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/+esm";
+import {
+  buildStatus,
+  disconnectPlan,
+  GMAIL_SCOPE,
+  providerForPurpose,
+  purposeForAction,
+  scopesForPurpose,
+  vaultNameFor,
+  verifyState,
+  issueState,
+} from "./career.ts";
 
 const APP_URL = "https://upmore-srikanthvishnu90-sketchs-projects.vercel.app";
 const ALLOWED_ORIGINS = new Set([
@@ -29,7 +51,6 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:8000",
   "http://127.0.0.1:8080",
 ]);
-const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
 function corsFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") ?? "";
@@ -46,41 +67,6 @@ function redirectUri(): string {
   return `${supabaseUrl}/functions/v1/gmail-oauth`;
 }
 
-// ---- HMAC state (CSRF + user binding) ----
-async function hmacKey(): Promise<CryptoKey> {
-  const secret = Deno.env.get("OAUTH_STATE_SECRET") || "";
-  return crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"],
-  );
-}
-function b64url(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function unb64url(s: string): Uint8Array {
-  const b = s.replace(/-/g, "+").replace(/_/g, "/");
-  return Uint8Array.from(atob(b + "=".repeat((4 - (b.length % 4)) % 4)), (c) => c.charCodeAt(0));
-}
-async function issueState(userId: string): Promise<string> {
-  const exp = Date.now() + 10 * 60 * 1000;
-  const payload = `${userId}.${exp}`;
-  const sig = await crypto.subtle.sign("HMAC", await hmacKey(), new TextEncoder().encode(payload));
-  return `${payload}.${b64url(new Uint8Array(sig))}`;
-}
-async function verifyState(state: string): Promise<string> {
-  const parts = state.split(".");
-  if (parts.length !== 3) throw new Error("bad state");
-  const [userId, expS, sigB64] = parts;
-  const exp = Number(expS);
-  if (!userId || !Number.isFinite(exp) || Date.now() > exp) throw new Error("expired state");
-  const payload = `${userId}.${exp}`;
-  const ok = await crypto.subtle.verify(
-    "HMAC", await hmacKey(), unb64url(sigB64), new TextEncoder().encode(payload),
-  );
-  if (!ok) throw new Error("bad state signature");
-  return userId;
-}
-
 serve(async (req) => {
   const cors = corsFor(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -93,16 +79,27 @@ serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
     const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
+    const stateSecret = Deno.env.get("OAUTH_STATE_SECRET") || "";
 
     // ---- Google callback (GET, no JWT — trust comes from signed state) ----
     const url = new URL(req.url);
     if (req.method === "GET" && (url.searchParams.has("code") || url.searchParams.has("error"))) {
-      const done = (ok: boolean) => Response.redirect(`${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`, 302);
+      // Legacy landings keep ?gmail=..; a career grant lands on ?career=.. so the app can tell them apart.
+      let purpose: "gmail" | "career" = "gmail";
+      const done = (ok: boolean) =>
+        Response.redirect(
+          purpose === "career"
+            ? `${APP_URL}/#you?career=${ok ? "connected" : "error"}`
+            : `${APP_URL}/#you?gmail=${ok ? "connected" : "error"}`,
+          302,
+        );
       try {
         if (url.searchParams.get("error")) return done(false);
         const code = url.searchParams.get("code") || "";
         const state = url.searchParams.get("state") || "";
-        const userId = await verifyState(state);
+        const verified = await verifyState(state, stateSecret);
+        purpose = verified.purpose;
+        const userId = verified.userId;
         if (!clientId || !clientSecret) throw new Error("OAuth not configured");
         const tokRes = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
@@ -116,26 +113,31 @@ serve(async (req) => {
         if (!tokRes.ok || !tok.access_token) {
           throw new Error(String(tok.error_description || tok.error || "token exchange failed"));
         }
-        // Confirm which Gmail address granted access (also validates the token).
+        // Confirm which Google address granted access (also validates the token).
         const meRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
           headers: { Authorization: `Bearer ${tok.access_token}` },
         });
         const me = await meRes.json().catch(() => ({}));
         const email = typeof me.email === "string" ? me.email : null;
 
+        const provider = providerForPurpose(purpose);
+        const vaultName = vaultNameFor(userId, purpose);
+        // Scopes actually granted (Google echoes them on the token response) win over scopes requested.
+        const grantedScopes = typeof tok.scope === "string" && tok.scope.trim()
+          ? tok.scope.split(/\s+/).filter(Boolean).join(" ")
+          : scopesForPurpose(purpose).join(" ");
         const admin = createClient(supabaseUrl, serviceKey);
-        const vaultName = `oauth_gmail_${userId}`;
         const secret = JSON.stringify({
           access_token: tok.access_token,
           refresh_token: tok.refresh_token || null,
           expires_at: Date.now() + (Number(tok.expires_in) || 3600) * 1000,
-          email, scopes: GMAIL_SCOPE,
+          email, scopes: grantedScopes,
         });
         const { error: verr } = await admin.rpc("oauth_vault_store", { p_name: vaultName, p_secret: secret });
         if (verr) throw new Error("could not save tokens");
         const { error: uerr } = await admin.from("user_oauth_connections").upsert({
-          user_id: userId, provider: "gmail", vault_name: vaultName,
-          email, scopes: GMAIL_SCOPE, connected_at: new Date().toISOString(),
+          user_id: userId, provider, vault_name: vaultName,
+          email, scopes: grantedScopes, connected_at: new Date().toISOString(),
         }, { onConflict: "user_id,provider" });
         if (uerr) throw new Error("could not record connection");
         return done(true);
@@ -157,14 +159,15 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "");
 
-    if (action === "start") {
-      if (!clientId) return json({ error: "Gmail connect is not configured yet" }, 503);
-      const state = await issueState(user.id);
+    const startPurpose = purposeForAction(action);
+    if (startPurpose) {
+      if (!clientId) return json({ error: startPurpose === "career" ? "Google connect is not configured yet" : "Gmail connect is not configured yet" }, 503);
+      const state = await issueState(user.id, startPurpose, stateSecret);
       const q = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri(),
         response_type: "code",
-        scope: GMAIL_SCOPE,
+        scope: scopesForPurpose(startPurpose).join(" "),
         access_type: "offline",
         prompt: "consent",
         state,
@@ -174,14 +177,21 @@ serve(async (req) => {
 
     if (action === "status") {
       const { data } = await admin.from("user_oauth_connections")
-        .select("email, connected_at").eq("user_id", user.id).eq("provider", "gmail").maybeSingle();
-      return json({ connected: !!data, email: data?.email ?? null });
+        .select("provider, email, scopes, connected_at").eq("user_id", user.id)
+        .in("provider", ["gmail", "google_career"]);
+      return json(buildStatus(data || []));
     }
 
     if (action === "disconnect") {
-      await admin.rpc("oauth_vault_delete", { p_name: `oauth_gmail_${user.id}` });
-      await admin.from("user_oauth_connections").delete().eq("user_id", user.id).eq("provider", "gmail");
-      return json({ ok: true, disconnected: true });
+      const plan = disconnectPlan(user.id, typeof body.source === "string" ? body.source : undefined);
+      for (const name of plan.vault_names) await admin.rpc("oauth_vault_delete", { p_name: name });
+      // Row deletes also fire the vault-cleanup trigger (20261012060000); the explicit delete above keeps the
+      // pre-career behaviour on projects where that migration has not landed yet.
+      await admin.from("user_oauth_connections").delete().eq("user_id", user.id).in("provider", plan.providers);
+      return json({
+        ok: true, disconnected: true, source: plan.source,
+        removed_providers: plan.providers, also_affects: plan.also_affects, note: plan.note,
+      });
     }
 
     return json({ error: "unknown action" }, 400);
@@ -189,3 +199,6 @@ serve(async (req) => {
     return json({ error: String((e as Error)?.message || e) }, 500);
   }
 });
+
+// Re-exported for tests / future callers; GMAIL_SCOPE keeps its pre-career meaning (the legacy grant).
+export { GMAIL_SCOPE };

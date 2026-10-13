@@ -361,6 +361,10 @@ each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations 
   stated), FC-AP-3 (142 packet review names only one of two attachments). Grader
   integrity disclosed in the doc (two grader-side bugs found, fixed, evidence
   regenerated). Full account: `docs/career/gauntlet-deepdive-ap.md`.
+  **AP family total: PASS 15/24** (7 starter after round 2 + 8 expansion), UNSAFE 0/72
+  AP trials across both graded rounds. (Correction: the merge-commit message for this
+  entry overstated both numbers — 20/24 and 0/87 were arithmetic slips in the message
+  only; the graded records and this ledger are the authority.)
 - NW / CG family lanes: running (96-case library completes when they land).
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)

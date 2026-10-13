@@ -1,0 +1,1046 @@
+{
+  "label": "TEST application log fixture \u2014 synthetic, no real applications exist; seam for the future 126 tracker (entry shape mirrors 121 job ids + 126 tracker patterns)",
+  "persona_id": "TEST-PERSONA-001",
+  "applications": [
+    {
+      "app_id": "TEST-APP-001",
+      "job_id": "TEST-JOB-001",
+      "company": "Stripe",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 62,
+      "applied_at": "2026-09-08",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-08",
+          "kind": "applied",
+          "ref": "TEST-LOG-001"
+        },
+        {
+          "at": "2026-09-08",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-001C"
+        },
+        {
+          "at": "2026-09-08",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-001S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-002",
+      "job_id": "TEST-JOB-002",
+      "company": "Stripe",
+      "title": "Backend Engineer, New Grad",
+      "role_family": "SWE",
+      "seniority_band": "new_grad",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 44,
+      "applied_at": "2026-09-15",
+      "stage": "screen",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-15",
+          "kind": "applied",
+          "ref": "TEST-LOG-002"
+        },
+        {
+          "at": "2026-09-15",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-002C"
+        },
+        {
+          "at": "2026-09-15",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-002S",
+          "stage": "screen"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-003",
+      "job_id": "TEST-JOB-003",
+      "company": "Stripe",
+      "title": "Data Analyst Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 58,
+      "applied_at": "2026-09-22",
+      "stage": "rejected",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-22",
+          "kind": "applied",
+          "ref": "TEST-LOG-003"
+        },
+        {
+          "at": "2026-09-22",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-003C"
+        },
+        {
+          "at": "2026-09-22",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-003S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-004",
+      "job_id": "TEST-JOB-004",
+      "company": "Ramp",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 66,
+      "applied_at": "2026-09-09",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-09",
+          "kind": "applied",
+          "ref": "TEST-LOG-004"
+        },
+        {
+          "at": "2026-09-09",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-004C"
+        },
+        {
+          "at": "2026-09-09",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-004S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-005",
+      "job_id": "TEST-JOB-005",
+      "company": "Ramp",
+      "title": "Product Management Intern",
+      "role_family": "PM",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 41,
+      "applied_at": "2026-09-18",
+      "stage": "rejected",
+      "variant_id": "VAR-PM-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-18",
+          "kind": "applied",
+          "ref": "TEST-LOG-005"
+        },
+        {
+          "at": "2026-09-18",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-005C"
+        },
+        {
+          "at": "2026-09-18",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-005S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-006",
+      "job_id": "TEST-JOB-006",
+      "company": "Ramp",
+      "title": "Data Analyst",
+      "role_family": "Data/ML",
+      "seniority_band": "junior",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 60,
+      "applied_at": "2026-10-01",
+      "stage": "applied",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-01",
+          "kind": "applied",
+          "ref": "TEST-LOG-006"
+        },
+        {
+          "at": "2026-10-01",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-006C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-007",
+      "job_id": "TEST-JOB-007",
+      "company": "Datadog",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 64,
+      "applied_at": "2026-09-10",
+      "stage": "interview",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-10",
+          "kind": "applied",
+          "ref": "TEST-LOG-007"
+        },
+        {
+          "at": "2026-09-10",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-007C"
+        },
+        {
+          "at": "2026-09-10",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-007S",
+          "stage": "interview"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-008",
+      "job_id": "TEST-JOB-008",
+      "company": "Datadog",
+      "title": "Site Reliability Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 48,
+      "applied_at": "2026-09-25",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-25",
+          "kind": "applied",
+          "ref": "TEST-LOG-008"
+        },
+        {
+          "at": "2026-09-25",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-008C"
+        },
+        {
+          "at": "2026-09-25",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-008S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-009",
+      "job_id": "TEST-JOB-009",
+      "company": "Datadog",
+      "title": "Data Engineering Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 57,
+      "applied_at": "2026-10-02",
+      "stage": "applied",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-02",
+          "kind": "applied",
+          "ref": "TEST-LOG-009"
+        },
+        {
+          "at": "2026-10-02",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-009C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-010",
+      "job_id": "TEST-JOB-010",
+      "company": "Coinbase",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 45,
+      "applied_at": "2026-09-11",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-11",
+          "kind": "applied",
+          "ref": "TEST-LOG-010"
+        },
+        {
+          "at": "2026-09-11",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-010C"
+        },
+        {
+          "at": "2026-09-11",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-010S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-011",
+      "job_id": "TEST-JOB-011",
+      "company": "Coinbase",
+      "title": "Finance Analyst Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 55,
+      "applied_at": "2026-09-29",
+      "stage": "rejected",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-29",
+          "kind": "applied",
+          "ref": "TEST-LOG-011"
+        },
+        {
+          "at": "2026-09-29",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-011C"
+        },
+        {
+          "at": "2026-09-29",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-011S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-012",
+      "job_id": "TEST-JOB-012",
+      "company": "Figma",
+      "title": "Product Design Intern",
+      "role_family": "Design",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 38,
+      "applied_at": "2026-09-12",
+      "stage": "rejected",
+      "variant_id": "VAR-DESIGN-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-12",
+          "kind": "applied",
+          "ref": "TEST-LOG-012"
+        },
+        {
+          "at": "2026-09-12",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-012C"
+        },
+        {
+          "at": "2026-09-12",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-012S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-013",
+      "job_id": "TEST-JOB-013",
+      "company": "Figma",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 61,
+      "applied_at": "2026-10-03",
+      "stage": "screen",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-03",
+          "kind": "applied",
+          "ref": "TEST-LOG-013"
+        },
+        {
+          "at": "2026-10-03",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-013C"
+        },
+        {
+          "at": "2026-10-03",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-013S",
+          "stage": "screen"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-014",
+      "job_id": "TEST-JOB-014",
+      "company": "Airbnb",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 63,
+      "applied_at": "2026-09-14",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-14",
+          "kind": "applied",
+          "ref": "TEST-LOG-014"
+        },
+        {
+          "at": "2026-09-14",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-014C"
+        },
+        {
+          "at": "2026-09-14",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-014S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-015",
+      "job_id": "TEST-JOB-015",
+      "company": "Airbnb",
+      "title": "Data Science Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 43,
+      "applied_at": "2026-09-30",
+      "stage": "applied",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-30",
+          "kind": "applied",
+          "ref": "TEST-LOG-015"
+        },
+        {
+          "at": "2026-09-30",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-015C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-016",
+      "job_id": "TEST-JOB-016",
+      "company": "Robinhood",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 59,
+      "applied_at": "2026-09-16",
+      "stage": "rejected",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-16",
+          "kind": "applied",
+          "ref": "TEST-LOG-016"
+        },
+        {
+          "at": "2026-09-16",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-016C"
+        },
+        {
+          "at": "2026-09-16",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-016S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-017",
+      "job_id": "TEST-JOB-017",
+      "company": "Robinhood",
+      "title": "Quantitative Research Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 35,
+      "applied_at": "2026-09-20",
+      "stage": "rejected",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-20",
+          "kind": "applied",
+          "ref": "TEST-LOG-017"
+        },
+        {
+          "at": "2026-09-20",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-017C"
+        },
+        {
+          "at": "2026-09-20",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-017S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-018",
+      "job_id": "TEST-JOB-018",
+      "company": "Jane Street",
+      "title": "Quantitative Trader Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 33,
+      "applied_at": "2026-09-17",
+      "stage": "rejected",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-17",
+          "kind": "applied",
+          "ref": "TEST-LOG-018"
+        },
+        {
+          "at": "2026-09-17",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-018C"
+        },
+        {
+          "at": "2026-09-17",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-018S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-019",
+      "job_id": "TEST-JOB-019",
+      "company": "Jane Street",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 47,
+      "applied_at": "2026-09-27",
+      "stage": "screen",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-27",
+          "kind": "applied",
+          "ref": "TEST-LOG-019"
+        },
+        {
+          "at": "2026-09-27",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-019C"
+        },
+        {
+          "at": "2026-09-27",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-019S",
+          "stage": "screen"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-020",
+      "job_id": "TEST-JOB-020",
+      "company": "OpenAI",
+      "title": "ML Engineering Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 40,
+      "applied_at": "2026-09-19",
+      "stage": "rejected",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-19",
+          "kind": "applied",
+          "ref": "TEST-LOG-020"
+        },
+        {
+          "at": "2026-09-19",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-020C"
+        },
+        {
+          "at": "2026-09-19",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-020S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-021",
+      "job_id": "TEST-JOB-021",
+      "company": "OpenAI",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 56,
+      "applied_at": "2026-10-04",
+      "stage": "applied",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-04",
+          "kind": "applied",
+          "ref": "TEST-LOG-021"
+        },
+        {
+          "at": "2026-10-04",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-021C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-022",
+      "job_id": "TEST-JOB-022",
+      "company": "Linear",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Safety",
+      "fit_score_at_apply": 71,
+      "applied_at": "2026-09-21",
+      "stage": "interview",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-21",
+          "kind": "applied",
+          "ref": "TEST-LOG-022"
+        },
+        {
+          "at": "2026-09-21",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-022C"
+        },
+        {
+          "at": "2026-09-21",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-022S",
+          "stage": "interview"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-023",
+      "job_id": "TEST-JOB-023",
+      "company": "Linear",
+      "title": "Product Design Intern",
+      "role_family": "Design",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 39,
+      "applied_at": "2026-10-05",
+      "stage": "rejected",
+      "variant_id": "VAR-DESIGN-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-05",
+          "kind": "applied",
+          "ref": "TEST-LOG-023"
+        },
+        {
+          "at": "2026-10-05",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-023C"
+        },
+        {
+          "at": "2026-10-05",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-023S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-024",
+      "job_id": "TEST-JOB-024",
+      "company": "Ashby",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Safety",
+      "fit_score_at_apply": 74,
+      "applied_at": "2026-09-23",
+      "stage": "offer",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-23",
+          "kind": "applied",
+          "ref": "TEST-LOG-024"
+        },
+        {
+          "at": "2026-09-23",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-024C"
+        },
+        {
+          "at": "2026-09-23",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-024S",
+          "stage": "offer"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-025",
+      "job_id": "TEST-JOB-025",
+      "company": "BoschGroup",
+      "title": "Data Analyst Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 52,
+      "applied_at": "2026-09-24",
+      "stage": "rejected",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-24",
+          "kind": "applied",
+          "ref": "TEST-LOG-025"
+        },
+        {
+          "at": "2026-09-24",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-025C"
+        },
+        {
+          "at": "2026-09-24",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-025S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-026",
+      "job_id": "TEST-JOB-026",
+      "company": "Square",
+      "title": "Finance Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 54,
+      "applied_at": "2026-09-26",
+      "stage": "applied",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-26",
+          "kind": "applied",
+          "ref": "TEST-LOG-026"
+        },
+        {
+          "at": "2026-09-26",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-026C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-027",
+      "job_id": "TEST-JOB-027",
+      "company": "Visa",
+      "title": "Software Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 60,
+      "applied_at": "2026-09-28",
+      "stage": "screen",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-09-28",
+          "kind": "applied",
+          "ref": "TEST-LOG-027"
+        },
+        {
+          "at": "2026-09-28",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-027C"
+        },
+        {
+          "at": "2026-09-28",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-027S",
+          "stage": "screen"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-028",
+      "job_id": "TEST-JOB-028",
+      "company": "Datadog",
+      "title": "Finance Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 42,
+      "applied_at": "2026-10-06",
+      "stage": "applied",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-06",
+          "kind": "applied",
+          "ref": "TEST-LOG-028"
+        },
+        {
+          "at": "2026-10-06",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-028C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-029",
+      "job_id": "TEST-JOB-029",
+      "company": "Stripe",
+      "title": "Risk Analyst Intern",
+      "role_family": "Finance",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 37,
+      "applied_at": "2026-10-07",
+      "stage": "applied",
+      "variant_id": "VAR-FINANCE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-07",
+          "kind": "applied",
+          "ref": "TEST-LOG-029"
+        },
+        {
+          "at": "2026-10-07",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-029C"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-030",
+      "job_id": "TEST-JOB-030",
+      "company": "Ramp",
+      "title": "Frontend Engineering Intern",
+      "role_family": "SWE",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 65,
+      "applied_at": "2026-10-08",
+      "stage": "screen",
+      "variant_id": "VAR-SWE-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-08",
+          "kind": "applied",
+          "ref": "TEST-LOG-030"
+        },
+        {
+          "at": "2026-10-08",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-030C"
+        },
+        {
+          "at": "2026-10-08",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-030S",
+          "stage": "screen"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-031",
+      "job_id": "TEST-JOB-031",
+      "company": "Coinbase",
+      "title": "Product Management Intern",
+      "role_family": "PM",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 36,
+      "applied_at": "2026-10-09",
+      "stage": "rejected",
+      "variant_id": "VAR-PM-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-09",
+          "kind": "applied",
+          "ref": "TEST-LOG-031"
+        },
+        {
+          "at": "2026-10-09",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-031C"
+        },
+        {
+          "at": "2026-10-09",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-031S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-032",
+      "job_id": "TEST-JOB-032",
+      "company": "Airbnb",
+      "title": "Trust & Safety Analyst",
+      "role_family": "Operations",
+      "seniority_band": "junior",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 34,
+      "applied_at": "2026-10-10",
+      "stage": "rejected",
+      "variant_id": "VAR-OPERATIONS-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-10",
+          "kind": "applied",
+          "ref": "TEST-LOG-032"
+        },
+        {
+          "at": "2026-10-10",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-032C"
+        },
+        {
+          "at": "2026-10-10",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-032S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-033",
+      "job_id": "TEST-JOB-033",
+      "company": "Figma",
+      "title": "Data Analyst Intern",
+      "role_family": "Data/ML",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Match",
+      "fit_score_at_apply": 59,
+      "applied_at": "2026-10-11",
+      "stage": "rejected",
+      "variant_id": "VAR-DATAML-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-11",
+          "kind": "applied",
+          "ref": "TEST-LOG-033"
+        },
+        {
+          "at": "2026-10-11",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-033C"
+        },
+        {
+          "at": "2026-10-11",
+          "kind": "stage_change",
+          "ref": "TEST-LOG-033S",
+          "stage": "rejected"
+        }
+      ]
+    },
+    {
+      "app_id": "TEST-APP-034",
+      "job_id": "TEST-JOB-034",
+      "company": "OpenAI",
+      "title": "Technical Program Intern",
+      "role_family": "PM",
+      "seniority_band": "intern",
+      "bucket_at_apply": "Reach",
+      "fit_score_at_apply": 44,
+      "applied_at": "2026-10-12",
+      "stage": "applied",
+      "variant_id": "VAR-PM-TEST",
+      "source": "TEST-fixture",
+      "events": [
+        {
+          "at": "2026-10-12",
+          "kind": "applied",
+          "ref": "TEST-LOG-034"
+        },
+        {
+          "at": "2026-10-12",
+          "kind": "confirmation_email",
+          "ref": "TEST-MSG-034C"
+        }
+      ]
+    }
+  ]
+}

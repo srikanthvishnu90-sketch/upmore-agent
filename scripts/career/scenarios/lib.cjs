@@ -8,6 +8,12 @@ const ROOT = path.resolve(__dirname, "..", "..", "..");
 const J = require(path.join(ROOT, "packages/domain/121-career-jobs.js"));
 const D = require(path.join(ROOT, "packages/domain/131-career-discover.js"));
 const H = require("../scenario-harness.cjs");
+const T = require(path.join(ROOT, "packages/domain/123-career-tailor.js"));
+const P = require(path.join(ROOT, "packages/domain/122-career-profile.js"));
+const A3 = require(path.join(ROOT, "packages/domain/132-career-apply3.js"));
+function personaProfile(file) { return P.profileFromData(persona(file)); }
+function cir(slug) { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "packages/career-data/cirs", slug + ".json"), "utf8")); } catch (e) { return null; } }
+function cirForTailor(slug) { const c = cir(slug); if (!c) return null; const facts = []; for (const sec of ["path_patterns", "skills_dist", "major_dist"]) for (const e of (c[sec] && c[sec].facts) || []) facts.push({ text: e.claim }); if (c.thesis_text) facts.push({ text: String(c.thesis_text).split("\n")[0] }); return { company: c.company_name, facts }; }
 
 const CANDIDATES = [
   J.feeds.greenhouse("stripe"), J.feeds.greenhouse("robinhood"), J.feeds.greenhouse("airbnb"),
@@ -30,4 +36,4 @@ function feedTotals(result) {
 }
 const slim = (p) => ({ company: p.company, title: p.title, family: p.role_family, band: p.seniority_band, location: p.location, source: p.source, posted_at: p.posted_at, url: p.url });
 function scoreAll(postings, prof) { return postings.map((p) => Object.assign(J.scoreFit(p, prof), { posting: p })); }
-module.exports = { ROOT, J, D, H, CANDIDATES, memStore, persona, profile, pollLive, feedSummary, feedTotals, slim, scoreAll };
+module.exports = { ROOT, J, D, H, T, P, A3, personaProfile, cir, cirForTailor, CANDIDATES, memStore, persona, profile, pollLive, feedSummary, feedTotals, slim, scoreAll };

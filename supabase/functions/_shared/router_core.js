@@ -21150,6 +21150,8 @@ const CareerTailor = (() => {
       pm: /\b(product manager|product management|roadmap|user research)\b/.test(t) ? 2 : 0,
       data_ml: /\b(data scientist|machine learning|ml engineer|data analyst|analytics)\b/.test(t) ? 2 : 0,
       design: /\b(product designer|ux|ui designer|figma|portfolio)\b/.test(t) ? 2 : 0,
+      law: /\b(summer associate|law firm|legal intern|moot court|law review|juris doctor)\b/.test(t) ? 2 : 0,
+      medicine: /\b(medical school|pre-?med|clinical|mcat|shadowing|patient care)\b/.test(t) ? 2 : 0,
     };
     const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
     return best && best[1] > 0 ? best[0] : "swe";
@@ -21164,6 +21166,8 @@ const CareerTailor = (() => {
     pm: { label: "PM", sectionOrder: ["Experience", "Projects", "Leadership", "Skills", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Shipped things, metrics moved, user research and cross-functional leadership lead."], pageLimit: 1 },
     data_ml: { label: "Data/ML", sectionOrder: ["Skills", "Projects", "Experience", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Models shipped, evaluation metrics and tooling lead; papers where present."], pageLimit: 1 },
     design: { label: "Design", sectionOrder: ["Projects", "Experience", "Skills", "Education"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Portfolio-first: projects lead and the portfolio link sits in the header."], pageLimit: 1 },
+    law: { label: "Law (Big Law summer associate)", sectionOrder: ["Education", "Experience", "Leadership", "Projects", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["CV conventions: education first with school and journal signals, then legal experience and leadership; conservative formatting, one page."], pageLimit: 1 },
+    medicine: { label: "Medicine (med-school application)", sectionOrder: ["Education", "Experience", "Projects", "Leadership", "Skills"], skillsBlock: "grouped", bulletStyle: "outcome-first", conventions: ["Clinical and research experience forward, each activity cited to a real experience fact; service and leadership shown with sustained commitment."], pageLimit: 1 },
   };
 
   // ---- fact selection: relevance, then recency, then impact (Doc 2 §3.1 step 3) ----

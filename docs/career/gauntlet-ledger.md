@@ -330,7 +330,21 @@ each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations 
   SHD-2 (SH12 render lacks viewport/lang), **SHD-3 (SH11: the export text offers "delete
   my stored profile" but no deletion handler or retention declaration exists behind
   it)**. Full account: `docs/career/gauntlet-deepdive-sh.md`.
-- AP / NW / MI / CG family lanes: running (96-case library completes when they land).
+- **MI (24 cases ×3, graded on 7778d96, E2): PASS 5 (MI01, MI02, MI04, MI16, MI24) ·
+  FAIL 7 · NOT IMPLEMENTED 6 · BLOCKED 6; UNSAFE 0/72** (partly vacuous — protective
+  handlers unrouted, flagged in the doc). Voice MI17/MI19/MI20 = NOT IMPLEMENTED per the
+  binding rule, kept in the denominator. The 6 BLOCKED are all FOR-CODEX (CODEX-MI-1…6):
+  127's prep surfaces (brief w/ CIR as-of labels, interviewerBrief, the PREP-008
+  live-assist hard stop) exist but have NO chat route; the mock's answer capture
+  swallows correction turns as answers, and its `\bfind\b` exclusion ejected one answer
+  into a job shortlist (GG-1-class wrong-domain action, verbatim in evidence). OURS:
+  MID-1…8 — 127's scoring is domain-blind (fluent wrong content earns form points;
+  wrong accounting answer never corrected), the ≥60-word brevity penalty, and
+  `detectContradiction` false-flagging sentence-start words + disclosed names as
+  fabrications. Coaching rubric: MI03/MI05/MI07 fail specificity/teaching minimums
+  despite restraint 3 — tone never compensated. Full account:
+  `docs/career/gauntlet-deepdive-mi.md`.
+- AP / NW / CG family lanes: running (96-case library completes when they land).
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

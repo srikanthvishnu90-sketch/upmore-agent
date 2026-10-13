@@ -1,0 +1,10 @@
+"use strict"; const { H, P, cirForPrep } = require("./w09-common.cjs");
+(async () => { const s = H.session("SC-183", "canonical-swe-coding-prep-set");
+  await s.user("SWE coding prep set matched to this company's known interview style — my Stripe interview.");
+  const cir = cirForPrep("stripe"); const drills = P.technicalDrills({ cir }); const brief = P.composeBrief({ company: "Stripe", cir, role: "Software Engineering Intern" });
+  await s.tool("127-career-prep.technicalDrills(Stripe CIR)", drills); await s.tool("127-career-prep.composeBrief(Stripe) styles", { styles: brief.styles });
+  const set = drills.sets.find((x) => x.type === "coding"); const style = brief.styles[0] ? brief.styles[0].text : "";
+  await s.agent(`Your Stripe coding prep set — matched to Stripe's known style from its CIR, not a generic LeetCode list:\n\nTHE STYLE (CIR): ${style}\n\nTHE SET (${set.type}, source: ${set.source.type}):\n${set.prompts.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nHow to run each rep the Stripe way: production-quality code with tests, narrate trade-offs in writing-quality prose, and expect follow-ups that extend a working solution into an unfamiliar codebase — that is what the CIR says the listing screens for.`);
+  s.verify("coding set state", { cir_grounded: drills.cir_grounded, types: drills.sets.map((x) => x.type), prompts: set.prompts.length, style_has_pr_signal: /pull requests/i.test(style) });
+  await s.finish({ status: "COMPLETE", outcome: "Stripe coding prep set delivered from technicalDrills over the merged Stripe CIR, explicitly matched to the CIR's stated style (high-quality PRs, test coverage, unfamiliar codebases, written communication)." });
+})();

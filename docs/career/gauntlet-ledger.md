@@ -177,13 +177,31 @@ Deliverable: `~/workspace/your_files/upmore-career-300-rerun-results.md` — per
 ask, VERBATIM delivered reply (bubbles only), verdict; run-1 "before" text where the reply
 changed; 30 full verbatim conversations as highlights (failures and refusals included).
 
-## Stage 4.6 — Staging package (IN PROGRESS — prepare only, NEVER execute)
+## Stage 4.6 — Staging package (COMPLETE — prepared, merged; NOT executed)
 
 One-command staging deploy package for the owner to fire: separate staging environment
 (own Supabase project, test accounts only, never production data), migrations scripted in
 order, deploy configuration, seed + smoke scripts, the exact single command + checklist,
 and the graded-runner re-point spec (HARNESS vs STAGING tier labeling). This program does
 not create the project, does not deploy, and does not touch production.
+
+Delivered (`staging/`, lane career/gauntlet-staging @ fc3054c, merged): the one command is
+`STAGING_REF=<staging-project-ref> bash staging/scripts/staging-up.sh` (secret-name
+presence check → migrate → deploy-functions → seed → smoke; `--dry-run` prints all steps).
+Verified offline by the coordinator: migration dry-run order matches `ls
+supabase/migrations` exactly (69/69); every script refuses the production ref (exit 64,
+before any network call); bash -n 5/5 (shellcheck not installed — stated, not hidden).
+Function set: agent-chat + gmail-oauth + agent-exec; the other 22 excluded with reasons.
+Owner actions are one line each in `staging/OWNER-CHECKLIST.md` (5 decisions carry
+recommended defaults, incl. no separate LoopMessage number for staging v1).
+**Named blockers for STAGING-tier career grading (in staging/README.md §Gaps):** G1 —
+D-10 still open: the deployed agent-chat handler has no career route, so a fired staging
+deploy proves plumbing only, not a career answer; G2 — the router bundle list ends at 142
+(130/141/143 travel outside the bundle in the harness); G3 — six tables (profiles,
+agent_threads, agent_messages, routes, listings, route_reminders) are created by NO
+migration, so the package ships a minimum-inferred bootstrap without which a fresh
+project fails at migration 1. G1+G2 are the exact owner-gated wiring a staging-tier
+career claim waits on.
 
 ## Stage 5 — Expansion (PENDING)
 

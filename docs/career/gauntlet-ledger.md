@@ -865,3 +865,22 @@ grading fixtures too.
   returns the LinkedIn sign-in plan (the standing S0-class defect, now file-pinned)
   · SC-277 = 142 has no playbook route at all (129 implements it; nothing routes
   there). Preservation suites 145/145.
+
+## Gate-2 routing grader + PRE-REBUILD baseline (2026-10-13)
+
+Expectation file covers 300/300 (249 grounded in the scenario runners' own tool
+tokens, 49 family-default flagged as weaker citations, 2 overrides; zero left
+ungrounded). Baseline on the current build, P1, reproducible byte-identically
+across 3 runs (`docs/career/gauntlet-routing-baseline.md`): **canonical correct-tool
+5/300 = 1.7%** (Gate 2 target ≥97%) · paraphrase consistency headline 95.3% is
+DEGENERATE (fallback matches fallback) — the honest slice: 24/32 = 75% among
+non-fallback routes, variant correct-tool 6/316; both slices printed so Gate 2
+cannot pass on the degenerate number · "didn't catch that"-class replies **267**
+(target 0) · canned discovery outside discovery intent **25** (target 0). Named
+ambiguities recorded: SC-105/SC-179 graded against R-C7-honest-unavailable (the
+capability-absent list is still a DRAFT pending owner approval); SC-287's
+expectation covers the ingest leg only; multi-leg Apply scenarios (e.g. SC-065)
+name the primary run-1 owner — multi-leg credit would be an expectations-v2 owner
+decision. P2 is pluggable in the runner (exits with the reason until the PACK-P2
+fixture is registered — the personas lane has since landed it; wiring P2 into the
+baseline is a follow-up).

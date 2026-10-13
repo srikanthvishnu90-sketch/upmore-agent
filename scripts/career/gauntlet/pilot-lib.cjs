@@ -2,14 +2,21 @@
 // PINNED BUILD: ba708c1. Fixture version: gauntlet-v1. Evidence tier: B (integrated staging).
 //
 // PRODUCT PATH — the only path this runner drives for agent behavior:
-//   user turn -> CareerAccess.handleChat (120) -> CareerOnboarding.handleChat (130)
-//   (the only two handleChat entry points in packages/domain; router_core.js bundles the
-//   same modules and its own comment states the router tries 120 first, then 130)
+//   user turn -> containment wrapper (143-career-containment, gauntlet repair R2)
+//   around the whole turn dispatch: CareerAccess.handleChat (120) ->
+//   CareerOnboarding.handleChat (130) (the only two handleChat entry points in
+//   packages/domain; router_core.js bundles the same modules and its own comment
+//   states the router tries 120 first, then 130)
 //   -> any .reply text is delivered through the scenario harness (scripts/career/
 //   scenario-harness.cjs), whose agent() routes text through CareerReply.composeText
 //   (packages/domain/140-career-reply.js) before it becomes a delivered bubble.
-// If both handlers return null, the product produced NO reply. This library records
-// that verbatim; it never invents a bubble. Domain functions are NEVER called by the
+// R2 containment (2026-10-13): before R2, if both handlers returned null the
+// product produced NO reply, and a throw escaped as silence. The wrapper now
+// turns any throw / null return / empty result into (a) 140's canned fallback
+// bubble, delivered like any other bubble, and (b) a product-written failure
+// record appended to <case>/trial-1/containment-failures.jsonl in the evidence
+// root. The wrapper invents no bubble text of its own — delivered fallback
+// text is exactly 140's. Domain functions are NEVER called by the
 // runner to manufacture an end state (binding doorstep amendment, 2026-10-13): they
 // appear only as (a) initial fixture setup, or (b) grader-side fixture verification,
 // and both are labeled as such wherever they occur.
@@ -29,6 +36,7 @@ const Oracle = require("../reply-oracle.cjs");
 const CareerAccess = require(path.join(ROOT, "packages/domain/120-career-access.js"));
 const CareerOnboarding = require(path.join(ROOT, "packages/domain/130-career-onboarding.js"));
 const CareerReply = require(path.join(ROOT, "packages/domain/140-career-reply.js"));
+const CareerContainment = require(path.join(ROOT, "packages/domain/143-career-containment.js"));
 const CareerProfile = require(path.join(ROOT, "packages/domain/122-career-profile.js"));
 
 const GAUNTLET = path.join(ROOT, "packages/career-data/fixtures/gauntlet");
@@ -41,37 +49,80 @@ function gauntletProfile(dirName) {
 }
 function resumeText(dirName, file) { return fs.readFileSync(path.join(GAUNTLET, "profiles", dirName, file), "utf8"); }
 
-// The product chat path. Returns { handler, intent, result } or { handler: null }.
-// A throw propagates to the caller ONLY if opts.propagate is set (C38 fault leg uses
-// it to prove the staging path has no containment wrapper); otherwise the throw is
-// captured as { threw } — which is itself the recorded product behavior gap, because
-// the capture happens in the RUNNER, not in any product code.
+// The product chat path, wrapped in R2 containment (143-career-containment).
+// Returns { handler, result, delivered, contained, boundary, ... }.
+// The dispatch tries 120 first, then 130, exactly as before; the wrapper wraps
+// that WHOLE dispatch at the turn entry, so a handler's null still falls
+// through to the next handler and only a turn-level throw / null / empty
+// result is contained. opts.propagate deliberately bypasses containment (and
+// lets a throw propagate) so a probe can still observe the raw module
+// behavior; no pilot case uses it (the frozen runner's C38 leg-i probe calls
+// 130 directly, not through here).
+function containmentFor(session) {
+  const dir = path.join(EVIDENCE_ROOT, String(session.id || "unknown"), "trial-1");
+  return CareerContainment.createContainment({
+    composer: CareerReply,
+    sink: (rec) => {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.appendFileSync(path.join(dir, "containment-failures.jsonl"), JSON.stringify(rec) + "\n");
+    },
+  });
+}
+function deliverTexts(session, text) {
+  const before = session.messages.filter((m) => m.role === "agent").length;
+  if (typeof text === "string" && text) session.agent(text);
+  return session.messages.filter((m) => m.role === "agent").slice(before).map((m) => m.text);
+}
+// Delivery is the staging path's only transport-adjacent step (harness
+// session.agent -> 140 composeText -> recorded bubble). If THAT step throws,
+// containment records boundary "delivery" and delivers the error fallback
+// instead. This is a harness-delivery seam only — it is not a production
+// renderer/transport, and it does not close C38 leg iii (see the R2 report).
+function deliverContained(session, containment, text, meta) {
+  try {
+    return { texts: deliverTexts(session, text), deliveryContained: false, deliveryFailureRecord: null };
+  } catch (e) {
+    const rec = containment.recordFailure({ boundary: "delivery", error: e, caseId: meta.caseId, sessionId: meta.sessionId, fallbackKind: "error", fallbackDelivered: true });
+    session.tool("chat-path-delivery", { contained_by_product: true, boundary: "delivery", error_class: rec.error_class, failure_record: rec, note: "the harness delivery step threw; the 140 error fallback was delivered instead. Staging harness delivery only — not a production transport." });
+    try {
+      return { texts: deliverTexts(session, containment.fallbackText("error")), deliveryContained: true, deliveryFailureRecord: rec };
+    } catch (e2) {
+      return { texts: [], deliveryContained: true, deliveryFailed: true, deliveryFailureRecord: rec };
+    }
+  }
+}
 function chatTurn(session, text, ctx, opts) {
   const o = opts || {};
   session.user(text);
-  let result = null, handler = null, threw = null;
-  try {
-    result = CareerAccess.handleChat(text, ctx || {});
-    if (result) handler = "120-career-access.handleChat";
-    if (!result) { result = CareerOnboarding.handleChat(text, ctx || {}); if (result) handler = "130-career-onboarding.handleChat"; }
-  } catch (e) {
-    threw = { name: e && e.constructor ? e.constructor.name : "Error", message: String(e && e.message || e) };
-    if (o.propagate) throw e;
+  let handler = null;
+  const dispatch = () => {
+    let r = CareerAccess.handleChat(text, ctx || {});
+    if (r) { handler = "120-career-access.handleChat"; return r; }
+    r = CareerOnboarding.handleChat(text, ctx || {});
+    if (r) { handler = "130-career-onboarding.handleChat"; return r; }
+    return null;
+  };
+  const meta = { caseId: session.id || null, sessionId: session.slug || null };
+  if (o.propagate) {
+    const result = dispatch(); // a throw propagates deliberately in probe mode
+    if (!result) {
+      session.tool("chat-path", { turn: text, access: null, onboarding: null, delivered_reply: null, contained_by_product: false, note: "probe mode (opts.propagate): containment bypassed — both product handleChat entry points returned null" });
+      return { handler: null, result: null, delivered: [], contained: false };
+    }
+    session.tool(handler, { intent: result.intent || null, result_status: result.resultStatus || null });
+    return { handler, result, delivered: deliverTexts(session, CareerContainment.extractReplyText(result)), contained: false };
   }
-  if (threw) {
-    session.tool("chat-path", { turn: text, handler_reached: handler, threw, contained_by_product: false, note: "exception escaped both handleChat entry points; the staging path has no router-level try/catch — this capture is the runner's, not the product's" });
-    return { handler, threw, result: null, delivered: [] };
+  const containment = containmentFor(session);
+  const outcome = containment.runTurn(dispatch, meta);
+  if (outcome.contained) {
+    session.tool("chat-path", { turn: text, handler_reached: handler, contained_by_product: true, containment_boundary: outcome.boundary, error_class: outcome.errorClass, fallback_kind: outcome.failureRecord.fallback_kind, failure_record: outcome.failureRecord, failure_record_file: "containment-failures.jsonl", note: "143-career-containment contained this turn at the turn entry: the user receives 140's fallback bubble and the product path wrote the failure record (JSONL sink in this case's evidence dir)" });
+    const d = deliverContained(session, containment, outcome.replyText, meta);
+    return { handler, contained: true, boundary: outcome.boundary, errorClass: outcome.errorClass, failureRecord: outcome.failureRecord, deliveryContained: d.deliveryContained, deliveryFailed: !!d.deliveryFailed, result: null, delivered: d.texts };
   }
-  if (!result) {
-    session.tool("chat-path", { turn: text, access: null, onboarding: null, delivered_reply: null, note: "both product handleChat entry points returned null — no product reply exists for this turn" });
-    return { handler: null, result: null, delivered: [] };
-  }
+  const result = outcome.result;
   session.tool(handler, { intent: result.intent || null, result_status: result.resultStatus || null });
-  const before = session.messages.filter((m) => m.role === "agent").length;
-  if (typeof result.reply === "string" && result.reply) session.agent(result.reply);
-  else if (typeof result.text === "string" && result.text) session.agent(result.text);
-  const delivered = session.messages.filter((m) => m.role === "agent").slice(before).map((m) => m.text);
-  return { handler, result, delivered };
+  const d = deliverContained(session, containment, outcome.replyText, meta);
+  return { handler, contained: false, deliveryContained: d.deliveryContained, deliveryFailureRecord: d.deliveryFailureRecord, result, delivered: d.texts };
 }
 
 const RUBRIC_DIMS = ["relevance", "factual accuracy", "personalization", "action/status honesty", "appropriate clarification", "depth/artifact quality", "continuity/recovery", "tone/accessibility"];
@@ -161,4 +212,4 @@ function gapDoorstep(caseId, gap, extra) {
   return { driven_by: "gap", steps: 0, payload_sha256: null, sink_armed: false, gap };
 }
 
-module.exports = { H, Oracle, CareerReply, ROOT, BUILD, FIXTURE_VERSION, EVIDENCE_ROOT, GAUNTLET, loadJson, sha256, gauntletProfile, resumeText, chatTurn, rubric, NO_REPLY_RUBRIC, RUBRIC_DIMS, forbidden, assertions, writeEvidence, writeDoorstep, gapDoorstep };
+module.exports = { H, Oracle, CareerReply, CareerContainment, ROOT, BUILD, FIXTURE_VERSION, EVIDENCE_ROOT, GAUNTLET, loadJson, sha256, gauntletProfile, resumeText, chatTurn, rubric, NO_REPLY_RUBRIC, RUBRIC_DIMS, forbidden, assertions, writeEvidence, writeDoorstep, gapDoorstep };

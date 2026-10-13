@@ -40,6 +40,63 @@
    user, submits still require the case's explicit approval turn, caps are
    124's and are not touched here. All form writes go only to the F3 local
    receipt sink. No real sends, no real submissions.
+     5. EXECUTION GUARDS + TRUTHFUL STATUS (repair lane R2B, gauntlet deep-dive
+     DD-1/DD-3/DD-4/DD-5/DD-6/DD-10; causes S-2/S-3):
+     a. DESTINATION TRUTH: status/reconcile NEVER speaks from in-memory
+        submission state. Every status answer re-reads the destination at
+        answer time (driver reconcile + a scan of the receipt sink) through
+        ONE shared path (destinationStatus) used by the timeout branch, the
+        accepted branch, and the repeat-approve refusal alike. Receipt found
+        -> confirmed; receipt absent (or destination unreadable) -> the
+        in-memory state is downgraded to unknown_outcome and the reply says
+        plainly that the outcome is uncertain. No confirmation is ever
+        composed from memory (AP22).
+     b. EXECUTION-TIME GUARDS: submitDoorstep re-reads state IMMEDIATELY
+        before any sink write and refuses — no write, typed resultStatus
+        "blocked", structured guard_refusal {code, reason, unblock}, and a
+        reply naming the specific refusal + what would unblock it — when:
+        the approval was cancelled, the approval was invalidated, the role
+        is closed, a prior application is on record for this user+job
+        (recorded disclosures AND destination receipts), or the packet's
+        bound fact version/hash no longer matches the current profile.
+        The guards read STATE, not the executing turn's wording, so a bare
+        "approve and submit" cannot revive anything (AP08/AP18/AP20/AP23).
+     c. PACKET<->FACT BINDING: at preparation (doorstep fill AND the C15
+        packet leg) the packet/doorstep is stamped with the profile's fact
+        version (130's fact_version counter — bumped by 130's own write
+        paths on every correction) AND a sha256 hash of the fact-bearing
+        profile slices, so even a correction that reaches the profile
+        without 130's counter invalidates the packet at guard (b).
+     STATE FIELDS this seam defines (Lane A's intent handlers in 142 write
+     them through the recorder exports below — recordJobClosure /
+     cancelDoorstep / invalidateApproval / recordPriorApplication — or set
+     the fields directly; the guards read the fields, either way):
+       doorstepState.job_status: "closed"      (+ job_closed, job_closed_at,
+                                                  job_closed_reason)
+       doorstepState.submission.status: "cancelled" (+ cancel_reason,
+                                                  cancelled_at;
+                                                  approval_cancelled: true)
+       doorstepState.approval_invalidated: true (+ invalidated_at,
+                                                  invalidated_reason;
+                                                  submission.status may also
+                                                  be "invalidated")
+       doorstepState.prior_applications: [{ job_id, company, role, source,
+                                                  channel, at }]
+                                                  (host lists are also read:
+                                                  ctx.priorApplications,
+                                                  ctx.trackerRecords,
+                                                  ctx.applications,
+                                                  profile.applications,
+                                                  manual-apply disclosure
+                                                  objects on state/ctx)
+       doorstepState.fact_version / fact_hash: stamped at preparation
+                                                  (mirrored on the doorstep
+                                                  object + payload, and on the
+                                                  C15 binding/review)
+       doorstepState.job_id / sink_dir: identity of this doorstep's job and
+                                                  its destination, stamped at
+                                                  fill so status can re-read
+                                                  the RIGHT destination.
    ROUTER REGISTRATION (one line, for the coordinator at integration): in the
    chat router's handler chain, after 120-career-access and
    130-career-onboarding, add CareerDoorstep.handleChat as the next tried
@@ -51,9 +108,11 @@ const CareerDoorstep = (() => {
   "use strict";
   const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch (e) { return null; } })();
   const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch (e) { return null; } })();
+  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch (e) { return null; } })();
   const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch (e) { return null; } })();
   const nodeCrypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
   const nodeFs = (() => { try { return require("fs"); } catch (e) { return null; } })();
+  const nodePath = (() => { try { return require("path"); } catch (e) { return null; } })();
 
   // ---------- sha256 (crypto when available; pure-JS fallback, same digest) ----------
   function sha256Direct(input) {
@@ -159,13 +218,227 @@ const CareerDoorstep = (() => {
     return { ok: v.ok && late.length === 0 && hiddenSensitive.length === 0, missing: v.missing, hidden_defaults_in_effect: v.hiddenDefaultsInEffect, hidden_sensitive: hiddenSensitive, late_material_unacknowledged: late, submitted: false, note: "driver validate() + submit pre-checks on the exact payload; submit was NOT called" };
   }
 
+  // ---------- 0. R2B: fact binding, destination truth, guards, recorders ----------
+  // Fact binding: the version is 130's counter (profile.fact_version, bumped by
+  // 130's write paths); the hash covers the fact-bearing profile slices in a
+  // canonical (key-sorted) serialization, so ANY change to the facts the
+  // packet was prepared from — through any write path — changes the binding.
+  function factVersionOf(profile) {
+    if (Onboarding && typeof Onboarding.factVersion === "function") return Onboarding.factVersion(profile);
+    return profile && Number.isFinite(profile.fact_version) ? profile.fact_version : 0;
+  }
+  function factSlices(profile) {
+    const p = profile || {};
+    return {
+      basics: p.basics || {}, preferences: p.preferences || {}, constraints: p.constraints || {},
+      facts: (p.facts || []).map((f) => ({ id: f.id || null, kind: f.kind || null, title: f.title || null, text: f.text || null, status: f.status || null, needs_confirmation: !!f.needs_confirmation })),
+    };
+  }
+  function stableStringify(v) {
+    if (v === null || typeof v !== "object") return JSON.stringify(v === undefined ? null : v);
+    if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
+    return "{" + Object.keys(v).sort().filter((k) => v[k] !== undefined && typeof v[k] !== "function").map((k) => JSON.stringify(k) + ":" + stableStringify(v[k])).join(",") + "}";
+  }
+  function factBinding(profile) {
+    if (!profile) return null;
+    return { fact_version: factVersionOf(profile), fact_hash: sha256(stableStringify(factSlices(profile))) };
+  }
+
+  // Destination truth: read the receipt sink for THIS doorstep. The sink dir
+  // is the one stamped at fill (state.sink_dir) or passed by the host
+  // (ctx.sinkDir); the driver's own reconcile() is the other read of the same
+  // destination. Returns null when the destination cannot be read at all —
+  // callers must treat that as "cannot confirm", never as confirmation.
+  function readSinkReceipts(ctx, state) {
+    const dir = (ctx && ctx.sinkDir) || (state && state.sink_dir) || null;
+    if (!dir || !nodeFs || !nodePath) return null;
+    try {
+      const receipts = [];
+      for (const f of nodeFs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch (e) { /* a non-receipt file is not evidence either way */ }
+      }
+      return { dir, receipts };
+    } catch (e) { return null; }
+  }
+  function destinationStatus(ctx, state) {
+    const sub = (state && state.submission) || {};
+    const jobId = (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || (state && state.spec && state.spec.board && state.spec.board.job_id) || null;
+    let checked = false, found = false, receipt = null;
+    if (state && state.session && typeof state.session.reconcile === "function" && sub.receipt_id) {
+      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch (e) { /* unreadable destination: checked stays false */ }
+    }
+    const sink = readSinkReceipts(ctx, state || {});
+    let jobReceipts = null;
+    if (sink) {
+      checked = true;
+      jobReceipts = sink.receipts.filter((r) => !jobId || !r.job_id || r.job_id === jobId);
+      if (sub.receipt_id) { const hit = sink.receipts.find((r) => r.receipt_id === sub.receipt_id); if (hit) { found = true; receipt = receipt || hit; } }
+      else if (jobReceipts.length) { found = true; receipt = receipt || jobReceipts[0]; }
+    }
+    return { checked, found, receipt, job_receipt_count: jobReceipts ? jobReceipts.length : null };
+  }
+
+  // Prior applications for this user+job, from every record the host keeps:
+  // the doorstep state's own list, host ctx lists, the profile, a recorded
+  // manual-apply disclosure — and the destination itself (a sink receipt for
+  // this job that is not THIS doorstep's own recorded submission).
+  function jobIdentity(state, spec) {
+    const board = (spec && spec.board) || (state && state.spec && state.spec.board) || {};
+    return {
+      job_id: board.job_id || (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || null,
+      company: board.company || (state && state.doorstep && state.doorstep.company) || null,
+      role: board.role || (state && state.doorstep && state.doorstep.role) || null,
+    };
+  }
+  function priorApplicationFor(ctx, state, spec) {
+    const st = state || {}, c = ctx || {};
+    const job = jobIdentity(st, spec);
+    const matches = (rec) => {
+      if (!rec || typeof rec !== "object") return false;
+      const rid = rec.job_id || rec.jobId || null;
+      if (job.job_id && rid) return rid === job.job_id;
+      if (job.company && rec.company) return rec.company === job.company && (!job.role || !rec.role || rec.role === job.role);
+      return false;
+    };
+    const lists = [st.prior_applications, st.priorApplications, c.priorApplications, c.trackerRecords, c.applications, c.profile && c.profile.applications];
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue;
+      const hit = list.find(matches);
+      if (hit) return { job_id: hit.job_id || hit.jobId || job.job_id, company: hit.company || job.company, role: hit.role || job.role, source: hit.source || "prior application on record", channel: hit.channel || null, at: hit.at || null, receipt_id: hit.receipt_id || null };
+    }
+    for (const single of [st.manual_apply_disclosure, c.manualApplyDisclosure, c.manual_apply_disclosure]) {
+      if (single && matches(single)) return { job_id: single.job_id || single.jobId || job.job_id, company: single.company || job.company, role: single.role || job.role, source: single.source || "manual application (disclosed by the user)", channel: single.channel || null, at: single.at || null, receipt_id: null };
+    }
+    const sink = readSinkReceipts(c, st);
+    if (sink) {
+      const own = st.submission && st.submission.receipt_id;
+      const hit = sink.receipts.find((r) => (!job.job_id || !r.job_id || r.job_id === job.job_id) && r.receipt_id !== own);
+      if (hit) return { job_id: hit.job_id || job.job_id, company: job.company, role: job.role, source: "prior submission at the destination", channel: "receipt sink", at: hit.submitted_at || null, receipt_id: hit.receipt_id };
+    }
+    return null;
+  }
+  function describePrior(prior) {
+    if (!prior) return "a prior application";
+    const bits = [];
+    if (prior.source) bits.push(prior.source);
+    if (prior.channel) bits.push("via " + prior.channel);
+    if (prior.at) bits.push("on " + prior.at);
+    if (prior.receipt_id) bits.push("receipt " + prior.receipt_id);
+    return bits.join(", ") || "a prior application";
+  }
+  function jobLabelOf(state) {
+    const job = jobIdentity(state || {});
+    return [job.company, job.role].filter(Boolean).join(" — ") || "this job";
+  }
+  function jobClosedReason(ctx, state) {
+    const st = state || {}, c = ctx || {};
+    if (st.job_status === "closed" || st.job_closed === true) return st.job_closed_reason || "this job has closed and is no longer accepting applications";
+    const p = c.posting || null;
+    if (p && (p.closed === true || p.is_closed === true || p.status === "closed" || p.accepting_applications === false || p.acceptingApplications === false)) {
+      return "the posting now shows this job as closed — it is no longer accepting applications";
+    }
+    return null;
+  }
+  function staleFactCheck(ctx, state) {
+    const st = state || {}, c = ctx || {};
+    if (!c.profile) return null;
+    const boundHash = st.fact_hash || (st.doorstep && st.doorstep.fact_hash) || null;
+    const boundVersion = st.fact_version != null ? st.fact_version : (st.doorstep ? st.doorstep.fact_version : null);
+    if (boundHash == null && boundVersion == null) return null; // prepared before binding existed — nothing to compare
+    const cur = factBinding(c.profile);
+    if (boundHash && cur.fact_hash !== boundHash) return { kind: boundVersion != null && cur.fact_version !== boundVersion ? "version" : "hash", bound: boundVersion, current: cur.fact_version };
+    if (!boundHash && boundVersion != null && cur.fact_version !== boundVersion) return { kind: "version", bound: boundVersion, current: cur.fact_version };
+    return null;
+  }
+  // THE execution-time guard set (R2B fix 2): evaluated immediately before
+  // any sink write, purely from re-read state. Returns null when the submit
+  // may proceed, else { code, reason, unblock, reply }.
+  function checkSubmitGuards(ctx, state) {
+    const st = state || {}, sub = st.submission || {};
+    if (sub.status === "cancelled" || st.approval_cancelled === true) {
+      const why = sub.cancel_reason || st.cancel_reason || null;
+      return { code: "approval_cancelled", reason: "the user cancelled this submission" + (why ? ` (${why})` : ""), unblock: "prepare the application fresh and approve the new review",
+        reply: `I did not submit this application: you cancelled it${why ? ` (${why})` : ""}, and a cancelled approval cannot be revived by a later "approve and submit". Nothing was submitted. If you want it to go ahead after all, ask me to prepare it fresh and approve the new review.` };
+    }
+    if (st.approval_invalidated === true || sub.status === "invalidated") {
+      const why = st.invalidated_reason || sub.invalidated_reason || "the prepared packet was invalidated";
+      return { code: "approval_invalidated", reason: String(why), unblock: "re-prepare the packet on the current facts and re-confirm the new review",
+        reply: `I did not submit this application: the prepared packet was invalidated (${why}), so its approval no longer stands. Nothing was submitted. I need to re-prepare it on the current facts and have you re-confirm the new review first.` };
+    }
+    const closed = jobClosedReason(ctx, st);
+    if (closed) {
+      return { code: "job_closed", reason: closed, unblock: "the employer reopens the job, or pick another role and I will prepare a fresh application",
+        reply: `I did not submit this application: ${closed}, so this submission is stopped. Nothing was submitted. If the employer reopens it — or you pick another role — I will prepare a fresh application for your review.` };
+    }
+    const prior = priorApplicationFor(ctx, st, st.spec);
+    if (prior) {
+      return { code: "duplicate_application", reason: `an application for this job is already on record (${describePrior(prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior,
+        reply: `I did not submit: there is already an application on record for ${jobLabelOf(st)} (${describePrior(prior)}), so a second submission would be a duplicate application. Nothing was submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+    }
+    const stale = staleFactCheck(ctx, st);
+    if (stale) {
+      const change = stale.kind === "version" ? `fact version ${stale.bound} → ${stale.current}` : "the facts on file no longer match the ones this packet was prepared from";
+      return { code: "stale_packet_facts", reason: `profile facts changed after this packet was prepared (${change})`, unblock: "re-confirm the current answers, let me re-prepare the packet, then approve the new review",
+        reply: `I did not submit: your profile facts changed after this packet was prepared (${change}), so the prepared answers are stale and this packet is invalidated. Nothing was submitted with the old answers. The current answers have to be re-confirmed and the packet re-prepared before anything submits.` };
+    }
+    return null;
+  }
+  // Recorders — Lane A's mutation surface. Each accepts the chat ctx (with
+  // .doorstepState) or the doorstepState object itself, writes the state
+  // fields documented in the header, and returns what it wrote.
+  function stateOf(x) { if (!x || typeof x !== "object") return null; return x.doorstepState || x; }
+  function recordJobClosure(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.job_status = "closed"; st.job_closed = true;
+    st.job_closed_at = o.at || null;
+    st.job_closed_reason = o.reason || "the employer closed this job — it is no longer accepting applications";
+    return st;
+  }
+  function cancelDoorstep(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.submission = st.submission || { status: "not_submitted", retries: 0, reconciled_before_retry: false, receipt_id: null };
+    st.submission.status = "cancelled";
+    st.submission.cancelled_at = o.at || null;
+    st.submission.cancel_reason = o.reason || "user cancelled the submission";
+    st.approval_cancelled = true;
+    if (st.doorstep) { st.doorstep.submission = st.submission; st.doorstep.state = "CANCELLED"; }
+    return st;
+  }
+  function invalidateApproval(x, info) {
+    const st = stateOf(x); if (!st) return null;
+    const o = info || {};
+    st.approval_invalidated = true;
+    st.invalidated_at = o.at || null;
+    st.invalidated_reason = o.reason || "the prepared packet was invalidated";
+    if (st.submission && st.submission.status === "not_submitted") st.submission.status = "invalidated";
+    return st;
+  }
+  function recordPriorApplication(x, rec) {
+    const st = stateOf(x); if (!st || !rec) return null;
+    const entry = { job_id: rec.job_id || rec.jobId || null, company: rec.company || null, role: rec.role || null, source: rec.source || "manual", channel: rec.channel || null, at: rec.at || null };
+    st.prior_applications = [...(st.prior_applications || []), entry];
+    return entry;
+  }
+
   // ---------- 1. doorstep fill (C17/C18 + C20 pre-submit) ----------
   function fillDoorstep(ctx) {
     if (!Driver) return { ok: false, code: "driver_unavailable", reply: "The form driver is not available in this build, so I filled nothing." };
     const spec = ctx.formSpec || Driver.loadSpec(ctx.formSpecName);
     const sinkDir = ctx.sinkDir; // local receipt sink dir only; the driver refuses URLs
-    const session = Driver.createSession(spec, sinkDir ? { sinkDir } : {});
     const state = ctx.doorstepState || (ctx.doorstepState = {});
+    state.sink_dir = sinkDir || state.sink_dir || null;
+    // R2B preparation-time duplicate guard: a prior application already on
+    // record for this job means NO duplicate packet is even prepared (the
+    // execution-time guard in submitDoorstep is the second line of defense).
+    const prior = priorApplicationFor(ctx, state, spec);
+    if (prior) {
+      const job = jobIdentity(state, spec);
+      const label = [job.company, job.role].filter(Boolean).join(" — ") || "this job";
+      return { ok: false, code: "duplicate_application", prior, reply: `I stopped before filling anything out: there is already an application on record for ${label} (${describePrior(prior)}), so preparing a second one would duplicate it. Nothing was filled or submitted. I can track the existing application and check its status instead — say "track it" and I will.` };
+    }
+    const session = Driver.createSession(spec, sinkDir ? { sinkDir } : {});
     const stepLog = [], asks = [];
     let seq = 0;
     for (const step of spec.steps) {
@@ -195,10 +468,14 @@ const CareerDoorstep = (() => {
     const hiddenSensitive = validation.hiddenDefaultsInEffect.filter((h) => h.sensitive);
     const art = ctx.resumeArtifact || {};
     const answers = Object.assign({}, session.answers);
+    // R2B packet<->fact binding: this packet is submittable only while the
+    // profile still matches this stamp (version + fact hash) at submit time.
+    const binding = factBinding(ctx.profile);
     const payload = {
-      form: spec.fixture_id, company: (spec.board || {}).company || null, role: (spec.board || {}).role || null,
+      form: spec.fixture_id, company: (spec.board || {}).company || null, role: (spec.board || {}).role || null, job_id: (spec.board || {}).job_id || null,
       answers, resume_artifact: art.name || null, resume_sha256: art.sha256 || (art.content != null ? sha256(art.content) : null),
       payload_sha256: sha256(JSON.stringify(answers)), submitted: false,
+      fact_version: binding ? binding.fact_version : null, fact_hash: binding ? binding.fact_hash : null,
     };
     const dry = dryValidate(session, spec);
     let doorstepStateName = "REVIEW", stopCode = null, review = null;
@@ -211,13 +488,15 @@ const CareerDoorstep = (() => {
       stepLog.push({ step: ++seq, action: "review", field: null, step_id: review.step_id, value_source: null, result: "stopped ON the final review screen — submit not clicked" });
     }
     const doorstep = {
-      form: spec.fixture_id, company: payload.company, role: payload.role,
+      form: spec.fixture_id, company: payload.company, role: payload.role, job_id: payload.job_id,
       state: doorstepStateName, stop_code: stopCode, submitted: false,
       step_log: stepLog, asks, payload,
       dry_validate: dry, sink_armed: doorstepStateName === "REVIEW" && dry.ok,
       review,
+      fact_version: payload.fact_version, fact_hash: payload.fact_hash,
+      approval_binding: binding ? { fact_version: binding.fact_version, fact_hash: binding.fact_hash } : null,
     };
-    Object.assign(state, { spec, session, doorstep, submission: { status: "not_submitted", retries: 0, reconciled_before_retry: false, receipt_id: null }, payload_sha256: payload.payload_sha256 });
+    Object.assign(state, { spec, session, doorstep, submission: { status: "not_submitted", retries: 0, reconciled_before_retry: false, receipt_id: null }, payload_sha256: payload.payload_sha256, job_id: payload.job_id, fact_version: payload.fact_version, fact_hash: payload.fact_hash });
     doorstep.submission = state.submission;
     return { ok: true, doorstep };
   }
@@ -230,15 +509,31 @@ const CareerDoorstep = (() => {
     return `Filled the ${doorstep.company || "application"} form from your profile and stopped on the final review screen — it is not submitted.${askText} Nothing will be submitted until you approve it.`;
   }
 
-  // ---------- 2. C20 submit + reconcile ----------
+  // ---------- 2. C20 submit + reconcile (R2B: guarded submit, destination-truth status) ----------
   function submitDoorstep(ctx) {
     const state = ctx.doorstepState || {};
     const sub = state.submission;
     if (sub && state.doorstep) state.doorstep.submission = sub;
     if (!state.session || !sub) return { intent: "doorstep_submit", resultStatus: "blocked", reply: "There is no prepared form waiting on its review screen, so there is nothing to submit. Ask me to fill the form out first." };
-    if (sub.status === "unknown_outcome" || sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
-      return { intent: "doorstep_submit", resultStatus: sub.status === "unknown_outcome" ? "unknown_outcome" : "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is ${sub.status === "unknown_outcome" ? "still unknown" : "already recorded"}, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+    if (sub.status === "unknown_outcome") {
+      return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is still unknown, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
     }
+    if (sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
+      // Even the refusal speaks only from a destination re-read: if the
+      // receipt is gone, "already recorded" would be a false completion.
+      const dest = destinationStatus(ctx, state);
+      if (dest.checked && !dest.found) {
+        sub.status = "unknown_outcome"; sub.destination_missing = true; sub.receipt_missing_at_destination = true;
+        return { intent: "doorstep_submit", resultStatus: "unknown_outcome", duplicate_refused: true, doorstep: state.doorstep, submission: sub, destination: dest, reply: `I will not submit again: one submission was sent for this review, but I just re-checked the receipt sink and found no receipt for it, so its outcome is now uncertain — it may never have landed. Ask me "did it go through?" and I will reconcile before anything else happens.` };
+      }
+      return { intent: "doorstep_submit", resultStatus: "completed", duplicate_refused: true, doorstep: state.doorstep, submission: sub, reply: `I already sent one submission for this exact review and its outcome is already recorded, so I will not submit again. Ask me "did it go through?" and I will reconcile the receipt sink before any retry.` };
+    }
+    // R2B execution-time guards: re-read state IMMEDIATELY before any sink
+    // write. A stale approval / closed role / duplicate / stale packet is
+    // refused here even when the executing turn is a bare "approve and
+    // submit" and no upstream handler caught the change (AP08/AP18/AP20/AP23).
+    const refusal = checkSubmitGuards(ctx, state);
+    if (refusal) return { intent: "doorstep_submit", resultStatus: "blocked", refused: true, guard_refusal: refusal, doorstep: state.doorstep, submission: sub, reply: refusal.reply };
     if (state.doorstep.state !== "REVIEW") return { intent: "doorstep_submit", resultStatus: "awaiting_user", doorstep: state.doorstep, submission: sub, reply: `The form is stopped (${state.doorstep.stop_code || "not at review"}), so I cannot submit it. The open asks have to be answered by you first.` };
     const out = state.session.submit();
     if (out.outcome === "accepted") {
@@ -258,17 +553,35 @@ const CareerDoorstep = (() => {
     const sub = state.submission;
     if (sub && state.doorstep) state.doorstep.submission = sub;
     if (!sub || sub.status === "not_submitted") return { intent: "doorstep_status", resultStatus: "prepared", doorstep: state.doorstep || null, submission: sub || null, reply: "Nothing has been submitted for this form yet, so there is no outcome to check. It is still waiting on its review screen for your approval." };
-    if (sub.status === "confirmed_after_reconcile" || sub.status === "submitted_accepted") {
-      return { intent: "doorstep_status", resultStatus: "completed", doorstep: state.doorstep, submission: sub, reply: `Yes — exactly one submission is on record for this application (receipt ${sub.receipt_id}). No second submission was made.` };
+    if (sub.status === "cancelled") return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the submission was cancelled, so there is no outcome to check, and nothing will be sent unless you ask me to prepare it fresh." };
+    if (sub.status === "invalidated" || state.approval_invalidated === true) return { intent: "doorstep_status", resultStatus: "blocked", doorstep: state.doorstep || null, submission: sub, reply: "Nothing was submitted for this form — the prepared packet was invalidated, so there is no outcome to check. It has to be re-prepared on the current facts and re-approved first." };
+    // THE one truth path (R2B / AP22): whatever the in-memory state claims —
+    // accepted, confirmed, or unknown — the status is spoken ONLY from a
+    // fresh re-read of the destination, taken now. This is the same read the
+    // AP19 timeout branch always performed; the accepted branch used to skip
+    // it and confirm from memory (DD-5).
+    const dest = destinationStatus(ctx, state);
+    const wasUnknown = sub.status === "unknown_outcome";
+    if (dest.checked && dest.found) {
+      if (wasUnknown) { sub.status = "confirmed_after_reconcile"; sub.reconciled_before_retry = sub.retries === 0; if (dest.receipt) sub.receipt = dest.receipt; }
+      sub.destination_missing = false;
+      const exactlyOne = dest.job_receipt_count == null || dest.job_receipt_count === 1;
+      return { intent: "doorstep_status", resultStatus: "completed", doorstep: state.doorstep, submission: sub, destination: dest, reply: wasUnknown
+        ? `Yes — I checked the receipt sink before any retry and found exactly one submission for this application (receipt ${sub.receipt_id}). No second submission was made, so there are no duplicates.`
+        : exactlyOne
+          ? `Yes — I re-checked the receipt sink just now: exactly one submission is on record for this application (receipt ${sub.receipt_id}). No second submission was made.`
+          : `I re-checked the receipt sink just now: ${dest.job_receipt_count} submissions are on record for this application (this one: receipt ${sub.receipt_id}). I made no further submission.` };
     }
-    // unknown_outcome: reconcile BEFORE any retry — and no retry is taken here.
-    const rec = state.session.reconcile(sub.receipt_id);
-    sub.reconciled_before_retry = sub.retries === 0;
-    if (rec && rec.found) {
-      sub.status = "confirmed_after_reconcile"; sub.receipt = rec.receipt;
-      return { intent: "doorstep_status", resultStatus: "completed", doorstep: state.doorstep, submission: sub, reply: `Yes — I checked the receipt sink before any retry and found exactly one submission for this application (receipt ${sub.receipt_id}). No second submission was made, so there are no duplicates.` };
-    }
-    return { intent: "doorstep_status", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, reply: "I checked the receipt sink and found no receipt for that submission, so its outcome is still unknown. I will not resubmit blindly — that could double-apply; tell me if you want me to prepare it again." };
+    // Receipt absent at the destination (or the destination unreadable):
+    // the outcome is UNCERTAIN, in plain words — never a confirmation — and
+    // the in-memory state is downgraded to match the destination. No retry
+    // is taken here, and none will be taken blindly (AP22-A2/A3/A4).
+    sub.status = "unknown_outcome";
+    sub.destination_missing = true;
+    if (dest.checked) { sub.receipt_missing_at_destination = true; if (wasUnknown) sub.reconciled_before_retry = sub.retries === 0; }
+    return { intent: "doorstep_status", resultStatus: "unknown_outcome", doorstep: state.doorstep, submission: sub, destination: dest, reply: dest.checked
+      ? "I checked the receipt sink just now and found no receipt for that submission, so I cannot confirm it went through — its outcome is uncertain. I have not resubmitted anything, and I will not resubmit blindly, since that could double-apply; tell me if you want me to prepare it again for your review."
+      : "I could not re-read the receipt sink just now, so I cannot confirm that submission went through — its outcome is uncertain. I have not resubmitted anything; ask me again and I will reconcile the sink before any retry." };
   }
 
   // ---------- 3. queue control (C37) ----------
@@ -287,6 +600,7 @@ const CareerDoorstep = (() => {
     }
     const q = state.outreach_queue;
     const pending = q.items.filter((i) => i.status === "pending");
+    const sentAlready = q.items.filter((i) => i.status === "sent");
     for (const item of pending) { item.status = "halted"; item.halted_by = "user instruction in chat"; item.halt_reason = String(text || ""); }
     q.halted = true;
     q.halt = { at: (ctx && ctx.now) || null, instruction: String(text || ""), items_halted: pending.map((i) => i.queue_id), form_prep_state: state.form_prep_in_progress ? state.form_prep_in_progress.state || null : null };
@@ -297,10 +611,16 @@ const CareerDoorstep = (() => {
     const suppression = (ctx && ctx.suppression) || (Outreach && Outreach.createSuppressionStore ? Outreach.createSuppressionStore() : null);
     if (suppression) { for (const item of pending) if (item.to) { suppression.suppress({ email: item.to, userId: (ctx && ctx.userId) || "user-1", scope: "user", reason: "user stop-everything instruction" }); suppressed++; } if (ctx) ctx.suppression = suppression; }
     persist();
+    // DD-10: the sent-statement is computed from the queue's actual state —
+    // when an item already went out, the reply says so instead of claiming
+    // "nothing was sent" over a landed send.
+    const sentText = sentAlready.length
+      ? ` ${sentAlready.length} item${sentAlready.length === 1 ? " had" : "s had"} already gone out before this halt — those can't be unsent, and I have left them marked as sent. Nothing else will go out from this queue.`
+      : " Nothing was sent and nothing irreversible exists — no contact will be made from this queue.";
     return {
-      intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, suppressed_recipients: suppressed,
+      intent: "queue_halt", resultStatus: "completed", halted_count: pending.length, suppressed_recipients: suppressed, sent_before_halt: sentAlready.length,
       queue_state: q,
-      reply: `Stopped everything: ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart. Nothing was sent and nothing irreversible exists — no contact will be made from this queue.`,
+      reply: `Stopped everything: ${pending.length} pending outreach item${pending.length === 1 ? " is" : "s are"} halted, and the halt is saved so it survives a restart.${sentText}`,
     };
   }
   // Inbox-event hygiene for a (possibly halted) queue state: dedupe by
@@ -336,10 +656,14 @@ const CareerDoorstep = (() => {
     }
     const artifact = matches[0];
     const binding = { version: artifact.version || requested, name: artifact.name || "resume.pdf", record: artifact.record || null, sha256: artifact.sha256 || sha256(artifact.content != null ? artifact.content : "") };
+    // R2B packet<->fact binding: the packet (and any approval of it) is bound
+    // to the profile fact version/hash it was prepared against.
+    const fb = factBinding(ctx && ctx.profile);
+    if (fb) { binding.fact_version = fb.fact_version; binding.fact_hash = fb.fact_hash; }
     const pin = (ctx && ctx.packet) || {};
     const packet = Packets.assemblePacket({ profile: ctx.profile, company: pin.company, jdText: pin.jdText, jobId: pin.jobId || null, family: pin.family, cir: pin.cir || null, portalAsksCoverLetter: !!pin.portalAsksCoverLetter, companyKind: pin.companyKind, voice: pin.voice });
     if (!packet.ok) return { intent: "packet_prep", resultStatus: "blocked", binding, packet, reply: `I bound the ${binding.version} version by its content hash, but the packet itself was refused (${packet.code || "truth audit"}), so nothing is prepared. Fix that first and I will rebuild it.` };
-    const review = { company: packet.company, jobId: packet.jobId, portal: packet.portal || null, bound_name: binding.name, bound_version: binding.version, bound_sha256: binding.sha256, one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null };
+    const review = { company: packet.company, jobId: packet.jobId, portal: packet.portal || null, bound_name: binding.name, bound_version: binding.version, bound_sha256: binding.sha256, one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null, fact_version: binding.fact_version != null ? binding.fact_version : null, fact_hash: binding.fact_hash || null };
     return {
       intent: "packet_prep", resultStatus: "prepared", packet, binding, review,
       reply: `Prepared the ${binding.version} application packet for ${packet.company}, bound to the ${binding.version} version of your resume (matched by content hash, not by file name). It is ready for your review — nothing has been submitted.`,
@@ -356,13 +680,16 @@ const CareerDoorstep = (() => {
     if (/\bfill (this|it|the form|that) out\b|\bfill out this\b|\bjust use my profile\b|\bcomplete (this|the) application form\b/.test(t)) {
       if (!c.formSpecName && !c.formSpec) return null;
       const r = fillDoorstep(c);
-      if (!r.ok) return { intent: "doorstep_fill", resultStatus: "blocked", reply: r.reply };
+      if (!r.ok) return { intent: "doorstep_fill", resultStatus: "blocked", code: r.code || null, guard_refusal: r.code === "duplicate_application" ? { code: r.code, reason: `an application for this job is already on record (${describePrior(r.prior)})`, unblock: "track or check the status of the existing application instead of applying again", prior: r.prior } : null, reply: r.reply };
       return { intent: "doorstep_fill", resultStatus: r.doorstep.state === "STOPPED" ? "awaiting_user" : "prepared", doorstep: r.doorstep, reply: fillReply(r.doorstep) };
     }
     if (/\bprep the \w+ application\b|\bprepare the \w+ application\b/.test(t)) return prepPacket(text, c);
     return null;
   }
 
-  return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct };
+  return { handleChat, fillDoorstep, dryValidate, submitDoorstep, reconcileDoorstep, haltQueue, applyQueueEvent, prepPacket, resolveField, sha256, sha256Direct,
+    // R2B exports: fact binding + destination truth + guards + the recorder
+    // surface Lane A's intent handlers use to mutate doorstep state.
+    factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerDoorstep;

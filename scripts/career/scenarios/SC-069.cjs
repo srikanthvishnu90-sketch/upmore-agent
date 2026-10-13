@@ -6,7 +6,7 @@ const L = require("./_w04-lib.cjs");
   const all = await L.feedMany(L.WIDE_FEEDS);
   const scoring = L.scoringProfile();
   const ng = all.filter((p) => /intern|new grad|early career|university/i.test(p.title));
-  const rows = ng.slice(0, 60).map((p) => { const f = L.Jobs.scoreFit(p, scoring); return f.excluded ? { company: p.company, role: p.title, bucket: "Excluded", reason: f.hard_fails[0] } : { company: p.company, role: p.title, bucket: f.bucket, reason: `fit ${f.score} vs bar ${f.bar} — ${f.reasons[0] || f.gaps[0] || "scored"}` }; });
+  const rows = ng.map((p) => { const f = L.Jobs.scoreFit(p, scoring); return f.excluded ? { company: p.company, role: p.title, bucket: "Excluded", reason: f.hard_fails[0] } : { company: p.company, role: p.title, bucket: f.bucket, reason: `fit ${f.score} vs bar ${f.bar} — ${f.reasons[0] || f.gaps[0] || "scored"}` }; }).sort((a, b) => (a.bucket === "Excluded" ? 1 : 0) - (b.bucket === "Excluded" ? 1 : 0));
   const thirty8 = rows.slice(0, 38);
   s.tool("121-career-jobs + scoreFit bucketing", { newGradPool: ng.length, rows: thirty8 });
   const counts = thirty8.reduce((a, r) => { a[r.bucket] = (a[r.bucket] || 0) + 1; return a; }, {});

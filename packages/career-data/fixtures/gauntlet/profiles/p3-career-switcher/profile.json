@@ -1,0 +1,149 @@
+{
+  "persona_id": "GAUNTLET-P3",
+  "fixture_version": "gauntlet-v1",
+  "label": "GAUNTLET P3 — career switcher, operations to data engineering, synthetic fixture, not a real person",
+  "fixture": true,
+  "isTestFixture": true,
+  "basics": {
+    "name": "Dana Whitfield (TEST)",
+    "email": "dana.whitfield@example.test",
+    "phone": "+1 555-0103 (TEST)",
+    "location": "Denver, CO (TEST)",
+    "links": {
+      "portfolio": "https://example.test/dana-whitfield (TEST)"
+    }
+  },
+  "constraints": {
+    "graduationDate": null,
+    "startDate": "2026-11 (TEST)",
+    "workAuthorization": "US citizen (TEST) — stated explicitly, see P3-F-007",
+    "needsSponsorship": false,
+    "relocation": false,
+    "securityClearance": null
+  },
+  "defaults": {
+    "demographicPreference": "decline to answer",
+    "gpa": null,
+    "pronouns": "they/them (TEST)"
+  },
+  "preferences": {
+    "roles": [
+      "Data Engineer (entry / associate)",
+      "Analytics Engineer (entry / associate)",
+      "Data Analyst (bridge role)"
+    ],
+    "industries": [
+      "logistics",
+      "technology",
+      "healthcare"
+    ],
+    "locations": [
+      "Denver, CO",
+      "Remote"
+    ],
+    "remote": true,
+    "targetCompanies": [],
+    "excludedCompanies": [],
+    "compFloor": null,
+    "dealBreakers": [
+      "Roles requiring a prior paid data-engineering title — P3 does not have one and must not claim one"
+    ]
+  },
+  "facts": [
+    {
+      "id": "P3-F-001",
+      "kind": "experience",
+      "text": "Operations Manager, TEST Logistics Co, 2022-2026: ran shift scheduling and vendor escalations for a 40-person distribution operation; built the team's Excel reporting pack.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Operations Manager, TEST Logistics Co",
+      "org": "TEST Logistics Co (TEST)",
+      "start": "2022-01",
+      "end": "2026-10",
+      "skills": [
+        "Operations",
+        "Excel",
+        "SQL"
+      ]
+    },
+    {
+      "id": "P3-F-002",
+      "kind": "experience",
+      "text": "Operations Coordinator, TEST Logistics Co, 2018-2022: tracked shipment exceptions and maintained operations trackers. Promoted to Operations Manager in 2022 (see P3-F-001). Eight years in operations in total (2018-2026), all at TEST Logistics Co.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Operations Coordinator, TEST Logistics Co",
+      "org": "TEST Logistics Co (TEST)",
+      "start": "2018-06",
+      "end": "2022-01",
+      "skills": [
+        "Operations",
+        "Excel"
+      ]
+    },
+    {
+      "id": "P3-F-003",
+      "kind": "project",
+      "text": "SQL portfolio project 1 (TEST): Warehouse Throughput Analysis — wrote SQL queries over a public sample warehouse dataset to find the 5 slowest dock-to-stock lanes; queries and write-up in a public portfolio repo. Unpaid portfolio work, not a job.",
+      "evidence": [
+        "https://example.test/dana-whitfield/throughput (TEST)"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "SQL Portfolio Project 1: Warehouse Throughput Analysis (TEST)",
+      "skills": [
+        "SQL"
+      ]
+    },
+    {
+      "id": "P3-F-004",
+      "kind": "project",
+      "text": "SQL portfolio project 2 (TEST): Returns Root-Cause Analysis — SQL joins and window functions over a public sample returns dataset, with a short findings memo. Unpaid portfolio work, not a job.",
+      "evidence": [
+        "https://example.test/dana-whitfield/returns (TEST)"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "SQL Portfolio Project 2: Returns Root-Cause Analysis (TEST)",
+      "skills": [
+        "SQL"
+      ]
+    },
+    {
+      "id": "P3-F-005",
+      "kind": "skill",
+      "text": "Skill: SQL",
+      "evidence": [
+        "P3-F-003",
+        "P3-F-004",
+        "P3-F-001"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "name": "SQL"
+    },
+    {
+      "id": "P3-F-006",
+      "kind": "skill",
+      "text": "Skill: Excel",
+      "evidence": [
+        "P3-F-001",
+        "P3-F-002"
+      ],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "name": "Excel"
+    },
+    {
+      "id": "P3-F-007",
+      "kind": "authorization",
+      "text": "Work authorization, stated explicitly by the candidate: US citizen (TEST), authorized to work in the US without sponsorship.",
+      "evidence": [],
+      "needs_confirmation": false,
+      "source": "gauntlet-fixture",
+      "title": "Stated work authorization: US citizen (TEST)"
+    }
+  ]
+}

@@ -457,7 +457,29 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
 - G3 prep scoring (127): running. C-expansion (C-A canonical, C-B1/B2 variants, U
   journeys) + item-10 dedupe survey: running on the frozen b7d9f83 build.
 
-## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
+## Item 10 — dedupe survey (COMPLETE, 021cebb) + build (IN PROGRESS)
+
+Survey (`docs/career/gauntlet-item10-dedupe-survey.md`, grep-proven) corrects the
+queue's premises: **(a) 132 vs apply3 is NOT a duplication** (complementary blocks,
+zero shared exports — both survive; the real issue is three incompatible
+application-log shapes, MEDIUM-risk unification, deferred) · **(b) 135 vs 138 IS the
+one true duplication** (two warm-path graph engines from a branch numbering
+collision; 135 authoritative) — with a live breakage: `w08-common.cjs` was never
+updated at the merge, so **all 20 SC-141..160 scenario runners crash today**
+(`G.createGraph is not a function`, reproduced) · **(c) "doubled 130" is a number
+collision, not duplicated code** (130-onboarding vs 130-w11-ext, zero shared exports;
+fix = renumber w11-ext). Also found: 130-onboarding is ABSENT from the router bundle
+(141/143 too — the staging G2 gap, item 7/Codex territory), and **S10-X1 FOR-CODEX**:
+142 re-implements the sensitive-fact write (direct overwrite, different audit shape,
+no fact-version bump) alongside 130's write path — currently backstopped by lane A's
+invalidation flag (AP23 holds), but a standing hazard: one write path must win.
+Collision check: **no Codex career/persistence branch exists on origin yet** (both
+codex/* branches predate the career modules); three unmerged finance branches append
+to build-router-core.py's tails (mechanical conflict risk noted).
+Build scope (this program): consolidate 138 → 135 (repair w08-common; the 20 crashed
+runners become the fail-first proof), renumber w11-ext, update the bundle + callers;
+hands OFF 130's persistence functions (Codex's) and the log-shape unification
+(deferred, recorded).
 
 Not simulated. Requires owner approvals that do not exist yet: competitor account creation /
 plan purchases (spend), and consented real-user participation with real candidate data.

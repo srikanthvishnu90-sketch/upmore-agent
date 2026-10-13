@@ -472,7 +472,7 @@ NWD-01/04, FC-CG-1…5, DD-12) — graded evidence for every entry in the family
 - C-expansion (C-A canonical, C-B1/B2 variants, U journeys) + item-10 dedupe build:
   running.
 
-## Item 10 — dedupe survey (COMPLETE, 021cebb) + build (IN PROGRESS)
+## Item 10 — dedupe (survey COMPLETE 021cebb; build COMPLETE, merged a9e3b69)
 
 Survey (`docs/career/gauntlet-item10-dedupe-survey.md`, grep-proven) corrects the
 queue's premises: **(a) 132 vs apply3 is NOT a duplication** (complementary blocks,
@@ -491,10 +491,23 @@ invalidation flag (AP23 holds), but a standing hazard: one write path must win.
 Collision check: **no Codex career/persistence branch exists on origin yet** (both
 codex/* branches predate the career modules); three unmerged finance branches append
 to build-router-core.py's tails (mechanical conflict risk noted).
-Build scope (this program): consolidate 138 → 135 (repair w08-common; the 20 crashed
+Build scope (this program): consolidate 138 → 135 (repair w08-common; the crashed
 runners become the fail-first proof), renumber w11-ext, update the bundle + callers;
 hands OFF 130's persistence functions (Codex's) and the log-shape unification
 (deferred, recorded).
+**BUILD — COMPLETE (merged a9e3b69):** 138 consolidated into 135 (all 138-unique
+capabilities ported on 135's schema; w08-common needed no edit — the API now exists
+where it already pointed); the crash reproduced first — with a correction to the
+survey: **15 of 20 runners crashed (SC-146..160)**; SC-141..145 never called the graph
+API. Post-fix: **20/20 execute, 19 COMPLETE, 1 FAIL on merits** (SC-158: card render
+surfaces "Fact id: F-003" — a card-rendering defect, recorded in the register, not a
+graph defect). w11-ext renumbered to **145** (byte-identical module; bundle rebuilt).
+Warmth models coexist by surface (135's rankWarmth for w09; 138's tier precedence in
+the ported rankPaths — a literal "135 wins everywhere" would invert the SC-147-pinned
+order; documented in 135's header + the survey addendum). Full career suite 488/488;
+only the pre-existing mutation-report pair red (identical on base).
+
+## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 
 Not simulated. Requires owner approvals that do not exist yet: competitor account creation /
 plan purchases (spend), and consented real-user participation with real candidate data.

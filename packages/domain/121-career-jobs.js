@@ -386,6 +386,13 @@ const CareerJobs = (() => {
     }
     if (canonStarred) prof0.preferences.starred_companies = canonStarred;
     if (canonLocations) { prof0.preferences.locations = canonLocations; prof0.constraints.locations = canonLocations; }
+    // BUG-005 (found in F03/SC-068): the canonical structured preferences.roles
+    // were ignored, so role_families stayed [] and scoreFit never awarded the
+    // role-family points — every canonical-persona score was understated and
+    // Match/Safety buckets were unreachable. Map roles to family names.
+    if (persona && persona.preferences && Array.isArray(persona.preferences.roles) && persona.preferences.roles.length) {
+      prof0.preferences.role_families = persona.preferences.roles.map((r) => /software|swe|engineer/i.test(r) ? "SWE" : /bank|financ|invest/i.test(r) ? "Finance" : String(r));
+    }
     return prof0;
   }
 

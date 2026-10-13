@@ -125,3 +125,54 @@ test("triage: expired / duplicate / clearance / apply decisions carry reasons", 
   assert.equal(rows[2].decision, "ask"); assert.ok(rows[2].reasons.some((r) => /clearance/i.test(r)));
   assert.equal(rows[3].decision, "apply");
 });
+
+test("assessment invite: scheduled + prepped, never taken by the agent", () => {
+  const h = Apply.handleAssessmentInvite({ company: "Stripe (TEST)", assessment: "HackerRank (TEST)", deadline: "2026-10-20" }, {});
+  assert.equal(h.takenByAgent, false);
+  assert.equal(h.scheduled.scheduled, true);
+  assert.ok(h.prep.length >= 2);
+});
+
+test("inbox reconciliation: a manual application in the inbox becomes duplicate protection", () => {
+  const log = Apply.createLog();
+  const emails = [{ from: "no-reply@datadoghq.com (TEST)", subject: "Your application to Datadog was received (TEST)", date: "2026-10-05", company: "Datadog", role: "Software Engineer Intern (TEST)" }, { from: "news@example.test", subject: "Weekly jobs newsletter (TEST)", date: "2026-10-06" }];
+  const r = Apply.reconcileInbox(log, emails);
+  assert.equal(r.confirmations.length, 1);
+  assert.equal(r.added.length, 1);
+  assert.equal(Apply.checkDuplicate(log, { company: "Datadog", title: "Software Engineer Intern (TEST)", job_id: "other-id" }).duplicate, true);
+  // reconciling twice adds nothing twice
+  assert.equal(Apply.reconcileInbox(log, emails).added.length, 0);
+});
+
+test("cooldown: exact lift date computed; inactive after it", () => {
+  const c = Apply.checkCooldown({ company: "Datadog", lastApplied: "2026-09-20", cooldownDays: 90 }, "2026-10-12");
+  assert.equal(c.active, true);
+  assert.equal(c.liftsOn, "2026-12-19");
+  assert.equal(Apply.checkCooldown({ company: "Datadog", lastApplied: "2026-09-20", cooldownDays: 90 }, "2026-12-20").active, false);
+});
+
+test("autopilot rule: no activation without explicit approval; caps and summary enforced", () => {
+  assert.equal(Apply.createRule({ minFit: 80 }, {}).refused, true);
+  const made = Apply.createRule({ minFit: 80, companies: ["Stripe"], maxPerDay: 99, excludeBuckets: ["Reach"] }, { approvedByUser: true });
+  assert.equal(made.ok, true);
+  assert.equal(made.rule.maxPerDay, 15); // rule cap can only lower the hard cap
+  const log = Apply.createLog();
+  const sum = Apply.nightlySummary(log, "2026-10-12");
+  assert.equal(sum.submitted, 0);
+});
+
+test("windows sweep: open only inside the window and only for the persona's class year", () => {
+  const reg = [{ company: "Bank A (TEST)", program: "Sophomore Summer Analyst (TEST)", classYears: [2028], opensOn: "2026-09-01", closesOn: "2026-11-15" }, { company: "Bank B (TEST)", program: "Junior Summer Analyst (TEST)", classYears: [2027], opensOn: "2026-09-01", closesOn: "2026-11-15" }];
+  const rows = Apply.checkWindows(reg, 2028, "2026-10-12");
+  assert.equal(rows[0].open, true);
+  assert.equal(rows[1].open, false);
+  assert.match(rows[1].note, /not a class-of-2028/);
+});
+
+test("BUG-005 replay: profileFromPersona maps canonical preferences.roles to role_families", () => {
+  const Jobs = require("../packages/domain/121-career-jobs.js");
+  const sp = Jobs.profileFromPersona(personaRawFn());
+  assert.ok(sp.preferences.role_families.includes("SWE"));
+  assert.ok(sp.preferences.role_families.includes("Finance"));
+  function personaRawFn() { return JSON.parse(fs.readFileSync(path.join(fixtureDir, "test-persona.json"), "utf8")); }
+});

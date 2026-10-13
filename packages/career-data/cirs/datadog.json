@@ -1,0 +1,277 @@
+{
+  "company_id": "datadog",
+  "company_name": "Datadog",
+  "cohort_definition": {
+    "role_family": "Software Engineering (SWE)",
+    "levels_separate": [
+      "entry-level / new-grad and intern cohort",
+      "experienced hires (mid, senior, staff+)"
+    ],
+    "note": "Entry-level cohort is described separately from experienced hires per Doc 3 §2.1; population stats for either cohort were not publicly sourceable in this pass."
+  },
+  "sample_size": {
+    "population_sample": null,
+    "note": "No licensed population sample in this pass (Doc 3 INTL-002 provisional path: curated CIRs + public sources only). Quantitative claims below are limited to numbers stated on the fetched public pages listed in data_sources; no cohort N is claimed."
+  },
+  "as_of_date": "2026-10-12",
+  "data_sources": [
+    {
+      "name": "Datadog Candidate Experience (official careers)",
+      "url": "https://careers.datadoghq.com/candidate-experience/",
+      "accessed": "2026-10-12"
+    },
+    {
+      "name": "Datadog Engineering Manager, Husky posting (official careers) — stack/on-call signals",
+      "url": "https://careers.datadoghq.com/detail/7959705/",
+      "accessed": "2026-10-12"
+    },
+    {
+      "name": "interviewing.io Datadog process guide — engineer-reported, anecdotal",
+      "url": "https://interviewing.io/datadog-interview-questions",
+      "accessed": "2026-10-12"
+    }
+  ],
+  "school_dist": {
+    "confidence_level": "curated-qualitative",
+    "quantitative_shares_available": false,
+    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. School shares require a population sample.",
+    "reported_pattern_claims": [
+      {
+        "claim": "No school pattern is asserted: Datadog's fetched official pages state it values people from varied backgrounds and encourages applications even when not every listed qualification is met on day one.",
+        "source_url": "https://careers.datadoghq.com/detail/7959705/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "confidence_level": "curated-qualitative",
+    "quantitative_shares_available": false,
+    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Feeder shares require a population sample.",
+    "reported_pattern_claims": [
+      {
+        "claim": "No feeder-employer pattern is asserted from public sources in this pass.",
+        "source_url": "https://careers.datadoghq.com/candidate-experience/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "major_dist": {
+    "confidence_level": "curated-qualitative",
+    "quantitative_shares_available": false,
+    "reason": "No public, fetchable population dataset (licensed vendor / LinkedIn-scale sample) was available for this pass; percentages are omitted rather than invented. Major shares require a population sample.",
+    "reported_pattern_claims": [
+      {
+        "claim": "No major pattern is asserted; fetched postings frame eligibility around engineering experience and distributed-systems background rather than a named degree or major.",
+        "source_url": "https://careers.datadoghq.com/detail/7959705/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "skills_dist": {
+    "confidence_level": "sourced-qualitative-from-postings",
+    "claims": [
+      {
+        "claim": "A platform engineering leadership posting cites hands-on Java or Go experience and a distributed-systems background as preferred.",
+        "source_url": "https://careers.datadoghq.com/detail/7959705/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "The same posting treats on-call work, incident response, postmortems and remediation as part of the engineering culture for that team.",
+        "source_url": "https://careers.datadoghq.com/detail/7959705/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Engineer-reported interview preparation notes describe practical, layered algorithmic questions and system-design work tied to Datadog-like problems rather than verbatim puzzle questions.",
+        "source_url": "https://interviewing.io/datadog-interview-questions",
+        "as_of": "2026-10-12",
+        "source_type": "anecdotal-engineer-reported"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Centralized process first, team matching after the onsite loop",
+      "evidence": [
+        {
+          "claim": "Engineer-reported guide says the process is centralized and team matching happens after the onsite, with interviewers drawn from different teams.",
+          "source_url": "https://interviewing.io/datadog-interview-questions",
+          "as_of": "2026-10-12",
+          "source_type": "anecdotal-engineer-reported"
+        }
+      ]
+    },
+    {
+      "pattern": "Apply to a specific role; hiring committee decides, then the profile is circulated to hiring managers for matching",
+      "evidence": [
+        {
+          "claim": "Engineer-reported guide describes a hiring committee decision after a successful onsite, followed by team matching conversations.",
+          "source_url": "https://interviewing.io/datadog-interview-questions",
+          "as_of": "2026-10-12",
+          "source_type": "anecdotal-engineer-reported"
+        }
+      ]
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Direct application to an open SWE role on the official careers site",
+      "rank": 1,
+      "evidence": [
+        {
+          "claim": "Datadog publishes a company-wide candidate-experience page describing its interview structure for applicants.",
+          "source_url": "https://careers.datadoghq.com/candidate-experience/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Intern / new-grad pipeline into SWE (cohort kept separate in this record)",
+      "rank": 2,
+      "evidence": [
+        {
+          "claim": "An engineering-manager posting describes teams that include engineers ranging from new grads to senior engineers, confirming a new-grad presence on engineering teams.",
+          "source_url": "https://careers.datadoghq.com/detail/7959705/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Referral / recruiter outreach",
+      "rank": 3,
+      "evidence": [
+        {
+          "claim": "Engineer-reported process coverage treats the recruiter call as the standard first step, whether sourced or applied.",
+          "source_url": "https://interviewing.io/datadog-interview-questions",
+          "as_of": "2026-10-12",
+          "source_type": "anecdotal-engineer-reported"
+        }
+      ],
+      "note": "Referral weight is not quantified by any fetched official source; see referral_weight_notes."
+    }
+  ],
+  "hiring_bar_summary": {
+    "summary": "High, centralized bar: practical coding depth plus system design and a behavioral round that also probes past technical work. This is a qualitative synthesis, not a measured pass rate — Datadog publishes no applicant-to-offer rate in the fetched sources.",
+    "evidence": [
+      {
+        "claim": "Engineer-reported loop: recruiter call, technical phone screen, then an onsite with coding, system design and behavioral rounds; staff roles substitute a project presentation for one coding round.",
+        "source_url": "https://interviewing.io/datadog-interview-questions",
+        "as_of": "2026-10-12",
+        "source_type": "anecdotal-engineer-reported"
+      }
+    ]
+  },
+  "screening_signals": [
+    {
+      "claim": "Official candidate page: one interview step is expected to happen in person.",
+      "source_url": "https://careers.datadoghq.com/candidate-experience/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Official candidate page: AI tools are restricted during interviews; misuse or non-disclosure can lead to disqualification.",
+      "source_url": "https://careers.datadoghq.com/candidate-experience/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Engineer-reported: system-design performance is used for leveling, and shallow design answers can result in a down-level.",
+      "source_url": "https://interviewing.io/datadog-interview-questions",
+      "as_of": "2026-10-12",
+      "source_type": "anecdotal-engineer-reported"
+    }
+  ],
+  "process_stages": [
+    {
+      "claim": "Official high-level structure: initial conversation, face-to-face interviews (possibly multiple rounds or panels), a possible take-home project depending on role, and for some roles an executive interview, then selection.",
+      "source_url": "https://careers.datadoghq.com/candidate-experience/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Engineer-reported SWE sequence: recruiter call (about 30 min), technical phone screen (about 1 hour), onsite (about 4 hours).",
+      "source_url": "https://interviewing.io/datadog-interview-questions",
+      "as_of": "2026-10-12",
+      "source_type": "anecdotal-engineer-reported"
+    }
+  ],
+  "interview_styles": [
+    {
+      "claim": "Practical, layered coding problems (starting from a familiar algorithmic core, then adding product-like complexity), system design, and behavioral questions that include technical detail on past work.",
+      "source_url": "https://interviewing.io/datadog-interview-questions",
+      "as_of": "2026-10-12",
+      "source_type": "anecdotal-engineer-reported"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Hybrid workplace framed around office culture, collaboration and work-life harmony.",
+      "source_url": "https://careers.datadoghq.com/detail/7959705/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Postings state Datadog values people from all backgrounds and encourages applying even without meeting every qualification on day one.",
+      "source_url": "https://careers.datadoghq.com/detail/7959705/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Benefits described on postings include new-hire RSUs, an employee stock purchase plan, mentoring/buddy programs and career pathing.",
+      "source_url": "https://careers.datadoghq.com/detail/7959705/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "claims": [
+      {
+        "claim": "Engineer-reported total timeline is about six weeks, sometimes described as slow.",
+        "source_url": "https://interviewing.io/datadog-interview-questions",
+        "as_of": "2026-10-12",
+        "source_type": "anecdotal-engineer-reported"
+      }
+    ],
+    "note": "No official application-window dates for SWE intern/new-grad cohorts were on the fetched pages as of 2026-10-12; re-verify each cycle (Doc 3 §3.3)."
+  },
+  "compensation_notes": {
+    "source_type_label": "official-posting-qualitative; no SWE-specific range in fetched sources",
+    "claims": [
+      {
+        "claim": "Postings describe a competitive salary and equity package, with actual pay based on skills, qualifications and experience; RSUs and ESPP are listed as benefits.",
+        "source_url": "https://careers.datadoghq.com/detail/7959705/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ],
+    "omitted": "No SWE salary range is stated here: the only numeric range on a fetched Datadog posting was for a non-engineering sales role and is not transferable to SWE."
+  },
+  "referral_weight_notes": {
+    "confidence_level": "curated-qualitative",
+    "note": "No fetched official source quantifies referral advantage. Engineer-reported coverage treats referral as one of several ways candidates enter the recruiter-call stage; do not present referral as required or as a measured lift."
+  },
+  "red_flags": [
+    {
+      "claim": "Using AI tools during live interviews contrary to Datadog's published interview AI guidelines, or failing to disclose use, can lead to disqualification.",
+      "source_url": "https://careers.datadoghq.com/candidate-experience/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    "Agent judgment (labeled): generic observability interest is weak — the fetched sources reward concrete systems/scale detail on past work; treat this as preparation advice, not a published Datadog rule."
+  ],
+  "thesis_text": "Bottom line: Datadog is a realistic but demanding SWE target best approached through a specific open role, with preparation weighted to practical coding and system design rather than puzzle volume. Who gets in (sourced numbers only): no population numbers are claimed in this record — no public sample of Datadog hires was sourceable in this pass, so school, feeder and major shares are intentionally omitted. The only process numbers here come from engineer-reported coverage (recruiter call about 30 minutes, phone screen about 1 hour, onsite about 4 hours, total about 6 weeks), labeled anecdotal. Stated vs revealed screens: Datadog states a role-dependent structure — initial conversation, face-to-face rounds, a possible take-home, and an executive interview for some roles, with one step in person and strict interview AI rules. Engineer reports reveal a centralized loop where team matching happens only after the onsite and where system-design depth drives leveling. Ranked entry routes: (1) direct application to a specific SWE posting, (2) intern/new-grad pipeline kept as a separate cohort, (3) referral or recruiter outreach as an entry accelerant with unquantified weight. Timeline/dates (as of 2026-10-12): no official SWE application window was published on the fetched pages; engineer-reported end-to-end time is about 6 weeks — re-verify before relying on it. Risks/alternatives: the centralized, committee-style bar means a strong candidate can pass and still wait on team matching; adjacent observability/infrastructure employers are the natural hedge. Gap analysis against a specific user profile is not computed in this record (no population sample).",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": [
+    "Survivorship bias: public interview guides reflect people who reached or completed loops, not rejected applicants.",
+    "Self-report bias: interviewing.io content is based on conversations with engineers and cross-checked anecdotes, not Datadog HR data.",
+    "Official careers pages are employer marketing and describe the intended process, which may differ by team, level and region.",
+    "No H-1B LCA, university-outcome or licensed population data was fetched in this pass; sponsorship and school patterns are therefore unstated, not negative findings."
+  ],
+  "last_verified_at": "2026-10-12"
+}

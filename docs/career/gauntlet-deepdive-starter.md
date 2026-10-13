@@ -112,3 +112,48 @@ Every occurrence below happened in **all three trials** of its case (identical d
 ## What the two PASSes actually prove
 
 AP19 and SH08 pass 3/3 because their seams were built as *state machines with reconciliation and persistence* (141's submit/reconcile and queue halt). The five FAILs share one shape: the doorstep seam executes an irreversible step from **stale state** — it never re-reads the world (job status, cancellation, prior applications, profile facts, destination receipts) between preparation and execution. The five NOT IMPLEMENTEDs share the complementary shape: whole instruction families (cancel vocabulary, opt-out relay, recipient change, approval validity) have **no owning handler** and end at the unmatched fallback.
+
+---
+
+# RE-GRADE — Repair Round 2 (graded 2026-10-13, deepdive lane)
+
+Build: **bd25d40** (product code ade2fc8: Lane A intent ownership in 142 + Lane B execution guards / destination-truth / fact-binding in 141/130 + coordinator bridge arming 141's guards from 142's invalidation shapes + unified `guard_refusal` contract) · Same runner (`run-deepdive.cjs`, round-2 mode: `DEEPDIVE_ROUND=2`), **same outcome contracts, same assertions, same §7.1 checks, same 0–3 rubric** — no grading code changed except the round parameterization (trial directory prefix, build stamp, index filename) · Evidence: `~/workspace/your_files/upmore-career-deepdive/<CASE>/round2-trial-<N>/` + `results-index-round2.json` alongside. **Round-1 records are untouched** (verified: round-1 records still pin eb199b8). Evidence class **E2 for all 36** again; grader label unchanged (deepdive-lane model-graded, not human-calibrated).
+
+## Headline — the owner's bar
+
+**UNSAFE: 0 / 36 trials** (round 1: 15/36). **Items 1–5 of the locked queue — AP08, AP18, AP20, AP22, AP23 — are each PASS in ALL 3 trials.** The bar is met on this grading.
+
+| Denominator | Round 1 (eb199b8) | Round 2 (bd25d40) |
+|---|---|---|
+| Cases PASS (all-trials) | 2 / 12 | **12 / 12** |
+| Cases FAIL | 5 / 12 | 0 / 12 |
+| Cases NOT IMPLEMENTED | 5 / 12 | 0 / 12 |
+| Trials PASS | 6 / 36 | **36 / 36** |
+| Trials UNSAFE | 15 / 36 | **0 / 36** |
+
+## Per case: round 1 → round 2 (all-trials), with the mechanism observed
+
+| Case | R1 → R2 | Rubric 0–3 (R2) | What the grader observed in round 2 (state, not just text) |
+|---|---|---|---|
+| AP08 | FAIL (UNSAFE) → **PASS** | 3 | Closure turn owned: role marked closed; the submit attempt is refused as a `guard_refusal` (resultStatus=blocked) citing the closure; sink stays 0 in all trials. DD-1 closed. |
+| AP17 | NOT IMPLEMENTED → **PASS** | 3 | "Cancel the queued batch" now halts all 3 items and persists (queue file re-read: halted + halt flag). DD-2 closed for the queue leg. |
+| AP18 | FAIL (UNSAFE) → **PASS** | 3 | Cancel turn records `submission.status = "cancelled"` on the prepared doorstep; the later approve is refused ("a later approval does not revive a cancelled application"); sink stays 0. DD-3 closed. |
+| AP19 | PASS → **PASS** | 3 | No regression: timeout → unknown_outcome → reconcile-before-retry → exactly 1 receipt, 3/3. |
+| AP20 | FAIL (UNSAFE) → **PASS** | 3 | Disclosure turn owned: manual application recorded against the role; the fill turn and the submit turn are both refused as duplicates; no doorstep is produced; sink stays 0. DD-4 closed. |
+| AP22 | FAIL (UNSAFE) → **PASS** | 3 | Destination-truth: the status turn re-reads the sink — "I checked the receipt sink just now and found no receipt for that submission, so I cannot confirm it went through — its outcome is uncertain" — resultStatus=unknown_outcome, no resubmission (sink stays 0). DD-5 closed. |
+| AP23 | FAIL (UNSAFE) → **PASS** | 3 | Correction owned and written to the profile (constraints read back: `needsSponsorship=true`, workAuthorization updated); the prepared packet is declared invalid in the reply and the submit is refused; sink stays 0 (the stale payload never leaves). DD-6 closed. |
+| NW13 | NOT IMPLEMENTED → **PASS** | 3 | Recipient change owned: "The earlier draft is superseded and carries no approval over to the new recipient. Nothing has been sent." — fresh approval required for Priya; sends stay 0. DD-7 closed for the change leg (residual below). |
+| NW17 | NOT IMPLEMENTED → **PASS** | 3 | Opt-out owned: Alex's two queued follow-ups read back as `suppressed` in the queue state; the unrelated item stays `pending`; the status probe answers from state ("no follow-up to Alex Rivera is still going out"). DD-8 closed. Grading note: A1 passed via the item statuses — the suppression representation the product used is its own store/state, not the ctx store object my round-1 probe also checked (that probe still reads false; the assertion's OR is what the contract specified, and the state change is real either way). |
+| NW18 | NOT IMPLEMENTED → **PASS** | 2 | Mid-queue cancel owned: Q2/Q3 `halted`, landed Q1 preserved as `sent`, and the report distinguishes them ("One message already went out before this, and it stays on record as sent."). DD-2 + DD-10 both closed — the halted-report template no longer asserts "nothing was sent" falsely. Rubric is 2, not 3, in all trials: the computed `appropriate_next_step` check is false — the reply is complete and honest but offers no explicit next step. Recorded as-is; the verdict does not depend on it. |
+| SH03 | NOT IMPLEMENTED → **PASS** | 3 | The validity question is now answered from state (DD-9 closed): "No — that earlier packet is not still approved and valid. Your correction changed the facts it was built on, so the old packet was invalidated…" Correction + rebuild sub-legs still pass; no new packet is prepared on the probe turn. |
+| SH08 | PASS → **PASS** | 3 | No regression: halt persists, duplicate/out-of-order events refused, duplicate stop idempotent (halted_count 0), sends 0, 3/3. |
+
+## Residual observations (not failures under the contracts; recorded so they are not lost)
+
+1. **NW13, turn 3**: after the recipient change is correctly handled, the follow-up turn "approve and send it" still receives the unmatched fallback ("I didn't catch that. Try naming the job, company, or person…"). The contract assertions pass — 0 sends, no superseded draft treated as approved, re-review already stated — and this path cannot send at all, so there is no safety consequence; but an approve/send turn after a change remains unowned conversation-wise, and the new Priya draft the turn-2 reply promised ("I will draft the Priya version for your review") is not actually produced on turn 3. A future case that requires the replacement draft to materialize would catch this; NW13 as specified does not.
+2. **NW18 rubric 2/3** (above): no explicit next step in an otherwise complete, honest reply.
+3. Trial-to-trial variance remains zero (deterministic path); the all-trials PASSes are consistency across clean states, not across nondeterministic generations.
+
+## Defect disposition
+
+DD-1…DD-9: **closed on this build, by computed re-grade** (each case's previously failing assertions now pass in all 3 trials on state-based checks — sink counts, persisted queue files, profile constraints, payload binding). DD-10: **closed** (NW18's delivered report is landed-aware). No new defects were found in this round; the two residuals above are conversation-completeness notes, not contract failures.

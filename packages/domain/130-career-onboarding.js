@@ -51,6 +51,24 @@ const CareerOnboarding = (() => {
     profile._onboarding_pending = q.key;
     return { done: false, pending: q.key, question: q, text: q.prompt };
   }
+  // ---------- 1b. Profile fact version (repair lane R2B, DECLARED change) ----------
+  // The ONLY addition this lane makes to 130: a monotonic fact-version
+  // counter on the profile, `profile.fact_version`. Prepared packets and
+  // approvals (141) stamp the version they were prepared against; any
+  // correction through THIS module's write paths (answerCurrent,
+  // applyProfileCorrection, and the persisted-correction re-apply) bumps it,
+  // which is what makes a stale packet unsubmittable at 141's seam. A
+  // missing counter reads as version 0. The counter itself carries no fact
+  // data — 141 also binds a hash of the fact slices, so a correction that
+  // reaches the profile without this counter still invalidates packets.
+  function factVersion(profile) {
+    return profile && Number.isFinite(profile.fact_version) ? profile.fact_version : 0;
+  }
+  function bumpFactVersion(profile) {
+    if (!profile) return 0;
+    profile.fact_version = factVersion(profile) + 1;
+    return profile.fact_version;
+  }
   function answerCurrent(profile, text) {
     const key = profile._onboarding_pending || (nextQuestion(profile) || {}).key;
     if (!key) return startInterview(profile);
@@ -64,6 +82,7 @@ const CareerOnboarding = (() => {
     else if (key === "comp_floor") prefs.compFloor = /^(none|no)$/i.test(raw) ? "none stated" : raw;
     else if (key === "deal_breakers") { prefs.dealBreakers = splitList(raw); profile._onboarding_deal_breakers_answered = true; }
     else if (key === "timeline") prefs.timeline = raw;
+    bumpFactVersion(profile); // R2B: a stored answer is a fact write — prepared packets bound to older facts go stale
     profile._onboarding_pending = null;
     const q = nextQuestion(profile);
     if (!q) return { done: true, answered: key, stored: raw, text: "That is everything — goals, roles, location, work authorization, pay floor, deal-breakers and timeline are saved to your profile. I will use them for every search and never re-ask them." };
@@ -239,6 +258,7 @@ const CareerOnboarding = (() => {
       changes.push({ fact_id: fact.id, field: isGrad ? "graduation_date" : "fact_dates", from: res.from, to: res.to, source: "resume-new.txt" });
     }
     if (!changes.length) return { ok: false, code: "no_resolvable_conflict", changes: [], text: "I do not have a newer resume source on file that resolves a stored conflict, so I changed nothing. Upload the new resume or tell me the corrected value and I will record it." };
+    bumpFactVersion(profile); // R2B: a correction is a fact write — packets/approvals bound to the old facts are stale from here
     const auditEntry = { at, instruction: String(text || ""), source: "resume-new.txt", precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted", changes, outcome: "user-directed correction" };
     profile.profile_corrections = [...(profile.profile_corrections || []), auditEntry];
     profile.resume_sources = { active: "resume-new.txt", status: "active_new_wins", precedence: auditEntry.precedence };
@@ -262,6 +282,7 @@ const CareerOnboarding = (() => {
     if (!(profile.profile_corrections || []).length) profile.profile_corrections = (rec.audit || []).slice();
     if (!profile.resume_sources || profile.resume_sources.status !== "active_new_wins") profile.resume_sources = rec.resume_sources;
     if (!profile.dependent_state || !profile.dependent_state.rebuilt) rebuildDependents(profile, null);
+    if (touched) bumpFactVersion(profile); // R2B: re-applying a correction to a fresh load is the same fact write, counted once per actual change
     return touched;
   }
   function exportCorrectionStore() { return [...CORRECTION_STORE.values()]; }
@@ -318,6 +339,6 @@ const CareerOnboarding = (() => {
     return null;
   }
 
-  return { STEPS, stepAnswered, nextQuestion, startInterview, answerCurrent, answerFromProfile, SENSITIVE_FIELDS, sensitiveAnswerPrompt, confirmSensitive, profileExport, capabilityStatus, createReauthLog, planReauthSends, applyProfileCorrection, applyPersistedCorrections, exportCorrectionStore, restoreCorrectionStore, _resetCorrectionStore, handleChat };
+  return { STEPS, stepAnswered, nextQuestion, startInterview, answerCurrent, factVersion, bumpFactVersion, answerFromProfile, SENSITIVE_FIELDS, sensitiveAnswerPrompt, confirmSensitive, profileExport, capabilityStatus, createReauthLog, planReauthSends, applyProfileCorrection, applyPersistedCorrections, exportCorrectionStore, restoreCorrectionStore, _resetCorrectionStore, handleChat };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerOnboarding;

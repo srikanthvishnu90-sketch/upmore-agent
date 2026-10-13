@@ -53,6 +53,7 @@ import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
+import { payrollReply } from "./_shared/payroll_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
 import { paycheckReply } from "./_shared/paycheck_answer.ts";
@@ -370,6 +371,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
         // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.
         if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
+        // Payroll/benefits/equity preparation (cluster K10, _shared/payroll_answer.ts): preparation surfaces only.
+        // No employer profile is connected yet, so the handler passes none and this stays silent in production
+        // until a real profile source exists — it never answers payroll questions from invented facts.
+        if (!direct) direct = payrollReply(message, today, null);
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         // Answered here, so a live card in this thread is dropped and said (live gauntlet L3-01): a later yes stages nothing.

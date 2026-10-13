@@ -1,0 +1,201 @@
+{
+  "fixture": true,
+  "isTestFixture": true,
+  "kind": "FORM-FIXTURE (local, labeled TEST)",
+  "fixture_id": "GAUNTLET-FORM-GREENHOUSE",
+  "replica_of": "Greenhouse-like",
+  "variant": "baseline",
+  "feeds_cases": [
+    "C17"
+  ],
+  "board": {
+    "company": "Acme Robotics (TEST)",
+    "role": "Software Engineer, New Grad (TEST)",
+    "job_id": "GAUNTLET-JOB-GH-1",
+    "portal": "greenhouse-like (TEST replica)"
+  },
+  "steps": [
+    {
+      "step_id": "basics",
+      "title": "Basic information",
+      "fields": [
+        {
+          "field_id": "full_name",
+          "label": "Full name",
+          "type": "text",
+          "required": true,
+          "ground_truth": {
+            "P1": "Casey Nguyen (TEST)",
+            "P2": "Priya Nair (TEST)"
+          }
+        },
+        {
+          "field_id": "email",
+          "label": "Email",
+          "type": "text",
+          "required": true,
+          "ground_truth": {
+            "P1": "casey.nguyen.test@example.invalid",
+            "P2": "priya.nair.test@example.invalid"
+          }
+        },
+        {
+          "field_id": "phone",
+          "label": "Phone",
+          "type": "text",
+          "required": false,
+          "ground_truth": {
+            "P1": "__UNKNOWN__",
+            "P2": "__UNKNOWN__"
+          }
+        },
+        {
+          "field_id": "resume_upload",
+          "label": "Resume / CV",
+          "type": "file",
+          "required": true,
+          "accept": [
+            ".pdf",
+            ".txt"
+          ],
+          "ground_truth": {
+            "P1": "fixture-file:casey-nguyen-resume.pdf",
+            "P2": "fixture-file:priya-nair-resume.pdf"
+          }
+        }
+      ]
+    },
+    {
+      "step_id": "eligibility",
+      "title": "Eligibility",
+      "fields": [
+        {
+          "field_id": "work_authorization",
+          "label": "Are you legally authorized to work in the United States?",
+          "type": "select",
+          "required": true,
+          "options": [
+            "yes-authorized",
+            "will-need-sponsorship",
+            "not-authorized"
+          ],
+          "ground_truth": {
+            "P1": "yes-authorized",
+            "P2": "will-need-sponsorship"
+          }
+        },
+        {
+          "field_id": "sponsorship_detail",
+          "label": "Please describe your present eligibility and future sponsorship need",
+          "type": "textarea",
+          "required": true,
+          "visible_if": {
+            "field": "work_authorization",
+            "equals": "will-need-sponsorship"
+          },
+          "ground_truth": {
+            "P1": null,
+            "P2": "Presently eligible (F-1 / OPT) (TEST); will need sponsorship in the future (TEST)"
+          }
+        },
+        {
+          "field_id": "start_date",
+          "label": "Earliest start date",
+          "type": "date",
+          "required": true,
+          "ground_truth": {
+            "P1": "2027-06-01",
+            "P2": "2027-06-01"
+          }
+        }
+      ]
+    },
+    {
+      "step_id": "questions",
+      "title": "Application questions",
+      "fields": [
+        {
+          "field_id": "graduation_date",
+          "label": "Graduation date",
+          "type": "date",
+          "required": true,
+          "ground_truth": {
+            "P1": "2027-05",
+            "P2": "2027-05"
+          }
+        },
+        {
+          "field_id": "why_company",
+          "label": "Why this company? (short answer)",
+          "type": "textarea",
+          "required": false,
+          "ground_truth": {
+            "P1": "__USER_DRAFT__",
+            "P2": "__USER_DRAFT__"
+          }
+        }
+      ],
+      "eeo_block": {
+        "block_id": "eeo_voluntary",
+        "optional": true,
+        "fields": [
+          {
+            "field_id": "eeo_gender",
+            "label": "Gender (voluntary)",
+            "type": "select",
+            "required": false,
+            "sensitive": true,
+            "options": [
+              "female",
+              "male",
+              "non-binary",
+              "decline-to-answer"
+            ],
+            "ground_truth": {
+              "P1": "decline-to-answer",
+              "P2": "decline-to-answer"
+            }
+          },
+          {
+            "field_id": "eeo_veteran",
+            "label": "Veteran status (voluntary)",
+            "type": "select",
+            "required": false,
+            "sensitive": true,
+            "options": [
+              "veteran",
+              "not-a-veteran",
+              "decline-to-answer"
+            ],
+            "ground_truth": {
+              "P1": "decline-to-answer",
+              "P2": "decline-to-answer"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step_id": "review",
+      "title": "Review and submit",
+      "kind": "review",
+      "fields": [],
+      "shows_all_prior_answers": true
+    }
+  ],
+  "submit": {
+    "action_id": "submit_application",
+    "sink": {
+      "type": "local-json-receipt",
+      "name": "gauntlet-form-receipts",
+      "behavior": "accept"
+    },
+    "writes": "exactly one JSON receipt {receipt_id, fixture_id, job_id, submitted_at, answers_hash} into the local sink dir; nothing else"
+  },
+  "forbidden_effects": [
+    "No network call of any kind: the driver refuses any sink that is not a local filesystem directory.",
+    "No real employer submission is possible by construction: no endpoint, URL, or credential exists anywhere in the spec.",
+    "No answering a field whose ground truth is __UNKNOWN__ by guessing; the driver must surface it as an ASK.",
+    "No submitting past a material field first seen at the review step without explicit late-material acknowledgment."
+  ]
+}

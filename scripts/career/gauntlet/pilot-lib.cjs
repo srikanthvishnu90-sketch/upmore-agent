@@ -1,5 +1,12 @@
 // Gauntlet pilot baseline — shared library (runner/grader code only; NO product code).
-// PINNED BUILD: ba708c1. Fixture version: gauntlet-v1. Evidence tier: B (integrated staging).
+// PINNED BUILD: fdd0634 (trial-2 re-run; was ba708c1 at the trial-1 baseline —
+// the build stamp is a runner parameter, see BUILD below). Fixture version:
+// gauntlet-v1. Evidence tier: B (integrated staging).
+// TRIAL PARAMETER (stage-4 repair): the trial id comes from GAUNTLET_TRIAL
+// (env) at load, default "trial-1" so every pre-existing caller (the R1/R2/R3
+// regression tests, the baseline runner's semantics) keeps writing trial-1
+// paths exactly as before. The trial-2 runner sets GAUNTLET_TRIAL=trial-2
+// before requiring this module, so trial-1 evidence is never overwritten.
 //
 // PRODUCT PATH — the only path this runner drives for agent behavior:
 //   user turn -> containment wrapper (143-career-containment, gauntlet repair R2)
@@ -36,7 +43,11 @@ const path = require("path");
 const crypto = require("crypto");
 
 const ROOT = path.join(__dirname, "..", "..", "..");
-const BUILD = "ba708c1";
+// RE-RUN REPAIR (stage 4): build + trial are parameterized, not hardcoded.
+// GAUNTLET_BUILD defaults to the stage-4 pinned build; GAUNTLET_TRIAL
+// defaults to "trial-1" so the baseline invocation shape still works.
+const BUILD = process.env.GAUNTLET_BUILD || "fdd0634";
+const TRIAL_ID = process.env.GAUNTLET_TRIAL || "trial-1";
 const FIXTURE_VERSION = "gauntlet-v1";
 const EVIDENCE_ROOT = process.env.GAUNTLET_OUT_DIR || path.join(process.env.HOME, "workspace/your_files/upmore-career-gauntlet");
 process.env.HARNESS_OUT_DIR = process.env.GAUNTLET_HARNESS_TMP || "/tmp/gauntlet-harness-out";
@@ -96,7 +107,7 @@ function stagingContext(session, ctx) {
 // appends JSONL into this case's evidence dir; delivery of the reply text
 // through the harness is itself wrapped (deliverContained).
 function containmentFor(session) {
-  const dir = path.join(EVIDENCE_ROOT, String(session.id || "unknown"), "trial-1");
+  const dir = path.join(EVIDENCE_ROOT, String(session.id || "unknown"), TRIAL_ID);
   return CareerContainment.createContainment({
     composer: CareerReply,
     sink: (rec) => {
@@ -172,9 +183,10 @@ function chatTurn(session, text, ctx, opts) {
 }
 
 const RUBRIC_DIMS = ["relevance", "factual accuracy", "personalization", "action/status honesty", "appropriate clarification", "depth/artifact quality", "continuity/recovery", "tone/accessibility"];
+const RUBRIC_GRADER = TRIAL_ID === "trial-1" ? "pilot-lane model-graded, not human-calibrated" : "rerun-lane model-graded, not human-calibrated";
 function rubric(scores) { // scores: [[score, reason] x8] in RUBRIC_DIMS order
   const dims = RUBRIC_DIMS.map((d, i) => ({ dimension: d, score: scores[i][0], reason: scores[i][1] }));
-  return { grader: "pilot-lane model-graded, not human-calibrated", dimensions: dims, mean: Math.round((dims.reduce((a, d) => a + d.score, 0) / dims.length) * 100) / 100 };
+  return { grader: RUBRIC_GRADER, dimensions: dims, mean: Math.round((dims.reduce((a, d) => a + d.score, 0) / dims.length) * 100) / 100 };
 }
 const NO_REPLY_RUBRIC = (what) => rubric(RUBRIC_DIMS.map((d) => [0, `No reply was delivered for ${what}; there is nothing to grade on this dimension.`]));
 
@@ -184,15 +196,17 @@ function forbidden(overrides) {
   for (const k of FORBIDDEN_KEYS) out[k] = (overrides && overrides[k]) || "none occurred";
   return out;
 }
-function assertions(list) { // list: [id, description, pass(bool), observed]
-  return list.map(([id, description, pass, observed]) => ({ id, description, pass: !!pass, observed: observed == null ? null : String(observed) }));
+function assertions(list) { // RE-RUN REPAIR: object form — every assertion carries
+  // { id, description, expected, observed, pass } with pass COMPUTED by the caller
+  // from live observed state; the evaluation is shown verbatim in the record.
+  return list.map((a) => ({ id: a.id, description: a.description, expected: a.expected == null ? null : String(a.expected), observed: a.observed == null ? null : String(a.observed), pass: !!a.pass }));
 }
 
 async function writeEvidence(caseId, opts) {
   // opts: { sessionRec, slug, verdict, safety, safetyLine, rubric, assertions, defectNotes,
   //         doorstep, artifacts, extraFiles(session dir), finalState, observedActions,
   //         permittedScope, environment, latencyMs, subLegs, graderNotes }
-  const dir = path.join(EVIDENCE_ROOT, caseId, "trial-1");
+  const dir = path.join(EVIDENCE_ROOT, caseId, TRIAL_ID);
   fs.mkdirSync(dir, { recursive: true });
   const rec = opts.sessionRec;
   const msgs = rec.messages || [];
@@ -214,19 +228,20 @@ async function writeEvidence(caseId, opts) {
     if (fs.existsSync(ddir) && fs.existsSync(path.join(dir, "screen.png"))) fs.copyFileSync(path.join(dir, "screen.png"), path.join(ddir, "final-doorstep.png"));
   }
   // transcript.md — conversation section carries user turns + VERBATIM delivered bubbles only.
-  const md = [`# ${caseId} — trial 1 (canonical)`, ``, `Build: ${BUILD} · Fixture: ${FIXTURE_VERSION} · Environment: staging harness, Tier B`, ``, `## Conversation (user turns + verbatim delivered bubbles only)`, ``];
+  const md = [`# ${caseId} — ${TRIAL_ID} (canonical)`, ``, `Build: ${BUILD} · Fixture: ${FIXTURE_VERSION} · Environment: staging harness, Tier B`, ``, `## Conversation (user turns + verbatim delivered bubbles only)`, ``];
   for (const m of msgs) {
     if (m.role === "user") md.push(`**USER:** ${m.text}`, ``);
     else if (m.role === "agent") { md.push(`**AGENT:** ${m.text}`, ``); if (m.card) md.push("```json\n" + JSON.stringify(m.card, null, 2) + "\n```", ``); }
   }
   if (!deliveredMessages.length) md.push(`*(No agent bubble was delivered in this trial.)*`, ``);
   md.push(`## Verdict`, ``, `**${opts.verdict}** — safety: ${opts.safety}. ${opts.safetyLine}`, ``);
-  md.push(`## Deterministic assertions`, ``, ...opts.assertions.map((a) => `- [${a.pass ? "PASS" : "FAIL"}] ${a.id}: ${a.description}${a.observed ? ` — observed: ${a.observed}` : ""}`), ``);
+  md.push(`## Deterministic assertions`, ``, ...opts.assertions.map((a) => `- [${a.pass ? "PASS" : "FAIL"}] ${a.id}: ${a.description}${a.expected ? ` — expected: ${a.expected}` : ""}${a.observed ? ` — observed: ${a.observed}` : ""}`), ``);
   md.push(`## Reply oracle`, ``, `- pass: ${rec.reply_oracle ? rec.reply_oracle.pass : "n/a"}`, ...((rec.reply_oracle && rec.reply_oracle.failures) || []).map((f) => `- HARD FAIL seq ${f.seq} [${f.rule}] ${f.excerpt}`), ``);
   if (opts.defectNotes) md.push(`## Defect notes`, ``, opts.defectNotes, ``);
   fs.writeFileSync(path.join(dir, "transcript.md"), md.join("\n"));
   const record = {
-    case_id: caseId, variant_id: "canonical", trial_id: "trial-1", scenario_version: "gauntlet-pilot-v1",
+    case_id: caseId, variant_id: "canonical", trial_id: TRIAL_ID, scenario_version: opts.scenarioVersion || "gauntlet-pilot-v1",
+    completion_condition: opts.completionCondition || null, verdict_derivation: opts.verdictDerivation || null,
     build_revision: BUILD, environment: opts.environment || "staging harness, Tier B (integrated staging: scenario harness + domain handleChat modules + 140 composer; no live employer writes; form writes only to the F3 local receipt sink / test sinks)",
     fixture_version: FIXTURE_VERSION, model_config: "deterministic staging path — no LLM in the loop; replies are produced only by packages/domain handleChat modules and composed by 140-career-reply.js",
     timestamp: new Date().toISOString(), timezone: "America/Chicago",
@@ -235,7 +250,7 @@ async function writeEvidence(caseId, opts) {
     observed_actions: opts.observedActions || [], final_state: opts.finalState || null,
     forbidden_effect_checks: opts.forbiddenChecks || forbidden(),
     latency_ms: opts.latencyMs, latency_label: "staging script wall-time",
-    grader_versions: { deterministic_assertions: "pilot-lib assertions v1", reply_oracle: "scripts/career/reply-oracle.cjs (repo, pinned build)", conversation_rubric: "pilot-lane model-graded, not human-calibrated" },
+    grader_versions: { deterministic_assertions: TRIAL_ID === "trial-1" ? "pilot-lib assertions v1" : "pilot-lib assertions v2 (live-computed: expected/observed/pass per assertion, verdict derived — run-pilot.cjs stage-4 runner)", reply_oracle: "scripts/career/reply-oracle.cjs (repo, pinned build)", conversation_rubric: RUBRIC_GRADER },
     oracle: rec.reply_oracle || null, assertions: opts.assertions, rubric: opts.rubric,
     sub_legs: opts.subLegs || null, doorstep: opts.doorstep || null,
     verdict: opts.verdict, safety_verdict: opts.safety, safety_line: opts.safetyLine,
@@ -246,7 +261,7 @@ async function writeEvidence(caseId, opts) {
 }
 
 function writeDoorstep(caseId, stepLog, payloadSnapshot) {
-  const dir = path.join(EVIDENCE_ROOT, caseId, "trial-1", "doorstep");
+  const dir = path.join(EVIDENCE_ROOT, caseId, TRIAL_ID, "doorstep");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, "step-log.json"), JSON.stringify(stepLog, null, 2) + "\n");
   fs.writeFileSync(path.join(dir, "payload-snapshot.json"), JSON.stringify(payloadSnapshot, null, 2) + "\n");
@@ -258,4 +273,4 @@ function gapDoorstep(caseId, gap, extra) {
   return { driven_by: "gap", steps: 0, payload_sha256: null, sink_armed: false, gap };
 }
 
-module.exports = { H, Oracle, CareerReply, CareerContainment, CareerRouter, CareerDoorstep, ROOT, BUILD, FIXTURE_VERSION, EVIDENCE_ROOT, GAUNTLET, loadJson, sha256, gauntletProfile, resumeText, chatTurn, rubric, NO_REPLY_RUBRIC, RUBRIC_DIMS, forbidden, assertions, writeEvidence, writeDoorstep, gapDoorstep };
+module.exports = { H, Oracle, CareerReply, CareerContainment, CareerRouter, CareerDoorstep, ROOT, BUILD, TRIAL_ID, RUBRIC_GRADER, FIXTURE_VERSION, EVIDENCE_ROOT, GAUNTLET, loadJson, sha256, gauntletProfile, resumeText, chatTurn, rubric, NO_REPLY_RUBRIC, RUBRIC_DIMS, forbidden, assertions, writeEvidence, writeDoorstep, gapDoorstep };

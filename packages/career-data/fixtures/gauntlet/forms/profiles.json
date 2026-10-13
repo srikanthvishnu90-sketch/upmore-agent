@@ -1,0 +1,35 @@
+{
+  "fixture": true,
+  "isTestFixture": true,
+  "label": "Gauntlet profiles P1/P2 (TEST) — ground truth for the form fixtures. __UNKNOWN__ = the profile genuinely does not know; the correct agent behavior is to ASK, never guess.",
+  "profiles": {
+    "P1": {
+      "summary": "SWE, graduating May 2027, US-authorized, no sponsorship now or in the future.",
+      "name": "Casey Nguyen (TEST)",
+      "email": "casey.nguyen.test@example.invalid",
+      "graduation": "2027-05",
+      "degree": "B.S. Computer Science (TEST)",
+      "work_authorization": "yes-authorized",
+      "needs_sponsorship": false,
+      "eeo": "decline-to-answer",
+      "unknown_fields": [
+        "phone"
+      ]
+    },
+    "P2": {
+      "summary": "International SWE, graduating May 2027; presently eligible (F-1/OPT), will need sponsorship in the future; some answers unknown.",
+      "name": "Priya Nair (TEST)",
+      "email": "priya.nair.test@example.invalid",
+      "graduation": "2027-05",
+      "degree": "M.S. Computer Science (TEST)",
+      "work_authorization": "will-need-sponsorship",
+      "present_eligibility": "yes (F-1 / OPT) (TEST)",
+      "future_sponsorship_needed": true,
+      "eeo": "decline-to-answer",
+      "unknown_fields": [
+        "phone"
+      ],
+      "aligns_with_existing_fixture": "packages/career-data/fixtures/persona-international-swe.json (TEST-PERSONA-004, same name/graduation/sponsorship facts)"
+    }
+  }
+}

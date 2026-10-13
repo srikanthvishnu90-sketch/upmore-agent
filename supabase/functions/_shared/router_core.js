@@ -17925,7 +17925,7 @@
       if (!done.size) lines.push("Here is the freeze, all three bureaus. It is free, it does not touch your existing accounts or your score, and it blocks new accounts opened in your name until you lift it. I will walk you through each bureau and keep the checklist — the identity steps and the final tap at each bureau are yours, because each bureau has to verify you itself.");
       else if (remaining.length) lines.push(`Recorded. ${BUREAUS.filter(b => done.has(b.key)).map(b => b.bureau).join(", ")} frozen; ${remaining.map(b => b.bureau).join(", ")} to go. A freeze at one bureau does not cover the others — a lender can pull any of the three.`);
       else lines.push("That is all three. Equifax, Experian and TransUnion are frozen and recorded, with the date for each. Nothing new can be opened in your name until you lift a freeze; when you need to apply for something, tell me and I will walk the thaw — online or by phone a lift lands within one hour, and you can set it to re-freeze automatically.");
-      for (const b of BUREAUS) lines.push(freezeSteps(b, done.has(b.key)));
+      for (const b of BUREAUS) lines.push(done.has(b.key) ? `${b.bureau} — frozen and recorded.` : freezeSteps(b, false));
       if (remaining.length) lines.push("As each one confirms, tell me \"Equifax is frozen\" and I will record it with the date — the confirmation screen is your proof, and the PIN (where one is issued) stays with you, never in this chat.");
       return { done: [...done], remaining: remaining.map(b => b.bureau), all_frozen: !remaining.length, text: lines.join("\n"), checked: CHECKED };
     }
@@ -17953,7 +17953,7 @@
     // report connected, from what they describe), the letter names the item by furnisher and amount —
     // never an identity number — and the filing channels and the 30-day clock come with it.
     function disputeLetter(report, item, reason) {
-      const name = item.name ? redact(item.name) : "the item below", why = redact(reason || "This item is not mine / is incorrect.");
+      const name = item.name ? redact(item.name) : "the item below", why = redact(reason || "This item is not mine / is incorrect.").replace(/\.\s*$/, "");
       const text = `To ${report.bureau || "[bureau]"}: I dispute the following item on my credit report${report.as_of ? ` as of ${report.as_of}` : ""}: ${name}${item.opened_on ? `, opened ${item.opened_on}` : ""}${item.amount_cents != null ? `, reported balance ${money(item.amount_cents)}` : ""}. Reason: ${why}. Please investigate, correct or remove the item, and send me the result in writing, as the Fair Credit Reporting Act requires. Enclosed: ${(item.evidence || ["a copy of my ID", "the supporting documents"]).map(redact).join(", ")}.`;
       return { text, contains_identity_numbers: hasIdNum(text) };
     }
@@ -18046,7 +18046,7 @@
       // Dispute-clock follow-ups.
       if (/\bfiled (the |my )?dispute\b|\bdispute (is |was )?filed\b/.test(t) && c.dispute_filed_on == null) {
         const clock = disputeClock(today, today);
-        return { kind: "dispute_clock", capability: "C140", text: `Recorded: dispute filed today, ${pretty(today)}. ${clock.text} Tell me the bureau's confirmation number when it arrives and I will attach it to the case.` };
+        return { kind: "dispute_clock", capability: "C140", clock, text: `Recorded: dispute filed today, ${pretty(today)}. The bureau's 30 days run to ${pretty(clock.due_on)}; it must send the result in writing, and if you send more evidence the clock can stretch to ${pretty(clock.due_45_on)}. Tell me the bureau's confirmation number when it arrives and I will attach it to the case.` };
       }
       if ((c.dispute_filed_on || c.dispute_filed_on === "") && /\b(still (on|there)|not removed|still shows|deadline|30 days|overdue)\b/.test(t)) {
         const clock = disputeClock(c.dispute_filed_on || today, today);

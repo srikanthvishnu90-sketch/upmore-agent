@@ -144,7 +144,22 @@ const CareerGraph = (() => {
       paths.push(row);
     }
     paths.sort((a, b) => b.score - a.score); excluded.sort((a, b) => b.score - a.score);
-    return { company, paths, excluded, best: paths[0] || null };
+    // GATE-3 record completion (03 F4 doorstep): the referral/intro draft
+    // for each ranked path is represented as a HELD CARD on this record —
+    // never a loose draft and never sent. The card holds the ask slot for
+    // that person; the draft text itself is composed on the card only
+    // when its turn comes (a referral ask never goes in email one — it
+    // follows a good chat, SC-151) and nothing sends until the user
+    // approves the card. Excluded (departed / current-employer) contacts
+    // get NO card: there is no ask to hold for them.
+    const draftCards = paths.map((p) => ({
+      card_id: "path-card-" + (p.person_id || hash(norm(p.name) + "@" + normCo(p.firm))),
+      kind: "referral_intro_draft", status: "held", held_as_card: true,
+      person_id: p.person_id || null, name: p.name, firm: p.firm,
+      draft: null, sends: 0, requires_card_approval: true,
+      note: "Held as a card — not drafted loose, not sent. The intro/referral draft is composed on this card when its turn comes and sends only on the user's approval of the card.",
+    }));
+    return { company, paths, excluded, best: paths[0] || null, draft_cards: draftCards, drafts_held_as_cards: draftCards };
   }
   function pickStrongerPath(store, company, profile, opts) {
     const { paths, excluded } = findPaths(store, company, profile, opts);

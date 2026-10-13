@@ -97,6 +97,36 @@ const CareerPrep = (() => {
   function jdKeywords(jdText) { const t = lc(jdText); return JD_KEYS.filter((k) => t.includes(k)); }
 
   // ---------- PREP-001 brief ----------
+  // GATE-3 record completion (03 F5 doorstep): the brief record carries the
+  // user's own stories mapped to this brief's questions — or an explicit
+  // no-fit statement when none map. The mapping is computed by this
+  // module's own question bank (each question's matched_story, from
+  // findStories over the supplied story bank); stories are taken from
+  // opts.stories, or mined from opts.facts / opts.profile.facts. When no
+  // stories are supplied at all, the no-fit is stated plainly — a story is
+  // never invented to fill the field.
+  function storyMapping(opts) {
+    let stories = opts.stories || null;
+    if (!stories && (opts.facts || (opts.profile && opts.profile.facts))) stories = mineStories(opts.facts || opts.profile.facts);
+    if (!stories || !stories.length) {
+      return { story_map: [], stories_mapped: [], no_fit_statement: true,
+        stories_note: "No user stories were supplied with this brief, so no story is mapped to its questions — an explicit no-fit, not an omission: pass the story bank (or profile facts) and the mapping is computed from them. No story was invented." };
+    }
+    const bank = questionBank({ cir: opts.cir, role: opts.role, roleFamily: opts.roleFamily, round: opts.round, stories });
+    const byId = new Map();
+    for (const q of bank.questions || []) {
+      if (!q.matched_story) continue;
+      const e = byId.get(q.matched_story.story_id) || { story_id: q.matched_story.story_id, title: q.matched_story.title, mapped_to_questions: [] };
+      e.mapped_to_questions.push(q.q);
+      byId.set(q.matched_story.story_id, e);
+    }
+    const map = [...byId.values()];
+    if (!map.length) {
+      return { story_map: [], stories_mapped: [], no_fit_statement: true,
+        stories_note: `${stories.length} supplied ${stories.length === 1 ? "story" : "stories"} did not map to any question in this company's brief — an explicit no-fit: no story is claimed to fit a question it does not match.` };
+    }
+    return { story_map: map, stories_mapped: map, no_fit_statement: false, stories_note: null };
+  }
   function composeBrief(opts) {
     opts = opts || {};
     const company = s(opts.company || (opts.cir && opts.cir.company_name) || "");
@@ -106,7 +136,7 @@ const CareerPrep = (() => {
       return { status: "NO_CIR", company, role: s(opts.role || "") || null, round: s(opts.round || "") || null,
         bar: null, stages: [], emphasis: jdKw.map((k) => ({ point: `JD mentions: ${k}`, source: { type: "jd_text_supplied_by_user" } })),
         gaps: [`No company file on file for ${company || "this company"} — process stages, hiring bar and comp are not claimed.`, "Supply the JD text or add a company file for this company to ground a full brief."],
-        sources: [] };
+        sources: [], ...storyMapping(opts) };
     }
     const emphasis = [
       ...n.signals.slice(0, 4).map((x) => ({ point: x.text, source: { type: "CIR screening_signals", source_type: x.source && x.source.source_type, source_url: x.source && x.source.source_url } })),
@@ -116,7 +146,7 @@ const CareerPrep = (() => {
       bar: n.bar || null, stages: n.stages, emphasis, styles: n.styles, values: n.values.slice(0, 3),
       compNotes: n.compNotes, redFlags: n.redFlags.slice(0, 3),
       gaps: n.bar ? [] : ["The company file has no hiring-bar summary; bar not claimed."],
-      sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }] };
+      sources: [{ type: "CIR", company_id: n.company_id, as_of: n.as_of }], ...storyMapping(opts) };
   }
 
   // ---------- PREP-004 story bank ----------

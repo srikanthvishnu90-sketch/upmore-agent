@@ -375,6 +375,26 @@ const CareerOutreach = (() => {
     return "C";
   }
   const STRUCTURES = ["path_question", "shared_context", "specific_question", "short_honest", "peer_learning"];
+  // Doc 03 F1 draft rule: the subject line is UNDER 60 characters and
+  // specific. The generated form ("<school> <year>, question about <title>
+  // at <firm>") crossed 60 for long school/firm names (61 chars on the
+  // SC-001 shape), so the generator shortens deterministically — drop the
+  // year segment, then the school prefix, then trim at a word boundary —
+  // instead of emitting an over-limit subject.
+  function capSubject(raw, c, user) {
+    const clean = (v) => String(v || "").replace(/\s+/g, " ").trim();
+    const variants = [
+      clean(raw),
+      clean(`${user.school ? user.school + " " : ""}question about ${c.title || "your path"} at ${c.current_firm}`),
+      clean(`Question about ${c.title || "your path"} at ${c.current_firm}`),
+      clean(`${user.school ? user.school + " " : ""}question about ${c.title || "your path"}`),
+    ];
+    for (const v of variants) if (v && v.length < 60) return v;
+    const base = variants[2] || variants[0] || "";
+    const cut = base.slice(0, 59);
+    const atWord = cut.lastIndexOf(" ");
+    return (atWord > 20 ? cut.slice(0, atWord) : cut).trim();
+  }
   function draftFor(candidate, user, opts) {
     opts = opts || {}; const c = normalizeCandidate(candidate); user = user || {};
     // NWD-01 drafting half: suppression is read BEFORE any draft text exists.
@@ -416,13 +436,17 @@ const CareerOutreach = (() => {
     lines.push(intro);
     if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
     const askTopic = (strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`).replace(/\bthe a(n)?\b/gi, "the");
-    lines.push(`Would you have 15 minutes in the next two weeks to talk about ${askTopic}? Totally understand if you're swamped.`);
+    // Doc 03 F1 draft rule: one concrete ask — 15 minutes, with two proposed
+    // windows OR "whatever works". Both are offered: two named windows, and
+    // the whatever-works fallback if neither fits.
+    const ask = { minutes: 15, windows: ["Tuesday afternoon", "Thursday morning"], whatever_works: true };
+    lines.push(`Would you have 15 minutes on Tuesday afternoon or Thursday morning to talk about ${askTopic}? If neither fits, whatever works best for you is fine. Totally understand if you're swamped.`);
     lines.push(OPT_OUT_LINE);
     lines.push(`Thanks,\n${user.name || ""}${user.school ? ` | ${user.school}` : ""}${user.year_label ? ` ${user.year_label}` : ""}${user.link ? `\n${user.link}` : ""}`);
     let body = lines.join("\n\n");
     if (body.split(/\s+/).length > CAPS.maxWords && user.experience) { lines.splice(2, 1); body = lines.join("\n\n"); }
-    const subject = strong && strong.subject_hint ? strong.subject_hint : `${user.school ? user.school + " " : ""}${user.year ? user.year + ", " : ""}question about ${c.title || "your path"} at ${c.current_firm}`.replace(/\s+/g, " ").trim();
-    return { person_id: c.person_id || null, to: c.work_email || null, subject, body, tier, structure, voice,
+    const subject = capSubject(strong && strong.subject_hint ? strong.subject_hint : `${user.school ? user.school + " " : ""}${user.year ? user.year + ", " : ""}question about ${c.title || "your path"} at ${c.current_firm}`, c, user);
+    return { person_id: c.person_id || null, to: c.work_email || null, subject, body, tier, structure, voice, ask,
       facts_used: why, why_this_line: why, dropped_unsourced: dropped, title_used: c.title || null, firm_used: c.current_firm || null, name_used: c.full_name || null };
   }
   function qualityGate(draft, candidate, opts) {

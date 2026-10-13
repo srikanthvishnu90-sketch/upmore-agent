@@ -916,10 +916,20 @@ const CareerDoorstep = (() => {
     }
     const at = isoOf(spec.at || c.now) || isoOf(Date.now());
     const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    // GATE-3 vocabulary alignment (03 F3): the log_write.source on a
+    // DOORSTEP RECORD uses the spec enum inbox | user_reported | portal.
+    // 126's tracker-store vocabulary is hyphenated ("user-reported") and
+    // is pinned by 126's own consumers (status/timeline readers and the
+    // track/G6 suites), so the store value is NOT renamed — the mapping
+    // happens HERE, at the doorstep emission point, for every source value
+    // this record carries. Values outside the enum pass through unmapped
+    // rather than being relabeled into a claim they are not.
+    const SPEC_LOG_SOURCE = { "user-reported": "user_reported", user_reported: "user_reported", inbox: "inbox", portal: "portal" };
+    const specLogSource = (v) => SPEC_LOG_SOURCE[v] || v;
     const event = {
       type: eventType,
       at,
-      source: spec.source || (eventType === "manual_update" ? "user-reported" : "system"),
+      source: specLogSource(spec.source || (eventType === "manual_update" ? "user-reported" : "system")),
       detail: spec.detail || spec.note || `stage set to ${stage}`,
       evidence: spec.evidence || spec.url || null,
     };
@@ -956,12 +966,33 @@ const CareerDoorstep = (() => {
       if (stage) event.stage_after = stage;
     }
     const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    // Triggered follow-ups, from 126's own follow-up state: the quiet-period
+    // radar (deadlineRadar -> quietReport) run over the would-be log (the
+    // existing rows with this write applied). A company whose follow-up is
+    // due arms a nudge follow-up here; when none is due the field is present
+    // and empty WITH the reason, computed from the same radar — never a
+    // follow-up invented for the record.
+    let triggeredFollowups = [], triggeredNote = "126's follow-up radar is unavailable in this build, so no follow-up state could be read";
+    if (Track && typeof Track.deadlineRadar === "function" && typeof Track.quietReport === "function") {
+      const nowMs = Date.parse(at) || Date.now();
+      const rowsAfter = existing ? rows.map((r) => (r && r.app_id === row.app_id ? row : r)) : [...rows, row];
+      const radar = Track.deadlineRadar({ rows: rowsAfter }, [], { now: nowMs, withinDays: 14 });
+      triggeredFollowups = radar.filter((d) => d.kind === "follow_up_due" && norm(d.company) === norm(row.company))
+        .map((d) => ({ kind: "follow_up_nudge", company: d.company, label: d.label, date: d.date, days_away: d.days_away, source: "126 quiet-period radar (deadlineRadar/quietReport)" }));
+      if (!triggeredFollowups.length) {
+        const q = Track.quietReport({ rows: rowsAfter }, { now: nowMs }).find((x) => norm(x.company) === norm(row.company));
+        triggeredNote = q
+          ? `no follow-ups are armed for ${row.company}: 126's quiet-period radar shows ${q.days_quiet} day(s) quiet at stage "${row.stage}" — a nudge arms only at ${Track.NUDGE_AFTER_DAYS != null ? Track.NUDGE_AFTER_DAYS : 10}+ days quiet`
+          : `no follow-ups are armed for ${row.company}: stage "${row.stage}" carries no quiet-period follow-up in 126's radar`;
+      } else triggeredNote = `${triggeredFollowups.length} follow-up(s) armed by 126's quiet-period radar for ${row.company}`;
+    }
     const payload = {
       kind: "tracker_log_write", family: "tracking-write", operation,
       app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
       application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
       status: row.stage, stage: row.stage,
       note: spec.note || null, event: cloneJson(event),
+      triggered_followups: triggeredFollowups, triggered_followups_note: triggeredNote,
       would_write: wouldWrite, target: "tracker", committed: false,
     };
     const stepLog = [
@@ -1164,9 +1195,43 @@ const CareerDoorstep = (() => {
       fact_version: binding && binding.fact_version != null ? binding.fact_version : null,
       fact_hash: binding ? binding.fact_hash || null : null,
     };
+    // GATE-3 record completion (03 F2 doorstep): surface what the packet
+    // assembly (133 -> 123) already produced, on the doorstep record itself.
+    // - posting_snapshot: the exact posting text this packet was tailored
+    //   against (the caller's JD), with its company/job identity.
+    // - audit_result: 123's truth audit of the tailored resume, as carried
+    //   on packet.tailored.audit, plus the diff's dropped (removed) lines
+    //   and whether every tailored line cites a profile fact. No audit is
+    //   invented: when the tailored packet carries none, this stays null.
+    // - filled_fields: the application fields this seam's own resolver
+    //   (resolveField — profile facts only, unknowns are asks) fills for
+    //   this packet, each flagged t3 when it is one of the sensitive
+    //   questions the resolver never guesses (work authorization,
+    //   sponsorship detail, EEO, consent/declaration). Fields the resolver
+    //   surfaces as asks are NOT filled fields and are listed separately.
+    const tailored = packet.tailored || {};
+    const audit = tailored.audit || null;
+    const auditResult = audit ? {
+      ok: audit.ok === true, result: audit.ok ? "pass" : "fail",
+      checked: audit.checked != null ? audit.checked : null,
+      violations: audit.violations || [],
+      dropped_lines: ((tailored.diff && tailored.diff.removed) || []).map((x) => (typeof x === "string" ? x : x.text)),
+      every_line_cites_fact: (() => { const lines = (tailored.resume && tailored.resume.lines) || []; return lines.length > 0 && lines.every((l) => Array.isArray(l.factIds) && l.factIds.length > 0); })(),
+    } : null;
+    const T3_FIELDS = new Set(["work_authorization", "sponsorship_detail", "eeo_gender", "eeo_veteran", "eeo_gender_reversed", "background_check_consent", "export_control_declaration"]);
+    const resolveCtx = { profile: c.profile, resumeArtifact: binding ? { name: binding.name, sha256: binding.sha256 } : (c.resumeArtifact || null), formFacts: spec.formFacts || c.formFacts || null, eeoAnswers: spec.eeoAnswers || c.eeoAnswers || null };
+    const filledFields = [], unfilledAsks = [];
+    for (const fieldId of ["full_name", "email", "phone", "resume_upload", "work_authorization", "sponsorship_detail", "start_date", "graduation_date", "eeo_gender", "eeo_veteran", "background_check_consent", "export_control_declaration"]) {
+      const r = resolveField({ field_id: fieldId }, resolveCtx);
+      if (r.ask) { unfilledAsks.push({ field: fieldId, reason: r.ask, t3: T3_FIELDS.has(fieldId) }); continue; }
+      filledFields.push({ field: fieldId, value: r.value, source: r.source, t3: T3_FIELDS.has(fieldId) });
+    }
     const payload = {
       kind: "application_packet", family: "application",
       company: packet.company, job_id: packet.jobId || spec.jobId || spec.job_id || null,
+      posting_snapshot: { company: packet.company, job_id: packet.jobId || spec.jobId || spec.job_id || null, jd_text: jdText || "", role: spec.role || null },
+      audit_result: auditResult,
+      filled_fields: filledFields, unfilled_asks: unfilledAsks,
       binding, review,
       packet_summary: { ok: true, one_page_ok: review.one_page_ok, ats_ok: review.ats_ok, cover_letter: !!packet.coverLetter, voice: packet.voice || null },
       resume_sha256: binding ? binding.sha256 : null,
@@ -1203,7 +1268,7 @@ const CareerDoorstep = (() => {
   }
   function emitOutreachDraft(ctx, recipientSpec) {
     const c = ctx || {}, spec = recipientSpec || {};
-    let draft = null, recipientLabel = null;
+    let draft = null, recipientLabel = null, f1List = null;
     if (spec.draft && typeof spec.draft === "object") {
       const d = spec.draft;
       if (!d.to) {
@@ -1254,6 +1319,41 @@ const CareerDoorstep = (() => {
       }
       draft = gated.draft;
       recipientLabel = draft.to;
+      // GATE-3 record completion (03 F1 doorstep): assemble the complete
+      // doorstep record from 124's own pieces — the list this draft belongs
+      // to (buildList: selected/reserve/excluded counts + honest yield), a
+      // campaign in draft state (createCampaign + enqueue + planWave), and
+      // the safety-plan card for that campaign (safetyPlan). All of it is
+      // built locally from the recipient spec / ctx candidate records;
+      // nothing is enqueued anywhere real and nothing sends.
+      if (Outreach && typeof Outreach.buildList === "function" && typeof Outreach.createCampaign === "function") {
+        const records = spec.list_records || spec.candidates || c.listRecords || c.candidateRecords || [candidate];
+        const listQuery = spec.list_query || c.listQuery || { count: records.length };
+        const pool = Outreach.buildList(records, listQuery, {
+          profile: { school: outreachUserOf(c).school || "", current_employer: c.current_employer || null },
+          suppression: c.suppression || null, userId: c.userId || "user-1",
+          nowMs: Date.parse(isoOf(c.now) || "") || undefined,
+        });
+        const excludedCount = Object.values(pool.exclusions || {}).reduce((a, b) => a + (typeof b === "number" ? b : 0), 0);
+        f1List = {
+          list_record: {
+            selected_count: pool.yield.selected, reserve_count: pool.yield.reserve, excluded_count: excludedCount,
+            selected: pool.yield.selected, reserve: pool.yield.reserve, excluded: excludedCount,
+            exclusions: cloneJson(pool.exclusions),
+          },
+          yield: cloneJson(pool.yield),
+        };
+        const campaign = Outreach.createCampaign({ id: spec.campaign_id || c.campaignId || "campaign-doorstep", userId: c.userId || "user-1" });
+        Outreach.enqueue(campaign, [{ candidate, draft }], { suppression: c.suppression || null });
+        const plan = Outreach.planWave(campaign, { waveNumber: 1, startDayIndex: 0 });
+        f1List.safety_plan_card = cloneJson(Outreach.safetyPlan(campaign, plan, { startDateIso: isoOf(c.now) || undefined }));
+        f1List.campaign = {
+          id: campaign.id, status: campaign.status, state: campaign.status,
+          sending_channel: campaign.sending_channel, cap_per_day: campaign.cap_per_day,
+          item_count: campaign.items.length,
+          items: campaign.items.map((i) => ({ person_id: i.person_id || null, email: i.email || null, status: i.status })),
+        };
+      }
     }
     const queueItem = {
       queue_id: `g6-outreach-${sha256(String(draft.to) + "|" + String(draft.subject || "")).slice(0, 8)}`,
@@ -1264,6 +1364,7 @@ const CareerDoorstep = (() => {
     const payload = {
       kind: "outreach_draft", family: "outreach-send",
       draft: cloneJson(draft), queue_state: queueState,
+      ...(f1List || {}),
       sends: 0, committed: false,
     };
     const stepLog = [

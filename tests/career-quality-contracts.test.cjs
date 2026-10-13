@@ -177,41 +177,55 @@ test("CENSUS: per-family VALID / GAP over the modules' own artifacts", () => {
   }
   const by = Object.fromEntries(rows.map((r) => [r.label, r]));
 
+  // GATE-3 RECORD COMPLETION (WE-BUILD lane, career/gauntlet-records):
+  // F1/F2/F3/F4/F5/F7 flipped GAP -> VALID by closing the named elements
+  // in the owning modules (124/141, 141/133, 126/141, 135, 127, 144).
+  // F9 stays GAP — its self-test proof lives in 120, another lane's file.
   const f1 = by["141 emitOutreachDraft (SC-001 shape)"];
-  assert.equal(f1.status, "GAP");
-  assert.deepEqual(f1.missing, ["list_record.selected_count", "list_record.reserve_count", "list_record.excluded_count", "draft.ask_15min_with_two_windows_or_whatever_works", "safety_plan_card", "campaign_in_draft_state"], JSON.stringify(f1));
-  assert.ok(f1.invalid.some((i) => i.element === "draft.subject_under_60_chars" && /61 characters/.test(i.observed)), "124 draft subject is 61 chars vs the <60 rule: " + JSON.stringify(f1.invalid));
+  assert.equal(f1.status, "VALID", JSON.stringify(f1));
+  assert.deepEqual(f1.missing, [], JSON.stringify(f1));
+  assert.deepEqual(f1.invalid, [], JSON.stringify(f1));
+  for (const el of ["list_record.selected_count", "list_record.reserve_count", "list_record.excluded_count", "draft.ask_15min_with_two_windows_or_whatever_works", "safety_plan_card", "campaign_in_draft_state", "draft.subject_under_60_chars"])
+    assert.ok(f1.present.includes(el), "F1 element closed: " + el);
   assert.ok(f1.present.includes("drafts") && f1.present.includes("draft.personalization_fact_with_source"));
 
   const f2 = by["141 emitApplicationPacket (SC-111 shape)"];
-  assert.equal(f2.status, "GAP");
-  assert.deepEqual(f2.missing, ["posting_snapshot", "audit_result", "filled_fields", "t3_flags"], JSON.stringify(f2));
+  assert.equal(f2.status, "VALID", JSON.stringify(f2));
+  assert.deepEqual(f2.missing, [], JSON.stringify(f2));
+  for (const el of ["posting_snapshot", "audit_result", "filled_fields", "t3_flags"])
+    assert.ok(f2.present.includes(el), "F2 element closed: " + el);
   assert.ok(f2.present.includes("variant_id") && f2.present.includes("attach_guard_result") && f2.present.includes("doorstep_envelope"));
 
   const f3 = by["141 emitTrackingLog (SC-138)"];
-  assert.equal(f3.status, "GAP");
-  assert.deepEqual(f3.missing, ["triggered_followups"], JSON.stringify(f3));
-  assert.ok(f3.invalid.some((i) => i.element === "log_write.source" && i.observed === '"user-reported"'), "126/141 source vocabulary is 'user-reported'; 03 F3 enum is user_reported: " + JSON.stringify(f3.invalid));
+  assert.equal(f3.status, "VALID", JSON.stringify(f3));
+  assert.deepEqual(f3.missing, [], JSON.stringify(f3));
+  assert.deepEqual(f3.invalid, [], JSON.stringify(f3));
+  assert.ok(f3.present.includes("triggered_followups") && f3.present.includes("log_write.source"),
+    "F3 elements closed: triggered_followups present; log_write.source uses the 03 enum (user_reported) at 141's emission point");
 
   const cal = by["141 emitCalendarProposal (SC-031)"];
   assert.equal(cal.status, "VALID", JSON.stringify(cal));
 
   const f4 = by["135 findPaths (Datadog, incl. departed contact)"];
-  assert.equal(f4.status, "GAP");
-  assert.deepEqual(f4.missing, ["drafts_held_as_cards"], JSON.stringify(f4));
+  assert.equal(f4.status, "VALID", JSON.stringify(f4));
+  assert.deepEqual(f4.missing, [], JSON.stringify(f4));
+  assert.ok(f4.present.includes("drafts_held_as_cards"), "F4 element closed: drafts_held_as_cards");
   assert.ok(f4.present.includes("shared_fact_per_person") && f4.present.includes("departed_contact_check") && f4.present.includes("warmth_rank_order"));
 
   const f5 = by["127 composeBrief (Stripe CIR)"];
-  assert.equal(f5.status, "GAP");
-  assert.deepEqual(f5.missing, ["stories_mapped_or_no_fit_statement"], JSON.stringify(f5));
+  assert.equal(f5.status, "VALID", JSON.stringify(f5));
+  assert.deepEqual(f5.missing, [], JSON.stringify(f5));
+  assert.ok(f5.present.includes("stories_mapped"), "F5 element closed: stories_mapped_or_no_fit_statement (explicit no-fit statement — no stories supplied)");
   assert.ok(f5.present.includes("sources") && f5.present.includes("sources_as_of") && f5.present.includes("company_specific_content"));
 
   const f6 = by["128 parseOffer (test-offer-a)"];
   assert.equal(f6.status, "VALID", JSON.stringify(f6));
 
   const f7 = by["144 answerGuidance plan_paths"];
-  assert.equal(f7.status, "GAP");
-  assert.deepEqual(f7.missing, ["sources", "basis_as_of_date", "action_plan_3_to_5"], JSON.stringify(f7));
+  assert.equal(f7.status, "VALID", JSON.stringify(f7));
+  assert.deepEqual(f7.missing, [], JSON.stringify(f7));
+  for (const el of ["sources", "basis_as_of_date", "action_plan_3_to_5"])
+    assert.ok(f7.present.includes(el), "F7 element closed: " + el);
   assert.ok(f7.present.includes("bottom_line_first_sentence_under_30_words"));
 
   const f8 = by["129 logWin"];

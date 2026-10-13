@@ -53,6 +53,7 @@ import { priceDropReply } from "./_shared/price_drop_answer.ts";
 import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
+import { marketReply } from "./_shared/market_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
 import { paycheckReply } from "./_shared/paycheck_answer.ts";
@@ -370,6 +371,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // Deadlines (capability list item 39, _shared/deadlines_answer.ts): dated tax and enrollment dates with their
         // sources, and the FSA and work dates the person gave (their settings row, already read above). Dates only.
         if (!direct) direct = await deadlinesReply(message, new Date(), { tz, watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
+        // Market and news intelligence (items C17-C45, _shared/market_answer.ts): briefings, movers, watchlist,
+        // digest, explainers, screens and comparisons over the dated stand-in market dataset, with its source
+        // line on every reply; the person's watches come from the same settings row read above.
+        if (!direct) direct = await marketReply(message, new Date(), { watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         // Answered here, so a live card in this thread is dropped and said (live gauntlet L3-01): a later yes stages nothing.

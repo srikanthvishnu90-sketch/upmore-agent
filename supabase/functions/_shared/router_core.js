@@ -24130,7 +24130,20 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTrac
      questionBank({cir, roleFamily, round, stories})  PREP-002 questions, each CIR-tagged
      mineStories(facts)                PREP-004 STAR drafts mined from profile facts
      captureStory(store, story) / findStories(store, query)
-     scoreAnswer(answer)               rubric: structure / evidence / specificity (0-5 each)
+     scoreAnswer(answer)               rubric: structure / evidence / specificity (0-5 each);
+                                       domain-checked against the graded drills where they exist
+                                       (MID-1), no length/brevity points (MID-2), missing result
+                                       metric named as top fix on ties (MID-3), framework recitation
+                                       without a decision diagnosed (MID-4), memorized solutions get
+                                       a transfer variant (generateVariant)
+     detectContradiction(answer, profile) / checkAnswerClaims(...)  corrected, route-ready version of
+                                       142's flagger: sentence-start words and user-disclosed names are
+                                       never fabrications (MID-5)
+     handlePrepTurn(text, opts) / makeShareableExample(source) / captureStory flags
+                                       confidential disclosures and shareable-artifact requests are
+                                       handled as what they are, never graded as answers (MID-6)
+     accessibilityMode(text)           PREP text-only / slower-pace mode, explicitly set up (MID-7)
+     recordingConsent(text)            recording opt-out acknowledged with its effect (MID-8)
      startMock(store, {bank, count}) / answerMock(store, id, answer) / mockSummary(store, id)  PREP-003
      technicalDrills({cir, roleFamily})  PREP-005 coding + system-design sets from CIR round types
      financeDrill() / quantDrill() / gradeDrillAnswer(set, id, answer)   graded drills (SC-169/170)
@@ -24237,10 +24250,15 @@ const CareerPrep = (() => {
     if (/\b(present|pitch|competition)/.test(t)) tags.push("communication");
     return [...new Set(tags)];
   }
+  const CONF_RE = /\b(confidential|keep it out|do not share|don't share|unreleased|internal (?:tool|project|only)|not (?:for|to be) shar\w*)\b/i;
+  function isConfidentialText(t) { return CONF_RE.test(s(t)); }
   function captureStory(store, story) {
+    // MID-6: a story the user marks confidential is stored flagged non-shareable.
+    const confidential = !!(story.confidential || isConfidentialText([story.title, story.situation, story.task, story.action, story.result].join(" ")));
     const row = { story_id: story.story_id || "story-" + hash(s(story.title) + s(story.action)), title: s(story.title),
       situation: s(story.situation), task: s(story.task), action: s(story.action), result: s(story.result),
       metrics: story.metrics || [], skills: story.skills || [], tags: story.tags || storyTags(story), fact_id: story.fact_id || null,
+      confidential, shareable: confidential ? false : story.shareable !== false,
       source: story.source || "user_capture", captured_at: new Date().toISOString() };
     store.stories.push(row); return row;
   }
@@ -24279,6 +24297,149 @@ const CareerPrep = (() => {
     return { company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, questions: qs };
   }
 
+  // ---------- G3 (MID-1..8): ground truth, judgment, variants, disclosure ----------
+  // MID-1: directional ground truth from the graded drills (FINANCE_DRILL fin-1/fin-5).
+  function domainCheck(a) {
+    const low = lc(a);
+    if (/depreciation/.test(low) && /\b(net income|cash flow|balance sheet)\b/.test(low)) {
+      const drill = (typeof FINANCE_DRILL !== "undefined" ? FINANCE_DRILL : []).find((d) => d.id === "fin-1");
+      const wrong = [];
+      if (/net income (rises|rose|increases|increased|goes up|grows|grew)\b/.test(low) || /net income (falls|fell|drops|decreases|declines) by (10|ten)\b/.test(low)) wrong.push("net income direction/amount");
+      if (/cash flow (falls|fell|drops|decreases|declines|goes down)\b/.test(low) || /cash flow (rises|increases) by (10|ten)\b/.test(low)) wrong.push("cash flow direction/amount");
+      if (/equity (grows|grew|increases|increased)\b/.test(low)) wrong.push("equity claim");
+      const correctMarkers = [/net income (falls|fell|drops|decreases|declines)[^.]{0,30}\b6\b/, /cash flow[^.]{0,40}\b4\b/, /added back/];
+      const hitsCorrect = correctMarkers.filter((re) => re.test(low)).length;
+      if (wrong.length) return { drill_id: "fin-1", topic: "accounting", correct: false, wrong_claims: wrong,
+        correction: "Correction: a $10 increase in depreciation lowers net income by $6 after the 40% tax (net income falls by $6, not rises by $10), and cash flow rises by a net $4 — the $10 non-cash charge is added back, less the tax shield. Depreciation is non-cash, but it still reduces reported profit, so the wrong claim about depreciation and net income cannot earn evidence points. Ground truth (fin-1): " + (drill ? drill.expect : "IS: NI down $6; CFS: +$4 net (add back $10, tax shield); BS balances.") };
+      if (hitsCorrect >= 1) return { drill_id: "fin-1", topic: "accounting", correct: true, wrong_claims: [], correction: null };
+      return { drill_id: "fin-1", topic: "accounting", correct: null, wrong_claims: [], correction: null };
+    }
+    if (/working capital (increases|increased|goes up|rose)\b/.test(low) && /cash flow/.test(low)) {
+      const drill = (typeof FINANCE_DRILL !== "undefined" ? FINANCE_DRILL : []).find((d) => d.id === "fin-5");
+      if (/cash flow (rises|increases|improves|goes up)\b/.test(low)) return { drill_id: "fin-5", topic: "accounting", correct: false, wrong_claims: ["cash flow direction"],
+        correction: "Correction: when working capital increases, cash flow decreases — cash is tied up in inventory and receivables. Ground truth (fin-5): " + (drill ? drill.expect : "Cash flow decreases.") };
+      if (/cash flow (falls|decreases|drops|declines)\b/.test(low)) return { drill_id: "fin-5", topic: "accounting", correct: true, wrong_claims: [], correction: null };
+    }
+    return null;
+  }
+  // MID-4 (MI07): framework steps named, but no actual decision/choice/trade-off made.
+  function frameworkCheck(a) {
+    const low = lc(a);
+    const signals = [/clarify/, /structure|branches|split/, /hypothes/, /analy[sz]e|analyze the data/, /synthesi[sz]e|recommendation/, /framework/, /risks|next steps/]
+      .filter((re) => re.test(low)).length;
+    const decision = /\b(i|we) (decided|chose|choose|recommended|prioritised|prioritized|cut|dropped|priced)\b/.test(low)
+      || /recommendation (is|was) to\b/.test(low) || /the decision (is|was)\b/.test(low) || /\bi would (recommend|choose|decide)\b/.test(low);
+    return { framework_signals: signals, decision_made: decision, missing_judgment: signals >= 3 && !decision };
+  }
+  // MID-4 (MI08): a memorized/known solution is transfer-tested, never accepted as mastery.
+  function generateVariant(answer) {
+    const low = lc(answer);
+    if (/two[- ]?sum/.test(low) || (/hash map/.test(low) && /complement/.test(low))) {
+      return { problem: "two-sum", tests_transfer: true,
+        changed_constraints: ["the input is already sorted, so only O(1) extra space is allowed", "duplicates can appear and every matching pair must be reported", "the input arrives as a stream too large to store"],
+        variant: "Variant (two-sum, changed constraints): the array is now sorted and you may use only O(1) extra space; duplicates can appear and every matching pair counts; then the same values arrive as a stream too large to store. Solve it again out loud: what changes, what breaks in the memorized hash-map version, and what are the new time and space costs?",
+        follow_up: "Do not repeat the memorized solution — adapt it to the changed constraints and name the trade-off you accept." };
+    }
+    if (/memoriz|same pattern|exactly this way/.test(low) || /\b(binary search|sliding window|dynamic programming|bfs|dfs|two pointers)\b/.test(low)) {
+      return { problem: "memorized-pattern", tests_transfer: true,
+        changed_constraints: ["the input is already sorted", "the input arrives as a stream too large to store", "duplicates can appear"],
+        variant: "Variant (changed constraints): the input is now already sorted, duplicates can appear, and it then arrives as a stream too large to store. Solve it again out loud: what changes, what breaks in the memorized pattern, and what are the new time and space costs?",
+        follow_up: "Do not repeat the memorized solution — adapt it to the changed constraints and name the trade-off you accept." };
+    }
+    return null;
+  }
+  const answerVariant = generateVariant;
+  // MID-5: corrected contradiction flagger (route-ready replacement for 142's).
+  function profileText(profile) {
+    const out = [];
+    (function walk(x, depth) { if (x == null || depth > 5) return;
+      if (typeof x === "string" || typeof x === "number") { out.push(s(x)); return; }
+      if (Array.isArray(x)) { x.forEach((v) => walk(v, depth + 1)); return; }
+      if (typeof x === "object") for (const [k, v] of Object.entries(x)) { if (!k.startsWith("_")) walk(v, depth + 1); } })(profile, 0);
+    return lc(out.join(" "));
+  }
+  function disclosedNames(a, opts) {
+    const names = new Set(((opts && opts.disclosedNames) || []).map((x) => lc(x)));
+    const pats = [/\b(?:at|for)\s+([A-Z][\w]*(?:\s+[A-Z][\w]*)*)(?=\s+(?:I|we)\s+worked)/gi,
+      /\b(?:project|called|named|tool|product|system)\s+([A-Z][\w]+)/g,
+      /\bworked on (?:an?\s+|the\s+)?([A-Z][\w]*(?:\s+[A-Z][\w]*)*?)(?=[,.]|\s+—|\s+an?\s|\s+is\b)/g];
+    for (const re of pats) { let m; while ((m = re.exec(s(a)))) { names.add(lc(m[1])); for (const t of m[1].split(/\s+/)) names.add(lc(t)); } }
+    return names;
+  }
+  function checkAnswerClaims(answer, profile, opts) {
+    const a = s(answer); const profText = profileText(profile);
+    const disclosed = disclosedNames(a, opts);
+    const parts = [];
+    const jobClaim = a.match(/my (?:last|previous) ([a-z][a-z ]+?) job/i) || a.match(/worked as an?\s+([a-z][a-z ]+?)(?:\s+for|\s+at|\.|,)/i);
+    if (jobClaim) { const phrase = lc(jobClaim[1]).trim();
+      if (!profText.includes(phrase) && !profText.includes(phrase.split(" ").slice(0, 2).join(" "))) parts.push(`paid ${phrase} job`); }
+    // Sentence-start words are openers, never claims ("Give me full marks", "First I built…").
+    const sentenceStarts = new Set();
+    for (const sent of a.split(/[.!?\n]+/)) { const m = sent.trim().match(/^[“"'(\[]*([A-Za-z]+)/); if (m) sentenceStarts.add(m[1]); }
+    const stop = new Set(["I", "In", "My", "The", "That", "This", "It", "Tell", "Why", "What", "When", "How", "For", "And", "But", "So", "One", "Two",
+      "Situation", "Task", "Action", "Result", "Give", "First", "Then", "Now", "At", "On", "As", "If", "You", "We", "He", "She", "They", "There", "Here"]);
+    for (const tok of a.match(/\b[A-Z][a-zA-Z]{2,}\b/g) || []) {
+      if (stop.has(tok) || sentenceStarts.has(tok)) continue;
+      if (/^[A-Z]+$/.test(tok)) continue; // acronyms (TEST, SQL…) are not name claims
+      if (disclosed.has(lc(tok))) continue; // a name the user disclosed is a disclosure, not a fabrication
+      if (!profText.includes(lc(tok)) && !parts.some((p) => p.includes(lc(tok)))) parts.push(tok);
+    }
+    return { contradictions: parts, disclosures: [...disclosed],
+      confidential: isConfidentialText(a) };
+  }
+  function detectContradiction(answer, profile, opts) { return checkAnswerClaims(answer, profile, opts).contradictions; }
+  // MID-6: confidentiality + shareable-artifact handling.
+  function makeShareableExample(source, opts) {
+    opts = opts || {};
+    const text = typeof source === "string" ? source : (source ? [source.title, source.situation, source.action, source.result].filter(Boolean).join(" ") : "");
+    const confidential = !!(opts.confidential || (source && source.confidential) || (source && source.shareable === false) || isConfidentialText(text));
+    if (confidential) return { status: "WITHHELD_CONFIDENTIAL", kind: "shareable_example_request", is_answer: false, shareable_text: null,
+      message: "I can't make a shareable example from that story: you marked it confidential, so I will keep the confidential material out of any shareable example. Pick a story you are cleared to share, or tell me the cleared version, and I will build the example from that." };
+    if (!text) return { status: "NEEDS_STORY", kind: "shareable_example_request", is_answer: false, shareable_text: null,
+      message: "Tell me the story you want turned into a shareable example — one you are cleared to share — and I will build it from that." };
+    return { status: "OK", kind: "shareable_example_request", is_answer: false, shareable_text: text,
+      message: "Here is a shareable example built only from the story you supplied — nothing confidential was added." };
+  }
+  // MID-7: accessibility mode (text mock is substantively equivalent; the mode itself is set up here).
+  function accessibilityMode(textOrOpts) {
+    const t = typeof textOrOpts === "string" ? textOrOpts : "";
+    const o = (textOrOpts && typeof textOrOpts === "object") ? textOrOpts : {};
+    const asked = o.textOnly === true || o.text_only === true || /\b(accessible|accessibility|text only|text-only|slower pace|no audio|no video)\b/i.test(t);
+    if (!asked) return { status: "NOT_REQUESTED", mode: null, acknowledgement: null };
+    return { status: "SET", mode: { text_only: true, slower_pace: true, audio: false, video: false, voice: false },
+      acknowledgement: "Accessibility mode set for this session: text only, slower pace, no audio or video — one question at a time, with as long as you need on each answer. The questions and the rubric are exactly the same as any other mock, and nothing is deducted for delivery or pace." };
+  }
+  // MID-8: recording consent.
+  function recordingConsent(text) {
+    if (/\b(opt out of recording|do not record|don't record|no recording|stop recording|not be recorded)\b/i.test(s(text))) {
+      return { status: "OPTED_OUT", recording: false, background_capture: false, practice_proceeds: true,
+        acknowledgement: "Recording opt-out acknowledged: I will not record this practice session in any form — no recording and no background capture for this session. Practice proceeds in text; you see every score and note that is kept in the mock." };
+    }
+    return { status: "NO_REQUEST", recording: null, background_capture: null, practice_proceeds: true, acknowledgement: null };
+  }
+  // Route-ready turn classifier: non-answer turns are handled as what they are, never graded.
+  function handlePrepTurn(text, opts) {
+    opts = opts || {};
+    const guard = liveAssistGuard(text); // PREP-008 hard stop stays absolute, checked first
+    if (guard.refused) return { kind: "live_assist_refusal", is_answer: false, refused: true, ...guard };
+    const consent = recordingConsent(text);
+    if (consent.status === "OPTED_OUT") return { kind: "recording_opt_out", is_answer: false, ...consent, message: consent.acknowledgement };
+    const access = accessibilityMode(text);
+    if (access.status === "SET") return { kind: "accessibility_mode", is_answer: false, ...access, message: access.acknowledgement };
+    if (/\bshareable\b/i.test(s(text)) && /\b(make|create|write|turn|give)\b/i.test(s(text))) {
+      const priorConfidential = isConfidentialText(opts.priorText || "") || !!(opts.store && (opts.store.stories || []).some((x) => x.confidential));
+      return makeShareableExample(opts.story || opts.sourceText || "", { confidential: priorConfidential || !!opts.confidential });
+    }
+    if (isConfidentialText(text) && /\b(worked|project|story|employer|internal|unreleased)\b/i.test(s(text))) {
+      const claims = checkAnswerClaims(text, opts.profile, opts);
+      return { kind: "confidential_disclosure", is_answer: false, confidential: true, shareable: false,
+        contradictions: [], disclosures: claims.disclosures, graded: null,
+        message: "Acknowledged — that detail is confidential, so I am treating it as a disclosure, not an interview answer and not a fabrication: it stays out of any shareable example, and I will not grade it or build reusable material from it. We can coach from a story you are cleared to share." };
+    }
+    const graded = scoreAnswer(text);
+    return { kind: "answer", is_answer: true, graded, contradictions: detectContradiction(text, opts.profile, opts) };
+  }
+
   // ---------- PREP-003 mock engine + rubric ----------
   function scoreAnswer(answer) {
     const a = s(answer); const low = lc(a);
@@ -24287,27 +24448,61 @@ const CareerPrep = (() => {
     if (has(/\b(first|started|began|situation|context)\b/)) structure += 1;
     if (has(/\b(then|next|after that|so i|i (built|wrote|led|designed|modelled|modeled|created))\b/)) structure += 1;
     if (has(/\b(result|ended|outcome|in the end|led to)\b/)) structure += 1;
-    if (a.split(/\s+/).filter(Boolean).length >= 60) structure += 1;
+    // MID-2: NO length points. A complete short answer (a named action + a result/outcome)
+    // earns the completeness point at any word count; padding past 60 words earns nothing.
+    const hasAction = has(/\b(i|we) (built|wrote|led|designed|modelled|modeled|created|helped|wrote|ran|shipped)\b/) || has(/\bby (writing|building|creating|designing|leading)\b/);
+    const hasOutcome = /\d/.test(a) || has(/\b(used it|users|classmates used|saved|cut|reduced|improved|increased)\b/);
+    if (hasAction && hasOutcome) structure += 1;
     let evidence = 0;
     if (/\d/.test(a)) evidence += 2;
     if (has(/\b(because|measured|compared|data|users|members|percent|%)\b/)) evidence += 1;
     if (has(/\b(specifically|for example|for instance)\b/)) evidence += 1;
-    if (/\d+\s*(%|users|members|people|teams|pages|companies|participants)/.test(low)) evidence += 1;
+    if (/\d+\s*(%|users|members|people|teams|pages|companies|participants|classmates)/.test(low)) evidence += 1;
     let specificity = 0;
     if (has(/\b(i|my|we)\b/)) specificity += 1;
-    if (has(/\b(python|react|go|excel|sql|postgres|kubernetes|docker|javascript)\b/)) specificity += 1;
+    if (has(/\b(python|react|go|excel|sql|sqlite|flask|postgres|kubernetes|docker|javascript)\b/)) specificity += 1;
     if (has(/\b(week|month|deadline|semester|summer)\b/)) specificity += 1;
-    if (a.split(/\s+/).filter(Boolean).length >= 40) specificity += 1;
+    if (has(/\b(studyboard)\b/) || /[A-Z][a-z]+(?:[A-Z][a-z]+)/.test(a)) specificity += 1; // a named product/system is specific at any length
     if (has(/\b(something|stuff|things|various|etc)\b/)) specificity = Math.max(0, specificity - 1);
+    // MID-1: a confidently wrong ground-truth answer earns no evidence for its wrong numbers.
+    const domain = domainCheck(a);
+    if (domain && domain.correct === false) { evidence = Math.min(evidence, 1); specificity = Math.min(specificity, 2); structure = Math.min(structure, 2); }
+    // MID-4: framework recitation without a decision earns no structure reward.
+    const judgment = frameworkCheck(a);
+    if (judgment.missing_judgment) structure = Math.min(structure, 2);
+    const variant = generateVariant(a);
     const clamp = (x) => Math.max(0, Math.min(5, x));
     const sc = { structure: clamp(structure), evidence: clamp(evidence), specificity: clamp(specificity) };
     sc.total = sc.structure + sc.evidence + sc.specificity;
+    const gaps = [];
+    if (domain && domain.correct === false) gaps.push("domain_error:" + domain.drill_id);
+    if (judgment.missing_judgment) gaps.push("missing_judgment");
+    if (variant) gaps.push("transfer_not_tested");
+    // MID-3: the missing result metric is the top fix whenever the result carries no
+    // number/how-it-is-known — including when evidence merely ties as weakest.
+    // (suppressed when judgment/transfer is the diagnosed gap — a coding or framework
+    // answer is not missing a story metric, it is missing a decision or an adaptation)
+    const missingMetric = !judgment.missing_judgment && !variant && !/\d|%/.test(a) && sc.evidence < 4;
+    if (missingMetric) gaps.push("missing_result_metric");
+    const priority = { evidence: 0, specificity: 1, structure: 2 };
+    const fix_first = ["structure", "evidence", "specificity"].sort((x, y) => (sc[x] - sc[y]) || (priority[x] - priority[y]))[0];
     const feedback = [];
-    if (sc.structure < 4) feedback.push("Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.");
-    if (sc.evidence < 4) feedback.push("Evidence: add a number (users, %, time saved) and how you know it.");
-    if (sc.specificity < 4) feedback.push("Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'.");
+    if (domain && domain.correct === false) feedback.push(domain.correction);
+    if (judgment.missing_judgment) feedback.push("Judgment: this recites a framework but makes no decision — naming the steps (clarify, structure, hypothesise, analyse, synthesise) is not judgment. Say what you would actually decide in this case, why, what data would change your mind, and what trade-off you accept.");
+    if (missingMetric) feedback.push("Evidence — missing result metric: you have not named a result metric (a number, a %, or a time saved, and how you know it), and that missing metric is the top fix. Ask yourself how big the result was and how it was measured — or say plainly that it was not measured, which is coachable, instead of leaving the result as 'it helped'.");
+    if (variant) feedback.push("Transfer: a memorized solution is not mastery yet — " + variant.variant);
+    const dimFeedback = {
+      structure: "Structure: order it Situation -> Task -> Action -> Result so the interviewer never has to reconstruct it.",
+      evidence: "Evidence: add a number (users, %, time saved) and how you know it.",
+      specificity: "Specificity: name the tool, the constraint and your exact role — drop vague words like 'various things'." };
+    for (const dim of ["evidence", "specificity", "structure"].sort((x, y) => (sc[x] - sc[y]) || (priority[x] - priority[y]))) {
+      if (sc[dim] < 4 && !(dim === "evidence" && missingMetric) && !feedback.includes(dimFeedback[dim])) feedback.push(dimFeedback[dim]);
+    }
     if (!feedback.length) feedback.push("Landed: clear structure, quantified evidence, specific ownership. Keep this story as a primary.");
-    return { scores: sc, feedback };
+    const follow_up = judgment.missing_judgment
+      ? "Decision probe: pick one branch of this problem — what would you decide, what data would change your mind, and what trade-off do you accept?"
+      : (variant ? variant.follow_up : null);
+    return { scores: sc, feedback, fix_first, top_fix: fix_first, gaps, domain_check: domain, judgment, variant, missing_result_metric: missingMetric, follow_up };
   }
   function startMock(store, opts) {
     opts = opts || {};
@@ -24333,7 +24528,10 @@ const CareerPrep = (() => {
     const avg = { structure: 0, evidence: 0, specificity: 0, total: 0 };
     for (const a of m.answers) for (const k of Object.keys(avg)) avg[k] += a.scores[k] / n;
     for (const k of Object.keys(avg)) avg[k] = Math.round(avg[k] * 10) / 10;
-    const weakest = ["structure", "evidence", "specificity"].sort((a, b) => avg[a] - avg[b])[0];
+    // MID-3 tie-break: on a tie the substantive gap (evidence, then specificity) is
+    // named before form (structure) — structure no longer wins ties by default.
+    const tiePriority = { evidence: 0, specificity: 1, structure: 2 };
+    const weakest = ["structure", "evidence", "specificity"].sort((a, b) => (avg[a] - avg[b]) || (tiePriority[a] - tiePriority[b]))[0];
     return { mock_id: m.mock_id, company: m.company, status: m.status, answered: m.answers.length, average_scores: avg,
       what_landed: m.answers.filter((a) => a.scores.total >= 12).map((a) => a.q),
       what_didnt: m.answers.filter((a) => a.scores.total < 12).map((a) => ({ q: a.q, scores: a.scores, fix: a.feedback })),
@@ -24424,7 +24622,10 @@ const CareerPrep = (() => {
       recommendation: /\b(recommend|therefore|so the|next step)\b/.test(low),
     };
     const score = Object.values(checks).filter(Boolean).length;
-    return { score_0_5: score, checks, feedback: Object.entries(checks).filter(([, v]) => !v).map(([k]) => `Missing: ${k.replace(/_/g, " ")}`) };
+    const judgment = frameworkCheck(resp);
+    const feedback = Object.entries(checks).filter(([, v]) => !v).map(([k]) => `Missing: ${k.replace(/_/g, " ")}`);
+    if (judgment.missing_judgment) feedback.push("Missing judgment: the framework is recited but no actual decision or recommendation for this case is made.");
+    return { score_0_5: score, checks, judgment, feedback };
   }
 
   // ---------- PREP-006 interviewer research (public facts only, supplied by caller) ----------
@@ -24736,6 +24937,8 @@ const CareerPrep = (() => {
   return { normalizeCir, findCir, jdKeywords, composeBrief, questionBank, videoInterviewPractice, takeHomePlan, finalRoundDelta, salaryDeflectionScripts, questionsToAsk, failureStoryFromFacts, structureDrill, dayOfChecklist, debriefRetro, superdayPlan,
     makePrepStore, mineStories, captureStory, findStories, storyTags,
     scoreAnswer, startMock, answerMock, mockSummary,
+    domainCheck, frameworkCheck, generateVariant, answerVariant, checkAnswerClaims, detectContradiction,
+    isConfidentialText, makeShareableExample, accessibilityMode, recordingConsent, handlePrepTurn,
     technicalDrills, financeDrill, quantDrill, gradeDrillAnswer, runDrill,
     caseSession, scoreCaseResponse, interviewerBrief, captureDebrief, thankYouDraft,
     salaryPrep, coffeeChatBrief, twoInterviewPlan, rejectionPivot, assemblePack,

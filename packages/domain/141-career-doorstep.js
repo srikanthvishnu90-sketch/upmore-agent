@@ -1203,7 +1203,7 @@ const CareerDoorstep = (() => {
   }
   function emitOutreachDraft(ctx, recipientSpec) {
     const c = ctx || {}, spec = recipientSpec || {};
-    let draft = null, recipientLabel = null;
+    let draft = null, recipientLabel = null, f1List = null;
     if (spec.draft && typeof spec.draft === "object") {
       const d = spec.draft;
       if (!d.to) {
@@ -1254,6 +1254,41 @@ const CareerDoorstep = (() => {
       }
       draft = gated.draft;
       recipientLabel = draft.to;
+      // GATE-3 record completion (03 F1 doorstep): assemble the complete
+      // doorstep record from 124's own pieces — the list this draft belongs
+      // to (buildList: selected/reserve/excluded counts + honest yield), a
+      // campaign in draft state (createCampaign + enqueue + planWave), and
+      // the safety-plan card for that campaign (safetyPlan). All of it is
+      // built locally from the recipient spec / ctx candidate records;
+      // nothing is enqueued anywhere real and nothing sends.
+      if (Outreach && typeof Outreach.buildList === "function" && typeof Outreach.createCampaign === "function") {
+        const records = spec.list_records || spec.candidates || c.listRecords || c.candidateRecords || [candidate];
+        const listQuery = spec.list_query || c.listQuery || { count: records.length };
+        const pool = Outreach.buildList(records, listQuery, {
+          profile: { school: outreachUserOf(c).school || "", current_employer: c.current_employer || null },
+          suppression: c.suppression || null, userId: c.userId || "user-1",
+          nowMs: Date.parse(isoOf(c.now) || "") || undefined,
+        });
+        const excludedCount = Object.values(pool.exclusions || {}).reduce((a, b) => a + (typeof b === "number" ? b : 0), 0);
+        f1List = {
+          list_record: {
+            selected_count: pool.yield.selected, reserve_count: pool.yield.reserve, excluded_count: excludedCount,
+            selected: pool.yield.selected, reserve: pool.yield.reserve, excluded: excludedCount,
+            exclusions: cloneJson(pool.exclusions),
+          },
+          yield: cloneJson(pool.yield),
+        };
+        const campaign = Outreach.createCampaign({ id: spec.campaign_id || c.campaignId || "campaign-doorstep", userId: c.userId || "user-1" });
+        Outreach.enqueue(campaign, [{ candidate, draft }], { suppression: c.suppression || null });
+        const plan = Outreach.planWave(campaign, { waveNumber: 1, startDayIndex: 0 });
+        f1List.safety_plan_card = cloneJson(Outreach.safetyPlan(campaign, plan, { startDateIso: isoOf(c.now) || undefined }));
+        f1List.campaign = {
+          id: campaign.id, status: campaign.status, state: campaign.status,
+          sending_channel: campaign.sending_channel, cap_per_day: campaign.cap_per_day,
+          item_count: campaign.items.length,
+          items: campaign.items.map((i) => ({ person_id: i.person_id || null, email: i.email || null, status: i.status })),
+        };
+      }
     }
     const queueItem = {
       queue_id: `g6-outreach-${sha256(String(draft.to) + "|" + String(draft.subject || "")).slice(0, 8)}`,
@@ -1264,6 +1299,7 @@ const CareerDoorstep = (() => {
     const payload = {
       kind: "outreach_draft", family: "outreach-send",
       draft: cloneJson(draft), queue_state: queueState,
+      ...(f1List || {}),
       sends: 0, committed: false,
     };
     const stepLog = [

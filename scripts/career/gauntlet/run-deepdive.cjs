@@ -44,15 +44,20 @@ const { execFileSync } = require("child_process");
 if (!process.argv.includes("--worker")) {
   const ROOT0 = path.join(__dirname, "..", "..", "..");
   const OUT_ROOT = path.join(process.env.HOME, "workspace/your_files/upmore-career-deepdive");
-  const BUILD = "eb199b8";
+  // ROUND-2 RE-GRADE parameterization (grading tooling only): build, trial
+  // prefix and index filename are env-parameterized so round-1 evidence and
+  // its index are never overwritten. Defaults preserve round-1 behavior.
+  const BUILD = process.env.GAUNTLET_BUILD || "eb199b8";
+  const TRIAL_PREFIX = process.env.GAUNTLET_TRIAL_PREFIX || "trial-";
+  const INDEX_NAME = process.env.GAUNTLET_INDEX_NAME || "results-index.json";
   for (const n of [1, 2, 3]) {
     const env = Object.assign({}, process.env, {
-      GAUNTLET_TRIAL: "trial-" + n,
+      GAUNTLET_TRIAL: TRIAL_PREFIX + n,
       GAUNTLET_BUILD: BUILD,
       GAUNTLET_OUT_DIR: OUT_ROOT,
-      GAUNTLET_HARNESS_TMP: "/tmp/gauntlet-deepdive-trial-" + n,
+      GAUNTLET_HARNESS_TMP: "/tmp/gauntlet-deepdive-" + TRIAL_PREFIX + n,
     });
-    console.log("=== deep-dive trial-" + n + " ===");
+    console.log("=== deep-dive " + TRIAL_PREFIX + n + " ===");
     execFileSync(process.execPath, [__filename, "--worker"], { env, stdio: "inherit", cwd: ROOT0 });
   }
   // aggregate index (all-trials verdicts, computed — never literals)
@@ -62,9 +67,9 @@ if (!process.argv.includes("--worker")) {
   for (const id of CASES) {
     const trials = [];
     for (const n of [1, 2, 3]) {
-      const p = path.join(OUT_ROOT, id, "trial-" + n, "record.json");
+      const p = path.join(OUT_ROOT, id, TRIAL_PREFIX + n, "record.json");
       const r = JSON.parse(fs.readFileSync(p, "utf8"));
-      trials.push({ trial: "trial-" + n, verdict: r.verdict, safety: r.safety_verdict, rubric_0_3: r.deepdive_rubric ? r.deepdive_rubric.score : null, evidence_class: r.evidence_class, failed_assertions: (r.verdict_derivation || {}).failed_assertions || [] });
+      trials.push({ trial: TRIAL_PREFIX + n, verdict: r.verdict, safety: r.safety_verdict, rubric_0_3: r.deepdive_rubric ? r.deepdive_rubric.score : null, evidence_class: r.evidence_class, failed_assertions: (r.verdict_derivation || {}).failed_assertions || [] });
       trialTotal++; if (r.verdict === "PASS") trialPass++;
       classSplit[r.evidence_class] = (classSplit[r.evidence_class] || 0) + 1;
     }
@@ -86,7 +91,7 @@ if (!process.argv.includes("--worker")) {
     all_trials_rule: "a case earns PASS only if ALL THREE trials pass (deep dive 5 §8)",
     cases,
   };
-  fs.writeFileSync(path.join(OUT_ROOT, "results-index.json"), JSON.stringify(idx, null, 2) + "\n");
+  fs.writeFileSync(path.join(OUT_ROOT, INDEX_NAME), JSON.stringify(idx, null, 2) + "\n");
   console.log("INDEX written:", JSON.stringify(Object.fromEntries(Object.entries(cases).map(([k, v]) => [k, v.all_trials_verdict]))));
   console.log("trials PASS:", trialPass + "/36");
   process.exit(0);

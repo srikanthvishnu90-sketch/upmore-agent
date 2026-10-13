@@ -91,7 +91,7 @@ test("SC-138 tracking: emitTrackingLog builds the Ramp manual-update log write a
   assert.equal(p.operation, "move_stage", "Ramp already has a log row, so the write is a stage move");
   assert.equal(p.app_id, "TEST-app-ramp", "bound to the existing Ramp application row");
   assert.equal(p.event.type, "manual_update");
-  assert.equal(p.event.source, "user-reported", "126 manualUpdate marks manual updates user-reported — the payload matches");
+  assert.equal(p.event.source, "user_reported", "spec 03 F3 enum (inbox|user_reported|portal): 141 maps 126's store vocabulary to the spec enum at emission — assertion updated per 05 Part 4 with this reason cited");
   assert.equal(p.event.stage_after, "Interview rounds");
   assert.ok(p.would_write, "a would-write snapshot is recorded");
   assert.equal(p.would_write.event.detail.includes("I got an interview at Ramp"), true, "the note rides in the would-write event");

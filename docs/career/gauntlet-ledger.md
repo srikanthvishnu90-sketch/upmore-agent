@@ -1077,3 +1077,23 @@ reply (a listed ID answered "I didn't catch that" still grades FAIL S1). Missing
 malformed file = fail-closed throw. Regression proof: re-scoring the 300 records
 with the real DRAFT reproduces the official baseline EXACTLY (PASS 1 / FAIL 299 /
 NI 0; S0 = SC-287, SC-300). 14/14 new tests; mutation suite intact.
+
+## Gate-3 record completion (WE-BUILD) — DONE (merged)
+
+Contracts-validator census at module level now: **VALID = F1, F2, F3,
+F3-calendar, F4, F5, F6, F7, F8 (9 of 10)** — F1 assembled (list counts from
+buildList, safety-plan card, campaign state, draft ask with two windows; subject
+fixed in 124's GENERATOR via capSubject — 61 → <60 chars), F2 (posting snapshot,
+123's truth-audit surfaced as audit_result, filled_fields + t3_flags from 141's
+resolveField, unfilled asks listed not filled), F3 (source mapped to the spec
+enum at 141's emission; triggered_followups derived from 126's radar with a
+computed reason when empty), F4 (held draft cards, sends 0), F5 (story map or an
+explicit no-fit statement — none invented), F7 (sources = the real profile facts
+used; as_of honestly scoped to 144's knowledge freeze — profile facts carry no
+as-of dates and none was claimed). **F9 stays GAP** (self-test proof lives in
+120 — Codex's file, in the blocker record). Honest limits recorded in the lane
+report (bare-draft callers get no fabricated list record; a packet with no JD
+still GAPs its snapshot). One test-side correction followed: the G6 SC-138
+assertion pinned the pre-spec "user-reported" value; updated to the spec enum
+with the reason cited in the assertion (05 Part 4 rule). Merged-tree battery:
+the only reds are the 3 designed SC replays.

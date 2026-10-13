@@ -1,0 +1,283 @@
+{
+  "note": "Editable data file, not a prompt. Domains are the firms' public corporate domains, used only for per-domain throttling and email pattern shape \u2014 never as a claim an address exists.",
+  "sets": {
+    "big4": {
+      "firms": [
+        {
+          "domain": "deloitte.com",
+          "name": "Deloitte"
+        },
+        {
+          "domain": "pwc.com",
+          "name": "PwC"
+        },
+        {
+          "domain": "ey.com",
+          "name": "EY"
+        },
+        {
+          "domain": "kpmg.com",
+          "name": "KPMG"
+        }
+      ],
+      "industry": "accounting",
+      "label": "Big 4"
+    },
+    "bulge_bracket": {
+      "firms": [
+        {
+          "domain": "goldmansachs.com",
+          "name": "Goldman Sachs"
+        },
+        {
+          "domain": "morganstanley.com",
+          "name": "Morgan Stanley"
+        },
+        {
+          "domain": "jpmorgan.com",
+          "name": "JPMorgan"
+        },
+        {
+          "domain": "bofa.com",
+          "name": "Bank of America"
+        },
+        {
+          "domain": "citi.com",
+          "name": "Citi"
+        },
+        {
+          "domain": "barclays.com",
+          "name": "Barclays"
+        },
+        {
+          "domain": "db.com",
+          "name": "Deutsche Bank"
+        },
+        {
+          "domain": "ubs.com",
+          "name": "UBS"
+        },
+        {
+          "domain": "credit-suisse.com",
+          "name": "Credit Suisse",
+          "note": "Merged into UBS (acquisition completed 2023); retained in the set for history/alumni records only, not a live standalone employer.",
+          "status": "historical"
+        }
+      ],
+      "industry": "investment_banking",
+      "label": "Bulge bracket"
+    },
+    "elite_boutique": {
+      "firms": [
+        {
+          "domain": "evercore.com",
+          "name": "Evercore"
+        },
+        {
+          "domain": "lazard.com",
+          "name": "Lazard"
+        },
+        {
+          "domain": "centerviewpartners.com",
+          "name": "Centerview Partners"
+        },
+        {
+          "domain": "pjtpartners.com",
+          "name": "PJT Partners"
+        },
+        {
+          "domain": "moelis.com",
+          "name": "Moelis & Company"
+        },
+        {
+          "domain": "pwpartners.com",
+          "name": "Perella Weinberg"
+        },
+        {
+          "domain": "hl.com",
+          "name": "Houlihan Lokey"
+        },
+        {
+          "domain": "guggenheimpartners.com",
+          "name": "Guggenheim Securities"
+        },
+        {
+          "domain": "rothschildandco.com",
+          "name": "Rothschild & Co"
+        },
+        {
+          "domain": "jefferies.com",
+          "name": "Jefferies",
+          "note": "Judgment call per Doc 1 \u00a72.1 (often classed full-service / middle-market-plus)."
+        }
+      ],
+      "industry": "investment_banking",
+      "label": "Elite boutiques"
+    },
+    "faang_plus": {
+      "firms": [
+        {
+          "domain": "meta.com",
+          "name": "Meta"
+        },
+        {
+          "domain": "apple.com",
+          "name": "Apple"
+        },
+        {
+          "domain": "amazon.com",
+          "name": "Amazon"
+        },
+        {
+          "domain": "netflix.com",
+          "name": "Netflix"
+        },
+        {
+          "domain": "google.com",
+          "name": "Google"
+        },
+        {
+          "domain": "microsoft.com",
+          "name": "Microsoft"
+        },
+        {
+          "domain": "nvidia.com",
+          "name": "NVIDIA"
+        },
+        {
+          "domain": "stripe.com",
+          "name": "Stripe"
+        },
+        {
+          "domain": "datadoghq.com",
+          "name": "Datadog"
+        },
+        {
+          "domain": "palantir.com",
+          "name": "Palantir"
+        }
+      ],
+      "industry": "tech",
+      "label": "FAANG+"
+    },
+    "mbb": {
+      "firms": [
+        {
+          "domain": "mckinsey.com",
+          "name": "McKinsey & Company"
+        },
+        {
+          "domain": "bain.com",
+          "name": "Bain & Company"
+        },
+        {
+          "domain": "bcg.com",
+          "name": "Boston Consulting Group"
+        }
+      ],
+      "industry": "consulting",
+      "label": "MBB"
+    },
+    "mega_fund_pe": {
+      "firms": [
+        {
+          "domain": "blackstone.com",
+          "name": "Blackstone"
+        },
+        {
+          "domain": "kkr.com",
+          "name": "KKR"
+        },
+        {
+          "domain": "apollo.com",
+          "name": "Apollo Global Management"
+        },
+        {
+          "domain": "carlyle.com",
+          "name": "Carlyle"
+        },
+        {
+          "domain": "tpg.com",
+          "name": "TPG"
+        }
+      ],
+      "industry": "private_equity",
+      "label": "Mega-fund PE"
+    },
+    "middle_market": {
+      "firms": [
+        {
+          "domain": "pipersandler.com",
+          "name": "Piper Sandler"
+        },
+        {
+          "domain": "williamblair.com",
+          "name": "William Blair"
+        },
+        {
+          "domain": "rwbaird.com",
+          "name": "Baird"
+        },
+        {
+          "domain": "raymondjames.com",
+          "name": "Raymond James"
+        },
+        {
+          "domain": "stifel.com",
+          "name": "Stifel"
+        },
+        {
+          "domain": "lincolninternational.com",
+          "name": "Lincoln International"
+        },
+        {
+          "domain": "harriswilliams.com",
+          "name": "Harris Williams"
+        }
+      ],
+      "industry": "investment_banking",
+      "label": "Middle market"
+    },
+    "quant": {
+      "firms": [
+        {
+          "domain": "janestreet.com",
+          "name": "Jane Street"
+        },
+        {
+          "domain": "citadelsecurities.com",
+          "name": "Citadel Securities"
+        },
+        {
+          "domain": "hudson-trading.com",
+          "name": "Hudson River Trading"
+        },
+        {
+          "domain": "twosigma.com",
+          "name": "Two Sigma"
+        },
+        {
+          "domain": "deshaw.com",
+          "name": "D. E. Shaw"
+        },
+        {
+          "domain": "optiver.com",
+          "name": "Optiver"
+        },
+        {
+          "domain": "jumptrading.com",
+          "name": "Jump Trading"
+        },
+        {
+          "domain": "sig.com",
+          "name": "Susquehanna International Group"
+        }
+      ],
+      "industry": "quant",
+      "label": "Quant / trading"
+    }
+  },
+  "verified_at": "2026-10-12",
+  "verify_cadence": "quarterly (Doc 1 \u00a72.1: mergers and renames)",
+  "version": 1
+}

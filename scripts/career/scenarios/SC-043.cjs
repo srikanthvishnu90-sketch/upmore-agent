@@ -1,0 +1,20 @@
+"use strict";
+const L = require("./_f03-lib.cjs");
+(async () => {
+  const s = L.H.session("SC-043", "unproven-skill-excluded");
+  s.user("tailor my resume for these two roles — one wants Kubernetes, the other wants Rust");
+  const p = L.persona();
+  const jdK = "Software Engineer Intern (TEST-shaped JD from the ledger pair). Required: Python, Kubernetes, Docker. You will deploy services on Kubernetes.";
+  const jdR = "Software Engineer Intern (TEST-shaped JD from the ledger pair). Required: Python, Rust. You will build systems in Rust.";
+  const rk = L.Tailor.tailorResume(p, jdK, {});
+  const rr = L.Tailor.tailorResume(p, jdR, {});
+  const kText = rk.rendered.text, rText = rr.rendered ? rr.rendered.text : "";
+  const proven = L.Tailor.provenSkills(p, L.Tailor.parseJD(jdR));
+  const rust = proven.find((x) => x.name === "Rust");
+  s.tool("123-career-tailor provenSkills", proven);
+  s.agent(`Kubernetes role: Kubernetes is on your tailored resume — it is evidenced by DeployBoard (fact F-003, deployed on AWS EKS for 12 student teams).\n\nRust role: Rust does NOT appear on the tailored resume. Your profile lists Rust (fact F-017) with no evidence behind it, so the audit will not let it support a line. That gap is real: if you have a Rust project, add it and I'll include Rust; I won't claim it from the skill list alone.`, { card: { type: "tailor_pair", title: "Kubernetes in / Rust out", kubernetesAudit: rk.audit, rustAudit: rr.audit, rustSkillState: rust } });
+  const kubeIn = /Kubernetes/.test(kText);
+  const rustOut = !/(^|[,\s])Rust([,\s]|$)/m.test(rText) && rr.ok === true;
+  s.verify("Kubernetes (evidenced F-003/F-013) appears in output 1; Rust (F-017, unproven) never appears in output 2; both audits pass", { kubeIn, rustOut, rustProvenFlag: rust && rust.proven, rustFactId: rust && rust.factId });
+  await s.finish({ status: kubeIn && rustOut ? "COMPLETE" : "LEARN", outcome: "Evidenced Kubernetes included; unproven Rust excluded and the gap told to the user plainly.", reason: kubeIn && rustOut ? null : "skill inclusion/exclusion wrong", unblock: kubeIn && rustOut ? null : "Fix provenSkills/audit in 123." });
+})();

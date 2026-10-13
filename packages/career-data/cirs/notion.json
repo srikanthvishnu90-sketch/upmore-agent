@@ -1,0 +1,239 @@
+{
+  "company_id": "notion",
+  "company_name": "Notion (Notion Labs, Inc.)",
+  "cohort_definition": {
+    "role_family": "Software Engineering (SWE first per Doc 3)",
+    "entry_level": "Early-career/new-grad SWE considered separately; no dedicated Notion new-grad SWE program was found in public sources as of this date - the sourced SWE posting below is an experienced hire (8+ years), so entry-level statements are qualitative only",
+    "experienced": "Experienced SWE postings (e.g. Software Engineer, Enterprise)",
+    "time_window": "Postings and pages fetched 2026-10-12; treat process facts as stale after 6 months per INTL-001"
+  },
+  "sample_size": null,
+  "sample_size_note": "No population sample. Curated public sources only; N for any distribution would be fabricated, so distributions are qualitative.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "Official Notion SWE posting text (mirrored on startup.jobs): role requirements, stack, work model, salary range",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-mirror"
+    },
+    {
+      "claim": "Notion's official open-source SDK repo (makenotion/notion-sdk-js) documents its public TypeScript stack",
+      "source_url": "https://github.com/makenotion/notion-sdk-js/blob/HEAD/CLAUDE.md",
+      "as_of": "2026-10-12",
+      "source_type": "official-github"
+    },
+    {
+      "claim": "Third-party interview guide aggregating candidate reports - anecdotal, labeled as such wherever used",
+      "source_url": "https://github.com/landedjobs/ai-interview-guides/blob/HEAD/guides/notion.md",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "school_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "Notion publishes no school distribution for hires and no public outcome report covers it; any school list would be folklore.",
+    "reported_patterns": [
+      {
+        "claim": "Postings invite applicants from a variety of backgrounds and encourage applying even when not every bullet matches - a stated, not revealed, preference",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced feeder-employer data exists publicly for Notion.",
+    "reported_patterns": [
+      {
+        "claim": "The sourced Enterprise posting values prior experience with rapid-growth / hyper-scale product challenges as a plus, which reads as a preference for engineers from scaled product companies - agent judgment, labeled",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "major_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced major distribution; the sourced posting does not name a degree requirement and instead lists capabilities.",
+    "reported_patterns": [
+      {
+        "claim": "Posting language signals interest in people with interests outside technology (art, history, social sciences named) - stated signal only",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "sourced-qualitative-from-postings",
+    "reported_patterns": [
+      {
+        "claim": "Core stack named in the posting: React, TypeScript, Node.js, Postgres; relational databases (Postgres/MySQL) familiarity expected for experienced candidates",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Notion's official JS SDK is a TypeScript client library (Node >=18), consistent with a TypeScript-centred engineering org",
+        "source_url": "https://github.com/makenotion/notion-sdk-js/blob/HEAD/CLAUDE.md",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Screened capabilities in the posting: thoughtful problem decomposition, shipping quality UIs, backend/data-model fluency, pragmatic business orientation, empathetic written communication",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Experienced product-engineer lateral: scaled consumer/SaaS product -> Notion SWE",
+      "evidence_level": "curated-qualitative",
+      "basis": {
+        "claim": "Posting asks for 8+ years and rapid-growth experience for the Enterprise role",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "pattern": "Builder/portfolio route for earlier-career candidates: shipped side projects and product craft as the visible signal",
+      "evidence_level": "reported-norm-labeled",
+      "basis": {
+        "claim": "Postings repeatedly use 'builder at heart' framing and encourage imperfect-fit applicants to apply",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Direct application to a posted SWE role (Greenhouse-style posting)",
+      "rank_note": "Only route verifiable from public sources"
+    },
+    {
+      "route": "Referral",
+      "rank_note": "No public sourced data on referral weight at Notion; do not quote a share"
+    },
+    {
+      "route": "Intern/new-grad program",
+      "rank_note": "No dedicated SWE intern/new-grad program page found in public sources as of 2026-10-12 - verify on the live careers page each cycle"
+    }
+  ],
+  "hiring_bar_summary": {
+    "status": "curated-qualitative",
+    "text": "High craft bar with a product-engineer (not pure-algorithm) flavour: the sourced posting screens for problem decomposition, UI quality, data-model fluency and business pragmatism in roughly equal weight, and the company is in-person (see red_flags). Experienced roles are senior-leaning (8+ years on the sourced posting)."
+  },
+  "screening_signals": [
+    {
+      "claim": "In-person company: the posting states employees come in on two Anchor Days (Mondays and Thursdays) - a real location/attendance screen for many roles",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Writing and communication quality is an explicit screening capability ('empathetic communication', explaining technical decisions in writing)",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Product/craft sensibility: familiarity with computing-pioneer design ideas is listed as a bonus, signalling taste/craft screening - stated signal, weight unknown",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "process_stages": {
+    "status": "curated-qualitative",
+    "stages": [
+      "Application / recruiter screen",
+      "Technical screen",
+      "Practical / product-focused rounds (take-home or pairing reported by third-party guides)",
+      "Onsite loop incl. culture/craft conversations",
+      "Offer"
+    ],
+    "basis": {
+      "claim": "Stage shape is from a third-party guide aggregating candidate reports; Notion publishes no official stage list found as of 2026-10-12 - label anecdotal in any user-facing answer",
+      "source_url": "https://github.com/landedjobs/ai-interview-guides/blob/HEAD/guides/notion.md",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  },
+  "interview_styles": [
+    {
+      "claim": "Third-party reports emphasise practical/product rounds (block-editor-style build, performance triage, collaboration design) over pure puzzle algorithms - anecdotal",
+      "source_url": "https://github.com/landedjobs/ai-interview-guides/blob/HEAD/guides/notion.md",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Mission framing in postings: making software tailorable by everyone; 'focus, design, and craft' named as the company's approach",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Craft-with-speed and users-first language recurs in posting capability lists",
+      "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "status": "curated-qualitative",
+    "note": "No official cadence published. Postings appear role-by-role rather than in a single annual new-grad cohort window, based on the posting set seen; re-verify each cycle."
+  },
+  "compensation_notes": [
+    {
+      "label": "official-posting-range (via posting mirror)",
+      "fact": {
+        "claim": "Software Engineer, Enterprise (San Francisco): estimated base salary range $160,000-$250,000 per year, plus equity and benefits per the posting",
+        "source_url": "https://startup.jobs/software-engineer-enterprise-notion-4735351",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "label": "official-posting-range (via posting mirror)",
+      "fact": {
+        "claim": "A second Notion SWE posting (Trust, SF/NYC) carried the same $160,000-$250,000 base range in the search index - treat as corroborating, not independently fetched in full",
+        "source_url": "https://grabjobs.co/us/job/full-time/others/software-engineer-trust-132623062",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    }
+  ],
+  "referral_weight_notes": {
+    "status": "curated-qualitative",
+    "note": "No public sourced evidence on referral weight at Notion. Honest answer to users: unknown; a referral plausibly helps get a human read but no share can be quoted."
+  },
+  "red_flags": [
+    "In-person expectation (Anchor Days) is a hard constraint for relocation-averse candidates - confirm per-role before investing prep time.",
+    "No public official interview-process page found: any detailed stage-by-stage claim about Notion's loop circulating online is third-party and may be stale.",
+    "Senior-leaning SWE postings (8+ years on the sourced role) mean new-grad odds via cold application are likely low - say so honestly per Doc 3 s3."
+  ],
+  "thesis_text": "Bottom line: Notion hires product engineers, not algorithm specialists - the sourced posting weights problem decomposition, UI craft, data-model fluency and business pragmatism together, and the org is in-person in SF/NYC hubs. Who gets in: publicly, we cannot say - Notion publishes no cohort data and no licensed population sample exists yet for this record, so anyone quoting school or feeder percentages for Notion is guessing. Stated vs revealed: postings say imperfect-fit builders should apply; the revealed screen we can verify is seniority and craft (8+ years on the sourced Enterprise role, a named TypeScript/React/Node/Postgres stack). Routes in, ranked: (1) experienced lateral from a scaled product company with shipped, polished product work; (2) earlier-career builder route - a genuinely polished shipped product/portfolio that demonstrates craft, plus a referral to get it read; (3) cold application, weakest without the craft evidence. Gap to close for a typical student: a shipped product with real users and clean written explanation of design decisions - Notion screens writing explicitly. Plan: 30 days - ship/polish one product artifact and write it up; semester - one internship at a product-led company; year - target the experienced or occasional early-career postings as they appear (no fixed annual window found). Coffee chats: current Notion engineers on product teams; ask what the practical rounds actually test and how craft is judged. Risks/alternatives: in-person requirement; adjacent craft-led product companies (e.g. other prosumer SaaS) reward the same portfolio. Offer to execute: build the target list, tailor the resume to craft evidence, draft outreach.",
+  "confidence_level": "curated-qualitative",
+  "section_confidence": {
+    "compensation_notes": "sourced-quantitative (official posting ranges)",
+    "skills_dist": "sourced-qualitative (official posting + official GitHub)",
+    "screening_signals": "sourced-qualitative (official posting)",
+    "school_dist": "curated-qualitative - no public population data",
+    "prior_employer_dist": "curated-qualitative - no public population data",
+    "major_dist": "curated-qualitative - no public population data",
+    "process_stages": "curated-qualitative - third-party reports only, labeled anecdotal"
+  },
+  "known_biases_of_data": "Public postings describe the roles a company is currently trying to fill, not the people it actually hired; interview-prep and review sites are self-selected candidate reports; no licensed population dataset (PDL/Coresignal-class) was available for this record, so no school/employer/major shares are stated. Notion-specific: the posting mirror may lag the live posting; salary ranges are for SF and will differ by location/level.",
+  "last_verified_at": "2026-10-12"
+}

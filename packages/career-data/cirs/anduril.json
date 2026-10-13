@@ -1,0 +1,266 @@
+{
+  "company_id": "anduril",
+  "company_name": "Anduril Industries",
+  "cohort_definition": {
+    "role_family": "Software Engineering (SWE first), incl. scientific/mission software",
+    "entry_level": "New-grad SWE exists as a candidate category but no dedicated official program page was found; entry-level kept separate and qualitative",
+    "experienced": "Experienced SWE postings (C++/Python, autonomy, Lattice platform) are the sourced base",
+    "time_window": "Postings fetched/indexed 2026-10-12"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample. One candidate-report sample is cited where used (Glassdoor SWE page, 74 interview reports at search fetch) and labeled anecdotal.",
+  "as_of": "2026-10-12",
+  "data_sources": [
+    {
+      "claim": "Anduril Senior Scientific SWE posting via the a16z job board: qualifications, transcript request, clearance, salary range",
+      "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-mirror"
+    },
+    {
+      "claim": "Anduril's official Greenhouse application: export-control and clearance-eligibility questions, sponsorship question, pre-employment screening disclosure",
+      "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/5225761007",
+      "as_of": "2026-10-12",
+      "source_type": "official-application"
+    },
+    {
+      "claim": "Anduril SWE III posting (Teal mirror): explicit U.S. Person requirement and salary range",
+      "source_url": "https://www.tealhq.com/job/software-engineer-iii-manufacturing-test_7ea1a3c99f2adafdcad7905658ee1841df6b4",
+      "as_of": "2026-10-12",
+      "source_type": "official-posting-mirror"
+    },
+    {
+      "claim": "Glassdoor Anduril SWE interview page - user-reported, anecdotal",
+      "source_url": "https://www.glassdoor.ca/Interview/Anduril-Software-Engineer-Interview-Questions-EI_IE3546800.0,7_KO8,25.htm",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "school_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "Anduril publishes no hire school distribution.",
+    "reported_patterns": [
+      {
+        "claim": "Postings request transcripts early in the process to assess academic background/coursework - an academics screen, not a published school list",
+        "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "prior_employer_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced feeder distribution. Defence/aerospace, autonomy/robotics and large-tech backgrounds are plausible feeders but that is agent judgment, not data - labeled as such.",
+    "reported_patterns": []
+  },
+  "major_dist": {
+    "status": "curated-qualitative",
+    "quantitative_shares": "omitted - no publicly sourced population sample (Doc 3 s1.6 Phase 1: curated CIRs only, no licensed vendor data yet)",
+    "note": "No sourced distribution.",
+    "reported_patterns": [
+      {
+        "claim": "Sourced postings name CS, engineering, mathematics, physics or related technical degrees (or equivalent experience)",
+        "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "sourced-qualitative-from-postings",
+    "reported_patterns": [
+      {
+        "claim": "C++ and Python recur as the core languages across sourced SWE postings; multi-threaded/high-performance programming for simulation and autonomy roles",
+        "source_url": "https://www.tealhq.com/job/software-engineer-iii-manufacturing-test_7ea1a3c99f2adafdcad7905658ee1841df6b4",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Mathematics depth (linear algebra, probability, statistics) is an explicit requirement on the scientific SWE posting, alongside tracking/estimation and sensor-fusion familiarity as desired experience",
+        "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "Full-stack TypeScript/React appears on platform/enterprise SWE postings - the SWE family is wider than embedded/autonomy",
+        "source_url": "https://www.tealhq.com/job/software-engineer-iii-manufacturing-test_7ea1a3c99f2adafdcad7905658ee1841df6b4",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Defence/aerospace or autonomy engineer -> Anduril SWE (clearance-eligible)",
+      "evidence_level": "curated-qualitative",
+      "basis": {
+        "claim": "Postings repeatedly require clearance eligibility and export-control eligibility, filtering the feasible feeder pool",
+        "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/5225761007",
+        "as_of": "2026-10-12",
+        "source_type": "official-application"
+      }
+    },
+    {
+      "pattern": "Strong C++/systems generalist from large tech or startups -> Anduril SWE",
+      "evidence_level": "curated-qualitative",
+      "basis": {
+        "claim": "Glassdoor candidate reports describe a fairly standard recruiter -> technical screen -> onsite shape for SWE",
+        "source_url": "https://www.glassdoor.ca/Interview/Anduril-Software-Engineer-Interview-Questions-EI_IE3546800.0,7_KO8,25.htm",
+        "as_of": "2026-10-12",
+        "source_type": "third-party-anecdotal"
+      }
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Direct application via Greenhouse (official board)",
+      "rank_note": "Application itself screens export-control status, sponsorship need and clearance eligibility - answer honestly; these are legal eligibility questions"
+    },
+    {
+      "route": "Recruiter outreach / referral",
+      "rank_note": "Candidate reports show recruiter and referral as material minority routes (anecdotal sample) - no official weight published"
+    },
+    {
+      "route": "University/new-grad SWE postings",
+      "rank_note": "Exist as postings rather than a branded program in the sources found; verify live each cycle"
+    }
+  ],
+  "hiring_bar_summary": {
+    "status": "curated-qualitative",
+    "text": "Two bars in sequence: an eligibility bar (U.S. Person / export-control / clearance eligibility on many roles, applied at application stage) and then a fairly conventional but mission-probing technical bar (coding incl. C++ debugging reports, design, and repeated 'why Anduril' motivation checks in candidate reports). Candidates who cannot clear the first bar should not spend prep time on the second."
+  },
+  "screening_signals": [
+    {
+      "claim": "U.S. Person status is an explicit requirement on sourced SWE postings 'due to required access to U.S. export controlled information or facilities'",
+      "source_url": "https://www.tealhq.com/job/software-engineer-iii-manufacturing-test_7ea1a3c99f2adafdcad7905658ee1841df6b4",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Many roles require eligibility to obtain and maintain a U.S. security clearance (Secret on one sourced posting; Top Secret SCI on the scientific SWE posting, active TS/SCI listed as desired there)",
+      "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "The application asks directly whether the candidate will require sponsorship now or in the future (e.g. H-1B) - combined with export-control rules, non-U.S.-Persons should assume most SWE roles are closed and verify role-by-role",
+      "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/5225761007",
+      "as_of": "2026-10-12",
+      "source_type": "official-application"
+    },
+    {
+      "claim": "Transcripts are requested early in the application process on sourced postings to assess coursework fit (redaction of non-technical info permitted; unofficial transcripts acceptable)",
+      "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Applications disclose third-party pre-employment risk/integrity screening (sanctions/watchlist/adverse-media checks) as part of the process",
+      "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/5225761007",
+      "as_of": "2026-10-12",
+      "source_type": "official-application"
+    },
+    {
+      "claim": "Mission motivation is a repeated interview theme in candidate reports ('why Anduril' asked across rounds) - anecdotal but consistent",
+      "source_url": "https://www.glassdoor.ca/Interview/Anduril-Software-Engineer-Interview-Questions-EI_IE3546800.0,7_KO8,25.htm",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "process_stages": {
+    "status": "curated-qualitative",
+    "stages": [
+      "Application with eligibility questions (export control, sponsorship, clearance)",
+      "Recruiter screen",
+      "Technical screen (coding; C++ debugging reported for some loops)",
+      "Onsite/virtual loop: coding, system design, behavioural with hiring manager/director",
+      "Clearance/background process where the role requires it"
+    ],
+    "basis": {
+      "claim": "Eligibility questions are official (Greenhouse application); loop shape is from candidate reports - labeled anecdotal",
+      "source_url": "https://www.glassdoor.ca/Interview/Anduril-Software-Engineer-Interview-Questions-EI_IE3546800.0,7_KO8,25.htm",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  },
+  "interview_styles": [
+    {
+      "claim": "Candidate reports describe standard data-structures/algorithm screens plus role-specific practical work (e.g. C++ debugging) and heavy motivation questioning - anecdotal",
+      "source_url": "https://www.glassdoor.ca/Interview/Anduril-Software-Engineer-Interview-Questions-EI_IE3546800.0,7_KO8,25.htm",
+      "as_of": "2026-10-12",
+      "source_type": "third-party-anecdotal"
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Official mission framing in postings: transforming U.S. and allied military capabilities with advanced technology; Lattice OS as the AI-powered operating system across its systems",
+      "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    },
+    {
+      "claim": "Postings stress small focused teams, production deployment over publication, and speed ('in months, not years') - stated culture signals",
+      "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "status": "curated-qualitative",
+    "note": "Continuous, posting-driven hiring (Greenhouse board) rather than a published annual cohort calendar in the sources found; defence programme demand drives waves that are not publicly scheduled."
+  },
+  "compensation_notes": [
+    {
+      "label": "official-posting-range (posting mirror)",
+      "fact": {
+        "claim": "Senior Scientific Software Engineer: US salary range $190,000-$252,000 (base only per posting), equity grants described as part of most full-time offers",
+        "source_url": "https://jobs.a16z.com/jobs/anduril-industries/5244795007--senior-scientific-software-engineer",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "label": "official-posting-range (posting mirror)",
+      "fact": {
+        "claim": "Software Engineer III, Manufacturing Test (Costa Mesa, CA): $166,000-$220,000 range shown on the posting mirror",
+        "source_url": "https://www.tealhq.com/job/software-engineer-iii-manufacturing-test_7ea1a3c99f2adafdcad7905658ee1841df6b4",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    },
+    {
+      "label": "official-posting-range (official Greenhouse posting, non-SWE comparator)",
+      "fact": {
+        "claim": "Manufacturing Engineer, Process and Planning (Santa Ana, CA): $129,000-$171,000 - included only to show Anduril publishes per-role ranges; it is NOT an SWE figure",
+        "source_url": "https://job-boards.greenhouse.io/andurilindustries/jobs/5225761007",
+        "as_of": "2026-10-12",
+        "source_type": "official-application"
+      }
+    }
+  ],
+  "referral_weight_notes": {
+    "status": "curated-qualitative",
+    "note": "No official data. Candidate-report samples list referrals as a minority application route; eligibility (U.S. Person/clearance) gates everything downstream, so a referral cannot substitute for eligibility."
+  },
+  "red_flags": [
+    "ELIGIBILITY FIRST: if you are not a U.S. Person, or would need H-1B sponsorship, most Anduril SWE roles are closed by export-control law - the application asks both questions directly. Do not advise anyone to misstate this (Doc 3 s3.2: never fabricate).",
+    "Clearance timelines are outside the candidate's control and can extend offers by months - plan finances/timing accordingly (general reported norm, labeled).",
+    "Onsite intensity: at least some postings require 5-days-per-week onsite presence - confirm per role.",
+    "Defence work itself is a values decision for the candidate: some strong engineers opt out; surface this neutrally and early."
+  ],
+  "thesis_text": "Bottom line: at Anduril the first screen is legal, not technical - many SWE roles require U.S. Person status for export-controlled work and eligibility for a U.S. security clearance, and the application asks about both plus future sponsorship up front. If you clear eligibility, the technical bar reported by candidates is recognisably standard (coding screen, practical/C++ work, design, behavioural) with an unusually persistent motivation question: why defence, why Anduril. Who gets in: no public cohort data exists, so no school or feeder percentages can be honestly quoted; sourced postings name CS/engineering/math/physics backgrounds, C++/Python depth, and - distinctively - request transcripts early to check coursework fit. Stated vs revealed: postings state a speed-and-deployment culture (production systems over papers, small teams); the revealed filter is eligibility plus mission commitment. Routes in, ranked for an eligible candidate: (1) direct Greenhouse application to a posting matched to your systems/C++ evidence; (2) recruiter/referral route with the same evidence; (3) adjacent defence/autonomy/robotics experience first, then lateral. For a non-U.S.-Person the honest route ranking is: none at Anduril for export-controlled roles - redirect effort to non-defence employers and say so plainly. Gap to close: C++ fluency and a maths/estimation or systems project, plus a credible, specific mission answer. Plan: 30 days - eligibility self-check and C++ project; semester - autonomy/systems coursework or project; year - apply with transcript ready. Coffee chats: engineers on Lattice/autonomy teams; ask how clearance timelines affected their start dates. Risks/alternatives: clearance delays; values fit with defence work is the candidate's own call. Offer to execute: eligibility-checked target list, resume tailoring, outreach drafts.",
+  "confidence_level": "curated-qualitative",
+  "section_confidence": {
+    "screening_signals": "sourced-qualitative (official application + official postings) - the strongest-sourced section in this record",
+    "compensation_notes": "sourced-quantitative (official posting ranges via mirrors)",
+    "skills_dist": "sourced-qualitative (official postings)",
+    "school_dist": "curated-qualitative - no public population data",
+    "prior_employer_dist": "curated-qualitative",
+    "major_dist": "curated-qualitative",
+    "process_stages": "curated-qualitative - candidate reports, labeled"
+  },
+  "known_biases_of_data": "Public postings describe the roles a company is currently trying to fill, not the people it actually hired; interview-prep and review sites are self-selected candidate reports; no licensed population dataset (PDL/Coresignal-class) was available for this record, so no school/employer/major shares are stated. Anduril-specific: posting mirrors may lag Greenhouse; clearance/U.S.-Person requirements vary BY ROLE - some roles list Secret eligibility, others TS/SCI, and non-controlled roles may differ, so per-posting verification is mandatory.",
+  "last_verified_at": "2026-10-12"
+}

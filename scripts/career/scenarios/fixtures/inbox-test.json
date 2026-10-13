@@ -1,0 +1,12 @@
+{
+  "label": "TEST inbox fixtures — synthetic, not real email",
+  "messages": [
+    {"id":"TEST-msg-confirm-ramp","company":"Ramp","from":"no-reply@greenhouse.io (TEST)","subject":"Application received — Ramp Software Engineering Intern (TEST)","body":"Thank you for applying. We have received your application for the Software Engineering Intern role at Ramp.","at":"2026-10-02T13:00:00Z"},
+    {"id":"TEST-msg-reject-goldman","company":"Goldman Sachs","from":"recruiting@goldmansachs.example.test","subject":"Update on your Goldman Sachs application (TEST)","body":"Thank you for your interest. Unfortunately, we have decided to move forward with other candidates for the Summer Analyst role.","at":"2026-10-05T12:00:00Z"},
+    {"id":"TEST-msg-oa-hrt","company":"Hudson River Trading","from":"assessments@hackerrank.example.test","subject":"Your Hudson River Trading online assessment (TEST)","body":"You are invited to complete the assessment for the Software Engineering Intern role. HackerRank link enclosed.","at":"2026-10-09T12:00:00Z"},
+    {"id":"TEST-msg-interview-datadog","company":"Datadog","from":"recruiter@datadoghq.example.test","subject":"Interview invitation — Datadog (TEST)","body":"We would like to invite you to interview for the Software Engineering Intern role. Please book a time on Calendly.","at":"2026-10-08T12:00:00Z"},
+    {"id":"TEST-msg-confirm-notion","company":"Notion","from":"no-reply@notion.example.test","subject":"Notion application confirmation (TEST)","body":"This is your application confirmation: thank you for applying to Notion for the Software Engineering Intern role. We received your application.","at":"2026-10-08T13:00:00Z"},
+    {"id":"TEST-msg-noise-linkedin","from":"jobs-alert@linkedin.example.test","subject":"Job alert: 12 new jobs you might like (TEST)","body":"Newsletter with jobs you might like. Unsubscribe anytime.","at":"2026-10-10T12:00:00Z"},
+    {"id":"TEST-msg-noise-marketing","from":"news@stripe.example.test","subject":"Stripe newsletter: new product webinar (TEST)","body":"Join our upcoming webinar. This is a marketing newsletter — unsubscribe here.","at":"2026-10-10T12:00:00Z"}
+  ]
+}

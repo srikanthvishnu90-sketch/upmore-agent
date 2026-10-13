@@ -63,6 +63,15 @@ export const FINANCE_FACTS: FinanceFact[] = [
     urls: ["https://www.irs.gov"],
   },
   {
+    id: "roth-ira-basics",
+    match: ["roth ira", "roth iras"],
+    text: "A Roth IRA is an individual retirement account you fund with money you've already paid income tax on. Because the tax is paid up front, the money grows tax-free and qualified withdrawals in retirement come out tax-free as well. You can take out the money you contributed (not the earnings on it) at any time without tax or penalty. There's no tax deduction for contributing — the benefit comes at withdrawal. The IRS sets a yearly contribution limit and income limits for who can contribute directly.",
+    source: "IRS (retirement plans)",
+    as_of: "2026",
+    amounts: [],
+    urls: ["https://www.irs.gov"],
+  },
+  {
     id: "se-tax-2026",
     match: ["self employment tax", "self-employment tax", "se tax", "freelance tax rate", "1099 tax rate", "social security wage base"],
     text: "Self-employment tax is 15.3%: 12.4% Social Security on earnings up to the $184,500 wage base, plus 2.9% Medicare with no cap, applied to 92.35% of net earnings — on top of income tax. There's an extra 0.9% Medicare tax above $200K single / $250K joint. Half of SE tax is deductible. Rule of thumb: set aside 25–30% of every freelance dollar the day it arrives.",

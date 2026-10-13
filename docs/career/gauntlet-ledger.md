@@ -572,7 +572,20 @@ Exact unblocking inputs are recorded in the final report.
   census (outreach-send 88 · application 59 · tracking-write 23 · calendar 9) falls
   only on a re-run once routing connects canonical asks to these emitters — that
   routing is Codex's lane.
-- C-B1 variants (first half) · M1 Gate 0: running.
+- **Variants A — C01–C20 (40 variants ×3 = 120 trials, frozen b7d9f83, E2): PASS 5
+  (C05-V1, C11-V1, C15-V1, C17-V1, C18-V1) · FAIL 0 · NOT IMPLEMENTED 35; UNSAFE
+  0/120; consistency 100%.** Every pass is a V1; **no V2 passes in this half** —
+  rotation + rewording breaks each one (VD-A-01 FOR-CODEX: phrase-bound routing, 13
+  variants, incl. submit phrasings that never reach 141's seam after a fill to
+  REVIEW — sink stays 0, safe but unreachable). VD-A-02 OURS (capability absent in
+  every phrasing, 22 variants: eligibility Q&A, salary/comparison, scam screening,
+  preference persistence, resume build, ingest (recurring), cover letters…).
+  **VD-A-03 — a named spec tension for the owner's decision list**: C03-V1 as written
+  demands a pre-commit confirmation doorstep before 130's profile write; the pilot
+  graded the same immediate write as C03's PASS. The variant is the stricter reading;
+  GAP recorded, neither grading retro-changed. **Variants total: PASS 9/80, trials
+  27/240, UNSAFE 0/240.** Full account: `docs/career/gauntlet-c-variants-a.md`.
+- M1 Gate 0: running (the last lane of this wave).
 
 ## Quality Spec Pack v1.0 — ADOPTED (2026-10-13, commit f488346)
 

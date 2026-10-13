@@ -105,7 +105,7 @@ const CareerOutreach = (() => {
   const nameSim = (a, b) => { a = norm(a); b = norm(b); if (!a || !b) return 0; const max = Math.max(a.length, b.length); return max ? 1 - levenshtein(a, b) / max : 0; };
   const HARD_FUZZY = 0.92;
   function normalizeCandidate(r) {
-    return Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false }, r || {});
+    return Object.assign({ person_id: null, full_name: "", current_firm: "", title: "", group: "", seniority_band: null, office: "", geography: "", country: null, schools: [], grad_year: null, prior_firms: [], languages: [], public_links: [], work_email: null, email_confidence: 0, email_source: null, email_verification: null, personalization_facts: [], relationship_to_user: "none", opt_out: false, contacted_before: false, source_list: [], last_verified_at: null, title_stale: false, latest_title: null, former_employer_note: "" }, r || {});
   }
   function resolveCandidates(records) {
     const out = [], review = []; const list = (records || []).map(normalizeCandidate);
@@ -314,7 +314,15 @@ const CareerOutreach = (() => {
         meta = meta || {};
         if (!draft || draft.refused || !draft.body) return null;
         const id = meta.id || draft.id || draft.draft_id || `draft-${++data.seq}`;
-        const rec = { id, draft: clone(draft), version: 1, status: "awaiting_approval",
+        // W3 (g)/(j)/(l): a stored draft keeps the gate result and hold state
+        // it was prepared with. Tier C (no sourced fact), a recipient who has
+        // departed, and any gate-failed draft are NOT awaiting approval.
+        const qa = draft.qa || draft.gate || null;
+        let status = "awaiting_approval", held_reason = null;
+        if (draft.status === "held" || draft.held_reason) { status = "held"; held_reason = draft.held_reason || "held"; }
+        else if (draft.tier === "C") { status = "held"; held_reason = draft.held_reason || "tier_c_no_sourced_fact"; }
+        else if (draft.status === "gate_failed" || (qa && qa.pass === false)) status = "gate_failed";
+        const rec = { id, draft: clone(draft), version: 1, status, held_reason, qa: qa ? clone(qa) : null,
           person_id: draft.person_id || null, to: draft.to || null, kind: meta.kind || "outreach_draft",
           approvals: [], approval: null, approval_valid: false,
           history: [{ version: 1, draft: clone(draft), kind: "prepared", at: meta.at || null }],
@@ -329,6 +337,12 @@ const CareerOutreach = (() => {
       list() { return data.order.map((id) => clone(data.drafts[id])); },
       approve(id, opts) {
         opts = opts || {}; const r = data.drafts[id]; if (!r) return { ok: false, reason: "draft_not_found" };
+        // W3 (g)/(j)/(l): approval is refused for held drafts and for any
+        // draft whose stored gate result failed — a gate failure or a hold
+        // can never be approved past.
+        if (r.status === "held") return { ok: false, reason: "draft_held", held_reason: r.held_reason || (r.draft && r.draft.held_reason) || null };
+        const storedQa = r.qa || (r.draft && (r.draft.qa || r.draft.gate)) || null;
+        if (r.status === "gate_failed" || (storedQa && storedQa.pass === false)) return { ok: false, reason: "gate_failed", failures: storedQa ? storedQa.failures || [] : [] };
         const approval = { version: r.version, by: opts.by || "user", at: opts.at || null };
         r.approvals.push(Object.assign({ valid: true }, approval));
         r.approval = approval; r.approval_valid = true; r.status = "approved";
@@ -363,18 +377,135 @@ const CareerOutreach = (() => {
 
   // ---------- OUTE-005/006: draft engine + voice + quality gate ----------
   const VOICE_DEFAULT = Object.freeze({ formality: 0.3, warmth: 0.6, humor: 0.0, directness: 0.7, plain_student_voice: true });
+  // W3 (f): the bare move template — "moved from a prior role to <firm> as a
+  // <title>", with no specific prior firm, deal, project, school, publication
+  // or measurable detail — is a GENERIC fact. It restates the candidate's own
+  // current title/firm and can never make a draft Tier A, however it is
+  // labeled. A fact naming a specific prior firm / deal / project / school /
+  // number is specific and keeps its strength.
+  function isGenericFact(fact) {
+    const t = String(fact || "").trim();
+    if (!t) return false;
+    return /^moved from an?\s+(prior|previous|earlier)\s+role\s+to\s+.+\s+as\s+an?\s+[a-z][a-z /&'-]*$/i.test(t) && !/\d/.test(t);
+  }
   function determineTier(c, profile) {
     profile = profile || {}; const rel = norm(c.relationship_to_user);
     const facts = c.personalization_facts || [];
     if (/mutual/.test(rel) || facts.some((f) => f.kind === "referral" && f.verified === true)) return "A";
     if (/club|team/.test(rel) && profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "A";
-    if (facts.some((f) => f.strength === "strong")) return "A";
+    if (facts.some((f) => f.strength === "strong" && !isGenericFact(f.fact))) return "A";
     if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) return "B";
     if (/same school|same city|hometown/.test(rel)) return "B";
-    if (c.geography || c.office) return "B";
+    // W3 (j) investigation: geography/office used to return "B" here, but
+    // nearly every record carries an office — that made Tier C (no sourced
+    // personalization fact) almost unreachable and sent no-fact drafts to
+    // awaiting_approval labeled B. A bare record with only a location is
+    // Tier C (SC-025's bare-record construction agrees: it zeroes geography
+    // AND expects C). Geography is a filter, not a personalization signal.
     return "C";
   }
+  // W3 (c): article agreement — "a" becomes "an" before a vowel SOUND.
+  // University/unicorn/user/European/one keep "a" (consonant onset);
+  // honest/hour/heir take "an" (silent h).
+  function fixArticles(text) {
+    return String(text || "").replace(/\b(a|A)\s+([A-Za-z][A-Za-z'-]*)/g, (m, art, word) => {
+      const lw = word.toLowerCase();
+      if (/^(honest|honour|hour|heir)/.test(lw)) return (art === "A" ? "An" : "an") + " " + word;
+      if (/^(uni|use|usu|eur|one|once|ufo)/.test(lw)) return m;
+      if (/^[aeiou]/i.test(word)) return (art === "A" ? "An" : "an") + " " + word;
+      return m;
+    });
+  }
+  // Facts are stored as subject-less verb phrases ("worked on a deal at X",
+  // "publishes ML tooling") — this renders the personalization clause with
+  // its subject, exactly as draftFor embeds it in the body. qualityGate
+  // recomputes the expected line through THIS function (fact/body binding).
+  const PRESENT3 = /^(publishes|works|writes|leads|runs|teaches|builds|manages|covers|speaks|hosts|mentors|advises|studies|organizes|organises|volunteers|helps|serves|heads|directs|oversees|contributes|maintains|creates|develops)$/i;
+  function present3ToBase(w) {
+    if (/ies$/.test(w)) return w.slice(0, -3) + "y";
+    if (/(sh|ch|ss|x|z)es$/.test(w)) return w.slice(0, -2);
+    if (/s$/.test(w)) return w.slice(0, -1);
+    return w;
+  }
+  function renderFactClause(f) {
+    if (!f || !f.fact) return "";
+    if (f.kind === "referral") return String(f.fact).trim();
+    let fact = String(f.fact || "").trim().replace(/\b(a|an|the)\s+\1\b/gi, "$1");
+    if (!/^you\b/i.test(fact)) {
+      const w = (fact.split(/\s+/)[0] || "").toLowerCase();
+      if (PRESENT3.test(w)) fact = fact.replace(/^\S+/, present3ToBase(w));
+      fact = `you ${fact}`;
+    }
+    return fixArticles(`I saw that ${fact}`);
+  }
+  // W3 (d): topic sanitizer. "their product" talks about the RECIPIENT's
+  // product — render it "your product". A topic that is merely a job title
+  // or a "Title at Firm" string asserts nothing personal — fall back to
+  // "your work at <firm>".
+  function sanitizeTopic(rawTopic, c) {
+    let t = String(rawTopic || "").replace(/\s+/g, " ").trim();
+    t = t.replace(/\bthe a(n)?\b/gi, "the");
+    t = t.replace(/\btheir\b/gi, "your").replace(/\btheirs\b/gi, "yours");
+    t = fixArticles(t);
+    const nt = norm(t), ntitle = norm(c.title), nfirm = norm(c.current_firm);
+    if (!t || (ntitle && nt === ntitle) || (ntitle && nfirm && nt === `${ntitle} at ${nfirm}`) || (nfirm && nt === nfirm)) t = `your work at ${c.current_firm}`;
+    return t;
+  }
+  // W3 (b): the self-experience line must be grammatical for every shape of
+  // user.experience. Gerund-led keeps "I'm currently ..."; an article-led
+  // experience carrying a past-tense clause is a completed stint ("Most
+  // recently, I completed ..."); an article-led person-predicate is "I'm
+  // ..."; a duration-led line is "I have ...".
+  function experienceLine(expRaw) {
+    const exp = String(expRaw || "").trim().replace(/\.\s*$/, "");
+    if (!exp) return null;
+    const first = (exp.split(/\s+/)[0] || "").toLowerCase();
+    if (/ing$/.test(first)) return fixArticles(`I'm currently ${exp}.`);
+    if (/^(a|an|the)\b/i.test(exp)) {
+      if (/,\s*where I\b/.test(exp) || /\bI (built|led|worked|created|developed|shipped|ran|managed|designed|wrote|modeled|modelled)\b/.test(exp)) return fixArticles(`Most recently, I completed ${exp}.`);
+      return fixArticles(`I'm ${exp}.`);
+    }
+    if (/^(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+years?\b/i.test(exp)) return fixArticles(`I have ${exp}.`);
+    if (/^(spent|worked|led|built|ran|managed)\b/i.test(exp)) return fixArticles(`Most recently, I ${exp}.`);
+    return fixArticles(`I'm currently ${exp}.`);
+  }
+  // W3 (h): one subject cap for EVERY draft path (was draftFor-only).
+  function capSubjectText(raw) {
+    const clean = String(raw || "").replace(/\s+/g, " ").trim();
+    if (clean.length <= 60) return clean;
+    const cut = clean.slice(0, 59); const atWord = cut.lastIndexOf(" ");
+    return (atWord > 20 ? cut.slice(0, atWord) : cut).trim();
+  }
   const STRUCTURES = ["path_question", "shared_context", "specific_question", "short_honest", "peer_learning"];
+  // W3 (i): structure variation — the ask line, the no-fit fallback, and the
+  // self-intro framing all vary by structure (opener / mirror / contrast /
+  // proof / peer). Five distinct ask templates, five distinct no-fit
+  // phrasings; "Totally understand if you're swamped." appears in ONE
+  // structure's template only. No opt-out line is drafted by default
+  // (owner order 2026-10-13: student networking emails carry none).
+  const STRUCTURE_ASK = [
+    { ask: (topic) => `Would you have 15 minutes on Tuesday afternoon or Thursday morning to talk about ${topic}?`, noFit: () => `If neither fits, whatever works best for you is fine.` },
+    { ask: (topic) => `Could I ask you about ${topic} in a 15-minute call on Tuesday afternoon or Thursday morning?`, noFit: () => `Another time that suits you works just as well.` },
+    { ask: (topic) => `I have one specific question about ${topic} — would 15 minutes on Tuesday afternoon or Thursday morning work?`, noFit: () => `If those times miss, I'm happy to work around your schedule. Totally understand if you're swamped.` },
+    { ask: (topic) => `Would 15 minutes on Tuesday afternoon or Thursday morning work for a quick chat about ${topic}?`, noFit: () => `Any time that works better for you is fine by me.` },
+    { ask: (topic) => `Might you have 15 minutes on Tuesday afternoon or Thursday morning for a chat about ${topic}?`, noFit: () => `Whatever time suits you best works for me.` },
+  ];
+  function selfIntro(structure, user) {
+    const who = user.name || "a student";
+    const yearSeg = user.year ? `a ${user.year}` : null;
+    const schoolSeg = user.school ? `at ${user.school}` : null;
+    const tail = [yearSeg, schoolSeg].filter(Boolean).join(" ");
+    // Comma only when a year segment leads ("I'm X, a sophomore at Y");
+    // a school-only tail attaches directly ("I'm X at Y").
+    const yearPart = yearSeg ? `, ${tail}` : (schoolSeg ? ` ${schoolSeg}` : "");
+    switch (structure) {
+      case "shared_context": return `My name is ${who}${tail ? ` — I'm ${tail}` : ""}.`;
+      case "specific_question": return `${who} here${yearSeg ? `, ${yearSeg}` : ""}${schoolSeg ? ` ${schoolSeg}` : ""}.`;
+      case "short_honest": return `I'm ${who}${yearPart}, keeping this short.`;
+      case "peer_learning": return `I'm ${who}${yearPart}, learning from people already doing the work.`;
+      default: return `I'm ${who}${yearPart}.`;
+    }
+  }
   // Doc 03 F1 draft rule: the subject line is UNDER 60 characters and
   // specific. The generated form ("<school> <year>, question about <title>
   // at <firm>") crossed 60 for long school/firm names (61 chars on the
@@ -414,19 +545,15 @@ const CareerOutreach = (() => {
     const strong = usable.find((f) => f.strength === "strong") || usable[0] || null;
     const why = []; const lines = [];
     lines.push(`Hi ${first},`);
-    let intro = `I'm ${user.name || "a student"}${user.year ? `, a ${user.year}` : ""}${user.school ? ` at ${user.school}` : ""}.`;
+    // W3 (i): the self-intro framing varies by structure.
+    let intro = selfIntro(structure, user);
     if (strong) {
       // Facts are stored as subject-less verb phrases ("worked on a deal at X",
       // "publishes ML tooling") — the sentence must supply the subject, or the
       // draft reads "I saw that worked on a a …" (T-87 sweep, FIN-E-002).
-      const PRESENT3 = /^(publishes|works|writes|leads|runs|teaches|builds|manages|covers)$/i;
-      let fact = String(strong.fact || "").trim().replace(/\b(a|an|the)\s+\1\b/gi, "$1");
-      if (!/^you\b/i.test(fact)) {
-        const w = (fact.split(/\s+/)[0] || "").toLowerCase();
-        if (PRESENT3.test(w)) fact = fact.replace(/^\S+/, /(sh|ch|ss|x|z)es$/.test(w) ? w.slice(0, -2) : w.slice(0, -1));
-        fact = `you ${fact}`;
-      }
-      const clause = strong.kind === "referral" ? `${strong.fact}` : `I saw that ${fact}`;
+      // renderFactClause is the one shared renderer; the gate recomputes
+      // the expected line through it (W3 (e) fact/body binding).
+      const clause = renderFactClause(strong);
       intro += ` ${clause}, which is why I wanted to reach out to you specifically.`;
       why.push({ line: clause, fact: strong.fact, source_url: strong.source_url, strength: strong.strength || null, kind: strong.kind || null });
     } else if (tier !== "C") {
@@ -434,24 +561,115 @@ const CareerOutreach = (() => {
       intro += ` ${clause}.`; why.push({ line: clause, fact: `role at ${c.current_firm}`, source_url: "candidate_record", strength: "record", kind: "record" });
     }
     lines.push(intro);
-    if (user.experience && !opts.concise) lines.push(`I'm currently ${user.experience}.`);
-    const askTopic = (strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`).replace(/\bthe a(n)?\b/gi, "the");
+    // W3 (b): grammatical experience-line composition for every shape.
+    const expLine = user.experience && !opts.concise ? experienceLine(user.experience) : null;
+    if (expLine) lines.push(expLine);
+    const askTopic = sanitizeTopic(strong && strong.topic ? strong.topic : `${c.title || "your path"} at ${c.current_firm}`, c);
     // Doc 03 F1 draft rule: one concrete ask — 15 minutes, with two proposed
     // windows OR "whatever works". Both are offered: two named windows, and
-    // the whatever-works fallback if neither fits.
+    // the whatever-works fallback if neither fits. W3 (i): wording varies
+    // by structure; no opt-out line by default (owner order 2026-10-13).
     const ask = { minutes: 15, windows: ["Tuesday afternoon", "Thursday morning"], whatever_works: true };
-    lines.push(`Would you have 15 minutes on Tuesday afternoon or Thursday morning to talk about ${askTopic}? If neither fits, whatever works best for you is fine. Totally understand if you're swamped.`);
-    lines.push(OPT_OUT_LINE);
+    const askTpl = STRUCTURE_ASK[STRUCTURES.indexOf(structure)] || STRUCTURE_ASK[0];
+    lines.push(`${askTpl.ask(askTopic)} ${askTpl.noFit()}`);
     lines.push(`Thanks,\n${user.name || ""}${user.school ? ` | ${user.school}` : ""}${user.year_label ? ` ${user.year_label}` : ""}${user.link ? `\n${user.link}` : ""}`);
     let body = lines.join("\n\n");
-    if (body.split(/\s+/).length > CAPS.maxWords && user.experience) { lines.splice(2, 1); body = lines.join("\n\n"); }
+    if (body.split(/\s+/).length > CAPS.maxWords && expLine) { const ix = lines.indexOf(expLine); if (ix >= 0) lines.splice(ix, 1); body = lines.join("\n\n"); }
     const subject = capSubject(strong && strong.subject_hint ? strong.subject_hint : `${user.school ? user.school + " " : ""}${user.year ? user.year + ", " : ""}question about ${c.title || "your path"} at ${c.current_firm}`, c, user);
     return { person_id: c.person_id || null, to: c.work_email || null, subject, body, tier, structure, voice, ask,
+      ask_topic: askTopic, fact_used: strong ? { fact: strong.fact, source_url: strong.source_url, strength: strong.strength || null, kind: strong.kind || null } : null,
       facts_used: why, why_this_line: why, dropped_unsourced: dropped, title_used: c.title || null, firm_used: c.current_firm || null, name_used: c.full_name || null };
+  }
+  // W3 (e) topic/fact binding helpers: a topic token counts as grounded when
+  // it appears in the cited fact — literally or via a synonym family (a
+  // "path" topic is grounded by a "moved/joined" fact; "building" by
+  // "built"). Firm and title tokens never ground a topic by themselves:
+  // they are in every topic, so they would ground anything.
+  const TOPIC_FAMILIES = [
+    ["MOVE", /^(path|moved|move|moves|moving|joined|join|joining|landing|landed|transition|transitioned)$/],
+    ["GROW", /^(grew|grow|grows|growing|grown)$/],
+    ["BUILD", /^(built|build|builds|building)$/],
+    ["COVER", /^(covers|cover|covers|coverage|covering)$/],
+    ["COMPETE", /^(competed|compete|competes|competition|competing)$/],
+    ["PUBLISH", /^(publishes|publish|published|publishing)$/],
+    ["STUDY", /^(studied|study|studies|studying)$/],
+    ["SPEAK", /^(spoke|speak|speaks|speaking|panel|comments)$/],
+  ];
+  const topicStem = (w) => { for (const [fam, re] of TOPIC_FAMILIES) if (re.test(w)) return fam; return w.replace(/(ing|ed|es|s)$/, ""); };
+  const topicTokens = (text) => norm(text).split(" ").filter((w) => w.length >= 3);
+  // Prose sentences for the shared-skeleton check: everything except the
+  // greeting block and the sign-off block.
+  function proseSentences(body) {
+    const blocks = String(body || "").split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+    const prose = blocks.filter((b, i) => i !== 0 && !/^thanks\b/i.test(b));
+    return prose.join(" ").split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
   }
   function qualityGate(draft, candidate, opts) {
     opts = opts || {}; const c = normalizeCandidate(candidate); const failures = [];
     const body = String(draft.body || ""); const low = body.toLowerCase();
+    const subject = String(draft.subject || "");
+    // W3 (h): subject length is gated on EVERY path, not only draftFor's.
+    if (subject.length > 60) failures.push("subject_too_long");
+    // W3 (g) HARD BLOCKS: placeholder / annotation content can never pass.
+    const allText = subject + "\n" + body;
+    if (/\[[^\]]+\]/.test(allText) || /\bBLURB\b/.test(allText) || /\(fact F-[^)]*\)/i.test(allText) || /\(profile fact/i.test(allText)
+      || /\{\{[^}]*\}\}|\$\{[^}]*\}/.test(allText) || /\bTODO\b|\bTBD\b/.test(allText) || /lorem ipsum/i.test(allText)) failures.push("placeholder_content");
+    // W3 (g): test markers are defects in production mode.
+    if (opts.mode === "production" && /\(TEST\)/.test(allText)) failures.push("test_marker_in_production");
+    // W3 (g): a capitalized action verb mid-sentence (after a lowercase
+    // word) is a rendering defect, e.g. "the team Shipped the tool".
+    if (/\b[a-z][a-z']*\s+(Shipped|Built|Led|Closed|Worked|Studied|Grew|Moved)\b/.test(body)) failures.push("stray_mid_sentence_capital");
+    // W3 (m) owner rule 2026-10-13: relative-date phrases are QA defects —
+    // dates must be absolute or verified true at send time. "since
+    // September 2025" (absolute) passes; "since last fall" fails.
+    if (/since last (january|february|march|april|may|june|july|august|september|october|november|december|month|year|fall|spring|summer|winter)/i.test(allText)) failures.push("relative_date_phrase");
+    // W3 (l): a recipient who has departed can never be drafted to approval.
+    const departedNote = String(c.former_employer_note || "").trim();
+    let recipientDeparted = !!departedNote;
+    if (!recipientDeparted && c.title_stale && c.latest_title) {
+      const fm = String(c.latest_title).match(/\bat\s+(.+)$/i);
+      if (fm && c.current_firm && norm(fm[1]) !== norm(c.current_firm)) recipientDeparted = true;
+    }
+    if (recipientDeparted) failures.push("recipient_departed");
+    // W3 (e): fact/body binding — the cited fact must be one of the
+    // candidate's sourced facts, and the body's personalization line must
+    // be exactly the line that fact renders to.
+    const cited = draft.fact_used || (draft.why_this_line || draft.facts_used || []).find((w) => w && w.fact && w.source_url && w.source_url !== "candidate_record") || null;
+    if (cited && cited.fact) {
+      const recordFact = (c.personalization_facts || []).find((f) => norm(f.fact) === norm(cited.fact) && (!cited.source_url || f.source_url === cited.source_url));
+      if (!recordFact) failures.push("fact_body_mismatch");
+      else {
+        const expected = renderFactClause({ fact: recordFact.fact, kind: cited.kind || recordFact.kind || null });
+        if (expected && !body.includes(expected)) failures.push("fact_body_mismatch");
+      }
+      // W3 (e): the ask topic must assert nothing that is in neither the
+      // cited fact nor the recipient's title/firm.
+      if (typeof draft.ask_topic === "string" && draft.ask_topic) {
+        const excluded = new Set([...topicTokens(c.current_firm).map(topicStem), ...topicTokens(c.title).map(topicStem),
+          "your", "the", "and", "into", "work", "works", "time", "about", "from", "that", "this", "with", "for"]);
+        const topicContent = topicTokens(draft.ask_topic).map(topicStem).filter((w) => !excluded.has(w));
+        if (topicContent.length) {
+          const factStems = new Set(topicTokens(recordFact ? recordFact.fact : cited.fact).map(topicStem));
+          if (!topicContent.some((w) => factStems.has(w))) failures.push("topic_not_in_fact");
+        }
+      }
+    }
+    // W3 (i): shared-skeleton batch check — against same-firm drafts in
+    // opts.batchDrafts (which may include the current draft), more than one
+    // shared verbatim prose sentence fails.
+    if (Array.isArray(opts.batchDrafts) && opts.batchDrafts.length) {
+      const myFirm = norm(draft.firm_used || draft.firm || c.current_firm);
+      const mine = new Set(proseSentences(body));
+      const shared = new Set();
+      for (const other of opts.batchDrafts) {
+        if (!other || other === draft) continue;
+        const oFirm = norm(other.firm_used || other.firm || (other.candidate && other.candidate.current_firm) || "");
+        if (!oFirm || oFirm !== myFirm) continue;
+        if (other.person_id && draft.person_id && other.person_id === draft.person_id && other.body === body) continue; // self, re-listed
+        for (const s of proseSentences(other.body || "")) if (mine.has(s)) shared.add(s);
+      }
+      if (shared.size > 1) failures.push("shared_skeleton:" + shared.size);
+    }
     for (const w of draft.why_this_line || draft.facts_used || []) {
       if (w.source_url === "candidate_record") continue;
       const found = (c.personalization_facts || []).some((f) => norm(f.fact) === norm(w.fact) && f.source_url === w.source_url);
@@ -471,7 +689,9 @@ const CareerOutreach = (() => {
     if (/<[a-z][\s\S]*>/i.test(body)) failures.push("not_plain_text");
     const words = body.split(/\s+/).filter(Boolean).length; if (words > CAPS.maxWords) failures.push("too_long:" + words);
     const links = (body.match(/https?:\/\/|www\.|[a-z0-9-]+\.(com|edu|io|org)\/[^\s]+/gi) || []).length; if (links > CAPS.maxLinks) failures.push("too_many_links:" + links);
-    if (!norm(body).includes(norm(OPT_OUT_LINE))) failures.push("missing_opt_out_footer");
+    // W3 (i): no missing-opt-out failure — drafts carry no opt-out line by
+    // default (owner order 2026-10-13); OPT_OUT_LINE stays exported for the
+    // suppression machinery, not the draft text.
     for (const other of opts.batchBodies || []) if (other && other.person_id !== draft.person_id && norm(other.body) && norm(other.body) === norm(body)) failures.push("duplicate_body");
     return { pass: failures.length === 0, failures: [...new Set(failures)], words };
   }
@@ -485,7 +705,15 @@ const CareerOutreach = (() => {
     const draft = draftFor(candidate, user, opts);
     if (draft && draft.refused) return Object.assign({}, draft, { draft: null, gate: { pass: false, failures: ["suppressed_recipient"] }, queued: false, sends: 0, status: "refused" });
     const gate = qualityGate(draft, candidate, opts);
-    const out = { draft, gate, queued: gate.pass, sends: 0, status: gate.pass ? "awaiting_approval" : "gate_failed" };
+    // W3 (j)/(l): Tier C drafts (no sourced fact) and departed recipients
+    // are HELD by default — never awaiting_approval, never queued.
+    let status, held = false, held_reason = null;
+    if (gate.failures.includes("recipient_departed")) { held = true; held_reason = "recipient_departed"; status = "held"; }
+    else if (draft.tier === "C") { held = true; held_reason = "tier_c_no_sourced_fact"; status = "held"; }
+    else status = gate.pass ? "awaiting_approval" : "gate_failed";
+    draft.qa = gate; draft.status = status; if (held) draft.held_reason = held_reason;
+    const out = { draft, gate, queued: gate.pass && !held, sends: 0, status };
+    if (held) { out.held = true; out.held_reason = held_reason; }
     // NWD-02: a prepared draft is stored so it stays retrievable/editable by
     // id after the approval gate, not only inside this turn's result object.
     const store = opts.draftStore || (opts.ctx && opts.ctx.draftStore) || null;
@@ -501,8 +729,10 @@ const CareerOutreach = (() => {
     opts = opts || {}; const c = normalizeCandidate(contact);
     if (suppressionCheck({ email: c.work_email, person_id: c.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(c, opts, user), { draft: null });
     if (!opts.shared_context || !opts.shared_context.source_url) return { ok: false, reason: "no_sourced_shared_context", draft: null };
-    const body = [`Hi ${(c.full_name || "").split(/\s+/)[0]},`, `I'm ${user.name || "a student"}${user.school ? ` at ${user.school}` : ""}. ${opts.shared_context.fact}.`, `Would you be open to a 15-minute coffee chat in the next two weeks? Totally understand if you're swamped.`, OPT_OUT_LINE, `Thanks,\n${user.name || ""}`].join("\n\n");
-    return { ok: true, draft: { to: c.work_email || null, subject: `Coffee chat — ${user.school || "student"}`, body, why_this_line: [{ line: opts.shared_context.fact, fact: opts.shared_context.fact, source_url: opts.shared_context.source_url }] } };
+    // W3 (i): no opt-out line by default (owner order 2026-10-13).
+    // W3 (h): subject capped on this path too.
+    const body = [`Hi ${(c.full_name || "").split(/\s+/)[0]},`, `I'm ${user.name || "a student"}${user.school ? ` at ${user.school}` : ""}. ${opts.shared_context.fact}.`, `Would you be open to a 15-minute coffee chat in the next two weeks? Totally understand if you're swamped.`, `Thanks,\n${user.name || ""}`].join("\n\n");
+    return { ok: true, draft: { to: c.work_email || null, subject: capSubjectText(`Coffee chat — ${user.school || "student"}`), body, why_this_line: [{ line: opts.shared_context.fact, fact: opts.shared_context.fact, source_url: opts.shared_context.source_url }] } };
   }
   function draftIntroRequest(mutual, target, user, blurb, opts) {
     const m = normalizeCandidate(mutual), t = normalizeCandidate(target);
@@ -510,7 +740,8 @@ const CareerOutreach = (() => {
     if (suppressionCheck({ email: m.work_email, person_id: m.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(m, opts, user), { draft: null });
     if (suppressionCheck({ email: t.work_email, person_id: t.person_id }, opts, user).suppressed) return Object.assign({ ok: false }, suppressedRefusal(t, opts, user), { draft: null });
     if (!blurb) return { ok: false, reason: "forwardable_blurb_required" };
-    return { ok: true, draft: { to: m.work_email || null, subject: `Intro to ${t.full_name} at ${t.current_firm}?`, body: `Hi ${(m.full_name || "").split(/\s+/)[0]}, would you be willing to introduce me to ${t.full_name} at ${t.current_firm}? Forwardable blurb below — no worries at all if not.\n\n${blurb}\n\nThanks,\n${user.name || ""}` } };
+    // W3 (h): subject capped on this path too.
+    return { ok: true, draft: { to: m.work_email || null, subject: capSubjectText(`Intro to ${t.full_name} at ${t.current_firm}?`), body: `Hi ${(m.full_name || "").split(/\s+/)[0]}, would you be willing to introduce me to ${t.full_name} at ${t.current_firm}? Forwardable blurb below — no worries at all if not.\n\n${blurb}\n\nThanks,\n${user.name || ""}` } };
   }
 
   // ---------- OUTE-008: suppression (per-user + shared cross-user; severity-1) ----------
@@ -1221,9 +1452,11 @@ const CareerOutreach = (() => {
         if (opts.suppression && opts.suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { excluded.suppressed++; continue; }
         const first = ((item.candidate || {}).full_name || "").split(/\s+/)[0] || "there";
         const origSubject = item.draft ? item.draft.subject : "Coffee chat";
+        // W3 (i): no opt-out line in follow-up drafts by default (owner
+        // order 2026-10-13); suppression still honors any reply opt-out.
         const body = final
-          ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. If a chat about ${(item.candidate || {}).current_firm || "your firm"} is ever useful, I'm around. Wishing you well.\n\n${OPT_OUT_LINE}\n\nThanks`
-          : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
+          ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. If a chat about ${(item.candidate || {}).current_firm || "your firm"} is ever useful, I'm around. Wishing you well.\n\nThanks`
+          : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\nThanks`;
         entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
       }
       for (const _item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
@@ -1266,7 +1499,7 @@ const CareerOutreach = (() => {
     applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,
-    VOICE_DEFAULT, determineTier, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
+    VOICE_DEFAULT, determineTier, isGenericFact, fixArticles, sanitizeTopic, experienceLine, renderFactClause, draftFor, qualityGate, draftAndGate, draftReferralAsk, draftIntroRequest, STRUCTURES,
     createSuppressionStore, resolveSuppression, suppressionCheck, createDraftStore, prepareDraft, dailyCapForDay, refuseRaiseCap, createCampaign, enqueue, planWave, evaluateBreaker, recordOutcome, handleBounce, sendPending, scheduleFollowUps, exportState, importState, buildGmailRaw, createGmailTransport,
     classifyReply, handleReply, processInboxEvent, deliveryStatus, deliveryStatusText, reconcileOutreachDelivery, followUpStatus, profileFactAnswers, addressHealth, parseReturnDate,
     tzOffsetMs, zonedTimeToUtc, localDateInTz, proposeSlots, prepBrief, thankYouDraft, scheduleFollowUpTouch,

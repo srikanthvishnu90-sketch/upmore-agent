@@ -120,9 +120,9 @@ test("OUTE-003 local verifier: syntax / no-MX invalid, catch-all risky, MX ok ve
 });
 
 // OUTE-005/006 drafts + gate
-test("OUTE-005/006 Tier A draft: real-fact slots with why-this-line sources, <=120 words, footer, gate passes; plain student voice default", () => {
+test("OUTE-005/006 Tier A draft: real-fact slots with why-this-line sources, <=120 words, gate passes; plain student voice default; NO opt-out line by default (owner order 2026-10-13 supersedes the old footer expectation — OPT_OUT_LINE stays exported for suppression)", () => {
   const { draft, gate, queued } = M.draftAndGate(cand({}), USER, { nowMs });
-  assert.equal(draft.tier, "A"); assert.ok(draft.body.split(/\s+/).length <= 120); assert.ok(draft.body.includes(M.OPT_OUT_LINE));
+  assert.equal(draft.tier, "A"); assert.ok(draft.body.split(/\s+/).length <= 120); assert.ok(!draft.body.includes(M.OPT_OUT_LINE), "drafts carry no opt-out line by default (owner order 2026-10-13)"); assert.equal(typeof M.OPT_OUT_LINE, "string");
   assert.equal(draft.why_this_line[0].source_url, "https://example.com/bio"); assert.ok(draft.body.includes("search fund"));
   assert.deepEqual(M.VOICE_DEFAULT, { formality: 0.3, warmth: 0.6, humor: 0, directness: 0.7, plain_student_voice: true });
   assert.equal(gate.pass, true, gate.failures.join(",")); assert.equal(queued, true);
@@ -141,20 +141,20 @@ test("OUTE-005 stale title fails the quality gate (regression: stale title repla
   assert.equal(gate.pass, false); assert.ok(gate.failures.includes("stale_title")); assert.equal(queued, false);
   const flagged = cand({ title_stale: true }); assert.ok(M.qualityGate(M.draftFor(flagged, USER), flagged, { nowMs }).failures.includes("stale_title"));
 });
-test("OUTE-005 gate: banned phrase, duplicate body, >1 link, missing footer, invented fact all fail", () => {
+test("OUTE-005 gate: banned phrase, duplicate body, >1 link, invented fact all fail; a missing opt-out footer does NOT fail (owner order 2026-10-13 removed missing_opt_out_footer)", () => {
   const good = M.draftFor(cand({}), USER);
   const withBanned = Object.assign({}, good, { body: good.body + " I hope this email finds you well." });
   assert.ok(M.qualityGate(withBanned, cand({}), {}).failures.some((f) => f.startsWith("banned_phrase")));
   assert.ok(M.qualityGate(good, cand({}), { batchBodies: [{ person_id: "other", body: good.body }] }).failures.includes("duplicate_body"));
   assert.ok(M.qualityGate(Object.assign({}, good, { body: good.body + " https://a.com/x https://b.com/y" }), cand({}), {}).failures.some((f) => f.startsWith("too_many_links")));
-  assert.ok(M.qualityGate(Object.assign({}, good, { body: good.body.replace(M.OPT_OUT_LINE, "") }), cand({}), {}).failures.includes("missing_opt_out_footer"));
+  assert.ok(!M.qualityGate(good, cand({}), {}).failures.includes("missing_opt_out_footer"), "no opt-out footer is required (owner order 2026-10-13)");
   const invented = Object.assign({}, good, { why_this_line: [{ line: "x", fact: "you love sailing", source_url: "https://example.com/nope" }] });
   assert.ok(M.qualityGate(invented, cand({}), {}).failures.some((f) => f.startsWith("fact_not_in_record")));
 });
 test("OUTR-003/007 referral ask needs sourced shared context; intro request carries a forwardable blurb", () => {
   assert.equal(M.draftReferralAsk(cand({}), USER, {}).ok, false);
   const ok = M.draftReferralAsk(cand({}), USER, { shared_context: { fact: "we are both DePaul finance majors", source_url: "https://example.com/dir" } });
-  assert.equal(ok.ok, true); assert.ok(ok.draft.body.includes(M.OPT_OUT_LINE));
+  assert.equal(ok.ok, true); assert.ok(!ok.draft.body.includes(M.OPT_OUT_LINE), "referral asks carry no opt-out line by default (owner order 2026-10-13)");
   assert.equal(M.draftIntroRequest(cand({}), cand({ full_name: "Target Person" }), USER, "").ok, false);
   assert.ok(M.draftIntroRequest(cand({}), cand({ full_name: "Target Person" }), USER, "blurb text").draft.body.includes("blurb text"));
 });
@@ -307,4 +307,239 @@ test("OUTR-004 Gmail transport shape rides an injected Gmail API client; absent 
   assert.equal(r.messageId, "gmail-mock-1"); assert.equal(seen.userId, "me");
   const raw = Buffer.from(seen.requestBody.raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
   assert.match(raw, /To: a@firm\.com/); assert.match(raw, /Body text/); assert.equal(M.CAPS.channel, "gmail_oauth_only");
+});
+
+// ---------- W3 replays (gauntlet correction program, 2026-10-13) ----------
+// Each test below is a replay of a verified fail-before case against the
+// generator/QA in 124, in the FIN-E-002 replay style above.
+// W3 (a) replay: EVERY fact shape from scripts/career/scenarios/_w01-lib.cjs
+// factFor (path/school/deal/build/panel/hometown/major/competition/github)
+// renders a grammatical "I saw that you <finite verb> ..." line — no "a a",
+// no "the a", no subject-less verb phrase.
+test("W3 (a) replay: every _w01-lib fact shape renders a grammatical personalization line", () => {
+  const shapes = [
+    ["path", { fact: "moved from a prior role to Evercore as a Analyst", topic: "your path into Evercore", strength: "strong" }, "I saw that you moved from a prior role to Evercore as an Analyst"],
+    ["school", { fact: "studied at State University before joining Evercore", topic: "your time at State University and the move to Evercore", strength: "medium" }, "I saw that you studied at State University before joining Evercore"],
+    ["deal", { fact: "worked on a sponsor-backed carve-out at Evercore", topic: "the sponsor-backed carve-out work", strength: "strong" }, "I saw that you worked on a sponsor-backed carve-out at Evercore"],
+    ["build", { fact: "built a recruiting dashboard at Evercore", topic: "building a recruiting dashboard", strength: "strong" }, "I saw that you built a recruiting dashboard at Evercore"],
+    ["panel", { fact: "spoke on a alumni panel about Analyst work at Evercore", topic: "your panel comments on Analyst work", strength: "medium" }, "I saw that you spoke on an alumni panel about Analyst work at Evercore"],
+    ["hometown", { fact: "grew up in Chicago, IL before Evercore", topic: "growing up in Chicago, IL and landing at Evercore", strength: "medium" }, "I saw that you grew up in Chicago, IL before Evercore"],
+    ["major", { fact: "majored in Economics before joining Evercore", topic: "coming from Economics into Evercore", strength: "medium" }, "I saw that you majored in Economics before joining Evercore"],
+    ["competition", { fact: "competed in competition math before joining Evercore", topic: "competition math and the move to Evercore", strength: "strong" }, "I saw that you competed in competition math before joining Evercore"],
+    ["github", { fact: "publishes open-source ML tooling on GitHub while at Evercore", topic: "your GitHub work on open-source ML tooling", strength: "strong" }, "I saw that you publish open-source ML tooling on GitHub"],
+  ];
+  for (const [kind, f, line] of shapes) {
+    const d = M.draftFor(cand({ personalization_facts: [Object.assign({ source_url: "https://example.com/" + kind, date: "2026-09-15" }, f)] }), USER);
+    assert.ok(d.body.includes(line), kind + ": expected line <" + line + "> in body:\n" + d.body);
+    assert.match(d.body, /I saw that you (moved|studied|worked|built|spoke|grew|majored|competed|publish)\b/, kind);
+    assert.doesNotMatch(d.body, /\ba a\b|\bthe a\b/, kind);
+  }
+});
+// W3 (b) replay: the four _w01-lib USERS fixtures' experience strings. No
+// body may contain "I'm currently a " (the SC-013 defect: "I'm currently a
+// sophomore summer analyst stint ...").
+test("W3 (b) replay: experience-line composition is grammatical for all four _w01-lib USERS fixtures", () => {
+  const users = {
+    alex: { name: "Alex Testcase (TEST)", school: "TEST University", year: "sophomore", year_label: "'28", experience: "building a reporting dashboard used by 200 users at a campus systems job" },
+    jordanWharton: { name: "Jordan Lee (TEST)", school: "Wharton School, University of Pennsylvania", year: "junior", year_label: "'27", experience: "a sophomore summer analyst stint at a boutique bank, where I built merger models on two live deals" },
+    samFreshman: { name: "Sam Ortiz (TEST)", school: "large state university (TEST)", year: "freshman", year_label: "'29", experience: "a member of my school's finance club" },
+    morganVP: { name: "Morgan Hale (TEST)", school: "TEST University", year: "", year_label: "", experience: "nine years in investment banking, most recently as a VP leading sell-side processes" },
+  };
+  for (const [k, u] of Object.entries(users)) assert.doesNotMatch(M.draftFor(cand({}), u).body, /I'm currently a /, k);
+  assert.ok(M.draftFor(cand({}), users.alex).body.includes("I'm currently building a reporting dashboard used by 200 users at a campus systems job."));
+  assert.ok(M.draftFor(cand({}), users.jordanWharton).body.includes("Most recently, I completed a sophomore summer analyst stint at a boutique bank, where I built merger models on two live deals."));
+  assert.ok(M.draftFor(cand({}), users.samFreshman).body.includes("I'm a member of my school's finance club."));
+  assert.ok(M.draftFor(cand({}), users.morganVP).body.includes("I have nine years in investment banking, most recently as a VP leading sell-side processes."));
+  assert.doesNotMatch(M.draftFor(cand({}), users.morganVP).body, /I'm currently/);
+});
+// W3 (c) replay: article agreement (a -> an before a vowel sound) on the
+// rendered personalization line and the ask topic — Analyst, Associate,
+// Engineer contexts; University keeps "a" (consonant onset).
+test("W3 (c) replay: article agreement — an Analyst / an Associate / an Engineer, a university", () => {
+  const mk = (title, firm) => cand({ title, current_firm: firm, work_email: "x@" + firm.toLowerCase() + ".com", personalization_facts: [{ fact: `moved from a prior role to ${firm} as a ${title}`, source_url: "https://example.com/p", date: "2026-09-15", strength: "strong", topic: `your path into ${firm}` }] });
+  assert.ok(M.draftFor(mk("Analyst", "Evercore"), USER).body.includes("as an Analyst"));
+  assert.ok(M.draftFor(mk("Associate", "Blackstone"), USER).body.includes("as an Associate"));
+  assert.ok(M.draftFor(mk("Engineer", "Evercore"), USER).body.includes("as an Engineer"));
+  const uni = M.draftFor(cand({ personalization_facts: [{ fact: "built a university mentorship program at Evercore", source_url: "https://example.com/u", date: "2026-09-15", strength: "strong", topic: "a engineering mentorship program" }] }), USER);
+  assert.ok(uni.body.includes("built a university mentorship program"), uni.body);
+  assert.doesNotMatch(uni.body, /an university/i);
+  assert.ok(uni.body.includes("an engineering mentorship program"), "ask topic gets the same article pass: " + uni.body);
+});
+// W3 (d) replay: topic sanitizer — "their product" is the recipient's
+// product ("your product"); a bare title / "Title at Firm" topic is not a
+// topic and falls back to "your work at <firm>".
+test("W3 (d) replay: topic sanitizer — their->your; title-only topic falls back to your work at <firm>", () => {
+  const build = M.draftFor(cand({ personalization_facts: [{ fact: "built their product's first version at Evercore", source_url: "https://example.com/b", date: "2026-09-15", strength: "strong", topic: "building their product's first version" }] }), USER);
+  assert.ok(build.body.includes("building your product's first version"), build.body);
+  assert.ok(!build.body.includes("building their product"), build.body);
+  for (const topic of ["Analyst at Evercore", "Analyst"]) {
+    const d = M.draftFor(cand({ personalization_facts: [{ fact: "spent a year at a search fund before joining Evercore", source_url: "https://example.com/bio", date: "2026-09-01", strength: "strong", topic }] }), USER);
+    assert.ok(d.body.includes("talk about your work at Evercore"), topic + " -> " + d.body);
+    assert.ok(!d.body.includes("talk about Analyst at Evercore"), topic);
+  }
+});
+// W3 (e) replay: fact/body binding — a hand-swapped body line fails
+// fact_body_mismatch; a cited fact that is not among the candidate's
+// sourced facts fails; a path topic over a hometown cited fact fails
+// topic_not_in_fact (the owner's case).
+test("W3 (e) replay: fact/body binding — swapped line and unsourced cited fact fail; hometown fact + path topic fails topic_not_in_fact", () => {
+  const good = M.draftFor(cand({}), USER);
+  const g0 = M.qualityGate(good, cand({}), {});
+  assert.ok(!g0.failures.includes("fact_body_mismatch"), g0.failures.join(","));
+  assert.ok(!g0.failures.includes("topic_not_in_fact"), g0.failures.join(","));
+  const swapped = Object.assign({}, good, { body: good.body.replace("I saw that you spent a year at a search fund before joining Evercore", "I saw that you worked on a mining deal at Evercore") });
+  assert.ok(M.qualityGate(swapped, cand({}), {}).failures.includes("fact_body_mismatch"));
+  const invented = Object.assign({}, good, { fact_used: { fact: "you love sailing", source_url: "https://example.com/nope" } });
+  assert.ok(M.qualityGate(invented, cand({}), {}).failures.includes("fact_body_mismatch"));
+  const home = cand({ personalization_facts: [{ fact: "grew up in Chicago, IL before Evercore", source_url: "https://example.com/h", date: "2026-09-15", strength: "medium", topic: "growing up in Chicago, IL and landing at Evercore" }] });
+  const hd = M.draftFor(home, USER);
+  assert.ok(!M.qualityGate(hd, home, {}).failures.includes("topic_not_in_fact"));
+  const badTopic = Object.assign({}, hd, { ask_topic: "your path into Evercore" });
+  assert.ok(M.qualityGate(badTopic, home, {}).failures.includes("topic_not_in_fact"));
+});
+// W3 (f) replay: the bare move template is generic and can never make
+// Tier A — a path-fact-only candidate is not Tier A; a deal-fact candidate
+// keeps Tier A; a specific prior firm keeps a path fact specific; a school
+// fact stays B.
+test("W3 (f) replay: generic bare-move fact cannot make Tier A; deal fact keeps A; school fact stays B", () => {
+  assert.equal(M.isGenericFact("moved from a prior role to Evercore as a Analyst"), true);
+  assert.equal(M.isGenericFact("moved from Goldman Sachs to Evercore as an Analyst"), false);
+  assert.equal(M.isGenericFact("worked on a sponsor-backed carve-out at Evercore"), false);
+  const pathOnly = cand({ schools: [], relationship_to_user: "none", personalization_facts: [{ fact: "moved from a prior role to Evercore as a Analyst", source_url: "https://example.com/p", date: "2026-09-15", strength: "strong", topic: "your path into Evercore" }] });
+  assert.notEqual(M.determineTier(pathOnly, USER), "A");
+  const deal = cand({ personalization_facts: [{ fact: "worked on a sponsor-backed carve-out at Evercore", source_url: "https://example.com/d", date: "2026-09-15", strength: "strong", kind: "deal", topic: "the sponsor-backed carve-out work" }] });
+  assert.equal(M.determineTier(deal, USER), "A");
+  const specificPath = cand({ schools: [], relationship_to_user: "none", personalization_facts: [{ fact: "moved from Goldman Sachs to Evercore as an Analyst", source_url: "https://example.com/p2", date: "2026-09-15", strength: "strong", topic: "your path into Evercore" }] });
+  assert.equal(M.determineTier(specificPath, USER), "A");
+  const school = cand({ personalization_facts: [{ fact: "studied at DePaul University before joining Evercore", source_url: "https://example.com/s", date: "2026-09-15", strength: "medium", topic: "your time at DePaul University and the move to Evercore" }] });
+  assert.equal(M.determineTier(school, USER), "B");
+});
+// W3 (g) replay: placeholder injection (brackets / BLURB / "(fact F-...)")
+// is a HARD BLOCK at the gate, the draft is gate_failed, and the draft
+// store's approve() refuses it. Plus production (TEST) markers and a stray
+// mid-sentence capital verb.
+test("W3 (g) replay: placeholder injection hard-blocks at the gate and approve() refuses the stored draft", () => {
+  const evil = cand({ personalization_facts: [{ fact: "worked on [Project X] (fact F-002) at Evercore", source_url: "https://example.com/e", date: "2026-09-15", strength: "strong", topic: "the BLURB work" }] });
+  const store = M.createDraftStore();
+  const r = M.draftAndGate(evil, USER, { nowMs, draftStore: store });
+  assert.ok(r.gate.failures.includes("placeholder_content"), r.gate.failures.join(","));
+  assert.equal(r.status, "gate_failed");
+  assert.ok(r.draft_id);
+  const ap = store.approve(r.draft_id);
+  assert.equal(ap.ok, false); assert.equal(ap.reason, "gate_failed");
+  const good = M.draftFor(cand({}), USER);
+  const withTest = Object.assign({}, good, { body: good.body + " (TEST)" });
+  assert.ok(M.qualityGate(withTest, cand({}), { mode: "production" }).failures.includes("test_marker_in_production"));
+  assert.ok(!M.qualityGate(withTest, cand({}), {}).failures.includes("test_marker_in_production"));
+  const stray = Object.assign({}, good, { body: good.body + "\n\nThe team Shipped the model last spring." });
+  assert.ok(M.qualityGate(stray, cand({}), {}).failures.includes("stray_mid_sentence_capital"));
+  assert.ok(!M.qualityGate(good, cand({}), {}).failures.includes("stray_mid_sentence_capital"));
+});
+// W3 (h) replay: subject >60 chars fails at generation on EVERY draft
+// path — referral asks and intro requests are capped too — and the gate
+// catches a hand-made 70-char subject regardless of path.
+test("W3 (h) replay: referral ask and intro request subjects are capped at 60; gate catches a 70-char subject", () => {
+  const longUser = Object.assign({}, USER, { school: "Wharton School, University of Pennsylvania, Graduate Division of Arts and Sciences" });
+  const ref = M.draftReferralAsk(cand({}), longUser, { shared_context: { fact: "we are both DePaul finance majors", source_url: "https://example.com/dir" } });
+  assert.equal(ref.ok, true); assert.ok(ref.draft.subject.length <= 60, ref.draft.subject + " (" + ref.draft.subject.length + ")");
+  const intro = M.draftIntroRequest(cand({}), cand({ full_name: "Alexandrina Featherstonehaugh-Willoughby", current_firm: "International Business Machines Corporation Worldwide" }), USER, "blurb text");
+  assert.equal(intro.ok, true); assert.ok(intro.draft.subject.length <= 60, intro.draft.subject);
+  const good = M.draftFor(cand({}), USER);
+  const long70 = Object.assign({}, good, { subject: "S".repeat(70) });
+  assert.equal(long70.subject.length, 70);
+  assert.ok(M.qualityGate(long70, cand({}), {}).failures.includes("subject_too_long"));
+  assert.ok(!M.qualityGate(good, cand({}), {}).failures.includes("subject_too_long"));
+});
+// W3 (i) replay: no opt-out line in any draft path by default (owner
+// order 2026-10-13); structure variation — 5 drafts to one firm, one per
+// structure, pass the batch shared-skeleton check; 2 drafts of the SAME
+// structure to the same firm fail it on the second.
+test("W3 (i) replay: opt-out line gone from all paths; structures vary; shared_skeleton batch gate", async () => {
+  const facts = [
+    { fact: "worked on a sponsor-backed carve-out at Evercore", topic: "the sponsor-backed carve-out work", strength: "strong", kind: "deal" },
+    { fact: "built a recruiting dashboard at Evercore", topic: "building a recruiting dashboard", strength: "strong" },
+    { fact: "competed in competition math before joining Evercore", topic: "competition math and the move to Evercore", strength: "strong" },
+    { fact: "publishes open-source ML tooling on GitHub while at Evercore", topic: "your GitHub work on open-source ML tooling", strength: "strong" },
+    { fact: "spoke on a alumni panel about Analyst work at Evercore", topic: "your panel comments on Analyst work", strength: "medium" },
+  ];
+  const mkCand = (i) => cand({ person_id: "sk" + i, full_name: "Skeleton Person" + i, work_email: `sk${i}@evercore.com`, personalization_facts: [Object.assign({ source_url: "https://example.com/sk" + i, date: "2026-09-15" }, facts[i])] });
+  const drafts = facts.map((_, i) => M.draftFor(mkCand(i), USER, { structureIndex: i }));
+  for (const d of drafts) assert.ok(!d.body.includes(M.OPT_OUT_LINE), d.structure);
+  const swampedCount = drafts.filter((d) => d.body.includes("Totally understand if you're swamped.")).length;
+  assert.ok(swampedCount <= 1, "swamped line in " + swampedCount + " structures");
+  const askParas = new Set(drafts.map((d) => d.body.split("\n\n")[3]));
+  assert.ok(askParas.size >= 3, "distinct ask templates: " + askParas.size);
+  const intros = new Set(drafts.map((d) => d.body.split("\n\n")[1].split(". ")[0]));
+  assert.ok(intros.size >= 3, "distinct self-intro framings: " + intros.size);
+  for (let i = 0; i < drafts.length; i++) {
+    const g = M.qualityGate(drafts[i], mkCand(i), { batchDrafts: drafts });
+    assert.ok(!g.failures.some((f) => f.startsWith("shared_skeleton")), "structure " + drafts[i].structure + ": " + g.failures.join(","));
+    assert.equal(g.pass, true, "structure " + drafts[i].structure + ": " + g.failures.join(","));
+  }
+  const same1 = M.draftFor(mkCand(0), USER, { structureIndex: 0 });
+  const same2 = M.draftFor(mkCand(1), USER, { structureIndex: 0 });
+  const g2 = M.qualityGate(same2, mkCand(1), { batchDrafts: [same1, same2] });
+  assert.ok(g2.failures.some((f) => f.startsWith("shared_skeleton")), g2.failures.join(","));
+  // follow-up drafts carry no opt-out line either
+  const camp = M.createCampaign({ id: "w3-i", userId: "u1", approved: true });
+  const entries = [0, 1].map((i) => ({ candidate: mkCand(i), draft: drafts[i] }));
+  M.enqueue(camp, entries);
+  await M.sendPending(camp, { transport: mockTransport() });
+  const fu = M.runFollowUps(camp, { touch: 1, continueTap: true });
+  assert.equal(fu.ok, true); assert.ok(fu.followups.length >= 1);
+  for (const f of fu.followups) assert.ok(!f.draft.body.includes(M.OPT_OUT_LINE), f.draft.body);
+});
+// W3 (j) replay (owner order 2026-10-13: Tier C is HELD by default — this
+// supersedes any earlier expectation that a Tier C draft sits at
+// awaiting_approval): a no-facts candidate is Tier C even though the
+// record carries a geography (the old geography->B branch in
+// determineTier was the bug the coordinator's replay surfaced), its
+// draft is held with held_reason tier_c_no_sourced_fact, and approve()
+// refuses it on both store paths.
+test("W3 (j) replay: no-sourced-fact candidate is Tier C, held by default, approve() refuses (owner order 2026-10-13)", () => {
+  const noFacts = cand({ full_name: "No Facts", schools: [], relationship_to_user: "none", personalization_facts: [] });
+  assert.equal(M.determineTier(noFacts, USER), "C", "geography alone must not make a no-fact record Tier B");
+  const store = M.createDraftStore();
+  const r = M.draftAndGate(noFacts, USER, { nowMs, draftStore: store });
+  assert.equal(r.draft.tier, "C");
+  assert.equal(r.status, "held"); assert.equal(r.held_reason, "tier_c_no_sourced_fact"); assert.equal(r.queued, false);
+  assert.equal(store.get(r.draft_id).status, "held");
+  assert.equal(store.approve(r.draft_id).ok, false);
+  const store2 = M.createDraftStore();
+  const rec = store2.put(r.draft, {});
+  assert.equal(rec.status, "held");
+  const ap = store2.approve(rec.id);
+  assert.equal(ap.ok, false); assert.equal(ap.reason, "draft_held"); assert.equal(ap.held_reason, "tier_c_no_sourced_fact");
+});
+// W3 (l) replay: the NW03 defect — a departed recipient (former_employer_
+// note present, title_stale false, recently verified) drafted cleanly to
+// awaiting_approval. Now: normalizeCandidate carries the departed fields,
+// the gate fails recipient_departed, the draft is held, approve() refuses.
+test("W3 (l) replay: NW03 departed recipient — gate fails recipient_departed, draft held, approve() refuses", () => {
+  const norm1 = M.normalizeCandidate({ former_employer_note: "Left X June 2025", latest_title: "Engineer at OtherCo", title_stale: true });
+  assert.equal(norm1.former_employer_note, "Left X June 2025"); assert.equal(norm1.latest_title, "Engineer at OtherCo"); assert.equal(norm1.title_stale, true);
+  assert.equal(M.normalizeCandidate({}).former_employer_note, "");
+  const departed = cand({ full_name: "Jordan Park", current_firm: "Acme Robotics (TEST)", title: "Engineer (TEST)", work_email: "jordan.park@acme.test", title_stale: false, last_verified_at: "2026-09-20T00:00:00Z",
+    former_employer_note: "Left Acme Robotics (TEST) June 2025; current role unknown (TEST ground truth)",
+    personalization_facts: [{ fact: "built a robotics demo at Acme Robotics (TEST)", source_url: "https://example.com/d", date: "2026-09-15", strength: "strong", topic: "your robotics work" }] });
+  const store = M.createDraftStore();
+  const r = M.draftAndGate(departed, USER, { nowMs, draftStore: store });
+  assert.ok(r.gate.failures.includes("recipient_departed"), r.gate.failures.join(","));
+  assert.equal(r.status, "held"); assert.equal(r.held_reason, "recipient_departed");
+  assert.equal(store.approve(r.draft_id).ok, false);
+  const staleOtherFirm = cand({ title_stale: true, latest_title: "Engineer at OtherCo" });
+  assert.ok(M.qualityGate(M.draftFor(staleOtherFirm, USER), staleOtherFirm, {}).failures.includes("recipient_departed"));
+});
+// W3 (m) replay: relative-date phrases are QA defects (owner rule
+// 2026-10-13 — dates must be absolute or verified true at send time).
+// "since last fall" fails anywhere; "since September 2025" passes.
+test("W3 (m) replay: relative_date_phrase fails 'since last fall'; absolute 'since September 2025' passes", () => {
+  const rel = cand({ personalization_facts: [{ fact: "worked on a sponsor-backed carve-out at Evercore since last fall", source_url: "https://example.com/r", date: "2026-09-15", strength: "strong", topic: "the sponsor-backed carve-out work" }] });
+  const rd = M.draftFor(rel, USER);
+  assert.ok(rd.body.includes("since last fall"));
+  assert.ok(M.qualityGate(rd, rel, {}).failures.includes("relative_date_phrase"));
+  const abs = cand({ personalization_facts: [{ fact: "studied at DePaul University since September 2025", source_url: "https://example.com/a", date: "2026-09-15", strength: "medium", topic: "your time at DePaul University" }] });
+  const ad = M.draftFor(abs, USER);
+  assert.ok(ad.body.includes("since September 2025"));
+  assert.ok(!M.qualityGate(ad, abs, {}).failures.includes("relative_date_phrase"));
 });

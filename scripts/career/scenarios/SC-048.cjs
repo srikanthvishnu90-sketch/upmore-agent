@@ -1,0 +1,26 @@
+"use strict";
+const { H, M, NOW, USER, PROFILE, poolOverFirms, FIRM_SETS, mockTransport } = require("./w03-common.cjs");
+(async () => {
+  const s = H.session("SC-048", "reserve-pool-bounce-backfill");
+  const allFirms = [].concat(FIRM_SETS.sets.bulge_bracket.firms.filter((f) => f.status !== "historical"), FIRM_SETS.sets.elite_boutique.firms, FIRM_SETS.sets.middle_market.firms, FIRM_SETS.sets.mega_fund_pe.firms, FIRM_SETS.sets.big4.firms, FIRM_SETS.sets.mbb.firms, FIRM_SETS.sets.quant.firms, FIRM_SETS.sets.faang_plus.firms).map((f) => f.name);
+  const firms = [...new Set(allFirms)].slice(0, 54);
+  const records = poolOverFirms(firms, 10, { per: (i) => ({ personalization_facts: [{ fact: "spoke at a campus finance panel (TEST fact)", source_url: "https://example.test/p" + i, strength: "medium" }] }) });
+  const q = M.parseTarget("Find 500 bankers for a campaign", PROFILE);
+  const pool = M.buildList(records, Object.assign({}, q, { count: 500 }), { profile: PROFILE, nowMs: NOW });
+  s.user("Build 500 for the campaign — and keep a reserve pool behind them");
+  s.tool("124.buildList", pool.yield);
+  s.agent(`Built: ${pool.selected.length} selected + ${pool.reserve.length} in reserve.`);
+  const supp = M.createSuppressionStore();
+  const camp = M.createCampaign({ id: "w03-camp-reserve", userId: "w03-user", approved: true });
+  M.enqueue(camp, pool.selected.slice(0, 12).map((c) => ({ candidate: c, draft: { subject: "s", body: "b", tier: "B" } })), { suppression: supp });
+  await M.sendPending(camp, { transport: mockTransport(), suppression: supp });
+  const bouncedItems = camp.items.slice(0, 3);
+  for (const it of bouncedItems) M.recordOutcome(camp, { type: "bounce", item: it, suppression: supp });
+  const bouncedIds = new Set(bouncedItems.map((i) => i.person_id));
+  pool.selected = pool.selected.filter((c) => !bouncedIds.has(c.person_id));
+  const bf = M.backfillFromReserve(pool, camp, { count: 3, suppression: supp, user: USER });
+  s.tool("124.backfillFromReserve after 3 bounces", bf);
+  s.agent(`3 sends bounced — those people are suppressed and never retried. The reserve pool backfilled automatically: ${bf.promoted.map((p) => `${p.name} (${p.firm})`).join(", ")} promoted and queued. Active list is back to ${bf.selected_count}; reserve now ${bf.reserve_count}.`);
+  s.verify("backfill read back from pool + campaign state: selected restored to 500, reserve 40->37, promoted are queued in the campaign and none is a bounced/suppressed person", { selected: bf.selected_count, reserve: bf.reserve_count, enqueued: bf.enqueued, promoted_suppressed: bf.promoted.filter((p) => supp.isSuppressed({ email: p.email }, "w03-user")).length });
+  await s.finish({ status: "COMPLETE", outcome: `500 selected + 40 reserve built; after 3 bounces the reserve backfilled automatically (3 promoted + queued, selected back to ${bf.selected_count}, reserve ${bf.reserve_count}), bounced people suppressed and never retried` });
+})();

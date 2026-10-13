@@ -548,6 +548,7 @@ const CareerOutreach = (() => {
     else if (cls.classification === "referral-to-other" && cls.referral_name) out.new_candidate = { full_name: cls.referral_name, relationship_to_user: "referral", tier: "A", source: "reply_referral" };
     else if (cls.classification === "positive-ready") out.actions.push("propose_slots_t3_card");
     if (cls.counts_as_reply && campaign) campaign.stats.replies = (campaign.stats.replies || 0) + (cls.classification === "hard-stop" || cls.classification === "hostile" ? 0 : 1);
+    if ((cls.classification === "positive-ready" || cls.classification === "positive-needs-info") && campaign) campaign.stats.positive = (campaign.stats.positive || 0) + 1; // BUG-005: handleReply never counted positives, so digests reported 0 positive replies
     return out;
   }
 

@@ -59,6 +59,13 @@ test("dailyDigest + closeOut derive from campaign state, angles ranked by reply 
   const co = M.closeOut(c, { replyLog: [{ person_id: "i0", positive: true }, { person_id: "i2", positive: false }], notes: { i0: "real note (TEST)" }, user: { name: "Alex" } });
   assert.equal(co.angles[0].angle, "path_question"); assert.equal(co.thank_you_drafts[0].ok, true); assert.ok(co.next_steps.length >= 2);
 });
+test("BUG-005 regression: handleReply counts positive replies into campaign stats (digest honesty)", () => {
+  const c = M.createCampaign({ id: "pos", userId: "u1", approved: true });
+  M.handleReply(c, { body: "Happy to chat, Thursday works for me" }, cand({}), {});
+  M.handleReply(c, { body: "Interested — send me more info" }, cand({}), {});
+  M.handleReply(c, { body: "I'm out of office until October 20" }, cand({}), { nowMs: NOW });
+  assert.equal(c.stats.positive, 2); assert.equal(c.stats.replies, 2); // OOO counts as neither
+});
 test("concise draft surgery shortens every draft and keeps the gate green", () => {
   const user = { name: "Alex Testcase (TEST)", school: "University of Michigan", year: "sophomore", experience: "running a campus investing club (TEST)" };
   const before = M.draftAndGate(cand({ personalization_facts: [{ fact: "spent a year at a search fund", source_url: "https://e.com", strength: "strong" }] }), user, {});

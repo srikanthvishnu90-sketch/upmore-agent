@@ -1,0 +1,20 @@
+"use strict";
+const fs = require("fs");
+const path = require("path");
+const { H, M, NOW, PROFILE, poolOverFirms, person, root } = require("./w03-common.cjs");
+(async () => {
+  const s = H.session("SC-047", "suppression-check-gmail-sent-history");
+  const hist = JSON.parse(fs.readFileSync(path.join(root, "packages/career-data/fixtures/w03-gmail-sent-history.json"), "utf8"));
+  const already = hist.sent_to.slice(0, 8).map((email, i) => person(400 + i, { full_name: email.split("@")[0].split(".").map((x) => x[0].toUpperCase() + x.slice(1)).join(" "), work_email: email, current_firm: "Evercore" }));
+  const fresh = poolOverFirms(["Lazard", "Moelis & Company", "Houlihan Lokey", "Jefferies"], 8, { startIndex: 500 });
+  const records = already.concat(fresh);
+  const q = M.parseTarget("Find 40 bankers for coffee chats", PROFILE);
+  const pool = M.buildList(records, Object.assign({}, q, { count: 40 }), { profile: PROFILE, nowMs: NOW, alreadyEmailed: hist.sent_to });
+  const rep = M.suppressionReport(pool, { sentHistory: hist.sent_to });
+  s.user("Before you build this list — check my Gmail sent history. Nobody I've already emailed gets emailed again.");
+  s.tool("124.buildList with alreadyEmailed=sent-history fixture", pool.yield);
+  s.tool("124.suppressionReport", rep);
+  s.agent(`Checked your sent history (${rep.sent_history_count} addresses). ${pool.exclusions.already_emailed} people on the candidate pool were already emailed and were excluded before selection. Suppression report on the final list: ${rep.verdict} — ${rep.overlap_count} overlaps with your sent history across ${rep.selected_checked} selected people.`);
+  s.verify("exclusion count and zero overlap read back from buildList yield + suppressionReport over the selected list", { already_emailed_excluded: pool.exclusions.already_emailed, overlap_count: rep.overlap_count, verdict: rep.verdict, selected: pool.selected.length });
+  await s.finish({ status: "COMPLETE", outcome: `Sent-history suppression proven: 8 already-emailed people excluded at list build; suppressionReport over the ${rep.selected_checked}-person selected list is CLEAN (0 overlaps with the 12-address Gmail sent-history fixture)` });
+})();

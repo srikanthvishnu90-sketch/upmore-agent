@@ -110,6 +110,7 @@ test("C13/C135: only a posted, matching receipt clears a line — partial reduce
   assert.equal(out.partials[0].remaining_cents, 1200);
   assert.equal(out.ious.find(e => e.name === "Sarah M").amount_cents, 1200);
   assert.equal(out.ious.find(e => e.name === "Sarah M").status, "open", "a partial payment leaves the rest open");
+  assert.equal(ious.find(e => e.name === "Sarah M").amount_cents, 3200, "the caller's ledger is never mutated: reductions land on the returned copies only");
   // The remaining $12 posts: the line clears against that exact row.
   rail.postReceipt({ from_name: "Sarah M", from_handle: "@sarah-m", amount_cents: 1200, on: "2026-10-20" });
   out = MP.settleIous(out.ious, col.requests, rail.feed(), people);

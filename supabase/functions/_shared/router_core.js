@@ -4348,12 +4348,13 @@
         used.add(hit.id || hit);
         const got = cents(hit);
         if (got < r.amount_cents) {
-          r.amount_cents -= got; entry.amount_cents -= got;
+          // The request is reduced in place (the module's style for requests); the caller's IOU entries are
+          // never mutated — the reduced amount lands on the returned copies via `partials` below.
+          r.amount_cents -= got;
           partials.push({ request_id: r.id, iou_id: r.iou_id, transaction_id: hit.id, paid_cents: got, remaining_cents: r.amount_cents, text: `${r.name} paid ${money(got)} of the ${money(got + r.amount_cents)} for ${r.what} on ${ymd(hit.posted_at)}; ${money(r.amount_cents)} is still open.` });
         } else {
           r.status = "settled"; r.settled_by = hit.id; r.settled_on = ymd(hit.posted_at);
           const over = got - r.amount_cents;
-          entry.status = "settled"; entry.settled_on = r.settled_on; entry.settled_by = hit.id; if (over > 0) entry.overpaid_cents = over;
           overpaid.push({ request_id: r.id, iou_id: r.iou_id, transaction_id: hit.id, overpaid_cents: over, text: `${r.name} paid ${money(got)} for ${r.what} on ${ymd(hit.posted_at)} — ${money(over)} more than the ${money(r.amount_cents)} owed; the line is settled and the overage is ${r.name}'s to sort out with you.` });
           settled.push({ request_id: r.id, transaction_id: hit.id, text: `${r.name} paid the ${money(entry.original_cents || got)} for ${r.what} on ${ymd(hit.posted_at)}.` });
         }
@@ -4362,7 +4363,7 @@
       const next = (ious || []).map(e => {
         if (e.status !== "open") return e;
         const hit = settled.find(s => { const rq = byId.get(s.request_id); return rq && rq.iou_id === e.id; });
-        if (hit) return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id });
+        if (hit) { const over = overpaid.find(o => o.iou_id === e.id); return Object.assign({}, e, { status: "settled", settled_on: byId.get(hit.request_id).settled_on || null, settled_by: hit.transaction_id }, over ? { overpaid_cents: over.overpaid_cents } : {}); }
         const part = partials.find(s => s.iou_id === e.id);
         if (part) return Object.assign({}, e, { amount_cents: part.remaining_cents });
         return e;

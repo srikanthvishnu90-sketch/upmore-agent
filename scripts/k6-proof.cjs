@@ -2,7 +2,7 @@
 // (60-agent-money-plans.js + 105-iou-log.js, the same code the router bundle ships) and writes the
 // word-for-word transcripts + surface data to ~/workspace/your_files/upmore-conversations/.
 // Every agent bubble below is an exact function output; nothing is paraphrased.
-// Usage: node tests/k6-proof.cjs   (then render PNGs with ~/workspace/render-chat.py and the surface renderer)
+// Usage: node scripts/k6-proof.cjs   (then render PNGs with ~/workspace/render-chat.py and the surface renderer)
 const vm = require("node:vm");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -33,6 +33,7 @@ function writeConvo(file, title, preamble, messages, surfaces) {
 // ---------------- C13 ----------------
 {
   const entries = dinnerEntries();
+  const firstReply = IouLog.command("who owes me", entries, NOW).reply; // captured now, before any state moves
   const rail = MP.sandboxRail();
   const col = MP.collectAll(entries, { people, today: "2026-10-10", sandbox_rail: rail });
   const claim = IouLog.command("sarah m paid me back", entries, NOW);
@@ -42,7 +43,7 @@ function writeConvo(file, title, preamble, messages, surfaces) {
   const afterRest = MP.settleIous(afterPartial.ious, col.requests, rail.feed(), people);
   const msgs = [
     { who: "user", text: "Track what my roommate owes me — I paid $96.00 at Alley Cat Cafe on Oct 8 and tagged it shared with Sarah M and Maya" },
-    { who: "agent", text: IouLog.command("who owes me", entries, NOW).reply },
+    { who: "agent", text: firstReply },
     { who: "user", text: "Send them settle-up requests" },
     { who: "agent", text: col.text },
     { who: "user", text: "Sarah paid me back" },

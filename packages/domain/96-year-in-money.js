@@ -52,7 +52,9 @@
     // A refund: a credit from a known merchant, or one that says refund or return. Taken off what went out.
     // A paycheck from a company that is also a store (Target, Costco) is pay, never a refund.
     const PAYROLL = /\b(?:payroll|payrl|direct dep|dir dep|salary)\b/i;
-    const isRefund = (r) => MA.isIncome(r) && !PAYROLL.test(String(r.merchant_raw || "")) && (groupOf(r) !== null || REFUND.test(String(r.merchant_raw || "")));
+    // A refund is a credit back from a spend merchant: person-to-person and investing credits are money in, not money back.
+    const refundGroup = (r) => { const g = groupOf(r); return g !== null && g !== "person_to_person" && g !== "investing"; };
+    const isRefund = (r) => MA.isIncome(r) && !PAYROLL.test(String(r.merchant_raw || "")) && (refundGroup(r) || REFUND.test(String(r.merchant_raw || "")));
     const usable = (rows) => (rows || []).filter((r) => r && Number.isFinite(cents(r)));
     const posted = (rows) => usable(rows).filter((r) => !r.is_pending && usd(r) && dayOf(r) !== null);
     const within = (r, from, to) => { const d = dayOf(r); return d !== null && d >= from && d <= to; };

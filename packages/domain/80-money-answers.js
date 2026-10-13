@@ -121,7 +121,7 @@
       ["shopping", "Nike", /\bnike\b/], ["shopping", "Macy's", /\bmacy'?s\b/], ["shopping", "Nordstrom", /\bnordstrom\b/], ["shopping", "Kohl's", /\bkohl'?s\b/], ["shopping", "TJ Maxx", /\btj ?maxx\b/],
       ["shopping", "Marshalls", /\bmarshalls\b/], ["shopping", "Old Navy", /\bold navy\b/], ["shopping", "Zara", /\bzara\b/], ["shopping", "Shein", /\bshein\b/], ["shopping", "Temu", /\btemu\b/],
     ];
-    const GROUP_LABEL = { groceries: "groceries", restaurants: "restaurants", delivery: "delivery", gas: "gas", subscriptions: "subscriptions", transport: "transport", shopping: "shopping" };
+    const GROUP_LABEL = { groceries: "groceries", restaurants: "restaurants", delivery: "delivery", gas: "gas", subscriptions: "subscriptions", transport: "transport", shopping: "shopping", prediction_markets: "prediction markets", sports_betting: "sports betting", health: "health & wellness", work_services: "freelance/work services", entertainment: "entertainment", fees: "fees", pay_later: "pay-later", person_to_person: "person-to-person", investing: "investing transfers" };
     // What a question can ask for, in the order the words are tested (specific before general).
     const CATEGORIES = [
       { key: "delivery", label: "food delivery", groups: ["delivery"], words: /\b(?:food )?deliver(?:y|ies)\b|\btake-?out\b/ },
@@ -132,9 +132,53 @@
       { key: "subscriptions", label: "subscriptions", groups: ["subscriptions"], words: /\bsubscriptions?\b|\bstreaming\b/ },
       { key: "transport", label: "transport", groups: ["transport"], words: /\btransport(?:ation)?\b|\brides?\b|\brideshare\b|\btransit\b|\bcommut\w*|\bparking\b/ },
       { key: "shopping", label: "shopping", groups: ["shopping"], words: /\bshopping\b|\bclothes\b|\bclothing\b/ },
+      { key: "prediction_markets", label: "prediction markets", groups: ["prediction_markets"], words: /\bprediction markets?\b/ },
+      { key: "sports_betting", label: "sports betting", groups: ["sports_betting"], words: /\bsports ?betting\b|\bsports ?books?\b|\bbetting\b/ },
+      { key: "health", label: "health & wellness", groups: ["health"], words: /\bhealth(?: ?&| and)? ?wellness\b|\bhealth\b|\bwellness\b|\bpharmacy\b/ },
+      { key: "work_services", label: "freelance/work services", groups: ["work_services"], words: /\bfreelance\b|\bwork services\b/ },
+      { key: "entertainment", label: "entertainment", groups: ["entertainment"], words: /\bentertainment\b/ },
+      { key: "fees", label: "fees", groups: ["fees"], words: /\bfees?\b|\bbank charges?\b/ },
+      { key: "pay_later", label: "pay-later", groups: ["pay_later"], words: /\bpay[- ]later\b|\bbnpl\b|\bbuy now pay later\b/ },
+      { key: "person_to_person", label: "person-to-person", groups: ["person_to_person"], words: /\bperson-to-person\b|\bp2p\b|\bmoney (?:i )?sent to (?:people|friends|family)\b/ },
+      { key: "investing", label: "investing transfers", groups: ["investing"], words: /\binvesting\b|\binvestment transfers?\b|\bbrokerage transfers?\b/ },
     ];
     const NOT_SPENDING = /\b(?:credit card payment|card payment|payment thank you|autopay|online transfer|transfer (?:to|from)|internal transfer)\b/i;
     const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9&'+.\/*-]+/g, " ").replace(/\s+/g, " ").trim();
+    // Merchant knowledge (packages/offers/merchant-knowledge.json; MERCHANT_KNOWLEDGE_JSON in the router bundle, the
+    // file itself when this module is required in node): what a merchant actually IS, as dated data. classify()
+    // consults it BEFORE the word rules below, so knowledge wins over a bare word inside a name — Polymarket is a
+    // prediction market, not groceries for the word "market". The word rules (MERCHANTS above) stay the fallback
+    // for merchants not on file, and a merchant this data does not know is still never guessed into a category
+    // (depth-MONEY-ANSWERS S08: MAPLE STREET MARKET stays unplaced). The lookup is lazy: the bundle's JSON const
+    // is only initialized after every module has loaded, and node tests that load this file in a vm without the
+    // data simply get the old word-rule behaviour.
+    let AMBIENT_KNOWLEDGE = null; // set for the duration of one spend/spendRows/checkup call by its wrapper (below)
+    function knowledgeData(explicit) {
+      if (explicit && Array.isArray(explicit.merchants)) return explicit;
+      if (AMBIENT_KNOWLEDGE && Array.isArray(AMBIENT_KNOWLEDGE.merchants)) return AMBIENT_KNOWLEDGE;
+      if (typeof MERCHANT_KNOWLEDGE_JSON !== "undefined" && MERCHANT_KNOWLEDGE_JSON && Array.isArray(MERCHANT_KNOWLEDGE_JSON.merchants)) return MERCHANT_KNOWLEDGE_JSON;
+      if (typeof require === "function") { try { const d = require("../offers/merchant-knowledge.json"); if (d && Array.isArray(d.merchants)) return d; } catch (e) { /* no file: word rules only */ } }
+      return null;
+    }
+    let compiledFrom = null, compiledList = null;
+    function knowledgeList(explicit) {
+      const d = knowledgeData(explicit);
+      if (!d) return null;
+      if (compiledFrom !== d) {
+        compiledFrom = d;
+        compiledList = d.merchants.filter((m) => m && m.money_group && m.match && m.name).map((m) => { let re = null; try { re = new RegExp(m.match, "i"); } catch (e) { /* a bad pattern in data never breaks a reply */ } return re ? { group: m.money_group, name: m.name, re, id: m.id || null, is: m.is || null, category: m.category || null } : null; }).filter(Boolean);
+      }
+      return compiledList;
+    }
+    function knowledgeFor(raw, explicit) {
+      const list = knowledgeList(explicit);
+      if (!list) return null;
+      const t = norm(raw);
+      // Person-to-person knowledge names the SERVICE for the category; the display name stays the bank's own
+      // words (the sender's name is the point of the row: "Zelle From Maya Patel", depth-MONEY-IN S07).
+      for (const k of list) if (k.re.test(t)) return { group: k.group, name: k.group === "person_to_person" ? cleanName(raw) : k.name, kname: k.name, knowledge: k.id, is: k.is, category: k.category };
+      return null;
+    }
     // The person's category rules (95-category-rules.js, "recategorize Target as groceries"): a rule's words, whole, in
     // the bank's descriptor (apostrophes dropped, a bank's "JOE S" read as "joes"); the longest matching term wins. A
     // known merchant more specific than the term keeps its own group: a "Costco" rule leaves Costco Gas as gas, an "Uber"
@@ -151,21 +195,22 @@
       }
       return best;
     }
-    function classify(raw, rules) {
+    function classify(raw, rules, knowledge) {
       const t = norm(raw);
-      let def = null;
-      for (const [group, name, re] of MERCHANTS) if (re.test(t)) { def = { group, name: name || cleanName(raw) }; break; }
+      // Knowledge first (what the merchant IS), then the word rules as the fallback for merchants not on file.
+      let def = knowledgeFor(raw, knowledge);
+      if (!def) for (const [group, name, re] of MERCHANTS) if (re.test(t)) { def = { group, name: name || cleanName(raw) }; break; }
       const r = ruleFor(raw, rules);
       if (!r) return def;
-      const named = def && MERCHANTS.find((m) => m[1] === def.name) ? ruleKey(def.name) : "", k = ruleKey(r.term);
+      const named = def && (def.kname || def.name) ? ruleKey(def.kname || def.name) : "", k = ruleKey(r.term);
       if (named && named !== k && named.length > k.length && ` ${named} `.includes(` ${k} `)) return def;
       return { group: r.group, name: def ? def.name : cleanName(raw), rule: r };
     }
     // "By your category rule: "Target" as groceries $212.40." for the rows a rule placed (spending only), "" for none.
-    function ruleLine(rows, rules) {
+    function ruleLine(rows, rules, knowledge) {
       if (!Array.isArray(rules) || !rules.length) return "";
       const by = new Map();
-      for (const r of rows || []) { const c = classify(r.merchant_raw, rules); if (c && c.rule) { const e = by.get(c.rule) || 0; by.set(c.rule, e - (Number(r.amount_cents) || 0)); } }
+      for (const r of rows || []) { const c = classify(r.merchant_raw, rules, knowledge); if (c && c.rule) { const e = by.get(c.rule) || 0; by.set(c.rule, e - (Number(r.amount_cents) || 0)); } }
       const hit = [...by.entries()].filter(([, v]) => v !== 0);
       if (!hit.length) return "";
       const nm = (term) => String(term).replace(/(^|[\s\-\/&.])([a-z])/g, (_, a, b) => a + b.toUpperCase());
@@ -309,15 +354,19 @@
     // the same total): the period, what was counted, the pending charges left out, and for a category, the charges in
     // the period that matched no category. Used to recheck a total the person disputes (108-spend-recheck.js).
     function spendRows(transactions, words, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, knowledge = (opts && opts.knowledge) || null, p = period(words, now, tz), all = posted(transactions);
       const out = all.filter(isSpend), cur = out.filter((r) => inRange(r, p)), tg = target(words);
       let rows = cur, unmatched = [];
-      if (tg.kind === "category") { rows = cur.filter((r) => { const k = classify(r.merchant_raw, rules); return !!k && tg.cat.groups.includes(k.group); }); unmatched = cur.filter((r) => !classify(r.merchant_raw, rules)); }
+      if (tg.kind === "category") { rows = cur.filter((r) => { const k = classify(r.merchant_raw, rules, knowledge); return !!k && tg.cat.groups.includes(k.group); }); unmatched = cur.filter((r) => !classify(r.merchant_raw, rules, knowledge)); }
       else if (tg.kind === "merchant") rows = cur.filter((r) => termMatch(r.merchant_raw, tg.term));
-      const pending = (transactions || []).filter((r) => r && r.is_pending && cents(r) < 0 && typeof r.posted_on === "string" && inRange(r, p) && (tg.kind !== "merchant" || termMatch(r.merchant_raw, tg.term)) && (tg.kind !== "category" || ((c) => c && tg.cat.groups.includes(c.group))(classify(r.merchant_raw, rules))));
+      const pending = (transactions || []).filter((r) => r && r.is_pending && cents(r) < 0 && typeof r.posted_on === "string" && inRange(r, p) && (tg.kind !== "merchant" || termMatch(r.merchant_raw, tg.term)) && (tg.kind !== "category" || ((c) => c && tg.cat.groups.includes(c.group))(classify(r.merchant_raw, rules, knowledge))));
       return { period: p, target: tg, rows, total: sum(rows), pending, unmatched, start: earliest(transactions) };
     }
     function spend(transactions, words, now, opts) {
+      const prev = AMBIENT_KNOWLEDGE; AMBIENT_KNOWLEDGE = (opts && opts.knowledge) || null;
+      try { return spendIn(transactions, words, now, opts); } finally { AMBIENT_KNOWLEDGE = prev; }
+    }
+    function spendIn(transactions, words, now, opts) {
       const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, p = period(words, now, tz), all = posted(transactions), start = earliest(transactions);
       const extra = "Transfers, card payments and pending charges are left out.";
       if (!all.length) return `I don't see any posted transactions in your linked accounts yet, so I can't add up your spending. ${txSource(transactions, tz)}`;
@@ -361,7 +410,7 @@
 
     // ---- checkup ----
     function checkup(accounts, transactions, now, opts) {
-      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
+      const tz = (opts && opts.tz) || "UTC", rules = (opts && opts.rules) || null, knowledge = (opts && opts.knowledge) || null, s = summarize(accounts, now), p = period("this month", now, tz), all = posted(transactions), start = earliest(transactions);
       const lines = [];
       const when = Number.isFinite(s.oldest) ? timeLabel(s.oldest, tz) : null;
       if (s.cash.length) lines.push(`Cash: ${money(s.cash_cents)} across ${s.cash.length} account${s.cash.length === 1 ? "" : "s"}${when ? `, as of ${when}` : ""}${s.stale.length ? " (more than a day old)" : ""}.`);
@@ -378,7 +427,7 @@
         const d = outN - outP;
         if (d === 0) lines.push(`Your spending is exactly where it was at this point last month.`);
         else {
-          const key = (r) => { const c = classify(r.merchant_raw, rules); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
+          const key = (r) => { const c = classify(r.merchant_raw, rules, knowledge); return c ? GROUP_LABEL[c.group] : cleanName(r.merchant_raw); };
           const diff = new Map();
           for (const r of cur.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) + Math.abs(cents(r)));
           for (const r of prev.filter(isSpend)) diff.set(key(r), (diff.get(key(r)) || 0) - Math.abs(cents(r)));
@@ -441,6 +490,9 @@
     // "spending" and the source line mean the same in a budget as in "how much did i spend on groceries". The same ones,
     // plus isIncome (a credit that is not a transfer or card payment), termMatch, acctName and kindOf, are shared with
     // the month comparison and spending by card (94-spending-views.js).
-    return { money, period, spendRows, classify, ruleFor, ruleLine, MERCHANT_NAMES: MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn };
+    return { money, period, spendRows, classify, ruleFor, ruleLine, knowledgeFor, knowledgeData, GROUP_LABEL, target, balance, spend, checkup, didItGoThrough, goThroughTarget, timeLabel, STALE_MS, CATEGORIES, isSpend, isIncome, termMatch, acctName, kindOf, display, txSource, todayIn,
+      // Computed on each access, not at load: the knowledge file's names join the word-rule names once the data is
+      // readable (in the bundle its JSON const initializes after the modules; at load time it is not yet readable).
+      get MERCHANT_NAMES() { const base = MERCHANTS.filter((m) => m[1]).map((m) => [m[0], m[1]]), seen = new Set(base.map((x) => x[1].toLowerCase())), list = knowledgeList(null) || []; for (const k of list) if (k.name && !seen.has(k.name.toLowerCase())) { seen.add(k.name.toLowerCase()); base.push([k.group, k.name]); } return base; } };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = MoneyAnswers;

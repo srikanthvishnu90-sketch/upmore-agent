@@ -21,7 +21,7 @@
     const DEADLINE_KINDS = new Set(["trial_converting", "duplicate_charge", "charged_after_cancel", "deadline", "pay_later"]);
     // C28 missed-payment consequences: a small explicit table by bill kind. The kind is inferred from the bill's
     // merchant words and ledger category; the words are these table entries only, never invented per message.
-    const BILL_CATEGORIES = new Set(["utilities", "subscriptions", "insurance", "housing", "debt_payment", "other"]);
+    const BILL_CATEGORIES = new Set(["utilities", "subscriptions", "insurance", "housing", "debt_payment", "pay_later", "other"]);
     const BILL_KIND_OF = [
       ["credit_card", /credit card|card payment|card autopay|\bvisa\b|\bmastercard\b|\bamex\b|american express|discover card|capital one/i, null],
       ["utility", /electric|power|water|gas co|utility|utilities|comcast|xfinity|verizon|at&t|t-mobile|internet|broadband|mobile/i, "utilities"],

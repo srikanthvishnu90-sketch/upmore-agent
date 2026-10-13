@@ -52,8 +52,10 @@
     const withRules = (opts, fn) => { RULES = (opts && opts.rules) || null; try { return fn(); } finally { RULES = null; } };
     const groupOf = (r) => { const c = MA.classify(r.merchant_raw, RULES); return c ? c.group : null; };
     const REFUND = /\b(?:refunds?|returns?|reversal|merchandise credit|price adjustment)\b/i;
-    const isRefund = (r) => MA.isIncome(r) && (groupOf(r) !== null || REFUND.test(String(r.merchant_raw || "")));
-    const GROUP_LABEL = { groceries: "groceries", restaurants: "restaurants", delivery: "delivery", gas: "gas", subscriptions: "subscriptions", transport: "transport", shopping: "shopping" };
+    // A refund is a credit back from a spend merchant. Person-to-person and investing credits are not refunds:
+    // a friend's Venmo cashout is money in, not money back (depth-SPEND-VIEWS ADV: "a friend's payment is no refund").
+    const isRefund = (r) => { if (!MA.isIncome(r)) return false; const g = groupOf(r); return (g !== null && g !== "person_to_person" && g !== "investing") || REFUND.test(String(r.merchant_raw || "")); };
+    const GROUP_LABEL = MA.GROUP_LABEL; // one label vocabulary with MoneyAnswers (80), knowledge categories included
     const usable = (rows) => (rows || []).filter((r) => r && Number.isFinite(cents(r)));
     const posted = (rows) => usable(rows).filter((r) => !r.is_pending && usd(r) && dayOf(r) !== null);
     const earliest = (rows) => posted(rows).map(dayOf).sort()[0] || null;

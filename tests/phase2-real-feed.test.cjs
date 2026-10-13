@@ -105,5 +105,9 @@ test("C16 report: person-to-person money is named as its own total, not buried i
   assert.ok(report, "a report exists");
   assert.ok(/person-to-person/i.test(report.text), report.text);
   assert.ok(report.text.includes("Zelle $100.00"), report.text);
-  assert.equal(report.uncategorized_cents, 83494, "the uncategorized remainder still ties to the month total");
+  // A2 (merchant knowledge, 2026-10-12): every September row now has a true category (Peptira health, Rebet sports
+  // betting, Affirm pay-later, Kalshi/Polymarket prediction markets, Robinhood investing, Gelatoteca restaurants,
+  // Zelle/Apple Cash person-to-person, the service fee fees), so the uncategorized remainder is $0.00 — before
+  // merchant knowledge it was the whole $834.94 month, because no row matched a category at all.
+  assert.equal(report.uncategorized_cents, 0, "with merchant knowledge every September row is categorized; nothing is left uncategorized");
 });

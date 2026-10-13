@@ -51,7 +51,7 @@ const CareerTailor = (() => {
   // Skill lexicon for JD parsing + audit keyword checks. Deliberately finite:
   // a word not in this list is ordinary prose, not a claimed skill.
   const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R"];
-  const lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
+  const _lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
   function skillsInText(text) {
     const t = ` ${String(text || "").toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
     const found = [];
@@ -193,7 +193,7 @@ const CareerTailor = (() => {
       if (!text || !String(text).trim()) continue;
       if (!factIds.length) { violations.push({ line: text, reason: "no fact ID: line maps to no profile fact", factIds: [] }); continue; }
       const facts = factIds.map((id) => Profile.getFact(profile, id));
-      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
+      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
       const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
@@ -313,7 +313,7 @@ const CareerTailor = (() => {
   }
 
   // ---- "why this company" answer bank (Doc 2 §3.5; APPE-004) ----
-  function buildAnswerBank(profile, jdInput, cir, opts) {
+  function buildAnswerBank(profile, jdInput, cir, _opts) {
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     if (!cir || !cir.company || !(cir.facts || []).length) return { ok: false, reason: "answer bank entries need real CIR company facts; none passed in", entries: [] };
     const selected = selectFacts(profile, jd, { limit: 3 });

@@ -20295,7 +20295,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
     // A handler never claims an edge action happened: connect returns the ACTION the host must run against
     // gmail-oauth ({edge_action:"start_career"} plus the secure link when the host supplied one), and
     // disconnect returns {edge_action:"disconnect", source} for the host to execute and confirm.
-    function handleConnectGoogle(text, ctx) {
+    function handleConnectGoogle(_text, ctx) {
       const c = ctx || {};
       const link = typeof c.secureLinkFor === "function" ? c.secureLinkFor("google_career") : null;
       return {
@@ -20303,11 +20303,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
         reply: `Connect your Google once and I can read and send from your own Gmail and use your Calendar (free/busy + events). One consent click, no password ever in chat.${link ? ` ${link}` : ""}`,
       };
     }
-    function handleConnected(text, ctx) {
+    function handleConnected(_text, ctx) {
       const r = connectedAccounts((ctx || {}).statusRecords);
       return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
-    function handleDisconnect(text, ctx) {
+    function handleDisconnect(text, _ctx) {
       // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
       // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
       // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
@@ -20328,11 +20328,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = Government
           : `Disconnecting ${label(source)} deletes its session and tokens in the vault. The host confirms once it is deleted.`,
       };
     }
-    function handleAccessLog(text, ctx) {
+    function handleAccessLog(_text, ctx) {
       const r = auditLog((ctx || {}).auditEntries);
       return { intent: "access_log", entries: r.entries, reply: r.text };
     }
-    function handlePortalList(text, ctx) {
+    function handlePortalList(_text, ctx) {
       const r = portalList((ctx || {}).portalRecords);
       return { intent: "portal_accounts", companies: r.companies, reply: r.text };
     }
@@ -20481,8 +20481,8 @@ const CareerJobs = (() => {
   // demotion. Legacy classes (work-auth citizens-only, clearance) keep the exact
   // dispositions hardFilters has always applied, now also expressed as flags.
   const US_STATES = [["Alabama", "AL"], ["Alaska", "AK"], ["Arizona", "AZ"], ["Arkansas", "AR"], ["California", "CA"], ["Colorado", "CO"], ["Connecticut", "CT"], ["Delaware", "DE"], ["District of Columbia", "DC"], ["Florida", "FL"], ["Georgia", "GA"], ["Hawaii", "HI"], ["Idaho", "ID"], ["Illinois", "IL"], ["Indiana", "IN"], ["Iowa", "IA"], ["Kansas", "KS"], ["Kentucky", "KY"], ["Louisiana", "LA"], ["Maine", "ME"], ["Maryland", "MD"], ["Massachusetts", "MA"], ["Michigan", "MI"], ["Minnesota", "MN"], ["Mississippi", "MS"], ["Missouri", "MO"], ["Montana", "MT"], ["Nebraska", "NE"], ["Nevada", "NV"], ["New Hampshire", "NH"], ["New Jersey", "NJ"], ["New Mexico", "NM"], ["New York", "NY"], ["North Carolina", "NC"], ["North Dakota", "ND"], ["Ohio", "OH"], ["Oklahoma", "OK"], ["Oregon", "OR"], ["Pennsylvania", "PA"], ["Rhode Island", "RI"], ["South Carolina", "SC"], ["South Dakota", "SD"], ["Tennessee", "TN"], ["Texas", "TX"], ["Utah", "UT"], ["Vermont", "VT"], ["Virginia", "VA"], ["Washington", "WA"], ["West Virginia", "WV"], ["Wisconsin", "WI"], ["Wyoming", "WY"]];
-  const STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
-  const STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
+  const _STATE_BY_NAME = new Map(US_STATES.map(([n, a]) => [n.toLowerCase(), { name: n, abbr: a }]));
+  const _STATE_BY_ABBR = new Map(US_STATES.map(([n, a]) => [a, { name: n, abbr: a }]));
   function statesInText(text) {
     const found = [], seen = new Set();
     const t = ` ${s(text)} `;
@@ -21168,7 +21168,7 @@ const CareerProfile = (() => {
     const skill = (profile.facts || []).find((f) => f.kind === "skill" && (f.name || "").toLowerCase() === name);
     const supporting = (profile.facts || []).filter((f) => !f.needs_confirmation && f.kind !== "skill" && ((f.skills || []).some((s) => String(s).toLowerCase() === name) || String(f.text || "").toLowerCase().includes(name)));
     const evidenceIds = new Set([].concat((skill && skill.evidence) || [], supporting.map((f) => f.id)));
-    return { skill: skill || null, proven: evidenceIds.size > 0 && (!!skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
+    return { skill: skill || null, proven: evidenceIds.size > 0 && (skill ? !skill.unproven || supporting.length > 0 : supporting.length > 0), evidenceFactIds: [...evidenceIds], supportingFactIds: supporting.map((f) => f.id) };
   }
 
   // ---- fact-mining interview (Doc 2 §1) ----
@@ -21495,7 +21495,7 @@ const CareerTailor = (() => {
   // Skill lexicon for JD parsing + audit keyword checks. Deliberately finite:
   // a word not in this list is ordinary prose, not a claimed skill.
   const SKILL_LEXICON = ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Ruby", "Swift", "Kotlin", "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "React", "Angular", "Vue", "Node.js", "Django", "Flask", "Spring", "Kubernetes", "Docker", "Terraform", "AWS", "GCP", "Azure", "Git", "Linux", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Excel", "Financial Modeling", "Valuation", "Bloomberg", "Capital IQ", "PowerPoint", "Tableau", "Figma", "Photoshop", "A/B Testing", "Statistics", "Probability", "Data Structures", "Algorithms", "System Design", "CI/CD", "GraphQL", "REST", "Spark", "Hadoop", "R"];
-  const lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
+  const _lexLower = new Map(SKILL_LEXICON.map((s) => [s.toLowerCase(), s]));
   function skillsInText(text) {
     const t = ` ${String(text || "").toLowerCase().replace(/[^a-z0-9+#. ]/g, " ")} `;
     const found = [];
@@ -21637,7 +21637,7 @@ const CareerTailor = (() => {
       if (!text || !String(text).trim()) continue;
       if (!factIds.length) { violations.push({ line: text, reason: "no fact ID: line maps to no profile fact", factIds: [] }); continue; }
       const facts = factIds.map((id) => Profile.getFact(profile, id));
-      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
+      if (facts.some((f) => !f)) { violations.push({ line: text, reason: `unknown fact ID (${factIds.filter((_id, i) => !facts[i]).join(", ")})`, factIds }); continue; }
       if (facts.some((f) => f.needs_confirmation)) { violations.push({ line: text, reason: "supported only by an unconfirmed (needs_confirmation) fact", factIds }); continue; }
       const supportText = facts.map((f) => `${f.title} ${f.text} ${(f.bullets || []).join(" ")}`).join(" ").toLowerCase();
       // Keyword rule: any lexicon skill named in the line must be evidenced.
@@ -21757,7 +21757,7 @@ const CareerTailor = (() => {
   }
 
   // ---- "why this company" answer bank (Doc 2 §3.5; APPE-004) ----
-  function buildAnswerBank(profile, jdInput, cir, opts) {
+  function buildAnswerBank(profile, jdInput, cir, _opts) {
     const jd = jdInput && jdInput.mustHaveSkills ? jdInput : parseJD((jdInput && jdInput.text) || jdInput || "");
     if (!cir || !cir.company || !(cir.facts || []).length) return { ok: false, reason: "answer bank entries need real CIR company facts; none passed in", entries: [] };
     const selected = selectFacts(profile, jd, { limit: 3 });
@@ -21815,7 +21815,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerTail
 const CareerOutreach = (() => {
   "use strict";
   let FIRM_SETS = null;
-  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch (e) { FIRM_SETS = { sets: {} }; }
+  try { FIRM_SETS = require("../career-data/firm-sets.json"); } catch { FIRM_SETS = { sets: {} }; }
 
   const CAPS = Object.freeze({
     channel: "gmail_oauth_only", startPerDay: 12, startRange: [10, 15], rampStep: 5, rampEveryDays: 3,
@@ -21828,7 +21828,7 @@ const CareerOutreach = (() => {
   const BANNED_PHRASES = ["i hope this email finds you well", "i came across your profile and was impressed",
     "pick your brain", "i'd love to connect", "i would love to connect", "admire your impressive career"];
   const EU_UK_COUNTRIES = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","GB","UK"]);
-  const EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
+  const _EU_UK_PLACES = ["london", "united kingdom", "england", "scotland", "wales", "germany", "france", "ireland", "netherlands", "spain", "italy", "poland", "sweden", "belgium", "austria", "switzerland is not eu", "portugal", "denmark", "norway", "finland", "czech", "romania", "greece", "hungary", "berlin", "munich", "paris", "dublin", "amsterdam", "madrid", "milan", "stockholm", "warsaw", "zurich is not eu"];
   const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
   const emailDomain = (e) => { const m = String(e || "").toLowerCase().match(/@([^>\s]+)$/); return m ? m[1] : null; };
   function isEuUk(c) {
@@ -22008,7 +22008,7 @@ const CareerOutreach = (() => {
   // OUTR-001/002: warm paths + ranking from user-owned connections only.
   function rankContacts(contacts, profile) {
     profile = profile || {};
-    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0, why = [];
+    return (contacts || []).map((c0) => { const c = normalizeCandidate(c0); const rel = norm(c.relationship_to_user); let rank = 0; const why = [];
       if (profile.school && (c.schools || []).map(norm).includes(norm(profile.school))) { rank += 40; why.push("alumni"); }
       if (/club|same org|same major/.test(rel)) { rank += 25; why.push("shared org/major"); }
       // SC-W01 extension: user-specified warmth priority (hometown before school) lifts hometown above alumni.
@@ -22039,7 +22039,7 @@ const CareerOutreach = (() => {
       if (!EMAIL_RE.test(e)) return { email: e, status: "invalid", confidence: 0, reason: "syntax", verifier: "local" };
       const domain = emailDomain(e);
       if (!dnsLookup) return { email: e, status: "risky", confidence: 0.3, reason: "no_dns_lookup_injected", verifier: "local" };
-      let r; try { r = await dnsLookup(domain); } catch (err) { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
+      let r; try { r = await dnsLookup(domain); } catch { return { email: e, status: "risky", confidence: 0.3, reason: "dns_lookup_failed", verifier: "local" }; }
       if (!r || !r.mx || !r.mx.length) return { email: e, status: "invalid", confidence: 0.1, reason: "no_mx", verifier: "local" };
       if (r.catchAll) return { email: e, status: "risky", confidence: 0.45, reason: "catch_all_domain", verifier: "local" };
       return { email: e, status: "verified", confidence: 0.9, reason: "mx_ok", verifier: "local" };
@@ -22093,10 +22093,10 @@ const CareerOutreach = (() => {
     const t = target || {};
     const email = t.email || t.work_email || null;
     let hit = false;
-    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch (e) { hit = false; }
+    try { hit = !!store.isSuppressed({ email, person_id: t.person_id || null }, resolveUserId(opts, user)); } catch { hit = false; }
     return { checked: true, suppressed: hit, store };
   }
-  function suppressedRefusal(target, opts, user) {
+  function suppressedRefusal(target, _opts, _user) {
     const c = normalizeCandidate(target || {});
     return { refused: true, refusal_state: "refused_suppressed", reason: "suppressed",
       message: "This recipient is suppressed and cannot be contacted. No draft was prepared.",
@@ -22422,7 +22422,7 @@ const CareerOutreach = (() => {
   }
   function handleBounce(campaign, item, suppression) {
     const it = typeof item === "string" ? campaign.items.find((i) => i.id === item) : item;
-    if (it) { it.status = "bounced"; it.never_retry = true; const c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
+    if (it) { it.status = "bounced"; it.never_retry = true; const _c = it.candidate || {}; if (suppression) suppression.suppress({ email: it.email, person_id: it.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" }); }
     else if (suppression && item && item.email) suppression.suppress({ email: item.email, person_id: item.person_id, userId: campaign.userId, scope: "user", reason: "hard_bounce" });
     return it || null;
   }
@@ -22648,7 +22648,7 @@ const CareerOutreach = (() => {
       if (v) answers.push({ topic: "graduation", text: `My graduation date is ${v}.`, value: v }); else unknown.push("graduation");
     }
     if (/authorized|authorisation|work in the|sponsor/.test(t)) {
-      let v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
+      const v = cons.workAuthorization || cons.work_authorization || merged.workAuthorization || merged.work_authorization || null;
       if (v) { const clean = String(v).replace(/\(TEST\)/g, "").trim(); const isCitizen = /citizen/i.test(clean); answers.push({ topic: "work_authorization", text: isCitizen ? `I am a ${clean} and authorized to work in the US.` : `On work authorization: ${clean}.`, value: clean }); }
       else if (cons.needsSponsorship === false) answers.push({ topic: "work_authorization", text: "I am authorized to work in the US and do not need sponsorship.", value: "authorized, no sponsorship" });
       else unknown.push("work_authorization");
@@ -22659,7 +22659,7 @@ const CareerOutreach = (() => {
     }
     return { answers, unknown };
   }
-  function draftReplyAnswer(reply, contact, profile, user, cls, opts) {
+  function draftReplyAnswer(reply, contact, profile, user, cls, _opts) {
     const c = contact || {}; const first = String(c.full_name || c.name || "there").split(/\s+/)[0];
     const name = (user && user.name) || (profile && profile.basics && profile.basics.name) || "";
     const { answers, unknown } = profileFactAnswers(String((reply && reply.body) || ""), profile, user);
@@ -22725,7 +22725,7 @@ const CareerOutreach = (() => {
     if (kind === "auto-reply-ooo") {
       const rd = cls.return_date || null;
       matchItems((i) => { i.reschedule_followup_on = base.reschedule_followup_on; i.followup_rescheduled_on = base.reschedule_followup_on; });
-      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (m, y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
+      const msg = `That is an out-of-office auto-reply, not a reply or interest${rd ? ` — it states a return date of ${rd.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_m, _y, mo, d) => `${MONTH_NAMES[Number(mo) - 1]} ${Number(d)}`)}` : ""}. The pending follow-up is rescheduled to the day after the return${base.reschedule_followup_on ? ` (${base.reschedule_followup_on})` : ""}; no new follow-up chain was started.`;
       return finish(Object.assign({}, common, { state_transition: "ooo_rescheduled", record_state: "out_of_office", counts_as_reply: false,
         return_date: rd, reschedule_followup_on: base.reschedule_followup_on,
         user_message: msg, notify_user: msg, draft: null, next_step: "Wait for a real reply after the return date." }));
@@ -22777,7 +22777,7 @@ const CareerOutreach = (() => {
     return asUTC - Math.floor(dateMs / 1000) * 1000;
   }
   function zonedTimeToUtc(y, m, d, hh, mm, timeZone) {
-    let guess = Date.UTC(y, m - 1, d, hh, mm);
+    const guess = Date.UTC(y, m - 1, d, hh, mm);
     const off1 = tzOffsetMs(guess, timeZone); let utc = guess - off1;
     const off2 = tzOffsetMs(utc, timeZone); utc = guess - off2;
     return new Date(utc).toISOString();
@@ -22868,7 +22868,7 @@ const CareerOutreach = (() => {
       promoted_from_reserve: promoted.map((c) => c.full_name), before, after: { selected: selected.length, reserve: newReserve.length },
       text: `Re-cut: ${before.selected} selected -> ${selected.length} (${removed.length} removed by [${ops.join("; ") || "no ops"}], ${promoted.length} matching reserve promoted); reserve now ${newReserve.length}.` };
   }
-  function safetyPlan(campaign, plan, opts) {
+  function safetyPlan(_campaign, plan, opts) {
     opts = opts || {}; const start = opts.startDateIso ? Date.parse(opts.startDateIso) : Date.now();
     const days = plan && plan.days ? plan.days : 0; const finish = new Date(start + Math.max(0, days - 1) * 86400000).toISOString().slice(0, 10);
     return { channel: CAPS.channel, daily_cap_start: dailyCapForDay(0), daily_cap_ceiling: CAPS.ceilingPerDay, ramp: `+${CAPS.rampStep}/day every ${CAPS.rampEveryDays} days, never above ${CAPS.ceilingPerDay}`,
@@ -23006,7 +23006,7 @@ const CareerOutreach = (() => {
           : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
         entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
       }
-      for (const item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
+      for (const _item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
       const queued = enqueue(campaign, entries, { suppression: opts.suppression, continueTap: true, isFollowUp: true });
       const followups = queued.filter((q) => q.status === "queued");
       if (final) { campaign.followups_closed = true; campaign.closed_persons = followups.map((f) => f.person_id || f.email); }
@@ -25185,7 +25185,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerNego
    Otherwise the estimate is null and the output says exactly that. Every number carries its
    evidence + as_of. Feed postings are the normalized 121-career-jobs shape. */
 const CareerOS = (() => {
-  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch (e) { return null; } })() : null;
+  const Neg = (typeof require !== "undefined") ? (() => { try { return require("./128-career-negotiation.js"); } catch { return null; } })() : null;
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const DAY = 86400000;
@@ -25494,7 +25494,7 @@ const CareerApply = (() => {
   // Salary: ask, offer a SOURCED range when one is passed in, default to
   // negotiable/open. A number is entered only when the user approved that
   // exact number (opts.userApprovedNumber).
-  function salaryQuestion(profile, question, opts) {
+  function salaryQuestion(_profile, _question, opts) {
     const o = opts || {};
     if (typeof o.userApprovedNumber === "number" && o.userApprovedNumber > 0) {
       return { kind: "salary", requiresConfirmation: true, entered: true, answer: String(o.userApprovedNumber), confirmationState: "user-approved-number" };
@@ -25711,7 +25711,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerAppl
                                    121's POLL_MINUTES (starred 15 min, default 60).
    Pure domain module, UMD like the other domain modules. No fetch, no deploy, no secrets. */
 const CareerDiscover = (() => {
-  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })() : null;
+  const J = (typeof require !== "undefined") ? (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })() : null;
   const lc = (v) => String(v == null ? "" : v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
@@ -26313,7 +26313,7 @@ function sweMarketRead(store, opts) {
 // ledger; known vs anecdotal/unknown is separated in the text itself; nothing is claimed
 // that the dataset does not hold (BLS publishes no AI-displacement probability — see its
 // known_limits — and the posting dataset is a population of postings, not of hires).
-function _claimsFrom(values) {
+function _claimsFrom(_values) {
   const claims = [];
   const add = (value, source_url, as_of, sample_size) => {
     if (typeof value === "number" && Number.isFinite(value) && !claims.some((c) => c.value === value)) claims.push({ text: "dataset value", value, unit: null, source_url, as_of, sample_size: sample_size == null ? null : sample_size });
@@ -27391,7 +27391,7 @@ const CareerGraphCore = (() => {
     return { user: Object.assign({ name: "", school: null, major: null, hometown: null, clubs: [] }, user || {}),
       people: [], interactions: [], referrals: [], snapshots: [], _seq: 0 };
   }
-  function keyOf(r) { return r.email ? "email:" + norm(r.email) : "name:" + norm(r.name) + "|" + normCo(r.company || r.school || ""); }
+  function _keyOf(r) { return r.email ? "email:" + norm(r.email) : "name:" + norm(r.name) + "|" + normCo(r.company || r.school || ""); }
   function samePerson(a, b) {
     if (a.email && b.email && norm(a.email) === norm(b.email)) return true;
     if (norm(a.name) && norm(a.name) === norm(b.name)) {
@@ -27622,7 +27622,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerGrap
        filters + proven-skill coverage of must-haves; verdict submit | skip with reasons.
    Pure domain module, UMD. No fetch, no deploy, no secrets. */
 const CareerApply3 = (() => {
-  const J = (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })();
+  const J = (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })();
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
@@ -27634,7 +27634,7 @@ const CareerApply3 = (() => {
     return apps.map((a) => {
       const proof = msgs.filter((m) => m.app_ref === a.app_id);
       const latest = proof.length ? proof[proof.length - 1] : null;
-      const consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
+      const _consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
       return { app_id: a.app_id, company: a.company, title: a.title, stage: a.stage, applied_at: a.applied_at, variant_id: a.variant_id, log_events: (a.events || []).map((e) => e.kind), inbox_proof: proof.map((m) => ({ msg_id: m.msg_id, kind: m.kind, at: m.at, subject: m.subject })), latest_inbox_kind: latest ? latest.kind : null, cross_check: proof.length ? "log + inbox agree on this application's existence" : "log only — no inbox message references this application" };
     });
   }
@@ -27760,7 +27760,7 @@ const CareerApply3 = (() => {
     const fit = J.scoreFit(posting, profile);
     if (fit.excluded) return { verdict: "skip", stage: "hard filter", reasons: fit.reasons, fit };
     const proven = new Set((profile.skills || []).filter((x) => x.proven !== false).map((x) => lc(x.name)));
-    const jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
+    const _jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
     const must = (opts.mustHaveSkills || []).filter((x) => !proven.has(lc(x)));
     if (must.length && (opts.mustHaveCoverage || 0) === 0) return { verdict: "skip", stage: "skill evidence", reasons: [`no evidenced skill covers the must-haves: ${must.join(", ")}`], fit, missing_must_haves: must };
     return { verdict: "submit", stage: "eligible", reasons: fit.reasons, fit, missing_must_haves: must };
@@ -27924,7 +27924,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerSafe
    (injected) calendar busy intervals. */
 const CareerSeason = (() => {
   "use strict";
-  const DAY = 86400000;
+  const _DAY = 86400000;
   const rowsOf = (store) => Array.isArray(store) ? store : (store && store.rows) || [];
   const weekKey = (t) => { const d = new Date(t); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day); return d.toISOString().slice(0, 10); };
 
@@ -28200,7 +28200,7 @@ const CareerReply = (() => {
   }
 
   function composeText(raw, opts) {
-    const o = opts || {};
+    const _o = opts || {};
     const noPayload = stripPayloadSpans(raw == null ? "" : String(raw));
     const lines = noPayload.split(/\n+/);
     const sentences = [];
@@ -28408,13 +28408,13 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerRepl
    functions report blocked instead of throwing. */
 const CareerDoorstep = (() => {
   "use strict";
-  const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch (e) { return null; } })();
-  const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch (e) { return null; } })();
-  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch (e) { return null; } })();
-  const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch (e) { return null; } })();
-  const nodeCrypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
-  const nodeFs = (() => { try { return require("fs"); } catch (e) { return null; } })();
-  const nodePath = (() => { try { return require("path"); } catch (e) { return null; } })();
+  const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch { return null; } })();
+  const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch { return null; } })();
+  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch { return null; } })();
+  const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch { return null; } })();
+  const nodeCrypto = (() => { try { return require("crypto"); } catch { return null; } })();
+  const nodeFs = (() => { try { return require("fs"); } catch { return null; } })();
+  const nodePath = (() => { try { return require("path"); } catch { return null; } })();
 
   // ---------- sha256 (crypto when available; pure-JS fallback, same digest) ----------
   function sha256Direct(input) {
@@ -28569,7 +28569,7 @@ const CareerDoorstep = (() => {
   function openBlockers(state) {
     const st = state || {};
     if (st.session && st.spec) {
-      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch (e) { /* fall through to the stored blockers */ }
+      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch { /* fall through to the stored blockers */ }
     }
     return (st.doorstep && st.doorstep.blockers) || [];
   }
@@ -28630,17 +28630,17 @@ const CareerDoorstep = (() => {
     try {
       const receipts = [];
       for (const f of nodeFs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
-        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch (e) { /* a non-receipt file is not evidence either way */ }
+        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch { /* a non-receipt file is not evidence either way */ }
       }
       return { dir, receipts };
-    } catch (e) { return null; }
+    } catch { return null; }
   }
   function destinationStatus(ctx, state) {
     const sub = (state && state.submission) || {};
     const jobId = (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || (state && state.spec && state.spec.board && state.spec.board.job_id) || null;
     let checked = false, found = false, receipt = null;
     if (state && state.session && typeof state.session.reconcile === "function" && sub.receipt_id) {
-      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch (e) { /* unreadable destination: checked stays false */ }
+      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch { /* unreadable destination: checked stays false */ }
     }
     const sink = readSinkReceipts(ctx, state || {});
     let jobReceipts = null;
@@ -29166,7 +29166,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = CareerDoor
    NOT done here. No sends, no submits: outreach stops at draft/clarification,
    packets stop at a review surface, approvals are untouched. */
 const CareerRouter = (() => {
-  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch (e) { return null; } };
+  const req = (p) => { try { return typeof require !== "undefined" ? require(p) : null; } catch { return null; } };
   const Jobs = typeof CareerJobs !== "undefined" ? CareerJobs : req("./121-career-jobs.js");
   const Tailor = typeof CareerTailor !== "undefined" ? CareerTailor : req("./123-career-tailor.js");
   const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : req("./124-career-outreach.js");
@@ -29182,7 +29182,7 @@ const CareerRouter = (() => {
   // (the same ctx objects 141/130 read and write).
   const Doorstep = typeof CareerDoorstep !== "undefined" ? CareerDoorstep : req("./141-career-doorstep.js");
   const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : req("./130-career-onboarding.js");
-  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch (e) { return null; } })();
+  const nodeFs = (() => { try { return typeof require !== "undefined" ? require("fs") : null; } catch { return null; } })();
 
   const s = (v) => String(v == null ? "" : v);
   const lc = (v) => s(v).toLowerCase();
@@ -29193,9 +29193,9 @@ const CareerRouter = (() => {
     const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
     const mathPow = Math.pow, maxWord = mathPow(2, 32);
     let result = "";
-    const words = [], asciiBitLength = ascii.length * 8;
-    let hash = (sha256.h = sha256.h || []), k = (sha256.k = sha256.k || []);
-    let primeCounter = k.length, isComposite = {};
+    const words = [], _asciiBitLength = ascii.length * 8;
+    let hash = (sha256.h = sha256.h || []); const k = (sha256.k = sha256.k || []);
+    let primeCounter = k.length; const isComposite = {};
     for (let candidate = 2; primeCounter < 64; candidate++) {
       if (!isComposite[candidate]) {
         for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
@@ -29205,7 +29205,7 @@ const CareerRouter = (() => {
     }
     // UTF-8 encode
     const utf8 = unescape(encodeURIComponent(ascii));
-    let bitLength = utf8.length * 8;
+    const bitLength = utf8.length * 8;
     let str = utf8 + "\x80";
     while ((str.length % 64) - 56) str += "\x00";
     for (let i = 0; i < str.length; i++) {
@@ -29398,7 +29398,7 @@ const CareerRouter = (() => {
     }
     // 131 ghost guard: lower-odds postings (stale / reposted) stay out
     let kept = scored;
-    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch (e) { kept = scored; } }
+    if (Discover && Discover.ghostGuard) { try { kept = Discover.ghostGuard(scored, { now }).kept; } catch { kept = scored; } }
     let rows = kept.map((it) => {
       const item = Object.assign({}, it, { id: it.posting.corpus_id, title: it.posting.title, company: it.posting.company, location: it.posting.location, remote: it.posting.remote, deadline: it.posting.deadline || null });
       item.reason = it.matched_skills.length ? `matches your ${it.matched_skills.join(" and ")}` : "closest fit on your profile, with the gaps named in the caveat";
@@ -29461,7 +29461,7 @@ const CareerRouter = (() => {
   }
 
   // ---------- tailor (123) ----------
-  function handleTailor(text, ctx) {
+  function handleTailor(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || ctx.targetPosting || null;
     const jdText = ctx.jdText || (posting ? jdTextForPosting(posting) : "") || ctx.jd || "";
@@ -29590,7 +29590,7 @@ const CareerRouter = (() => {
     const tips = { structure: "Order the next one as situation, task, action, result.", evidence: "Add one number and how you know it.", specificity: "Name the tool, the constraint, and your exact part." };
     return [`Rubric on that answer: structure ${sc.structure || 0} of 5, evidence ${sc.evidence || 0} of 5, specificity ${sc.specificity || 0} of 5.`, tips[weakest] || ""].filter(Boolean);
   }
-  function handlePrepStart(text, ctx) {
+  function handlePrepStart(_text, ctx) {
     const profile = ctx.profile;
     const posting = ctx.posting || null;
     const bank = Prep.questionBank({ company: posting ? posting.company : null, role: posting ? posting.title : null });
@@ -29652,9 +29652,9 @@ const CareerRouter = (() => {
   }
 
   // ---------- dead-board discovery (121 registry via 131 plan) ----------
-  function handleDeadBoard(text, ctx) {
+  function handleDeadBoard(text, _ctx) {
     let dead = [];
-    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch (e) { dead = []; }
+    try { dead = Discover && Discover.discoveryPlan ? Discover.discoveryPlan().deadBoards : (Jobs && Jobs.deadBoards ? Jobs.deadBoards() : []); } catch { dead = []; }
     const t = lc(text).replace(/[^a-z0-9 ]/g, " ");
     for (const b of dead) {
       const name = lc(b.company).replace(/[^a-z0-9 ]/g, " ").trim();
@@ -29725,7 +29725,7 @@ const CareerRouter = (() => {
       try {
         const state = JSON.parse(nodeFs.readFileSync(ctx.queueStatePath, "utf8"));
         return { state, persist: () => nodeFs.writeFileSync(ctx.queueStatePath, JSON.stringify(state, null, 2) + "\n") };
-      } catch (e) { return { state: null, persist: () => {} }; }
+      } catch { return { state: null, persist: () => {} }; }
     }
     return { state: null, persist: () => {} };
   }
@@ -29852,7 +29852,7 @@ const CareerRouter = (() => {
       const had = Object.prototype.hasOwnProperty.call(profile, "_onboarding_pending");
       const prev = profile._onboarding_pending;
       profile._onboarding_pending = "visa";
-      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch (e) { /* the direct write below still lands */ }
+      try { Onboarding.answerCurrent(profile, parsed.clause); via = "130-career-onboarding visa write (answerCurrent)"; } catch { /* the direct write below still lands */ }
       if (had) profile._onboarding_pending = prev; else delete profile._onboarding_pending;
     }
     cons.workAuthorization = parsed.clause;
@@ -29966,10 +29966,10 @@ const CareerRouter = (() => {
     // 124's own reply classification confirms the relayed words are a stop.
     let classification = null;
     const quoted = s(text).match(/'([^']{3,})'/) || s(text).match(/"([^"]{3,})"/);
-    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch (e) { classification = null; } }
+    if (Outreach && typeof Outreach.classifyReply === "function") { try { classification = Outreach.classifyReply({ body: quoted ? quoted[1] : s(text) }).classification; } catch { classification = null; } }
     let suppression = (ctx && ctx.suppression) || null;
     if (!suppression && Outreach && typeof Outreach.createSuppressionStore === "function") suppression = Outreach.createSuppressionStore();
-    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch (e) { /* the result carries the store */ } }
+    if (suppression && email) { suppression.suppress({ email, userId: (ctx && ctx.userId) || "user-1", scope: "both", reason: "recipient opt-out relayed in chat" }); try { ctx.suppression = suppression; } catch { /* the result carries the store */ } }
     const stopped = [];
     for (const item of matched) {
       if (item.status !== "pending") continue;
@@ -30164,7 +30164,7 @@ const CareerContainment = (() => {
   function defaultComposer() {
     try {
       if (typeof require !== "undefined") return require("./140-career-reply.js");
-    } catch (e) { /* no composer reachable — LAST_RESORT covers it */ }
+    } catch { /* no composer reachable — LAST_RESORT covers it */ }
     return null;
   }
 
@@ -30198,16 +30198,16 @@ const CareerContainment = (() => {
       try {
         const t = now();
         return (t instanceof Date ? t : new Date(t)).toISOString();
-      } catch (e) { return new Date().toISOString(); }
+      } catch { return new Date().toISOString(); }
     }
 
     function fallbackText(kind) {
       let text = "";
-      try { text = composer && typeof composer.fallback === "function" ? composer.fallback(kind) : ""; } catch (e) { text = ""; }
+      try { text = composer && typeof composer.fallback === "function" ? composer.fallback(kind) : ""; } catch { text = ""; }
       if (typeof text !== "string" || !text.trim()) return LAST_RESORT;
       try {
         if (composer && typeof composer.lint === "function" && !composer.lint(text).ok) return LAST_RESORT;
-      } catch (e) { return LAST_RESORT; }
+      } catch { return LAST_RESORT; }
       return text;
     }
 

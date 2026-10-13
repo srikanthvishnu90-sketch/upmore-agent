@@ -24,7 +24,7 @@
        filters + proven-skill coverage of must-haves; verdict submit | skip with reasons.
    Pure domain module, UMD. No fetch, no deploy, no secrets. */
 const CareerApply3 = (() => {
-  const J = (() => { try { return require("./121-career-jobs.js"); } catch (e) { return null; } })();
+  const J = (() => { try { return require("./121-career-jobs.js"); } catch { return null; } })();
   const s = (v) => (v == null ? "" : String(v));
   const lc = (v) => s(v).toLowerCase();
   const normName = (v) => lc(v).replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\b(inc|llc|ltd|corp|corporation|company|co|the)\b/g, " ").replace(/\s+/g, " ").trim();
@@ -36,7 +36,7 @@ const CareerApply3 = (() => {
     return apps.map((a) => {
       const proof = msgs.filter((m) => m.app_ref === a.app_id);
       const latest = proof.length ? proof[proof.length - 1] : null;
-      const consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
+      const _consistent = !latest || (a.stage === "rejected" ? latest.kind === "rejection" || latest.kind === "confirmation" : true);
       return { app_id: a.app_id, company: a.company, title: a.title, stage: a.stage, applied_at: a.applied_at, variant_id: a.variant_id, log_events: (a.events || []).map((e) => e.kind), inbox_proof: proof.map((m) => ({ msg_id: m.msg_id, kind: m.kind, at: m.at, subject: m.subject })), latest_inbox_kind: latest ? latest.kind : null, cross_check: proof.length ? "log + inbox agree on this application's existence" : "log only — no inbox message references this application" };
     });
   }
@@ -162,7 +162,7 @@ const CareerApply3 = (() => {
     const fit = J.scoreFit(posting, profile);
     if (fit.excluded) return { verdict: "skip", stage: "hard filter", reasons: fit.reasons, fit };
     const proven = new Set((profile.skills || []).filter((x) => x.proven !== false).map((x) => lc(x.name)));
-    const jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
+    const _jdSkills = [...new Set((posting.jd_text || "").split(/[^A-Za-z+#.]+/).filter(Boolean))];
     const must = (opts.mustHaveSkills || []).filter((x) => !proven.has(lc(x)));
     if (must.length && (opts.mustHaveCoverage || 0) === 0) return { verdict: "skip", stage: "skill evidence", reasons: [`no evidenced skill covers the must-haves: ${must.join(", ")}`], fit, missing_must_haves: must };
     return { verdict: "submit", stage: "eligible", reasons: fit.reasons, fit, missing_must_haves: must };

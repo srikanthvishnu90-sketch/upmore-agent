@@ -121,13 +121,13 @@
    functions report blocked instead of throwing. */
 const CareerDoorstep = (() => {
   "use strict";
-  const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch (e) { return null; } })();
-  const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch (e) { return null; } })();
-  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch (e) { return null; } })();
-  const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch (e) { return null; } })();
-  const nodeCrypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
-  const nodeFs = (() => { try { return require("fs"); } catch (e) { return null; } })();
-  const nodePath = (() => { try { return require("path"); } catch (e) { return null; } })();
+  const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch { return null; } })();
+  const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch { return null; } })();
+  const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch { return null; } })();
+  const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch { return null; } })();
+  const nodeCrypto = (() => { try { return require("crypto"); } catch { return null; } })();
+  const nodeFs = (() => { try { return require("fs"); } catch { return null; } })();
+  const nodePath = (() => { try { return require("path"); } catch { return null; } })();
 
   // ---------- sha256 (crypto when available; pure-JS fallback, same digest) ----------
   function sha256Direct(input) {
@@ -282,7 +282,7 @@ const CareerDoorstep = (() => {
   function openBlockers(state) {
     const st = state || {};
     if (st.session && st.spec) {
-      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch (e) { /* fall through to the stored blockers */ }
+      try { return collectBlockers(st.spec, dryValidate(st.session, st.spec)); } catch { /* fall through to the stored blockers */ }
     }
     return (st.doorstep && st.doorstep.blockers) || [];
   }
@@ -343,17 +343,17 @@ const CareerDoorstep = (() => {
     try {
       const receipts = [];
       for (const f of nodeFs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
-        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch (e) { /* a non-receipt file is not evidence either way */ }
+        try { receipts.push(JSON.parse(nodeFs.readFileSync(nodePath.join(dir, f), "utf8"))); } catch { /* a non-receipt file is not evidence either way */ }
       }
       return { dir, receipts };
-    } catch (e) { return null; }
+    } catch { return null; }
   }
   function destinationStatus(ctx, state) {
     const sub = (state && state.submission) || {};
     const jobId = (state && state.job_id) || (state && state.doorstep && state.doorstep.job_id) || (state && state.spec && state.spec.board && state.spec.board.job_id) || null;
     let checked = false, found = false, receipt = null;
     if (state && state.session && typeof state.session.reconcile === "function" && sub.receipt_id) {
-      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch (e) { /* unreadable destination: checked stays false */ }
+      try { const rec = state.session.reconcile(sub.receipt_id); checked = true; found = !!(rec && rec.found); receipt = (rec && rec.receipt) || null; } catch { /* unreadable destination: checked stays false */ }
     }
     const sink = readSinkReceipts(ctx, state || {});
     let jobReceipts = null;

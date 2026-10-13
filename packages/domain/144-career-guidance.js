@@ -76,7 +76,7 @@ const CareerGuidance = (() => {
   function planPaths(ctx) {
     const c = ctx || {};
     const profile = c.profile || null;
-    const facts = factsOf(profile);
+    const _facts = factsOf(profile);
     const skills = provenSkillNames(profile);
     const edu = firstFact(profile, (f) => f.kind === "education");
     const project = firstFact(profile, (f) => f.kind === "project");
@@ -269,7 +269,7 @@ const CareerGuidance = (() => {
   }
 
   // ------------------------------------------- CG12: CPT/OPT, DSO route
-  function workAuthorizationGuidance(ctx) {
+  function workAuthorizationGuidance(_ctx) {
     return finalize("work_authorization", {
       canStartNextWeek: "unknown_requires_authorization", individualDetermination: null,
       sources: [USCIS_SOURCE],
@@ -318,7 +318,7 @@ const CareerGuidance = (() => {
     const wsum = tasks.reduce((a, t) => a + t.weight, 0);
     let used = 0;
     const out = tasks.map((t, i) => {
-      let minutes = i === tasks.length - 1 ? totalMinutes - used : Math.max(5, Math.round((totalMinutes * t.weight / wsum) / 5) * 5);
+      const minutes = i === tasks.length - 1 ? totalMinutes - used : Math.max(5, Math.round((totalMinutes * t.weight / wsum) / 5) * 5);
       used += minutes;
       return { id: t.id, task: t.task, minutes };
     });
@@ -514,7 +514,7 @@ const CareerGuidance = (() => {
   }
 
   // ------------------------------------------- odds request: honest refusal
-  function oddsRefusal(ctx) {
+  function oddsRefusal(_ctx) {
     return finalize("odds_request", {
       personalOdds: null,
       unknowns: ["Your personal outcome — no sourced data in this product can produce it."],

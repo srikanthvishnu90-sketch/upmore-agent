@@ -28,7 +28,7 @@ const CareerGraphCore = (() => {
     return { user: Object.assign({ name: "", school: null, major: null, hometown: null, clubs: [] }, user || {}),
       people: [], interactions: [], referrals: [], snapshots: [], _seq: 0 };
   }
-  function keyOf(r) { return r.email ? "email:" + norm(r.email) : "name:" + norm(r.name) + "|" + normCo(r.company || r.school || ""); }
+  function _keyOf(r) { return r.email ? "email:" + norm(r.email) : "name:" + norm(r.name) + "|" + normCo(r.company || r.school || ""); }
   function samePerson(a, b) {
     if (a.email && b.email && norm(a.email) === norm(b.email)) return true;
     if (norm(a.name) && norm(a.name) === norm(b.name)) {

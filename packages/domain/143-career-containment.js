@@ -63,7 +63,7 @@ const CareerContainment = (() => {
   function defaultComposer() {
     try {
       if (typeof require !== "undefined") return require("./140-career-reply.js");
-    } catch (e) { /* no composer reachable — LAST_RESORT covers it */ }
+    } catch { /* no composer reachable — LAST_RESORT covers it */ }
     return null;
   }
 
@@ -97,16 +97,16 @@ const CareerContainment = (() => {
       try {
         const t = now();
         return (t instanceof Date ? t : new Date(t)).toISOString();
-      } catch (e) { return new Date().toISOString(); }
+      } catch { return new Date().toISOString(); }
     }
 
     function fallbackText(kind) {
       let text = "";
-      try { text = composer && typeof composer.fallback === "function" ? composer.fallback(kind) : ""; } catch (e) { text = ""; }
+      try { text = composer && typeof composer.fallback === "function" ? composer.fallback(kind) : ""; } catch { text = ""; }
       if (typeof text !== "string" || !text.trim()) return LAST_RESORT;
       try {
         if (composer && typeof composer.lint === "function" && !composer.lint(text).ok) return LAST_RESORT;
-      } catch (e) { return LAST_RESORT; }
+      } catch { return LAST_RESORT; }
       return text;
     }
 

@@ -339,7 +339,7 @@ function sweMarketRead(store, opts) {
 // ledger; known vs anecdotal/unknown is separated in the text itself; nothing is claimed
 // that the dataset does not hold (BLS publishes no AI-displacement probability — see its
 // known_limits — and the posting dataset is a population of postings, not of hires).
-function _claimsFrom(values) {
+function _claimsFrom(_values) {
   const claims = [];
   const add = (value, source_url, as_of, sample_size) => {
     if (typeof value === "number" && Number.isFinite(value) && !claims.some((c) => c.value === value)) claims.push({ text: "dataset value", value, unit: null, source_url, as_of, sample_size: sample_size == null ? null : sample_size });

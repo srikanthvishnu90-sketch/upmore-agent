@@ -301,7 +301,7 @@ const CareerPrep = (() => {
     return { kind: "case_prep_plan", company: session.company, cir_grounded: session.cir_grounded, company_file_grounded: session.cir_grounded,
       style: session.style, framework: session.framework, case_prompt: session.case_prompt,
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
-        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files on file do not quantify it. It is a planning target, not a requirement." },
+        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
       schedule: { weeks, sessions_per_week: perWeek, total_cases: weeks * perWeek, inside_norm: weeks * perWeek >= 30 && weeks * perWeek <= 50, plan },
       text: `Practice norm, labeled honestly: 30-50 full practice cases before interviews (community-reported, not official). Schedule: ${weeks} weeks, ${perWeek} cases a week, ${weeks * perWeek} total.` };
   }
@@ -457,7 +457,7 @@ const CareerPrep = (() => {
       "Who else should I learn from, and may I mention you connected us?"];
     return { kind: "coffee_chat_prep", who: { name: s(c.name), role: s(c.role || ""), company: s(c.company || (n && n.company_name) || "") },
       path, talking_points, questions,
-      do_not_ask: ["Do not ask for a referral in a first chat — earn the second conversation instead", "Do not ask anything they would have to keep confidential (unreleased products, internal comp, other candidates)", "Do not ask what the role pays — comp questions go to the recruiter, with CIR-sourced ranges only", "Do not pitch yourself for more than 60 seconds total"],
+      do_not_ask: ["Do not ask for a referral in a first chat — earn the second conversation instead", "Do not ask anything they would have to keep confidential (unreleased products, internal comp, other candidates)", "Do not ask what the role pays — comp questions go to the recruiter, with company-file-sourced ranges only", "Do not pitch yourself for more than 60 seconds total"],
       shared_ground: shared, cir_grounded: !!n, cir_source: n ? { type: "CIR", company_id: n.company_id, as_of: n.as_of } : null };
   }
   function systemDesignPrep(opts) {
@@ -475,7 +475,7 @@ const CareerPrep = (() => {
     const perWeek = Math.max(5, Math.round(40 / weeks)); const total = perWeek * weeks;
     return { kind: "case_prep_plan", company: n ? n.company_name : (s(opts.company) || null), cir_grounded: !!n, style: sess.style, framework: sess.framework,
       practice_norm: { low: 30, high: 50, unit: "full practice cases before interviews", label: "community-reported", official: false,
-        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the CIRs on file do not quantify it. It is a planning target, not a requirement." },
+        note: "This count is community-reported preparation folklore passed on by candidates and prep communities — it is NOT published or endorsed by any MBB firm, and the company files do not quantify it. It is a planning target, not a requirement." },
       schedule: { weeks, sessions_per_week: perWeek, total_cases: total, inside_norm: total >= 30 && total <= 50,
         plan: Array.from({ length: weeks }, (_, i) => `Week ${i + 1}: ${perWeek} cases (${i === 0 ? "framework + structuring drills first" : i === weeks - 1 ? "timed, interviewer-led, full feedback loop" : "mix of interviewer-led cases + mental-math/market-sizing drills"}), each scored with scoreCaseResponse and the gaps re-drilled next session`) } };
   }
@@ -565,7 +565,7 @@ const CareerPrep = (() => {
       { when: "early screen", text: "I'm focused on the role and the team first, and I'd rather not anchor on a number before I understand the full scope. Could you share the band budgeted for this level?" },
       { when: "pressed for a number", text: "I don't have a fixed number at this stage — my priority is fit, and I'm confident we can land somewhere fair inside the band for this level once we're both sure it's right." },
       { when: "they share a band", text: "Thanks for sharing that — that's helpful context. I'd like to keep the conversation on the role for now and revisit comp once we're further along." }];
-    return { status: prep.status, company: prep.company, ranges: prep.ranges || [], scripts, anchor_rule: "Do not anchor early: never name the first number inside an interview; ask for the employer's band, and cite only a CIR-sourced figure if one exists.", note: prep.note };
+    return { status: prep.status, company: prep.company, ranges: prep.ranges || [], scripts, anchor_rule: "Do not anchor early: never name the first number inside an interview; ask for the employer's band, and cite only a company-file-sourced figure if one exists.", note: prep.note };
   }
   function questionsToAsk(opts) {
     opts = opts || {}; const n = normalizeCir(opts.cir); const iv = opts.interviewer || {};

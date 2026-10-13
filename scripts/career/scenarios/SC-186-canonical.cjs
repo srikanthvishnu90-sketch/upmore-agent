@@ -2,7 +2,7 @@
 (async () => { const s = H.session("SC-186", "canonical-quant-prep-drills");
   await s.user("Quant prep: probability, mental math, market-making game drills — Jane Street track.");
   const set = P.quantPrepSet({ cir: cirForPrep("jane-street") });
-  await s.tool("127-career-prep.quantPrepSet(Jane Street CIR)", { topics: set.topics, quant_items: set.probability_and_ev.length, mm_items: set.market_making.length });
+  await s.tool("127-career-prep.quantPrepSet(Jane Street company file)", { topics: set.topics, quant_items: set.probability_and_ev.length, mm_items: set.market_making.length });
   const store = P.makePrepStore();
   await s.user("Drill me: two-heads expected flips = 6; 17 x 24 = 408; dice sum 8 = 5/36.");
   const run = P.runDrill(store, "quant", { "q-1": "6", "q-3": "408", "q-2": "5/36" });
@@ -10,7 +10,7 @@
   await s.user("Market-making: I would bid below and ask above my fair value estimate, widening the spread when inventory grows or flow looks informed.");
   const mm = P.gradeMarketMaking("mm-1", "I would bid below and ask above my fair value estimate, widening the spread when inventory grows or flow looks informed.");
   await s.tool("127-career-prep.gradeMarketMaking(mm-1)", mm);
-  await s.agent(`Your Jane Street quant prep set — topics: ${set.topics.join(", ")} (company framing CIR-grounded: ${set.cir_grounded}):\n\nPROBABILITY / EV / MENTAL MATH (${set.probability_and_ev.length} auto-graded items):\n${set.probability_and_ev.map((q) => `- [${q.topic}] ${q.q}`).join("\n")}\n\nMARKET-MAKING GAME DRILLS:\n${set.market_making.map((q) => `- ${q.q} Key: ${q.expect}`).join("\n")}\n\nYour graded reps just now: quant drill total ${run.total}/${run.max} across all 5 items (3 answered, all correct — gaps listed for the 2 unanswered: ${run.gaps.length}); market-making mm-1 scored ${mm.score_0_5}/5${mm.gap ? " — gap: " + mm.gap : " — full key hit: quote around fair value, spread moves with inventory and informed flow."}`); 
+  await s.agent(`Your Jane Street quant prep set — topics: ${set.topics.map((t) => t.replace(/_/g, " ")).join(", ")} (company framing grounded in the company file: ${set.cir_grounded}):\n\nPROBABILITY / EV / MENTAL MATH (${set.probability_and_ev.length} auto-graded items):\n${set.probability_and_ev.map((q) => `- [${q.topic.replace(/_/g, " ")}] ${q.q}`).join("\n")}\n\nMARKET-MAKING GAME DRILLS:\n${set.market_making.map((q) => `- ${q.q} Key: ${q.expect}`).join("\n")}\n\nYour graded reps just now: quant drill total ${run.total}/${run.max} across all 5 items (3 answered, all correct — gaps listed for the 2 unanswered: ${run.gaps.length}); market-making mm-1 scored ${mm.score_0_5}/5${mm.gap ? " — gap: " + mm.gap : " — full key hit: quote around fair value, spread moves with inventory and informed flow."}`); 
   s.verify("quant prep state", { topics: set.topics, run_total: run.total, drills_stored: store.drills.length, mm_score: mm.score_0_5 });
   await s.finish({ status: "COMPLETE", outcome: "Jane Street quant prep set delivered (probability, EV, mental math + market-making game drills) and exercised live: 3 numeric answers auto-graded correct via runDrill in the prep store, market-making answer graded 5/5 against its key." });
 })();

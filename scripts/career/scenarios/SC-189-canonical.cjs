@@ -7,11 +7,11 @@
   const draft = P.thankYouDraft({ company: "Stripe", interviewer: "Maya Chen (TEST)", debrief: d, senderName: "Alex Testcase (TEST)" });
   const blocked = P.sendThankYou(store, draft, { approved: false });
   await s.tool("127-career-prep.sendThankYou(approved:false) — gate proof", blocked);
-  await s.agent(`Debrief captured while it's fresh:\nWent well: ${d.went_well.join("; ")}\nStumbled: ${d.stumbled.join("; ")}\nYou asked: ${d.questions_asked.join("; ")}\n\nThank-you drafted (specific to the debrief, not a template):\n\n${draft.body}\n\nNothing has sent — the send rail just proved it: approved:false returns \"${blocked.status}\" (${blocked.reason})`, { card: { title: "Approval card — send thank-you to Maya Chen (TEST)?", to: draft.to, subject: draft.subject, status: "awaiting_approval" } });
+  await s.agent(`Debrief captured while it's fresh:\nWent well: ${d.went_well.join("; ")}\nStumbled: ${d.stumbled.join("; ")}\nYou asked: ${d.questions_asked.join("; ")}\n\nThank-you drafted (specific to the debrief, not a template):\n\n${draft.body}\n\nNothing has sent — the send rail just proved it: without your yes it comes back as not sent, held for your approval`, { card: { title: "Approval card — send thank-you to Maya Chen (TEST)?", to: draft.to, subject: draft.subject, status: "awaiting_approval" } });
   await s.user("Yes — send it.");
   const sent = P.sendThankYou(store, draft, { approved: true });
   await s.tool("127-career-prep.sendThankYou(approved:true)", sent);
-  await s.agent(`Sent on your yes (TEST rail — Maya Chen is a labeled TEST fixture, no real person emailed). Send row recorded: to ${sent.row.to}, at ${sent.row.sent_at}, via ${sent.row.rail}. Your debrief and the send now sit in the same prep record, so the follow-up thread is traceable end to end.`);
+  await s.agent(`Sent on your yes (TEST rail — Maya Chen is a labeled TEST fixture, no real person emailed). Send row recorded: to ${sent.row.to}, at ${sent.row.sent_at}, via the approval-card rail. Your debrief and the send now sit in the same prep record, so the follow-up thread is traceable end to end.`);
   s.verify("debrief + send state", { debriefs: store.debriefs.length, blocked_status: blocked.status, sent_rows: store.sent.length, sent_status: store.sent[0] && store.sent[0].status });
   await s.finish({ status: "COMPLETE", outcome: "Post-interview debrief captured in the prep store, thank-you drafted from the debrief's specifics and shown on an approval card, send provably blocked before approval (not_sent) and recorded as sent only after the scripted yes." });
 })();

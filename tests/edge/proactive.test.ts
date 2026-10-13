@@ -16,9 +16,13 @@ Deno.test("plan: nothing linked means nothing is said, never a number from nothi
 Deno.test("plan: the decision order: the low-balance warning, one finding within the daily budget, the Sunday recap; the rest held with a reason", () => {
   const p = plan(input({ extra: [BIG, FEE] }), NOW);
   const kinds = p.messages.map(m => m.kind);
-  assertEquals(kinds, ["watch", "finding", "weekly_recap"]);
+  // K2 (2026-10-12): the C8 big-purchase radar is a standing ask and budget-exempt (cadence_requested, like the
+  // C28 reminder), so this fixture's rent ($1,450 due 2026-10-15, over the $500 line) is a second finding; the
+  // one budgeted slot still goes to exactly one ordinary finding (Best Buy), and the rest are still held.
+  assertEquals(kinds, ["watch", "finding", "finding", "weekly_recap"]);
   assert(/^Your cash is \$412\.00 now; it goes under your \$100\.00 buffer on 2026-10-15/.test(p.messages[0].text), p.messages[0].text);
   assert(/Best Buy is new to your accounts and charged \$899\.00 today/.test(p.messages[1].text), p.messages[1].text);
+  assert(/Big charges coming up: Oak Property Mgmt Rent \$1,450\.00 on 2026-10-15/.test(p.messages[2].text), p.messages[2].text);
   assert(p.suppressed.length >= 2 && p.suppressed.every(s => s.reason === "daily_budget"), JSON.stringify(p.suppressed));
   assert(p.suppressed.some(s => /fee/.test(s.key)), "the fee finding was held, not dropped silently");
 });
@@ -236,9 +240,11 @@ Deno.test("plan: a trial the person tracks in the app (save_subscriptions) warns
   const three = plan(Object.assign(input({ extra: [BIG] }), { subscriptions: [trial] }), NOW);
   const t = three.messages.find(m => m.key.startsWith("finding:trial_converting:"));
   assert(t && /^Paramount\+ trial ends in 3 days\. The first charge of \$11\.99 lands 2026-10-14 unless it is cancelled first\./.test(t.text), t ? t.text : JSON.stringify(three.messages.map(m => m.key)));
-  assertEquals(three.messages.filter(m => m.kind === "finding").length, 1, "3 days out it takes the day's one slot, ahead of the new-merchant note (money at risk first)");
+  // K2 (2026-10-12): this fixture's rent also trips the C8 radar, which is budget-exempt (a standing ask), so it
+  // rides along in both runs; the trial's own budget behavior is unchanged (one budgeted slot at 3 days, exempt at 2).
+  assertEquals(three.messages.filter(m => m.kind === "finding").length, 2, "3 days out it takes the day's one slot, ahead of the new-merchant note (money at risk first), plus the exempt radar");
   const two = plan(Object.assign(input({ extra: [BIG] }), { subscriptions: [Object.assign({}, trial, { next_billing_date: "2026-10-13" })] }), NOW);
-  assertEquals(two.messages.filter(m => m.kind === "finding").length, 2, "2 days out it is a deadline: exempt, and the ordinary note still goes");
+  assertEquals(two.messages.filter(m => m.kind === "finding").length, 3, "2 days out it is a deadline: exempt, and the ordinary note still goes, plus the exempt radar");
   assert(!plan(Object.assign(input(), { subscriptions: [Object.assign({}, trial, { status: "cancelled" })] }), NOW).messages.some(m => /trial/.test(m.key)), "a cancelled trial is never warned about");
 });
 

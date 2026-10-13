@@ -83,6 +83,18 @@ Deno.test("C8 radar: nothing at or under the small-subscription size is presente
     assert(!/coming up|upcoming/i.test(m.text) || !/Netflix|Icloud/i.test(m.text), m.text);
 });
 
+Deno.test("C8 radar: the daily findings budget does not starve it — it fires the first day it is due, alongside a competing finding (K2, 2026-10-12)", () => {
+  // Regression: on the owner's real-row twins the radar was suppressed two days running (reason daily_budget)
+  // behind new-subscription notes, and would only have fired inside the loop's 2-day deadline exemption.
+  // The radar is a standing ask ("warn me before anything big hits"), like the C28 3-day reminder, so it is
+  // budget-exempt (cadence_requested in 56-agent-proactive.js); quiet hours still hold it.
+  const headspace = [row("2026-09-05", -1299, "HEADSPACE", "h1"), row("2026-10-05", -1299, "HEADSPACE", "h2")];
+  const p = plan(input(RADAR.concat(headspace), THRESHOLD), NOW); // Sun Oct 11: premium 5 days out, rent 3 days out
+  const radar = p.messages.find((m: any) => m.key.startsWith("finding:upcoming_large:"));
+  assert(radar, JSON.stringify({ messages: p.messages.map((m: any) => m.key), suppressed: p.suppressed }));
+  assert(!p.suppressed.some((s: any) => /upcoming_large/.test(s.key)), JSON.stringify(p.suppressed));
+});
+
 Deno.test("C8 radar: once only — a second run with the first run's sent keys repeats nothing", () => {
   const tuesday = NOW + 2 * DAY;
   const first = plan(input(RADAR, THRESHOLD, [], freshAccounts("2026-10-13T13:30:00Z")), tuesday);

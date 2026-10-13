@@ -12,6 +12,7 @@ const H = require("../scenario-harness.cjs");
 const A = require(path.join(ROOT, "packages/domain/120-career-access.js"));
 const Profile = require(path.join(ROOT, "packages/domain/122-career-profile.js"));
 const O = require(path.join(ROOT, "packages/domain/130-career-onboarding.js"));
+const S = require(path.join(ROOT, "packages/domain/131-career-safety.js"));
 
 const EMAIL = "alex.testcase@example.test"; // TEST persona email, from the canonical fixture
 const UID = "test-user-001";
@@ -70,4 +71,4 @@ function capabilitySources() {
   return { registryCaps: registry.capabilities, careerRows, registry };
 }
 
-module.exports = { H, A, Profile, O, ROOT, EMAIL, UID, CAREER, stagingRows, fixtureProfile, resumeText, edgeCareer, capabilitySources };
+module.exports = { H, A, Profile, O, S, ROOT, EMAIL, UID, CAREER, stagingRows, fixtureProfile, resumeText, edgeCareer, capabilitySources };

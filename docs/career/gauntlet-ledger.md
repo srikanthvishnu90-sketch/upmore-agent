@@ -810,3 +810,24 @@ owner; item-7 HTTP wiring + structured-state contract — Codex lane; gmail-oaut
 career grant; consent tap — owner; drafts approved as exact batch text; per-run
 go-ahead — owner): NOT RUN.** The five Gate-5 drafts were appended to the master
 email-review doc at integration: **105 drafts awaiting review**.
+
+## Full Operating Prompt — adopted (2026-10-13, 5894939)
+
+Copied verbatim to `docs/operating-prompt.md` (`docs:` commit). Division per the
+prompt itself: implementation of Parts 2–4 as tools is CODEX's assignment;
+docs/quality-spec/ remains the testing standard and wins on any conflict. This
+program's work under it, all LAUNCHED: (1) the onboarding test set (OB-01..09 —
+trigger-once, exact unknown-name fallback bubble, request-in-first-message
+retention, unconfirmed-fact containment graded S0-class, correction overwrite,
+returning-user skip, ≤3 bubbles/turn, just-in-time connection asks); (2) pipeline
+stage assertions for F1 (Stages 1–9 as checkable harness contract items — cap math
+before sourcing, employment currency 6-month/2-source, pattern rule 2+ verified,
+exclusions-before-drafting with logged reasons, fact freshness ≤12 months, Tier C
+held + stated, Stage-7 QA log per person, Stage-8 reconciliation, seed-inbox gate,
+provider-ID-before-"sent"); (3) the conflict scan (prompt vs spec 00–05 + locked
+decisions → docs/career/operating-prompt-conflict-scan.md, feeding the next run
+report). Known starting conflict: the prompt states the daily cap only as
+"ramping to a max of 30/day" — the spec C-1 default (start 12/day) governs grading
+until the owner rules. Part 3's data-source rules align with the locked
+no-LinkedIn-scraping law; vendors built on LinkedIn scraping are forbidden in
+grading fixtures too.

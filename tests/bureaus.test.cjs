@@ -142,3 +142,20 @@ test("routing hygiene: bureau flows never steal bank-charge disputes or money as
     assert.equal(B.answer(msg, { today: TODAY }), null, msg);
   }
 });
+
+test("C151 follow-ups: FTC filed and alert set are recorded with the next step named", () => {
+  const ftc = B.answer("The FTC report is filed", { today: TODAY });
+  assert.equal(ftc.kind, "identity_theft_step"); assert.equal(ftc.step, "ftc_filed");
+  assert.match(ftc.text, /extended alert/);
+  const alert = B.answer("fraud alert is set at all three", { today: TODAY });
+  assert.equal(alert.step, "alert_set");
+  assert.match(alert.text, /freeze all three reports/);
+});
+
+test("C205 follow-up: a bureau confirmation records against the child's case", () => {
+  const a = B.answer("Equifax confirmed the freeze for Alex", { today: TODAY, minor: { first_name: "Alex" }, minor_state: { bureaus: [] } });
+  assert.equal(a.kind, "minor_freeze_record"); assert.equal(a.capability, "C205");
+  assert.deepEqual(a.records.map(r => r.bureau), ["Equifax"]);
+  assert.match(a.text, /TransUnion: complete a letter/);
+  assert.match(a.text, /Equifax — confirmation recorded/);
+});

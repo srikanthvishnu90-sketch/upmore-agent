@@ -18055,8 +18055,22 @@
       if (/\b(collections?|account|item) (is )?(gone|removed|deleted|off my report)\b|dispute worked|they removed it/.test(t)) {
         return { kind: "dispute_outcome", capability: "C140", text: "Recorded as a verified correction. Two checks remain: pull the other two bureaus' reports (free at https://www.annualcreditreport.com) — an item removed at one bureau can still sit on another — and keep the bureau's result letter with the packet. If it reappears, that is a reinsertion the bureau has to notify you about within five business days, and I will draft the response." };
       }
+      // C151 case follow-ups: each landed step is recorded and the next one named.
+      if (/\bftc\b[^.]*\b(filed|done|finished|complete)\b|\bfiled\b[^.]*\bftc\b|\bidentity theft report\b[^.]*\b(filed|done)\b/.test(t)) {
+        return { kind: "identity_theft_step", capability: "C151", step: "ftc_filed", text: "Recorded: FTC Identity Theft Report filed, " + pretty(today) + ". That report is now the key to steps 2 and 4 — keep the affidavit the site gave you. Next: the fraud alert. Call ONE bureau (Equifax " + BUREAUS[0].fraud_phone + ", Experian " + BUREAUS[1].fraud_phone + ", TransUnion " + BUREAUS[2].fraud_phone + ") — it must pass the alert to the other two — and because you now hold the Identity Theft Report, ask for the extended alert: seven years, and creditors must contact you before issuing credit. Tell me when it is set." };
+      }
+      if (/\bfraud alert\b[^.]*\b(set|placed|done|confirmed|active)\b/.test(t)) {
+        return { kind: "identity_theft_step", capability: "C151", step: "alert_set", text: "Recorded: fraud alert set, " + pretty(today) + " — the bureau you called owes the other two the same alert, and you are owed free copies of all three reports; pull them at https://www.annualcreditreport.com and we will list every account that is not yours. Next: freeze all three reports (the alert warns creditors; the freeze blocks the report itself), then the issuer disputes for each fraudulent account. Say \"freeze my credit\" when you are ready and I will walk it." };
+      }
       // Freeze confirmations recorded from follow-ups.
       const marked = bureausMarkedDone(raw);
+      if (c.minor && marked.length && /\b(confirm\w*|frozen|froze|done|mailed|received)\b/.test(t)) {
+        const prior = ((c.minor_state || {}).bureaus || []).filter(b => String(b.state || "").toLowerCase() === "frozen").map(b => keyOf(b.bureau));
+        const nowState = { bureaus: [...new Set([...prior, ...marked])].map(k => ({ bureau: bureauByKey(k).bureau, state: "frozen" })) };
+        const p = minorFreezePlan(c.minor, nowState);
+        const records = marked.map(k => freezeRecord(k, today));
+        return { kind: "minor_freeze_record", capability: "C205", records, text: `Recorded for ${c.minor.first_name ? redact(c.minor.first_name) : "your child"}: ${marked.map(k => bureauByKey(k).bureau).join(", ")} confirmed frozen, ${pretty(today)}.\n${p.text}` };
+      }
       if ((marked.length || allDoneText(raw)) && /\b(freez|frozen|froze|bureau|equifax|experian|transunion|all three)\b/.test(t)) {
         const extra = allDoneText(raw) ? BUREAUS.map(b => b.key) : marked;
         const plan = freezePlan(c.freeze_state, { extra_done: extra });

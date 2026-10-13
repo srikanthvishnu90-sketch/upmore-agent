@@ -179,6 +179,15 @@ test("[INTL-006] the path planner emits dated 30-day milestones plus semester an
   for (const m of plan.milestones) assert.ok(m.reminder.includes("Palantir Technologies"), m.reminder);
 });
 
+test("[INTL-003] replay (BUG-003, found via SC-230/233/236): EVERY corpus CIR's composed thesis passes verifyThesis", () => {
+  const store = CI.loadCIRsFromDir(CIR_DIR);
+  for (const id of Object.keys(store.byId)) {
+    const th = CI.composeThesis(store.byId[id], PROFILE, { now: NOW });
+    assert.equal(CI.verifyThesis(th).ok, true, `${id}: ${JSON.stringify(CI.verifyThesis(th).errors)}`);
+    assert.equal(CI.lintAdvice(th.text).ok, true, `${id} thesis trips the honest-advice lint`);
+  }
+});
+
 test("[INTL-004] the honest-advice lint rejects false-precision odds and guarantees, and passes reasoned ranges", () => {
   assert.equal(CI.lintAdvice("You have a 12.4% chance of getting in.").ok, false);
   assert.equal(CI.lintAdvice("Your chance is 43% if you network.").ok, false);

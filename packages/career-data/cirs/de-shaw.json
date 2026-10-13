@@ -1,0 +1,251 @@
+{
+  "company_id": "de-shaw",
+  "company_name": "D. E. Shaw & Co.",
+  "slug": "de-shaw",
+  "cohort_definition": {
+    "role_family": "Quantitative analyst, software developer, systems engineering and proprietary trading - entry cohorts",
+    "level": "Interns (usually approaching final year of study) and recent graduates",
+    "time_window": "Summer 2027 intern postings and campus guidance checked 2026-10-12",
+    "geography": "Primarily New York for the postings cited"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample and no public cohort dataset was used. This is a curated qualitative record; no school, major or feeder percentages are claimed.",
+  "as_of_date": "2026-10-12",
+  "data_sources": [
+    {
+      "type": "official_campus_page",
+      "url": "https://fellowships.deshaw.com/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "university_career_site_reproducing_employer_posting",
+      "url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "university_career_site_reproducing_employer_posting",
+      "url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-quantitative-analyst-ph-d-intern-ny-summer-2027/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "university_career_blog_describing_official_fellowships",
+      "url": "https://blog.smu.edu/ecocareers/2024/10/02/d-e-shaw-fellowships-for-2025-now-open-for-applications/career-events/",
+      "as_of": "2024-10-02"
+    }
+  ],
+  "school_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "The firm states it encourages applicants from all schools. No public, sourced distribution of hires by school was found; none is claimed."
+  },
+  "prior_employer_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "Entry cohort - prior employers are mostly prior internships. No public sourced distribution was found; none is claimed."
+  },
+  "major_dist": {
+    "status": "qualitative_from_official_postings",
+    "entries": [],
+    "note": "Official campus guidance says all fields of study are welcome and no prior finance experience is required. That is a stated eligibility position, not a measured distribution of who is hired.",
+    "facts": [
+      {
+        "claim": "Internships are open to undergraduate and graduate students from all schools and fields of study, with no prior finance experience required, per the firm's campus page.",
+        "source_url": "https://fellowships.deshaw.com/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "qualitative_from_official_postings",
+    "entries": [],
+    "note": "Skills below are named in specific postings, not measured frequencies.",
+    "facts": [
+      {
+        "claim": "Systems Engineering Intern (Summer 2027) posting: foundation in computer science shown through internships, projects or open-source work; proficiency in algorithms, software development and systems infrastructure; coding in Python, JavaScript, Go or similar.",
+        "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      },
+      {
+        "claim": "Quantitative Analyst PhD Intern posting is aimed at PhD students approaching their final year of full-time study.",
+        "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-quantitative-analyst-ph-d-intern-ny-summer-2027/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Penultimate-year summer internship (quant analyst, software developer, systems, proprietary trading, generalist and other tracks listed on the campus page) as the main observable entry route, with internships running early June to mid-August.",
+      "basis": "official",
+      "facts": [
+        {
+          "claim": "Summer internships typically start in early June and run through mid-August, applications are considered on a rolling basis, the firm recommends applying by the end of the previous calendar year, and it typically completes selection of the intern class early in the first quarter of the internship year.",
+          "source_url": "https://fellowships.deshaw.com/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "pattern": "Second-year fellowship as an earlier exposure route into the firm.",
+      "basis": "secondary_university_source_dated",
+      "facts": [
+        {
+          "claim": "A university career blog describing the 2025 fellowship cycle says the fellowships are three-day educational programs for second-year undergraduates, require no prior experience, and carried a $1,500 stipend with travel and accommodation covered at that time. Names reported for the fellowships are Discovery, Latitude and Momentum. A current-cycle version of these terms was NOT verified on the official campus page checked 2026-10-12.",
+          "source_url": "https://blog.smu.edu/ecocareers/2024/10/02/d-e-shaw-fellowships-for-2025-now-open-for-applications/career-events/",
+          "as_of": "2024-10-02",
+          "source_type": "university_blog"
+        }
+      ]
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Summer internship - quantitative / software / systems / trading tracks (2027 roles listed on the official campus page)",
+      "status": "open_rolling_as_of_check",
+      "facts": [
+        {
+          "claim": "The official campus page lists 2027 intern roles and directs applicants to the firm's careers page to apply; it recommends applying by the end of the previous calendar year.",
+          "source_url": "https://fellowships.deshaw.com/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Systems Engineering Intern, New York, Summer 2027",
+      "status": "posting_found_on_university_career_site",
+      "facts": [
+        {
+          "claim": "Posting states applicants are usually approaching their final year of study and that enrollment in any field is welcome.",
+          "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+          "as_of": "2026-10-12",
+          "source_type": "employer_posting_via_university"
+        }
+      ]
+    },
+    {
+      "route": "Quantitative Analyst PhD Intern, New York, Summer 2027",
+      "status": "posting_found_on_university_career_site",
+      "facts": [
+        {
+          "claim": "Posting is for PhD students usually approaching their final year of full-time study.",
+          "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-quantitative-analyst-ph-d-intern-ny-summer-2027/",
+          "as_of": "2026-10-12",
+          "source_type": "employer_posting_via_university"
+        }
+      ]
+    },
+    {
+      "route": "Discovery / Latitude / Momentum fellowships (second-year students)",
+      "status": "not_verified_for_current_cycle",
+      "facts": [
+        {
+          "claim": "Fellowships were described for the 2025 cycle by a university career blog; no current-cycle deadline was found on official pages checked 2026-10-12.",
+          "source_url": "https://blog.smu.edu/ecocareers/2024/10/02/d-e-shaw-fellowships-for-2025-now-open-for-applications/career-events/",
+          "as_of": "2024-10-02",
+          "source_type": "university_blog"
+        }
+      ]
+    }
+  ],
+  "hiring_bar_summary": {
+    "text": "Stated bar is raw analytical ability over credentials: the firm says it weighs talent, curiosity and analytical thinking more than any particular skill or experience, and requires no finance background. Treat that as the stated screen only - no public data in this record can confirm the revealed screen, and community sources consistently describe the technical interviews as very demanding (labeled anecdotal in interview_styles).",
+    "facts": [
+      {
+        "claim": "Campus page: the firm is more interested in talent, curiosity and analytical thinking than in any particular skill or experience, and no prior finance experience is required for internships.",
+        "source_url": "https://fellowships.deshaw.com/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "screening_signals": [
+    {
+      "claim": "Demonstrated computer-science foundation through internships, personal projects or open-source contributions (Systems Engineering Intern posting).",
+      "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+      "as_of": "2026-10-12",
+      "source_type": "employer_posting_via_university"
+    },
+    {
+      "claim": "Problem-solving ability, intellectual curiosity, collaboration and communication skills (Systems Engineering Intern posting).",
+      "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+      "as_of": "2026-10-12",
+      "source_type": "employer_posting_via_university"
+    }
+  ],
+  "process_stages": [
+    {
+      "stage": "Online application on a rolling basis",
+      "description": "Apply through the firm's careers page; intern selection typically completes early in the first quarter of the internship year.",
+      "source_url": "https://fellowships.deshaw.com/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "stage": "Interviews",
+      "description": "No official stage-by-stage process was published on the pages checked. Community-reported accounts describe phone screens followed by multiple technical interviews covering probability, algorithms and discussion of the candidate's own research or projects. Labeled anecdotal - do not treat as firm policy.",
+      "source_url": "https://www.glassdoor.ie/Interview/D-E-Shaw-and-Co-Investment-Firm-Quantitative-Analyst-Interview-Questions-EI_IE29290.0,31_KO32,52.htm",
+      "as_of": "2026-10-12",
+      "source_type": "community_reported"
+    }
+  ],
+  "interview_styles": [
+    {
+      "style": "Technical problem solving in probability, algorithms and coding, plus deep discussion of the candidate's own work",
+      "basis": "community_reported",
+      "note": "From candidate reports only; the firm does not publish an interview format on the pages checked."
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "The firm's campus page presents collaboration across disciplines, analytical rigor and open exploration of ideas as core to how it works.",
+      "source_url": "https://fellowships.deshaw.com/",
+      "as_of": "2026-10-12",
+      "source_type": "official"
+    }
+  ],
+  "hiring_cadence": {
+    "text": "Annual summer internship cycle, rolling review, with a firm-stated recommendation to apply by the end of the previous calendar year and selection typically completed early in Q1 of the internship year.",
+    "facts": [
+      {
+        "claim": "See campus page timing statement.",
+        "source_url": "https://fellowships.deshaw.com/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "compensation_notes": [
+    {
+      "text": "Systems Engineering Intern, Summer 2027 (New York): monthly base salary of $21,000, plus a $15,000 sign-on bonus, travel coverage, and a choice of furnished housing or a $10,000 housing allowance, plus study and technology stipends - as stated in that specific posting.",
+      "source_type": "employer_posting_via_university_career_site",
+      "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-systems-engineering-intern-new-york-summer-2027/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "text": "Quantitative Analyst PhD Intern, Summer 2027 (New York): monthly base salary of $30,000, plus a $30,000 sign-on bonus and the same housing/travel structure - as stated in that specific posting. These are intern postings only; no full-time compensation is claimed.",
+      "source_type": "employer_posting_via_university_career_site",
+      "source_url": "https://careerservices.fas.harvard.edu/jobs/d-e-shaw-group-the-quantitative-analyst-ph-d-intern-ny-summer-2027/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": {
+    "text": "No reliable public source on referral weight was found. Nothing is claimed; the firm's stated route is a direct rolling application.",
+    "basis": "no_source_found"
+  },
+  "red_flags": [
+    "Rolling review plus a firm recommendation to apply by the end of the previous calendar year means a late application competes for a largely selected class - timing is a real filter.",
+    "Fellowship terms circulating online are from the 2025 cycle; do not rely on them for the current cycle without re-checking the official fellowships page.",
+    "No official interview-process description was found - any detailed process claim about this firm should be treated as anecdotal."
+  ],
+  "thesis_text": "1. Bottom line: D. E. Shaw is a realistic target only with demonstrable analytical and technical depth, but its stated door is wider than its reputation: every discipline and school is officially welcome and finance experience is explicitly not required. The binding constraint visible in public sources is timing and technical interview performance, not pedigree claims this record cannot verify.\n2. Who gets in (sourced, qualitative): Students usually approaching their final year, across all fields for general internships, and PhD students for the quantitative analyst intern track; technical tracks ask for a computer-science foundation evidenced by projects, internships or open-source work.\n3. Stated vs revealed screen: Stated: talent, curiosity and analytical thinking over any particular skill, no finance background needed. Revealed: unknown from public data - no sourced cohort distribution exists in this record, so any claim about which schools actually dominate would be folklore.\n4. Routes in, ranked: (1) Summer 2027 internship in your track, applied to early on the rolling cycle; (2) the second-year fellowship as an exposure route if a current cycle is confirmed; (3) a strong technical internship or research role elsewhere first, then the graduate route.\n5. Your gap: user-specific - compare school, experience, projects, skills and timing against the sourced signals in this record; no cohort percentages are claimed because no public population sample was available.\n6. Plan: next 30 days - verify the live posting and deadline on the official page and build the role-specific skill evidence named in the posting; this semester - complete one internship, project or program that matches the entry route; this year - apply in the earliest window the firm offers for your graduation date.\n7. Coffee-chat strategy: talk to recent entry-level hires and interns in the exact role family, and ask what the assessments and interviews actually tested and what surprised them.\n8. Timeline and key dates: Summer internships run early June to mid-August; apply by the end of the previous calendar year per the firm; 2027 intern roles were listed on the official campus page as of 2026-10-12.\n9. Risks and alternatives: The main risk is spending a cycle preparing for a screen whose format the firm does not publish. Adjacent quant and trading firms with published student programs are the hedge.\n10. Offer to execute: I can build the target list, tailor the resume to this record, and draft outreach - say the word.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": [
+    "Built only from official campus material and university-posted copies of employer postings - these show what the firm says and offers, not who it actually hires.",
+    "Compensation figures come from two specific intern postings and will not generalize across tracks or years.",
+    "Interview detail is community-reported and self-selected."
+  ],
+  "last_verified_at": "2026-10-12"
+}

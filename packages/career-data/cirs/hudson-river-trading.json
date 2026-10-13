@@ -1,0 +1,287 @@
+{
+  "company_id": "hudson-river-trading",
+  "company_name": "Hudson River Trading",
+  "slug": "hudson-river-trading",
+  "cohort_definition": {
+    "role_family": "Algorithm Development (quant research and trading) and Software Engineering - entry cohorts",
+    "level": "Summer interns, winter interns, and 2027 graduates",
+    "time_window": "Postings dated September 2, 2026 on the official campus archive; winter programs for January 2027",
+    "geography": "New York, London and Singapore for the graduate roles named in the official archive"
+  },
+  "sample_size": null,
+  "sample_size_note": "No licensed population sample and no public cohort dataset was used. Curated qualitative record only; no school, major or feeder percentages are claimed.",
+  "as_of_date": "2026-10-12",
+  "data_sources": [
+    {
+      "type": "official_campus_archive",
+      "url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "university_career_site_reproducing_employer_posting",
+      "url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "university_career_site_reproducing_employer_posting",
+      "url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "type": "secondary_aggregator_for_phd_winter_deadline",
+      "url": "https://www.careerglobalconnect.com/2026/09/24/hudson-river-trading-2/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "school_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "No public sourced distribution of hires by school was found; none is claimed."
+  },
+  "prior_employer_dist": {
+    "status": "not_available_from_public_sources_checked",
+    "entries": [],
+    "note": "Entry cohort. No public sourced distribution was found; none is claimed."
+  },
+  "major_dist": {
+    "status": "qualitative_from_official_postings",
+    "entries": [],
+    "note": "Eligibility wording from postings, not a measured distribution.",
+    "facts": [
+      {
+        "claim": "Algorithm Development internship postings seek full-time students in a quantitative discipline such as math, physics, computer science, statistics or a related program.",
+        "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      },
+      {
+        "claim": "The Women in Trading and Technology Internship posting seeks undergraduates in a technical or quantitative discipline (math, physics, computer science, statistics or related).",
+        "source_url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      }
+    ]
+  },
+  "skills_dist": {
+    "status": "qualitative_from_official_postings",
+    "entries": [],
+    "note": "Skills named in postings, not measured frequencies.",
+    "facts": [
+      {
+        "claim": "Algorithm Development: programming in Python is required in the Summer 2026 posting, C++ is a plus for high-frequency work, and statistical analysis, numerical programming or machine learning experience is named.",
+        "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      },
+      {
+        "claim": "Software Engineering postings are titled for C++ or Python in the official campus archive (Summer 2027 internship and 2027 graduate roles).",
+        "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      }
+    ]
+  },
+  "path_patterns": [
+    {
+      "pattern": "Summer internship in Algorithm Development or Software Engineering as the primary student route, with separate PhD internship and 2027-graduate postings alongside it.",
+      "basis": "official",
+      "facts": [
+        {
+          "claim": "Official campus archive dated September 2, 2026 lists: Software Engineering Internship (C++ or Python) Summer 2027; Software Engineer 2027 Grads; Algorithm Development Internship Summer 2027; Algorithm Development PhD Internship Summer 2027; Algorithm Developer 2027 Grads.",
+          "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "pattern": "Short winter programs as an earlier, lower-experience entry point for students who are new to quant trading.",
+      "basis": "official_and_secondary",
+      "facts": [
+        {
+          "claim": "Women in Trading and Technology Internship, Winter 2027: a 2-4 week in-person New York program starting January 4, 2027 for undergraduates graduating between fall 2028 and summer 2030, described as an exploration for students curious about but unfamiliar with the industry; application deadline October 16, 2026.",
+          "source_url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+          "as_of": "2026-10-12",
+          "source_type": "employer_posting_via_university"
+        },
+        {
+          "claim": "PhD Winter Internship 2027: a three-week in-person New York introduction to quantitative research for full-time PhD students graduating between fall 2027 and summer 2029, with an application deadline of October 16, 2026 reported by a secondary aggregator - verify on the official careers page before relying on it.",
+          "source_url": "https://www.careerglobalconnect.com/2026/09/24/hudson-river-trading-2/",
+          "as_of": "2026-10-12",
+          "source_type": "secondary_aggregator"
+        }
+      ]
+    }
+  ],
+  "entry_routes": [
+    {
+      "route": "Algorithm Development Internship - Summer 2027",
+      "status": "posting_listed_official_archive_sep_2_2026",
+      "facts": [
+        {
+          "claim": "Listed in the official campus archive dated September 2, 2026.",
+          "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Software Engineering Internship (C++ or Python) - Summer 2027",
+      "status": "posting_listed_official_archive_sep_2_2026",
+      "facts": [
+        {
+          "claim": "Listed in the official campus archive dated September 2, 2026.",
+          "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Algorithm Developer / Software Engineer - 2027 Graduates (New York, London, Singapore)",
+      "status": "posting_listed_official_archive_sep_2_2026",
+      "facts": [
+        {
+          "claim": "Graduate roles listed in the official campus archive dated September 2, 2026, naming New York, London and Singapore.",
+          "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+          "as_of": "2026-10-12",
+          "source_type": "official"
+        }
+      ]
+    },
+    {
+      "route": "Women in Trading and Technology Internship - Winter 2027",
+      "status": "deadline_oct_16_2026",
+      "facts": [
+        {
+          "claim": "Application deadline October 16, 2026; program begins January 4, 2027 in New York.",
+          "source_url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+          "as_of": "2026-10-12",
+          "source_type": "employer_posting_via_university"
+        }
+      ]
+    },
+    {
+      "route": "PhD Winter Internship - 2027",
+      "status": "deadline_oct_16_2026_reported_secondary",
+      "facts": [
+        {
+          "claim": "Deadline October 16, 2026 and January 4, 2027 start reported by a secondary source; confirm on the official careers page.",
+          "source_url": "https://www.careerglobalconnect.com/2026/09/24/hudson-river-trading-2/",
+          "as_of": "2026-10-12",
+          "source_type": "secondary_aggregator"
+        }
+      ]
+    }
+  ],
+  "hiring_bar_summary": {
+    "text": "Postings frame the bar as exceptional quantitative and programming ability rather than finance knowledge: the winter programs are explicitly built for students without extensive quant-trading experience, while the summer and graduate postings require real programming depth (Python required for Algorithm Development; C++ valued for low-latency work). No GPA cutoff is stated in the postings checked.",
+    "facts": [
+      {
+        "claim": "Algorithm Development Summer 2026 posting: Python experience is a must; C++ is a plus for high-frequency trading interest; exceptional problem-solving is sought.",
+        "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      }
+    ]
+  },
+  "screening_signals": [
+    {
+      "claim": "Demonstrated programming experience; familiarity with C, C++ , Python and/or Rust is preferred in the WiTTI posting.",
+      "source_url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+      "as_of": "2026-10-12",
+      "source_type": "employer_posting_via_university"
+    },
+    {
+      "claim": "Experience with statistical analysis, numerical programming or machine learning in Python (Pandas/NumPy), R and/or MATLAB in the Algorithm Development posting.",
+      "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+      "as_of": "2026-10-12",
+      "source_type": "employer_posting_via_university"
+    }
+  ],
+  "process_stages": [
+    {
+      "stage": "Online application",
+      "description": "Via the official careers / campus postings.",
+      "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "stage": "Assessments and technical interviews",
+      "description": "No official stage-by-stage process was published on the pages checked. Community-reported accounts describe an online coding assessment, technical phone screens and a multi-round final interview focused on coding and problem solving. Labeled anecdotal - not firm policy.",
+      "source_url": "https://www.glassdoor.com/Interview/Hudson-River-Trading-Interview-Questions-E470937.htm?filter.jobTitleExact=Software+Engineer%2FDeveloper",
+      "as_of": "2026-10-12",
+      "source_type": "community_reported"
+    }
+  ],
+  "interview_styles": [
+    {
+      "style": "Technical coding and quantitative problem solving under time pressure",
+      "basis": "community_reported",
+      "note": "Candidate reports only; HRT does not publish an interview format on the pages checked. Do not quote reported problem counts or durations as facts."
+    }
+  ],
+  "values_culture_signals": [
+    {
+      "claim": "Employer text reproduced in the Yale posting describes a scientific approach to trading, openness and transparency, and a community of self-starters - the firm's own framing, not independent evidence.",
+      "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+      "as_of": "2026-10-12",
+      "source_type": "employer_posting_via_university"
+    }
+  ],
+  "hiring_cadence": {
+    "text": "Annual cycle visible in public postings: summer-program and graduate postings listed in early September 2026 for Summer 2027, and winter-program applications closing October 16, 2026 for a January 2027 start.",
+    "facts": [
+      {
+        "claim": "Campus archive postings are dated September 2, 2026.",
+        "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+        "as_of": "2026-10-12",
+        "source_type": "official"
+      },
+      {
+        "claim": "WiTTI recruitment began September 29, 2026 with an October 16, 2026 deadline on the university posting.",
+        "source_url": "https://careerservices.fas.harvard.edu/jobs/hudson-river-trading-new-york-ny-women-in-trading-and-technology-internship-winter-2027/",
+        "as_of": "2026-10-12",
+        "source_type": "employer_posting_via_university"
+      }
+    ]
+  },
+  "compensation_notes": [
+    {
+      "text": "Algorithm Development Internship, Summer 2026 (New York): weekly base salary of $5,800 and a $25,000 signing bonus, plus company-paid housing, meals and other perks - as stated in that year's posting. This is a Summer 2026 figure; it is NOT verified as the Summer 2027 rate.",
+      "source_type": "employer_posting_via_university_career_site",
+      "source_url": "https://ocs.yale.edu/jobs/hudson-river-trading-new-york-ny-algorithm-development-internship-summer-2026-nyc-2/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "text": "PhD Winter Internship 2027: a $5,800 weekly base salary plus company-paid housing and meals was reported by a secondary aggregator. Labeled reported, not official - verify in the official posting.",
+      "source_type": "secondary_aggregator_report",
+      "source_url": "https://www.careerglobalconnect.com/2026/09/24/hudson-river-trading-2/",
+      "as_of": "2026-10-12"
+    },
+    {
+      "text": "No full-time graduate compensation was published in the official archive listings checked; none is claimed.",
+      "source_type": "official_pages_checked_no_figure",
+      "source_url": "https://www.hudsonrivertrading.com/hrtbeat/hrt-filter/campus/",
+      "as_of": "2026-10-12"
+    }
+  ],
+  "referral_weight_notes": {
+    "text": "No reliable public source on referral weight was found in official material. Nothing is claimed.",
+    "basis": "no_source_found"
+  },
+  "red_flags": [
+    "The winter-program deadline (October 16, 2026) is days after this record's as-of date - it is the most time-sensitive window in this record.",
+    "Summer 2026 compensation is widely copied online as if current; the year matters and 2027 terms were not verified.",
+    "No official interview-process page was found - detailed stage counts circulating online are candidate reports."
+  ],
+  "thesis_text": "1. Bottom line: HRT's entry door is narrow in skill terms and wide in background terms: the postings ask for exceptional quantitative thinking and real programming, not finance experience, and the firm runs short winter programs specifically for students who have never touched quant trading. For a strong programmer in a quantitative major, this is one of the more legible quant targets - the work to do is provable coding and probability depth, on a fixed calendar.\n2. Who gets in (sourced, qualitative): Full-time students in quantitative disciplines (math, physics, computer science, statistics or related) for Algorithm Development; software engineering postings are framed around C++ or Python; winter programs target earlier undergraduates (graduating fall 2028 to summer 2030 for WiTTI) and PhD students for the research winter internship.\n3. Stated vs revealed screen: Stated: scientific approach, openness, self-starters, and programming ability as the screen. Revealed: unknown from public data - no sourced cohort distribution exists in this record.\n4. Routes in, ranked: (1) Summer 2027 Algorithm Development or Software Engineering internship if you are near graduation; (2) a winter program (January 2027) if you are earlier in your degree or a PhD student - deadline October 16, 2026; (3) the 2027 graduate postings if you are finishing this year.\n5. Your gap: user-specific - compare school, experience, projects, skills and timing against the sourced signals in this record; no cohort percentages are claimed because no public population sample was available.\n6. Plan: next 30 days - verify the live posting and deadline on the official page and build the role-specific skill evidence named in the posting; this semester - complete one internship, project or program that matches the entry route; this year - apply in the earliest window the firm offers for your graduation date.\n7. Coffee-chat strategy: talk to recent entry-level hires and interns in the exact role family, and ask what the assessments and interviews actually tested and what surprised them.\n8. Timeline and key dates: Winter programs: apply by October 16, 2026, program starts January 4, 2027 in New York. Summer 2027 and 2027-graduate postings were listed September 2, 2026 on the official campus archive.\n9. Risks and alternatives: The risk is preparing generically for big-tech interviews; community reports say HRT's technical bar is harder and more problem-solving-led (anecdotal). Adjacent prop-trading and market-making firms run near-identical calendars and are the natural hedge.\n10. Offer to execute: I can build the target list, tailor the resume to this record, and draft outreach - say the word.",
+  "confidence_level": "curated-qualitative",
+  "known_biases_of_data": [
+    "Official postings and university reproductions show stated requirements and offers, not who is actually hired.",
+    "The strongest compensation evidence is a Summer 2026 posting; carrying it forward would be an assumption, so it is labeled by year.",
+    "Interview detail is community-reported and self-selected."
+  ],
+  "last_verified_at": "2026-10-12"
+}

@@ -23038,9 +23038,9 @@ const CareerTrack = (() => {
     }
     if (!company && msg.company_domain) company = msg.company_domain;
     for (const re of NOISE_RULES) if (re.test(text) || re.test(fromLc)) return { message_id: msg.id || null, class: "marketing_noise", is_signal: false, decision: false, company, reasons: ["matches no-signal marketing pattern (Doc 2 7.2: noise never moves a stage)"] };
-    for (const [cls, re] of SIGNAL_RULES) if (re.test(text)) {
+    for (const [cls, re] of SIGNAL_RULES) if (re.test(text) || (cls === "recruiter_other" && /\b(recruiter|talent team|hiring team|careers team)\b/.test(fromLc))) {
       const decision = ["rejection", "offer"].includes(cls);
-      return { message_id: msg.id || null, class: cls, is_signal: true, decision, company, reasons: [`matched ${cls} pattern`] };
+      return { message_id: msg.id || null, class: cls, is_signal: true, decision, company, reasons: [`matched ${cls} pattern${re.test(text) ? "" : " (sender is a recruiter/hiring address)"}`] };
     }
     return { message_id: msg.id || null, class: "unknown", is_signal: false, decision: false, company, reasons: ["no signal pattern matched — treated as no-signal"] };
   }
@@ -23064,8 +23064,13 @@ const CareerTrack = (() => {
       out.calendar_event = { title: `Interview — ${app.company} (${app.role})`, company: app.company, app_id: app.app_id, source_message: msg.id || null, status: "attached-to-application (calendar rail seam)", prep: "prep triggered (F09 seam)" };
       app.events.push({ type: "calendar_event_attached", at: new Date(now).toISOString(), source: "inbox", detail: out.calendar_event.title, evidence: msg.id || null });
     }
-    if (cls.class === "oa_invite") { // SC-071: agent NEVER takes the assessment (Doc 2 5.3)
+    if (cls.class === "oa_invite") { // SC-071/SC-126: agent NEVER takes it; a dated message sets the deadline + queues prep
+      const dl = extractMessageDate(msg); if (dl && !app.assessment_deadline) app.assessment_deadline = dl;
       out.assessment = handleAssessment(app, msg, now);
+    }
+    if (cls.class === "offer") { // SC-127: intake starts on arrival; a dated letter starts the expiry clock
+      const dl = extractMessageDate(msg); if (dl && !app.offer_deadline) app.offer_deadline = dl;
+      out.offer_intake = { started: true, at: new Date(now).toISOString(), company: app.company, offer_deadline: app.offer_deadline || null, expiry_clock_started: !!app.offer_deadline, next: "offer intake: read terms, start deadline countdown, prep decision card (128-career-negotiation seam)" };
     }
     if (cls.class === "rejection") out.pattern_note = rejectionAnalysis(store, opts).headline;
     return out;
@@ -23074,7 +23079,7 @@ const CareerTrack = (() => {
     return { confirmation: `${app.company}: application confirmed.`, rejection: `${app.company} rejected this application — see the pattern note and plan.`, oa_invite: `${app.company} sent an online assessment. I can schedule, remind and prep — I do not take assessments.`, interview_invite: `${app.company} invited you to interview. Prep triggered.`, offer: `${app.company} sent an offer. Deadline tracking is on.`, recruiter_other: `${app.company} recruiter emailed.` }[cls] || `${app.company}: new signal.`;
   }
   function handleAssessment(app, msg, now) {
-    return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], company: app.company, deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
+    return { will_take: false, statement: "I will not take this assessment for you — that would be dishonest and can get candidates banned (Doc 2 5.3).", actions: ["schedule a sitting time", "remind before the deadline", "offer prep"], prep_pack_queued: true, company: app.company, deadline: app.assessment_deadline || null, received_at: new Date(now || Date.now()).toISOString(), source_message: msg && msg.id || null };
   }
 
   // ---------- quiet period / ghosted (SC-067/068) ----------
@@ -23082,7 +23087,7 @@ const CareerTrack = (() => {
     opts = opts || {}; const now = opts.now || Date.now();
     const nudgeAfter = opts.nudgeAfterDays != null ? opts.nudgeAfterDays : NUDGE_AFTER_DAYS;
     const ghostAfter = opts.ghostAfterDays != null ? opts.ghostAfterDays : GHOST_AFTER_DAYS;
-    return rowsOf(store).filter((r) => ["Submitted", "Confirmed", "Recruiter screen"].includes(r.stage)).map((r) => {
+    return rowsOf(store).filter((r) => ["Submitted", "Confirmed", "Recruiter screen", "Final"].includes(r.stage)).map((r) => {
       const days = daysBetween(lastSignalAt(r), now);
       return { company: r.company, role: r.role, stage: r.stage, days_quiet: days, last_signal_at: new Date(lastSignalAt(r)).toISOString(), nudge_due: days >= nudgeAfter, ghosted: days >= ghostAfter, state: days >= ghostAfter ? "ghosted" : days >= nudgeAfter ? "nudge_due" : "within_window" };
     }).sort((a, b) => b.days_quiet - a.days_quiet);
@@ -23105,10 +23110,32 @@ const CareerTrack = (() => {
     opts = opts || {}; const now = opts.now || Date.now();
     const iv = (app.events || []).filter((e) => /interview/.test(e.type)).slice(-1)[0];
     const hours = iv ? Math.max(0, Math.round((now - Date.parse(iv.at)) / 3600000)) : null;
+    const note = opts.note ? s(opts.note) : null; // SC-129: the user's one-line note, carried verbatim
     return { kind: "thank_you", company: app.company, role: app.role, requires_approval: true, sends: false, within_24h: hours != null ? hours <= 24 : null, hours_since_interview: hours,
       subject: `Thank you — ${app.role} interview`,
-      body: `Hello ${app.company} team,\n\nThank you for speaking with me about the ${app.role} role. I enjoyed the conversation and am even more interested in the team.\n\nBest regards,\nAlex Testcase (TEST)`,
-      basis: { interview_event_at: iv ? iv.at : null, stage: app.stage } };
+      body: `Hello ${app.company} team,\n\nThank you for speaking with me about the ${app.role} role. I enjoyed the conversation and am even more interested in the team.${note ? `\n\nOne thing that stayed with me: ${note}.` : ""}\n\nBest regards,\nAlex Testcase (TEST)`,
+      basis: { interview_event_at: iv ? iv.at : null, stage: app.stage, user_note: note } };
+  }
+  // SC-125: response to an ambiguous recruiter reply — drafted, never sent without the user's yes.
+  function draftRecruiterReply(app, classification, opts) {
+    opts = opts || {};
+    return { kind: "recruiter_reply", company: app.company, role: app.role, requires_approval: true, sends: false,
+      classification: classification ? classification.class : "unknown", ambiguity: "no decision stated in the message — the draft asks for the timeline/next step rather than assuming one",
+      subject: `Re: ${app.role} application`,
+      body: `Hello ${app.company} team,\n\nThank you for the update on my ${app.role} application. I remain very interested in the role. Could you share the expected timeline and next step on your side? Happy to find a time next week for a quick chat if that helps.\n\nBest regards,\nAlex Testcase (TEST)`,
+      basis: { stage: app.stage, message_id: classification ? classification.message_id : null } };
+  }
+  // SC-139: options once an application is labeled Ghosted.
+  function ghostedOptions(store, company, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const app = findByCompany(store, company);
+    if (!app) return { found: false, company };
+    // Quiet clock runs from the last EXTERNAL signal — the system's own 'ghosted' label event must not reset it.
+    const evs = (app.events || []).filter((e) => e.type !== "applied" && e.type !== "ghosted");
+    const last = evs.length ? Date.parse(evs[evs.length - 1].at) : Date.parse(app.applied_at);
+    const days = daysBetween(last, now);
+    return { found: true, company: app.company, label: app.stage === "Ghosted" || days >= GHOST_AFTER_DAYS ? "Ghosted" : app.stage, days_quiet: days, stage: app.stage,
+      options: ["Send one final, short nudge (draft on a card — your yes before it sends)", "Keep the relationship warm: thank-you/reconnect note to your contact there, no application pressure", "Close it in the log and put the hours into live applications; reapply only after the cooldown window"] };
   }
 
   // ---------- digest (SC-065/075) ----------
@@ -23128,6 +23155,22 @@ const CareerTrack = (() => {
     const counts = { total_applications: rows.length, sent_last_7d: sent7, responses_last_7d: responses7, active_interviews: interviews, rejections_last_7d: rejections7, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
     const text = `Weekly digest: ${counts.sent_last_7d} sent this week, ${counts.responses_last_7d} responses, ${counts.active_interviews} in interview stages, ${counts.rejections_last_7d} rejections this week. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`;
     return { counts, next_actions: next, text, generated_at: new Date(now).toISOString() };
+  }
+  // SC-131: daily digest — same log math over a 24h window, for an active application week.
+  function dailyDigest(store, opts) {
+    opts = opts || {}; const now = opts.now || Date.now(); const since = now - DAY;
+    const rows = rowsOf(store);
+    let sent24 = 0, responses24 = 0, rejections24 = 0; const next = [];
+    for (const r of rows) {
+      if (Date.parse(r.applied_at) >= since) sent24++;
+      const evs = (r.events || []).filter((e) => Date.parse(e.at) >= since);
+      if (evs.some((e) => ["confirmation", "rejection", "oa_invite", "interview_invite", "offer", "manual_update"].includes(e.type))) responses24++;
+      if (evs.some((e) => e.type === "rejection")) rejections24++;
+    }
+    for (const q of quietReport(store, { now })) if (q.nudge_due) next.push(`nudge ${q.company} (${q.days_quiet} days quiet)`);
+    for (const d of deadlineRadar(store, [], { now, withinDays: 7 })) next.push(`${d.kind} ${d.company || d.label}: ${d.date} (${d.days_away} days)`);
+    const counts = { total_applications: rows.length, sent_last_24h: sent24, responses_last_24h: responses24, rejections_last_24h: rejections24, active_interviews: rows.filter((r) => ["Interview rounds", "Final"].includes(r.stage)).length, open: rows.filter((r) => !TERMINAL.includes(r.stage)).length };
+    return { window_hours: 24, counts, next_actions: next, text: `Daily digest: ${sent24} sent in the last 24h, ${responses24} responses, ${counts.active_interviews} in interview stages, ${rejections24} rejections. Open: ${counts.open} of ${counts.total_applications}. Next: ${next.length ? next.join("; ") : "nothing due"}.`, generated_at: new Date(now).toISOString() };
   }
   // Quiet hours: low-priority (digest, nudge reminders) batch to 07:00; critical fire immediately.
   function planDelivery(item, at) {
@@ -23164,6 +23207,17 @@ const CareerTrack = (() => {
     }
     const overall = groupStats(rows, () => "all").all;
     return { total: rows.length, overall, by_version, by_family, by_source, claims };
+  }
+  // SC-132: kill the losing resume version — from the log's rows only; a version needs >=3 rows
+  // to be killable, and it is killed only when another eligible version really out-responds it.
+  function resumeVersionVerdict(store) {
+    const by = funnelAnalytics(store).by_version;
+    const eligible = Object.entries(by).filter(([, g]) => g.n >= 3);
+    const sorted = eligible.slice().sort((a, b) => a[1].response_rate - b[1].response_rate || a[1].interview_rate - b[1].interview_rate);
+    const worst = sorted[0], best = sorted[sorted.length - 1];
+    const killed = worst && best && worst[0] !== best[0] && worst[1].response_rate < best[1].response_rate ? worst[0] : null;
+    return { killed, kept: Object.keys(by).filter((v) => v !== killed), basis: by,
+      reason: killed ? `${killed} response rate ${worst[1].response_rate} over ${worst[1].n} applications is the lowest of versions with >=3 rows; best eligible is ${best[0]} at ${best[1].response_rate}. Killed = stop sending it; log rows are kept.` : "no version killed: needs >=3 rows per version and a real response-rate difference in your own log" };
   }
   function rejectionAnalysis(store) {
     const rows = rowsOf(store);
@@ -23206,6 +23260,26 @@ const CareerTrack = (() => {
     for (const q of quietReport(store, { now })) if (q.nudge_due) items.push({ kind: "follow_up_due", company: q.company, label: `${q.company} follow-up due (${q.days_quiet} days quiet)`, date: isoDay(now), days_away: 0, source: "application log" });
     items.push(...extractCirDeadlines(cirs, now));
     return items.filter((i) => i.days_away >= -1 && i.days_away <= within).sort((a, b) => a.days_away - b.days_away || a.date.localeCompare(b.date));
+  }
+  // First explicit calendar date in a message ("October 18, 2026" or 2026-10-18), as a noon-UTC ISO.
+  function extractMessageDate(msg) {
+    const text = `${s(msg && msg.subject)}\n${s(msg && msg.body)}`;
+    const iso = text.match(/\b(20\d\d)-(0[1-9]|1[0-2])-([0-3]\d)\b/); if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}T12:00:00Z`;
+    const m = text.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(20\d\d)/i);
+    if (m) return `${m[3]}-${String(MONTHS[lc(m[1])] + 1).padStart(2, "0")}-${String(Number(m[2])).padStart(2, "0")}T12:00:00Z`;
+    return null;
+  }
+  // SC-134: inside 5 days an expiring offer escalates DAILY until the user decides.
+  function offerEscalation(store, company, opts) {
+    opts = opts || {}; const now = opts.now || Date.now();
+    const c = offerCountdown(store, company, { now });
+    if (!c.found || c.days_left == null) return { found: !!c.found, company, days_left: null, escalates_daily: false, schedule: [], stops_when: "user_decides" };
+    const deadline = Date.parse(c.offer_deadline);
+    const schedule = [];
+    if (c.days_left <= 5) for (let t = now + DAY; t <= deadline; t += DAY) schedule.push({ date: isoDay(t), kind: "offer_expiry_escalation", company: c.company });
+    else for (const d of [7, 3, 1]) if (c.days_left >= d) schedule.push({ date: isoDay(deadline - d * DAY), kind: "offer_expiry_alert", company: c.company });
+    if (c.days_left <= 5 && !schedule.length) schedule.push({ date: isoDay(deadline), kind: "offer_expiry_escalation", company: c.company });
+    return { found: true, company: c.company, offer_deadline: c.offer_deadline, days_left: c.days_left, escalates_daily: c.days_left <= 5, schedule, stops_when: "user_decides", note: "Escalation stops only when the user accepts, declines, or negotiates an extension — silence never decides." };
   }
   function offerCountdown(store, company, opts) {
     opts = opts || {}; const now = opts.now || Date.now();
@@ -23275,9 +23349,9 @@ const CareerTrack = (() => {
     createMemoryStore, rowsOf, addApplication, findByCompany, moveStage, manualUpdate,
     statusSummary, statusByCompany, timeline, lastSignalAt,
     classifyMessage, ingestMessage, handleAssessment,
-    quietReport, markGhosted, draftNudge, draftThankYou,
-    weeklyDigest, planDelivery, funnelAnalytics, rejectionAnalysis,
-    deadlineRadar, extractCirDeadlines, offerCountdown,
+    quietReport, markGhosted, draftNudge, draftThankYou, draftRecruiterReply, ghostedOptions,
+    weeklyDigest, dailyDigest, planDelivery, funnelAnalytics, rejectionAnalysis, resumeVersionVerdict,
+    deadlineRadar, extractCirDeadlines, offerCountdown, offerEscalation, extractMessageDate,
     duplicateCheck, reapplyCheck, withdrawalDrafts, confirmWithdrawals, seedTestLog };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerTrack;

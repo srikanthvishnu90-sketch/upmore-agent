@@ -1,0 +1,10 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-136", "two-interviews-one-day");
+  s.user("Two interviews in one day Thursday — Datadog 10am and Ramp 2pm. Handle prep order and schedule sanity");
+  const bD = P.composeBrief({ cir: cir("datadog.json"), company: "Datadog", role: "Software Engineering Intern" });
+  const bR = P.composeBrief({ cir: cir("ramp.json"), company: "Ramp", role: "Software Engineering Intern" });
+  const plan = P.twoInterviewPlan([{ time: "14:00", company: "Ramp", brief: bR }, { time: "10:00", company: "Datadog", brief: bD }]);
+  s.tool("127-career-prep.twoInterviewPlan", plan);
+  s.agent(`Prep order (chronological, not the order you listed them): ${plan.ordered.map((o)=>`${o.order}. ${o.time} ${o.company}`).join("; ")}. Schedule sanity: ${plan.gap_plan}`, { card: { title: "Two interviews, one day (TEST)", ordered: plan.ordered, gap_plan: plan.gap_plan } });
+  s.verify("plan re-orders the two interviews by time, both briefs CIR-grounded, and a concrete between-interviews gap plan is produced", { ordered: plan.ordered, brief_statuses: [bD.status, bR.status] });
+  await s.finish({ status: plan.ordered[0].company==="Datadog" && plan.ordered.length===2 ? "COMPLETE" : "LEARN", outcome: "Two Thursday interviews ordered Datadog 10am → Ramp 2pm with a reset/buffer gap plan between them." }); })();

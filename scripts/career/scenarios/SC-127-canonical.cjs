@@ -1,0 +1,12 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-127", "offer-letter-intake-expiry");
+  const store = T.createMemoryStore([]); T.addApplication(store, { company: "Ramp", role: "Software Engineering Intern", role_family: "SWE", applied_at: "2026-10-02T12:00:00Z", resume_version: "swe-v2", source: "cold", stage: "Final" }, { now: NOW });
+  s.user("[TEST inbox event] An offer letter from Ramp arrived by email — respond by October 16, 2026");
+  const offMsg = { id: "TEST-msg-offer-ramp-d1", company: "Ramp", from: "recruiting@ramp.example.test", subject: "Your offer letter — Ramp (TEST)", body: "We are pleased to offer you the Software Engineering Intern role. Please respond by October 16, 2026.", at: "2026-10-12T09:00:00Z" };
+  const r = T.ingestMessage(store, offMsg, { now: NOW });
+  s.tool("126-career-track.ingestMessage(offer)", r);
+  const cd = T.offerCountdown(store, "Ramp", { now: NOW }); s.tool("126-career-track.offerCountdown", cd);
+  s.agent(`Offer intake started: Ramp → Offer. Expiry clock started from the letter's own date — deadline ${cd.offer_deadline}, ${cd.days_left} days left. Next in intake: ${r.offer_intake.next}`, { card: { title: "Offer intake (TEST)", company: "Ramp", stage_after: r.stage_after, offer_intake: r.offer_intake, days_left: cd.days_left } });
+  const app = T.findByCompany(store, "Ramp");
+  s.verify("stage Offer, offer_deadline stored from the letter, intake record started with the expiry clock on, countdown recomputed from the stored date", { stage: app.stage, deadline: app.offer_deadline, intake_started: r.offer_intake && r.offer_intake.started, clock: r.offer_intake && r.offer_intake.expiry_clock_started, days_left: cd.days_left });
+  await s.finish({ status: app.stage==="Offer" && cd.days_left===4 ? "COMPLETE" : "LEARN", outcome: "Offer letter by email (TEST fixture): intake started, Ramp moved to Offer, expiry clock running — 4 days to Oct 16." }); })();

@@ -1,0 +1,16 @@
+"use strict"; const { T, P, H, msg, cir, NOW } = require("./d1-common.cjs");
+(async () => { const s = H.session("SC-125", "ambiguous-recruiter-reply");
+  const store = T.seedTestLog();
+  const ambig = { id: "TEST-msg-ambig-ramp", company: "Ramp", from: "recruiter@ramp.example.test", subject: "Re: your Ramp application (TEST)", body: "Thanks for speaking with us. The team is still reviewing and no decision yet — could you share a few times next week that work for a quick chat?", at: "2026-10-12T10:00:00Z" };
+  s.user("[TEST inbox event] A recruiter reply from Ramp landed but it's ambiguous — what is it and what do I say?");
+  const before = T.findByCompany(store, "Ramp").stage;
+  const r = T.ingestMessage(store, ambig, { now: NOW });
+  s.tool("126-career-track.ingestMessage(ambiguous recruiter reply)", r);
+  const d = T.draftRecruiterReply(T.findByCompany(store, "Ramp"), r.classification, { now: NOW });
+  s.tool("126-career-track.draftRecruiterReply", d);
+  s.agent(`Classified: ${r.classification.class} — a real recruiter signal, but no decision is stated, so I did NOT move the stage (still ${before}) and I won't guess. Draft response (asks for timeline/next step, offers times):\n\n${d.body}\n\nNothing is sent until you say yes.`, { card: { title: "Approval card — recruiter reply (TEST)", kind: d.kind, requires_approval: d.requires_approval, sends: d.sends, subject: d.subject } });
+  s.user("yes — send that draft");
+  s.agent("Approved by you — the draft above is the exact text released to send. (In this TEST run the draft record stays sends:false; your yes is the gate that was missing before it.)");
+  const after = T.findByCompany(store, "Ramp").stage;
+  s.verify("classification is recruiter_other via the recruiter sender, linked to Ramp, stage unchanged, draft approval-gated with sends:false before the yes", { cls: r.classification.class, linked: r.linked, moved: r.moved, before, after, requires_approval: d.requires_approval, sends: d.sends });
+  await s.finish({ status: r.classification.class==="recruiter_other" && !r.moved && d.requires_approval && !d.sends ? "COMPLETE" : "LEARN", outcome: "Ambiguous recruiter reply (TEST fixture) classified recruiter_other, no stage guessed, response drafted and held for the user's yes." }); })();

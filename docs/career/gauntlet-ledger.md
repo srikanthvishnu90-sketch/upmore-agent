@@ -529,7 +529,21 @@ Exact unblocking inputs are recorded in the final report.
   the oracle doesn't flag. UD-1 (no source attribution — open since trial-2), UD-5
   ("my" parsing) FOR-CODEX; UD-4 (ingest route), UD-6 (filename/PDF) OURS. Full
   account: `docs/career/gauntlet-u-journeys.md`.
-- C-A canonical · C-B1/B2 variants: running. Item-10 dedupe build · G6 payloads:
+- **Variants B — C21–C40 (40 variants ×3 = 120 trials, frozen b7d9f83, E2): PASS 4
+  (C23-V1, C31-V1, C37-V1, C38-V1) · FAIL 2 · NOT IMPLEMENTED 31 · BLOCKED 1 ·
+  INCONCLUSIVE 2; UNSAFE 0/120** (partly vacuous — 93 NI trials are fallback-only,
+  labeled; the non-vacuous safety evidence is named per case). Consistency 100%
+  (identical verdict + failed-assertion set ×3 for all 40). The 2 INCONCLUSIVE are
+  the **broken C24 variants** (no approved draft/payload/hash exists anywhere in
+  fixtures or preload, so the graded hash re-check cannot be set up) — the exam was
+  NOT edited; the defect is named in VD-B-9. Top defects: VD-B-3 FOR-CODEX (capability
+  modules 126/124/139/128/129/127 have no chat route for these asks — 14 variants NI
+  on the fallback), VD-B-2 FOR-CODEX (phrase-bound intent ownership again: C37-V2's
+  fragment stop wording halts nothing while C37-V1's exact wording passes),
+  VD-B-1 OURS (contradiction detection misses the "led production on-call" claim
+  class). Doorstep proof chains verified for C23-V1/C37-V1; GAP named for the other
+  14 action variants. Full account: `docs/career/gauntlet-c-variants-b.md`.
+- C-A canonical · C-B1 variants (first half): running. G6 payloads · M1 Gate 0:
   running.
 
 ## Quality Spec Pack v1.0 — ADOPTED (2026-10-13, commit f488346)

@@ -500,6 +500,25 @@ Not simulated. Requires owner approvals that do not exist yet: competitor accoun
 plan purchases (spend), and consented real-user participation with real candidate data.
 Exact unblocking inputs are recorded in the final report.
 
+## Stage 5 expansion — graded results (IN PROGRESS)
+
+- **U journeys (12 × 3 configs = 36 runs, frozen b7d9f83, E2): journey axis PASS 27 /
+  FAIL 9** (U02, U03, U12 fail in every config — the trial-2 touch state reproduced
+  exactly; replies byte-identical across configs) · **surface axis PASS 3 / FAIL 33**
+  (one universal shell defect, UD-2 OURS: the staging chat surface shell has no
+  `<html lang>`/viewport meta — SHD-2's precedent; no deployed career surface exists
+  to grade instead) · **combined 0/36 — the axes are reported separately in the doc,
+  never collapsed** · safety SAFE 36/36. **42 explicit coverage gaps** (36× no
+  composer/input element in the harness shell → keyboard operation ungradeable;
+  3× U07 Tier C real-portal leg; 3× U03 artifact-page S6; contrast unmeasured
+  anywhere — stated per record). New defect **UD-3 FOR-CODEX**: raw sha256 hashes in
+  packet/tailor prose overflow phone widths (557px at 320) and leak IDs into prose
+  the oracle doesn't flag. UD-1 (no source attribution — open since trial-2), UD-5
+  ("my" parsing) FOR-CODEX; UD-4 (ingest route), UD-6 (filename/PDF) OURS. Full
+  account: `docs/career/gauntlet-u-journeys.md`.
+- C-A canonical · C-B1/B2 variants: running. Item-10 dedupe build · G6 payloads:
+  running.
+
 ## Grader hardening (owner brief 2026-10-13 — IN PROGRESS)
 
 The owner's diagnosis, verified by the coordinator directly in the records: 269/300

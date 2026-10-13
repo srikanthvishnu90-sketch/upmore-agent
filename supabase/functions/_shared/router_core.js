@@ -22138,7 +22138,122 @@ const CareerOutreach = (() => {
     return { A: counts.A, B: counts.B, C: counts.C, total: (selected || []).length, text: `Tier mix: ${counts.A} A / ${counts.B} B / ${counts.C} C of ${(selected || []).length}. Tier C has no sourced personalization fact — hold it back?` };
   }
 
-  return { CAPS, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
+
+  // ---------- W02 EXTENSIONS (merged at integration from career/sc-w02) ----------
+  function bookFromReply(reply, contact, opts) {
+      opts = opts || {}; const calendar = opts.calendar; if (!calendar || typeof calendar.createEvent !== "function") return { ok: false, reason: "NOT_WIRED: no injected calendar" };
+      const body = String((reply && reply.body) || "");
+      const DAYS = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 };
+      const found = []; const low = body.toLowerCase();
+      for (const k of Object.keys(DAYS)) { const re = new RegExp("\\b" + k + "\\b"); if (re.test(low) && !found.includes(DAYS[k])) found.push(DAYS[k]); }
+      const tm = body.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+      if (!found.length || !tm) return { ok: false, reason: "no_weekday_or_time_offered", found_days: found };
+      let hh = Number(tm[1]) % 12; if (/pm/i.test(tm[3])) hh += 12; const mm = Number(tm[2] || 0);
+      const tz = /(\bET\b|eastern)/i.test(body) ? "America/New_York" : (opts.tz || "America/New_York");
+      const nowMs = opts.nowMs || Date.now(); const duration = (opts.durationMin || 30) * 60000;
+      const busy = (calendar.freeBusy || []).map((b) => ({ s: Date.parse(b.start), e: Date.parse(b.end) }));
+      const proposed = [];
+      for (let d = 1; d <= 14 && proposed.length < found.length + 2; d++) {
+        const probe = new Date(nowMs + d * 86400000);
+        const [y, mo, da] = localDateInTz(probe.getTime(), tz).split("-").map(Number);
+        if (!found.includes(new Date(Date.UTC(y, mo - 1, da)).getUTCDay())) continue;
+        const startIso = zonedTimeToUtc(y, mo, da, hh, mm, tz); const s = Date.parse(startIso), e = s + duration;
+        const clash = busy.some((b) => s < b.e && e > b.s) || (calendar.events || []).some((ev) => s < Date.parse(ev.end) && e > Date.parse(ev.start));
+        proposed.push({ start: startIso, end: new Date(e).toISOString(), tz, free: !clash });
+      }
+      const slot = proposed.find((p) => p.free);
+      if (!slot) return { ok: false, reason: "all_offered_slots_busy", proposed };
+      const event = calendar.createEvent({ title: `Coffee chat — ${(contact && contact.full_name) || "contact"}`, start: slot.start, end: slot.end, attendees: [contact && (contact.work_email || contact.email)].filter(Boolean), timezone: tz, source: "bookFromReply" });
+      return { ok: true, proposed, booked: event, card: { type: "booking", title: "Book this coffee chat?", start: slot.start, end: slot.end, timezone: tz, contact: (contact && contact.full_name) || null } };
+    }
+  function monitorHealth(campaign) {
+      const m = campaignMetrics({ campaign });
+      const breaker = evaluateBreaker(campaign);
+      const attempted = campaign.wave.sent + campaign.wave.bounces; // wave.sent counts successes only; bounce % is over attempted sends
+      return { status: campaign.status, sent: campaign.wave.sent, bounces: campaign.wave.bounces, attempted,
+        bounce_pct: attempted ? Math.round(1000 * campaign.wave.bounces / attempted) / 10 : 0,
+        breaker_tripped: !!breaker.tripped, breaker_cause: breaker.cause || null, metrics: m };
+    }
+  function reconcileBounceDomains(campaign) {
+      const items = campaign.items || [];
+      const attempted = items.filter((i) => i.status === "sent" || i.status === "bounced");
+      const bounced = items.filter((i) => i.status === "bounced");
+      const byDomain = {}, byPattern = {};
+      for (const i of attempted) { const d = i.domain || emailDomain(i.email) || "unknown"; byDomain[d] = byDomain[d] || { attempted: 0, bounced: 0 }; byDomain[d].attempted++; if (i.status === "bounced") byDomain[d].bounced++; }
+      for (const i of bounced) { const p = (i.candidate && i.candidate.email_pattern) || "unknown_pattern"; byPattern[p] = (byPattern[p] || 0) + 1; }
+      let dominantDomain = null, dominantPattern = null;
+      for (const d of Object.keys(byDomain)) if (!dominantDomain || byDomain[d].bounced > byDomain[dominantDomain].bounced) dominantDomain = d;
+      for (const p of Object.keys(byPattern)) if (!dominantPattern || byPattern[p] > byPattern[dominantPattern]) dominantPattern = p;
+      const domShare = bounced.length && dominantDomain ? Math.round(1000 * byDomain[dominantDomain].bounced / bounced.length) / 10 : 0;
+      const patShare = bounced.length && dominantPattern ? Math.round(1000 * byPattern[dominantPattern] / bounced.length) / 10 : 0;
+      const queuedAffected = items.filter((i) => i.status === "queued" && dominantPattern && ((i.candidate || {}).email_pattern === dominantPattern)).length;
+      const diagnosis = bounced.length === 0 ? "no_bounces" :
+        (patShare >= 50 ? `Dominant pattern error: ${patShare}% of bounces use email pattern '${dominantPattern}' (top domain ${dominantDomain}, ${domShare}% of bounces) — the pattern, not the list, is wrong.` :
+          `Bounces are spread across domains/patterns (top domain ${dominantDomain} ${domShare}%, top pattern '${dominantPattern}' ${patShare}%) — no single pattern error dominates.`);
+      return { attempted: attempted.length, bounced: bounced.length,
+        bounce_pct: attempted.length ? Math.round(1000 * bounced.length / attempted.length) / 10 : 0,
+        by_domain: byDomain, by_pattern: byPattern, dominant_domain: dominantDomain, dominant_pattern: dominantPattern,
+        dominant_domain_share_pct: domShare, dominant_pattern_share_pct: patShare, diagnosis,
+        fix: patShare >= 50 ? { action: "correct_email_pattern_for_unsent_and_reverify", pattern_from: dominantPattern, queued_affected: queuedAffected } : { action: "manual_review", queued_affected: queuedAffected } };
+    }
+  function runFollowUps(campaign, opts) {
+      opts = opts || {};
+      if (campaign.followups_closed) return { ok: false, reason: "followups_closed_forever", followups: [] };
+      if (!opts.continueTap && !campaign.followups_continue_tap) return { ok: false, needs_continue_tap: true, followups: [] };
+      if (opts.continueTap) campaign.followups_continue_tap = true;
+      const responders = new Set(opts.responders || []);
+      const touch = opts.touch != null ? opts.touch : 1;
+      const final = !!opts.final || touch >= CAPS.perPersonMaxFollowUps;
+      const excluded = { responders: 0, bounced: 0, suppressed: 0, wrong_touch: 0 };
+      const entries = [];
+      for (const item of campaign.items.filter((i) => i.status === "sent" && i.touch === touch - 1)) {
+        const pid = item.person_id || item.email;
+        if (responders.has(pid) || responders.has(item.email)) { excluded.responders++; continue; }
+        if (opts.suppression && opts.suppression.isSuppressed({ email: item.email, person_id: item.person_id }, campaign.userId)) { excluded.suppressed++; continue; }
+        const first = ((item.candidate || {}).full_name || "").split(/\s+/)[0] || "there";
+        const origSubject = item.draft ? item.draft.subject : "Coffee chat";
+        const body = final
+          ? `Hi ${first},\n\nI'll close the loop on my note — no need to reply. If a chat about ${(item.candidate || {}).current_firm || "your firm"} is ever useful, I'm around. Wishing you well.\n\n${OPT_OUT_LINE}\n\nThanks`
+          : `Hi ${first},\n\nA different angle on my note below: I just finished a project modeling a company in your coverage area, and your group's approach came up in it — that's the specific thing I wanted to ask about (15 minutes, whenever suits).\n\n${OPT_OUT_LINE}\n\nThanks`;
+        entries.push({ candidate: item.candidate, draft: { subject: `Re: ${origSubject}`, body, tier: item.tier || null, threaded: true, in_reply_to: item.message_id || item.idempotencyKey }, touch });
+      }
+      for (const item of campaign.items.filter((i) => i.status === "bounced" && i.touch === touch - 1)) excluded.bounced++;
+      const queued = enqueue(campaign, entries, { suppression: opts.suppression, continueTap: true, isFollowUp: true });
+      const followups = queued.filter((q) => q.status === "queued");
+      if (final) { campaign.followups_closed = true; campaign.closed_persons = followups.map((f) => f.person_id || f.email); }
+      return { ok: true, final, touch, followups, excluded, stopped_forever: final ? followups.map((f) => f.person_id || f.email) : [] };
+    }
+  function scheduleCampaign(campaign, opts) { return planWave(campaign, opts); }
+  function seedGate(state) {
+      const bad = Object.entries(state.results || {}).filter(([, v]) => v.placement !== "inbox");
+      const missing = ["gmail", "outlook", "yahoo"].filter((p) => !(state.results || {})[p]);
+      return { ok: missing.length === 0 && bad.length === 0, missing, non_inbox: bad.map(([p, v]) => ({ provider: p, placement: v.placement })),
+        reason: missing.length ? "seed_results_missing" : bad.length ? "seed_placement_not_inbox" : "all_providers_inbox" };
+    }
+  function setSeedResults(state, results) {
+      for (const r of results || []) state.results[String(r.provider).toLowerCase()] = { placement: r.placement, at: r.at || null };
+      state.complete = ["gmail", "outlook", "yahoo"].every((p) => state.results[p]);
+      return state;
+    }
+
+  // ---------- W02 EXTENSIONS part 2 (merged at integration) ----------
+  function createSeedTest() { return { results: {}, complete: false }; }
+  function learnVoice(samples) {
+      const bodies = (samples || []).map((x) => typeof x === "string" ? x : (x && x.body) || "").filter(Boolean);
+      const words = bodies.join(" ").split(/\s+/).filter(Boolean);
+      const sentences = bodies.join(" ").split(/[.!?]+/).map((x) => x.trim()).filter(Boolean);
+      const greetings = bodies.map((b) => (b.trim().split("\n")[0] || "").replace(/,.*$/, "").trim());
+      const signoffs = bodies.map((b) => { const m = b.match(/\n\s*(best|thanks|thank you|cheers|—|-)\s*[,.]?\s*$/im); return m ? m[1].toLowerCase() : null; }).filter(Boolean);
+      const contractions = (bodies.join(" ").match(/\b\w+'\w+\b/g) || []).length;
+      const avgWords = bodies.length ? Math.round(words.length / bodies.length) : 0;
+      const avgSentence = sentences.length ? Math.round(10 * words.length / sentences.length) / 10 : 0;
+      const formality = contractions > bodies.length * 2 || /^(hi|hey)\b/i.test(greetings.join(" ")) ? 0.25 : 0.5;
+      return { sample_count: bodies.length, avg_words: avgWords, avg_sentence_words: avgSentence,
+        greeting_style: greetings[0] || null, greetings, sign_off_style: signoffs[0] || null,
+        contractions_per_email: bodies.length ? Math.round(10 * contractions / bodies.length) / 10 : 0,
+        voice: { formality, warmth: 0.6, humor: 0, directness: avgSentence && avgSentence <= 14 ? 0.85 : 0.6, plain_student_voice: true } };
+    }
+  return { CAPS, createSeedTest, learnVoice, bookFromReply, monitorHealth, reconcileBounceDomains, runFollowUps, scheduleCampaign, seedGate, setSeedResults, OPT_OUT_LINE, BANNED_PHRASES, EU_UK_COUNTRIES, FIRM_SETS, isEuUk, parseTarget,
     applyListOps, safetyPlan, safetyPlanText, honestYield, suppressionReport, dailyDigest, closeOut, backfillFromReserve, tierMix,
     normalizeCandidate, resolveCandidates, scoreCandidate, buildList, listReviewCard, rankContacts, warmPaths, relationshipMemory,
     createLocalVerifier, createVerifier, EMAIL_RE,

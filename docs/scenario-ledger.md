@@ -181,36 +181,36 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-173 | Referrals & Warm Paths | Alumni in a different city than the role — warmth ranked honestly, not inflated | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-174 | Referrals & Warm Paths | Same person found in three sources — merged to one record, never double-sent | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
 | SC-175 | Referrals & Warm Paths | "Get me referred at Datadog" — end to end: path, ask, referral submitted, tracked | T-07, T-26, T-27, T-73, T-98 | COMPLETE |
-| SC-176 | Interview Prep | Night-before brief for my Stripe interview: company, role, team signals, bar |  | COMPLETE |
-| SC-177 | Interview Prep | Question bank for this round, my best story matched to each question |  | COMPLETE |
-| SC-178 | Interview Prep | Full text mock: behavioral round, scored feedback at the end |  | COMPLETE |
-| SC-179 | Interview Prep | Voice mock: same loop by voice, scored the same way |  | COMPLETE |
-| SC-180 | Interview Prep | STAR bank: my real experiences mined into 8 reusable stories |  | COMPLETE |
-| SC-181 | Interview Prep | Interviewer research: the 3 people on my calendar invite — paths, teams, shared ground |  | LEARN |
-| SC-182 | Interview Prep | Coffee-chat prep brief: who, their path, 3 talking points, 5 sharp questions, what not to ask |  | LEARN |
-| SC-183 | Interview Prep | SWE coding prep set matched to this company's known interview style |  | LEARN |
-| SC-184 | Interview Prep | System-design prep for an experienced-hire round |  | LEARN |
-| SC-185 | Interview Prep | Case prep plan for MBB: the 30–50 case norm, labeled community-reported, scheduled |  | LEARN |
-| SC-186 | Interview Prep | Quant prep: probability, mental math, market-making game drills |  | LEARN |
-| SC-187 | Interview Prep | Bank technicals drill: three statements, DCF, comps, LBO basics — tested, gaps named |  | LEARN |
-| SC-188 | Interview Prep | PM prep: product sense through my shipped thing, metrics ready |  | LEARN |
-| SC-189 | Interview Prep | Debrief captured right after the interview; thank-you drafted and sent on my yes |  | LEARN |
-| SC-190 | Interview Prep | "What do I say in a coffee chat with a Palantir FDE?" — the full brief |  | LEARN |
-| SC-191 | Interview Prep | Video-interview practice: record answers, feedback on content (never submitted for me) |  | LEARN |
-| SC-192 | Interview Prep | Take-home plan: scope and schedule — the work stays mine |  | LEARN |
-| SC-193 | Interview Prep | Final-round prep: what actually changes versus earlier rounds here |  | LEARN |
-| SC-194 | Interview Prep | Deflection scripts for salary talk inside interviews — don't anchor early |  | LEARN |
-| SC-195 | Interview Prep | Questions-to-ask-them, tailored to the interviewer's actual team |  | LEARN |
-| SC-196 | Interview Prep | No failure story in my bank — build one from a real setback |  | LEARN |
-| SC-197 | Interview Prep | Mock scored low on structure — drill the exact fix, then re-mock |  | LEARN |
-| SC-198 | Interview Prep | Day-of checklist: logistics, links, tech check, materials |  | LEARN |
-| SC-199 | Interview Prep | Post-rejection retro: what my debriefs say I keep missing |  | LEARN |
-| SC-200 | Interview Prep | Superday survival plan for a banking final round |  | LEARN |
-| SC-201 | Interview Prep | Research-talk prep for a PhD / research role |  | COMPLETE |
-| SC-202 | Interview Prep | Teaching-demo prep for an academic role |  | COMPLETE |
-| SC-203 | Interview Prep | Portfolio walkthrough prep for a design interview |  | COMPLETE |
-| SC-204 | Interview Prep | Hiring-manager round: deeper team and roadmap brief |  | COMPLETE |
-| SC-205 | Interview Prep | Panel with a bar-raiser-style interviewer: prep for the hardest questioner |  | COMPLETE |
+| SC-176 | Interview Prep | Night-before brief for my Stripe interview: company, role, team signals, bar | T-61, T-24 | COMPLETE |
+| SC-177 | Interview Prep | Question bank for this round, my best story matched to each question | T-16, T-59 | COMPLETE |
+| SC-178 | Interview Prep | Full text mock: behavioral round, scored feedback at the end | T-59 | COMPLETE |
+| SC-179 | Interview Prep | Voice mock: same loop by voice, scored the same way | T-60 | COMPLETE |
+| SC-180 | Interview Prep | STAR bank: my real experiences mined into 8 reusable stories | T-16 | COMPLETE |
+| SC-181 | Interview Prep | Interviewer research: the 3 people on my calendar invite — paths, teams, shared ground | T-61 | COMPLETE |
+| SC-182 | Interview Prep | Coffee-chat prep brief: who, their path, 3 talking points, 5 sharp questions, what not to ask | T-65, T-24 | COMPLETE |
+| SC-183 | Interview Prep | SWE coding prep set matched to this company's known interview style | T-62 | COMPLETE |
+| SC-184 | Interview Prep | System-design prep for an experienced-hire round | T-62 | COMPLETE |
+| SC-185 | Interview Prep | Case prep plan for MBB: the 30–50 case norm, labeled community-reported, scheduled | T-62 | COMPLETE |
+| SC-186 | Interview Prep | Quant prep: probability, mental math, market-making game drills | T-62 | COMPLETE |
+| SC-187 | Interview Prep | Bank technicals drill: three statements, DCF, comps, LBO basics — tested, gaps named | T-62 | COMPLETE |
+| SC-188 | Interview Prep | PM prep: product sense through my shipped thing, metrics ready | T-62 | COMPLETE |
+| SC-189 | Interview Prep | Debrief captured right after the interview; thank-you drafted and sent on my yes | T-63, T-99 | COMPLETE |
+| SC-190 | Interview Prep | "What do I say in a coffee chat with a Palantir FDE?" — the full brief | T-65, T-24 | COMPLETE |
+| SC-191 | Interview Prep | Video-interview practice: record answers, feedback on content (never submitted for me) | T-59 | COMPLETE |
+| SC-192 | Interview Prep | Take-home plan: scope and schedule — the work stays mine | T-62 | COMPLETE |
+| SC-193 | Interview Prep | Final-round prep: what actually changes versus earlier rounds here | T-16 | COMPLETE |
+| SC-194 | Interview Prep | Deflection scripts for salary talk inside interviews — don't anchor early | T-59 | COMPLETE |
+| SC-195 | Interview Prep | Questions-to-ask-them, tailored to the interviewer's actual team | T-61 | COMPLETE |
+| SC-196 | Interview Prep | No failure story in my bank — build one from a real setback | T-16 | LEARN |
+| SC-197 | Interview Prep | Mock scored low on structure — drill the exact fix, then re-mock | T-59 | COMPLETE |
+| SC-198 | Interview Prep | Day-of checklist: logistics, links, tech check, materials | T-61 | COMPLETE |
+| SC-199 | Interview Prep | Post-rejection retro: what my debriefs say I keep missing | T-63 | COMPLETE |
+| SC-200 | Interview Prep | Superday survival plan for a banking final round | T-61 | COMPLETE |
+| SC-201 | Interview Prep | Research-talk prep for a PhD / research role | T-62 | COMPLETE |
+| SC-202 | Interview Prep | Teaching-demo prep for an academic role | T-62 | COMPLETE |
+| SC-203 | Interview Prep | Portfolio walkthrough prep for a design interview | T-62 | COMPLETE |
+| SC-204 | Interview Prep | Hiring-manager round: deeper team and roadmap brief | T-61 | COMPLETE |
+| SC-205 | Interview Prep | Panel with a bar-raiser-style interviewer: prep for the hardest questioner | T-61 | COMPLETE |
 | SC-206 | Negotiation | Offer intake: my offer letter parsed into the log — base, equity, bonus, benefits, start, expiry | T-46, T-52, T-64 | COMPLETE |
 | SC-207 | Negotiation | Benchmark this offer against the market for role, level, city — sources shown | T-46, T-52, T-64 | COMPLETE |
 | SC-208 | Negotiation | Counter scripts: word-for-word email and call versions; nothing sends without my yes | T-46, T-52, T-64 | COMPLETE |
@@ -247,9 +247,9 @@ Worker slices (15 x 20, consecutive): W1 SC-001-020 - W2 SC-021-040 - W3 SC-041-
 | SC-239 | Intelligence & Honest Advice | Startup entry — the build-or-sell proof route | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-240 | Intelligence & Honest Advice | Government / intel path — clearance timelines and citizenship rules, honestly | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-241 | Intelligence & Honest Advice | "I have a 3.0 and no internship. Any hope?" — pick the right game; a real plan | T-05, T-06, T-47..T-58 | COMPLETE |
-| SC-242 | Intelligence & Honest Advice | "Will AI take my job?" — evidence and uncertainty, no fluff either direction | T-05, T-06, T-47..T-58 | LEARN |
-| SC-243 | Intelligence & Honest Advice | "Should I go to grad school?" — ROI framework for my field | T-05, T-06, T-47..T-58 | LEARN |
-| SC-244 | Intelligence & Honest Advice | "Which major should I pick?" — answered from population data at my target companies | T-05, T-06, T-47..T-58 | LEARN |
+| SC-242 | Intelligence & Honest Advice | "Will AI take my job?" — evidence and uncertainty, no fluff either direction | T-05, T-06, T-47..T-58 | COMPLETE |
+| SC-243 | Intelligence & Honest Advice | "Should I go to grad school?" — ROI framework for my field | T-05, T-06, T-47..T-58 | COMPLETE |
+| SC-244 | Intelligence & Honest Advice | "Which major should I pick?" — answered from population data at my target companies | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-245 | Intelligence & Honest Advice | International student realism — sponsors identified from H-1B filing data; cap-exempt options | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-246 | Intelligence & Honest Advice | Career switcher at 32 — transferable map and where switchers actually win | T-05, T-06, T-47..T-58 | COMPLETE |
 | SC-247 | Intelligence & Honest Advice | "Compare my profile to the average Stripe hire" — table, gaps, plan | T-05, T-06, T-47..T-58 | COMPLETE |

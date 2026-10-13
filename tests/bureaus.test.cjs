@@ -159,3 +159,10 @@ test("C205 follow-up: a bureau confirmation records against the child's case", (
   assert.match(a.text, /TransUnion: complete a letter/);
   assert.match(a.text, /Equifax — confirmation recorded/);
 });
+
+test("C205 adversarial: a 16/17-year-old is routed to the direct freeze, under-16 stays mail", () => {
+  const teen = B.minorFreezePlan({ first_name: "Sam", age: 17 }, { bureaus: [] });
+  assert.match(teen.text, /places the freeze directly/);
+  const young = B.minorFreezePlan({ first_name: "Sam", age: 9 }, { bureaus: [] });
+  assert.match(young.text, /protected consumer freeze/);
+});

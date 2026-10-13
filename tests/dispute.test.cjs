@@ -159,3 +159,24 @@ test('"a charge I don\'t recognize" names no merchant: the charges to pick from,
   }
   assert.equal(D.answer('dispute the lyft charge', ROWS, { today: TODAY }).kind, 'none', 'a merchant the person does not have is still not found');
 });
+
+test('K7 regression: the C77 Say line itself fires — an unrecognized charge, or "fight it" about a charge', () => {
+  for (const t of ["There's an $84 charge from some vendor I don't recognize. Fight it.", "there's a charge from peptira i don't recognize", "i don't recognize this charge", "fight it, that $302.40 charge", "fight this charge"]) assert.ok(D.isDisputeAsk(t), t);
+  for (const t of ["fight it out with my landlord", "i don't recognize this song", "what is a chargeback", "any update on my dispute"]) assert.equal(D.isDisputeAsk(t), false, t);
+  const rows = [row('9', '2026-09-16', -30240, 'PEPTIRA 402-5550199 NE 09/15'), row('10', '2026-09-17', -2799, 'PEPTIRA 402-5550199 NE 09/15')];
+  const a = D.answer("There's a $302.40 charge from Peptira I don't recognize. Fight it.", rows, { today: TODAY });
+  assert.equal(a.kind, 'draft');
+  assert.equal(a.charge.provider_transaction_id, 'MOCK-9');
+});
+
+test('K7 regression: a real descriptor tail (phone run, state code, MM/DD) is not part of the merchant name', () => {
+  assert.equal(D.merchantName('PEPTIRA 402-5550199 NE 09/15'), 'Peptira');
+  assert.equal(D.merchantName('STREAMFLIX*PREMIUM'), 'Streamflix');
+  assert.equal(D.merchantName('TRADER JOES #552'), 'Trader Joes');
+  assert.equal(D.merchantName('HOTEL LUTETIA PARIS'), 'Hotel Lutetia Paris');
+  const rows = [row('9', '2026-09-16', -30240, 'PEPTIRA 402-5550199 NE 09/15')];
+  const a = D.answer('dispute the peptira charge', rows, { today: TODAY });
+  assert.match(a.text, /^Here's a dispute for the Peptira charge/);
+  assert.match(a.text, /Step 1, ask Peptira for a refund/);
+  assert.doesNotMatch(a.text, /Peptira 402/);
+});

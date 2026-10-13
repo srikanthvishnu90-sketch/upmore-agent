@@ -2417,12 +2417,15 @@
    "implementation": [
     "packages/domain/54-agent-money.js",
     "packages/domain/62-agent-documents.js",
-    "packages/domain/63-agent-surfaces.js"
+    "packages/domain/63-agent-surfaces.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
     "tests/documents.test.cjs",
     "tests/money.test.cjs",
-    "tests/surfaces.test.cjs"
+    "tests/surfaces.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true
   },
@@ -2481,10 +2484,13 @@
    "gate": "the request needs a yes",
    "failure": "Fee found; the reversal request is NOT_WIRED at <bank>.",
    "implementation": [
-    "packages/domain/41-agent-recovery.js"
+    "packages/domain/41-agent-recovery.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
-    "tests/recovery.test.cjs"
+    "tests/recovery.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true
   },
@@ -2995,11 +3001,14 @@
    "failure": "Account opening is NOT_WIRED; here are the offers and the requirement tracker.",
    "implementation": [
     "packages/domain/44-agent-earn.js",
-    "packages/domain/63-agent-surfaces.js"
+    "packages/domain/63-agent-surfaces.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
     "tests/earn.test.cjs",
-    "tests/surfaces.test.cjs"
+    "tests/surfaces.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -3093,10 +3102,13 @@
    "gate": "accepting an offer or cancelling needs a yes",
    "failure": "Retention channel is NOT_WIRED; here is the script and the fee-vs-benefit math.",
    "implementation": [
-    "packages/domain/57-agent-ledger.js"
+    "packages/domain/57-agent-ledger.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
-    "tests/ledger.test.cjs"
+    "tests/ledger.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -4377,11 +4389,13 @@
    "failure": "Card lock is NOT_WIRED at <issuer>; lock it in the app now, then I file.",
    "implementation": [
     "packages/domain/59-agent-alerts.js",
-    "packages/domain/63-agent-surfaces.js"
+    "packages/domain/63-agent-surfaces.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
     "tests/alerts.test.cjs",
-    "tests/surfaces.test.cjs"
+    "tests/surfaces.test.cjs",
+    "tests/bank-actions.test.cjs"
    ],
    "writes": true
   },
@@ -5187,10 +5201,13 @@
    "gate": "accepting any concession needs a yes",
    "failure": "Issuer support channel is NOT_WIRED; here is the script.",
    "implementation": [
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true,
    "execution_gap": {
@@ -6128,11 +6145,14 @@
    "failure": "Issuer closure is NOT_WIRED.",
    "implementation": [
     "packages/domain/51-connectors.js",
-    "packages/domain/61-agent-credit.js"
+    "packages/domain/61-agent-credit.js",
+    "packages/domain/118-bank-actions.js"
    ],
    "tests": [
     "tests/connectors.test.cjs",
-    "tests/credit.test.cjs"
+    "tests/credit.test.cjs",
+    "tests/bank-actions.test.cjs",
+    "tests/edge/bank-actions.test.ts"
    ],
    "writes": true
   },

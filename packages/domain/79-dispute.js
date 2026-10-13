@@ -21,6 +21,13 @@
     const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     const ASK = /\b(?:disput(?:e|es|ed|ing)|charge[- ]?backs?|wrong charges?|(?:didn'?t|did not|never|have not|haven'?t|havent) authori[sz]e[ds]?|unauthori[sz]ed (?:charges?|transactions?|payments?|purchases?)|(?:was|is|were|are|looks?) unauthori[sz]ed|refund (?:this|that|the|my) (?:charge|payment|transaction))\b/i;
+    // The capability's own Say line (C77: "There's an $84 charge from some vendor I don't recognize. Fight it.")
+    // names no dispute word: an unrecognized charge, or "fight it" said about a charge, is the same ask. A
+    // question about disputes in general still goes to the model (GENERAL below), and "fight" about anything
+    // that is not a charge or an amount is not this path.
+    const UNRECOGNIZED = /\bcharg(?:e|ed)\b[^.?!]*\b(?:don'?t|do not|didn'?t|did not|can'?t|cannot|never)\s+(?:recognize|recognise|remember|know)\b|\b(?:don'?t|do not|didn'?t|did not|can'?t|cannot|never)\s+(?:recognize|recognise|remember|know)\b[^.?!]*\bcharg(?:e|ed)\b/i;
+    const FIGHT = /\bfight (?:it|this|that)\b/i;
+    const CHARGE_WORD = /\bcharg(?:e|ed|es|ing)\b|\$\s?\d/i;
     // A question about disputes in general, or about one already opened, is for the model, not a draft.
     const GENERAL = /^\s*(?:what(?:'s| is| are| does)|explain|define|tell me (?:about|what))\b|\bmy (?:open |last |old )?(?:dispute|chargeback)s?\b|\b(?:status|update) (?:of|on) (?:the |my )?(?:dispute|chargeback)/i;
     const LAST = /\b(?:the |my )?(?:last|latest|most recent|newest)\b(?: one| charge| payment| transaction)?/i;
@@ -50,12 +57,19 @@
       raw = label(raw);
       let s = String(raw || "").split(/[*#]/)[0].replace(/\.(?:com|net|org|co)\b/ig, "").replace(/[\s\d\-_.]+$/, "").trim();
       if (!s) s = String(raw || "").trim();
+      // Real statement descriptors carry tails the name should not: a phone-like digit run, a two-letter
+      // state code, the charge's own MM/DD date ("PEPTIRA 402-5550199 NE 09/15" is Peptira). Drop trailing
+      // tokens of those shapes, never the last remaining token, and never a word token.
+      const tokens = s.split(/\s+/);
+      while (tokens.length > 1 && /^(?:\d[\d\-/.]*|[a-z]{2})$/i.test(tokens[tokens.length - 1])) tokens.pop();
+      s = tokens.join(" ");
       return s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
     }
 
     function isDisputeAsk(text) {
       const t = String(text || "");
-      return ASK.test(t) && !GENERAL.test(t);
+      if (GENERAL.test(t)) return false;
+      return ASK.test(t) || UNRECOGNIZED.test(t) || (FIGHT.test(t) && CHARGE_WORD.test(t));
     }
 
     // What the person said about the charge: an amount, a date, "the last one", and the leftover words that may name

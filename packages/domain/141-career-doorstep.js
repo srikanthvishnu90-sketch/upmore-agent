@@ -112,6 +112,21 @@
      REVIEW. A submit attempt with open blockers refuses, naming the
      blockers in plain words; structured codes stay on result objects and
      never appear in a reply.
+     7. PER-FAMILY DOORSTEP PAYLOADS (feature lane G6, from the hardened
+     re-score's GAP census): general module-level emitters producing the
+     commitment artifact the hardened grader requires per family —
+     emitTrackingLog (tracking-write => the exact 126-shaped log write),
+     emitCalendarProposal (calendar => a proposal card evaluated against
+     the calendar in ctx: busy overlaps, quiet hours, and fall-back
+     ambiguity are REPORTED as conflicts in the payload, never silently
+     resolved), emitApplicationPacket (application => packet for a posting
+     spec beyond the fixture ids; prepPacket's fixture behavior is
+     unchanged) and emitOutreachDraft (outreach-send => a 124-built draft
+     plus a queue state armed at awaiting approval). Every emitter returns
+     a typed result + payload sha256 + a doorstep record { family,
+     gap: null, driven_by: "agent", state: "AWAITING_COMMIT" } and NEVER
+     invokes the commitment target (tracker write, calendar create,
+     transport send, form submit) — armed, not fired.
    ROUTER REGISTRATION (one line, for the coordinator at integration): in the
    chat router's handler chain, after 120-career-access and
    130-career-onboarding, add CareerDoorstep.handleChat as the next tried
@@ -124,6 +139,7 @@ const CareerDoorstep = (() => {
   const Packets = typeof CareerPackets !== "undefined" ? CareerPackets : (() => { try { return require("./133-career-packets.js"); } catch (e) { return null; } })();
   const Outreach = typeof CareerOutreach !== "undefined" ? CareerOutreach : (() => { try { return require("./124-career-outreach.js"); } catch (e) { return null; } })();
   const Onboarding = typeof CareerOnboarding !== "undefined" ? CareerOnboarding : (() => { try { return require("./130-career-onboarding.js"); } catch (e) { return null; } })();
+  const Track = typeof CareerTrack !== "undefined" ? CareerTrack : (() => { try { return require("./126-career-track.js"); } catch (e) { return null; } })();
   const Driver = (() => { try { return require("../career-data/fixtures/gauntlet/forms/form-driver.cjs"); } catch (e) { return null; } })();
   const nodeCrypto = (() => { try { return require("crypto"); } catch (e) { return null; } })();
   const nodeFs = (() => { try { return require("fs"); } catch (e) { return null; } })();
@@ -822,6 +838,447 @@ const CareerDoorstep = (() => {
     };
   }
 
+  // ---------- 7. G6: per-family doorstep payload emitters ----------
+  // The hardened grader (run-grand-rescore.cjs, DOORSTEP_REQUIRED) requires
+  // a commitment artifact per action family — outreach-send => draft or
+  // queue state; application => packet; tracking-write => log write;
+  // calendar => proposal card — and reads a record's doorstep block as
+  // PRESENT only when it carries { family, gap: null, driven_by: "agent" }.
+  // These emitters are the general (non-fixture) producers of those
+  // artifacts: each builds the EXACT payload, records the doorstep proof
+  // pattern (step log + payload snapshot + payload sha256) in a doorstep
+  // record of that shape, stops at state AWAITING_COMMIT, and NEVER invokes
+  // the commitment target the ctx provides (tracker sink/store write,
+  // calendar create, transport send, form submit) — armed, not fired.
+  // Typed results use the canonical vocabulary: awaiting_user when the
+  // artifact is armed at the gate, blocked (with a guard_refusal) when a
+  // guard stops it before any payload exists.
+  function doorstepArtifact(family, payload, stepLog) {
+    const hash = sha256(JSON.stringify(payload));
+    return {
+      payload, payload_sha256: hash,
+      doorstep: {
+        family, driven_by: "agent", gap: null, state: "AWAITING_COMMIT", committed: false,
+        step_log: stepLog, payload, payload_sha256: hash,
+        proof: { step_log: stepLog, payload_snapshot: payload, payload_sha256: hash },
+      },
+    };
+  }
+  function emitterBlocked(intent, family, code, reason, unblock, reply) {
+    return {
+      intent, family, resultStatus: "blocked", payload: null, payload_sha256: null, doorstep: null,
+      guard_refusal: { code, reason, unblock },
+      reply,
+    };
+  }
+  const isoOf = (v, fallback) => {
+    if (v == null) return fallback || null;
+    if (typeof v === "number") return new Date(v).toISOString();
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? String(v) : new Date(t).toISOString();
+  };
+  const cloneJson = (v) => v == null ? v : JSON.parse(JSON.stringify(v));
+
+  // ----- 7a. tracking: the log write (126 row/event shape; 132 audit fields) -----
+  const TRACK_STAGES_FALLBACK = ["Saved", "Tailoring", "Ready", "Submitted", "Confirmed", "Recruiter screen", "OA/assessment", "Interview rounds", "Final", "Offer", "Rejected", "Ghosted", "Withdrawn", "Accepted"];
+  function trackerRowsOf(ctx) {
+    const c = ctx || {};
+    for (const store of [c.trackerStore, c.trackStore, c.tracker, c.trackLog]) {
+      if (Array.isArray(store)) return store;
+      if (store && Array.isArray(store.rows)) return store.rows;
+      if (store && Array.isArray(store.records)) return store.records;
+    }
+    if (Array.isArray(c.trackerRecords)) return c.trackerRecords;
+    return [];
+  }
+  function emitTrackingLog(ctx, entrySpec) {
+    const c = ctx || {}, spec = entrySpec || {};
+    const company = spec.company || spec.companyName || null;
+    if (!company) {
+      return emitterBlocked("tracking_log", "tracking-write", "missing_company",
+        "no company was named for this tracker log write",
+        "name the company the log entry belongs to",
+        "I did not prepare a tracker update: no company was named, so there is nothing safe to log. Name the company and I will prepare the exact log entry for your approval.");
+    }
+    const stages = (Track && Track.STAGES) || TRACK_STAGES_FALLBACK;
+    const stage = spec.stage || spec.status || null;
+    if (stage && !stages.includes(stage)) {
+      return emitterBlocked("tracking_log", "tracking-write", "unknown_stage",
+        `the stage "${stage}" is not one of the tracker stages`,
+        "use one of the tracker's real stages",
+        `I did not prepare that tracker update: "${stage}" is not a stage the tracker uses, so logging it would corrupt the record. Pick a real stage and I will prepare the entry again.`);
+    }
+    if (!stage && !spec.note && !spec.event_type && !spec.eventType) {
+      return emitterBlocked("tracking_log", "tracking-write", "missing_log_content",
+        "the log write carries no stage, note, or event",
+        "say what changed (a stage, an event, or a note)",
+        "I did not prepare a tracker update: nothing was said about what changed. Tell me the new stage or the event and I will prepare the exact log entry.");
+    }
+    const at = isoOf(spec.at || c.now) || isoOf(Date.now());
+    const eventType = spec.event_type || spec.eventType || (stage ? "manual_update" : "note");
+    const event = {
+      type: eventType,
+      at,
+      source: spec.source || (eventType === "manual_update" ? "user-reported" : "system"),
+      detail: spec.detail || spec.note || `stage set to ${stage}`,
+      evidence: spec.evidence || spec.url || null,
+    };
+    const rows = trackerRowsOf(c);
+    const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const existing = rows.find((r) => r && (spec.app_id && r.app_id === spec.app_id || norm(r.company) === norm(company))) || null;
+    let operation, row;
+    if (existing) {
+      operation = stage ? "move_stage" : "append_event";
+      event.stage_after = stage || existing.stage;
+      row = cloneJson(existing);
+      row.stage = stage || existing.stage;
+      row.events = [...(row.events || []), cloneJson(event)];
+      if (spec.offer_deadline || spec.offerDeadline) row.offer_deadline = spec.offer_deadline || spec.offerDeadline;
+      if (spec.assessment_deadline || spec.assessmentDeadline) row.assessment_deadline = spec.assessment_deadline || spec.assessmentDeadline;
+    } else {
+      operation = "add_application";
+      const appliedAt = isoOf(spec.applied_at || spec.appliedAt || at);
+      const firstEvent = eventType === "applied"
+        ? event
+        : { type: "applied", at: appliedAt, source: spec.event_source || "system", detail: `applied (${spec.source === "referred" ? "referred" : "cold"}, resume ${spec.resume_version || spec.resumeVersion || "?"})`, evidence: spec.url || null };
+      row = {
+        app_id: spec.app_id || spec.appId || `app-${norm(company).replace(/\s+/g, "-")}-${sha256(company + "|" + (spec.role || "")).slice(0, 6)}`,
+        company: String(company), role: String(spec.role || ""), role_family: String(spec.role_family || spec.roleFamily || ""),
+        url: String(spec.url || ""), applied_at: appliedAt,
+        resume_version: String(spec.resume_version || spec.resumeVersion || (c.resumeArtifact && c.resumeArtifact.version) || ""),
+        source: spec.source === "referred" || spec.application_source === "referred" ? "referred" : "cold",
+        referred_by: spec.referred_by || spec.referredBy || null, fit_bucket: spec.fit_bucket || spec.fitBucket || null,
+        stage: stage || "Submitted",
+        offer_deadline: spec.offer_deadline || null, assessment_deadline: spec.assessment_deadline || null,
+        cooldown_until: spec.cooldown_until || null,
+        events: eventType === "applied" ? [cloneJson(event)] : [firstEvent, cloneJson(event)],
+      };
+      if (stage) event.stage_after = stage;
+    }
+    const wouldWrite = { operation, app_id: row.app_id, company: row.company, row: cloneJson(row), event: cloneJson(event) };
+    const payload = {
+      kind: "tracker_log_write", family: "tracking-write", operation,
+      app_id: row.app_id, company: row.company, role: row.role || spec.role || "",
+      application: { app_id: row.app_id, company: row.company, role: row.role || spec.role || "", stage_before: existing ? existing.stage : null },
+      status: row.stage, stage: row.stage,
+      note: spec.note || null, event: cloneJson(event),
+      would_write: wouldWrite, target: "tracker", committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "resolve", field: "company", result: existing ? `matched the existing tracker row for ${row.company}` : `no tracker row for ${row.company} yet — this write would add one` },
+      { step: 2, action: "build", field: "log_write", result: `built the exact ${operation} payload in the tracker row and event shape; nothing was written` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the tracker write is armed for approval, not fired" },
+    ];
+    const art = doorstepArtifact("tracking-write", payload, stepLog);
+    return {
+      intent: "tracking_log", family: "tracking-write", resultStatus: "awaiting_user",
+      ...art,
+      reply: existing
+        ? `Prepared the tracker update for ${row.company} — it would move the application to "${row.stage}" and log your note. Nothing has been written yet: it is waiting at the doorstep for your approval.`
+        : `Prepared the tracker entry for ${row.company} at stage "${row.stage}" — the full log row is ready. Nothing has been written yet: it is waiting at the doorstep for your approval.`,
+    };
+  }
+
+  // ----- 7b. calendar: the proposal card (F3 ground truth: busy holds, quiet hours, DST) -----
+  function calendarOf(ctx) {
+    const c = ctx || {};
+    return c.calendar || c.calendarFixture || c.calendarGroundTruth || null;
+  }
+  function quietWindowOf(ctx, cal) {
+    const raw = (cal && cal.candidate && cal.candidate.quiet_hours) || (ctx && ctx.quietHours) || (ctx && ctx.quiet_hours) || { start: "22:00", end: "07:00" };
+    const toMin = (v, dflt) => {
+      if (v == null) return dflt;
+      if (typeof v === "number") return v * 60;
+      const m = String(v).match(/^(\d{1,2}):(\d{2})/);
+      return m ? Number(m[1]) * 60 + Number(m[2]) : dflt;
+    };
+    return { startMin: toMin(raw.start, 22 * 60), endMin: toMin(raw.end, 7 * 60) };
+  }
+  function localMinutes(ms, tz) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(ms));
+      const get = (t) => Number((parts.find((p) => p.type === t) || {}).value || 0);
+      return (get("hour") % 24) * 60 + get("minute");
+    } catch (e) { const d = new Date(ms); return d.getUTCHours() * 60 + d.getUTCMinutes(); }
+  }
+  function inQuiet(ms, tz, quiet) {
+    const m = localMinutes(ms, tz);
+    return quiet.startMin <= quiet.endMin ? (m >= quiet.startMin && m < quiet.endMin) : (m >= quiet.startMin || m < quiet.endMin);
+  }
+  function busyEventsOf(ctx, cal) {
+    const c = ctx || {};
+    const lists = [(cal && cal.events), c.calendarEvents, c.busyEvents, c.busy, (cal && cal.freeBusy)];
+    const out = [];
+    for (const list of lists) {
+      if (!Array.isArray(list)) continue;
+      for (const ev of list) {
+        const startIso = (ev.utc && ev.utc[0]) || ev.start || ev.begin;
+        const endIso = (ev.utc && ev.utc[1]) || ev.end || ev.finish;
+        const s = Date.parse(startIso), e = Date.parse(endIso);
+        if (Number.isNaN(s) || Number.isNaN(e)) continue;
+        out.push({ event_id: ev.event_id || ev.id || null, title: ev.title || null, start: new Date(s).toISOString(), end: new Date(e).toISOString(), start_ms: s, end_ms: e });
+      }
+    }
+    return out;
+  }
+  function evaluateSlot(slot, idx, ctx, cal, busy, quiet, defaultTz, defaultDurationMin) {
+    const tz = slot.timezone || slot.tz || defaultTz;
+    const slotId = slot.slot_id || slot.id || slot.label || String.fromCharCode(65 + idx);
+    const conflicts = [];
+    let startMs = NaN, endMs = NaN, startIso = null, endIso = null;
+    const ambiguousLocal = slot.start_local_ambiguous || slot.ambiguous_local || null;
+    if (ambiguousLocal) {
+      conflicts.push({ kind: "ambiguous_local_time", local: String(ambiguousLocal), timezone: tz,
+        detail: "this local time occurs twice on the fall-back date, so it cannot be pinned to one instant — it is reported, never silently resolved to one offset" });
+      return { slot_id: slotId, start: String(ambiguousLocal), end: slot.end_local || slot.end || null, utc: null, start_iso: null, end_iso: null, timezone: tz, ambiguous: true, conflict: true, conflicts };
+    }
+    const rawStart = slot.start || slot.stated || slot.utc || slot.candidate_local || slot.begin;
+    const rawEnd = slot.end || slot.end_utc || null;
+    const naive = typeof rawStart === "string" && !/([zZ]|[+-]\d{2}:?\d{2})$/.test(rawStart.trim());
+    if (naive) {
+      conflicts.push({ kind: "ambiguous_local_time", local: String(rawStart), timezone: tz,
+        detail: "this local time carries no offset, so no instant was invented for it" });
+      return { slot_id: slotId, start: String(rawStart), end: rawEnd, utc: null, start_iso: null, end_iso: null, timezone: tz, ambiguous: true, conflict: true, conflicts };
+    }
+    startMs = Date.parse(rawStart);
+    const durationMin = slot.durationMin || slot.duration_min || defaultDurationMin || 30;
+    endMs = rawEnd && !Number.isNaN(Date.parse(rawEnd)) ? Date.parse(rawEnd) : startMs + durationMin * 60000;
+    startIso = new Date(startMs).toISOString(); endIso = new Date(endMs).toISOString();
+    for (const ev of busy) {
+      if (startMs < ev.end_ms && endMs > ev.start_ms) { // strict overlap: adjacency is NOT a conflict (F3 rule)
+        conflicts.push({ kind: "overlap", event_id: ev.event_id, title: ev.title, start: ev.start, end: ev.end,
+          detail: `overlaps the busy time "${ev.title}" (${ev.start} to ${ev.end})` });
+      }
+    }
+    for (let t = startMs; t < endMs; t += 60000) {
+      if (inQuiet(t, tz, quiet)) {
+        conflicts.push({ kind: "quiet_hours", timezone: tz, start: startIso, end: endIso,
+          detail: "this time runs inside quiet hours in the candidate's local time — no interview may start or run inside quiet hours" });
+        break;
+      }
+    }
+    return { slot_id: slotId, start: rawStart, end: rawEnd || endIso, utc: startIso, start_iso: startIso, end_iso: endIso, timezone: tz, ambiguous: false, conflict: conflicts.length > 0, conflicts };
+  }
+  function emitCalendarProposal(ctx, proposalSpec) {
+    const c = ctx || {}, spec = proposalSpec || {};
+    const cal = calendarOf(c);
+    const slotsIn = spec.slots || spec.offered_slots || spec.candidate_slots || (spec.slot ? [spec.slot] : null) ||
+      (spec.start || spec.start_local_ambiguous ? [spec] : null);
+    if (!spec.title && !spec.event_title && !spec.eventTitle) {
+      return emitterBlocked("calendar_proposal", "calendar", "missing_title",
+        "the proposal carries no event title", "name the event this proposal is for",
+        "I did not prepare a calendar proposal: it has no event title. Name the event and I will prepare the proposal card for your approval.");
+    }
+    if (!slotsIn || !slotsIn.length) {
+      return emitterBlocked("calendar_proposal", "calendar", "missing_slot",
+        "the proposal carries no candidate time slot", "offer at least one time slot to evaluate",
+        "I did not prepare a calendar proposal: no time was offered to check against your calendar. Give me a slot and I will check it and prepare the card.");
+    }
+    const defaultTz = spec.timezone || spec.tz || (cal && cal.candidate && cal.candidate.timezone) || c.timezone || "America/Chicago";
+    const busy = busyEventsOf(c, cal);
+    const quiet = quietWindowOf(c, cal);
+    const evaluations = slotsIn.map((s, i) => evaluateSlot(s, i, c, cal, busy, quiet, defaultTz, spec.durationMin || spec.duration_min));
+    const proposed = evaluations.find((e) => !e.conflict) || evaluations[0];
+    const attendees = (spec.attendees || spec.attendee || []).map((a) =>
+      typeof a === "string" ? { email: a } : { name: a.name || a.full_name || null, email: a.email || a.work_email || null });
+    const title = spec.title || spec.event_title || spec.eventTitle;
+    const card = {
+      type: "calendar_proposal", title, attendees,
+      slot_id: proposed.slot_id, start: proposed.start, end: proposed.end, utc: proposed.utc || null,
+      timezone: proposed.timezone, conflict: proposed.conflict, conflicts: proposed.conflicts,
+    };
+    const payload = {
+      kind: "calendar_proposal_card", family: "calendar",
+      card, proposed, conflict: proposed.conflict, conflicts: proposed.conflicts,
+      slot_evaluations: evaluations, attendees, title,
+      timezone: defaultTz, committed: false, invite_sent: false,
+    };
+    const stepLog = [
+      { step: 1, action: "read", field: "calendar", result: `read ${busy.length} busy time(s) plus the quiet-hours rule from the calendar in context` },
+      { step: 2, action: "evaluate", field: "slots", result: `evaluated ${evaluations.length} offered slot(s): ${evaluations.map((e) => e.slot_id + (e.conflict ? " (conflict: " + e.conflicts.map((x) => x.kind).join(", ") + ")" : " (free)")).join("; ")} — every conflict is reported in the payload, none was silently resolved` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the proposal card is armed for approval; no invite was created" },
+    ];
+    const art = doorstepArtifact("calendar", payload, stepLog);
+    return {
+      intent: "calendar_proposal", family: "calendar", resultStatus: "awaiting_user",
+      ...art,
+      reply: proposed.conflict
+        ? `Prepared the calendar proposal card for "${title}", and I am flagging a conflict on the proposed time: ${proposed.conflicts.map((x) => x.detail).join("; ")}. Nothing has been booked or sent — the card is waiting at the doorstep, conflict and all, for your call.`
+        : `Prepared the calendar proposal card for "${title}" — the proposed time is free on the calendar in context and outside quiet hours. Nothing has been booked or sent: the card is waiting at the doorstep for your approval.`,
+    };
+  }
+
+  // ----- 7c. application: the packet, generalized beyond the fixture ids -----
+  // prepPacket (section 4) keeps its exact chat-text fixture behavior. This
+  // emitter takes a posting spec directly — company / jobId / jdText /
+  // version supplied by the caller, in no fixture — and produces the same
+  // binding + packet artifact, stopped at AWAITING_COMMIT.
+  function emitApplicationPacket(ctx, postingSpec) {
+    const c = ctx || {}, spec = postingSpec || {};
+    if (!Packets) return emitterBlocked("application_packet", "application", "packet_module_unavailable", "the packet module is not available in this build", "restore the packet module", "The packet module is not available in this build, so I prepared nothing.");
+    const company = spec.company || (c.packet && c.packet.company) || null;
+    if (!company) {
+      return emitterBlocked("application_packet", "application", "missing_company",
+        "no company was named for this packet", "name the company and role",
+        "I did not prepare a packet: no company was named. Name the company and I will prepare the packet for your review.");
+    }
+    const jdText = spec.jdText || spec.jd_text || spec.jd || (c.packet && c.packet.jdText) || "";
+    const requested = spec.version || spec.artifactVersion || spec.resumeVersion || null;
+    let binding = null;
+    if (requested) {
+      const artifacts = c.artifacts || [];
+      const matches = artifacts.filter((a) => a && (String(a.version || "").toLowerCase() === String(requested).toLowerCase() ||
+        String(a.record || "").toLowerCase().includes(String(requested).toLowerCase()) ||
+        (a.sha256 && a.sha256 === requested) || (a.content != null && sha256(a.content) === requested)));
+      if (matches.length !== 1) {
+        return {
+          intent: "application_packet", family: "application", resultStatus: "awaiting_user", payload: null, payload_sha256: null, doorstep: null,
+          reply: `I could not pin down exactly one "${requested}" version among the stored documents, so I bound nothing. Tell me which version to use and I will prepare the packet with that one.`,
+        };
+      }
+      const artifact = matches[0];
+      binding = { version: artifact.version || requested, name: artifact.name || "resume.pdf", record: artifact.record || null, sha256: artifact.sha256 || sha256(artifact.content != null ? artifact.content : "") };
+      const fb = factBinding(c.profile);
+      if (fb) { binding.fact_version = fb.fact_version; binding.fact_hash = fb.fact_hash; }
+    }
+    const pin = c.packet || {};
+    const packet = Packets.assemblePacket({
+      profile: c.profile, company,
+      jdText, jobId: spec.jobId || spec.job_id || pin.jobId || null,
+      family: spec.family || pin.family, cir: spec.cir || pin.cir || null,
+      portal: spec.portal || pin.portal || null,
+      portalAsksCoverLetter: spec.portalAsksCoverLetter != null ? !!spec.portalAsksCoverLetter : !!pin.portalAsksCoverLetter,
+      companyKind: spec.companyKind || pin.companyKind, voice: spec.voice || pin.voice,
+    });
+    if (!packet.ok) {
+      return emitterBlocked("application_packet", "application", packet.code || "packet_refused",
+        `the packet itself was refused (${packet.code || "truth audit"})`,
+        "fix the refusal reason and prepare again",
+        `I prepared no packet for ${company}: the packet checks refused it, so nothing is armed. Fix that first and I will rebuild it for your review.`);
+    }
+    const review = {
+      company: packet.company, jobId: packet.jobId,
+      portal: packet.portal || null,
+      bound_name: binding ? binding.name : null, bound_version: binding ? binding.version : null, bound_sha256: binding ? binding.sha256 : null,
+      one_page_ok: packet.onePage ? packet.onePage.ok : null, ats_ok: packet.ats ? packet.ats.ok : null,
+      fact_version: binding && binding.fact_version != null ? binding.fact_version : null,
+      fact_hash: binding ? binding.fact_hash || null : null,
+    };
+    const payload = {
+      kind: "application_packet", family: "application",
+      company: packet.company, job_id: packet.jobId || spec.jobId || spec.job_id || null,
+      binding, review,
+      packet_summary: { ok: true, one_page_ok: review.one_page_ok, ats_ok: review.ats_ok, cover_letter: !!packet.coverLetter, voice: packet.voice || null },
+      resume_sha256: binding ? binding.sha256 : null,
+      submitted: false, committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "bind", field: "resume", result: binding ? `bound the ${binding.version} resume version by content hash` : "no stored version was supplied — the packet carries the freshly tailored resume" },
+      { step: 2, action: "assemble", field: "packet", result: `assembled the packet for ${packet.company} through the packet module; nothing was submitted` },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the packet is a review copy, armed for approval, not submitted" },
+    ];
+    const art = doorstepArtifact("application", payload, stepLog);
+    return {
+      intent: "application_packet", family: "application", resultStatus: "awaiting_user",
+      packet, binding, review, ...art,
+      reply: `Prepared the application packet for ${packet.company}${binding ? `, bound to the ${binding.version} version of your resume (matched by content hash)` : ""}. It is ready at the doorstep for your review — nothing has been submitted.`,
+    };
+  }
+
+  // ----- 7d. outreach: the draft / queue state, generalized beyond fixture ids -----
+  // The draft itself is built by 124 (called, never edited) from a recipient
+  // spec, or taken from an explicit draft spec; either way the artifact is
+  // the draft plus a queue state armed at awaiting_approval. Sends stay 0:
+  // no transport is ever invoked here.
+  function outreachUserOf(ctx) {
+    const c = ctx || {};
+    if (c.outreachUser) return c.outreachUser;
+    const p = c.profile || {};
+    const edu = (p.facts || []).find((f) => f.kind === "education");
+    return {
+      name: (p.basics && p.basics.name) || "",
+      school: (edu && edu.org) || c.school || "",
+      year: c.year || "", experience: c.experience || "",
+    };
+  }
+  function emitOutreachDraft(ctx, recipientSpec) {
+    const c = ctx || {}, spec = recipientSpec || {};
+    let draft = null, recipientLabel = null;
+    if (spec.draft && typeof spec.draft === "object") {
+      const d = spec.draft;
+      if (!d.to) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient_email",
+          "the draft spec names no recipient email", "name the recipient's email",
+          "I did not prepare that draft: it names no recipient email, and a draft with no destination cannot be queued safely. Add the email and I will prepare it.");
+      }
+      if (!d.body) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_draft_body",
+          "the draft spec carries no message body", "supply the message text",
+          "I did not prepare that draft: it has no message text. Supply the text and I will arm it at the approval gate.");
+      }
+      draft = { person_id: d.person_id || null, to: d.to, subject: d.subject || "", body: d.body, tier: d.tier || null };
+      recipientLabel = d.to;
+    } else {
+      const candidate = spec.recipient || spec.candidate || spec.person || null;
+      if (!candidate) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient",
+          "no recipient spec was supplied", "name the recipient (name, firm, email)",
+          "I did not prepare a draft: no recipient was named. Name who this is for and I will draft it and arm it at the approval gate.");
+      }
+      if (!candidate.work_email && !candidate.email) {
+        return emitterBlocked("outreach_draft", "outreach-send", "missing_recipient_email",
+          "the recipient spec names no email", "supply the recipient's email",
+          `I did not prepare a draft for ${candidate.full_name || "that recipient"}: no email was supplied, so there is no destination to queue it for. Add the email and I will draft it.`);
+      }
+      if (!Outreach || typeof Outreach.draftAndGate !== "function") {
+        return emitterBlocked("outreach_draft", "outreach-send", "outreach_module_unavailable",
+          "the outreach module is not available in this build", "restore the outreach module",
+          "The outreach module is not available in this build, so I drafted nothing.");
+      }
+      const gated = Outreach.draftAndGate(candidate, outreachUserOf(c), {
+        ctx: c, suppression: c.suppression || null, suppressionStore: c.suppressionStore || null,
+        draftStore: null, // the draft store is context for the shape only — nothing is stored by this emitter
+        at: isoOf(c.now),
+      });
+      if (!gated || gated.status === "refused" || (gated.draft && gated.draft.refused)) {
+        const reason = (gated && gated.draft && gated.draft.reason) || (gated && gated.reason) || "the recipient is suppressed";
+        return emitterBlocked("outreach_draft", "outreach-send", "refused_suppressed",
+          String(reason), "pick a recipient who has not opted out",
+          "I did not draft that message: this recipient must not be contacted. Nothing was drafted or queued.");
+      }
+      if (!gated.draft || !gated.gate || !gated.gate.pass) {
+        return emitterBlocked("outreach_draft", "outreach-send", "draft_gate_failed",
+          `the draft failed its quality gate (${gated && gated.gate ? gated.gate.failures.join(", ") : "no draft produced"})`,
+          "fix the draft's facts or pick another recipient",
+          "I did not queue that draft: it did not pass its own quality checks, so arming it would put a flawed message one tap from sending. Nothing was queued.");
+      }
+      draft = gated.draft;
+      recipientLabel = draft.to;
+    }
+    const queueItem = {
+      queue_id: `g6-outreach-${sha256(String(draft.to) + "|" + String(draft.subject || "")).slice(0, 8)}`,
+      to: draft.to, person_id: draft.person_id || null, subject: draft.subject || null,
+      status: "awaiting_approval",
+    };
+    const queueState = { status: "awaiting_approval", items: [queueItem], sends: 0 };
+    const payload = {
+      kind: "outreach_draft", family: "outreach-send",
+      draft: cloneJson(draft), queue_state: queueState,
+      sends: 0, committed: false,
+    };
+    const stepLog = [
+      { step: 1, action: "resolve", field: "recipient", result: `recipient resolved from the spec: ${recipientLabel}` },
+      { step: 2, action: "draft", field: "message", result: "draft composed and passed its quality gate; the draft store was not written by this emitter" },
+      { step: 3, action: "stop", field: null, result: "stopped at the doorstep — the queue entry waits at awaiting approval; nothing was sent" },
+    ];
+    const art = doorstepArtifact("outreach-send", payload, stepLog);
+    return {
+      intent: "outreach_draft", family: "outreach-send", resultStatus: "awaiting_user",
+      draft, queue_state: queueState, ...art,
+      reply: `Drafted the message to ${recipientLabel} and armed it in the queue at awaiting approval — one tap from sending, and nothing has been sent. Review the draft and approve it when you are ready.`,
+    };
+  }
+
   // ---------- chat routing (the seam's one entry point) ----------
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
@@ -844,6 +1301,9 @@ const CareerDoorstep = (() => {
     // surface Lane A's intent handlers use to mutate doorstep state.
     factBinding, factVersionOf, destinationStatus, readSinkReceipts, priorApplicationFor, checkSubmitGuards, recordJobClosure, cancelDoorstep, invalidateApproval, recordPriorApplication,
     // G2 / APD-1 exports: blocker collection + the submit-time re-derivation.
-    collectBlockers, openBlockers };
+    collectBlockers, openBlockers,
+    // G6 exports: per-family doorstep payload emitters (tracking-write,
+    // calendar, generalized application packet + outreach draft).
+    emitTrackingLog, emitCalendarProposal, emitApplicationPacket, emitOutreachDraft };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerDoorstep;

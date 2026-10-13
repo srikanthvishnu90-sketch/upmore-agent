@@ -22,9 +22,9 @@ Everything below describes how far the not-done items are from done. None of it 
 | Logic, not done | Items |
 | --- | --- |
 | LOGIC_PROVEN | 3 |
-| LOGIC_TESTED | 110 |
-| PARTLY_TESTED | 72 |
-| DESIGNED | 21 |
+| LOGIC_TESTED | 113 |
+| PARTLY_TESTED | 70 |
+| DESIGNED | 20 |
 
 | Rail | Items |
 | --- | --- |
@@ -32,7 +32,7 @@ Everything below describes how far the not-done items are from done. None of it 
 | SANDBOX | 1 |
 | NOT_WIRED | 205 |
 
-Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 62. Writes with no registry id at T3 or above: 68.
+Writes (money moves or a counterparty record changes): 149. Read-only: 57. Connector gaps (counterparties with no catalog row): 132. Registry ids behind these items still CLAIMED or GATED: 61. Writes with no registry id at T3 or above: 68.
 
 ## Proof kinds (verification surfaces)
 
@@ -174,7 +174,7 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | Id | Capability | Done | Proof kind | Logic | Rail | Registry (status) | Connector gaps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | C90 | Find class actions I qualify for and file the claims | no | confirmation_ref | LOGIC_TESTED | NOT_WIRED | EARN-008 TESTED, TXN-015 TESTED | settlement-administrators |
-| C91 | Recover unclaimed property in my name | no | confirmation_ref | DESIGNED | NOT_WIRED | EARN-007 CLAIMED | state-claim-flow |
+| C91 | Recover unclaimed property in my name | no | confirmation_ref | LOGIC_TESTED | NOT_WIRED | EARN-007 TESTED | state-claim-flow |
 | C92 | Claim flight compensation | no | confirmation_ref | DESIGNED | NOT_WIRED | EARN-016 CLAIMED | airline-claims-portal |
 | C93 | Collect price-drop refunds | no | credit_posted | PARTLY_TESTED | NOT_WIRED | SAVE-010 GATED, SAVE-011 CLAIMED, TXN-015 TESTED | retailer-price-monitoring, card-price-protection |
 | C94 | Cash in on a product recall | no | confirmation_ref | LOGIC_TESTED | NOT_WIRED | EARN-015 TESTED | recall-databases |
@@ -184,8 +184,8 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | C98 | Cash-back portal routing | no | payout_tracked | LOGIC_TESTED | NOT_WIRED | SAVE-012 TESTED, EARN-009 TESTED, EARN-010 TESTED | cashback-portals |
 | C99 | Credit card retention offers | no | credit_posted | PARTLY_TESTED | NOT_WIRED | CARD-008 TESTED, CARD-015 CLAIMED | issuer-retention-channel |
 | C100 | Referral bonuses chased | no | payout_tracked | LOGIC_TESTED | NOT_WIRED | EARN-003 TESTED, EARN-004 TESTED | referral-programs |
-| C101 | Find forgotten 401(k)s and old accounts | no | payout_tracked | PARTLY_TESTED | NOT_WIRED | INV-019 TESTED, EARN-007 CLAIMED | national-registry-401k |
-| C102 | Redeem old savings bonds | no | delivery_confirmed | PARTLY_TESTED | NOT_WIRED | EARN-007 CLAIMED, TAX-002 TESTED | treasurydirect |
+| C101 | Find forgotten 401(k)s and old accounts | no | payout_tracked | LOGIC_TESTED | NOT_WIRED | INV-019 TESTED, EARN-007 TESTED | national-registry-401k |
+| C102 | Redeem old savings bonds | no | delivery_confirmed | LOGIC_TESTED | NOT_WIRED | EARN-007 TESTED, TAX-002 TESTED | treasurydirect |
 | C103 | File my FSA claims | no | credit_posted | DESIGNED | NOT_WIRED | SAVE-020 CLAIMED, TAX-009 CLAIMED | fsa-administrator |
 | C104 | Claim HSA reimbursements | no | delivery_confirmed | DESIGNED | NOT_WIRED | TAX-009 CLAIMED, SAVE-020 CLAIMED | none |
 | C105 | Rescue expiring points and miles | no | enrollment_verified | LOGIC_TESTED | NOT_WIRED | EARN-011 TESTED, EARN-012 TESTED | none |
@@ -562,7 +562,6 @@ Writes (money moves or a counterparty record changes): 149. Read-only: 57. Conne
 | CARD-013 | GATED | C194 |
 | CARD-014 | GATED | C142, C145 |
 | CARD-015 | CLAIMED | C99, C168 |
-| EARN-007 | CLAIMED | C91, C101, C102 |
 | EARN-014 | CLAIMED | C86, C109 |
 | EARN-016 | CLAIMED | C92 |
 | EARN-018 | CLAIMED | C72, C126 |

@@ -903,3 +903,20 @@ score; default-mode PASSes are flagged deterministic-only). Real-record checks:
 SC-065 and SC-300 FAIL deterministically under grader-v2. **The OFFICIAL BASELINE
 re-score runs on the post-Gate-0 build the moment M1 lands** (ready command in the
 lane's report; output = 05 Part 3 run report).
+
+## capability-absent.json — DRAFT produced (owner approval pending)
+
+9 entries covering 23 concrete scenario IDs (CA-01 voice/speech · CA-02 DOCX/PDF
+rendering · CA-03 real-portal Tier-C legs · CA-04 vendor people-data · CA-05
+LinkedIn beyond own export · CA-06 competitor study · CA-07 consented pilot/E5 ·
+CA-08 live transport/deployed path · CA-09 OCR), each with evidence of absence +
+the exact honest R-C7 reply. **16 borderline cases were kept OFF the list as
+routing defects, not absences** (guidance + eligibility Q&A, salary comparison,
+cover letters, text ingest, the §7 reply workflow, intros, prep/OS/tracking
+modules, preference persistence — modules exist; Codex's routing is the gap) plus a
+re-grade-owed group (MI18/MI21, AP05/AP14, SH11/SH07, C29/C30 — graded NI before
+their builds landed). In the review queue (`review/capability-absent-draft.md`);
+**NOT IMPLEMENTED may not be graded from this list until the owner approves it.**
+Lane hygiene note: the lane flagged two tool outputs carrying injection-check
+warnings during its run, followed neither, and re-verified its evidence by direct
+reads — recorded here for the record.

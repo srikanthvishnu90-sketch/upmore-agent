@@ -63,3 +63,21 @@ test('no tracked file holds a key, a user or service JWT, a private key or a pas
   }
   assert.deepEqual(hits,[],`secrets in tracked files:\n${hits.map(h=>`${h.file}:${h.line} ${h.kind} ${h.preview}`).join('\n')}`);
 });
+
+test('control: the scanner still catches a real planted JWT, and the re-encoded fixtures still decode to live tripwires',()=>{
+  // A real-shaped authenticated JWT, assembled from parts so this file
+  // itself stays scanner-clean. If the patterns above are ever weakened,
+  // this goes red.
+  const planted=['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9','eyJzdWIiOiIxMjM0NTY3ODkwIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQifQ','dozjgNryP4J3jVmNHl0w5N_XgL0n3AAA'].join('.');
+  assert.equal(findings(`session token: ${planted}`,'control').filter(f=>f.kind==='jwt').length,1,'a real planted JWT is caught');
+  // The Gate-0 hygiene fix (2026-10-13) re-encoded the planted fixture
+  // JWTs in mutants.json (M-10) and tests/career-quality-grader.test.cjs
+  // with one dot written as an escape, so raw text no longer matches.
+  // The DECODED strings must still be full JWTs that this scanner catches —
+  // otherwise the fixtures would silently stop tripping the grader's H-9.
+  const mutants=JSON.parse(fs.readFileSync(path.join(root,'scripts/career/gauntlet/fixtures/mutants.json'),'utf8'));
+  const m10=mutants.find(m=>m.id==='M-10');
+  assert.ok(m10,'M-10 mutant exists');
+  const msg=(m10.record.delivered_messages||[]).join(' ');
+  assert.ok(findings(msg,'mutants.json').some(f=>f.kind==='jwt'),'M-10 still decodes to a JWT this scanner catches');
+});

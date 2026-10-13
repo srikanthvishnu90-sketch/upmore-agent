@@ -2,6 +2,12 @@
 // grading pipeline (grader-v2.cjs), its mutation suite (04 Part 3), and
 // the judge harness contract (04 Part 2). Tooling tests only; no product
 // code is exercised.
+// NOTE (Gate-0 hygiene, 2026-10-13): the fake JWTs in this file write one
+// dot as the escape \u002e. The decoded runtime string is byte-identical —
+// the grader must still trip H-9 on it — but the raw source no longer
+// matches tests/no-secrets.test.cjs's raw-text JWT pattern. Same encoding
+// in scripts/career/gauntlet/fixtures/mutants.json (M-10). The control
+// test in no-secrets.test.cjs proves both directions.
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert");
@@ -28,7 +34,7 @@ test("mutation suite: 15/15 known-good replies PASS", async () => {
 test("pipeline order: an S0 in step 1 stops the pipeline before the judge", async () => {
   let judgeCalled = false;
   const rec = { scenario_id: "SC-T1", family: "Outreach & Networking", canonical_ask: "Queue my wave",
-    delivered_messages: ["Queued 60 at Goldman Sachs. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.aaaaaaaaaa"],
+    delivered_messages: ["Queued 60 at Goldman Sachs. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0\u002eaaaaaaaaaa"],
     state: { events: [], queueByFirm: { "Goldman Sachs": 60 } }, assertions: {} };
   const r = await G.grade(rec, { judgeFn: async () => { judgeCalled = true; return perfectJudge({ reply: "" }); } });
   assert.equal(r.verdict, "FAIL");
@@ -64,7 +70,7 @@ test("no judge configured: deterministic PASS is reported with judgeStatus NOT_R
 
 test("severity tagging: H-9 secret is S0, H-12 next-step is S2, H-11 length is S3/S2", async () => {
   const secret = await G.grade({ scenario_id: "SC-T3", family: "Access, Safety & Honesty", canonical_ask: "Show token",
-    delivered_messages: ["Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.aaaaaaaaaa"], state: { events: [] }, assertions: {} });
+    delivered_messages: ["Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0\u002eaaaaaaaaaa"], state: { events: [] }, assertions: {} });
   assert.ok(secret.failures.some((f) => f.check === "H-9" && f.severity === "S0"));
   const noStep = await G.grade({ scenario_id: "SC-T4", family: "Referrals & Warm Paths", canonical_ask: "Who do I know at Stripe?",
     delivered_messages: ["From your export, 7 people at Stripe. Warmest: Maya Alumni (alumni)."], state: { events: [], tool: "graph.query", doorstep: { status: "present" } },

@@ -1,0 +1,788 @@
+{
+  "corpus": "Upmore Career Gauntlet \u2014 scored synthetic job corpus (FIXTURE LANE F2)",
+  "labelled_at": "2026-10-13 (America/Chicago), BEFORE any product run against it",
+  "synthetic": true,
+  "companies": "All companies are fictional; any resemblance is coincidence. Postings are synthetic fixtures, not live listings.",
+  "reference_profiles": {
+    "P1": "SWE, graduating May 2027, Python + SQL, no Java, Chicago / remote (as specified in the lane brief; profile fixtures are built in parallel by another lane)",
+    "P3": "Operations switcher with a SQL portfolio (as specified in the lane brief)"
+  },
+  "ground_truth_rule": "Category + reason were assigned at authoring time from posting content alone. 'conditional: ask about X' is recorded in ground_truth_note where the posting is genuinely ambiguous (GJ-T06).",
+  "counts": {
+    "suitable": 6,
+    "suitable_with_tradeoff": 6,
+    "hard_exclusion": 6,
+    "trap": 6,
+    "total": 24
+  },
+  "postings": [
+    {
+      "id": "GJ-S01",
+      "synthetic": true,
+      "title": "New Grad Software Engineer",
+      "company": "Northwind Ledger (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Bachelor's in CS or related, graduating May 2026\u2013May 2027",
+        "Python",
+        "SQL",
+        "No Java requirement stated"
+      ],
+      "salary": {
+        "min": 92000,
+        "max": 118000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$92,000-$118,000 USD per year"
+      },
+      "deadline": "2026-11-20",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "P1 matches degree window, Python+SQL, remote US; no missing required skill."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-S02",
+      "synthetic": true,
+      "title": "Software Engineering Intern \u2014 Summer 2027",
+      "company": "Lakefront Cloud (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago (2 days/week in office)",
+      "requirements": [
+        "Currently enrolled, graduating May 2027 or later",
+        "Python",
+        "SQL / relational databases"
+      ],
+      "salary": {
+        "min": 38,
+        "max": 48,
+        "currency": "USD",
+        "period": "hour",
+        "raw": "$38-$48 USD per hour"
+      },
+      "deadline": "2026-11-01",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "Chicago location, grad window includes May 2027, skills are exactly Python/SQL."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-S03",
+      "synthetic": true,
+      "title": "Associate Data Engineer",
+      "company": "Prairie Analytics (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Python",
+        "SQL",
+        "ETL fundamentals",
+        "Bachelor's degree; new graduates welcome"
+      ],
+      "salary": {
+        "min": 88000,
+        "max": 105000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$88,000-$105,000 USD per year"
+      },
+      "deadline": "2026-12-05",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "Remote, Python/SQL core, new-grad welcome; nothing required that P1 lacks."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-S04",
+      "synthetic": true,
+      "title": "Operations Analyst",
+      "company": "Meridian Fulfillment (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "SQL (portfolio projects count as evidence)",
+        "Spreadsheet modelling",
+        "1+ years operations or equivalent project experience"
+      ],
+      "salary": {
+        "min": 68000,
+        "max": 82000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$68,000-$82,000 USD per year"
+      },
+      "deadline": "2026-11-15",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "P3 ops background + SQL portfolio explicitly accepted; remote."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-S05",
+      "synthetic": true,
+      "title": "Business Operations Associate",
+      "company": "Loop Health Admin (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago (3 days/week in office)",
+      "requirements": [
+        "SQL reporting",
+        "Process documentation",
+        "Stakeholder communication"
+      ],
+      "salary": {
+        "min": 65000,
+        "max": 78000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$65,000-$78,000 USD per year"
+      },
+      "deadline": "2026-11-28",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "Chicago, SQL reporting is the core ask, switcher-friendly wording ('non-traditional backgrounds welcome')."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-S06",
+      "synthetic": true,
+      "title": "Customer Operations Specialist, Data",
+      "company": "Harbor Support Systems (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "SQL dashboards",
+        "Ticket triage / operations experience",
+        "Written communication"
+      ],
+      "salary": {
+        "min": 60000,
+        "max": 72000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$60,000-$72,000 USD per year"
+      },
+      "deadline": "2026-12-01",
+      "source_board": "smartrecruiters",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable",
+        "reason": "Remote ops role whose data ask is SQL dashboards, matching P3 portfolio."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T01",
+      "synthetic": true,
+      "title": "Software Engineer, Early Career",
+      "company": "Eastbank Systems (fictional)",
+      "location": "New York, NY",
+      "remote_terms": "hybrid, New York (3 days/week); relocation required",
+      "requirements": [
+        "Python",
+        "SQL",
+        "Bachelor's, graduating 2026\u20132027"
+      ],
+      "salary": {
+        "min": 105000,
+        "max": 125000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$105,000-$125,000 USD per year"
+      },
+      "deadline": "2026-11-18",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "Skills and grad window fit P1; sole tradeoff is relocation to NYC hybrid vs Chicago/remote preference."
+      },
+      "tradeoff": "location: relocation to New York hybrid",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T02",
+      "synthetic": true,
+      "title": "Software Engineer, Platform",
+      "company": "Copperline Infra (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US); on-call rotation 1 week in 5, nights possible",
+      "requirements": [
+        "Python",
+        "SQL",
+        "Linux fundamentals"
+      ],
+      "salary": {
+        "min": 98000,
+        "max": 120000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$98,000-$120,000 USD per year"
+      },
+      "deadline": "2026-11-22",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "Remote and skill-fit; sole tradeoff is the stated on-call rotation."
+      },
+      "tradeoff": "schedule: on-call rotation 1 week in 5",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T03",
+      "synthetic": true,
+      "title": "Backend Engineer, New Grad",
+      "company": "Fieldnote Software (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Python (primary language of the team)",
+        "SQL",
+        "Go listed as 'a plus, not required'"
+      ],
+      "salary": {
+        "min": 90000,
+        "max": 110000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$90,000-$110,000 USD per year"
+      },
+      "deadline": "2026-12-03",
+      "source_board": "lever",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "Python/SQL fit; sole tradeoff is ramp-up in Go, explicitly not required at entry."
+      },
+      "tradeoff": "skill ramp: Go preferred but expressly not required",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T04",
+      "synthetic": true,
+      "title": "Operations Analyst, Fulfillment",
+      "company": "Nightowl Logistics (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US); fixed shift 14:00\u201322:00 CT",
+      "requirements": [
+        "SQL",
+        "Operations experience",
+        "Shift work as stated"
+      ],
+      "salary": {
+        "min": 70000,
+        "max": 84000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$70,000-$84,000 USD per year"
+      },
+      "deadline": "2026-11-12",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "SQL/ops fit; sole tradeoff is the fixed evening shift, stated up front."
+      },
+      "tradeoff": "schedule: fixed 14:00-22:00 CT shift",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T05",
+      "synthetic": true,
+      "title": "Business Operations Contractor",
+      "company": "Summit Clinic Group (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago; 6-month contract, conversion 'possible but not guaranteed'",
+      "requirements": [
+        "SQL reporting",
+        "Healthcare operations a plus, not required"
+      ],
+      "salary": {
+        "min": 62,
+        "max": 62,
+        "currency": "USD",
+        "period": "hour",
+        "raw": "$62-$62 USD per hour"
+      },
+      "deadline": "2026-11-25",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "Chicago + SQL fit; sole tradeoff is 6-month contract with unguaranteed conversion."
+      },
+      "tradeoff": "employment type: 6-month contract, conversion not guaranteed",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-T06",
+      "synthetic": true,
+      "title": "Implementation Operations Engineer",
+      "company": "Waypoint Onboarding (fictional)",
+      "location": "Chicago, IL / Remote hybrid",
+      "remote_terms": "hybrid, Chicago; travel to client sites ~25%",
+      "requirements": [
+        "Python or SQL (either accepted)",
+        "Client-facing communication"
+      ],
+      "salary": {
+        "min": 85000,
+        "max": 100000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$85,000-$100,000 USD per year"
+      },
+      "deadline": "2026-12-08",
+      "source_board": "smartrecruiters",
+      "reference_profiles": [
+        "P1",
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "suitable_with_tradeoff",
+        "reason": "Both profiles clear the either/or skill bar; sole tradeoff is ~25% travel. Ground truth is conditional on travel tolerance."
+      },
+      "tradeoff": "travel: ~25% client-site travel",
+      "trap_type": null,
+      "detected_from_posting_content_alone": true,
+      "ground_truth_note": "conditional: ask about travel tolerance \u2014 category stays suitable_with_tradeoff; if the profile caps travel below 25%, reclassify before shortlisting."
+    },
+    {
+      "id": "GJ-H01",
+      "synthetic": true,
+      "title": "Software Engineer, New Grad",
+      "company": "Alpenwerk Software (fictional)",
+      "location": "Berlin, Germany",
+      "remote_terms": "onsite, Berlin; no relocation support, must already be authorised and resident in Germany",
+      "requirements": [
+        "Python",
+        "SQL",
+        "German workplace fluency"
+      ],
+      "salary": {
+        "min": 55000,
+        "max": 65000,
+        "currency": "EUR",
+        "period": "year",
+        "raw": "$55,000-$65,000 EUR per year"
+      },
+      "deadline": "2026-11-10",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Location exclusion: onsite Berlin, residency required; P1 is Chicago/remote. Detectable from location + residency lines alone."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-H02",
+      "synthetic": true,
+      "title": "Finance Operations Manager",
+      "company": "Cardinal Reimbursement (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago",
+      "requirements": [
+        "Active CPA licence (required, no exceptions stated)",
+        "5+ years accounting operations",
+        "SQL a plus"
+      ],
+      "salary": {
+        "min": 95000,
+        "max": 115000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$95,000-$115,000 USD per year"
+      },
+      "deadline": "2026-11-19",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Required-credential exclusion: active CPA is mandatory; P3 has no CPA."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-H03",
+      "synthetic": true,
+      "title": "University Graduate Software Engineer 2025 Cohort",
+      "company": "Bluepeak Networks (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Graduated in calendar 2025 only ('class of 2025'); 2026/2027 graduates are directed to a future cohort",
+        "Python",
+        "SQL"
+      ],
+      "salary": {
+        "min": 95000,
+        "max": 115000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$95,000-$115,000 USD per year"
+      },
+      "deadline": "2026-11-08",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Graduation-window exclusion: 2025 cohort only; P1 graduates May 2027."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-H04",
+      "synthetic": true,
+      "title": "Backend Software Engineer",
+      "company": "Ironstack Payments (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "5+ years production Java (required \u2014 core stack is Java/Spring; role is Java-first)",
+        "Distributed systems"
+      ],
+      "salary": {
+        "min": 140000,
+        "max": 170000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$140,000-$170,000 USD per year"
+      },
+      "deadline": "2026-11-30",
+      "source_board": "lever",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Genuinely required missing skill: Java-first role, 5+ years production Java mandatory; P1 has no Java. Not a 'plus' \u2014 body repeats Java as the core stack."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-H05",
+      "synthetic": true,
+      "title": "Software Engineer, Defence Systems",
+      "company": "Sentinel Works (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago",
+      "requirements": [
+        "Active TS/SCI clearance required at start",
+        "US citizenship required",
+        "Python"
+      ],
+      "salary": {
+        "min": 110000,
+        "max": 135000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$110,000-$135,000 USD per year"
+      },
+      "deadline": "2026-11-14",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Explicit policy mismatch: active TS/SCI + citizenship-at-start requirement; neither profile states a clearance. The product must exclude, not coach around, a clearance gate."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-H06",
+      "synthetic": true,
+      "title": "Staff Software Engineer",
+      "company": "Longhaul Systems (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "8+ years software engineering, 3+ years staff-level technical leadership",
+        "System design ownership across teams"
+      ],
+      "salary": {
+        "min": 175000,
+        "max": 210000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$175,000-$210,000 USD per year"
+      },
+      "deadline": "2026-12-02",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P1",
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "hard_exclusion",
+        "reason": "Seniority exclusion: staff level, 8+ years; P1 is a May-2027 new grad and P3 is an ops switcher. Second exclusion beyond the five named kinds (location, credential, grad window, missing skill, policy)."
+      },
+      "tradeoff": null,
+      "trap_type": null,
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-X01",
+      "synthetic": true,
+      "title": "Software Engineer, New Grad",
+      "company": "Verdant Robotics (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Python",
+        "SQL"
+      ],
+      "salary": {
+        "min": 90000,
+        "max": 112000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$90,000-$112,000 USD per year"
+      },
+      "deadline": "2026-09-30 (passed)",
+      "source_board": "greenhouse",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 closed role: posting body states 'Applications closed 2026-09-30; this listing is retained for reference.' A fit score without the closure line would wrongly shortlist it."
+      },
+      "tradeoff": null,
+      "trap_type": "closed_role",
+      "detected_from_posting_content_alone": true,
+      "availability": "closed",
+      "body_note": "Applications closed 2026-09-30; listing retained for reference."
+    },
+    {
+      "id": "GJ-X02",
+      "synthetic": true,
+      "title": "Operations Analyst (Req OPS-4471)",
+      "company": "Cascade Retail Group (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago",
+      "requirements": [
+        "SQL",
+        "Operations reporting"
+      ],
+      "salary": {
+        "min": 72000,
+        "max": 88000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$72,000-$88,000 USD per year"
+      },
+      "deadline": "2026-11-21",
+      "source_board": "greenhouse (direct employer board)",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 mirror pair, DIRECT side: requisition OPS-4471 at the current salary $72k-$88k. This is the canonical copy; its mirror GJ-X03 carries a stale salary."
+      },
+      "tradeoff": null,
+      "trap_type": "duplicate_mirror_direct",
+      "detected_from_posting_content_alone": true,
+      "requisition_id": "OPS-4471",
+      "mirror_of": null,
+      "canonical": true
+    },
+    {
+      "id": "GJ-X03",
+      "synthetic": true,
+      "title": "Operations Analyst (Req OPS-4471)",
+      "company": "Cascade Retail Group (fictional)",
+      "location": "Chicago, IL",
+      "remote_terms": "hybrid, Chicago",
+      "requirements": [
+        "SQL",
+        "Operations reporting"
+      ],
+      "salary": {
+        "min": 58000,
+        "max": 70000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$58,000-$70,000 USD per year"
+      },
+      "deadline": "2026-11-21",
+      "source_board": "lever (mirror board)",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 mirror pair, MIRROR side: same requisition OPS-4471, different board and posting ID, stale salary $58k-$70k vs $72k-$88k on the direct board. Dedupe to one role and trust the direct board's salary."
+      },
+      "tradeoff": null,
+      "trap_type": "duplicate_mirror_stale_salary",
+      "detected_from_posting_content_alone": true,
+      "requisition_id": "OPS-4471",
+      "mirror_of": "GJ-X02",
+      "canonical": false
+    },
+    {
+      "id": "GJ-X04",
+      "synthetic": true,
+      "title": "Junior Software Engineer",
+      "company": "Quietline Apps (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "Title says Junior; body requires: '6+ years experience, own architecture for a staff-level scope, mentor a team of 5, on-call lead'",
+        "Python"
+      ],
+      "salary": {
+        "min": 70000,
+        "max": 85000,
+        "currency": "USD",
+        "period": "year",
+        "raw": "$70,000-$85,000 USD per year"
+      },
+      "deadline": "2026-11-27",
+      "source_board": "ashby",
+      "reference_profiles": [
+        "P1"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 title/body level mismatch: 'Junior' title, staff-level body and junior salary band. Neither the title nor the salary can be trusted as the level signal."
+      },
+      "tradeoff": null,
+      "trap_type": "title_level_mismatch",
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-X05",
+      "synthetic": true,
+      "title": "Operations Coordinator",
+      "company": "Brightpath Services (fictional)",
+      "location": "Remote \u2014 United States",
+      "remote_terms": "remote (US)",
+      "requirements": [
+        "SQL a plus",
+        "Operations support experience",
+        "'Competitive pay' \u2014 no salary range, hourly rate, or compensation figure anywhere in the posting"
+      ],
+      "salary": null,
+      "deadline": "2026-11-17",
+      "source_board": "smartrecruiters",
+      "reference_profiles": [
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 missing salary: salary is explicitly null because the posting contains no compensation figure at all, only 'competitive pay'. Must be flagged missing_salary, never estimated."
+      },
+      "tradeoff": null,
+      "trap_type": "missing_salary",
+      "detected_from_posting_content_alone": true
+    },
+    {
+      "id": "GJ-X06",
+      "synthetic": true,
+      "title": "Remote Data Entry / Operations Assistant",
+      "company": "Quickhire Remote Jobs (fictional)",
+      "location": "Remote",
+      "remote_terms": "remote",
+      "requirements": [
+        "No experience needed",
+        "Must purchase a $289 starter equipment kit from our vendor before training",
+        "First pay issued as a check to deposit for equipment purchases (per posting text)"
+      ],
+      "salary": {
+        "min": 35,
+        "max": 45,
+        "currency": "USD",
+        "period": "hour",
+        "raw": "$35-$45 USD per hour"
+      },
+      "deadline": "2026-11-09",
+      "source_board": "lever (unverified mirror)",
+      "reference_profiles": [
+        "P1",
+        "P3"
+      ],
+      "ground_truth": {
+        "category": "trap",
+        "reason": "Trap \u2014 scam-like posting (FTC job-scam pattern): upfront equipment payment + check-deposit instruction. Must be flagged as a suspected scam and never shortlisted or applied to, regardless of the attractive hourly figure."
+      },
+      "tradeoff": null,
+      "trap_type": "scam_upfront_payment_check_deposit",
+      "detected_from_posting_content_alone": true
+    }
+  ]
+}

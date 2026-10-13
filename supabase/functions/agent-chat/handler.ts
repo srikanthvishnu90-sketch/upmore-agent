@@ -55,6 +55,7 @@ import { winBackReply, readCancellations } from "./_shared/win_back_answer.ts";
 import { substitutesReply } from "./_shared/substitutes_answer.ts";
 import { deadlinesReply } from "./_shared/deadlines_answer.ts";
 import { marketReply } from "./_shared/market_answer.ts";
+import { payrollReply } from "./_shared/payroll_answer.ts";
 import { moneyReply, moneyKind, mergeKinds, MONEY_UNAVAILABLE } from "./_shared/money_answers.ts";
 import { feeAuditReply } from "./_shared/fee_audit_answer.ts";
 import { paycheckReply } from "./_shared/paycheck_answer.ts";
@@ -395,6 +396,10 @@ async function handleChatInner(req: Request, flowCtx: TurnCtx): Promise<Response
         // digest, explainers, screens and comparisons over the dated stand-in market dataset, with its source
         // line on every reply; the person's watches come from the same settings row read above.
         if (!direct) direct = await marketReply(message, new Date(), { watches: () => (!tzRead.error && tzRead.data && Array.isArray(tzRead.data.watches) ? tzRead.data.watches : []) });
+        // Payroll/benefits/equity preparation (cluster K10, _shared/payroll_answer.ts): preparation surfaces only.
+        // No employer profile is connected yet, so the handler passes none and this stays silent in production
+        // until a real profile source exists — it never answers payroll questions from invented facts.
+        if (!direct) direct = payrollReply(message, today, null);
       } catch { direct = MONEY_UNAVAILABLE; }
       if (direct) {
         // Answered here, so a live card in this thread is dropped and said (live gauntlet L3-01): a later yes stages nothing.

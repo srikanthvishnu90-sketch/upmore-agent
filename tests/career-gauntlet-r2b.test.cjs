@@ -239,7 +239,9 @@ test("binding: fill stamps the doorstep + packet prep stamps its binding with th
     artifacts: [{ record: "backend application materials", name: "resume.pdf", version: "backend", content: backendText }],
     packet: { company: "TEST Company", jobId: "GJ-BACKEND-1", jdText: "Backend Engineer at TEST Company. Requirements: Python and SQL required; Flask a plus. Build APIs and data export tooling." },
   };
-  const prep = chatPath("prep the backend application using the backend version", pctx);
+  // Driven through 141's own seam: in the full chain 142 has its own packet
+  // route (Lane A's file); the binding stamp under test here is 141's leg.
+  const prep = Doorstep.handleChat("prep the backend application using the backend version", pctx);
   assert.ok(prep && prep.binding, "packet prep answered with a binding");
   assert.ok(Number.isFinite(prep.binding.fact_version), "packet binding carries the fact version");
   assert.match(String(prep.binding.fact_hash || ""), /^[0-9a-f]{64}$/, "packet binding carries the fact hash");

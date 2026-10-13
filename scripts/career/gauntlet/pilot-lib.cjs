@@ -8,6 +8,16 @@
 //   -> any .reply text is delivered through the scenario harness (scripts/career/
 //   scenario-harness.cjs), whose agent() routes text through CareerReply.composeText
 //   (packages/domain/140-career-reply.js) before it becomes a delivered bubble.
+//
+// R1 REPAIR (lane R1, staging glue only — run-pilot.cjs and the reply oracle are
+// untouched): after 130, chatTurn now also consults CareerRouter.handleChat
+// (142-career-router.js), the route layer for the career domain modules that
+// had no chat route at ba708c1 (121/123/124/127/131/133). The host-side ctx
+// the router needs is assembled in stagingContext() below from (a) the
+// gauntlet fixture corpus (the staging job corpus) and (b) the case-context /
+// case-setup records the runner itself already wrote into the session — the
+// same records a production host would pass as job/contact/artifact data.
+// A router throw is contained here and delivered as 140's error fallback.
 // If both handlers return null, the product produced NO reply. This library records
 // that verbatim; it never invents a bubble. Domain functions are NEVER called by the
 // runner to manufacture an end state (binding doorstep amendment, 2026-10-13): they
@@ -30,6 +40,8 @@ const CareerAccess = require(path.join(ROOT, "packages/domain/120-career-access.
 const CareerOnboarding = require(path.join(ROOT, "packages/domain/130-career-onboarding.js"));
 const CareerReply = require(path.join(ROOT, "packages/domain/140-career-reply.js"));
 const CareerProfile = require(path.join(ROOT, "packages/domain/122-career-profile.js"));
+let CareerRouter = null;
+try { CareerRouter = require(path.join(ROOT, "packages/domain/142-career-router.js")); } catch (e) { CareerRouter = null; }
 
 const GAUNTLET = path.join(ROOT, "packages/career-data/fixtures/gauntlet");
 const loadJson = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
@@ -46,14 +58,57 @@ function resumeText(dirName, file) { return fs.readFileSync(path.join(GAUNTLET, 
 // it to prove the staging path has no containment wrapper); otherwise the throw is
 // captured as { threw } — which is itself the recorded product behavior gap, because
 // the capture happens in the RUNNER, not in any product code.
+// R1 staging host-context assembly: the data a host would inject for the
+// router — the fixture job corpus plus whatever case-context / case-setup
+// records the runner already placed in this session (posting ids, contacts,
+// sending accounts, stored artifact records). Nothing here invents data the
+// runner did not itself record; it only forwards it through the chat path.
+const STAGING_NOW = Date.parse("2026-10-13T12:00:00Z"); // the gauntlet Oct 2026 test clock
+function stagingContext(session, ctx) {
+  const base = Object.assign({}, ctx || {});
+  if (base.now == null) base.now = STAGING_NOW;
+  if (!base.postings) {
+    try { base.postings = loadJson(path.join(GAUNTLET, "jobs/scored-corpus.json")).postings; } catch (e) { base.postings = []; }
+  }
+  const postings = base.postings || [];
+  for (const m of (session && session.messages) || []) {
+    if (m.role !== "tool" || typeof m.text !== "string") continue;
+    let obj = null;
+    try { obj = JSON.parse(m.text); } catch (e) { obj = null; }
+    if (!obj || typeof obj !== "object") continue;
+    const postingId = obj.posting_id || obj.role_id || null;
+    if (postingId && !base.posting) { const hit = postings.find((p) => p.id === postingId); if (hit) base.posting = hit; }
+    if (Array.isArray(obj.contacts) && !base.contacts) base.contacts = obj.contacts;
+    if (Array.isArray(obj.sending_accounts) && !base.sendingAccounts) base.sendingAccounts = obj.sending_accounts;
+    if (Array.isArray(obj.records) && obj.records.length && obj.records[0] && obj.records[0].sha256 && !base.artifacts) {
+      base.artifacts = obj.records.map((r) => ({ name: r.file || "resume.pdf", record: r.record || "", sha256: r.sha256 }));
+    }
+  }
+  return base;
+}
+
 function chatTurn(session, text, ctx, opts) {
   const o = opts || {};
   session.user(text);
   let result = null, handler = null, threw = null;
+  const fullCtx = stagingContext(session, ctx || {});
   try {
-    result = CareerAccess.handleChat(text, ctx || {});
+    result = CareerAccess.handleChat(text, fullCtx);
     if (result) handler = "120-career-access.handleChat";
-    if (!result) { result = CareerOnboarding.handleChat(text, ctx || {}); if (result) handler = "130-career-onboarding.handleChat"; }
+    if (!result) { result = CareerOnboarding.handleChat(text, fullCtx); if (result) handler = "130-career-onboarding.handleChat"; }
+    if (!result && CareerRouter) {
+      // R1: the career router is consulted third, after 120 and 130. Its
+      // errors are contained HERE (staging glue) and surfaced as the 140
+      // error fallback — a router throw must never be a silent dead chat.
+      try {
+        result = CareerRouter.handleChat(text, fullCtx);
+        if (result) handler = "142-career-router.handleChat";
+      } catch (e2) {
+        result = { intent: "career_router_error", reply: CareerReply.fallback("error") };
+        handler = "142-career-router.handleChat (contained error)";
+        session.tool("chat-path-router-error", { turn: text, error: String(e2 && e2.message || e2), contained_by_glue: true });
+      }
+    }
   } catch (e) {
     threw = { name: e && e.constructor ? e.constructor.name : "Error", message: String(e && e.message || e) };
     if (o.propagate) throw e;
@@ -63,7 +118,7 @@ function chatTurn(session, text, ctx, opts) {
     return { handler, threw, result: null, delivered: [] };
   }
   if (!result) {
-    session.tool("chat-path", { turn: text, access: null, onboarding: null, delivered_reply: null, note: "both product handleChat entry points returned null — no product reply exists for this turn" });
+    session.tool("chat-path", { turn: text, access: null, onboarding: null, delivered_reply: null, note: "all product handleChat entry points (120, 130, and the R1 142 router) returned null — no product reply exists for this turn" });
     return { handler: null, result: null, delivered: [] };
   }
   session.tool(handler, { intent: result.intent || null, result_status: result.resultStatus || null });

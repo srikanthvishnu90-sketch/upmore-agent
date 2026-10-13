@@ -235,6 +235,16 @@
       return { intent: "connected_accounts", accounts: r.accounts, calendar_connected: r.calendar_connected, connected_email: r.connected_email, granted_scopes: r.granted_scopes, reply: r.text };
     }
     function handleDisconnect(text, ctx) {
+      // "disconnect all my accounts" / "disconnect everything" targets EVERY source (the edge
+      // disconnectPlan's "all" branch removes both Google grants and their vault entries). The first
+      // build parsed the tail as a source name ("all_my_accounts") and would have deleted nothing
+      // the user meant — BUG-003, found by SC-015.
+      if (/\bdisconnect\b[^.]*\b(all|everything)\b/.test(String(text || "").toLowerCase())) {
+        return {
+          intent: "disconnect", edge_action: "disconnect", source: "all",
+          reply: "Disconnecting everything deletes every connected source's session and tokens in the vault, and writes a consent log entry. The host confirms once it is deleted.",
+        };
+      }
       const m = String(text || "").toLowerCase().match(/disconnect\s+(?:my\s+)?([a-z_ ]+?)\s*$/);
       const raw = (m ? m[1].trim().replace(/\s+/g, "_") : "") || "gmail";
       const source = raw === "google" || raw === "career" || raw === "google_career" ? "google_career" : raw === "calendar" || raw === "google_calendar" ? "calendar" : raw;
@@ -265,9 +275,12 @@
       if (/^disconnect\b/.test(t)) return chatHandlers.disconnect(text, ctx);
       if (/\b(connect|link)\b.*\b(linkedin|handshake)\b/.test(t)) return chatHandlers.connect_browser_source(text, ctx);
       if (/\bconnect\b.*\b(google|gmail|calendar)\b/.test(t)) return chatHandlers.connect_google(text, ctx);
-      if (/\bwhat accounts are connected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
+      // The ledger's own phrasings route too, not just the canonical ones: "what accounts do I have
+      // connected?" and "show me everything you've accessed for me" both fell through to null in the
+      // first build — BUG-002 (SC-002) and BUG-004 (SC-005), found by the F01 scenario runs.
+      if (/\bwhat accounts\b[^.]*\bconnected\b|\bconnected accounts\b|\bwhat(?:'s| is) connected\b|\bwhich accounts\b[^.]*\bconnected\b/.test(t)) return chatHandlers.connected_accounts(text, ctx);
       if (/\bportal accounts\b|\bwhich companies.*accounts\b/.test(t)) return chatHandlers.portal_accounts(text, ctx);
-      if (/\baccess log\b|\blogin log\b|\bshow my access\b/.test(t)) return chatHandlers.access_log(text, ctx);
+      if (/\baccess log\b|\blogin log\b|\bshow my access\b|\bshow me everything you(?:'ve| have) accessed\b|\bwhat have you accessed\b/.test(t)) return chatHandlers.access_log(text, ctx);
       return null; // not an access-layer message: the router falls through to its other handlers
     }
 

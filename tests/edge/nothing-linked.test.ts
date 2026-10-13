@@ -19,6 +19,7 @@ import { substitutesReply } from "../../supabase/functions/agent-chat/_shared/su
 import { deadlinesReply } from "../../supabase/functions/agent-chat/_shared/deadlines_answer.ts";
 import { feeAuditReply } from "../../supabase/functions/agent-chat/_shared/fee_audit_answer.ts";
 import { paycheckReply } from "../../supabase/functions/agent-chat/_shared/paycheck_answer.ts";
+import { foundMoneyReply } from "../../supabase/functions/agent-chat/_shared/found_money_answer.ts";
 import { tipFeesReply } from "../../supabase/functions/agent-chat/_shared/tip_fees_answer.ts";
 // Read as text imports so the suite runs without file permissions (the evidence recorder runs it with none).
 import SRC_DIRECT_ASKS from "./fixtures/direct-asks.json" with { type: "text" };
@@ -38,6 +39,9 @@ const ANSWERS: [string, (m: string) => Promise<string | null>][] = [
   ["win-back", (m) => winBackReply(m, T, none, none)], ["subscription", (m) => subscriptionReply(m, T, none)], ["substitutes", (m) => substitutesReply(m, T, none)], ["find money", (m) => findMoneyReply(m, T, none)], ["card offers", (m) => cardOffersReply(m, T, none, none)], ["rewards", (m) => rewardsReply(m, T, none, none)],
   ["price drop", (m) => priceDropReply(m, T, none)], ["airline", (m) => airlineReply(m, T, none)], ["unclaimed", (m) => unclaimedReply(m, T, none, none)],
   ["money owed", (m) => moneyOwedReply(m, T, none, none)],
+  // Found money (cluster K12): with nothing linked the settlements/recalls replies report no match on the person's
+  // evidence (never "$0.00", never a claim to have searched accounts) and the unclaimed plan asks for the name/states.
+  ["found money", (m) => foundMoneyReply(m, T, none)],
   // Deadlines read no account: dated public dates and the person's own facts (none here).
   ["deadlines", (m) => deadlinesReply(m, NOW, { tz: "America/New_York", watches: none })],
 ];

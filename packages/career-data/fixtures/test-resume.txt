@@ -1,0 +1,22 @@
+TEST RESUME — SYNTHETIC FIXTURE. NOT A REAL PERSON. For overnight pipeline proofs only.
+
+ALEX RIVERA (TEST)
+alex.rivera.test@example.invalid | github.com/alexrivera-test (TEST)
+
+EDUCATION
+State University (TEST) — B.S. Computer Science, Finance minor, Class of 2028
+GPA 3.4
+
+EXPERIENCE
+MidFin Technologies (TEST) — Software Engineering Intern, Jun–Aug 2025
+- Built an internal dashboard used by 40 analysts (Python, React, PostgreSQL)
+
+PROJECTS
+- Kubernetes log pipeline for a campus club; served 12 student teams (Go, Kubernetes on EKS, Docker)
+- Market-data dashboard: public equity data, moving averages (Python, pandas)
+
+LEADERSHIP
+- Vice President, campus investing club (TEST): 60-member stock pitch program
+
+SKILLS
+Python, Go, React, PostgreSQL, Kubernetes/EKS, Docker, financial modeling (DCF, comps)

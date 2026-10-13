@@ -792,7 +792,7 @@ const CareerDoorstep = (() => {
         global_pause_set: true, pause_flag_set: true, global_pause: pause,
         halted_count: null, sent_count: null, in_flight_count: null, already_stopped_count: null, queue_total: null,
         queue_state: null,
-        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step: reload the queue state and I will reconcile the exact counts against it.",
+        reply: "Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step — tell me when the queue state is reloaded and I will reconcile the exact counts against it.",
       };
     }
     // Item accounting — every item lands in exactly one bucket, so the

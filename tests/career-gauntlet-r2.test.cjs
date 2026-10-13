@@ -197,7 +197,7 @@ test("R2 C37 spot-check (integrated): the stop turn receives an honest bubble â€
   const s = L.H.session("C37R2", "r2-c37");
   const turn = L.chatTurn(s, "stop everything. don't contact anyone", { profile });
   assert.equal(turn.handler, "141-career-doorstep.handleChat");
-  assert.deepEqual(turn.delivered, ["Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step: reload the queue state and I will reconcile the exact counts against it."]);
+  assert.deepEqual(turn.delivered, ["Stopped everything: the global pause is now set for your account, so no outreach can start or continue from any queue. I could not read the queue's own records in this session, so how many already went out and how many were waiting is unverified. Next step â€” tell me when the queue state is reloaded and I will reconcile the exact counts against it."]);
   assert.equal(turn.result.global_pause_set, true);
   assert.equal(turn.result.counts_verified, false);
   assert.equal(turn.result.resultStatus, "completed");

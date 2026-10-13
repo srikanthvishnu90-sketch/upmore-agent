@@ -2418,3 +2418,36 @@ pre-CA-02 tree before 148 existed)**
 - Deployed path unchanged: there is still no deployed career agent
   (CA-08); in the Deno bundle 148 is included, but a runtime without
   Node zlib gets 123's honest fallback note instead of artifacts.
+
+## Lane C follow-ups closed — §11(F) gate live + 149 in the router bundle (2026-10-13)
+
+The two one-line follow-ups Lane C deliberately deferred (files then under
+Lane B's uncommitted edits; Lane B landed as `56c2595`) are now done:
+
+- **§11(F) registration flipped from skipped to LIVE** in
+  `tests/career-spec-gates.test.cjs`. The gate no longer asserts existence —
+  it drives module 149 over its sandbox board, one test per leg of the trio:
+  captcha at review (and at open) → `CAPTCHA_HANDOFF` with the posting URL
+  as the hand-off link and `board.calls.submit === 0`; submit timeout →
+  `unknown_outcome` + `needsHuman`, blind retry refused
+  (`RECONCILE_REQUIRED`, exactly one board submit), then `reconcile()`
+  reads the landed receipt off the board → `completed` with its
+  confirmation id; board account name ≠ profile name → `NAME_MISMATCH`
+  blocked before any submit, stop recorded on the step log.
+- **Module 149 added to the router bundle**: `"149-career-portal-apply.js"`
+  appended to the `names` list in `scripts/build-router-core.py` (same
+  registration as 148; like 146/147/148 its global is bundle-internal, not
+  re-exported). Bundle rebuilt: **109 modules**; `build-router-core.py
+  --check` clean; `tests/router-bundle.test.cjs` 3/3 — that suite imports
+  and executes the bundle as an ES module, so 149 is proven to load in the
+  bundle context (its guarded crypto require degrades as designed).
+
+**Counts after this change:** spec-gates 28 tests / 23 pass / 0 fail /
+5 skipped (the 5 remaining skips are the still-unbuilt SUTs: §11(A), (C),
+(D), (H), §8B.4); portal-apply 14/14; render 25/25; broad sweep
+(`node --test tests/*.cjs`) **3,200 tests / 3,175 pass / 3 fail /
+22 skipped**. The only 3 fails are the standing Codex-lane replays
+SC-277 / SC-286 / SC-287 in `tests/career-quality-contracts.test.cjs` —
+verified pre-existing by stash comparison: with this change stashed, the
+pristine tree fails the identical 3 tests (8 / 5 pass / 3 fail in that
+file). No new failures.

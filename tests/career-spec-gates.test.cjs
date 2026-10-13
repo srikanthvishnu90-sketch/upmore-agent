@@ -19,6 +19,7 @@ const Jobs = require("../packages/domain/121-career-jobs.js");
 const Profile = require("../packages/domain/122-career-profile.js");
 const Tailor = require("../packages/domain/123-career-tailor.js");
 const Render = require("../packages/domain/148-career-render.js");
+const Portal = require("../packages/domain/149-career-portal-apply.js");
 const Outreach = require("../packages/domain/124-career-outreach.js");
 const Apply = require("../packages/domain/132-career-apply.js");
 const { CASES, postingFor } = require("./fixtures/spec2-injection-corpus.cjs");
@@ -278,12 +279,72 @@ test("S3 claims register: no 'beats ATS / gets you hired / guaranteed' claims in
   }
 });
 
+// ---------- Spec 2 §11(F): sandbox apply trio, 100% (CA-03, module 149) ----------
+// Flipped from registered-skip to LIVE once module 149 landed (Lane C,
+// d00006d): the gate drives the real portal driver over its sandbox board —
+// captcha hand-off, timeout -> needs_human/reconcile, name-mismatch block.
+
+const f11Posting = { id: "JOB-GH-F11", canonicalKey: "greenhouse:testsystems:f11-analyst", company: "TEST Systems", role: "Analyst (TEST)", url: "https://boards.greenhouse.io/testsystems/jobs/f11", status: "open", atsFamily: "greenhouse" };
+const f11Profile = {
+  name: "Alex Testcase (TEST)", email: "alex.testcase@example.test", phone: "+1 000 555 0100", location: "Chicago, IL",
+  resume: { filename: "alex-testcase-resume.pdf", sha256: "a".repeat(64) },
+  answers: {
+    work_authorization: { value: "Yes — authorized to work in the US", confirmed: true },
+    sponsorship: { value: "No", confirmed: true },
+    cover_note: { value: "I am excited to apply to TEST Systems for this role.", confirmed: true, draft: true },
+  },
+};
+const f11Run = (boardOpts) => {
+  const board = Portal.createSandboxBoard(boardOpts || {});
+  const session = Portal.createPortalSession({ userId: "user-f11", board });
+  return { board, session };
+};
+const f11Approved = { posting: f11Posting, profile: f11Profile, log: { records: [] }, attestations: { certify_true: { value: true, explicit: true } }, approval: { approvedByUser: true } };
+
+test("S2 §11(F) captcha hand-off: a challenge at review stops the run, hands the user the link, zero submits (149)", () => {
+  const { board, session } = f11Run({ captchaAt: "review" });
+  const r = Portal.runApply(session, f11Approved);
+  assert.equal(r.resultStatus, "blocked");
+  assert.equal(r.code, "CAPTCHA_HANDOFF", "a captcha is handed to the user, never solved (§6.3)");
+  assert.equal(r.handoffUrl, f11Posting.url, "the hand-off carries the link to finish the last step");
+  assert.equal(board.calls.submit, 0, "nothing may be submitted past a captcha");
+  assert.ok(r.stepLog.some((s) => s.action === "captcha_stop"), "the stop is recorded on the step log");
+  const atOpen = f11Run({ captchaAt: "open" });
+  const r2 = Portal.runApply(atOpen.session, f11Approved);
+  assert.equal(r2.code, "CAPTCHA_HANDOFF", "a captcha at open stops the run the same way");
+  assert.equal(atOpen.board.calls.submit, 0);
+});
+
+test("S2 §11(F) timeout -> needs_human: an unanswered submit is unknown_outcome, blind retry refused, reconcile reads the board (149)", () => {
+  const { board, session } = f11Run({ submitOutcome: "timeout_receipt" });
+  const r = Portal.runApply(session, f11Approved);
+  assert.equal(r.resultStatus, "unknown_outcome", "a timeout is never spoken as sent (§8.3)");
+  assert.equal(r.submission.needsHuman, true, "the run is flagged needs_human");
+  const blind = Portal.submitDoorstep(session, { approvedByUser: true });
+  assert.equal(blind.resultStatus, "blocked");
+  assert.equal(blind.code, "RECONCILE_REQUIRED", "no blind retry while the outcome is unknown");
+  assert.equal(board.calls.submit, 1, "exactly one submit attempt reached the board");
+  const rec = Portal.reconcile(session);
+  assert.equal(rec.resultStatus, "completed", "the receipt had landed — reconcile reads that truth from the board");
+  assert.ok(rec.submission.confirmationId, "reconciled submission carries the board's confirmation id");
+});
+
+test("S2 §11(F) name-mismatch block: the board account name differs from the profile — blocked before any submit (149)", () => {
+  const { board, session } = f11Run({ accountName: "Jordan Different (TEST)" });
+  const r = Portal.runApply(session, f11Approved);
+  assert.equal(r.resultStatus, "blocked");
+  assert.equal(r.code, "NAME_MISMATCH");
+  assert.equal(r.accountName, "Jordan Different (TEST)");
+  assert.equal(r.profileName, f11Profile.name);
+  assert.equal(board.calls.submit, 0, "a name mismatch blocks before any submit");
+  assert.ok(r.stepLog.some((s) => s.action === "name_mismatch_stop"), "the stop is recorded on the step log");
+});
+
 // ---------- Registered gates whose SUT is not built yet (never counted as passes) ----------
 
 test("S2 §11(A) fetcher contract fixtures with recorded real ATS responses", { skip: "SUT not built: the F2 poller upgrade (fetchers per Spec 2 §1) starts after the wedge; 121's recorded-shape normalizers are covered by career-jobs tests meanwhile" }, () => {});
 test("S2 §11(C) dedupe precision/recall on 300 labelled pairs", { skip: "needs the labelled pair set (Spec 2 §2.5); not yet created" }, () => {});
 test("S2 §11(D) matching quality on 200 labelled pairs incl. authorization traps", { skip: "SUT not built: matcher stages 3-4 (semantic + LLM judge) are Codex-lane / post-wedge" }, () => {});
-test("S2 §11(F) sandbox apply suite (captcha hand-off, timeout -> needs_human, name-mismatch block)", { skip: "SUT not built: CA-03 portal driver (plan cites Spec 2 §6 as its spine); doorstep rules apply when built" }, () => {});
 test("S2 §11(H) load test: 5,000 companies on the poll schedule", { skip: "SUT not built: the polling worker (Spec 2 §8.1) is a [DECISION]-gated build (worker hosting)" }, () => {});
 test("S3 §13.2 parse tests: 50+ varied resumes x DOCX/PDF x 2 parsers — reading order + field capture (CA-02, Spec 3 §2.5)", () => {
   // 8 fixture personas x 9 role families = 72 varied resumes. Each is

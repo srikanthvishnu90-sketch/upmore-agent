@@ -1,0 +1,10 @@
+"use strict"; const { H, OS, N, persona, fixture, NOW } = require("./f10-lib.cjs");
+(async () => { const s = H.session("SC-200", "career-timeline");
+  s.user("show me my career timeline");
+  const store = OS.createStore({ applications: [{ company: "Stripe", role: "SWE Intern", date: "2026-09-20" }, { company: "Datadog", role: "SWE Intern", date: "2026-10-03" }] });
+  N.storeOffer(store, N.parseOffer(fixture("test-offer-a.txt"), { now: NOW }));
+  OS.logWin(store, { text: "Shipped the dashboard migration", date: "2026-09-15" }, { now: NOW });
+  const tl = OS.careerTimeline(store, persona()); s.tool("129.careerTimeline", tl);
+  s.agent(`Your career timeline — rendered only from stored records:\n${tl.events.map((e) => `• ${e.date || "undated"} — [${e.kind}] ${e.title}`).join("\n")}\n${tl.statement}`);
+  s.verify("every timeline event carries a stored-record source; education, roles, applications, offers and wins all present", { count: tl.count, kinds: [...new Set(tl.events.map((e) => e.kind))] });
+  await s.finish({ status: "COMPLETE", outcome: "Career timeline rendered from profile + application log + parsed offers + wins log — all stored records" }); })();

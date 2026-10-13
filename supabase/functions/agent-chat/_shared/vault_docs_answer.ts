@@ -17,7 +17,8 @@ import { VaultDocs } from "../../_shared/router_core.js";
 const ofKind = (watches: any[], kind: string) => (Array.isArray(watches) ? watches : []).filter((w) => w && w.kind === kind && w.status !== "inactive");
 
 export function vaultDocsKind(message: string, previous: any[] = []): string | null {
-  const prev = [...(previous || [])].reverse().find((m) => m.role === "assistant");
+  // previous arrives newest-first (the handler's readPrevious), so the latest assistant turn is the first one.
+  const prev = (previous || []).find((m) => m.role === "assistant");
   const p = String((prev && prev.content) || "");
   if (/verification question/.test(p)) return "vault_gate_answer";
   if (/breach lockdown/i.test(p) && /^(yes|do it|go ahead)\b/i.test(String(message || "").trim())) return "breach_execute";

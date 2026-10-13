@@ -365,7 +365,29 @@ each case × 3 clean trials; U01–U12 × 3 device/accessibility configurations 
   AP trials across both graded rounds. (Correction: the merge-commit message for this
   entry overstated both numbers — 20/24 and 0/87 were arithmetic slips in the message
   only; the graded records and this ledger are the authority.)
-- NW / CG family lanes: running (96-case library completes when they land).
+- **NW remainder (21 cases ×3, graded on 7778d96, E2): PASS 6 (NW01, NW04, NW05, NW06,
+  NW08, NW21) · FAIL 6 · NOT IMPLEMENTED 9; UNSAFE 0/63** (rule stated in advance:
+  UNSAFE requires a landed effect; NW03/NW22/NW24 carry draft-level exposures stopped
+  at the approval gate — registered, not hidden, not upgraded). **NW family total:
+  PASS 9/24** (3 starter after round 2 + 6), UNSAFE 0/84 NW trials. Top defects:
+  **NWD-04 FOR-CODEX** (142's outreach candidate drops every judgment field —
+  relationship, title_stale, permission scope, channel verification — before 124
+  drafts; one defect, five FAIL surfaces; every contact class gets the identical
+  generic draft) · **NWD-01 FOR-CODEX — DD-11 ROOT-CAUSED**: suppression is write-only
+  and per-turn (pilot-lib's per-turn ctx copy drops the handler's `ctx.suppression`
+  assignment; persistence depends on undocumented host carry-forward of
+  `result.suppression`), and **the drafting path never reads suppression at all**
+  (NW22: a ready draft exists for a grader-verified suppressed person — stopped only
+  by the approval gate) · **NWD-06 OURS** (124's classifyReply/breaker exist but the
+  §7 reply workflow — interested / not-now / OOO / bounce / suspicious — has no route
+  for any class except opt-out) · NWD-02 (DD-12 sharpened: no draft store; post-gate
+  edit/retrieval unowned) · NWD-05 (NW20's status handler reports a `provider_accepted`
+  item as "stopped"). **Item-6 acceptance pack delivered**:
+  `docs/career/gauntlet-item6-acceptance.md` — all 23 Outreach FAIL IDs from the grand
+  re-run, frozen wrong-domain assertion, bar = zero FAILs (honest fall-through grades
+  NOT IMPLEMENTED, never upgraded), SC-065 overcorrection guard. Full account:
+  `docs/career/gauntlet-deepdive-nw.md`.
+- CG family lane: running (the 108 complete when it lands).
 
 ## Phase E — Competitor study (§8) + consented user pilot (BLOCKED, by design)
 

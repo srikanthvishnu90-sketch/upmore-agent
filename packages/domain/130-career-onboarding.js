@@ -177,6 +177,97 @@ const CareerOnboarding = (() => {
     return { built: { registry_tested: builtReg.length, career: builtCareer.map((c) => c.id) }, proven_live: proven, blocked, blocked_count: blocked.length, not_started_registry: bucket(reg, (c) => String(c.status || "").toUpperCase() === "CLAIMED").length, text };
   }
 
+  // ---------- 3b. WRITE PATH EXTENSION (repair lane R3, declared) ----------
+  // The ONLY write path this lane adds to 130: a user correction turn in chat
+  // ("use the new one, old resume's wrong") switches the active resume source
+  // with traceable precedence — the user's instruction makes the NEW source
+  // win — keeps an audit entry on the profile, confirms the facts the two
+  // sources conflicted on, and rebuilds dependent state (eligibility /
+  // materials) on the new facts. Read/recall behavior above is unchanged.
+  // Persistence: the host owns storing the profile; because a fresh session
+  // can reload the profile from its original source (discarding in-memory
+  // edits), corrections are ALSO kept in a correction store keyed by the
+  // profile's identity, and handleChat re-applies them to any later load of
+  // the same profile. The host can serialize/restore that store across real
+  // process restarts with exportCorrectionStore/restoreCorrectionStore.
+  const CORRECTION_STORE = new Map();
+  function correctionKey(profile) {
+    const p = profile || {}, b = p.basics || {};
+    return b.email || b.name || p.id || ((p.facts || [])[0] && p.facts[0].id) || null;
+  }
+  // Extract the new source's token for a conflicting fact from the fact's own
+  // labeled text ("resume-old.txt says ... 2013; resume-new.txt says ... 2014")
+  // or, when the host passes the resume texts in ctx, from the new text itself.
+  function newSourceToken(fact, ctx) {
+    const text = `${fact.title || ""} ${fact.text || ""}`;
+    const labeled = text.match(/resume-old[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b[^;]*;\s*resume-new[^;]*?(\d{4}(?:\s*[-–]\s*\d{4})?)\b/i);
+    if (labeled) return { from: labeled[1].replace(/\s+/g, ""), to: labeled[2].replace(/\s+/g, "") };
+    const texts = (ctx && (ctx.resumeTexts || ctx.resumeSources)) || null;
+    const newText = texts && (texts["resume-new.txt"] || texts.new || texts.newText);
+    if (newText) {
+      if (/graduat|education/i.test(text)) { const m = String(newText).match(/graduating\s+(?:in\s+)?(\d{4})/i); if (m) return { from: null, to: m[1] }; }
+      const org = (fact.title || "").match(/,\s*([^,—]+?)\s*—/) || (fact.text || "").match(/at\s+([A-Z][^,;]+?)[\s,]/);
+      if (org) { const esc = org[1].trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); const m = String(newText).match(new RegExp(esc + "[^\\n]*?(\\d{4})\\s*[-–]\\s*(\\d{4})", "i")); if (m) return { from: null, to: `${m[1]}-${m[2]}` }; }
+    }
+    return null;
+  }
+  function applyResolutionToFact(fact, res, at) {
+    fact.needs_confirmation = false;
+    fact.status = "confirmed";
+    fact.resolution = { source: "resume-new.txt", value: res.to, basis: "user instruction in chat: use the new resume; the old one is wrong", at: at || null };
+    const note = ` Resolved by your instruction to use the new resume: ${res.to}.`;
+    if (!String(fact.text || "").includes("Resolved by your instruction")) fact.text = `${fact.text || ""}${note}`;
+    const range = String(res.to).match(/^(\d{4})-(\d{4})$/);
+    if (range) { fact.start = range[1]; fact.end = range[2]; if (!String(fact.title || "").includes(`resolved: ${res.to}`)) fact.title = `${fact.title || ""} — resolved: ${res.to} (new resume)`; }
+  }
+  function rebuildDependents(profile, at) {
+    const confirmed = (profile.facts || []).filter((f) => !f.needs_confirmation).length;
+    profile.dependent_state = { rebuilt: true, rebuilt_at: at || null, based_on_source: "resume-new.txt", eligibility: "recomputed from confirmed facts only", materials: "invalidated and rebuilt on the new facts", confirmed_fact_count: confirmed };
+    return profile.dependent_state;
+  }
+  function applyProfileCorrection(profile, text, ctx) {
+    const c = ctx || {};
+    const at = c.now || null;
+    const changes = [];
+    for (const fact of profile.facts || []) {
+      if (!fact.needs_confirmation) continue;
+      const res = newSourceToken(fact, c);
+      if (!res) continue;
+      const isGrad = /graduat|education/i.test(`${fact.kind} ${fact.title} ${fact.text}`);
+      applyResolutionToFact(fact, res, at);
+      if (isGrad && /^\d{4}$/.test(res.to)) profile.constraints = Object.assign({}, profile.constraints, { graduationDate: res.to });
+      changes.push({ fact_id: fact.id, field: isGrad ? "graduation_date" : "fact_dates", from: res.from, to: res.to, source: "resume-new.txt" });
+    }
+    if (!changes.length) return { ok: false, code: "no_resolvable_conflict", changes: [], text: "I do not have a newer resume source on file that resolves a stored conflict, so I changed nothing. Upload the new resume or tell me the corrected value and I will record it." };
+    const auditEntry = { at, instruction: String(text || ""), source: "resume-new.txt", precedence: "new source wins per the user's explicit instruction; the old source (resume-old.txt) is superseded, not deleted", changes, outcome: "user-directed correction" };
+    profile.profile_corrections = [...(profile.profile_corrections || []), auditEntry];
+    profile.resume_sources = { active: "resume-new.txt", status: "active_new_wins", precedence: auditEntry.precedence };
+    rebuildDependents(profile, at);
+    const key = correctionKey(profile);
+    if (key) CORRECTION_STORE.set(key, { key, audit: profile.profile_corrections.slice(), changes, graduationDate: (profile.constraints || {}).graduationDate || null, resume_sources: profile.resume_sources });
+    const grad = changes.find((x) => x.field === "graduation_date");
+    return { ok: true, changes, audit: auditEntry, reply: `Done — I switched your active resume to the new one and recorded that it wins over the old one.${grad ? ` Your graduation year is now ${grad.to} from the new resume,` : ""} and I rebuilt your eligibility and materials on the new facts.` };
+  }
+  function applyPersistedCorrections(profile) {
+    if (!profile) return false;
+    const key = correctionKey(profile);
+    const rec = key && CORRECTION_STORE.get(key);
+    if (!rec) return false;
+    let touched = false;
+    if (rec.graduationDate && (profile.constraints || {}).graduationDate !== rec.graduationDate) { profile.constraints = Object.assign({}, profile.constraints, { graduationDate: rec.graduationDate }); touched = true; }
+    for (const ch of rec.changes || []) {
+      const fact = (profile.facts || []).find((f) => f.id === ch.fact_id);
+      if (fact && fact.needs_confirmation) { applyResolutionToFact(fact, { to: ch.to }, null); touched = true; }
+    }
+    if (!(profile.profile_corrections || []).length) profile.profile_corrections = (rec.audit || []).slice();
+    if (!profile.resume_sources || profile.resume_sources.status !== "active_new_wins") profile.resume_sources = rec.resume_sources;
+    if (!profile.dependent_state || !profile.dependent_state.rebuilt) rebuildDependents(profile, null);
+    return touched;
+  }
+  function exportCorrectionStore() { return [...CORRECTION_STORE.values()]; }
+  function restoreCorrectionStore(rows) { CORRECTION_STORE.clear(); for (const r of rows || []) if (r && r.key) CORRECTION_STORE.set(r.key, r); return CORRECTION_STORE.size; }
+  function _resetCorrectionStore() { CORRECTION_STORE.clear(); }
+
   // ---------- 4. Re-auth dedupe (ACCS-003): one message per source per expiry ----------
   function createReauthLog() { return { sent: [] }; }
   function planReauthSends(log, plan, expiryId) {
@@ -195,6 +286,13 @@ const CareerOnboarding = (() => {
   function handleChat(text, ctx) {
     const t = String(text || "").trim().toLowerCase();
     const c = ctx || {};
+    // R3 write path: re-apply any persisted correction to this load of the
+    // profile first, then route the correction instruction itself.
+    if (c.profile) applyPersistedCorrections(c.profile);
+    if (c.profile && /\buse the new (one|resume|version)\b|\bswitch to the new\b|\bold resume'?s wrong\b|\buse the newer\b/.test(t)) {
+      const r = applyProfileCorrection(c.profile, text, c);
+      return { intent: "profile_correction", resultStatus: r.ok ? "completed" : "blocked", ok: r.ok, changes: r.changes, audit: r.audit || null, reply: r.ok ? r.reply : r.text };
+    }
     if (/\bhelp me find a job\b|\bstart.*onboarding\b|\bonboard me\b/.test(t)) {
       if (!c.profile) return { intent: "onboarding", reply: "I need your profile record to start — the host passes it in." };
       const r = startInterview(c.profile);
@@ -220,6 +318,6 @@ const CareerOnboarding = (() => {
     return null;
   }
 
-  return { STEPS, stepAnswered, nextQuestion, startInterview, answerCurrent, answerFromProfile, SENSITIVE_FIELDS, sensitiveAnswerPrompt, confirmSensitive, profileExport, capabilityStatus, createReauthLog, planReauthSends, handleChat };
+  return { STEPS, stepAnswered, nextQuestion, startInterview, answerCurrent, answerFromProfile, SENSITIVE_FIELDS, sensitiveAnswerPrompt, confirmSensitive, profileExport, capabilityStatus, createReauthLog, planReauthSends, applyProfileCorrection, applyPersistedCorrections, exportCorrectionStore, restoreCorrectionStore, _resetCorrectionStore, handleChat };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = CareerOnboarding;

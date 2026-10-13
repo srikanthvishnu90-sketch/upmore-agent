@@ -429,7 +429,7 @@ const CareerRouter = (() => {
     if (jobClaim) {
       const phrase = lc(jobClaim[1]).trim();
       const head = phrase.replace(/^(data|software|product|operations)\s+/, (m) => m);
-      if (!profText.includes(phrase) && !profText.includes(head.split(" ").slice(0, 2).join(" "))) parts.push(`a paid ${phrase} job`);
+      if (!profText.includes(phrase) && !profText.includes(head.split(" ").slice(0, 2).join(" "))) parts.push(`paid ${phrase} job`);
     }
     const stop = new Set(["I", "In", "My", "The", "That", "This", "It", "Tell", "Why", "What", "When", "How", "For", "And", "But", "So", "One", "Two", "Situation", "Task", "Action", "Result"]);
     for (const tok of s(answer).match(/\b[A-Z][a-zA-Z]{2,}\b/g) || []) {
@@ -471,7 +471,7 @@ const CareerRouter = (() => {
     }
     const graded = Prep.scoreAnswer(text);
     const contra = detectContradiction(text, profile);
-    const contraSentence = contra.length ? `That does not match your profile, which has no ${contra.join(" or ")} on file — in a real interview that claim would not survive a check, so let us coach from the work that is actually yours.` : null;
+    const contraSentence = contra.length ? `That does not match your profile, which shows no ${contra.join(" and no ")} on file — in a real interview that claim would not survive a check, so let us coach from the work that is actually yours.` : null;
     if (state.phase === "question") {
       Prep.answerMock(state.store, state.mockId, text);
       state.phase = "probe";

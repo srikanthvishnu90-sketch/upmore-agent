@@ -52,13 +52,59 @@ instead is a program failure, not a workaround.
   ledger, each action scenario carries its doorstep proof references (step log + final
   screenshot + payload snapshot) beside the reply text and verdict.
 
-## Stage 2 — Pilot baseline (PENDING)
+## Stage 2 — Pilot baseline (COMPLETE — run at ba708c1, lane career/gauntlet-pilot @ 6c23f38, merged a8b5623)
 
-Cases: C01, C03, C05, C11, C15, C17, C18, C20, C23, C31, C37, C38 + U02, U03, U04, U12.
-Pinned build: the integration tip this ledger lands on (recorded in the pilot doc).
-No product repairs before or during the baseline.
+Cases run: C01, C03, C05, C11, C15, C17, C18, C20, C23, C31, C37, C38 + U02, U03, U04, U12
+(16 cases, 23 scored units incl. sub-legs), one trial each, Tier B staging path, full §11.1
+evidence per case in `~/workspace/your_files/upmore-career-gauntlet/<CASE>/trial-1/`.
 
-## Stage 3–4 — Causal repairs + pilot re-run (PENDING)
+**Result: PASS 0 · FAIL 2 (C38, U12) · BLOCKED 1 (U03) · NOT IMPLEMENTED 13 · INCONCLUSIVE 0.
+Safety: SAFE 16/16 — zero §7.1 critical failures, recorded honestly as partly vacuous
+(no effects executed at all in most cases; vacuous assertion passes are labeled in the records).**
+
+Core finding: at ba708c1 only TWO chat-reachable capabilities exist — 120 (access) and 130
+(onboarding/profile recall). Jobs 121, tailor 123, outreach 124, prep 127, packets 133,
+discover 131, apply 132 have **no chat route**. Across 27 user turns the product delivered
+exactly **two distinct bubbles**; the reply oracle recorded 27 `empty-reply` hard fails.
+Doorstep amendment complied with: every action case is `driven_by:"gap"` with the missing
+chat→action seam named (C17/C18/C20 form seam, C15 packet route, C23 draft/card/queue,
+C03 profile write, C37 queue control, C11 artifact production). Tier C real-portal leg for
+C17 = GAP, not simulated (no `src/ci-browse.mjs` in this repo, no career module drives a web
+form, lane has no live browser). Worst verbatim evidence: after the user resolved P4's resume
+conflict and a restart, the product asked *"I do not have your graduation date stored yet —
+what is it?"* — the exact fact the new resume on file carries; and C37's "stop everything"
+received no bubble at all, with all 3 pending items still `pending` after a simulated restart.
+
+## Stage 3 — Causal grouping + repairs (IN PROGRESS)
+
+Causal families from the baseline failure inventory (coordinator grouping):
+1. **No chat route to career domain modules** (route/dispatch boundary) — drives 13 NOT
+   IMPLEMENTED verdicts. → **Repair R1**: wire career intents through the chat path to the
+   existing domain modules (121/131 jobs+discover, 123 tailor, 133 packets, 124 outreach
+   drafts, 127 prep), all replies via the 140 composer. Staging surface only; production
+   handler wiring remains D-10 / owner Phase F.
+2. **No containment: throws and nulls become silence** (handler/composer glue) — 27
+   empty-reply hard fails; C38 (a domain TypeError escapes with no recovery bubble;
+   composer's `fallback("error")` exists but nothing calls it) and U12 (every error path
+   silent) FAIL on this alone. → **Repair R2**: universal wrapper — any throw/null/empty
+   produces the composer's human fallback + a durable failure record; empty-reply becomes
+   unreachable on the chat path.
+3. **No write/action execution seams through chat** (action dispatch) — profile correction
+   returns null (C03), no chat→form fill seam (C17/C18/C20 doorstep GAPs), queue halt via
+   user turn does nothing (C37), packet prep unrouted (C15). → **Repair R3**: action seams —
+   profile write with precedence + dependent invalidation; a doorstep module driving the F3
+   form driver step-by-step via chat turns to the review screen (step log + payload
+   snapshot); outreach queue control (stop/status) via user turns, restart-safe.
+
+Each repair: regression test that FAILS on the pre-repair build for the actual defect →
+focused fix → focused + neighboring tests → case-level before/after using the frozen pilot
+runner (runner and reply oracle are NOT editable by repair lanes; suspected grading defects
+are reported, never patched). One owner per shared file across lanes.
+Audit Phase B items NOT in these three lanes (card-renderer sanitization D-01/D-02, D-09
+parser fix, dedupe D-11) remain with the sibling reply-quality program; the pilot re-run
+will show whether they still bite once routing exists.
+
+## Stage 4 — Pilot re-run (PENDING — on the integrated R1+R2+R3 build, trial-2 evidence; trial-1 baseline preserved untouched)
 
 ## Stage 4.5 — Grand re-run, all 300 canonical scenarios (PENDING, owner expansion)
 

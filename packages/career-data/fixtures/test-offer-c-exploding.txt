@@ -1,0 +1,15 @@
+TEST OFFER LETTER — FICTIONAL, AUTHORED FOR SCENARIO TESTING ONLY
+
+Figma, Inc. (TEST offer)
+Role: Software Engineer, New Grad
+Location: San Francisco, CA
+Start date: June 1, 2027
+
+Compensation:
+- Base salary: $140,000 per year
+- Signing bonus: $10,000
+- Target annual bonus: 10% of base salary
+- Equity: RSU grant with a total grant value of $60,000, vesting over 4 years with a 1-year cliff
+- Benefits: health, dental and vision insurance; 20 days of PTO per year; 401(k) plan
+
+This offer expires 48 hours from issue. Please respond by October 14, 2026.

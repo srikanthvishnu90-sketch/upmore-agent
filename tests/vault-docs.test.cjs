@@ -223,3 +223,39 @@ test("[chat] the whole conversations route through answer(): breach card -> do i
   assert.match(V.answer("find my auto policy", NOW, s), /policies\/2026-mock-mutual-auto-policy\.pdf/);
   assert.equal(V.answer("what's the weather", NOW, o()), null);
 });
+
+test("[doorsteps] breach: one guided card per rotation plus the card replacement, each stopping before the executing tap, nothing executed", () => {
+  const d = V.doorsteps("breach", breachCtx());
+  assert.equal(d.cards.length, 4);
+  assert.deepEqual(plain(d.cards.map(c => c.service)), ["Ticketmaster", "Gmail", "Dropbox", "Chase (card on file at Ticketmaster)"]);
+  assert.ok(d.cards.every(c => c.status === V.DOORSTEP_STATUS));
+  assert.match(d.cards[0].stop_before, /change-password tap/);
+  assert.match(d.cards[3].stop_before, /order-replacement tap/);
+  assert.match(d.text, /Nothing on any of these screens has been executed\./);
+  assert.ok(!/hunter2|password is|new password:/i.test(d.text.replace("the new password is typed by you", "")));
+});
+
+test("[doorsteps] tax gaps and organize gaps become portal doorsteps; a complete folder has none", () => {
+  const t = V.doorsteps("tax", taxCtx());
+  assert.deepEqual(plain(t.cards.map(c => c.action)), ["download the 2025 1099-B", "download the 2025 1098", "download the 2025 1098-T"]);
+  assert.match(t.text, /Nothing has been downloaded\./);
+  const o = V.doorsteps("organize", { files: files() });
+  assert.equal(o.cards.length, 3);
+  assert.match(o.text, /Nothing has been retrieved\./);
+});
+
+test("[doorsteps][chat] 'doorstep' after the lockdown run, the tax folder and the organize reply routes to the right cards", () => {
+  const o = () => ({ breachCtx: breachCtx(), docs: docs(), gate: gate(), log: [], tax: taxCtx(), charity: charityCtx(), trips: trips(), files: files(), year: 2026, stand_in: true, previous: [] });
+  let s = o();
+  const card = V.answer("My email was in the Ticketmaster breach. Handle it.", NOW, s);
+  s.previous = [{ role: "assistant", content: card }];
+  const run = V.answer("do it", NOW, s);
+  s.previous = [{ role: "assistant", content: run }];
+  assert.match(V.answer("doorstep", NOW, s), /Doorsteps for the Ticketmaster lockdown/);
+  s = o();
+  s.previous = [{ role: "assistant", content: V.answer("Round up everything my CPA needs.", NOW, s) }];
+  assert.match(V.answer("doorstep", NOW, s), /Doorsteps for the missing forms/);
+  s = o();
+  s.previous = [{ role: "assistant", content: V.answer("Organize my financial documents", NOW, s) }];
+  assert.match(V.answer("doorstep", NOW, s), /Doorsteps for the gaps/);
+});

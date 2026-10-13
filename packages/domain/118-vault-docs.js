@@ -226,6 +226,31 @@ Ask "find my auto policy" and I'll point to it in seconds.`;
     return hit ? { found: true, text: `Your ${hit.subkind || hit.kind}${hit.kind === "policy" ? " policy" : ""}: ${hit.to} in the vault${hit.issuer ? ` (${hit.issuer}, stored with its hash)` : ", stored with its hash"}.` } : { found: false, text: `Nothing filed matches "${query}". Filed: ${(organized.filed || []).map(f => f.to).join("; ")}.` };
   }
 
+  // ---- Doorsteps (owner addendum): every flow that runs through a logged-in service is built to the doorstep
+  // of the real action — a guided session card in the manual-connect pattern (78-manual-connect: the person
+  // signs in themselves in the live window; nothing types, takes or keeps a password or code) with the target
+  // screen named, the action filled in, and the executing tap left to the person. No playbook exists yet for
+  // these services, so each card's status says exactly that: built to the final step, live session pending.
+  const DOORSTEP_STATUS = "doorstep built — live session pending the owner's browser lane";
+  function doorsteps(kind, ctx) {
+    guard(ctx, "ctx");
+    if (kind === "breach") {
+      const plan = breachLockdown(ctx);
+      if (!plan.wired) return { cards: [], text: plan.text };
+      const cards = plan.rotations.map(r => ({ service: r.service, action: "change the password", target: `${r.service}'s own site or app → account security settings → change password`, prefill: "you, signed in as yourself; the new password is typed by you on the service's own page — I never see it", stop_before: "the final change-password tap", status: DOORSTEP_STATUS }));
+      for (const p of plan.card_packets) cards.push({ service: `${p.issuer} (card on file at ${p.service})`, action: "replace the card — breach", target: `${p.issuer}'s app → card controls → replace card → damaged/breach`, prefill: "the issuer's own replacement form, on your account", stop_before: "the final order-replacement tap", status: DOORSTEP_STATUS });
+      return { cards, text: `Doorsteps for the ${ctx.breach.service} lockdown — each one is a guided session: you sign in yourself on the service's own site or app (I never type, take or keep a password or a code), I walk you to the screen, the action is filled in, and the last tap stays yours:\n${cards.map((c, i) => `${i + 1}. ${c.service}: ${c.action}. Go to ${c.target}. Stop before ${c.stop_before} — ${c.status}.`).join("\n")}\nNothing on any of these screens has been executed.` };
+    }
+    if (kind === "tax") {
+      const f = taxFolder(ctx);
+      const cards = f.missing.map(m => ({ service: m.issuer, action: `download the ${f.year} ${m.form}`, target: m.where, prefill: `the ${m.form} for ${f.year}, in your account`, stop_before: "the download tap", status: DOORSTEP_STATUS }));
+      return { cards, text: cards.length ? `Doorsteps for the missing forms — guided sessions on each portal (you sign in yourself; I never type, take or keep a password or a code), each ending one tap before the download:\n${cards.map((c, i) => `${i + 1}. ${c.service}: ${c.action}. Go to ${c.target}. Stop before ${c.stop_before} — ${c.status}.`).join("\n")}\nNothing has been downloaded.` : `No doorsteps: the ${f.year} folder has no gaps to retrieve.` };
+    }
+    const o = organize(ctx);
+    const cards = o.gaps.map(g => ({ service: g.where, action: `retrieve the ${g.label}`, target: g.where, prefill: `the ${g.label}, in your account`, stop_before: "the download tap", status: DOORSTEP_STATUS }));
+    return { cards, text: cards.length ? `Doorsteps for the gaps — guided sessions where each document lives (you sign in yourself; I never type, take or keep a password or a code), each ending one tap before the download:\n${cards.map((c, i) => `${i + 1}. ${c.action}. Go to ${c.target}. Stop before ${c.stop_before} — ${c.status}.`).join("\n")}\nNothing has been retrieved.` : "No doorsteps: no gaps to retrieve." };
+  }
+
   // ---- the chat surface ----
   const lastAssistant = opts => { const p = (opts.previous || []).filter(m => m.role === "assistant"); return p.length ? String(p[p.length - 1].content || "") : ""; };
   function ask(message) {
@@ -254,6 +279,9 @@ Ask "find my auto policy" and I'll point to it in seconds.`;
     }
     if (/breach lockdown/i.test(prev) && /^(yes|do it|go ahead)\b/i.test(m.trim())) return breachExecute(o.breachCtx, now).text;
     if (/send (it|the folder|the summary) to my cpa/i.test(m) && /(tax folder|donation receipts)/i.test(prev)) return cpaPacket(/tax folder/i.test(prev) ? "tax" : "charity", o).text;
+    if (/^(doorstep|take me to|open the)/i.test(m.trim()) && /lockdown run/i.test(prev)) return doorsteps("breach", o.breachCtx).text;
+    if (/^(doorstep|take me to|open the)/i.test(m.trim()) && /tax folder/i.test(prev)) return doorsteps("tax", o.tax).text;
+    if (/^(doorstep|take me to|open the)/i.test(m.trim()) && /^Organized/i.test(prev)) return doorsteps("organize", { files: o.files }).text;
     if (/airport trip was business/i.test(m) && /mileage log/i.test(prev)) {
       const trips = (o.trips || []).map(t => /airport/i.test(`${t.from} ${t.to}`) ? { ...t, confirmed: true } : t);
       const r = mileage({ year: o.year, trips, stand_in: o.stand_in });
@@ -277,6 +305,6 @@ Ask "find my auto policy" and I'll point to it in seconds.`;
     }
   }
 
-  return { sha256, guard, breachLockdown, breachExecute, hashAnswer, verifyAnswer, retrieve, challengeText, taxFolder, cpaPacket, mileage, rateFor, charityRoundup, organize, findDoc, ask, answer, money };
+  return { sha256, guard, breachLockdown, breachExecute, doorsteps, DOORSTEP_STATUS, hashAnswer, verifyAnswer, retrieve, challengeText, taxFolder, cpaPacket, mileage, rateFor, charityRoundup, organize, findDoc, ask, answer, money };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = VaultDocs;

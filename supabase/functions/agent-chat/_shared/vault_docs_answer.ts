@@ -23,6 +23,7 @@ export function vaultDocsKind(message: string, previous: any[] = []): string | n
   if (/breach lockdown/i.test(p) && /^(yes|do it|go ahead)\b/i.test(String(message || "").trim())) return "breach_execute";
   if (/send (it|the folder|the summary) to my cpa/i.test(String(message || "")) && /(tax folder|donation receipts)/i.test(p)) return "cpa_packet";
   if (/airport trip was business/i.test(String(message || "")) && /mileage log/i.test(p)) return "mileage_confirm";
+  if (/^(doorstep|take me to|open the)/i.test(String(message || "").trim()) && /(lockdown run|tax folder|^Organized)/i.test(p)) return "doorstep";
   return (VaultDocs as any).ask(message);
 }
 

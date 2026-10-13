@@ -141,3 +141,18 @@ Deno.test("secrets discipline: a watch carrying a password value gets the refusa
   assertMatch(r, /^I can't run that: a stored fact for it carries a secret value/);
   assert(!r.includes("hunter2"), r);
 });
+
+Deno.test("doorsteps: after the lockdown run, the tax folder and the organize reply, 'doorstep' walks to each ready screen and stops before the tap", async () => {
+  const [, , d1] = await converse(["My email was in the Ticketmaster breach. Handle it.", "do it", "doorstep"]);
+  assertMatch(d1, /^Doorsteps for the Ticketmaster lockdown/);
+  assertMatch(d1, /1\. Ticketmaster: change the password\./);
+  assertMatch(d1, /4\. Chase \(card on file at Ticketmaster\): replace the card — breach\./);
+  assertMatch(d1, /Stop before the final order-replacement tap — doorstep built — live session pending the owner's browser lane\./);
+  assertMatch(d1, /Nothing on any of these screens has been executed\./);
+  const [, d2] = await converse(["Round up everything my CPA needs.", "doorstep"]);
+  assertMatch(d2, /^Doorsteps for the missing forms/);
+  assertMatch(d2, /Nothing has been downloaded\./);
+  const [, d3] = await converse(["Organize my financial documents", "doorstep"]);
+  assertMatch(d3, /^Doorsteps for the gaps/);
+  assertMatch(d3, /Nothing has been retrieved\./);
+});

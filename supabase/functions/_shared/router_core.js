@@ -3737,6 +3737,56 @@
       return { balance_below: `I'll tell you when ${w.account} drops below ${money(w.threshold_cents)}.`, amount_over: `I'll tell you about any charge over ${money(w.threshold_cents)}.`, merchant_charge: `I'll tell you when ${w.merchant} charges you.`, deposit: `I'll tell you when ${w.from} lands.`, category_month_over: `I'll tell you when ${w.category} spending passes ${money(w.threshold_cents)} in a month.`, bill_increase: `I'll tell you when the ${w.merchant} bill goes up.` }[w.kind];
     }
 
+    // Low-balance episode cadence (A5; Operating Model Part 3: proactive messages only for protection or
+    // obligations, each naming the value, small items batched, NO NAGGING). The ALRT-001 warning used to key
+    // on the projected first-under-buffer day, which moves as the trailing average moves, so a person in one
+    // long low stretch got the same warning every day. Now the warning fires ONCE per EPISODE: a continuous
+    // stretch where the projection stays under the buffer. The episode's identity is stable — the liquid
+    // accounts whose cash is projected (lowBalanceScope) — never the moving date. Inside an episode it
+    // re-fires ONLY when the picture materially worsens. MATERIALITY IS DEFINED HERE, IN THIS ONE PLACE:
+    // the projected low drops by at least $50 (LOW_BALANCE_DROP_CENTS), OR by at least 10 percent of the
+    // magnitude of the low last reported (LOW_BALANCE_DROP_PCT), OR the first under-buffer day moves at
+    // least 7 days closer (LOW_BALANCE_DATE_DAYS). Anything smaller is jitter and stays silent. When the
+    // projection recovers above the buffer the episode closes (the delivery layer records the closed state;
+    // see lowBalanceEpisode's state, carried in the person's existing watches store by proactive.ts), and a
+    // later dip is a new episode that fires fresh. A re-fire's text names what got worse — the new low and
+    // how much lower, or the sooner day — never a bare repeat. The projection itself (amounts, days) is
+    // unchanged: only the firing lifecycle moved.
+    const LOW_BALANCE_DROP_CENTS = 5000, LOW_BALANCE_DROP_PCT = 10, LOW_BALANCE_DATE_DAYS = 7;
+    const LB_LIQUID = ["checking", "savings", "cash", "money_market"];
+    function lowBalanceScope(accounts) { const ids = (accounts || []).filter(a => a && LB_LIQUID.includes(a.kind) && a.id != null).map(a => String(a.id)).sort(); return ids.length ? ids.join("+") : "cash"; }
+    // Null when the change from the last REPORTED picture is only jitter; otherwise what got worse, exactly.
+    function lowBalanceMateriallyWorse(current, last) {
+      if (!current || !last || !Number.isInteger(current.low_cents) || !Number.isInteger(last.low_cents)) return null;
+      const drop = last.low_cents - current.low_cents;
+      const byLow = drop >= LOW_BALANCE_DROP_CENTS || (drop > 0 && Math.abs(last.low_cents) > 0 && drop >= Math.ceil(Math.abs(last.low_cents) * LOW_BALANCE_DROP_PCT / 100));
+      const daysCloser = current.first_below_on && last.first_below_on ? Math.round((dayMs(last.first_below_on) - dayMs(current.first_below_on)) / DAY) : 0;
+      const byDate = daysCloser >= LOW_BALANCE_DATE_DAYS;
+      if (!byLow && !byDate) return null;
+      return { drop_cents: drop, days_closer: daysCloser, by_low: byLow, by_date: byDate };
+    }
+    // The episode decision, pure: current { scope, low_cents, first_below_on }, prior the stored episode
+    // state (or null), today the run's day. Returns the action, the delivery key when it fires (the episode's
+    // opened day plus the exact low and first day being reported, so the once-only log holds this report and
+    // no other), the state to store, and — on a re-fire — the sentence naming what got worse.
+    function lowBalanceEpisode(current, prior, today) {
+      const scope = String((current && current.scope) || "cash");
+      if (!prior || prior.status !== "open") {
+        const state = { kind: "low_balance_episode", id: `lbep-${scope}`, scope, status: "open", opened_on: today, last_low_cents: current.low_cents, last_first_below_on: current.first_below_on, last_reported_on: today, reports: 1 };
+        return { action: "fire", key: `low_balance:ep:${scope}:${today}:${current.low_cents}:${current.first_below_on}`, state, worsening: null, worsening_text: null };
+      }
+      const w = lowBalanceMateriallyWorse(current, { low_cents: prior.last_low_cents, first_below_on: prior.last_first_below_on });
+      if (!w) return { action: "suppress", key: null, state: prior, worsening: null, worsening_text: null };
+      const parts = [];
+      if (w.by_low) parts.push(`The low is now ${money(current.low_cents)}, ${money(w.drop_cents)} lower than when I last warned you (it was ${money(prior.last_low_cents)}).`);
+      if (w.by_date) parts.push(`The first day under your buffer is now ${current.first_below_on}, ${w.days_closer} days sooner than when I last warned you (it was ${prior.last_first_below_on}).`);
+      const state = Object.assign({}, prior, { last_low_cents: current.low_cents, last_first_below_on: current.first_below_on, last_reported_on: today, reports: (prior.reports || 1) + 1 });
+      return { action: "refire", key: `low_balance:ep:${scope}:${prior.opened_on}:${current.low_cents}:${current.first_below_on}`, state, worsening: w, worsening_text: parts.join(" ") };
+    }
+    // An open episode whose projection has recovered above the buffer closes, silently: the stored state is
+    // kept, marked closed, so a later dip fires fresh instead of being compared to the old episode's low.
+    function lowBalanceClose(prior, today) { return prior && prior.status === "open" ? Object.assign({}, prior, { status: "closed", closed_on: today }) : prior; }
+
     // Detectors. Each returns firings: { key, kind, capability_id, severity (safety | urgent | normal), title, text, evidence, amount_cents }.
     function detect(input) {
       const today = input.today, rules = input.rules, all = rows(input.transactions, rules), accounts = input.accounts || [], out = [];
@@ -3748,7 +3798,8 @@
         const f = ledger.cashflowForecast({ today, accounts, transactions: input.transactions, rules, horizons: [30] });
         const buffer = Number.isInteger(input.buffer_cents) ? input.buffer_cents : 10000;
         const first = (f.daily || []).find(x => x.balance_cents < buffer);
-        if (first) out.push({ key: `low_balance:${first.on}`, kind: "low_balance", capability_id: "ALRT-001", severity: f.low_point.balance_cents < 0 ? "urgent" : "normal", title: `Balance goes under ${money(buffer)} on ${first.on}`, text: `Your cash is ${money(f.start_cents)} now; it goes under your ${money(buffer)} buffer on ${first.on} (${money(first.balance_cents)}) and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}.`, evidence: { rows: f.recurring_items, computed: { start_cents: f.start_cents, first_below: first, low: f.low_point, buffer_cents: buffer }, source: f.source, as_of: f.as_of }, amount_cents: buffer - f.low_point.balance_cents, deadline: dayMs(first.on) });
+        const epScope = lowBalanceScope(accounts), episode = first ? { scope: epScope, low_cents: f.low_point.balance_cents, first_below_on: first.on, buffer_cents: buffer } : null;
+        if (first) out.push({ key: `low_balance:ep:${epScope}`, kind: "low_balance", capability_id: "ALRT-001", severity: f.low_point.balance_cents < 0 ? "urgent" : "normal", title: `Balance goes under ${money(buffer)} on ${first.on}`, text: `Your cash is ${money(f.start_cents)} now; it goes under your ${money(buffer)} buffer on ${first.on} (${money(first.balance_cents)}) and bottoms at ${money(f.low_point.balance_cents)} on ${f.low_point.on}.`, evidence: { rows: [], computed: { start_cents: f.start_cents, first_below: first, low: f.low_point, buffer_cents: buffer, episode }, source: f.source, as_of: f.as_of }, episode, amount_cents: buffer - f.low_point.balance_cents, deadline: dayMs(first.on) });
       }
       // ALRT-002 large transaction: over the user's threshold, or over three times the category's typical charge when there is history.
       // The computed evidence carries the transaction reference (id, merchant, amount, date): the proactive
@@ -3907,11 +3958,11 @@
       const d = deliver(firings, now, input.quiet);
       const b = bundle(d.now);
       const out = { safety: [], watches: [], proactive: [], held: d.held, quiet: d.quiet, held_until: d.held_until, firings: firings.length };
-      for (const f of b.items) { const item = { key: f.key, text: f.text, reason: f.kind === "watch" ? "you asked me to watch this" : REASONS[f.kind] || f.kind, evidence: f.evidence, capability_id: f.capability_id, amount_cents: f.amount_cents || null, deadline: f.deadline || null, urgent: f.severity === "urgent", title: f.title, members: f.members }; if (f.severity === "safety") out.safety.push(item); else if (f.kind === "watch" || f.severity === "urgent") out.watches.push(item); else out.proactive.push(item); }
+      for (const f of b.items) { const item = { key: f.key, text: f.text, reason: f.kind === "watch" ? "you asked me to watch this" : REASONS[f.kind] || f.kind, evidence: f.evidence, capability_id: f.capability_id, amount_cents: f.amount_cents || null, deadline: f.deadline || null, urgent: f.severity === "urgent", title: f.title, members: f.members, episode: f.episode || null }; if (f.severity === "safety") out.safety.push(item); else if (f.kind === "watch" || f.severity === "urgent") out.watches.push(item); else out.proactive.push(item); }
       return out;
     }
     const REASONS = { low_balance: "your balance is heading under your buffer", large_transaction: "a charge far above your usual", international_charge: "a charge in another currency", unusual_spending: "spending unlike your pattern", bill_increase: "a bill went up", renewal: "a renewal is coming", payment_failed: "a payment did not go through", deposit_received: "money landed", windfall: "a deposit well above your usual pattern", fee_charged: "a fee hit", bundle: "several things at once" };
-    return { parseWatch, restateWatch, dueOf, detect, evaluateWatches, deliver, bundle, run, inQuiet, quietEnds, REASONS };
+    return { parseWatch, restateWatch, dueOf, detect, evaluateWatches, deliver, bundle, run, inQuiet, quietEnds, REASONS, lowBalanceScope, lowBalanceMateriallyWorse, lowBalanceEpisode, lowBalanceClose, LOW_BALANCE_DROP_CENTS, LOW_BALANCE_DROP_PCT, LOW_BALANCE_DATE_DAYS };
   })();
   if (typeof module !== "undefined" && module.exports) module.exports = AgentAlerts;
 
@@ -3974,7 +4025,19 @@
         const m = Monitors.runAll({ today: input.today, transactions: input.transactions, isLive: input.isLive !== false, balance: input.balance, buffer: input.buffer, knownMerchants: input.knownMerchants, subscriptions: input.subscriptions, cancelClaims: input.cancelClaims, deadlines: input.deadlines, statesLived: input.statesLived, lastSearched: input.lastSearched, accounts: input.accounts_live || deposits(input.accounts) });
         out.sources.monitors = { findings: m.findings.length, errors: m.errors };
         for (const f of m.findings) {
-          if (f.kind === "low_balance" || f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.kind === "low_balance" ? "you asked me to watch your balance" : "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });
+          if (f.kind === "low_balance") {
+            // A5 cadence: the monitor's key follows its own projected low date, which moves daily. The feed
+            // re-keys it to the stable episode identity (the liquid accounts projected; AgentAlerts owns the
+            // rule) and carries the episode picture (the low, the first under-buffer day) the delivery
+            // layer's episode decision reads. The finding's words and amounts are untouched.
+            const lbAccounts = (input.accounts || []).filter(a => a && ["checking", "savings", "cash", "money_market"].includes(a.kind) && a.id != null).map(a => String(a.id)).sort();
+            const lbScope = lbAccounts.length ? lbAccounts.join("+") : "cash";
+            const lbBuffer = f.evidence && f.evidence.computed ? Number(f.evidence.computed.buffer) : NaN;
+            const lbRow = f.evidence && f.evidence.computed && Array.isArray(f.evidence.computed.upcoming) ? f.evidence.computed.upcoming.find(u => Number.isFinite(lbBuffer) && u.balance_after < lbBuffer) : null;
+            const episode = lbRow ? { scope: lbScope, low_cents: Math.round(lbRow.balance_after * 100), first_below_on: f.dueOn, buffer_cents: Number.isFinite(lbBuffer) ? Math.round(lbBuffer * 100) : null } : null;
+            out.watches.push({ key: `low_balance:ep:${lbScope}`, text: f.title + ". " + f.detail, reason: "you asked me to watch your balance", evidence: f.evidence, capability_id: f.capabilityId, episode });
+          }
+          else if (f.kind === "charged_after_cancel") out.watches.push({ key: f.key, text: f.title + ". " + f.detail, reason: "you asked me to confirm this cancellation held", evidence: f.evidence, capability_id: f.capabilityId });
           else out.proactive.push({ key: f.key, text: f.title + ". " + f.detail, reason: f.evidence && f.evidence.rule ? f.evidence.rule : f.kind, deadline: f.dueOn && DEADLINE_KINDS.has(f.kind) ? dayMs(f.dueOn) : null, next_on: f.dueOn || null, amount_cents: f.amount != null ? Math.round(f.amount * 100) : null, evidence: f.evidence, capability_id: f.capabilityId, priority: f.priority || 3 });
         }
       }

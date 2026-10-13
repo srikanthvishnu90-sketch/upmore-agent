@@ -27697,7 +27697,11 @@ const CareerRouter = (() => {
       nextStep = "Tell me if you want to start a different application instead.";
     }
     const reply = compose({ headline, facts, nextStep });
-    return { intent: "intent_refusal", resultStatus: "blocked", refused: true, refusal_reason: reason, invalidation: inv || store.invalidation || null, doorstep: store.doorstep || null, submission: store.submission || null, reply };
+    // Coordinator integration (round 2): one refusal contract across layers —
+    // a refused fill/submit carries the seam's guard_refusal.code vocabulary
+    // (141 checkSubmitGuards) whichever layer speaks first.
+    const GUARD_CODE = { role_closed: "job_closed", prior_application: "duplicate_application", sensitive_fact_corrected: "stale_packet_facts", cancelled_by_user: "approval_cancelled" };
+    return { intent: "intent_refusal", resultStatus: "blocked", refused: true, refusal_reason: reason, guard_refusal: { code: GUARD_CODE[reason] || "approval_invalidated", reason: headline, unblock: nextStep }, invalidation: inv || store.invalidation || null, doorstep: store.doorstep || null, submission: store.submission || null, reply };
   }
 
   // ---- (a) role-closure reports (DD-1 / AP08) ----

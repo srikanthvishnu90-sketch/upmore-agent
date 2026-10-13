@@ -290,6 +290,23 @@ const CareerDoorstep = (() => {
       role: board.role || (state && state.doorstep && state.doorstep.role) || null,
     };
   }
+  // Coordinator integration bridge (repair round 2): the router lane (142)
+  // records user intents in its own shapes — doorstepState.invalidation
+  // { active, reason }, .role_closed { closed }, .prior_application
+  // { disclosed } — while these guards were written against the recorder
+  // shapes above. This reader translates the router's shapes so BOTH
+  // writers arm the same execution guards.
+  function routerInvalidation(st) {
+    const inv = st && st.invalidation && st.invalidation.active === true ? st.invalidation : null;
+    const reason = inv ? inv.reason : null;
+    return {
+      closed: reason === "role_closed" || !!(st && st.role_closed && st.role_closed.closed === true),
+      cancelled: reason === "cancelled_by_user",
+      invalidated: !!inv && reason !== "role_closed" && reason !== "cancelled_by_user" && reason !== "prior_application",
+      prior: reason === "prior_application" || !!(st && st.prior_application && st.prior_application.disclosed === true),
+      reason,
+    };
+  }
   function priorApplicationFor(ctx, state, spec) {
     const st = state || {}, c = ctx || {};
     const job = jobIdentity(st, spec);
@@ -305,6 +322,14 @@ const CareerDoorstep = (() => {
       if (!Array.isArray(list)) continue;
       const hit = list.find(matches);
       if (hit) return { job_id: hit.job_id || hit.jobId || job.job_id, company: hit.company || job.company, role: hit.role || job.role, source: hit.source || "prior application on record", channel: hit.channel || null, at: hit.at || null, receipt_id: hit.receipt_id || null };
+    }
+    if (st.prior_application && st.prior_application.disclosed === true) {
+      const pa = st.prior_application;
+      return { job_id: pa.job_id || job.job_id, company: pa.company || job.company, role: pa.role || job.role, source: "manual application (disclosed by the user)", channel: pa.channel || null, at: pa.at || null, receipt_id: null };
+    }
+    if (routerInvalidation(st).prior) {
+      const inv = st.invalidation || {};
+      return { job_id: job.job_id, company: job.company, role: job.role, source: "manual application (disclosed by the user)", channel: null, at: inv.at || null, receipt_id: null };
     }
     for (const single of [st.manual_apply_disclosure, c.manualApplyDisclosure, c.manual_apply_disclosure]) {
       if (single && matches(single)) return { job_id: single.job_id || single.jobId || job.job_id, company: single.company || job.company, role: single.role || job.role, source: single.source || "manual application (disclosed by the user)", channel: single.channel || null, at: single.at || null, receipt_id: null };
@@ -332,7 +357,7 @@ const CareerDoorstep = (() => {
   }
   function jobClosedReason(ctx, state) {
     const st = state || {}, c = ctx || {};
-    if (st.job_status === "closed" || st.job_closed === true) return st.job_closed_reason || "this job has closed and is no longer accepting applications";
+    if (st.job_status === "closed" || st.job_closed === true || routerInvalidation(st).closed) return st.job_closed_reason || "the role was reported closed — it is no longer accepting applications";
     const p = c.posting || null;
     if (p && (p.closed === true || p.is_closed === true || p.status === "closed" || p.accepting_applications === false || p.acceptingApplications === false)) {
       return "the posting now shows this job as closed — it is no longer accepting applications";
@@ -355,13 +380,14 @@ const CareerDoorstep = (() => {
   // may proceed, else { code, reason, unblock, reply }.
   function checkSubmitGuards(ctx, state) {
     const st = state || {}, sub = st.submission || {};
-    if (sub.status === "cancelled" || st.approval_cancelled === true) {
+    const ri = routerInvalidation(st);
+    if (sub.status === "cancelled" || st.approval_cancelled === true || ri.cancelled) {
       const why = sub.cancel_reason || st.cancel_reason || null;
       return { code: "approval_cancelled", reason: "the user cancelled this submission" + (why ? ` (${why})` : ""), unblock: "prepare the application fresh and approve the new review",
         reply: `I did not submit this application: you cancelled it${why ? ` (${why})` : ""}, and a cancelled approval cannot be revived by a later "approve and submit". Nothing was submitted. If you want it to go ahead after all, ask me to prepare it fresh and approve the new review.` };
     }
-    if (st.approval_invalidated === true || sub.status === "invalidated") {
-      const why = st.invalidated_reason || sub.invalidated_reason || "the prepared packet was invalidated";
+    if (st.approval_invalidated === true || sub.status === "invalidated" || ri.invalidated) {
+      const why = st.invalidated_reason || sub.invalidated_reason || (ri.reason ? "invalidated by a later update (" + ri.reason + ")" : null) || "the prepared packet was invalidated";
       return { code: "approval_invalidated", reason: String(why), unblock: "re-prepare the packet on the current facts and re-confirm the new review",
         reply: `I did not submit this application: the prepared packet was invalidated (${why}), so its approval no longer stands. Nothing was submitted. I need to re-prepare it on the current facts and have you re-confirm the new review first.` };
     }
